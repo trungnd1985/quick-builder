@@ -1,0 +1,32 @@
+name: Feature
+description: A feature to be specified and built with Spec Kit
+title: "[Feature] "
+labels: ["feature", "needs-spec"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem / goal
+      description: What should users be able to do, and why? No technical details.
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: In scope / out of scope
+      placeholder: |
+        In: ...
+        Out: ...
+  - type: input
+    id: short-name
+    attributes:
+      label: Short name
+      description: 2-4 words, kebab-case. Becomes <issue>-<short-name> for the branch and spec folder.
+      placeholder: editor-core
+    validations:
+      required: true
+  - type: textarea
+    id: depends
+    attributes:
+      label: Depends on
+      placeholder: "#12, #15"

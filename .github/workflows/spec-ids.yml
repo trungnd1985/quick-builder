@@ -1,0 +1,54 @@
+name: Spec IDs
+
+on:
+  pull_request:
+    paths: ["specs/**"]
+
+permissions:
+  contents: read
+  issues: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate spec folder IDs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -uo pipefail
+          [ -d specs ] || exit 0
+          fail=0
+          declare -A seen
+
+          for dir in specs/*/; do
+            name=$(basename "$dir")
+
+            if ! [[ "$name" =~ ^[0-9]+-[a-z0-9-]+$ ]]; then
+              echo "::error::Invalid spec folder name '$name' (expected <issue>-<short-name>)"
+              fail=1; continue
+            fi
+
+            id=$((10#${name%%-*}))   # normalise leading zeros: 042 -> 42
+
+            if [ -n "${seen[$id]:-}" ]; then
+              echo "::error::Duplicate spec ID $id: '${seen[$id]}' and '$name'"
+              fail=1
+            fi
+            seen[$id]=$name
+
+            # Must be a real issue, not a pull request (they share the numbering)
+            is_pr=$(gh api "repos/$REPO/issues/$id" --jq 'has("pull_request")' 2>/dev/null) || {
+              echo "::error::Spec '$name' refers to issue #$id, which does not exist"
+              fail=1; continue
+            }
+            if [ "$is_pr" = "true" ]; then
+              echo "::error::Spec '$name' uses #$id, which is a pull request, not an issue"
+              fail=1
+            fi
+          done
+
+          exit $fail
