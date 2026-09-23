@@ -1,0 +1,102 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 2
+
+[*.{cs,csx}]
+indent_size = 4
+
+# --- C# language conventions -------------------------------------------------
+[*.cs]
+dotnet_sort_system_directives_first = true
+dotnet_separate_import_directive_groups = false
+csharp_using_directive_placement = outside_namespace:warning
+csharp_style_namespace_declarations = file_scoped:warning
+csharp_prefer_braces = true:warning
+csharp_style_var_for_built_in_types = false:suggestion
+csharp_style_var_when_type_is_apparent = true:suggestion
+dotnet_style_qualification_for_field = false:warning
+dotnet_style_qualification_for_property = false:warning
+dotnet_style_require_accessibility_modifiers = for_non_interface_members:warning
+dotnet_style_readonly_field = true:warning
+csharp_style_expression_bodied_methods = when_on_single_line:suggestion
+csharp_style_prefer_primary_constructors = true:suggestion
+
+# Naming: private *instance* fields are _camelCase.
+#
+# Scoped to non-static, non-const fields deliberately. A `private static readonly` field is
+# a constant by another name and reads as PascalCase everywhere in .NET — applying the
+# underscore prefix to it would make shared lookup tables and cached delegates look like
+# mutable instance state.
+dotnet_naming_rule.private_fields_underscore.symbols = private_instance_fields
+dotnet_naming_rule.private_fields_underscore.style = underscore_camel
+dotnet_naming_rule.private_fields_underscore.severity = warning
+dotnet_naming_symbols.private_instance_fields.applicable_kinds = field
+dotnet_naming_symbols.private_instance_fields.applicable_accessibilities = private
+dotnet_naming_symbols.private_instance_fields.required_modifiers =
+dotnet_naming_style.underscore_camel.required_prefix = _
+dotnet_naming_style.underscore_camel.capitalization = camel_case
+
+# Private static/const fields are PascalCase.
+dotnet_naming_rule.private_static_fields_pascal.symbols = private_static_fields
+dotnet_naming_rule.private_static_fields_pascal.style = pascal
+dotnet_naming_rule.private_static_fields_pascal.severity = warning
+dotnet_naming_symbols.private_static_fields.applicable_kinds = field
+dotnet_naming_symbols.private_static_fields.applicable_accessibilities = private
+dotnet_naming_symbols.private_static_fields.required_modifiers = static
+dotnet_naming_style.pascal.capitalization = pascal_case
+
+# CA1848 (LoggerMessage delegates) and CA1873 (guard expensive log arguments) are logging
+# performance guidelines. Every log statement in this feature sits on a cold path —
+# startup, migration, outbox dispatch — so the source-generator ceremony would cost
+# readability and buy nothing. Revisit when a hot path actually logs.
+dotnet_diagnostic.CA1848.severity = none
+dotnet_diagnostic.CA1873.severity = none
+# CA1515: public types in an app assembly. The Host is an app but deliberately exposes
+# Program for WebApplicationFactory in integration tests.
+dotnet_diagnostic.CA1515.severity = none
+# CA1716: "Shared" collides with a VB reserved word. The namespace and project names are
+# fixed by constitution Principle I (QuickBuilder.Shared.Kernel /
+# QuickBuilder.Shared.Infrastructure) and this is a single-language, non-published
+# codebase, so cross-language consumability is not a concern.
+dotnet_diagnostic.CA1716.severity = none
+
+# Underscored test names (Given_When_Then) are the convention in .NET test suites and
+# read far better in a failure report than PascalCase. Allowed in tests only — production
+# code still follows CA1707.
+[tests/**/*.cs]
+dotnet_diagnostic.CA1707.severity = none
+# CA1001: xUnit owns fixture lifetimes through IAsyncLifetime, which the analyzer does not
+# recognise as disposal. Making every test class IDisposable as well would be ceremony
+# that fights the framework.
+dotnet_diagnostic.CA1001.severity = none
+# CA1861: inline arrays in request payloads are the readable form for a test. The
+# allocation the rule cares about is irrelevant at test scale.
+dotnet_diagnostic.CA1861.severity = none
+
+# EF Core writes these files; holding generated code to hand-written style rules means
+# editing every scaffolded migration by hand, which invites exactly the drift the
+# forward-only rule exists to prevent. Correctness still applies — only style is relaxed.
+[**/Migrations/*.cs]
+generated_code = true
+dotnet_diagnostic.IDE0161.severity = none
+dotnet_diagnostic.IDE0300.severity = none
+dotnet_diagnostic.IDE0303.severity = none
+dotnet_diagnostic.CA1861.severity = none
+
+[*.{json,yml,yaml}]
+indent_size = 2
+
+[*.{ts,vue,js,mjs,cjs}]
+indent_size = 2
+
+[*.md]
+trim_trailing_whitespace = false
+
+[*.{sh}]
+end_of_line = lf

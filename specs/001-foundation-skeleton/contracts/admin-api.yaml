@@ -1,0 +1,302 @@
+openapi: 3.1.0
+info:
+  title: QuickBuilder — Foundation Skeleton HTTP contract
+  version: "1.0.0"
+  description: >-
+    Every HTTP surface this feature exposes. Module endpoints follow FR-010a:
+    /api/v1/<module>/... with the version segment present from the first endpoint.
+    There is NO authentication in this feature (spec Out of Scope); the reference
+    deployment compensates by binding to loopback only (FR-037a).
+
+servers:
+  - url: http://127.0.0.1:8080
+    description: Reference deployment (loopback only by design)
+
+tags:
+  - name: sites
+    description: Administrative surface — never requires a resolved site (FR-011b)
+  - name: public
+    description: Public surface — always requires a resolved site (FR-011a)
+  - name: health
+    description: Operational probes — never require a resolved site
+
+paths:
+  /api/v1/sites:
+    get:
+      tags: [sites]
+      summary: List all sites
+      description: >-
+        Deliberate cross-site read (FR-013a). Goes through the annotated cross-site
+        helper with a recorded reason and has its own dedicated test. Returns an empty
+        array on a fresh installation — that is the normal state, not an error (FR-014a).
+      responses:
+        "200":
+          description: Sites, newest first
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Site" }
+              examples:
+                fresh-install:
+                  summary: Fresh installation
+                  value: []
+    post:
+      tags: [sites]
+      summary: Create a site
+      description: >-
+        Writes the site, its host names and the Sites.SiteCreated outbox message in one
+        transaction (FR-015).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateSiteRequest" }
+      responses:
+        "201":
+          description: Created
+          headers:
+            Location:
+              schema: { type: string }
+              description: URL of the created site
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Site" }
+        "400":
+          description: Validation failed — handler never ran (FR-008)
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/ValidationProblem" }
+        "409":
+          description: A host name is already claimed by another site
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/Problem" }
+              example:
+                type: "https://quickbuilder.dev/errors/host-name-taken"
+                title: "Host name already in use"
+                status: 409
+                errorCode: "sites.host_name_taken"
+                detail: "The host name is already assigned to another site."
+
+  /api/v1/sites/{siteId}:
+    parameters:
+      - name: siteId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      tags: [sites]
+      summary: Get one site
+      description: >-
+        The site is named explicitly in the path, never inferred from the Host header —
+        FR-011b.
+      responses:
+        "200":
+          description: The site
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Site" }
+        "404":
+          description: No such site
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/Problem" }
+
+  /api/v1/sites/{siteId}/host-names:
+    parameters:
+      - name: siteId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    post:
+      tags: [sites]
+      summary: Add a host name to a site
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [hostName]
+              properties:
+                hostName: { $ref: "#/components/schemas/HostName" }
+      responses:
+        "201":
+          description: Added
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SiteHostName" }
+        "400":
+          description: Invalid host name
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/ValidationProblem" }
+        "404":
+          description: No such site
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/Problem" }
+        "409":
+          description: Host name already claimed
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/Problem" }
+
+  /:
+    get:
+      tags: [public]
+      summary: Public-surface placeholder proving site resolution
+      description: >-
+        The entire public surface in this feature. Resolves the site from the Host header
+        via middleware (FR-011a) and reports which site was resolved. The Rendering module
+        replaces this later. Exists so US1 scenario 3 and SC-001a are testable.
+      responses:
+        "200":
+          description: Host header resolved to a site
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [siteId, siteName]
+                properties:
+                  siteId: { type: string, format: uuid }
+                  siteName: { type: string }
+        "404":
+          description: >-
+            Host header matches no configured site (FR-014). Discloses nothing about
+            which sites exist — the body is identical whether the installation has zero
+            sites or a hundred.
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/Problem" }
+              example:
+                type: "https://quickbuilder.dev/errors/site-not-resolved"
+                title: "Not found"
+                status: 404
+                errorCode: "sites.not_resolved"
+
+  /health/live:
+    get:
+      tags: [health]
+      summary: Liveness
+      description: Succeeds whenever the process can serve requests (FR-027).
+      responses:
+        "200": { description: Process is alive }
+
+  /health/ready:
+    get:
+      tags: [health]
+      summary: Readiness
+      description: >-
+        Succeeds only when configuration is valid, migrations are complete and the
+        database is reachable (FR-027). Reports the current startup state otherwise
+        (D-17).
+      responses:
+        "200":
+          description: Ready
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/HealthReport" }
+        "503":
+          description: Not ready — state names why
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/HealthReport" }
+              examples:
+                waiting:
+                  value:
+                    status: "Unhealthy"
+                    state: "WaitingForDatabase"
+                    checks: [{ name: "postgres", status: "Unhealthy" }]
+
+components:
+  schemas:
+    HostName:
+      type: string
+      maxLength: 253
+      description: >-
+        Case-insensitive, stored lowercased, globally unique across all sites. No port —
+        ports are the reverse proxy's concern.
+      examples: ["example.com", "blog.example.com"]
+
+    Site:
+      type: object
+      required: [id, name, hostNames, createdAtUtc]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string, minLength: 1, maxLength: 200 }
+        hostNames:
+          type: array
+          items: { $ref: "#/components/schemas/HostName" }
+        createdAtUtc: { type: string, format: date-time }
+
+    SiteHostName:
+      type: object
+      required: [id, siteId, hostName]
+      properties:
+        id: { type: string, format: uuid }
+        siteId: { type: string, format: uuid }
+        hostName: { $ref: "#/components/schemas/HostName" }
+
+    CreateSiteRequest:
+      type: object
+      required: [name, hostNames]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 200 }
+        hostNames:
+          type: array
+          minItems: 1
+          items: { $ref: "#/components/schemas/HostName" }
+      example:
+        name: "Example"
+        hostNames: ["example.com"]
+
+    Problem:
+      description: >-
+        RFC 9457 problem details plus errorCode — the machine-readable reason from the
+        handler's expected-failure result (FR-009). Never carries internal detail
+        (FR-034).
+      type: object
+      required: [title, status, errorCode]
+      properties:
+        type: { type: string }
+        title: { type: string }
+        status: { type: integer }
+        detail: { type: string }
+        errorCode:
+          type: string
+          description: Stable dotted code, e.g. sites.host_name_taken
+        traceId:
+          type: string
+          description: Same value as the log correlation identifier (FR-031a)
+
+    ValidationProblem:
+      allOf:
+        - $ref: "#/components/schemas/Problem"
+        - type: object
+          required: [errors]
+          properties:
+            errors:
+              type: object
+              additionalProperties:
+                type: array
+                items: { type: string }
+              example:
+                hostNames: ["Host name 'exam ple.com' is not a valid host name."]
+
+    HealthReport:
+      type: object
+      required: [status, state]
+      properties:
+        status: { type: string, enum: [Healthy, Degraded, Unhealthy] }
+        state:
+          type: string
+          enum: [WaitingForDatabase, Migrating, Ready, Failed]
+        checks:
+          type: array
+          items:
+            type: object
+            properties:
+              name: { type: string }
+              status: { type: string }

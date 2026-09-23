@@ -1,0 +1,123 @@
+name: CI
+
+# FR-039: runs on every pull request. Restore, build, all test suites, formatting check.
+# Warnings are errors via Directory.Build.props, so a warning fails this workflow.
+# FR-041: the container image is built to prove it builds, and status is reported back.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+
+jobs:
+  backend:
+    name: Build and test (.NET)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore
+        run: dotnet restore QuickBuilder.slnx
+
+      - name: Build
+        run: dotnet build QuickBuilder.slnx --no-restore --configuration Release
+
+      - name: Verify formatting
+        run: dotnet format QuickBuilder.slnx --verify-no-changes --no-restore
+
+      # Testcontainers needs a working Docker daemon; ubuntu-latest runners have one.
+      # Principle X forbids in-memory database providers, so these run against real
+      # PostgreSQL.
+      - name: Test
+        run: >
+          dotnet test QuickBuilder.slnx
+          --no-build
+          --configuration Release
+          --filter "FullyQualifiedName!~SmokeTests"
+          --collect:"XPlat Code Coverage"
+          --results-directory ./TestResults
+
+      # Principle X requires >=80% line coverage on the critical paths.
+      #
+      # Enforced here, in a step that can actually fail, rather than through the
+      # collector's Threshold setting: the "XPlat Code Coverage" collector silently
+      # ignores it. Verified — a run with Threshold=100 still exits 0. A gate that cannot
+      # fail is worse than no gate, because it reads as covered.
+      #
+      # The bar is the constitution's 80%, against a measured 81.26%. It sat at 75%
+      # temporarily while the unit tests were outstanding; those landed (T127) and took
+      # Shared.Kernel from 67% to 100%, so the bar now matches what Principle X asks for.
+      #
+      # Coverage is still the weaker signal. The concurrency tests (SC-012), the
+      # site-scoping tests (SC-011) and the fixtures proving each architecture rule fires
+      # (SC-004) catch the failures that matter. This only stops whole areas going dark.
+      - name: Enforce coverage threshold
+        env:
+          MINIMUM_COVERAGE: 80
+        run: |
+          set -euo pipefail
+          dotnet tool install --global dotnet-reportgenerator-globaltool
+          reportgenerator \
+            -reports:"./TestResults/**/coverage.cobertura.xml" \
+            -targetdir:./TestResults/merged \
+            -reporttypes:Cobertura
+          rate=$(grep -o 'line-rate="[0-9.]*"' ./TestResults/merged/Cobertura.xml | head -1 | grep -o '[0-9.]*')
+          pct=$(awk "BEGIN{printf \"%.2f\", ${rate} * 100}")
+          echo "Line coverage: ${pct}% (minimum ${MINIMUM_COVERAGE}%)"
+          if awk "BEGIN{exit !(${pct} < ${MINIMUM_COVERAGE})}"; then
+            echo "::error::Line coverage ${pct}% is below the required ${MINIMUM_COVERAGE}%."
+            exit 1
+          fi
+          echo "Coverage gate passed."
+
+      - name: Upload coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: ./TestResults
+
+  admin:
+    name: Build and test (admin)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: admin
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: admin/package-lock.json
+
+      - run: npm ci
+      - run: npm run type-check
+      # SC-013: the no-raw-text rule fails the build on any string written into a screen.
+      - run: npm run lint
+      - run: npm run test
+
+  image:
+    name: Build container image
+    runs-on: ubuntu-latest
+    needs: [backend, admin]
+    steps:
+      - uses: actions/checkout@v4
+
+      # D-15: build for the runner architecture only. Multi-arch publishing belongs to
+      # the release spec, which is out of scope for this feature.
+      - name: Build image
+        run: docker build -t quickbuilder:ci .

@@ -1,0 +1,132 @@
+# Contract: Integration Events and the Outbox
+
+**Feature**: `001-foundation-skeleton` | **Date**: 2026-09-22
+
+This is the contract every module inherits for cross-module side effects. Getting it
+right here is the point of User Story 3 — later modules do not redesign it, they publish
+into it.
+
+---
+
+## Event envelope
+
+Every event is stored and delivered with the same envelope:
+
+| Field | Type | Meaning |
+|---|---|---|
+| `id` | uuid | Event identity. Stable across redeliveries — this is what idempotency keys on. |
+| `eventType` | string | Stable contract name, `<Module>.<EventName>`, e.g. `Sites.SiteCreated` |
+| `occurredAtUtc` | timestamp | When the state change happened, not when it was dispatched |
+| `payload` | object | The event body, versioned by `eventType` |
+| `traceId` | string \| null | Trace id of the originating request, so the dispatch correlates back to it |
+
+**Naming rule**: `eventType` is a published contract. Renaming one is a breaking change;
+introduce `Sites.SiteCreatedV2` alongside and retire the old name once no handler
+subscribes to it.
+
+---
+
+## Events published by this feature
+
+### `Sites.SiteCreated`
+
+Published in the same transaction as the site insert (FR-015).
+
+```json
+{
+  "id": "0195f3c2-8a1e-7c3d-9b44-2f1a6d5e8c90",
+  "eventType": "Sites.SiteCreated",
+  "occurredAtUtc": "2026-09-22T10:31:04.221Z",
+  "traceId": "4bf92f3577b34da6a3ce929d0e0e4736",
+  "payload": {
+    "siteId": "0195f3c2-8a1e-7c3d-9b44-2f1a6d5e8c90",
+    "name": "Example",
+    "hostNames": ["example.com"]
+  }
+}
+```
+
+**Payload rule**: carry identifiers and the few fields a handler needs to act, not the
+whole aggregate. A handler that needs more reads through `Sites.Contracts`
+(`ISiteDirectory`) — it must not read the `sites` schema directly.
+
+**Who consumes it in this feature**: one test handler, which exists to prove delivery,
+retry, and exactly-once effects. No production consumer yet — later modules subscribe when
+they need to react to a new site.
+
+---
+
+## Delivery guarantees
+
+| Guarantee | How | Requirement |
+|---|---|---|
+| Atomic with the state change | Outbox row written on the module's own `DbContext`, one `SaveChanges` | FR-015 |
+| At-least-once delivery | Row survives restart; not completed until the handler succeeded | FR-016 |
+| Effectively-once effect | Handler's effect and its `processed_events` row commit together | FR-017 |
+| One claimant at a time | `FOR UPDATE SKIP LOCKED`; a dead instance's rows unlock on rollback | FR-019 |
+| Failures isolated | Backoff, then terminal `failed` state; other rows keep flowing | FR-018 |
+| Bounded growth | Completed rows swept after the retention window | FR-020 |
+| No cross-module transaction | Each module dispatches from its own outbox, its own context | FR-021 |
+
+**Explicitly not guaranteed**: ordering. Events are claimed in `available_at_utc` order
+but processed concurrently and retried independently, so a handler must not assume it sees
+two events in the order they were published. Say so in any handler that would care.
+
+---
+
+## Handler contract
+
+A handler implements:
+
+```csharp
+public interface IIntegrationEventHandler<in TEvent> where TEvent : IIntegrationEvent
+{
+    Task HandleAsync(TEvent @event, CancellationToken cancellationToken);
+}
+```
+
+Rules every handler must satisfy — each is enforced by the dispatcher, a test, or both:
+
+1. **Idempotent.** It may be called again with the same event id. The dispatcher's
+   `processed_events` insert covers effects written through the same `DbContext`; a
+   handler causing effects outside that transaction is responsible for its own
+   deduplication and must say so in a comment.
+2. **Short.** It runs inside the claim transaction (D-02), so it holds a row lock and a
+   connection. The handler timeout applies; work that cannot finish quickly should enqueue
+   rather than block.
+3. **Self-contained.** It must not reach into another module's schema. Cross-module reads
+   go through that module's `Contracts` project.
+4. **Quiet about content.** Errors recorded in `last_error` carry the exception type and
+   message only — never the payload (FR-032).
+
+---
+
+## Failure semantics
+
+```text
+attempt fails → attempts += 1
+              → available_at_utc = now + backoff(attempts)
+              → retry until attempts = MaxAttempts (default 5)
+              → then failed_at_utc set, last_error recorded, row is terminal
+```
+
+A terminal `failed` row needs operator attention: it is logged at error level with its
+event id, event type and trace id. There is no automatic requeue and no admin requeue
+screen in this feature — deliberately, because no spec needs one yet (Principle XI).
+Recovery today is a database update; a proper requeue path arrives with whichever spec
+first needs it.
+
+---
+
+## Configuration keys
+
+All documented in `docs/configuration.md`, all overridable by environment variable.
+
+| Key | Default | Effect |
+|---|---|---|
+| `Outbox:PollInterval` | `00:00:05` | How often an idle dispatcher looks for work |
+| `Outbox:BatchSize` | `50` | Rows claimed per pass |
+| `Outbox:HandlerTimeout` | `00:00:30` | Per-event handler timeout |
+| `Outbox:MaxAttempts` | `5` | Attempts before terminal failure |
+| `Outbox:RetentionPeriod` | `7.00:00:00` | How long completed rows are kept |
+| `Outbox:Enabled` | `true` | Turns the dispatcher off (useful in tests) |

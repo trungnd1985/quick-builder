@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The module's public surface: interfaces, DTOs and integration events, and nothing
+    else. Other modules may reference this project and never the implementation.
+
+    Deliberately references only Shared.Kernel — no EF Core, no ASP.NET Core. That
+    restriction is asserted by QuickBuilder.ArchitectureTests (Contracts purity), because
+    a contracts project that drags in the data-access stack stops being a contract.
+  -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\Shared\QuickBuilder.Shared.Kernel\QuickBuilder.Shared.Kernel.csproj" />
+  </ItemGroup>
+
+</Project>

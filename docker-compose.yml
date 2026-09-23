@@ -1,0 +1,76 @@
+# QuickBuilder — reference deployment (FR-037).
+#
+# `docker compose up` gets you a working admin interface in under five minutes with no
+# manual database work (SC-001).
+#
+# ─────────────────────────────────────────────────────────────────────────────────────
+#  READ THIS BEFORE CHANGING THE PORT BINDING
+#
+#  This feature ships NO authentication. Anyone who can reach the admin interface can
+#  create, change and delete every site in this installation.
+#
+#  That is why the app is published on 127.0.0.1 below: a default installation is
+#  reachable from this machine and from nowhere else. Widening it — to 0.0.0.0, to a
+#  published host IP, or by putting a proxy in front — exposes an unauthenticated admin
+#  interface to whoever can reach it.
+#
+#  Do not widen it until authentication ships (issue #2).
+# ─────────────────────────────────────────────────────────────────────────────────────
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: quickbuilder
+      POSTGRES_USER: quickbuilder
+      # CHANGE THIS before any real use (FR-038). It is a placeholder, not a default.
+      POSTGRES_PASSWORD: change-me-before-real-use
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    # Not published at all: only the app needs to reach the database, and it does so over
+    # the compose network. Publishing a database port is how installations get found.
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U quickbuilder -d quickbuilder"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+
+  app:
+    image: quickbuilder:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      # The one required setting. Must match the credentials above.
+      ConnectionStrings__Default: "Host=db;Port=5432;Database=quickbuilder;Username=quickbuilder;Password=change-me-before-real-use"
+
+      # Migrations run automatically on startup. Set false to apply them yourself with
+      # `docker compose run --rm app dotnet QuickBuilder.Host.dll migrate` (FR-023).
+      Database__AutoMigrate: "true"
+
+      # Empty means no telemetry exporter is registered and nothing leaves the process
+      # (FR-031b). The installation works fully offline.
+      Telemetry__OtlpEndpoint: ""
+
+      # Behind a reverse proxy, name it here so forwarded headers are trusted. Empty
+      # means none are, which is deliberate: sites are resolved from the Host header, so
+      # a spoofable forwarded host would let a caller choose which site they reach.
+      # Hosting__KnownProxies__0: "10.0.0.5"
+    ports:
+      # 127.0.0.1 — see the warning at the top of this file.
+      - "127.0.0.1:8080:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --spider http://127.0.0.1:8080/health/ready || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 40s
+
+volumes:
+  db-data:
