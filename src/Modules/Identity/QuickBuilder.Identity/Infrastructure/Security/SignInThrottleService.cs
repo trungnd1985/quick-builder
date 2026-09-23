@@ -88,7 +88,9 @@ internal sealed class SignInThrottleService(
     /// <returns>True when this failure started a client block.</returns>
     public async Task<bool> RecordFailureAsync(string clientKey, string? accountKey, CancellationToken cancellationToken)
     {
-        var now = clock.GetUtcNow();
+        // Microsecond precision, as PostgreSQL stores it: the returned block time is compared
+        // with this value to tell whether this failure started the block.
+        var now = TruncateToMicroseconds(clock.GetUtcNow());
         var blockUntil = now + _settings.ClientBlockDuration;
         var threshold = _settings.ClientFailureThreshold;
 
@@ -177,6 +179,9 @@ internal sealed class SignInThrottleService(
                 cancellationToken)
             .ConfigureAwait(false);
     }
+
+    private static DateTimeOffset TruncateToMicroseconds(DateTimeOffset value) =>
+        new(value.Ticks - (value.Ticks % 10), value.Offset);
 
     private sealed record ClientRow(DateTimeOffset? BlockedUntilUtc);
 }

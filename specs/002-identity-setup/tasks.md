@@ -238,7 +238,7 @@ holds the controller action, request/response, command or query, validator and h
 
 ### Tests for User Story 1 ⚠️ write first, confirm they fail
 
-- [ ] T046 [P] [US1] Create `ITESTS/Identity/SetupTests.cs` covering US1 scenarios 2–5, FR-005 and SC-011:
+- [X] T046 [P] [US1] Create `ITESTS/Identity/SetupTests.cs` covering US1 scenarios 2–5, FR-005 and SC-011:
   - a freshly migrated installation has zero rows in `identity.users` and `identity.role_grants`, so no account or credential is seeded (FR-005);
   - a correct code signs the caller in (session cookie and `Me` with `isAdministrator`) and records `setup_completed`;
   - after that, setup returns 409 `identity.setup_already_completed` with the user count still 1;
@@ -246,12 +246,12 @@ holds the controller action, request/response, command or query, validator and h
   - 10 parallel submissions produce exactly one account;
   - two app instances on one DB read the same code;
   - plain HTTP from a non-loopback address gets 403 `identity.https_required`.
-- [ ] T047 [P] [US1] Create `ITESTS/Identity/SetupGateTests.cs` (US1 scenario 1, FR-001, FR-006):
+- [X] T047 [P] [US1] Create `ITESTS/Identity/SetupGateTests.cs` (US1 scenario 1, FR-001, FR-006):
   - while unclaimed, every `/api` endpoint except `GET /status` and `POST /setup` returns 428 `identity.setup_required`;
   - `/health/live`, `/health/ready`, the public surface `GET /` with a site host, and `/admin/` return their normal responses;
   - `GET /api/v1/identity/status` reports `setupRequired` correctly before and after the claim.
-- [ ] T048 [P] [US1] Create `ITESTS/Identity/UpgradeFrom001Tests.cs` (US1 scenario 6, SC-008, constitution III): apply only the `sites` migrations, seed two sites with host names, start the full app, then assert setup mode, both sites intact after setup, and public resolution working throughout
-- [ ] T049 [P] [US1] Create `ITESTS/Observability/SetupCodeLoggingTests.cs` (FR-004a, research R-09):
+- [X] T048 [P] [US1] Create `ITESTS/Identity/UpgradeFrom001Tests.cs` (US1 scenario 6, SC-008, constitution III): apply only the `sites` migrations, seed two sites with host names, start the full app, then assert setup mode, both sites intact after setup, and public resolution working throughout
+- [X] T049 [P] [US1] Create `ITESTS/Observability/SetupCodeLoggingTests.cs` (FR-004a, research R-09):
   - while unclaimed, the code appears in captured logs exactly once per startup, only on the setup-banner template's `SetupCode` property;
   - after the claim, a restart emits no setup-code event;
   - the code never appears in any other log event.
@@ -259,22 +259,22 @@ holds the controller action, request/response, command or query, validator and h
 ### Implementation for User Story 1
 
 - [X] T050 [P] [US1] Create `src/Modules/Identity/QuickBuilder.Identity.Contracts/IIdentitySetupStatus.cs` with `Task<bool> IsClaimedAsync(CancellationToken)`
-- [ ] T051 [US1] Create `IDENTITY/Infrastructure/SetupStatus.cs`, implementing `IIdentitySetupStatus`. It caches `true` in a static-lifetime singleton once it has been observed, since the flag is one-way (research R-12), and queries the DB otherwise. Register it in `IdentityModule`.
-- [ ] T052 [US1] Create `IDENTITY/Infrastructure/InstallationBootstrapper.cs`, a hosted service that runs once `StartupState` is ready:
+- [X] T051 [US1] Create `IDENTITY/Infrastructure/SetupStatus.cs`, implementing `IIdentitySetupStatus`. It caches `true` in a static-lifetime singleton once it has been observed, since the flag is one-way (research R-12), and queries the DB otherwise. Register it in `IdentityModule`.
+- [X] T052 [US1] Create `IDENTITY/Infrastructure/InstallationBootstrapper.cs`, a hosted service that runs once `StartupState` is ready:
   - `INSERT … ON CONFLICT DO NOTHING` the installation row with a new code if missing;
   - if unclaimed, log the boxed Warning banner, with a fixed template and the `SetupCode` property, plus the advice to finish setup before enabling log forwarding (plan Risks);
   - if migrations haven't run, log that and do nothing.
   Register it in `IdentityModule`.
-- [ ] T053 [US1] Create `IDENTITY/Infrastructure/Setup/SetupGateMiddleware.cs`. For `/api` paths while `IIdentitySetupStatus` is false, it returns 428 `identity.setup_required` problem details except for `GET /api/v1/identity/status` and `POST /api/v1/identity/setup`. It never touches `/health`, `/admin` assets or the public surface. T057 registers it.
-- [ ] T054 [P] [US1] Create `IDENTITY/Features/GetStatus/GetStatus.cs`: `GET /api/v1/identity/status`, `[AllowAnonymous]`, returning `{ setupRequired }`
-- [ ] T055 [US1] Create `IDENTITY/Features/CompleteSetup/CompleteSetup.cs`: `POST /api/v1/identity/setup`, `[AllowAnonymous]`.
+- [X] T053 [US1] Create `IDENTITY/Infrastructure/Setup/SetupGateMiddleware.cs`. For `/api` paths while `IIdentitySetupStatus` is false, it returns 428 `identity.setup_required` problem details except for `GET /api/v1/identity/status` and `POST /api/v1/identity/setup`. It never touches `/health`, `/admin` assets or the public surface. T057 registers it.
+- [X] T054 [P] [US1] Create `IDENTITY/Features/GetStatus/GetStatus.cs`: `GET /api/v1/identity/status`, `[AllowAnonymous]`, returning `{ setupRequired }`
+- [X] T055 [US1] Create `IDENTITY/Features/CompleteSetup/CompleteSetup.cs`: `POST /api/v1/identity/setup`, `[AllowAnonymous]`.
   - **Validator**: display name, email and `PasswordPolicy`.
   - **Handler, in order**: `RequireSecureTransport`, then the client throttle, then one transaction containing the conditional `UPDATE installation … WHERE claimed_at_utc IS NULL AND setup_code = @code`. That transaction then inserts the user with its hash, the Administrator grant and the `setup_completed` event.
   - **Code mismatch**: 403 plus `setup_code_rejected` plus a throttle failure.
   - **Already claimed**: 409.
   - **Success**: issue a session and return 201 with `Me`.
-- [ ] T056 [US1] Create `IDENTITY/Features/GetMe/GetMe.cs`: `GET /api/v1/identity/me`, `[RequireSignedIn]`, returning `Me` (id, displayName, email, isAdministrator, siteRoles) through an `AsNoTracking` projection
-- [ ] T057 [US1] Replace the `UseIdentityModule` stub in `IDENTITY/IdentityModule.cs` so it registers `SetupGateMiddleware` first. The host call already exists (T037), and later middleware (T072) goes after the gate.
+- [X] T056 [US1] Create `IDENTITY/Features/GetMe/GetMe.cs`: `GET /api/v1/identity/me`, `[RequireSignedIn]`, returning `Me` (id, displayName, email, isAdministrator, siteRoles) through an `AsNoTracking` projection
+- [X] T057 [US1] Replace the `UseIdentityModule` stub in `IDENTITY/IdentityModule.cs` so it registers `SetupGateMiddleware` first. The host call already exists (T037), and later middleware (T072) goes after the gate.
 - [ ] T058 [P] [US1] Create `src/admin/src/api/request.ts` by moving `request()`, `ApiError` and `ProblemDetails` out of `src/admin/src/api/sites.ts`:
   - add the header `X-QuickBuilder-Request: 1` to every non-GET request (research R-11);
   - add `credentials: 'same-origin'`;

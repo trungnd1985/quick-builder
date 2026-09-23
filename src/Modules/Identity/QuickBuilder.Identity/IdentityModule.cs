@@ -7,12 +7,20 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
+using QuickBuilder.Identity.Contracts;
+using QuickBuilder.Identity.Features.CompleteSetup;
+using QuickBuilder.Identity.Features.GetMe;
+using QuickBuilder.Identity.Features.GetStatus;
 using QuickBuilder.Identity.Infrastructure;
 using QuickBuilder.Identity.Infrastructure.Authentication;
 using QuickBuilder.Identity.Infrastructure.Authorization;
 using QuickBuilder.Identity.Infrastructure.Security;
+using QuickBuilder.Identity.Infrastructure.Setup;
 using QuickBuilder.Shared.Infrastructure.Modules;
 using QuickBuilder.Shared.Kernel.Authorization;
+using QuickBuilder.Shared.Kernel.Dispatch;
+using QuickBuilder.Shared.Kernel.Results;
+using QuickBuilder.Shared.Kernel.Validation;
 
 namespace QuickBuilder.Identity;
 
@@ -66,9 +74,27 @@ public static class IdentityModule
         services.AddScoped<SessionService>();
         services.AddHostedService<IdentityStartupChecks>();
 
+        // Setup (research R-09, R-12).
+        services.AddScoped<InstallationStore>();
+        services.AddSingleton<SetupStatus>();
+        services.AddSingleton<IIdentitySetupStatus>(sp => sp.GetRequiredService<SetupStatus>());
+        services.AddHostedService<InstallationBootstrapper>();
+
         AddAuthenticationAndAuthorization(services);
+        AddFeatures(services);
 
         return services;
+    }
+
+    /// <summary>Feature slices. Each is registered here and nowhere else.</summary>
+    private static void AddFeatures(IServiceCollection services)
+    {
+        services.AddScoped<IQueryHandler<GetStatusQuery, StatusResponse>, GetStatusHandler>();
+
+        services.AddScoped<ICommandHandler<CompleteSetupCommand, Result<MeResponse>>, CompleteSetupHandler>();
+        services.AddScoped<IValidator<CompleteSetupCommand>, CompleteSetupValidator>();
+
+        services.AddScoped<IQueryHandler<GetMeQuery, Result<MeResponse>>, GetMeHandler>();
     }
 
     /// <summary>
@@ -107,9 +133,16 @@ public static class IdentityModule
     /// Adds the Identity module's request pipeline pieces. Called by the host after
     /// <c>UseAuthentication()</c> and before <c>UseAuthorization()</c>.
     /// </summary>
+    /// <remarks>
+    /// The setup gate comes first: during setup mode an admin request gets "setup required"
+    /// rather than "sign in", because there is nobody to sign in as yet.
+    /// </remarks>
     public static IApplicationBuilder UseIdentityModule(this IApplicationBuilder app)
     {
         ArgumentNullException.ThrowIfNull(app);
+
+        app.UseMiddleware<SetupGateMiddleware>();
+
         return app;
     }
 }

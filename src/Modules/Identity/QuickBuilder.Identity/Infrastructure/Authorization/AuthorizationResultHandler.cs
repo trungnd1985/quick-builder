@@ -1,7 +1,5 @@
-using System.Diagnostics;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Authorization.Policy;
-using Microsoft.AspNetCore.Mvc;
 
 namespace QuickBuilder.Identity.Infrastructure.Authorization;
 
@@ -38,7 +36,7 @@ internal sealed class AuthorizationResultHandler : IAuthorizationMiddlewareResul
 
         if (authorizeResult.Challenged)
         {
-            await WriteAsync(
+            await IdentityProblems.WriteAsync(
                 context,
                 StatusCodes.Status401Unauthorized,
                 "https://quickbuilder.dev/errors/identity/unauthenticated",
@@ -54,7 +52,7 @@ internal sealed class AuthorizationResultHandler : IAuthorizationMiddlewareResul
         if (siteNotVisible)
         {
             // Must match QuickBuilder.Sites ErrorResults for "sites.not_found" exactly.
-            await WriteAsync(
+            await IdentityProblems.WriteAsync(
                 context,
                 StatusCodes.Status404NotFound,
                 "https://quickbuilder.dev/errors/sites/not_found",
@@ -64,34 +62,12 @@ internal sealed class AuthorizationResultHandler : IAuthorizationMiddlewareResul
             return;
         }
 
-        await WriteAsync(
+        await IdentityProblems.WriteAsync(
             context,
             StatusCodes.Status403Forbidden,
             "https://quickbuilder.dev/errors/identity/forbidden",
             "Forbidden",
             "identity.forbidden",
             "You do not have permission to do this.").ConfigureAwait(false);
-    }
-
-    internal static Task WriteAsync(
-        HttpContext context,
-        int status,
-        string type,
-        string title,
-        string errorCode,
-        string detail)
-    {
-        var problem = new ProblemDetails
-        {
-            Type = type,
-            Title = title,
-            Status = status,
-            Detail = detail,
-        };
-        problem.Extensions["errorCode"] = errorCode;
-        problem.Extensions["traceId"] = Activity.Current?.TraceId.ToString();
-
-        context.Response.StatusCode = status;
-        return context.Response.WriteAsJsonAsync(problem, options: null, contentType: "application/problem+json", context.RequestAborted);
     }
 }

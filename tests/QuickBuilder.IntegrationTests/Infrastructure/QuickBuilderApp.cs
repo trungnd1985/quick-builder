@@ -39,6 +39,8 @@ public sealed class QuickBuilderApp(string connectionString, bool runBackgroundS
 
         IdentitySeed.UseTestRemoteAddress(builder);
 
+        builder.ConfigureServices(services => services.AddSingleton<Serilog.Core.ILogEventSink>(Logs));
+
         builder.ConfigureServices(services =>
         {
             if (!runBackgroundServices)
@@ -63,6 +65,9 @@ public sealed class QuickBuilderApp(string connectionString, bool runBackgroundS
     /// tests need to control it. The default client sends <c>localhost</c>, which resolves
     /// to nothing — which is itself the FR-014 case.
     /// </remarks>
+    /// <summary>Every log event this application instance has written.</summary>
+    public LogCapture Logs { get; } = new();
+
     public HttpClient CreateClientForHost(string hostName) => IdentitySeed.CreateAnonymousClient(this, hostName);
 
     /// <summary>A client with no session, for the public surface and for refusal tests.</summary>
