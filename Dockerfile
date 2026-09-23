@@ -8,10 +8,10 @@ FROM node:24-alpine AS admin
 WORKDIR /admin
 
 # Copy manifests first so `npm ci` is cached independently of source changes.
-COPY admin/package.json admin/package-lock.json ./
+COPY src/admin/package.json src/admin/package-lock.json ./
 RUN npm ci
 
-COPY admin/ ./
+COPY src/admin/ ./
 # Vite writes content-hashed filenames (FR-046), which is what stops an upgrade serving
 # a stale mix of old and new assets.
 RUN npm run build -- --outDir /admin/dist --emptyOutDir
@@ -33,7 +33,11 @@ COPY src/Modules/Sites/QuickBuilder.Sites.Contracts/*.csproj          src/Module
 COPY src/Modules/Sites/QuickBuilder.Sites/*.csproj                    src/Modules/Sites/QuickBuilder.Sites/
 RUN dotnet restore src/QuickBuilder.Host/QuickBuilder.Host.csproj
 
-COPY src/ src/
+# The .NET folders only. src/admin/ is built by the Node stage above; copying it here
+# would make every admin-only change invalidate this layer and re-run the publish.
+COPY src/QuickBuilder.Host/ src/QuickBuilder.Host/
+COPY src/Shared/            src/Shared/
+COPY src/Modules/           src/Modules/
 
 # The admin build output goes into wwwroot before publish, so it ships inside the image.
 COPY --from=admin /admin/dist/ src/QuickBuilder.Host/wwwroot/admin/

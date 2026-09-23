@@ -16,7 +16,7 @@ export default defineConfig({
     },
   },
   build: {
-    outDir: '../src/QuickBuilder.Host/wwwroot/admin',
+    outDir: '../QuickBuilder.Host/wwwroot/admin',
     emptyOutDir: true,
     rollupOptions: {
       output: {
