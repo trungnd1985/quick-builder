@@ -5,7 +5,9 @@ using QuickBuilder.Host.Configuration;
 using QuickBuilder.Host.Middleware;
 using QuickBuilder.Host.Observability;
 using QuickBuilder.Host.Routing;
+using QuickBuilder.Identity;
 using QuickBuilder.Shared.Infrastructure;
+using QuickBuilder.Shared.Infrastructure.Commands;
 using QuickBuilder.Shared.Infrastructure.Migrations;
 using QuickBuilder.Shared.Infrastructure.Outbox;
 using QuickBuilder.Shared.Infrastructure.Startup;
@@ -63,26 +65,31 @@ builder.Services
 // --- Shared services ---------------------------------------------------------------
 builder.Services.AddSingleton<IOutboxSettingsProvider, OutboxSettingsProvider>();
 builder.Services.AddSharedInfrastructure();
+builder.Services.AddSingleton<IHostCommand, MigrateCommand>();
 builder.Services.AddTelemetry(builder.Configuration);
 
 // --- Modules -----------------------------------------------------------------------
 // One line per module. Adding another requires no edit to any existing one (SC-009).
 builder.Services.AddSitesModule(builder.Configuration);
+builder.Services.AddIdentityModule(builder.Configuration);
 
 // Controllers live in their modules and are discovered through application parts
 // (constitution Principle I). Minimal APIs are not used anywhere.
 builder.Services
     .AddControllers()
-    .AddApplicationPart(typeof(SitesModule).Assembly);
+    .AddApplicationPart(typeof(SitesModule).Assembly)
+    .AddApplicationPart(typeof(IdentityModule).Assembly);
 
 var app = builder.Build();
 
-// --- Migrations --------------------------------------------------------------------
-// The `migrate` command applies migrations and exits, for operators who set
-// Database:AutoMigrate=false and would rather run them as a controlled step (FR-023).
-if (args.Contains("migrate", StringComparer.OrdinalIgnoreCase))
+// --- Commands ----------------------------------------------------------------------
+// `dotnet QuickBuilder.Host.dll <command>` runs a registered IHostCommand and exits
+// instead of serving HTTP: `migrate` (FR-023) and the modules' operator commands
+// (contracts/operator-commands.md). The host only matches the name.
+var commandExitCode = await HostCommandRunner.TryRunAsync(args, app.Services).ConfigureAwait(false);
+if (commandExitCode is { } exitCode)
 {
-    return await MigrateCommand.RunAsync(app).ConfigureAwait(false);
+    return exitCode;
 }
 
 await StartupTasks.RunMigrationsAsync(app).ConfigureAwait(false);

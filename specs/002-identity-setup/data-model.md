@@ -16,6 +16,11 @@ entity from the "entities with a `SiteId` are site-owned" architecture rule, the
 string is required, and a dedicated test covers the exemption (see
 [plan.md](./plan.md), Constitution Check V).
 
+The schema also holds the standard `outbox_messages` and `processed_events` tables
+that every module carries (001 D-01). The shared outbox dispatcher and retention sweep
+visit each registered module's store, so the tables must exist, even though Identity
+publishes no integration events yet.
+
 No foreign key crosses into the `sites` schema (001 FR-022). Site identifiers in grants
 are validated through `ISiteDirectory` when a grant is written.
 

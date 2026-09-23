@@ -41,21 +41,21 @@ holds the controller action, request/response, command or query, validator and h
 **Purpose**: the branch, the new module's projects, and the bundled data file. Nothing here has behaviour.
 
 - [X] T001 Create and switch to branch `002-identity-setup` at the repository root, then commit `specs/002-identity-setup/` to it as the first commit (plan.md "Development Workflow")
-- [ ] T002 [P] Create `src/Modules/Identity/QuickBuilder.Identity.Contracts/QuickBuilder.Identity.Contracts.csproj`: a class library with no EF Core, ASP.NET Core or Npgsql references, mirroring `QuickBuilder.Sites.Contracts.csproj`
-- [ ] T003 [P] Create `src/Modules/Identity/QuickBuilder.Identity/QuickBuilder.Identity.csproj`, mirroring `QuickBuilder.Sites.csproj`. It needs:
+- [X] T002 [P] Create `src/Modules/Identity/QuickBuilder.Identity.Contracts/QuickBuilder.Identity.Contracts.csproj`: a class library with no EF Core, ASP.NET Core or Npgsql references, mirroring `QuickBuilder.Sites.Contracts.csproj`
+- [X] T003 [P] Create `src/Modules/Identity/QuickBuilder.Identity/QuickBuilder.Identity.csproj`, mirroring `QuickBuilder.Sites.csproj`. It needs:
   - `FrameworkReference` to `Microsoft.AspNetCore.App` and `<Using Include="Microsoft.AspNetCore.Http" />`;
   - project references to Shared.Kernel, Shared.Infrastructure, Identity.Contracts and Sites.Contracts;
   - the EF Core, Npgsql and EF Design packages;
   - `InternalsVisibleTo` for the three test projects;
   - an `EmbeddedResource` for `Infrastructure/Security/Resources/common-passwords-12plus.txt`.
-- [ ] T004 Wire the projects into `QuickBuilder.slnx`, the host and the test projects:
+- [X] T004 Wire the projects into `QuickBuilder.slnx`, the host and the test projects:
   - add both new projects to `QuickBuilder.slnx`;
   - reference `QuickBuilder.Identity` from `src/QuickBuilder.Host/QuickBuilder.Host.csproj`;
   - reference both projects from `tests/QuickBuilder.ArchitectureTests`, `tests/QuickBuilder.UnitTests` and `tests/QuickBuilder.IntegrationTests` (their `.csproj` files).
-- [ ] T005 [P] Add `IDENTITY/Infrastructure/Security/Resources/common-passwords-12plus.txt` and `IDENTITY/Infrastructure/Security/Resources/README.md`:
+- [X] T005 [P] Add `IDENTITY/Infrastructure/Security/Resources/common-passwords-12plus.txt` and `IDENTITY/Infrastructure/Security/Resources/README.md`:
   - **The list**: the SecLists common-credentials list (MIT), filtered to entries of ≥ 12 characters, lower-cased and de-duplicated (research R-15).
   - **The README**: records the upstream files, the commit hash, the MIT licence text and the exact filter command used to regenerate the list.
-- [ ] T006 [P] Add the `Identity` section to `src/QuickBuilder.Host/appsettings.json`, with every default from the research.md "Configuration keys introduced" table, plus `Hosting:PublicUrl: ""`
+- [X] T006 [P] Add the `Identity` section to `src/QuickBuilder.Host/appsettings.json`, with every default from the research.md "Configuration keys introduced" table, plus `Hosting:PublicUrl: ""`
 
 ---
 
@@ -67,45 +67,45 @@ holds the controller action, request/response, command or query, validator and h
 
 ### Shared kernel and shared infrastructure
 
-- [ ] T007 [P] Create `src/Shared/QuickBuilder.Shared.Kernel/Authorization/Capabilities.cs` with the `SystemRole` enum (`Administrator`, `Designer`, `Editor`), the `CapabilityScope` enum (`Installation`, `Site`) and `CapabilityDefinition(string Name, CapabilityScope Scope, IReadOnlyList<SystemRole> GrantedTo)`. The constructor rejects `Administrator` in `GrantedTo` and names that don't match `^[a-z]+(\.[a-z_]+)+$` (data-model.md "Shared-kernel additions").
-- [ ] T008 [P] Create `src/Shared/QuickBuilder.Shared.Kernel/Authorization/Attributes.cs` with three plain attributes, none of them referencing ASP.NET Core:
+- [X] T007 [P] Create `src/Shared/QuickBuilder.Shared.Kernel/Authorization/Capabilities.cs` with the `SystemRole` enum (`Administrator`, `Designer`, `Editor`), the `CapabilityScope` enum (`Installation`, `Site`) and `CapabilityDefinition(string Name, CapabilityScope Scope, IReadOnlyList<SystemRole> GrantedTo)`. The constructor rejects `Administrator` in `GrantedTo` and names that don't match `^[a-z]+(\.[a-z_]+)+$` (data-model.md "Shared-kernel additions").
+- [X] T008 [P] Create `src/Shared/QuickBuilder.Shared.Kernel/Authorization/Attributes.cs` with three plain attributes, none of them referencing ASP.NET Core:
   - `RequireCapabilityAttribute(string name)`, for methods and classes;
   - `RequireSignedInAttribute`, for methods and classes;
   - `InstallationScopedAttribute(string reason)`, for classes, rejecting an empty reason.
-- [ ] T009 [P] Create `src/Shared/QuickBuilder.Shared.Kernel/Authorization/IAccessEvaluator.cs` with `IAccessEvaluator` and `SiteVisibility(bool All, IReadOnlySet<Guid> SiteIds)`, in the exact shape given in data-model.md
-- [ ] T010 [P] Create `src/Shared/QuickBuilder.Shared.Infrastructure/Commands/IHostCommand.cs` (the interface from contracts/operator-commands.md) and `src/Shared/QuickBuilder.Shared.Infrastructure/Commands/HostCommandRunner.cs`:
+- [X] T009 [P] Create `src/Shared/QuickBuilder.Shared.Kernel/Authorization/IAccessEvaluator.cs` with `IAccessEvaluator` and `SiteVisibility(bool All, IReadOnlySet<Guid> SiteIds)`, in the exact shape given in data-model.md
+- [X] T010 [P] Create `src/Shared/QuickBuilder.Shared.Infrastructure/Commands/IHostCommand.cs` (the interface from contracts/operator-commands.md) and `src/Shared/QuickBuilder.Shared.Infrastructure/Commands/HostCommandRunner.cs`:
   - it matches `args[0]` case-insensitively against the registered commands and returns the command's exit code;
   - an unknown name prints the known names and returns 64;
   - `TryRunAsync` returns null when `args` is empty so the web host starts.
-- [ ] T011 Convert 001's `MigrateCommand` in `src/QuickBuilder.Host/Startup/StartupTasks.cs` into an `IHostCommand` named `migrate`, and replace the `args.Contains("migrate")` special case in `src/QuickBuilder.Host/Program.cs` with `HostCommandRunner.TryRunAsync`. `docker compose run --rm app dotnet QuickBuilder.Host.dll migrate` must behave exactly as before.
+- [X] T011 Convert 001's `MigrateCommand` in `src/QuickBuilder.Host/Startup/StartupTasks.cs` into an `IHostCommand` named `migrate`, and replace the `args.Contains("migrate")` special case in `src/QuickBuilder.Host/Program.cs` with `HostCommandRunner.TryRunAsync`. `docker compose run --rm app dotnet QuickBuilder.Host.dll migrate` must behave exactly as before.
 
 ### Identity module: options, domain, data
 
-- [ ] T012 [P] Create `IDENTITY/IdentityOptions.cs`:
+- [X] T012 [P] Create `IDENTITY/IdentityOptions.cs`:
   - option classes `SessionOptions`, `SignInOptions`, `PasswordOptions`, `SetPasswordLinkOptions`, `SecurityEventOptions` and `AllowInsecureHttp`, bound from the `Identity` section;
   - DataAnnotations ranges from the research.md key table, plus an `IValidateOptions` enforcing `AbsoluteLifetime ≥ IdleTimeout` and `Pbkdf2Iterations ≥ 210000`;
   - add a validated `PublicUrl` (absolute http/https URL or empty) to `HostingOptions` in `src/QuickBuilder.Host/Configuration/HostingOptions.cs`, and have Identity bind the same key through its own `PublicUrlOptions` class in `IdentityOptions.cs`.
-- [ ] T013 [P] Create `IDENTITY/Domain/Installation.cs`, the single-row setup state from data-model.md, with `Claim(now)` throwing if the installation is already claimed
-- [ ] T014 [P] Create `IDENTITY/Domain/User.cs`:
+- [X] T013 [P] Create `IDENTITY/Domain/Installation.cs`, the single-row setup state from data-model.md, with `Claim(now)` throwing if the installation is already claimed
+- [X] T014 [P] Create `IDENTITY/Domain/User.cs`:
   - email normalisation (trim + NFC) and validation;
   - display-name rules;
   - the state transitions from data-model.md: `SetPasswordHash`, `ChangeEmail`, `Rename`, `Deactivate` and `Reactivate`, each returning `Result`;
   - `CanSignIn` = active and has a password.
-- [ ] T015 [P] Create `IDENTITY/Domain/RoleGrant.cs`, marked `[InstallationScoped("Grants are installation data managed from the admin surface, which has no resolved site; the site is a reference, not an owner.")]`. It has factory methods `Administrator(userId)` and `ForSite(userId, siteId, role)` that enforce the role/scope rule.
-- [ ] T016 [P] Create `IDENTITY/Domain/Session.cs` with `IsValid(now, idleTimeout)`, `Touch(now)` (writes only when more than 60 s have passed since the last write) and `Revoke(now, reason)`, using the revocation reasons from data-model.md
-- [ ] T017 [P] Create `IDENTITY/Domain/SetPasswordLink.cs` with `IsUsable(now)`, `Consume(now)` and `Invalidate(now, reason)`
-- [ ] T018 [P] Create `IDENTITY/Domain/SecurityEvent.cs`:
+- [X] T015 [P] Create `IDENTITY/Domain/RoleGrant.cs`, marked `[InstallationScoped("Grants are installation data managed from the admin surface, which has no resolved site; the site is a reference, not an owner.")]`. It has factory methods `Administrator(userId)` and `ForSite(userId, siteId, role)` that enforce the role/scope rule.
+- [X] T016 [P] Create `IDENTITY/Domain/Session.cs` with `IsValid(now, idleTimeout)`, `Touch(now)` (writes only when more than 60 s have passed since the last write) and `Revoke(now, reason)`, using the revocation reasons from data-model.md
+- [X] T017 [P] Create `IDENTITY/Domain/SetPasswordLink.cs` with `IsUsable(now)`, `Consume(now)` and `Invalidate(now, reason)`
+- [X] T018 [P] Create `IDENTITY/Domain/SecurityEvent.cs`:
   - no public setters and a static factory per event type;
   - `SecurityEventTypes` constants for every row of the data-model.md event catalogue;
   - `details` serialised as `jsonb` and never accepting a password, token, setup code or session id (typed detail records only).
-- [ ] T019 [P] Create `IDENTITY/Domain/SignInThrottle.cs`, the row shape for `sign_in_throttles` with the composite key `(kind, key)`, and `IDENTITY/Domain/KnownDevice.cs` (the `known_devices` row) with `IsValid(now, lifetime)`, `RecordFailure(threshold)` (revokes itself at the threshold), `RecordSuccess(now)` and `Revoke(now)`, per data-model.md
-- [ ] T020 Create `IDENTITY/Infrastructure/IdentityDbContext.cs` and `IDENTITY/Infrastructure/IdentityDbContextFactory.cs` (design-time). It must:
+- [X] T019 [P] Create `IDENTITY/Domain/SignInThrottle.cs`, the row shape for `sign_in_throttles` with the composite key `(kind, key)`, and `IDENTITY/Domain/KnownDevice.cs` (the `known_devices` row) with `IsValid(now, lifetime)`, `RecordFailure(threshold)` (revokes itself at the threshold), `RecordSuccess(now)` and `Revoke(now)`, per data-model.md
+- [X] T020 Create `IDENTITY/Infrastructure/IdentityDbContext.cs` and `IDENTITY/Infrastructure/IdentityDbContextFactory.cs` (design-time). It must:
   - use schema `identity` with `citext`;
   - map every table, column, `CHECK` constraint, unique index and partial unique index listed in data-model.md;
   - run 001's `UseSnakeCaseColumns()`;
   - register a `SaveChanges` interceptor that throws when a `SecurityEvent` entry is `Modified` or `Deleted` (research R-14).
-- [ ] T021 Generate the `InitialIdentity` migration into `IDENTITY/Infrastructure/Migrations/`. Before committing, check the generated SQL contains every `CHECK` constraint and partial index from data-model.md, including `installation.id = 1` and the claimed ⇔ code invariant.
-- [ ] T022 Create `IDENTITY/IdentityModule.cs`:
+- [X] T021 Generate the `InitialIdentity` migration into `IDENTITY/Infrastructure/Migrations/`. Before committing, check the generated SQL contains every `CHECK` constraint and partial index from data-model.md, including `installation.id = 1` and the claimed ⇔ code invariant.
+- [X] T022 Create `IDENTITY/IdentityModule.cs`:
   - `AddIdentityModule(IServiceCollection, IConfiguration)`: registers the DbContext with its history table in the `identity` schema, an `IdentityDatabaseProvider : IModuleDatabaseProvider`, the options from T012, and `CapabilityDefinition("identity.users.manage", Installation, [])`;
   - `UseIdentityModule(IApplicationBuilder)`: an empty stub for now;
   - call both from `src/QuickBuilder.Host/Program.cs`, and add `.AddApplicationPart(typeof(IdentityModule).Assembly)`.
