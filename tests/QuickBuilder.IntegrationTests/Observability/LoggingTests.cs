@@ -53,7 +53,7 @@ public sealed class LoggingTests(DatabaseFixture database) : IAsyncLifetime
         var traceId = ActivityTraceId.CreateRandom().ToString();
         var spanId = ActivitySpanId.CreateRandom().ToString();
 
-        var client = _app.CreateClient();
+        var client = await _app.CreateAdminClientAsync().ConfigureAwait(true);
         client.DefaultRequestHeaders.Add("traceparent", $"00-{traceId}-{spanId}-01");
 
         // A validation failure is the cheapest way to get a problem-details body back.
@@ -88,7 +88,7 @@ public sealed class LoggingTests(DatabaseFixture database) : IAsyncLifetime
     {
         const string secretish = "hunter2-correct-horse-battery-staple";
 
-        var client = _app.CreateClient();
+        var client = await _app.CreateAdminClientAsync().ConfigureAwait(true);
 
         var response = await client
             .PostAsJsonAsync(
@@ -114,7 +114,7 @@ public sealed class LoggingTests(DatabaseFixture database) : IAsyncLifetime
     [Fact]
     public async Task Unknown_routes_do_not_leak_internals()
     {
-        var client = _app.CreateClient();
+        var client = await _app.CreateAdminClientAsync().ConfigureAwait(true);
 
         var response = await client
             .GetAsync(new Uri("/api/v1/sites/not-a-guid", UriKind.Relative))

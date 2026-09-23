@@ -87,7 +87,7 @@ holds the controller action, request/response, command or query, validator and h
   - add a validated `PublicUrl` (absolute http/https URL or empty) to `HostingOptions` in `src/QuickBuilder.Host/Configuration/HostingOptions.cs`, and have Identity bind the same key through its own `PublicUrlOptions` class in `IdentityOptions.cs`.
 - [X] T013 [P] Create `IDENTITY/Domain/Installation.cs`, the single-row setup state from data-model.md, with `Claim(now)` throwing if the installation is already claimed
 - [X] T014 [P] Create `IDENTITY/Domain/User.cs`:
-  - email normalisation (trim + NFC) and validation;
+  - email normalisation (trim only, research R-03) and validation;
   - display-name rules;
   - the state transitions from data-model.md: `SetPasswordHash`, `ChangeEmail`, `Rename`, `Deactivate` and `Reactivate`, each returning `Result`;
   - `CanSignIn` = active and has a password.
@@ -112,25 +112,25 @@ holds the controller action, request/response, command or query, validator and h
 
 ### Security primitives
 
-- [ ] T023 [P] Create `IDENTITY/Infrastructure/Security/Pbkdf2PasswordHasher.cs` implementing research R-03:
-  - the `$pbkdf2-sha512$i=…$salt$hash` format, NFKC normalisation and a 128-code-point cap;
+- [X] T023 [P] Create `IDENTITY/Infrastructure/Security/Pbkdf2PasswordHasher.cs` implementing research R-03:
+  - the `$pbkdf2-sha512$i=…$salt$hash` format and a 128-code-point cap, with no Unicode normalisation (research R-03);
   - `Verify` via `CryptographicOperations.FixedTimeEquals`, plus `NeedsRehash`;
   - `VerifyAgainstDummy()` for unknown accounts (R-08);
   - a one-off timing check at startup that logs a Warning above 400 ms.
-- [ ] T024 [P] Create `IDENTITY/Infrastructure/Security/PasswordPolicy.cs`. It checks length 12–128 code points after NFKC, rejects entries in the embedded common-password list (loaded once into a case-insensitive `HashSet`), and rejects a password equal to the email or display name. Each rule returns a `ValidationFailure` naming the `password` field.
-- [ ] T025 [P] Create `IDENTITY/Infrastructure/Security/Tokens.cs` with:
+- [X] T024 [P] Create `IDENTITY/Infrastructure/Security/PasswordPolicy.cs`. It checks length 12–128 code points (counted as typed), rejects entries in the embedded common-password list (loaded once into a case-insensitive `HashSet`), and rejects a password equal to the email or display name. Each rule returns a `ValidationFailure` naming the `password` field.
+- [X] T025 [P] Create `IDENTITY/Infrastructure/Security/Tokens.cs` with:
   - `NewSessionToken()` and `NewLinkToken()` (32 random bytes, base64url);
   - `Hash(token)` (SHA-256);
   - `NewSetupCode()` (12 Crockford base32 characters);
   - `NormaliseSetupCode(input)` (upper-case, strip dashes and spaces, map O→0, I/L→1);
   - `FormatSetupCode` (`XXXX-XXXX-XXXX`).
-- [ ] T026 [P] Create `IDENTITY/Infrastructure/Security/TransportSecurity.cs`:
+- [X] T026 [P] Create `IDENTITY/Infrastructure/Security/TransportSecurity.cs`:
   - `ClientKey(IPAddress)`: IPv4 exact, IPv6 as its /64;
   - `IsLoopback(HttpContext)`;
   - `RequireSecureTransport(HttpContext)`: refuses plain HTTP from non-loopback clients unless `AllowInsecureHttp` is set, returning `Error("identity.https_required")`;
   - a startup Warning while `AllowInsecureHttp=true` (research R-04).
-- [ ] T027 [P] Create `IDENTITY/Infrastructure/Security/SecurityEventRecorder.cs`. It adds a `SecurityEvent` to the caller's `IdentityDbContext`, so the event commits in the caller's transaction, taking the client address from the current `HttpContext` (null outside a request).
-- [ ] T028 Create `IDENTITY/Infrastructure/Security/SignInThrottleService.cs` implementing research R-07:
+- [X] T027 [P] Create `IDENTITY/Infrastructure/Security/SecurityEventRecorder.cs`. It adds a `SecurityEvent` to the caller's `IdentityDbContext`, so the event commits in the caller's transaction, taking the client address from the current `HttpContext` (null outside a request).
+- [X] T028 Create `IDENTITY/Infrastructure/Security/SignInThrottleService.cs` implementing research R-07:
   - `CheckClientAsync`, `CheckAccountAsync(email)`, `RecordFailureAsync(client, email?)` and `RecordSuccessAsync(email)`;
   - one parameterised `INSERT … ON CONFLICT (kind, key) DO UPDATE … RETURNING` through `Database.SqlQuery`, with a code comment noting that no table here is site-owned (plan Technology Constraints);
   - the account key is the SHA-256 of the normalised email whether or not the account exists;
@@ -149,40 +149,40 @@ holds the controller action, request/response, command or query, validator and h
 
 ### Sessions and authentication
 
-- [ ] T029 Create `IDENTITY/Infrastructure/Authentication/SessionService.cs`, implementing research R-04:
+- [X] T029 Create `IDENTITY/Infrastructure/Authentication/SessionService.cs`, implementing research R-04:
   - `IssueAsync(user, httpContext)` creates the row and appends the `qb_session` cookie: `HttpOnly`, `SameSite=Strict`, `Path` = base path, `Secure` when HTTPS;
   - `ValidateAsync(token)` does one indexed lookup joined to `users` and checks revocation, idle and absolute expiry, and the user's status;
   - `RevokeAsync(sessionId, reason)`, `RevokeAllAsync(userId, reason, exceptSessionId?)` and `ClearCookie`.
-- [ ] T030 Create `IDENTITY/Infrastructure/Authentication/SessionAuthenticationHandler.cs`, an `AuthenticationHandler` for scheme `Session`. It reads the cookie, calls `SessionService.ValidateAsync`, and builds a principal with the `sub` (user id) and `sid` (session id) claims. It makes no DB write except the throttled `Touch`, and no grants go into claims. Register the scheme in `IdentityModule.AddIdentityModule`.
+- [X] T030 Create `IDENTITY/Infrastructure/Authentication/SessionAuthenticationHandler.cs`, an `AuthenticationHandler` for scheme `Session`. It reads the cookie, calls `SessionService.ValidateAsync`, and builds a principal with the `sub` (user id) and `sid` (session id) claims. It makes no DB write except the throttled `Touch`, and no grants go into claims. Register the scheme in `IdentityModule.AddIdentityModule`.
 
 ### Authorization enforcement (research R-05)
 
-- [ ] T031 [P] Create `IDENTITY/Infrastructure/Authorization/CapabilityCatalog.cs`, a singleton built from every registered `CapabilityDefinition`. Duplicate names throw at startup with both registrations named. `Find(name)` returns the definition.
-- [ ] T032 [P] Create `IDENTITY/Infrastructure/Authorization/AccessEvaluator.cs`, the scoped `IAccessEvaluator`:
+- [X] T031 [P] Create `IDENTITY/Infrastructure/Authorization/CapabilityCatalog.cs`, a singleton built from every registered `CapabilityDefinition`. Duplicate names throw at startup with both registrations named. `Find(name)` returns the definition.
+- [X] T032 [P] Create `IDENTITY/Infrastructure/Authorization/AccessEvaluator.cs`, the scoped `IAccessEvaluator`:
   - loads the current user's grants once per request (memoised);
   - Administrator ⇒ every capability and `SiteVisibility(All: true)`;
   - site roles ⇒ capabilities whose `GrantedTo` contains the role at that site;
   - `GetVisibleSitesAsync` returns the granted site ids.
   Register it in `IdentityModule`.
-- [ ] T033 Create `IDENTITY/Infrastructure/Authorization/CapabilityConvention.cs`, `CapabilityPolicyProvider.cs` and `CapabilityRequirementHandler.cs`:
+- [X] T033 Create `IDENTITY/Infrastructure/Authorization/CapabilityConvention.cs`, `CapabilityPolicyProvider.cs` and `CapabilityRequirementHandler.cs`:
   - the convention adds `AuthorizeAttribute("capability:<name>")` or `AuthorizeAttribute("signed-in")` to each selector's `EndpointMetadata` wherever the kernel attributes appear;
   - the provider builds `capability:*` policies;
   - the handler reads the `siteId` route value for site-scoped capabilities and records whether the failure was "cannot see the site" or "lacks the capability", for T034.
-- [ ] T034 Create `IDENTITY/Infrastructure/Authorization/AuthorizationResultHandler.cs`, an `IAuthorizationMiddlewareResultHandler` producing:
+- [X] T034 Create `IDENTITY/Infrastructure/Authorization/AuthorizationResultHandler.cs`, an `IAuthorizationMiddlewareResultHandler` producing:
   - 401 `identity.unauthenticated`;
   - 403 `identity.forbidden`;
   - 404 with the exact problem document that `src/Modules/Sites/QuickBuilder.Sites/ErrorResults.cs` emits for `sites.not_found` (same `type`, `title`, `detail`, `errorCode`), per contracts/authorization.md §3.
-- [ ] T035 Register authorization in `IdentityModule.AddIdentityModule`:
+- [X] T035 Register authorization in `IdentityModule.AddIdentityModule`:
   - `AddAuthorization` with `FallbackPolicy` = authenticated user and the `signed-in` policy;
   - the policy provider, requirement handler and result handler;
   - `MvcOptions.Conventions.Add(new CapabilityConvention())`.
 
 ### Host wiring
 
-- [ ] T036 [P] Add `[AllowAnonymous]` to the public and health endpoints in `src/QuickBuilder.Host/Health/HealthController.cs` and `ResolveCurrentSite.cs`:
+- [X] T036 [P] Add `[AllowAnonymous]` to the public and health endpoints in `src/QuickBuilder.Host/Health/HealthController.cs` and `ResolveCurrentSite.cs`:
   - `HealthController` in `src/QuickBuilder.Host/Health/HealthController.cs`;
   - the public-surface controller in `src/Modules/Sites/QuickBuilder.Sites/Features/ResolveCurrentSite/ResolveCurrentSite.cs`.
-- [ ] T037 Update the pipeline in `src/QuickBuilder.Host/Program.cs`:
+- [X] T037 Update the pipeline in `src/QuickBuilder.Host/Program.cs`:
   - `UseAuthentication()` and `UseAuthorization()` after `SiteResolutionMiddleware`, with `UseIdentityModule()` between them;
   - `.AllowAnonymous()` on the `MapFallbackToFile` admin SPA fallback;
   - static files stay before authentication;
@@ -190,19 +190,19 @@ holds the controller action, request/response, command or query, validator and h
 
 ### Test harness and 001 test migration
 
-- [ ] T038 Create `ITESTS/Infrastructure/IdentitySeed.cs` and extend `ITESTS/Infrastructure/QuickBuilderApp.cs`:
+- [X] T038 Create `ITESTS/Infrastructure/IdentitySeed.cs` and extend `ITESTS/Infrastructure/QuickBuilderApp.cs`:
   - clients use `ClientOptions.BaseAddress = https://localhost` (research R-18);
   - `ClaimInstallationAsync()` marks the installation claimed directly in the DB;
   - `SeedUserAsync(email, grants, password?)` adds a user;
   - `CreateSignedInClientAsync(user)` issues a session through `SessionService` and returns an `HttpClient` carrying the cookie and `X-QuickBuilder-Request: 1`;
   - `AdminClientAsync()` is a convenience wrapper.
-- [ ] T039 Move 001's integration tests to signed-in clients so they pass again: `ITESTS/Sites/SiteLifecycleTests.cs`, `ITESTS/Sites/SiteScopingTests.cs`, `ITESTS/Modules/FeatureSliceTests.cs`, `ITESTS/Modules/SecondModuleTests.cs` (plus `WidgetsModule.cs` actions gain declarations), `ITESTS/Startup/StartupTests.cs`, `ITESTS/Observability/LoggingTests.cs` and `ITESTS/Observability/NoEgressTests.cs`. Assertions stay the same; only the client and setup change.
+- [X] T039 Move 001's integration tests to signed-in clients so they pass again: `ITESTS/Sites/SiteLifecycleTests.cs`, `ITESTS/Sites/SiteScopingTests.cs`, `ITESTS/Modules/FeatureSliceTests.cs`, `ITESTS/Modules/SecondModuleTests.cs` (plus `WidgetsModule.cs` actions gain declarations), `ITESTS/Startup/StartupTests.cs`, `ITESTS/Observability/LoggingTests.cs` and `ITESTS/Observability/NoEgressTests.cs`. Assertions stay the same; only the client and setup change.
 
 ### Foundational tests
 
 - [ ] T040 [P] Unit tests in `tests/QuickBuilder.UnitTests/Identity/Pbkdf2PasswordHasherTests.cs`:
   - round-trip and wrong-password rejection;
-  - NFKC-equivalent inputs verify;
+  - the password is hashed exactly as typed: a differently composed form of the same text does not verify (documents the research R-03 decision);
   - a 128-code-point password verifies and a 129-code-point one is rejected, not truncated;
   - the format parses and `NeedsRehash` fires below the configured iterations;
   - the dummy verification returns false.

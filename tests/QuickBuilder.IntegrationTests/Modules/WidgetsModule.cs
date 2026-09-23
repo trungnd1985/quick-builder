@@ -6,6 +6,7 @@ using QuickBuilder.Shared.Infrastructure.Data;
 using QuickBuilder.Shared.Infrastructure.Dispatch;
 using QuickBuilder.Shared.Infrastructure.Modules;
 using QuickBuilder.Shared.Infrastructure.MultiSite;
+using QuickBuilder.Shared.Kernel.Authorization;
 using QuickBuilder.Shared.Kernel.Dispatch;
 using QuickBuilder.Shared.Kernel.MultiSite;
 using QuickBuilder.Shared.Kernel.Results;
@@ -76,6 +77,9 @@ internal sealed class CountWidgetsHandler(WidgetsDbContext database)
 /// <summary>Follows FR-010a: /api/v1/&lt;module&gt;/...</summary>
 [ApiController]
 [Route("api/v1/widgets")]
+// Every action declares who may call it (002 contracts/authorization.md §1). A fixture
+// module is no exception: it shows what a later module has to add.
+[RequireSignedIn]
 public sealed class WidgetsController(IDispatcher dispatcher) : ControllerBase
 {
     [HttpGet("count")]

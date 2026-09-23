@@ -1,4 +1,3 @@
-using System.Text;
 using QuickBuilder.Shared.Kernel.Results;
 
 namespace QuickBuilder.Identity.Domain;
@@ -31,7 +30,7 @@ internal sealed class User
 
     public Guid Id { get; private set; }
 
-    /// <summary>Trimmed and NFC-normalised; compared case-insensitively by the database.</summary>
+    /// <summary>Trimmed; compared case-insensitively by the database.</summary>
     public string Email { get; private set; }
 
     public string DisplayName { get; private set; }
@@ -82,9 +81,12 @@ internal sealed class User
         });
     }
 
-    /// <summary>Trim, then NFC: two visually identical addresses must compare equal.</summary>
-    public static string NormaliseEmail(string? email) =>
-        (email ?? string.Empty).Trim().Normalize(NormalizationForm.FormC);
+    /// <summary>
+    /// Trim only. Case-insensitivity comes from the <c>citext</c> column. There is no
+    /// Unicode normalisation: under <c>InvariantGlobalization</c> it would be a silent
+    /// no-op (research R-03).
+    /// </summary>
+    public static string NormaliseEmail(string? email) => (email ?? string.Empty).Trim();
 
     public static string NormaliseDisplayName(string? displayName) => (displayName ?? string.Empty).Trim();
 

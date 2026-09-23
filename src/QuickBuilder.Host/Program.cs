@@ -97,7 +97,11 @@ await StartupTasks.RunMigrationsAsync(app).ConfigureAwait(false);
 // --- Pipeline ----------------------------------------------------------------------
 // Order matters and is asserted by tests rather than left to reading:
 //   forwarded headers -> base path -> exceptions -> security headers -> static files
-//   -> routing -> site resolution -> endpoints
+//   -> routing -> site resolution -> authentication -> Identity module (setup gate,
+//   request guard) -> authorization -> endpoints
+//
+// Static files come before authentication: the admin shell's assets must load for an
+// anonymous browser, or it could never show the sign-in screen.
 var hosting = app.Services.GetRequiredService<IOptions<HostingOptions>>().Value;
 
 app.UseForwardedHeaders(ProxySetup.BuildOptions(hosting));
@@ -119,11 +123,20 @@ app.UseRouting();
 // handler never sees an unresolved public request.
 app.UseMiddleware<SiteResolutionMiddleware>();
 
+// 002: every admin endpoint is authenticated and authorized on the server. Endpoints that
+// declare nothing fall back to "signed-in user required", so a forgotten declaration fails
+// closed (research R-05).
+app.UseAuthentication();
+app.UseIdentityModule();
+app.UseAuthorization();
+
 app.MapControllers();
 
 // FR-043: any /admin/* deep link returns the SPA shell so client-side routing can take
-// over. Without this, refreshing on a nested admin route 404s.
-app.MapFallbackToFile($"{RoutePrefixes.Admin}/{{*path:nonfile}}", "admin/index.html");
+// over. Without this, refreshing on a nested admin route 404s. Anonymous: the shell has to
+// load before anyone can sign in.
+app.MapFallbackToFile($"{RoutePrefixes.Admin}/{{*path:nonfile}}", "admin/index.html")
+    .AllowAnonymous();
 
 await app.RunAsync().ConfigureAwait(false);
 return 0;

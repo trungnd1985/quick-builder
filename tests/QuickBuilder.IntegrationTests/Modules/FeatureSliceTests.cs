@@ -48,7 +48,7 @@ public sealed class FeatureSliceTests(DatabaseFixture database) : IAsyncLifetime
     [Fact]
     public async Task Validation_failures_name_every_invalid_input()
     {
-        var client = _app.CreateClient();
+        var client = await _app.CreateAdminClientAsync().ConfigureAwait(true);
 
         var response = await client
             .PostAsJsonAsync(

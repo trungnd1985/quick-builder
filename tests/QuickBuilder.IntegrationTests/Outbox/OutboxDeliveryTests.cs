@@ -146,7 +146,7 @@ public sealed class OutboxDeliveryTests(DatabaseFixture database) : IAsyncLifeti
 
     private async Task CreateSiteAsync(string hostName)
     {
-        var client = _app.CreateClient();
+        var client = await _app.CreateAdminClientAsync().ConfigureAwait(true);
         var response = await client
             .PostAsJsonAsync(
                 new Uri("/api/v1/sites", UriKind.Relative),

@@ -13,6 +13,13 @@ namespace QuickBuilder.IntegrationTests.Infrastructure;
 /// stubs a handler — the only things overridden are the connection string and whether
 /// background services run, because a test needs to control when dispatch happens rather
 /// than race a five-second timer.
+/// <para>
+/// One test-only middleware is added in front of the pipeline: it lets a request choose
+/// the client address it appears to come from (<see cref="IdentitySeed.RemoteAddressHeader"/>),
+/// which throttling and the HTTPS rule depend on and <c>TestServer</c> otherwise leaves
+/// empty. Every client uses <c>https://localhost</c>, as a production browser behind TLS
+/// would (002 research R-18).
+/// </para>
 /// </remarks>
 public sealed class QuickBuilderApp(string connectionString, bool runBackgroundServices = false)
     : WebApplicationFactory<Program>
@@ -29,6 +36,8 @@ public sealed class QuickBuilderApp(string connectionString, bool runBackgroundS
         // so a test asserts on a pass it triggered rather than waiting out a poll interval
         // and hoping. Tests that want the timer can opt in.
         builder.UseSetting("Outbox:Enabled", runBackgroundServices ? "true" : "false");
+
+        IdentitySeed.UseTestRemoteAddress(builder);
 
         builder.ConfigureServices(services =>
         {
@@ -54,10 +63,15 @@ public sealed class QuickBuilderApp(string connectionString, bool runBackgroundS
     /// tests need to control it. The default client sends <c>localhost</c>, which resolves
     /// to nothing — which is itself the FR-014 case.
     /// </remarks>
-    public HttpClient CreateClientForHost(string hostName)
-    {
-        var client = CreateClient();
-        client.DefaultRequestHeaders.Host = hostName;
-        return client;
-    }
+    public HttpClient CreateClientForHost(string hostName) => IdentitySeed.CreateAnonymousClient(this, hostName);
+
+    /// <summary>A client with no session, for the public surface and for refusal tests.</summary>
+    public HttpClient CreateAnonymousClient() => IdentitySeed.CreateAnonymousClient(this);
+
+    /// <summary>
+    /// A signed-in Administrator on a claimed installation: the caller 001's tests assumed
+    /// when the admin surface was open.
+    /// </summary>
+    public Task<HttpClient> CreateAdminClientAsync(string? hostName = null) =>
+        IdentitySeed.CreateAdminClientAsync(this, hostName);
 }

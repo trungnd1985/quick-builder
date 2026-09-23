@@ -14,7 +14,12 @@ public interface IAccessEvaluator
 
     Guid? UserId { get; }
 
-    bool IsAdministrator { get; }
+    /// <summary>Whether the user holds the installation-wide Administrator role.</summary>
+    /// <remarks>
+    /// Asynchronous because grants are loaded from the database on first use in a request,
+    /// then reused for the rest of it.
+    /// </remarks>
+    Task<bool> IsAdministratorAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Whether the user holds the capability — at <paramref name="siteId"/> when the

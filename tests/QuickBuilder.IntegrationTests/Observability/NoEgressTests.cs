@@ -95,7 +95,7 @@ public sealed class NoEgressTests(DatabaseFixture database) : IAsyncLifetime
 
         System.Diagnostics.ActivitySource.AddActivityListener(listener);
 
-        var client = _app.CreateClient();
+        var client = await _app.CreateAdminClientAsync().ConfigureAwait(true);
 
         await client
             .PostAsJsonAsync(

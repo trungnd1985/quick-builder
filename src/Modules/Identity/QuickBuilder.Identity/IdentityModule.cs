@@ -1,9 +1,16 @@
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 using QuickBuilder.Identity.Infrastructure;
+using QuickBuilder.Identity.Infrastructure.Authentication;
+using QuickBuilder.Identity.Infrastructure.Authorization;
+using QuickBuilder.Identity.Infrastructure.Security;
 using QuickBuilder.Shared.Infrastructure.Modules;
 using QuickBuilder.Shared.Kernel.Authorization;
 
@@ -48,7 +55,52 @@ public static class IdentityModule
 
         services.AddSingleton(new CapabilityDefinition(ManageUsers, CapabilityScope.Installation, []));
 
+        // Security primitives (research R-03, R-04, R-07, R-15).
+        services.AddHttpContextAccessor();
+        services.TryAddSingleton(TimeProvider.System);
+        services.AddSingleton<Pbkdf2PasswordHasher>();
+        services.AddSingleton<TransportSecurity>();
+        services.AddScoped<SecurityEventRecorder>();
+        services.AddScoped<SignInThrottleService>();
+        services.AddScoped<KnownDeviceService>();
+        services.AddScoped<SessionService>();
+        services.AddHostedService<IdentityStartupChecks>();
+
+        AddAuthenticationAndAuthorization(services);
+
         return services;
+    }
+
+    /// <summary>
+    /// Session authentication, and policy-based authorization from the kernel's declarations
+    /// (research R-04, R-05). The fallback policy requires a signed-in user, so an endpoint
+    /// that declares nothing fails closed.
+    /// </summary>
+    private static void AddAuthenticationAndAuthorization(IServiceCollection services)
+    {
+        services
+            .AddAuthentication(SessionAuthenticationHandler.SchemeName)
+            .AddScheme<AuthenticationSchemeOptions, SessionAuthenticationHandler>(
+                SessionAuthenticationHandler.SchemeName,
+                configureOptions: null);
+
+        services.AddAuthorization(options =>
+        {
+            var signedIn = new AuthorizationPolicyBuilder(SessionAuthenticationHandler.SchemeName)
+                .RequireAuthenticatedUser()
+                .Build();
+
+            options.DefaultPolicy = signedIn;
+            options.FallbackPolicy = signedIn;
+            options.AddPolicy(IdentityPolicies.SignedIn, signedIn);
+        });
+
+        services.AddSingleton<CapabilityCatalog>();
+        services.AddScoped<IAccessEvaluator, AccessEvaluator>();
+        services.AddSingleton<IAuthorizationPolicyProvider, CapabilityPolicyProvider>();
+        services.AddScoped<IAuthorizationHandler, CapabilityRequirementHandler>();
+        services.AddSingleton<IAuthorizationMiddlewareResultHandler, AuthorizationResultHandler>();
+        services.Configure<MvcOptions>(options => options.Conventions.Add(new CapabilityConvention()));
     }
 
     /// <summary>

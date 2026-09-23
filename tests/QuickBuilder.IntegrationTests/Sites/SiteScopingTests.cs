@@ -106,7 +106,7 @@ public sealed class SiteScopingTests(DatabaseFixture database) : IAsyncLifetime
     [Fact]
     public async Task Admin_site_list_deliberately_crosses_sites()
     {
-        var client = _app.CreateClient();
+        var client = await _app.CreateAdminClientAsync().ConfigureAwait(true);
 
         var response = await client.GetAsync(new Uri("/api/v1/sites", UriKind.Relative)).ConfigureAwait(true);
         var sites = await response.Content.ReadFromJsonAsync<JsonElement>().ConfigureAwait(true);
@@ -186,7 +186,7 @@ public sealed class SiteScopingTests(DatabaseFixture database) : IAsyncLifetime
 
     private async Task<Guid> CreateSiteAsync(string name, string hostName)
     {
-        var client = _app.CreateClient();
+        var client = await _app.CreateAdminClientAsync().ConfigureAwait(true);
         var response = await client
             .PostAsJsonAsync(new Uri("/api/v1/sites", UriKind.Relative), new { name, hostNames = new[] { hostName } })
             .ConfigureAwait(true);

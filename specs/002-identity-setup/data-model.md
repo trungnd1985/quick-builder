@@ -61,7 +61,7 @@ It is irreversible.
 | Column | Type | Rules |
 |---|---|---|
 | `id` | `uuid` PK | UUIDv7 |
-| `email` | `citext` | Trimmed and NFC-normalised before storage. At most 254 characters (RFC 5321). Unique: `ux_users_email`. |
+| `email` | `citext` | Trimmed before storage; no Unicode normalisation (research R-03). At most 254 characters (RFC 5321). Unique: `ux_users_email`. |
 | `display_name` | `varchar(200)` | Trimmed, 1–200 characters |
 | `password_hash` | `varchar(200)` null | R-03 format. Null until the first set-password link is used. |
 | `status` | `varchar(16)` | `active` \| `deactivated`, enforced by a `CHECK` |
@@ -75,7 +75,7 @@ It is irreversible.
   whitespace), unique case-insensitively (FR-007). A uniqueness violation surfaces as
   `409 identity.email_taken`.
 - **Password** (FR-008), checked before hashing:
-  - Length is 12–128 code points after NFKC normalisation.
+  - Length is 12–128 Unicode code points, counted as typed (no normalisation, research R-03).
   - It is not on the common-password list (R-15).
   - It is not equal to the account's email address or display name, compared
     case-insensitively.
@@ -280,7 +280,7 @@ None is stored.
 | `RequireCapabilityAttribute` | `(string name)`, placed on actions |
 | `RequireSignedInAttribute` | Marker for self-service actions |
 | `InstallationScopedAttribute` | `(string reason)`, placed on domain entities that reference a site without being site-owned |
-| `IAccessEvaluator` | `bool IsSignedIn`, `Guid? UserId`, `bool IsAdministrator`, `Task<bool> HasCapabilityAsync(string name, Guid? siteId, CancellationToken)`, `Task<SiteVisibility> GetVisibleSitesAsync(CancellationToken)` |
+| `IAccessEvaluator` | `bool IsSignedIn`, `Guid? UserId`, `Task<bool> IsAdministratorAsync(CancellationToken)`, `Task<bool> HasCapabilityAsync(string name, Guid? siteId, CancellationToken)`, `Task<SiteVisibility> GetVisibleSitesAsync(CancellationToken)` |
 | `SiteVisibility` | `record (bool All, IReadOnlySet<Guid> SiteIds)` |
 
 ### Capabilities registered in this feature

@@ -87,9 +87,23 @@ is a different matter: it is the framework's policy mechanism, which the constit
 - **Salt and output**: a 16-byte random salt and a 64-byte derived key.
 - **Storage format**: a self-describing string, `$pbkdf2-sha512$i=<n>$<salt-b64>$<hash-b64>`,
   so the algorithm and cost travel with each hash.
-- **Normalisation**: passwords are NFKC-normalised before hashing, so a password typed on
-  two keyboards that produce different code-point sequences verifies. Length is counted
-  in Unicode code points after normalisation, and the maximum is 128 (FR-008).
+- **No Unicode normalisation (revised during implementation)**: the plan was to
+  NFKC-normalise passwords, and NFC-normalise email addresses, before use. The
+  solution builds with `InvariantGlobalization=true`, and in that mode `string.Normalize`
+  is a **silent no-op**. A throwaway check confirmed that neither the `ﬁ` ligature nor
+  `e` + a combining accent was changed. Code that called it would read as normalising
+  while doing nothing.
+  - **Why not enable ICU**: real normalisation needs ICU, which means about 30 MB more in
+    the Alpine image, and culture-dependent string behaviour that 001 deliberately
+    avoided.
+  - **Why the loss is small**: mainstream keyboards emit precomposed (NFC) text, so a
+    user rarely produces two different code-point sequences for one password, and email
+    addresses are almost always ASCII.
+  - **Consequence**: passwords are hashed exactly as typed, and emails are only trimmed
+    (case-insensitivity still comes from `citext`).
+  - **Length rule**: length is counted in Unicode code points (`Rune`s), which works
+    without ICU, and the maximum is 128 (FR-008).
+  - **Revisit** if invariant globalization is ever turned off.
 - **Transparent upgrade (FR-009)**: after a successful sign-in, if the stored iteration
   count is below the configured one, the password is re-hashed in the same request.
 - **Comparison**: constant-time, with `CryptographicOperations.FixedTimeEquals`.
