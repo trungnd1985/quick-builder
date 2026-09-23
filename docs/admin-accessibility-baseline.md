@@ -11,7 +11,7 @@ is aspirational.
 | # | Requirement | How it is checked |
 |---|---|---|
 | A1 | Every interactive element is reachable and operable by keyboard alone | Manual pass per screen; axe covers the structural part |
-| A2 | Focus is always visible, never suppressed | `:focus-visible` is defined once in `admin/src/styles.css`; removing an outline is a review failure |
+| A2 | Focus is always visible, never suppressed | `:focus-visible` is defined once in `src/admin/src/styles.css`; removing an outline is a review failure |
 | A3 | Text meets WCAG 2.1 AA contrast: 4.5:1 body, 3:1 large text and UI boundaries | Palette tokens in `styles.css` carry their measured ratios |
 | A4 | Every form control has an associated `<label>` | axe (`label` rule) |
 | A5 | State is never conveyed by colour alone | Review; the active nav link carries `aria-current` as well as colour |
@@ -40,6 +40,6 @@ is the same reasoning behind putting the text lookup in from the start — see
 
 ## Related
 
-- `admin/src/styles.css` — the tokens and the focus indicator
-- `admin/eslint.config.js` — the `no-raw-text` rule enforcing the text lookup (FR-045a)
+- `src/admin/src/styles.css` — the tokens and the focus indicator
+- `src/admin/eslint.config.js` — the `no-raw-text` rule enforcing the text lookup (FR-045a)
 - SC-013 — every admin journey completable by keyboard, zero raw strings

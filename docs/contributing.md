@@ -140,7 +140,7 @@ else.
 
 ## Admin app
 
-Every visible string goes through the lookup in `admin/src/i18n/`. The `no-raw-text` lint
+Every visible string goes through the lookup in `src/admin/src/i18n/`. The `no-raw-text` lint
 rule fails the build otherwise — not to be tidy, but because text written into screens is
 the single most expensive thing to undo once several modules have copied the pattern.
 
