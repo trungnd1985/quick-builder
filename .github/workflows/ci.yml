@@ -73,7 +73,9 @@ jobs:
             -reports:"./TestResults/**/coverage.cobertura.xml" \
             -targetdir:./TestResults/merged \
             -reporttypes:Cobertura
-          rate=$(grep -o 'line-rate="[0-9.]*"' ./TestResults/merged/Cobertura.xml | head -1 | grep -o '[0-9.]*')
+          # Read the root <coverage> element only. Piping every match into `head -1`
+          # kills grep with SIGPIPE (exit 141), which pipefail turns into a silent failure.
+          rate=$(grep -o -m1 '<coverage [^>]*' ./TestResults/merged/Cobertura.xml | grep -o 'line-rate="[0-9.]*"' | grep -o '[0-9.]*')
           pct=$(awk "BEGIN{printf \"%.2f\", ${rate} * 100}")
           echo "Line coverage: ${pct}% (minimum ${MINIMUM_COVERAGE}%)"
           if awk "BEGIN{exit !(${pct} < ${MINIMUM_COVERAGE})}"; then
