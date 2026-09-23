@@ -1,0 +1,47 @@
+{
+  "app": {
+    "title": "QuickBuilder",
+    "nav": {
+      "sites": "Sites",
+      "settings": "Settings"
+    },
+    "skipToContent": "Skip to main content"
+  },
+  "sites": {
+    "title": "Sites",
+    "subtitle": "Every website this installation hosts.",
+    "loading": "Loading sites…",
+    "empty": {
+      "title": "No sites yet",
+      "body": "Create the first site to get started. A site needs a name and at least one host name."
+    },
+    "error": {
+      "title": "Could not load sites",
+      "retry": "Try again"
+    },
+    "table": {
+      "name": "Name",
+      "hostNames": "Host names",
+      "created": "Created"
+    },
+    "create": {
+      "title": "Create a site",
+      "name": "Site name",
+      "namePlaceholder": "Example",
+      "hostName": "Host name",
+      "hostNamePlaceholder": "example.com",
+      "hostNameHelp": "The domain visitors will use. No port, no scheme.",
+      "submit": "Create site",
+      "submitting": "Creating…",
+      "cancel": "Cancel",
+      "failed": "Could not create the site"
+    }
+  },
+  "settings": {
+    "title": "Settings",
+    "placeholder": "Settings arrive with a later feature."
+  },
+  "common": {
+    "dismiss": "Dismiss"
+  }
+}

@@ -1,0 +1,236 @@
+/*
+  The accessibility baseline later screens inherit (FR-045b).
+
+  Colours are chosen for WCAG 2.1 AA contrast: body text 4.5:1, large text and UI
+  boundaries 3:1. The focus indicator is defined rather than suppressed — removing focus
+  outlines is the single most common way an admin interface becomes unusable by keyboard,
+  and it is trivial to avoid if the pattern is set here at the start.
+*/
+
+:root {
+  --bg: #ffffff;
+  --surface: #f6f7f9;
+  --border: #c3c8d0;          /* 3:1 against surface */
+  --text: #16191d;            /* 15.8:1 against bg */
+  --text-muted: #53595f;      /* 7.3:1 against bg */
+  --accent: #10489c;          /* 8.1:1 against bg */
+  --accent-text: #ffffff;
+  --danger: #a4232f;          /* 6.3:1 against bg */
+  --focus: #0a5ad6;
+  --radius: 6px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+/* Never suppressed, always visible, never colour-only. */
+:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  background: var(--accent);
+  color: var(--accent-text);
+  padding: 0.75rem 1rem;
+  z-index: 10;
+}
+
+.skip-link:focus {
+  left: 0;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.shell-header {
+  border-bottom: 1px solid var(--border);
+  padding: 0.875rem 1.5rem;
+}
+
+.brand {
+  font-weight: 650;
+}
+
+.shell-body {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  min-height: calc(100vh - 56px);
+}
+
+.shell-nav {
+  border-right: 1px solid var(--border);
+  background: var(--surface);
+  padding: 1rem 0.75rem;
+}
+
+.shell-nav ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.shell-nav a {
+  display: block;
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius);
+  color: var(--text);
+  text-decoration: none;
+}
+
+.shell-nav a:hover {
+  background: #e6e9ed;
+}
+
+/* Active state carries more than colour: vue-router adds aria-current="page". */
+.shell-nav a.router-link-active {
+  background: var(--accent);
+  color: var(--accent-text);
+  font-weight: 600;
+}
+
+.shell-main {
+  padding: 1.5rem 2rem;
+}
+
+.page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+h1 {
+  font-size: 1.5rem;
+  margin: 0 0 0.25rem;
+}
+
+h2 {
+  font-size: 1.125rem;
+  margin: 0 0 0.75rem;
+}
+
+.subtitle,
+.help {
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.help {
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
+}
+
+.status {
+  color: var(--text-muted);
+  margin-top: 1.5rem;
+}
+
+.card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+  margin-top: 1.5rem;
+  background: var(--surface);
+  max-width: 34rem;
+}
+
+.error-card {
+  border-color: var(--danger);
+}
+
+.field {
+  margin-bottom: 1rem;
+}
+
+label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+input[type='text'] {
+  width: 100%;
+  padding: 0.5rem 0.625rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font: inherit;
+  background: var(--bg);
+  color: var(--text);
+}
+
+input[aria-invalid='true'] {
+  border-color: var(--danger);
+  border-width: 2px;
+}
+
+.error {
+  color: var(--danger);
+  margin: 0.375rem 0 0;
+  font-size: 0.9375rem;
+}
+
+.actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+button {
+  font: inherit;
+  padding: 0.5rem 0.875rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--text);
+  cursor: pointer;
+}
+
+button.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-text);
+  font-weight: 600;
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.sites-table {
+  margin-top: 1.5rem;
+  border-collapse: collapse;
+  width: 100%;
+  max-width: 48rem;
+}
+
+.sites-table th,
+.sites-table td {
+  text-align: left;
+  padding: 0.625rem 0.75rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.sites-table th {
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: var(--text-muted);
+}

@@ -1,0 +1,33 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\QuickBuilder.Shared.Kernel\QuickBuilder.Shared.Kernel.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" />
+    <PackageReference Include="Microsoft.Extensions.Caching.Memory" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Options" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <!--
+    The dispatcher and the cache provider are internal: modules depend on the interfaces,
+    never the implementations. Tests need to construct them directly, which is the one
+    legitimate reason to see inside.
+  -->
+  <ItemGroup>
+    <InternalsVisibleTo Include="QuickBuilder.UnitTests" />
+    <InternalsVisibleTo Include="QuickBuilder.IntegrationTests" />
+    <InternalsVisibleTo Include="QuickBuilder.ArchitectureTests" />
+  </ItemGroup>
+
+</Project>

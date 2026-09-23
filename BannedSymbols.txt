@@ -1,0 +1,9 @@
+; FR-013a / D-07 — cross-site reads must be deliberate.
+;
+; IgnoreQueryFilters is the only way to escape the SiteId global query filter. It is
+; banned everywhere so that an accidental or implicit bypass fails the build. The single
+; permitted use lives in Shared.Infrastructure/MultiSite/CrossSiteQuery.cs, which
+; suppresses RS0030 at that one call site and demands a written reason from every caller.
+;
+; Format: T:/M:/P:/F: symbol ID ; message
+M:Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.IgnoreQueryFilters``1(System.Linq.IQueryable{``0});Cross-site reads must go through CrossSiteQuery.Read(reason) — see FR-013a.

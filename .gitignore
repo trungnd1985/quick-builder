@@ -427,3 +427,10 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+
+# QuickBuilder — added by 001-foundation-skeleton
+dist/
+TestResults/
+coverage/
+# Admin assets are built into the host at image build time, never committed.
+src/QuickBuilder.Host/wwwroot/admin/

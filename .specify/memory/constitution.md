@@ -1,43 +1,35 @@
 <!--
 Sync Impact Report
-Version change: 2.2.0 → 2.3.0
-Modified principles:
-  - I. Modular Monolith with Explicit Boundaries → I. Modular Monolith with
-    Vertical Slices. Materially expanded and restructured into Modules /
-    Inside a module / Between modules / Data / Enforcement subsections:
-    * Each module now consists of exactly two projects (`<Module>.Contracts`
-      and `<Module>`), with `WebBuilder.Host` composition-only and shared
-      code split into `Shared.Kernel` / `Shared.Infrastructure`.
-    * Code inside a module is organised by feature (vertical slice) under
-      `Features/`, not by technical layer.
-    * Commands/queries dispatched through in-house `ICommandHandler<T>` /
-      `IQueryHandler<TQuery, TResult>`; MediatR and similar libraries
-      disallowed; generic repository wrappers over EF Core disallowed.
-    * Rich domain model now explicitly REQUIRED for `Pages`, `Cms` and
-      `Rendering`.
-    * Cross-module side effects now explicitly required to go through a
-      database outbox + idempotent background worker (integration events),
-      not just "domain events" in general; explicit rule that no database
-      transaction spans more than one module.
-    * Each module now explicitly owns its own migrations history table.
-    * Rationale line extended to mention splittability and vertical slices
-      keeping each Spec Kit feature in one place.
-  Other ten Core Principles (II-XI) retained verbatim.
+Version change: 2.3.0 → 2.3.1
+Modified principles: none. No principle was added, removed or redefined; this
+  amendment is editorial only, which is why it is a PATCH under the Governance
+  versioning rule.
 Modified sections:
-  - Technology Constraints → Backend: "map HTTP to application-layer
-    commands/queries" → "map HTTP to the feature's command/query handler",
-    aligning wording with the vertical-slice restructuring of Principle I.
-Added sections: none
-Removed sections: none
+  - Document title: "Web Builder Constitution" → "QuickBuilder Constitution".
+  - I. Modular Monolith with Vertical Slices: project names renamed from
+    `WebBuilder.*` to `QuickBuilder.*` throughout —
+    `QuickBuilder.<Module>.Contracts`, `QuickBuilder.<Module>`,
+    `QuickBuilder.Host`, `QuickBuilder.Shared.Kernel` and
+    `QuickBuilder.Shared.Infrastructure`. These names are normative: the
+    architecture tests required by this principle assert on them, so the
+    document and the code had to agree.
+Reason: the product is named QuickBuilder and its assemblies follow the
+  `QuickBuilder.*` format. The earlier name was carried over from the initial
+  scaffold and never matched the project.
+Affected specs/plans:
+  - specs/001-foundation-skeleton/ — plan.md, quickstart.md,
+    contracts/module-contract.md and contracts/admin-api.yaml were renamed in
+    the same change. spec.md is technology-agnostic and names no assemblies, so
+    it needed no edit beyond the terminology note in its Clarifications section.
+  - No other spec exists yet, so nothing else is affected.
 Templates requiring updates:
-  - .specify/templates/*: checked for "Explicit Boundaries", "Modular
-    Monolith", "Minimal API", "application-layer command", "Dapper" and
-    "vertical slice" references — none found. Templates read this
-    constitution at runtime and are not edited by this command.
-Follow-up TODOs: none — all placeholders resolved, no deferred fields.
+  - .specify/templates/*: checked for "WebBuilder" and "Web Builder" — no
+    occurrences. Templates read this constitution at runtime and are not edited
+    by this command.
+Follow-up TODOs: none.
 -->
 
-# Web Builder Constitution
+# QuickBuilder Constitution
 
 A self-hosted web builder for multi-page websites with a built-in CMS.
 Customers download and run it on their own infrastructure; we do not operate
@@ -53,14 +45,14 @@ this document wins; changing it requires the amendment process in Governance.
 - The backend is ONE deployable ASP.NET Core application composed of modules:
   `Identity`, `Sites`, `Pages`, `Editor`, `Rendering`, `Cms`, `Media`, `Setup`.
 - Each module consists of exactly two projects:
-  - `WebBuilder.<Module>.Contracts`: public interfaces, DTOs and integration
+  - `QuickBuilder.<Module>.Contracts`: public interfaces, DTOs and integration
     events. The only project other modules may reference.
-  - `WebBuilder.<Module>`: everything else, `internal` by default, organised as
+  - `QuickBuilder.<Module>`: everything else, `internal` by default, organised as
     `Domain/`, `Features/`, `Infrastructure/` and a `<Module>Module.cs` that
     exposes `Add<Module>Module()` for registration.
-- `WebBuilder.Host` only composes modules, middleware and configuration; it
-  contains no business logic. Shared code lives in `WebBuilder.Shared.Kernel`
-  (Result type, event abstractions) and `WebBuilder.Shared.Infrastructure`
+- `QuickBuilder.Host` only composes modules, middleware and configuration; it
+  contains no business logic. Shared code lives in `QuickBuilder.Shared.Kernel`
+  (Result type, event abstractions) and `QuickBuilder.Shared.Infrastructure`
   (site context, outbox, storage/cache providers), and MUST stay small and free
   of module-specific concepts.
 
@@ -293,4 +285,4 @@ a constitution amendment is approved first.
 - Any exception to a MUST rule is recorded in the plan's Complexity Tracking
   section with justification and a follow-up task to remove it.
 
-**Version**: 2.3.0 | **Ratified**: 2026-09-22 | **Last Amended**: 2026-09-22
+**Version**: 2.3.1 | **Ratified**: 2026-09-22 | **Last Amended**: 2026-09-22

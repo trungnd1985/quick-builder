@@ -1,0 +1,44 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The module implementation: everything internal by default, apart from the registration
+    entry point and the controllers. Controllers live in their own module and are
+    discovered through AddApplicationPart (constitution Principle I), which is why this
+    project needs the ASP.NET Core framework reference and QuickBuilder.Sites.Contracts
+    deliberately does not.
+  -->
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <!--
+      A class library gets no web implicit usings, but every controller here needs
+      StatusCodes. Declaring it once beats repeating the using in each feature folder.
+    -->
+    <Using Include="Microsoft.AspNetCore.Http" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\Shared\QuickBuilder.Shared.Kernel\QuickBuilder.Shared.Kernel.csproj" />
+    <ProjectReference Include="..\..\..\Shared\QuickBuilder.Shared.Infrastructure\QuickBuilder.Shared.Infrastructure.csproj" />
+    <ProjectReference Include="..\QuickBuilder.Sites.Contracts\QuickBuilder.Sites.Contracts.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <!--
+    Integration and architecture tests need to see internal types: the DbContext, the
+    domain entities and the handlers are all internal by design, and testing only the
+    public surface would mean testing almost nothing.
+  -->
+  <ItemGroup>
+    <InternalsVisibleTo Include="QuickBuilder.IntegrationTests" />
+    <InternalsVisibleTo Include="QuickBuilder.UnitTests" />
+    <InternalsVisibleTo Include="QuickBuilder.ArchitectureTests" />
+  </ItemGroup>
+
+</Project>
