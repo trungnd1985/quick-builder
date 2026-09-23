@@ -200,31 +200,31 @@ holds the controller action, request/response, command or query, validator and h
 
 ### Foundational tests
 
-- [ ] T040 [P] Unit tests in `tests/QuickBuilder.UnitTests/Identity/Pbkdf2PasswordHasherTests.cs`:
+- [X] T040 [P] Unit tests in `tests/QuickBuilder.UnitTests/Identity/Pbkdf2PasswordHasherTests.cs`:
   - round-trip and wrong-password rejection;
   - the password is hashed exactly as typed: a differently composed form of the same text does not verify (documents the research R-03 decision);
   - a 128-code-point password verifies and a 129-code-point one is rejected, not truncated;
   - the format parses and `NeedsRehash` fires below the configured iterations;
   - the dummy verification returns false.
-- [ ] T041 [P] Unit tests in `tests/QuickBuilder.UnitTests/Identity/PasswordPolicyTests.cs`:
+- [X] T041 [P] Unit tests in `tests/QuickBuilder.UnitTests/Identity/PasswordPolicyTests.cs`:
   - 11 code points are rejected and 12 accepted;
   - list entries are rejected case-insensitively;
   - a password equal to the email or name is rejected;
   - no composition rule is applied.
-- [ ] T042 [P] Unit tests in `tests/QuickBuilder.UnitTests/Identity/TokensAndTransportTests.cs`:
+- [X] T042 [P] Unit tests in `tests/QuickBuilder.UnitTests/Identity/TokensAndTransportTests.cs`:
   - setup codes are 12 characters with no I/L/O/U;
   - normalisation accepts lower case, dashes and spaces;
   - token hashes are 32 bytes;
   - `ClientKey` maps two addresses in one IPv6 /64 to the same key and different /64s apart.
-- [ ] T043 [P] Unit tests in `tests/QuickBuilder.UnitTests/Identity/DomainTests.cs` covering the `User`, `Session`, `SetPasswordLink`, `RoleGrant` and `Installation` transitions and invariants from data-model.md
-- [ ] T044 Extend `tests/QuickBuilder.ArchitectureTests/ModuleBoundaryTests.cs` to include the Identity assemblies:
+- [X] T043 [P] Unit tests in `tests/QuickBuilder.UnitTests/Identity/DomainTests.cs` covering the `User`, `Session`, `SetPasswordLink`, `RoleGrant` and `Installation` transitions and invariants from data-model.md
+- [X] T044 Extend `tests/QuickBuilder.ArchitectureTests/ModuleBoundaryTests.cs` to include the Identity assemblies:
   - contracts don't depend on infrastructure;
   - module internals aren't public (Identity adds `Module` and `Controller` public types only);
   - no module references another's implementation, which is no longer vacuous with two modules;
   - shared code references neither module;
   - `Entities_with_a_site_id_are_site_owned` scans both modules and accepts `[InstallationScoped]` only with a non-empty reason.
   Add a violating fixture for the new exemption rule in `tests/QuickBuilder.ArchitectureTests/Fixtures/ViolatingFixtures.cs`, and assert it fires in `RulesFireWhenBrokenTests.cs`.
-- [ ] T045 Add `ITESTS/Identity/SecurityEventAppendOnlyTests.cs`: modifying or deleting a tracked `SecurityEvent` through `IdentityDbContext` throws (research R-14)
+- [X] T045 Add `ITESTS/Identity/SecurityEventAppendOnlyTests.cs`: modifying or deleting a tracked `SecurityEvent` through `IdentityDbContext` throws (research R-14)
 
 **Checkpoint**: the build, the architecture tests and all of 001's tests are green again on signed-in clients, and the identity schema migrates. User-story work can begin.
 
@@ -258,7 +258,7 @@ holds the controller action, request/response, command or query, validator and h
 
 ### Implementation for User Story 1
 
-- [ ] T050 [P] [US1] Create `src/Modules/Identity/QuickBuilder.Identity.Contracts/IIdentitySetupStatus.cs` with `Task<bool> IsClaimedAsync(CancellationToken)`
+- [X] T050 [P] [US1] Create `src/Modules/Identity/QuickBuilder.Identity.Contracts/IIdentitySetupStatus.cs` with `Task<bool> IsClaimedAsync(CancellationToken)`
 - [ ] T051 [US1] Create `IDENTITY/Infrastructure/SetupStatus.cs`, implementing `IIdentitySetupStatus`. It caches `true` in a static-lifetime singleton once it has been observed, since the flag is one-way (research R-12), and queries the DB otherwise. Register it in `IdentityModule`.
 - [ ] T052 [US1] Create `IDENTITY/Infrastructure/InstallationBootstrapper.cs`, a hosted service that runs once `StartupState` is ready:
   - `INSERT … ON CONFLICT DO NOTHING` the installation row with a new code if missing;

@@ -29,7 +29,7 @@ internal static class IdentitySeed
     /// <summary>The header the test pipeline reads to pretend to be another client.</summary>
     public const string RemoteAddressHeader = "X-Test-Remote-Address";
 
-    private static int _counter;
+    private static int Counter;
 
     /// <summary>Marks the installation claimed, as completing setup would.</summary>
     public static async Task ClaimInstallationAsync(IServiceProvider services)
@@ -66,7 +66,7 @@ internal static class IdentitySeed
         var hasher = scope.ServiceProvider.GetRequiredService<Pbkdf2PasswordHasher>();
         var now = DateTimeOffset.UtcNow;
 
-        email ??= $"user{Interlocked.Increment(ref _counter)}-{Guid.NewGuid():N}@example.test";
+        email ??= $"user{Interlocked.Increment(ref Counter)}-{Guid.NewGuid():N}@example.test";
         var user = User.Create(displayName, email, now).Value;
         if (password is not null)
         {

@@ -26,6 +26,18 @@ public sealed class LeaksAcrossModules
 }
 
 /// <summary>
+/// Does NOT violate module isolation: another module's Contracts are the sanctioned way in.
+/// Keeps the fixture assembly referencing Sites.Contracts, so the isolation rule is proven
+/// not to confuse it with Sites.
+/// </summary>
+public sealed class UsesOnlyAContract
+{
+    private readonly Type _contract = typeof(Sites.Contracts.SiteDto);
+
+    public Type Contract => _contract;
+}
+
+/// <summary>
 /// Violates contracts purity: a type standing in for a Contracts type that has dragged in
 /// the data-access stack.
 /// </summary>
@@ -45,6 +57,19 @@ public sealed class ForgotTheSiteOwnedMarker
     public Guid SiteId { get; init; }
 
     public string Name { get; init; } = string.Empty;
+}
+
+/// <summary>
+/// Does NOT violate site ownership: it references a site on purpose and says why, as a role
+/// grant does (002 data-model.md). The rule must let it through — otherwise the exemption
+/// is broken and every legitimate reference would need a workaround.
+/// </summary>
+[QuickBuilder.Shared.Kernel.Authorization.InstallationScoped("Fixture: installation data that names a site without belonging to it.")]
+public sealed class ReferencesASiteDeliberately
+{
+    public Guid Id { get; init; }
+
+    public Guid? SiteId { get; init; }
 }
 
 /// <summary>

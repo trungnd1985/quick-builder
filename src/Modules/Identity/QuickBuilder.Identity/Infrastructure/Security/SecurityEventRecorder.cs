@@ -1,4 +1,5 @@
 using QuickBuilder.Identity.Domain;
+using QuickBuilder.Identity.Domain.Details;
 
 namespace QuickBuilder.Identity.Infrastructure.Security;
 

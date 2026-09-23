@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using QuickBuilder.Identity.Domain.Details;
 
 namespace QuickBuilder.Identity.Domain;
 
@@ -40,33 +41,6 @@ internal static class SecurityEventOutcomes
     public const string Failed = "failed";
     public const string Refused = "refused";
 }
-
-/// <summary>
-/// The typed <c>details</c> an event may carry. Only these records are accepted, so a
-/// password, token, setup code or session id cannot end up in an event by accident
-/// (data-model.md: "never passwords, tokens, setup codes or session identifiers").
-/// </summary>
-internal abstract record SecurityEventDetails;
-
-internal sealed record ReasonDetails(string Reason) : SecurityEventDetails;
-
-internal sealed record SignInDetails(string? Reason, bool? KnownDevice) : SecurityEventDetails;
-
-internal sealed record ClientBlockedDetails(DateTimeOffset Until) : SecurityEventDetails;
-
-internal sealed record SessionsRevokedDetails(string Scope, string By) : SecurityEventDetails;
-
-internal sealed record EmailChangedDetails(string OldEmail, string NewEmail) : SecurityEventDetails;
-
-internal sealed record GrantSummary(string Role, Guid? SiteId);
-
-internal sealed record AccountCreatedDetails(string Email, IReadOnlyList<GrantSummary> Grants) : SecurityEventDetails;
-
-internal sealed record GrantsChangedDetails(IReadOnlyList<GrantSummary> Before, IReadOnlyList<GrantSummary> After) : SecurityEventDetails;
-
-internal sealed record LinkIssuedDetails(DateTimeOffset ExpiresAt, string IssuedBy) : SecurityEventDetails;
-
-internal sealed record OperatorCommandDetails(string Command) : SecurityEventDetails;
 
 /// <summary>
 /// A durable, append-only record of an authentication- or authorisation-relevant action
