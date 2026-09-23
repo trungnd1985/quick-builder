@@ -262,7 +262,7 @@ holds the controller action, request/response, command or query, validator and h
 - [X] T051 [US1] Create `IDENTITY/Infrastructure/SetupStatus.cs`, implementing `IIdentitySetupStatus`. It caches `true` in a static-lifetime singleton once it has been observed, since the flag is one-way (research R-12), and queries the DB otherwise. Register it in `IdentityModule`.
 - [X] T052 [US1] Create `IDENTITY/Infrastructure/InstallationBootstrapper.cs`, a hosted service that runs once `StartupState` is ready:
   - `INSERT … ON CONFLICT DO NOTHING` the installation row with a new code if missing;
-  - if unclaimed, log the boxed Warning banner, with a fixed template and the `SetupCode` property, plus the advice to finish setup before enabling log forwarding (plan Risks);
+  - if unclaimed, log a single Warning event whose template starts with `SETUP CODE`, with a fixed template and the `SetupCode` property, plus the advice to finish setup before enabling log forwarding (plan Risks);
   - if migrations haven't run, log that and do nothing.
   Register it in `IdentityModule`.
 - [X] T053 [US1] Create `IDENTITY/Infrastructure/Setup/SetupGateMiddleware.cs`. For `/api` paths while `IIdentitySetupStatus` is false, it returns 428 `identity.setup_required` problem details except for `GET /api/v1/identity/status` and `POST /api/v1/identity/setup`. It never touches `/health`, `/admin` assets or the public surface. T057 registers it.
@@ -275,28 +275,28 @@ holds the controller action, request/response, command or query, validator and h
   - **Success**: issue a session and return 201 with `Me`.
 - [X] T056 [US1] Create `IDENTITY/Features/GetMe/GetMe.cs`: `GET /api/v1/identity/me`, `[RequireSignedIn]`, returning `Me` (id, displayName, email, isAdministrator, siteRoles) through an `AsNoTracking` projection
 - [X] T057 [US1] Replace the `UseIdentityModule` stub in `IDENTITY/IdentityModule.cs` so it registers `SetupGateMiddleware` first. The host call already exists (T037), and later middleware (T072) goes after the gate.
-- [ ] T058 [P] [US1] Create `src/admin/src/api/request.ts` by moving `request()`, `ApiError` and `ProblemDetails` out of `src/admin/src/api/sites.ts`:
+- [X] T058 [P] [US1] Create `src/admin/src/api/request.ts` by moving `request()`, `ApiError` and `ProblemDetails` out of `src/admin/src/api/sites.ts`:
   - add the header `X-QuickBuilder-Request: 1` to every non-GET request (research R-11);
   - add `credentials: 'same-origin'`;
   - add hooks `onUnauthenticated` and `onSetupRequired`, invoked on 401 and 428.
   `src/admin/src/api/sites.ts` then imports from it.
-- [ ] T059 [P] [US1] Create `src/admin/src/api/identity.ts`, a typed client for `status`, `setup` and `me` with the `Me` and `SiteRole` types from contracts/identity-api.yaml
-- [ ] T060 [US1] Create `src/admin/src/app/authStore.ts`, a Pinia store with `bootstrap()` (status, then me if claimed), `setupRequired`, `user` and `isAdministrator`. It wires the `onSetupRequired` hook to route to `/setup`.
-- [ ] T061 [US1] Update `src/admin/src/app/router.ts`:
+- [X] T059 [P] [US1] Create `src/admin/src/api/identity.ts`, a typed client for `status`, `setup` and `me` with the `Me` and `SiteRole` types from contracts/identity-api.yaml
+- [X] T060 [US1] Create `src/admin/src/app/authStore.ts`, a Pinia store with `bootstrap()` (status, then me if claimed), `setupRequired`, `user` and `isAdministrator`. It wires the `onSetupRequired` hook to route to `/setup`.
+- [X] T061 [US1] Update `src/admin/src/app/router.ts`:
   - add the `/setup` route;
   - add a `beforeEach` guard awaiting `authStore.bootstrap()` once, then sending everyone to `/setup` while setup is required and away from `/setup` otherwise.
-- [ ] T062 [US1] Create `src/admin/src/features/identity/SetupView.vue`:
+- [X] T062 [US1] Create `src/admin/src/features/identity/SetupView.vue`:
   - fields: setup code (hint: "shown in the application's console output"), display name, email, password;
   - per-field errors from `ApiError.fieldErrors`;
   - in-progress and failed states;
   - on success, store the user and go to `/sites`.
-- [ ] T063 [P] [US1] Add `identity.setup.*` strings (labels, hints, errors for each `errorCode`) to `src/admin/src/i18n/en.json`
-- [ ] T064 [P] [US1] Create `src/admin/tests/setupView.spec.ts` checking:
+- [X] T063 [P] [US1] Add `identity.setup.*` strings (labels, hints, errors for each `errorCode`) to `src/admin/src/i18n/en.json`
+- [X] T064 [P] [US1] Create `src/admin/tests/setupView.spec.ts` checking:
   - an axe pass;
   - the form is completable by keyboard alone and every control has a label;
   - field errors render;
   - the 409 path redirects.
-- [ ] T065 [US1] Extend `tests/QuickBuilder.SmokeTests/ReferenceDeploymentSmokeTests.cs`:
+- [X] T065 [US1] Extend `tests/QuickBuilder.SmokeTests/ReferenceDeploymentSmokeTests.cs`:
   - after readiness, parse the setup code from `docker compose logs app`;
   - `POST /api/v1/identity/setup`;
   - keep the cookie container and send `X-QuickBuilder-Request: 1` for the existing create, list and resolve steps (FR-034, E-3);

@@ -18,9 +18,10 @@ namespace QuickBuilder.SmokeTests;
 /// exercised by <c>WebApplicationFactory</c>, which bypasses the image entirely.
 /// <para>
 /// The constitution specifies this smoke test as setup wizard → create page → publish →
-/// view. None of those capabilities exist yet, so this covers the equivalent journey for
-/// what does: health → create site → list → resolve by host name. Each later spec extends
-/// it (issue #4).
+/// view. Feature 002 added the first step: the journey now begins with the setup wizard,
+/// reading the setup code from the container logs as an operator would, and runs every
+/// later step as the administrator it created. Create page, publish and view arrive with
+/// the Pages and Rendering specs (issue #4).
 /// </para>
 /// <para>
 /// Excluded from the normal test run — CI filters on <c>FullyQualifiedName!~SmokeTests</c>
@@ -35,6 +36,7 @@ public sealed class ReferenceDeploymentSmokeTests(ITestOutputHelper output) : IA
     private const string BaseAddress = "http://127.0.0.1:8080";
     private static readonly TimeSpan ReadyTimeout = TimeSpan.FromMinutes(3);
 
+    private readonly Stopwatch _sinceComposeUp = new();
     private string _repositoryRoot = string.Empty;
     private bool _dockerAvailable;
 
@@ -56,6 +58,7 @@ public sealed class ReferenceDeploymentSmokeTests(ITestOutputHelper output) : IA
         var build = await RunAsync("docker", "compose build").ConfigureAwait(false);
         Assert.True(build.ExitCode == 0, $"docker compose build failed:\n{build.Output}");
 
+        _sinceComposeUp.Start();
         var up = await RunAsync("docker", "compose up -d").ConfigureAwait(false);
         Assert.True(up.ExitCode == 0, $"docker compose up failed:\n{up.Output}");
     }
@@ -92,17 +95,43 @@ public sealed class ReferenceDeploymentSmokeTests(ITestOutputHelper output) : IA
         var live = await client.GetAsync(new Uri("/health/live", UriKind.Relative)).ConfigureAwait(true);
         Assert.Equal(HttpStatusCode.OK, live.StatusCode);
 
-        // 3. A fresh installation has no sites, and says so without erroring (FR-014a).
-        var empty = await client.GetFromJsonAsync<JsonElement>(new Uri("/api/v1/sites", UriKind.Relative)).ConfigureAwait(true);
-        Assert.Equal(0, empty.GetArrayLength());
-        output.WriteLine("fresh install: empty site list");
+        // 3. A fresh installation is in setup mode: nothing administrative answers until it
+        //    is claimed, and there are no default credentials to try (002 FR-001, FR-005).
+        var status = await client.GetFromJsonAsync<JsonElement>(new Uri("/api/v1/identity/status", UriKind.Relative)).ConfigureAwait(true);
+        Assert.True(status.GetProperty("setupRequired").GetBoolean());
+        var gated = await client.GetAsync(new Uri("/api/v1/sites", UriKind.Relative)).ConfigureAwait(true);
+        Assert.Equal((HttpStatusCode)428, gated.StatusCode);
+        output.WriteLine("fresh install: setup required");
 
         // 4. The admin shell is served from the image, not from a separate process.
         var admin = await client.GetAsync(new Uri("/admin/", UriKind.Relative)).ConfigureAwait(true);
         Assert.Equal(HttpStatusCode.OK, admin.StatusCode);
         output.WriteLine("admin shell served");
 
-        // 5. Create a site.
+        // 5. The setup wizard, as an operator does it: the code comes from the logs.
+        var setupCode = await ReadSetupCodeFromLogsAsync().ConfigureAwait(true);
+        var setup = await client
+            .PostAsJsonAsync(
+                new Uri("/api/v1/identity/setup", UriKind.Relative),
+                new { setupCode, displayName = "Smoke Operator", email = "operator@smoke.test", password = "smoke test passphrase 2026" })
+            .ConfigureAwait(true);
+        Assert.Equal(HttpStatusCode.Created, setup.StatusCode);
+
+        var session = setup.Headers.GetValues("Set-Cookie")
+            .Single(c => c.StartsWith("qb_session=", StringComparison.Ordinal))
+            .Split(';')[0];
+        client.DefaultRequestHeaders.Add("Cookie", session);
+        client.DefaultRequestHeaders.Add("X-QuickBuilder-Request", "1");
+
+        // SC-001 evidence, recorded rather than asserted: CI runners vary too much for a
+        // hard limit, and the quickstart run measures it on the reference environment.
+        output.WriteLine($"setup complete; signed in {_sinceComposeUp.Elapsed.TotalSeconds:F1}s after compose up");
+
+        // 6. As the new administrator: a fresh installation has no sites (FR-014a).
+        var empty = await client.GetFromJsonAsync<JsonElement>(new Uri("/api/v1/sites", UriKind.Relative)).ConfigureAwait(true);
+        Assert.Equal(0, empty.GetArrayLength());
+
+        // 7. Create a site.
         var created = await client
             .PostAsJsonAsync(
                 new Uri("/api/v1/sites", UriKind.Relative),
@@ -111,17 +140,19 @@ public sealed class ReferenceDeploymentSmokeTests(ITestOutputHelper output) : IA
 
         Assert.Equal(HttpStatusCode.Created, created.StatusCode);
 
-        // 6. It appears in the list.
+        // 8. It appears in the list.
         var listed = await client.GetFromJsonAsync<JsonElement>(new Uri("/api/v1/sites", UriKind.Relative)).ConfigureAwait(true);
         Assert.Equal(1, listed.GetArrayLength());
         output.WriteLine("site created and listed");
 
-        // 7. The public surface resolves it by host name — the end-to-end proof that site
-        //    resolution works behind the real container, not just in-process.
+        // 9. The public surface resolves it by host name — the end-to-end proof that site
+        //    resolution works behind the real container, not just in-process. Visitors never
+        //    authenticate, so this goes without the session.
+        using var publicClient = new HttpClient { BaseAddress = new Uri(BaseAddress) };
         using var request = new HttpRequestMessage(HttpMethod.Get, new Uri("/", UriKind.Relative));
         request.Headers.Host = "smoke.test";
 
-        var resolved = await client.SendAsync(request).ConfigureAwait(true);
+        var resolved = await publicClient.SendAsync(request).ConfigureAwait(true);
         var payload = await resolved.Content.ReadFromJsonAsync<JsonElement>().ConfigureAwait(true);
 
         Assert.Equal(HttpStatusCode.OK, resolved.StatusCode);
@@ -146,6 +177,34 @@ public sealed class ReferenceDeploymentSmokeTests(ITestOutputHelper output) : IA
         Assert.Equal(0, id.ExitCode);
         Assert.NotEqual("0", id.Output.Trim());
         output.WriteLine($"container uid: {id.Output.Trim()}");
+    }
+
+    /// <summary>
+    /// Finds the setup code in the container's log stream, as an operator would with
+    /// <c>docker compose logs app</c> (002 research R-09). Logs are compact JSON, one event
+    /// per line; the code is the <c>SetupCode</c> property of the one event that has it.
+    /// </summary>
+    private async Task<string> ReadSetupCodeFromLogsAsync()
+    {
+        var deadline = DateTimeOffset.UtcNow + TimeSpan.FromSeconds(60);
+
+        while (DateTimeOffset.UtcNow < deadline)
+        {
+            var logs = await RunAsync("docker", "compose logs --no-log-prefix app").ConfigureAwait(true);
+            var line = logs.Output
+                .Split('\n')
+                .FirstOrDefault(l => l.Contains("\"SetupCode\"", StringComparison.Ordinal));
+
+            if (line is not null)
+            {
+                using var document = JsonDocument.Parse(line.Trim());
+                return document.RootElement.GetProperty("SetupCode").GetString()!;
+            }
+
+            await Task.Delay(TimeSpan.FromSeconds(2)).ConfigureAwait(true);
+        }
+
+        throw new InvalidOperationException("The setup code never appeared in the application's logs.");
     }
 
     private async Task<TimeSpan> WaitForReadyAsync(HttpClient client)

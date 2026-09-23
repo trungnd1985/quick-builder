@@ -62,6 +62,13 @@ services:
       # means none are, which is deliberate: sites are resolved from the Host header, so
       # a spoofable forwarded host would let a caller choose which site they reach.
       # Hosting__KnownProxies__0: "10.0.0.5"
+
+      # Accept sign-in over plain HTTP. Safe ONLY while the port below stays bound to
+      # 127.0.0.1: inside the container, requests from this machine arrive from the Docker
+      # network, not from loopback, so the app cannot tell them apart from a remote client.
+      # Before widening the binding, put an HTTPS proxy in front and set this to "false".
+      # The app logs a warning at every start while this is on.
+      Identity__AllowInsecureHttp: "true"
     ports:
       # 127.0.0.1 — see the warning at the top of this file.
       - "127.0.0.1:8080:8080"

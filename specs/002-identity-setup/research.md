@@ -168,6 +168,21 @@ sending credentials. The same misconfiguration would also break per-client throt
 (R-07), so failing loudly here fixes two problems at once. `Identity:AllowInsecureHttp`
 exists for lab setups, and every startup with it enabled logs a warning.
 
+**Revised during implementation: the reference deployment turns the check off.** Inside
+a container, a request through a published port comes from the Docker network's
+gateway (a `172.x` address), not from loopback. The loopback exemption therefore never
+applies there. Without a change, the reference deployment, which is plain HTTP on
+`127.0.0.1:8080`, would refuse setup and sign-in.
+
+The application can't tell "arrived through a loopback-only published port" from
+"arrived across a network", so the deployment has to say which it is:
+- `docker-compose.yml` sets `Identity__AllowInsecureHttp: "true"` right beside the
+  `127.0.0.1` binding.
+- A comment at the binding says this is safe only while the binding is loopback-only, and
+  must be turned off when the binding is widened behind a TLS proxy.
+- The application default stays `false`, and the startup warning keeps the setting
+  visible for as long as it is on.
+
 **Why this fits multi-instance use (constitution IV, 001 E-4)**: all session state is in
 PostgreSQL, the one shared dependency. No part of identity depends on the in-memory
 cache that 001 recorded as single-instance only (E-4), so this feature adds nothing to
@@ -375,8 +390,8 @@ that the medians differ by less than 10%.
   instances"). The column is cleared in the same transaction that claims the
   installation.
 - **Printing**: once at every startup while unclaimed, as a single Warning-level log
-  event with a fixed message template and a dedicated `SetupCode` property. The console
-  sink renders it as a boxed banner. In that event, and nowhere else, the code is in
+  event with a fixed message template and a dedicated `SetupCode` property. The message
+  template starts with `SETUP CODE`, so `grep "SETUP CODE"` finds it. There is no drawn box: logs are compact JSON, one event per line, and a multi-line box would break log collectors (revised during implementation). In that event, and nowhere else, the code is in
   plain text. The recovery command's `identity setup-code` subcommand (R-16) prints it
   on demand.
 - **Stored in plain text on purpose**: the code has to be re-printable at every restart,

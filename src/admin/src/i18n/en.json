@@ -43,5 +43,31 @@
   },
   "common": {
     "dismiss": "Dismiss"
+  },
+  "identity": {
+    "setup": {
+      "title": "Set up QuickBuilder",
+      "intro": "Create the first administrator for this installation. You only do this once.",
+      "code": "Setup code",
+      "codeHelp": "Printed in the application's console output when it starts. With the reference deployment, run: docker compose logs app",
+      "displayName": "Your name",
+      "email": "Email address",
+      "password": "Password",
+      "passwordHelp": "At least 12 characters. A few unrelated words make a strong, memorable password.",
+      "submit": "Create administrator",
+      "submitting": "Creating…",
+      "errors": {
+        "invalid": "Some details need attention. See the messages below each field.",
+        "unexpected": "Something went wrong. Try again in a moment."
+      }
+    },
+    "errors": {
+      "identity": {
+        "setup_code_invalid": "That setup code is not correct. Copy it again from the console output.",
+        "setup_already_completed": "This installation has already been set up.",
+        "https_required": "For your security, sign-in only works over HTTPS, or from the machine running QuickBuilder.",
+        "throttled": "Too many attempts. Wait {seconds} seconds, then try again."
+      }
+    }
   }
 }

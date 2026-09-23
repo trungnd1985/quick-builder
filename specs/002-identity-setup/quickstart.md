@@ -23,7 +23,7 @@ Testcontainers.
 
 ```bash
 docker compose down -v && docker compose up -d
-docker compose logs app | grep -A3 "SETUP CODE"      # the boxed banner (R-09)
+docker compose logs app | grep "SETUP CODE"      # one JSON log event; the code is its SetupCode property (R-09)
 ```
 
 1. Open `http://127.0.0.1:8080/admin/`. It redirects to `/admin/setup`.

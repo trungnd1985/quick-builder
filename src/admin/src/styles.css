@@ -166,7 +166,9 @@ label {
   margin-bottom: 0.25rem;
 }
 
-input[type='text'] {
+input[type='text'],
+input[type='email'],
+input[type='password'] {
   width: 100%;
   padding: 0.5rem 0.625rem;
   border: 1px solid var(--border);
@@ -233,4 +235,12 @@ button:disabled {
   text-transform: uppercase;
   letter-spacing: 0.02em;
   color: var(--text-muted);
+}
+
+/* Screens shown before anyone is signed in (setup, sign-in, set-password): no navigation
+   frame, because there is nothing to navigate to yet. */
+.bare {
+  max-width: 28rem;
+  margin: 3rem auto;
+  padding: 0 1rem;
 }
