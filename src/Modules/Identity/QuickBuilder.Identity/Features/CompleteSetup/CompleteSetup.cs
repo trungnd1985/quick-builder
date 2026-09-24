@@ -110,7 +110,7 @@ internal sealed class CompleteSetupHandler(
 
         var now = clock.GetUtcNow();
         var user = User.Create(command.DisplayName!, command.Email!, now).Value;
-        user.SetPasswordHash(hasher.Hash(command.Password!), now);
+        user.SetPasswordHash(await hasher.HashAsync(command.Password!, cancellationToken).ConfigureAwait(false), now);
         user.RecordSignIn(now);
 
         await using var transaction = await database.Database.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);

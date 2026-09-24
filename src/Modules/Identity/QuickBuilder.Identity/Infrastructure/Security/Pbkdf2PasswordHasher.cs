@@ -17,6 +17,12 @@ namespace QuickBuilder.Identity.Infrastructure.Security;
 /// Passwords are hashed exactly as typed. Unicode normalisation was planned but is a silent
 /// no-op under the solution's invariant globalization (research R-03, revised).
 /// </para>
+/// <para>
+/// Request paths use the async methods, which let at most one fewer hash run at once than
+/// there are processors (SC-013, research R-19). Hashing is deliberately CPU-bound, and a
+/// burst of sign-ins would otherwise take every core — and, in a CPU-limited container,
+/// the whole quota — leaving nothing for other admin requests.
+/// </para>
 /// </remarks>
 internal sealed class Pbkdf2PasswordHasher
 {
@@ -40,6 +46,27 @@ internal sealed class Pbkdf2PasswordHasher
     }
 
     public int Iterations => _iterations;
+
+    /// <summary>
+    /// Hashes that may run at once on request paths: one core is always left for everything
+    /// else. <see cref="Environment.ProcessorCount"/> honours a container's CPU limit.
+    /// </summary>
+    public static int ConcurrentHashLimit { get; } = Math.Max(1, Environment.ProcessorCount - 1);
+
+    // Process-wide, like the processors it rations.
+    private static readonly SemaphoreSlim Gate = new(ConcurrentHashLimit, ConcurrentHashLimit);
+
+    /// <summary><see cref="Hash"/>, waiting its turn behind other hashes.</summary>
+    public Task<string> HashAsync(string password, CancellationToken cancellationToken) =>
+        GatedAsync(() => Hash(password), cancellationToken);
+
+    /// <summary><see cref="Verify"/>, waiting its turn behind other hashes.</summary>
+    public static Task<bool> VerifyAsync(string password, string storedHash, CancellationToken cancellationToken) =>
+        GatedAsync(() => Verify(password, storedHash), cancellationToken);
+
+    /// <summary><see cref="VerifyAgainstDummy"/>, waiting its turn like a real verification.</summary>
+    public Task<bool> VerifyAgainstDummyAsync(string password, CancellationToken cancellationToken) =>
+        GatedAsync(() => VerifyAgainstDummy(password), cancellationToken);
 
     public static int CountCodePoints(string password) =>
         password.EnumerateRunes().Count();
@@ -102,6 +129,19 @@ internal sealed class Pbkdf2PasswordHasher
         var started = System.Diagnostics.Stopwatch.GetTimestamp();
         Derive("timing check", RandomNumberGenerator.GetBytes(SaltSize), _iterations);
         return System.Diagnostics.Stopwatch.GetElapsedTime(started);
+    }
+
+    private static async Task<T> GatedAsync<T>(Func<T> work, CancellationToken cancellationToken)
+    {
+        await Gate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            return work();
+        }
+        finally
+        {
+            Gate.Release();
+        }
     }
 
     private static byte[] Derive(string password, byte[] salt, int iterations) =>

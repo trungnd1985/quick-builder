@@ -110,8 +110,8 @@ internal sealed class SignInHandler(
         }
 
         var verified = user is { CanSignIn: true, PasswordHash: { } hash }
-            ? Pbkdf2PasswordHasher.Verify(command.Password!, hash)
-            : hasher.VerifyAgainstDummy(command.Password!);
+            ? await Pbkdf2PasswordHasher.VerifyAsync(command.Password!, hash, cancellationToken).ConfigureAwait(false)
+            : await hasher.VerifyAgainstDummyAsync(command.Password!, cancellationToken).ConfigureAwait(false);
 
         if (!verified)
         {
@@ -140,7 +140,7 @@ internal sealed class SignInHandler(
         if (hasher.NeedsRehash(user!.PasswordHash!))
         {
             // FR-009: stored hashes follow the configured cost as users sign in.
-            user.SetPasswordHash(hasher.Hash(command.Password!), now);
+            user.SetPasswordHash(await hasher.HashAsync(command.Password!, cancellationToken).ConfigureAwait(false), now);
         }
 
         user.RecordSignIn(now);

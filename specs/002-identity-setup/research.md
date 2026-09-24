@@ -627,6 +627,16 @@ During the burst it also measures `GET /api/v1/sites` latency and compares it wi
 idle baseline (≤ 2× at p95). It lives with the smoke tests because only there is the
 CPU limit real. `WebApplicationFactory` shares the test runner's CPUs.
 
+**Revised during implementation**: the first run met the sign-in target (p95 587 ms) but
+failed the second clause. Other admin requests went from p95 4 ms idle to 267 ms, because
+ten concurrent hashes consumed the container's whole CPU quota. Request-path hashing now
+goes through a process-wide gate that allows `ProcessorCount - 1` hashes at once (one on
+the reference environment), which always leaves a core for everything else. Measured
+afterwards: sign-in p95 827 ms, other requests p95 4 ms during the burst. The trade is
+that sign-ins in a burst queue behind each other rather than share the CPU, so the sign-in
+margin is smaller; the startup hashing-time warning (safeguard 1 in R-03) is what reports a
+host too slow to meet it.
+
 ---
 
 ## Configuration keys introduced

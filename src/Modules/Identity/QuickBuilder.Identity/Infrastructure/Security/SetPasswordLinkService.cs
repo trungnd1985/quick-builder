@@ -100,7 +100,7 @@ internal sealed class SetPasswordLinkService(
         }
 
         var now = clock.GetUtcNow();
-        user.SetPasswordHash(hasher.Hash(newPassword!), now);
+        user.SetPasswordHash(await hasher.HashAsync(newPassword!, cancellationToken).ConfigureAwait(false), now);
         link.Consume(now);
 
         await sessions.RevokeAllAsync(user.Id, SessionRevocationReasons.PasswordSet, exceptSessionId: null, cancellationToken).ConfigureAwait(false);

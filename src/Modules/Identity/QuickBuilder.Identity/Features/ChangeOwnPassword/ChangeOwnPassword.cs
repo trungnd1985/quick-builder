@@ -72,7 +72,7 @@ internal sealed class ChangeOwnPasswordHandler(
             return Result.Failure(IdentityErrors.Throttled);
         }
 
-        if (!Pbkdf2PasswordHasher.Verify(command.CurrentPassword!, currentHash))
+        if (!await Pbkdf2PasswordHasher.VerifyAsync(command.CurrentPassword!, currentHash, cancellationToken).ConfigureAwait(false))
         {
             await throttle.RecordFailureAsync(clientKey, accountKey, cancellationToken).ConfigureAwait(false);
             events.Record(SecurityEventTypes.PasswordChanged, SecurityEventOutcomes.Failed, user.Id, user.Id);
@@ -88,7 +88,7 @@ internal sealed class ChangeOwnPasswordHandler(
 
         await throttle.RecordSuccessAsync(clientKey, accountKey, cancellationToken).ConfigureAwait(false);
 
-        user.SetPasswordHash(hasher.Hash(command.NewPassword!), clock.GetUtcNow());
+        user.SetPasswordHash(await hasher.HashAsync(command.NewPassword!, cancellationToken).ConfigureAwait(false), clock.GetUtcNow());
         await sessions.RevokeAllAsync(
             user.Id,
             SessionRevocationReasons.PasswordChanged,
