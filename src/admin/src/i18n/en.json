@@ -41,6 +41,10 @@
       "submitting": "Creating…",
       "cancel": "Cancel",
       "failed": "Could not create the site"
+    },
+    "noAccess": {
+      "title": "No access yet",
+      "body": "You are signed in, but you have no role on any site yet. Ask an administrator to give you access."
     }
   },
   "settings": {

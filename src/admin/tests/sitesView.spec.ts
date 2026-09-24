@@ -4,6 +4,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import { createI18n } from 'vue-i18n'
 import axe from 'axe-core'
 import SitesView from '../src/features/sites/SitesView.vue'
+import { useAuthStore } from '../src/app/authStore'
 import en from '../src/i18n/en.json'
 
 // SC-013 and FR-045b. The lint rule (no-raw-text) covers "no strings baked into screens";
@@ -37,6 +38,19 @@ async function baselineViolations(container: Element): Promise<axe.Result[]> {
 describe('SitesView', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
+    // Creating sites is for administrators (002 FR-027); these tests exercise that form.
+    useAuthStore().signedIn({ id: 'a', displayName: 'Admin', email: 'admin@example.test', isAdministrator: true, siteRoles: [] })
+  })
+
+  it('tells a user with no role anywhere that they have no access yet (002)', async () => {
+    useAuthStore().signedIn({ id: 'e', displayName: 'Eve', email: 'eve@example.test', isAdministrator: false, siteRoles: [] })
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => [] }))
+
+    renderSitesView()
+
+    await waitFor(() => expect(screen.getByText(en.sites.noAccess.title)).toBeTruthy())
+    expect(screen.queryByText(en.sites.empty.title)).toBeNull()
+    expect(screen.queryByRole('button', { name: en.sites.create.title })).toBeNull()
   })
 
   it('shows the empty state when the installation has no sites (FR-014a, FR-045)', async () => {

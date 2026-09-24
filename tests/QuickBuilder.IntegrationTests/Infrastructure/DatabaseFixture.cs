@@ -49,7 +49,8 @@ public sealed class DatabaseFixture : IAsyncLifetime
     /// </remarks>
     public async Task<string> CreateDatabaseAsync(string label)
     {
-        var name = $"qb_{label.ToLowerInvariant()}_{Guid.NewGuid():N}"[..40];
+        var full = $"qb_{label.ToLowerInvariant()}_{Guid.NewGuid():N}";
+        var name = full[..Math.Min(full.Length, 40)];
 
         var result = await _container
             .ExecScriptAsync($"CREATE DATABASE \"{name}\";")

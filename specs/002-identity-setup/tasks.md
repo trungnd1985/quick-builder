@@ -458,12 +458,12 @@ holds the controller action, request/response, command or query, validator and h
 
 ### Tests for User Story 4 ⚠️ write first, confirm they fail
 
-- [ ] T106 [P] [US4] Create `ITESTS/Identity/SiteVisibilityTests.cs` (SC-003, US4 scenarios 1–6, FR-022/023). Seed sites A and B, and users for Administrator, Editor on A, Designer on A plus Editor on B, and no grants. For every Sites endpoint and every role, assert:
+- [X] T106 [P] [US4] Create `ITESTS/Identity/SiteVisibilityTests.cs` (SC-003, US4 scenarios 1–6, FR-022/023). Seed sites A and B, and users for Administrator, Editor on A, Designer on A plus Editor on B, and no grants. For every Sites endpoint and every role, assert:
   - the list contents;
   - 404 bodies are byte-identical (apart from `traceId`) to a nonexistent site;
   - 403 appears only where the site is visible;
   - a newly created site is visible only to Administrators.
-- [ ] T107 [P] [US4] Create `ITESTS/Identity/GrantValidationTests.cs`:
+- [X] T107 [P] [US4] Create `ITESTS/Identity/GrantValidationTests.cs`:
   - `PUT …/grants` with an unknown `siteId` gets 400 with a field error;
   - two roles for the same site get 400;
   - the Administrator flag plus site roles is accepted, and the site roles are stored but add nothing;
@@ -471,13 +471,13 @@ holds the controller action, request/response, command or query, validator and h
 
 ### Implementation for User Story 4
 
-- [ ] T108 [US4] Update `src/Modules/Sites/QuickBuilder.Sites/Features/ListSites/ListSites.cs` so the handler takes `IAccessEvaluator` and applies `GetVisibleSitesAsync()`: no filter when `All`, `Where(s => visible.SiteIds.Contains(s.Id))` otherwise. Keep the existing `AcrossAllSites` reason and extend it to explain the per-user narrowing. Update the dedicated bypass test in `ITESTS/Sites/SiteScopingTests.cs` to cover both paths.
-- [ ] T109 [US4] Create `src/admin/src/features/users/GrantsEditor.vue`, used in the create dialog of `UsersView.vue` and in `UserEditView.vue`:
+- [X] T108 [US4] Update `src/Modules/Sites/QuickBuilder.Sites/Features/ListSites/ListSites.cs` so the handler takes `IAccessEvaluator` and applies `GetVisibleSitesAsync()`: no filter when `All`, `Where(s => visible.SiteIds.Contains(s.Id))` otherwise. Keep the existing `AcrossAllSites` reason and extend it to explain the per-user narrowing. Update the dedicated bypass test in `ITESTS/Sites/SiteScopingTests.cs` to cover both paths.
+- [X] T109 [US4] Create `src/admin/src/features/users/GrantsEditor.vue`, used in the create dialog of `UsersView.vue` and in `UserEditView.vue`:
   - an Administrator toggle;
   - a per-site role picker (none / designer / editor), with sites from `sitesApi.list()`;
   - saving calls `PUT …/grants` and shows 409 `identity.last_administrator` inline.
-- [ ] T110 [US4] Add a "you have no access to any site yet" empty state to `src/admin/src/features/sites/SitesView.vue` for signed-in non-administrators with no site roles (edge case "user whose last site role is removed"), and hide the create-site form from non-administrators (courtesy only)
-- [ ] T111 [P] [US4] Add `identity.grants.*` and `sites.noAccess.*` strings to `src/admin/src/i18n/en.json`, create `src/admin/tests/grantsEditor.spec.ts` (axe and keyboard), and extend `src/admin/tests/sitesView.spec.ts` for the no-access state
+- [X] T110 [US4] Add a "you have no access to any site yet" empty state to `src/admin/src/features/sites/SitesView.vue` for signed-in non-administrators with no site roles (edge case "user whose last site role is removed"), and hide the create-site form from non-administrators (courtesy only)
+- [X] T111 [P] [US4] Add `identity.grants.*` and `sites.noAccess.*` strings to `src/admin/src/i18n/en.json`, create `src/admin/tests/grantsEditor.spec.ts` (axe and keyboard), and extend `src/admin/tests/sitesView.spec.ts` for the no-access state
 
 **Checkpoint**: per-site permissions are enforced and visible, and later modules plug their capabilities into this model.
 

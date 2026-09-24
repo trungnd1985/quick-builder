@@ -119,6 +119,24 @@ public sealed class SiteScopingTests(DatabaseFixture database) : IAsyncLifetime
     }
 
     /// <summary>
+    /// 002 FR-022: the same deliberate bypass, narrowed to the caller — a user with a role
+    /// on Alpha only gets Alpha, even though the query itself crosses sites.
+    /// </summary>
+    [Fact]
+    public async Task Site_list_bypass_is_narrowed_to_the_callers_sites()
+    {
+        await IdentitySeed.ClaimInstallationAsync(_app.Services).ConfigureAwait(true);
+        var designer = await IdentitySeed.SeedUserAsync(
+            _app.Services,
+            siteRoles: [(_alphaId, QuickBuilder.Shared.Kernel.Authorization.SystemRole.Designer)]).ConfigureAwait(true);
+        var client = await IdentitySeed.CreateSignedInClientAsync(_app, designer.Id).ConfigureAwait(true);
+
+        var sites = await client.GetFromJsonAsync<JsonElement>(new Uri("/api/v1/sites", UriKind.Relative)).ConfigureAwait(true);
+
+        Assert.Equal([_alphaId], sites.EnumerateArray().Select(s => s.GetProperty("id").GetGuid()));
+    }
+
+    /// <summary>
     /// A public request reaches only the site its host name names.
     /// </summary>
     /// <remarks>
