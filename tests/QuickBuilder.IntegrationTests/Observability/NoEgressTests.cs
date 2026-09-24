@@ -2,6 +2,7 @@ using System.Net.Http.Json;
 using Microsoft.Extensions.DependencyInjection;
 using OpenTelemetry.Trace;
 using QuickBuilder.Host.Configuration;
+using QuickBuilder.IntegrationTests.Identity;
 using QuickBuilder.IntegrationTests.Infrastructure;
 using Xunit;
 
@@ -106,6 +107,47 @@ public sealed class NoEgressTests(DatabaseFixture database) : IAsyncLifetime
         var publicClient = _app.CreateClientForHost("offline.test");
         await publicClient.GetAsync(new Uri("/", UriKind.Relative)).ConfigureAwait(true);
         await client.GetAsync(new Uri("/health/ready", UriKind.Relative)).ConfigureAwait(true);
+
+        Assert.Equal(0, outbound);
+    }
+
+    /// <summary>
+    /// 002 FR-035: the identity journeys make no outbound call either — no breached-password
+    /// lookup, no email, no licence check.
+    /// </summary>
+    /// <remarks>
+    /// The obvious temptations for an identity feature are exactly the calls FR-035 forbids,
+    /// so the whole first-run path is driven here: setup, sign-in, creating a user and a site,
+    /// and using a set-password link.
+    /// </remarks>
+    [Fact]
+    public async Task Identity_journeys_make_no_outbound_http_calls()
+    {
+        var outbound = 0;
+
+        using var listener = new System.Diagnostics.ActivityListener
+        {
+            ShouldListenTo = source => source.Name == "System.Net.Http",
+            Sample = (ref System.Diagnostics.ActivityCreationOptions<System.Diagnostics.ActivityContext> _) =>
+                System.Diagnostics.ActivitySamplingResult.AllData,
+            ActivityStarted = _ => Interlocked.Increment(ref outbound),
+        };
+
+        System.Diagnostics.ActivitySource.AddActivityListener(listener);
+
+        var code = await SetupHelpers.GetSetupCodeAsync(_app).ConfigureAwait(true);
+        (await SetupHelpers.PostSetupAsync(SetupHelpers.ClientFrom(_app, "198.51.100.30"), code).ConfigureAwait(true)).EnsureSuccessStatusCode();
+
+        var signedIn = await SignInHelpers
+            .SignInAsync(SignInHelpers.Browser(_app, "198.51.100.31"), SetupHelpers.AdminEmail, IdentitySeed.Password)
+            .ConfigureAwait(true);
+        signedIn.EnsureSuccessStatusCode();
+        var admin = SignInHelpers.Browser(_app, "198.51.100.31", SignInHelpers.Cookie(signedIn, "qb_session"));
+
+        var (_, token) = await UsersApi.CreateUserAsync(admin, "offline.user@example.test").ConfigureAwait(true);
+        (await UsersApi.SetPasswordAsync(SignInHelpers.Browser(_app, "198.51.100.32"), token, "offline user passphrase 2026").ConfigureAwait(true))
+            .EnsureSuccessStatusCode();
+        await UsersApi.CreateSiteAsync(admin, "identity-offline.test").ConfigureAwait(true);
 
         Assert.Equal(0, outbound);
     }

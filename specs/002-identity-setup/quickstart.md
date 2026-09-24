@@ -99,16 +99,25 @@ database. The revoking action goes to instance 1 and the next request to instanc
 
 ## 5. Throttling without lockout (SC-005, SC-006)
 
+**Client block.** Spread the failures over different addresses, so that no single account's
+delay gets in the way:
+
 ```bash
 for i in 1 2 3 4 5 6; do
   curl -s -o /dev/null -w "%{http_code}\n" -X POST http://127.0.0.1:8080/api/v1/identity/sign-in \
     -H 'content-type: application/json' -H 'X-QuickBuilder-Request: 1' \
-    -d '{"email":"admin@example.com","password":"wrong-password-123"}'
+    -d "{\"email\":\"nobody$i@example.com\",\"password\":\"wrong-password-123\"}"
 done
 ```
 
-The first 5 attempts return `401`. The 6th returns `429` with `Retry-After`, and from
+The first 5 attempts return `401`. The 6th returns `429` with `Retry-After: 900`, and from
 this client even the correct password now gets `429` for 15 minutes.
+
+**Account delay.** Repeating the loop against one address (`admin@example.com`) returns
+`401, 401, 401, 429, 429, 429` with a `Retry-After` of a second or two. From the third
+failure the account makes each further attempt wait, and the wait doubles each time up to
+a minute. There is no lockout. A refused attempt checks no password, so it neither counts
+as a failure nor moves the client towards the block.
 
 **Automated checks**:
 - `ThrottlingTests` (SC-005): a blocked client stays blocked across two instances.
@@ -155,7 +164,7 @@ data, starts the full application, and makes the same three checks.
   password, token or session identifier appears in captured log output. The setup-code
   event is the only exception, and a separate test asserts that it is not emitted after
   setup (R-09).
-- `SecurityEventRetentionTests` (SC-012) seeds events on either side of the cutoff,
+- `IdentityRetentionTests` (SC-012) seeds events on either side of the cutoff,
   advances the `TimeProvider` by 366 days, runs one sweep, and asserts that only the
   newer events remain, unchanged.
 

@@ -517,35 +517,35 @@ holds the controller action, request/response, command or query, validator and h
 
 **Purpose**: retention, log hygiene, performance proof, deployment and documentation.
 
-- [ ] T115 [P] Create `IDENTITY/Infrastructure/IdentityRetentionService.cs`, an hourly `BackgroundService` modelled on 001's `OutboxRetentionService`. It deletes, each via batched `ExecuteDelete` of 10,000 rows driven by `TimeProvider`:
+- [X] T115 [P] Create `IDENTITY/Infrastructure/IdentityRetentionService.cs`, an hourly `BackgroundService` modelled on 001's `OutboxRetentionService`. It deletes, each via batched `ExecuteDelete` of 10,000 rows driven by `TimeProvider`:
   - `security_events` older than `Identity:SecurityEvents:RetentionPeriod` (FR-029a);
   - `sign_in_throttles` untouched for 24 h;
   - expired or revoked `sessions` older than `AbsoluteLifetime`;
   - non-live `set_password_links` 30 days after expiry;
   - `known_devices` that are revoked or unused for longer than `KnownDeviceLifetime`.
   Expose `SweepAsync` for tests and register the service in `IdentityModule`.
-- [ ] T116 [P] Create `ITESTS/Identity/IdentityRetentionTests.cs` (SC-012): seed events either side of the cutoff, advance the fake `TimeProvider` by 366 days and run `SweepAsync`. Only the newer events remain, byte-for-byte unchanged. Stale throttles, sessions, links and known devices are removed, and two concurrent sweeps don't fail.
-- [ ] T117 Extend `ITESTS/Observability/LoggingTests.cs` (SC-009, FR-030):
+- [X] T116 [P] Create `ITESTS/Identity/IdentityRetentionTests.cs` (SC-012): seed events either side of the cutoff, advance the fake `TimeProvider` by 366 days and run `SweepAsync`. Only the newer events remain, byte-for-byte unchanged. Stale throttles, sessions, links and known devices are removed, and two concurrent sweeps don't fail.
+- [X] T117 Extend `ITESTS/Observability/LoggingTests.cs` (SC-009, FR-030):
   - drive setup, a failed and a successful sign-in, user creation, an email change, and issuing and using a link;
   - assert that no email address, display name, password, link token, session token or session id appears anywhere in captured logs;
   - the setup-code event is the one tolerated exception (T049).
-- [ ] T118 [P] Extend `ITESTS/Observability/NoEgressTests.cs` (FR-035) so the blocked-egress run covers setup, sign-in, user creation and site creation
-- [ ] T119 [P] Rewrite the binding note in `docker-compose.yml` (FR-033):
+- [X] T118 [P] Extend `ITESTS/Observability/NoEgressTests.cs` (FR-035) so the blocked-egress run covers setup, sign-in, user creation and site creation
+- [X] T119 [P] Rewrite the binding note in `docker-compose.yml` (FR-033):
   - authentication and a setup code now protect the admin;
   - the binding stays `127.0.0.1` by default and may be widened after setup;
   - when fronting it with a TLS proxy, list the proxy in `Hosting__KnownProxies__0`;
   - add a commented `Hosting__PublicUrl` example.
-- [ ] T120 [P] Create `docker-compose.perf.yml`, an override setting `cpus: 2` and `mem_limit: 4g` on `app`, and `tests/QuickBuilder.SmokeTests/SignInPerformanceTests.cs` (`[Trait("Category", "Performance")]`, SC-013, research R-19). The test sends 10 concurrent sign-ins × 20 rounds and asserts:
+- [X] T120 [P] Create `docker-compose.perf.yml`, an override setting `cpus: 2` and `mem_limit: 4g` on `app`, and `tests/QuickBuilder.SmokeTests/SignInPerformanceTests.cs` (`[Trait("Category", "Performance")]`, SC-013, research R-19). The test sends 10 concurrent sign-ins × 20 rounds and asserts:
   - sign-in p95 ≤ 1 s;
   - `GET /api/v1/sites` p95 during the burst ≤ 2× the idle baseline.
-- [ ] T121 [P] Update `docs/configuration.md`:
+- [X] T121 [P] Update `docs/configuration.md`:
   - document every `Identity:*` key and `Hosting:PublicUrl`, with defaults and ranges;
   - replace the "ships no authentication" warning;
   - state at `Hosting:KnownProxies` that per-client throttling and the HTTPS rule depend on it (plan Risks).
-- [ ] T122 [P] Create `docs/operations.md`: first-run setup and where the code appears, finishing setup before enabling log forwarding, the `identity setup-code` and `identity recovery-link` commands, security-event retention, and the upgrade note that anonymous API scripts from 001 stop working
-- [ ] T123 [P] Update `docs/contributing.md` with an "Every action declares its authorization" step in the add-a-feature and add-a-module guides, linking `specs/002-identity-setup/contracts/authorization.md`, and a capability-registration example taken from `SitesModule.cs`
-- [ ] T124 Confirm the CI coverage gate in `.github/workflows/ci.yml` includes the Identity assembly in the merged report, and that line coverage stays ≥ 80% with authentication, authorization and setup counted as critical paths (constitution X). Raise coverage by adding tests where it falls short, never by lowering the bar.
-- [ ] T125 Run every section of quickstart.md against the reference deployment and record the outcomes, timings (SC-001, SC-007) and any deviations in `specs/002-identity-setup/quickstart-results.md`, as 001 did
+- [X] T122 [P] Create `docs/operations.md`: first-run setup and where the code appears, finishing setup before enabling log forwarding, the `identity setup-code` and `identity recovery-link` commands, security-event retention, and the upgrade note that anonymous API scripts from 001 stop working
+- [X] T123 [P] Update `docs/contributing.md` with an "Every action declares its authorization" step in the add-a-feature and add-a-module guides, linking `specs/002-identity-setup/contracts/authorization.md`, and a capability-registration example taken from `SitesModule.cs`
+- [X] T124 Confirm the CI coverage gate in `.github/workflows/ci.yml` includes the Identity assembly in the merged report, and that line coverage stays ≥ 80% with authentication, authorization and setup counted as critical paths (constitution X). Raise coverage by adding tests where it falls short, never by lowering the bar.
+- [X] T125 Run every section of quickstart.md against the reference deployment and record the outcomes, timings (SC-001, SC-007) and any deviations in `specs/002-identity-setup/quickstart-results.md`, as 001 did
 
 ---
 

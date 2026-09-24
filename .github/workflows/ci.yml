@@ -56,9 +56,10 @@ jobs:
       # ignores it. Verified — a run with Threshold=100 still exits 0. A gate that cannot
       # fail is worse than no gate, because it reads as covered.
       #
-      # The bar is the constitution's 80%, against a measured 81.26%. It sat at 75%
-      # temporarily while the unit tests were outstanding; those landed (T127) and took
-      # Shared.Kernel from 67% to 100%, so the bar now matches what Principle X asks for.
+      # The bar is the constitution's 80%. The merged report covers every assembly with
+      # tests, Identity included; measured at 93.4% overall after 002, with Identity at
+      # 96% and every authentication, authorization and setup class at or near 100%
+      # (the fail-closed wiring branches have their own unit tests).
       #
       # Coverage is still the weaker signal. The concurrency tests (SC-012), the
       # site-scoping tests (SC-011) and the fixtures proving each architecture rule fires

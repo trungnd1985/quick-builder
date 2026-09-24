@@ -9,8 +9,12 @@ example throughout — when in doubt, open it and copy what it does.
 
 ```bash
 docker compose up -d
+docker compose logs app | grep "SETUP CODE"   # the one-time setup code
 open http://127.0.0.1:8080/admin
 ```
+
+The first visit shows the setup wizard. Enter the code and create the first administrator.
+Other ways back in are in [operations](operations.md).
 
 **For development**, with the backend on the host and the admin app hot-reloading:
 
@@ -23,7 +27,7 @@ ConnectionStrings__Default="Host=localhost;Port=5432;Database=quickbuilder;Usern
   dotnet run --project src/QuickBuilder.Host
 
 # 3. The admin app (proxies /api to the backend)
-cd admin && npm install && npm run dev
+cd src/admin && npm install && npm run dev
 ```
 
 Needs .NET 10 SDK, Node 24+, and a container runtime (Testcontainers uses it).
@@ -34,7 +38,7 @@ Needs .NET 10 SDK, Node 24+, and a container runtime (Testcontainers uses it).
 dotnet build                                   # warnings are errors
 dotnet format --verify-no-changes              # CI runs this
 dotnet test                                    # unit + integration + architecture
-cd admin && npm run type-check && npm run lint && npm run test
+cd src/admin && npm run type-check && npm run lint && npm run test
 ```
 
 ## The administrative and public surfaces
@@ -73,6 +77,21 @@ Features/YourFeature/
 Then register the handler and validator in `SitesModule.AddSitesModule()`. That is the only
 file outside your folder you should touch.
 
+**Every action declares its authorization.** Put exactly one of these on each controller
+action. An action without one fails the architecture tests, and would be refused at
+runtime anyway:
+
+| Declaration | Use it for |
+|---|---|
+| `[RequireCapability(YourCapabilities.X)]` | Almost everything. For a site-scoped capability, name the site in the route as `{siteId}`. |
+| `[RequireSignedIn]` | Your own account, and lists that span sites. The handler filters them through `IAccessEvaluator`. |
+| `[AllowAnonymous]` | Only the short allow-list in the contract. Adding to it needs a spec. |
+
+If the action needs a new capability, declare it in your module's capabilities class and
+register it from `Add<Module>Module()` (see [Add a module](#add-a-module)). The rules,
+including what a refused caller sees, are in
+[the authorization contract](../specs/002-identity-setup/contracts/authorization.md).
+
 **Rules worth knowing before you start** (the full set is in
 [the module contract](../specs/001-foundation-skeleton/contracts/module-contract.md), and
 the architecture tests enforce them):
@@ -103,8 +122,35 @@ the architecture tests enforce them):
    `SiteQueryFilterGuidance` for why the obvious generic helper is wrong.
 4. Register an `IModuleDatabaseProvider` so the host can migrate and health-check it
    without knowing anything else about the module.
-5. Add **one line** to `src/QuickBuilder.Host/Program.cs`.
-6. Generate the first migration:
+5. **Declare what the module lets people do.** Capabilities are registered by the module
+   that owns them; Identity enforces them without knowing the module exists. From
+   `SitesCapabilities.cs` and `SitesModule.cs`:
+   ```csharp
+   internal static class SitesCapabilities
+   {
+       public const string Create = "sites.create";
+       public const string View = "sites.view";
+
+       public static IEnumerable<CapabilityDefinition> All =>
+       [
+           // Installation-wide: only Administrators hold it.
+           new(Create, CapabilityScope.Installation, []),
+           // Per site: these roles hold it on the sites they are granted.
+           new(View, CapabilityScope.Site, [SystemRole.Designer, SystemRole.Editor]),
+       ];
+   }
+
+   // in AddSitesModule()
+   foreach (var capability in SitesCapabilities.All)
+   {
+       services.AddSingleton(capability);
+   }
+   ```
+   Names are `<module>.<noun>.<verb>` and never change once shipped, because they are part
+   of what a role means. Then give every action a declaration, as described in
+   [Add a feature](#add-a-feature-to-an-existing-module).
+6. Add **one line** to `src/QuickBuilder.Host/Program.cs`.
+7. Generate the first migration:
    ```bash
    dotnet ef migrations add Initial<Module> \
      --project src/Modules/<Module>/QuickBuilder.<Module> \

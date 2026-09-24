@@ -36,10 +36,20 @@ docker compose run --rm app dotnet QuickBuilder.Host.dll migrate
 | `Hosting:BasePath` | *(empty)* | Serve under a sub-path, e.g. `/cms`. Empty means the root. |
 | `Hosting:KnownProxies:<n>` | *(empty)* | Proxy IP addresses whose forwarded headers are trusted. |
 | `Hosting:KnownNetworks:<n>` | *(empty)* | Trusted proxy networks in CIDR form, e.g. `10.0.0.0/8`. |
+| `Hosting:PublicUrl` | *(empty)* | The address people use to reach this installation, including any base path, e.g. `https://cms.example.com`. Must be empty or an absolute `http(s)` URL. Used only to print complete links from `identity recovery-link`; when empty, the command prints the path for you to complete. The app never works out its own address from request headers. |
 
 **Trusting nothing is the default and it matters.** Sites are resolved from the `Host`
 header, so a spoofable `X-Forwarded-Host` would let a caller choose which site they are
 talking to. If you put a proxy in front, name it.
+
+**Sign-in security depends on this too.** Two identity rules read the client's address and
+scheme, and behind a proxy they are only correct when the proxy is named here:
+
+- per-client sign-in throttling blocks an address after repeated failures, and every
+  request through an unnamed proxy appears to come from the proxy, so one attacker would
+  block everyone;
+- the HTTPS rule refuses credentials sent over plain HTTP from other machines, and it
+  cannot see that the original request was HTTPS unless it trusts `X-Forwarded-Proto`.
 
 ## Admin
 
@@ -47,9 +57,32 @@ talking to. If you put a proxy in front, name it.
 |---|---|---|
 | `Admin:PathPrefix` | `/admin` | Where the admin interface is served. Reserved ahead of the public catch-all. |
 
-⚠️ **This feature ships no authentication.** The reference `docker-compose.yml` publishes
-the app on `127.0.0.1` for that reason. Do not widen that binding until authentication
-ships (issue #2).
+The admin requires sign-in. A fresh installation is claimed through the setup wizard with
+a one-time code printed in the logs (see [operations](operations.md)). Until setup is
+finished, whoever has that code can become the administrator. The reference
+`docker-compose.yml` therefore publishes the app on `127.0.0.1`. Finish setup first. If
+you then widen the binding, put an HTTPS proxy in front, name it in
+`Hosting:KnownProxies`, and set `Identity:AllowInsecureHttp` to `false`.
+
+## Identity
+
+Sign-in, sessions and accounts. Every value is checked at startup, and a value outside its
+range stops the app and names the key.
+
+| Key | Default | Range | Meaning |
+|---|---|---|---|
+| `Identity:Session:IdleTimeout` | `02:00:00` | 5 min – 24 h | A session unused for this long ends. |
+| `Identity:Session:AbsoluteLifetime` | `12:00:00` | 5 min – 30 days, and at least `IdleTimeout` | A session ends this long after sign-in, however active. |
+| `Identity:SignIn:ClientFailureThreshold` | `5` | 3 – 100 | Failed sign-ins from one address before it is blocked. |
+| `Identity:SignIn:ClientBlockDuration` | `00:15:00` | 1 min – 24 h | How long a blocked address waits. |
+| `Identity:SignIn:AccountFailureThreshold` | `3` | 1 – 20 | Failed sign-ins on one account before each further attempt must wait. The wait doubles with each failure. |
+| `Identity:SignIn:AccountMaxDelay` | `00:01:00` | 1 s – 10 min | The longest an account's wait grows to. There is no hard lockout. |
+| `Identity:SignIn:KnownDeviceFailureThreshold` | `5` | 1 – 20 | Failures from a remembered browser before it stops being exempt from the account wait. |
+| `Identity:SignIn:KnownDeviceLifetime` | `90.00:00:00` | 1 – 365 days | How long a browser that signed in successfully is remembered. |
+| `Identity:Passwords:Pbkdf2Iterations` | `210000` | at least 210,000 | Password hashing cost (current OWASP guidance). Raising it upgrades stored hashes as people sign in. It can never be lowered. If the startup warning says hashing is slow, give the app more CPU rather than lowering this. |
+| `Identity:SetPasswordLinks:Lifetime` | `1.00:00:00` | 10 min – 7 days | How long a set-password link stays valid. |
+| `Identity:SecurityEvents:RetentionPeriod` | `365.00:00:00` | 1 – 3650 days | How long security events are kept. An hourly sweep removes older ones. |
+| `Identity:AllowInsecureHttp` | `false` | | Accept credentials over plain HTTP from other machines. The app logs a warning at every startup while it is on. The reference compose file turns it on because, inside Docker, requests from your own machine do not arrive from loopback. It is safe only while the port stays bound to `127.0.0.1`. |
 
 ## Outbox
 

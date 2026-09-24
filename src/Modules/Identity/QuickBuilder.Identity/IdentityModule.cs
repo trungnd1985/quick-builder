@@ -93,6 +93,11 @@ public static class IdentityModule
         services.AddScoped<IUserDirectory, UserDirectory>();
         services.AddHostedService<IdentityStartupChecks>();
 
+        // Retention (FR-029a). A singleton as well as a hosted service, so the sweep can be
+        // driven directly when background services are off.
+        services.AddSingleton<IdentityRetentionService>();
+        services.AddHostedService(sp => sp.GetRequiredService<IdentityRetentionService>());
+
         // Setup (research R-09, R-12).
         services.AddScoped<InstallationStore>();
         services.AddSingleton<SetupStatus>();
