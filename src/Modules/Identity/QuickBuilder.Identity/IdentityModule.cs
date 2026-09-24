@@ -31,6 +31,7 @@ using QuickBuilder.Identity.Infrastructure.Authentication;
 using QuickBuilder.Identity.Infrastructure.Authorization;
 using QuickBuilder.Identity.Infrastructure.Security;
 using QuickBuilder.Identity.Infrastructure.Setup;
+using QuickBuilder.Shared.Infrastructure.Commands;
 using QuickBuilder.Shared.Infrastructure.Modules;
 using QuickBuilder.Shared.Kernel.Authorization;
 using QuickBuilder.Shared.Kernel.Dispatch;
@@ -97,6 +98,9 @@ public static class IdentityModule
         services.AddSingleton<SetupStatus>();
         services.AddSingleton<IIdentitySetupStatus>(sp => sp.GetRequiredService<SetupStatus>());
         services.AddHostedService<InstallationBootstrapper>();
+
+        // Operator recovery from the command line (FR-028, contracts/operator-commands.md).
+        services.AddSingleton<IHostCommand, IdentityCommands>();
 
         AddAuthenticationAndAuthorization(services);
         AddFeatures(services);

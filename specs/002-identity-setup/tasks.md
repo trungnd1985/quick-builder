@@ -491,7 +491,7 @@ holds the controller action, request/response, command or query, validator and h
 
 ### Tests for User Story 5 ⚠️ write first, confirm they fail
 
-- [ ] T112 [P] [US5] Create `ITESTS/Identity/OperatorCommandTests.cs`, driving `HostCommandRunner` in-process against the test database and checking the contracts/operator-commands.md table:
+- [X] T112 [P] [US5] Create `ITESTS/Identity/OperatorCommandTests.cs`, driving `HostCommandRunner` in-process against the test database and checking the contracts/operator-commands.md table:
   - `identity setup-code` prints the code and exits 0 when unclaimed, and exits 2 when claimed;
   - `identity recovery-link --email` exits 0 for an active administrator (printing the full URL when `Hosting:PublicUrl` is set, and the path plus instruction otherwise);
   - it exits 4 for an unknown address or a non-administrator, 2 when unclaimed, and 3 with pending migrations;
@@ -501,13 +501,13 @@ holds the controller action, request/response, command or query, validator and h
 
 ### Implementation for User Story 5
 
-- [ ] T113 [US5] Create `IDENTITY/Infrastructure/IdentityCommands.cs`, an `IHostCommand` named `identity`:
+- [X] T113 [US5] Create `IDENTITY/Infrastructure/IdentityCommands.cs`, an `IHostCommand` named `identity`:
   - `setup-code` and `recovery-link --email <address>`, exactly per contracts/operator-commands.md;
   - output goes to `Console.Out`, never the logger;
   - it reuses `SetPasswordLinkService.IssueAsync(userId, issuedBy: null)`;
   - it checks pending migrations through `ModuleMigrationRunner`.
   Register it in `IdentityModule`.
-- [ ] T114 [US5] Extend `tests/QuickBuilder.SmokeTests/ReferenceDeploymentSmokeTests.cs`: run `docker compose exec -T app dotnet QuickBuilder.Host.dll identity recovery-link --email <admin>`, then `POST /api/v1/identity/set-password` with the printed token, then sign in with the new password
+- [X] T114 [US5] Extend `tests/QuickBuilder.SmokeTests/ReferenceDeploymentSmokeTests.cs`: run `docker compose exec -T app dotnet QuickBuilder.Host.dll identity recovery-link --email <admin>`, then `POST /api/v1/identity/set-password` with the printed token, then sign in with the new password
 
 **Checkpoint**: every user story is complete and independently verifiable.
 

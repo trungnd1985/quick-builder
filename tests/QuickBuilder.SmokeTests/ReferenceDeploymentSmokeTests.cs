@@ -187,6 +187,34 @@ public sealed class ReferenceDeploymentSmokeTests(ITestOutputHelper output) : IA
         Assert.Equal(HttpStatusCode.OK, resolved.StatusCode);
         Assert.Equal("Smoke", payload.GetProperty("siteName").GetString());
         output.WriteLine("public host resolved to the created site");
+
+        // 10. Operator recovery (002 US5): with command-line access to the container, the
+        //     operator issues a set-password link for the administrator, sets a new password
+        //     through it, and signs in with that password.
+        var recovery = await RunAsync(
+            "docker",
+            "compose exec -T app dotnet QuickBuilder.Host.dll identity recovery-link --email operator@smoke.test").ConfigureAwait(true);
+        Assert.True(recovery.ExitCode == 0, $"identity recovery-link failed:\n{recovery.Output}");
+
+        var token = Uri.UnescapeDataString(
+            recovery.Output.Split("#token=")[1].Split(['\r', '\n', ' '], StringSplitOptions.RemoveEmptyEntries)[0]);
+
+        using var recovered = new HttpClient { BaseAddress = new Uri(BaseAddress) };
+        recovered.DefaultRequestHeaders.Add("X-QuickBuilder-Request", "1");
+        var reset = await recovered
+            .PostAsJsonAsync(
+                new Uri("/api/v1/identity/set-password", UriKind.Relative),
+                new { token, newPassword = "recovered smoke passphrase 2026" })
+            .ConfigureAwait(true);
+        Assert.Equal(HttpStatusCode.NoContent, reset.StatusCode);
+
+        var signInAgain = await recovered
+            .PostAsJsonAsync(
+                new Uri("/api/v1/identity/sign-in", UriKind.Relative),
+                new { email = "operator@smoke.test", password = "recovered smoke passphrase 2026" })
+            .ConfigureAwait(true);
+        Assert.Equal(HttpStatusCode.OK, signInAgain.StatusCode);
+        output.WriteLine("recovery link issued from the command line; new password signs in");
     }
 
     /// <summary>
