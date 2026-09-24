@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using QuickBuilder.Shared.Infrastructure.Dispatch;
+using QuickBuilder.Shared.Kernel.Authorization;
 using QuickBuilder.Shared.Kernel.Dispatch;
 using QuickBuilder.Shared.Kernel.Results;
 using QuickBuilder.Sites.Contracts;
@@ -32,6 +33,7 @@ public sealed class GetSiteController(IDispatcher dispatcher) : ControllerBase
 {
     /// <summary>Gets one site by id.</summary>
     [HttpGet("{siteId:guid}")]
+    [RequireCapability(SitesCapabilities.View)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetAsync(Guid siteId, CancellationToken cancellationToken)

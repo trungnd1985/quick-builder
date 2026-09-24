@@ -135,6 +135,26 @@ public sealed class RulesFireWhenBrokenTests
     }
 
     /// <summary>
+    /// Each access-declaration rule catches its fixture, and the well-declared control
+    /// passes (002 FR-025).
+    /// </summary>
+    [Fact]
+    public void Access_declaration_rules_catch_each_violation()
+    {
+        var capabilities = AuthorizationDeclarationTests.RegisteredCapabilities();
+        var allowList = new HashSet<string>(StringComparer.Ordinal);
+
+        List<string> For<T>() => DeclarationRules.Violations([typeof(T)], capabilities, allowList);
+
+        Assert.Contains(For<UndeclaredFixtureController>(), v => v.Contains("declares no access", StringComparison.Ordinal));
+        Assert.Contains(For<DoublyDeclaredFixtureController>(), v => v.Contains("more than once", StringComparison.Ordinal));
+        Assert.Contains(For<UnlistedAnonymousFixtureController>(), v => v.Contains("allow-list", StringComparison.Ordinal));
+        Assert.Contains(For<UnknownCapabilityFixtureController>(), v => v.Contains("no module registers", StringComparison.Ordinal));
+        Assert.Contains(For<SiteScopedWithoutSiteIdFixtureController>(), v => v.Contains("{siteId}", StringComparison.Ordinal));
+        Assert.Empty(For<WellDeclaredFixtureController>());
+    }
+
+    /// <summary>
     /// A control: the predicates do not simply fail on everything.
     /// </summary>
     /// <remarks>

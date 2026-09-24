@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using QuickBuilder.Shared.Infrastructure.Dispatch;
 using QuickBuilder.Shared.Infrastructure.MultiSite;
+using QuickBuilder.Shared.Kernel.Authorization;
 using QuickBuilder.Shared.Kernel.Dispatch;
 using QuickBuilder.Sites.Contracts;
 using QuickBuilder.Sites.Infrastructure;
@@ -43,6 +44,7 @@ public sealed class ListSitesController(IDispatcher dispatcher) : ControllerBase
 {
     /// <summary>Lists every site, newest first.</summary>
     [HttpGet]
+    [RequireSignedIn]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<IActionResult> ListAsync(CancellationToken cancellationToken)
     {

@@ -5,7 +5,11 @@
       "sites": "Sites",
       "settings": "Settings"
     },
-    "skipToContent": "Skip to main content"
+    "skipToContent": "Skip to main content",
+    "userMenu": {
+      "signedInAs": "Signed in as {name}",
+      "signOut": "Sign out"
+    }
   },
   "sites": {
     "title": "Sites",
@@ -66,7 +70,19 @@
         "setup_code_invalid": "That setup code is not correct. Copy it again from the console output.",
         "setup_already_completed": "This installation has already been set up.",
         "https_required": "For your security, sign-in only works over HTTPS, or from the machine running QuickBuilder.",
-        "throttled": "Too many attempts. Wait {seconds} seconds, then try again."
+        "throttled": "Too many attempts. Wait {seconds} seconds, then try again.",
+        "invalid_credentials": "That email address and password do not match an account."
+      }
+    },
+    "signIn": {
+      "title": "Sign in to QuickBuilder",
+      "email": "Email address",
+      "password": "Password",
+      "submit": "Sign in",
+      "submitting": "Signing in…",
+      "errors": {
+        "missing": "Enter your email address and password.",
+        "unexpected": "Something went wrong. Try again in a moment."
       }
     }
   }

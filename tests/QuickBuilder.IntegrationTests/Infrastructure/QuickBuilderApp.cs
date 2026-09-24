@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
@@ -21,7 +22,10 @@ namespace QuickBuilder.IntegrationTests.Infrastructure;
 /// would (002 research R-18).
 /// </para>
 /// </remarks>
-public sealed class QuickBuilderApp(string connectionString, bool runBackgroundServices = false)
+public sealed class QuickBuilderApp(
+    string connectionString,
+    bool runBackgroundServices = false,
+    Action<IServiceCollection>? configureTestServices = null)
     : WebApplicationFactory<Program>
 {
     protected override void ConfigureWebHost(IWebHostBuilder builder)
@@ -55,6 +59,12 @@ public sealed class QuickBuilderApp(string connectionString, bool runBackgroundS
                 }
             }
         });
+
+        // Last, so a test's replacement — a manual clock, a cheaper hasher — wins.
+        if (configureTestServices is not null)
+        {
+            builder.ConfigureTestServices(configureTestServices);
+        }
     }
 
     /// <summary>
@@ -65,6 +75,22 @@ public sealed class QuickBuilderApp(string connectionString, bool runBackgroundS
     /// tests need to control it. The default client sends <c>localhost</c>, which resolves
     /// to nothing — which is itself the FR-014 case.
     /// </remarks>
+    /// <summary>
+    /// Releases idle pooled connections along with the application. Npgsql pools outlive the
+    /// host that opened them, and one per test database adds up to the server's connection
+    /// limit over a full run. Safe here because the integration tests run one class at a
+    /// time (see <see cref="DatabaseCollection"/>).
+    /// </summary>
+    protected override void Dispose(bool disposing)
+    {
+        base.Dispose(disposing);
+
+        if (disposing)
+        {
+            Npgsql.NpgsqlConnection.ClearAllPools();
+        }
+    }
+
     /// <summary>Every log event this application instance has written.</summary>
     public LogCapture Logs { get; } = new();
 

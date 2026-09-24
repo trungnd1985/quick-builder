@@ -36,4 +36,9 @@ export const identityApi = {
     request<Me>('/identity/setup', { method: 'POST', body: JSON.stringify(input) }),
 
   me: (): Promise<Me> => request<Me>('/identity/me'),
+
+  signIn: (email: string, password: string): Promise<Me> =>
+    request<Me>('/identity/sign-in', { method: 'POST', body: JSON.stringify({ email, password }) }),
+
+  signOut: (): Promise<void> => request<void>('/identity/sign-out', { method: 'POST' }),
 }

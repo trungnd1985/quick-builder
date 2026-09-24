@@ -87,6 +87,9 @@ public sealed class ReferenceDeploymentSmokeTests(ITestOutputHelper output) : IA
 
         using var client = new HttpClient { BaseAddress = new Uri(BaseAddress) };
 
+        // What the admin shell sends on every state-changing call (002 research R-11).
+        client.DefaultRequestHeaders.Add("X-QuickBuilder-Request", "1");
+
         // 1. Readiness — the probe that means "migrations are done and the database is up".
         var readyIn = await WaitForReadyAsync(client).ConfigureAwait(true);
         output.WriteLine($"ready after {readyIn.TotalSeconds:F1}s");
@@ -121,11 +124,37 @@ public sealed class ReferenceDeploymentSmokeTests(ITestOutputHelper output) : IA
             .Single(c => c.StartsWith("qb_session=", StringComparison.Ordinal))
             .Split(';')[0];
         client.DefaultRequestHeaders.Add("Cookie", session);
-        client.DefaultRequestHeaders.Add("X-QuickBuilder-Request", "1");
 
         // SC-001 evidence, recorded rather than asserted: CI runners vary too much for a
         // hard limit, and the quickstart run measures it on the reference environment.
         output.WriteLine($"setup complete; signed in {_sinceComposeUp.Elapsed.TotalSeconds:F1}s after compose up");
+
+        // 5a. The admin surface refuses anyone without a session (002 FR-024, E-1 closed).
+        using (var anonymous = new HttpClient { BaseAddress = new Uri(BaseAddress) })
+        {
+            var refused = await anonymous.GetAsync(new Uri("/api/v1/sites", UriKind.Relative)).ConfigureAwait(true);
+            Assert.Equal(HttpStatusCode.Unauthorized, refused.StatusCode);
+        }
+
+        // 5b. Sign out, and the session is gone for good; sign in again with the same
+        //     credentials (002 US2).
+        var signedOut = await client.PostAsync(new Uri("/api/v1/identity/sign-out", UriKind.Relative), null).ConfigureAwait(true);
+        Assert.Equal(HttpStatusCode.NoContent, signedOut.StatusCode);
+        var replayed = await client.GetAsync(new Uri("/api/v1/identity/me", UriKind.Relative)).ConfigureAwait(true);
+        Assert.Equal(HttpStatusCode.Unauthorized, replayed.StatusCode);
+
+        var signIn = await client
+            .PostAsJsonAsync(
+                new Uri("/api/v1/identity/sign-in", UriKind.Relative),
+                new { email = "operator@smoke.test", password = "smoke test passphrase 2026" })
+            .ConfigureAwait(true);
+        Assert.Equal(HttpStatusCode.OK, signIn.StatusCode);
+
+        client.DefaultRequestHeaders.Remove("Cookie");
+        client.DefaultRequestHeaders.Add(
+            "Cookie",
+            signIn.Headers.GetValues("Set-Cookie").Single(c => c.StartsWith("qb_session=", StringComparison.Ordinal)).Split(';')[0]);
+        output.WriteLine("anonymous refused; signed out and back in");
 
         // 6. As the new administrator: a fresh installation has no sites (FR-014a).
         var empty = await client.GetFromJsonAsync<JsonElement>(new Uri("/api/v1/sites", UriKind.Relative)).ConfigureAwait(true);

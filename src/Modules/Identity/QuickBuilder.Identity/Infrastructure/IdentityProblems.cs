@@ -25,6 +25,13 @@ internal static class IdentityErrors
 
     public static readonly Error Unauthenticated = new(
         "identity.unauthenticated", "Sign in to continue.");
+
+    /// <summary>One answer for every failed sign-in, whatever the cause (FR-014, research R-08).</summary>
+    public static readonly Error InvalidCredentials = new(
+        "identity.invalid_credentials", "That email address and password do not match an account.");
+
+    public static readonly Error RequestRejected = new(
+        "identity.request_rejected", "This request did not come from the admin application.");
 }
 
 /// <summary>

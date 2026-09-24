@@ -315,14 +315,14 @@ holds the controller action, request/response, command or query, validator and h
 
 ### Tests for User Story 2 ⚠️ write first, confirm they fail
 
-- [ ] T066 [P] [US2] Create `ITESTS/Identity/SignInTests.cs`:
+- [X] T066 [P] [US2] Create `ITESTS/Identity/SignInTests.cs`:
   - success returns `Me` and sets `qb_session` with `HttpOnly` and `SameSite=Strict`, plus `Secure` over https;
   - an unknown email, a wrong password, an account without a password and a deactivated account all return an identical 401 `identity.invalid_credentials`;
   - sign-out gives 204, and replaying the old cookie gives 401;
   - idle expiry and absolute expiry are enforced (advance a fake `TimeProvider`);
   - emails match case-insensitively and are trimmed, while passwords are not trimmed;
   - a stored lower-iteration hash is upgraded on sign-in (FR-009).
-- [ ] T067 [P] [US2] Create `ITESTS/Identity/ThrottlingTests.cs` (SC-005, FR-015/015a):
+- [X] T067 [P] [US2] Create `ITESTS/Identity/ThrottlingTests.cs` (SC-005, FR-015/015a):
   - 5 failures from one client, then 429 with `Retry-After` even with the correct password, and `client_blocked` recorded;
   - the account wait doubles from the 3rd failure, is capped at 60 s, and isn't evaluated inside the wait;
   - unknown emails produce the same throttle responses as real ones;
@@ -331,16 +331,16 @@ holds the controller action, request/response, command or query, validator and h
   - a device cookie never bypasses the **client** block;
   - after 5 failures from one device it loses known status and `known_device_revoked` is recorded;
   - a device cookie for account A gives no exemption on account B;
-  - deactivation, email change, set-password link use and administrator "sign out everywhere" each revoke the user's known devices.
-- [ ] T068 [P] [US2] Create `ITESTS/Identity/CredentialOracleTests.cs` (SC-006, research R-08): 1,000 attempts split between unknown accounts and wrong passwords give bodies identical apart from `traceId`, and the medians differ by less than 10%
-- [ ] T069 [P] [US2] Create `ITESTS/Identity/RequestGuardTests.cs` (FR-018, US2 scenario 8, research R-04/R-11):
+  - (moved to T086, because it needs the US3 endpoints) deactivation, email change, set-password link use and administrator "sign out everywhere" each revoke the user's known devices.
+- [X] T068 [P] [US2] Create `ITESTS/Identity/CredentialOracleTests.cs` (SC-006, research R-08): 1,000 attempts split between unknown accounts and wrong passwords give bodies identical apart from `traceId`, and the medians differ by less than 10%
+- [X] T069 [P] [US2] Create `ITESTS/Identity/RequestGuardTests.cs` (FR-018, US2 scenario 8, research R-04/R-11):
   - a non-GET request without `X-QuickBuilder-Request` gets 403 `identity.request_rejected`;
   - so does a foreign `Origin`, and `Sec-Fetch-Site: cross-site`;
   - GET requests are unaffected;
   - plain HTTP from a non-loopback address gets `identity.https_required` on sign-in;
   - a forwarded `https` from a listed proxy is accepted.
-- [ ] T070 [P] [US2] Create `ITESTS/Identity/EndpointAuthorizationCoverageTests.cs` (SC-002): after the claim, enumerate `EndpointDataSource`, call every endpoint without a session, and assert 401 for all except the anonymous allow-list in contracts/authorization.md §4
-- [ ] T071 [P] [US2] Create `tests/QuickBuilder.ArchitectureTests/AuthorizationDeclarationTests.cs` (FR-025, research R-06), with fixtures in `tests/QuickBuilder.ArchitectureTests/Fixtures/AuthorizationFixtures.cs` that prove each rule fires. It asserts:
+- [X] T070 [P] [US2] Create `ITESTS/Identity/EndpointAuthorizationCoverageTests.cs` (SC-002): after the claim, enumerate `EndpointDataSource`, call every endpoint without a session, and assert 401 for all except the anonymous allow-list in contracts/authorization.md §4
+- [X] T071 [P] [US2] Create `tests/QuickBuilder.ArchitectureTests/AuthorizationDeclarationTests.cs` (FR-025, research R-06), with fixtures in `tests/QuickBuilder.ArchitectureTests/Fixtures/AuthorizationFixtures.cs` that prove each rule fires. It asserts:
   - every action of every controller in every module assembly and in the host carries exactly one of `RequireCapability`, `RequireSignedIn` or `AllowAnonymous`;
   - `AllowAnonymous` appears only on the allow-list;
   - every capability name is registered;
@@ -348,31 +348,31 @@ holds the controller action, request/response, command or query, validator and h
 
 ### Implementation for User Story 2
 
-- [ ] T072 [US2] Create `IDENTITY/Infrastructure/Security/RequestGuardMiddleware.cs` for `/api` non-safe methods: require `X-QuickBuilder-Request: 1`, check `Origin` against the request scheme and host, and check `Sec-Fetch-Site`. Register it in `UseIdentityModule` after the setup gate.
-- [ ] T073 [US2] Create `IDENTITY/Features/SignIn/SignIn.cs`: `POST /api/v1/identity/sign-in`, `[AllowAnonymous]`.
+- [X] T072 [US2] Create `IDENTITY/Infrastructure/Security/RequestGuardMiddleware.cs` for `/api` non-safe methods: require `X-QuickBuilder-Request: 1`, check `Origin` against the request scheme and host, and check `Sec-Fetch-Site`. Register it in `UseIdentityModule` after the setup gate.
+- [X] T073 [US2] Create `IDENTITY/Features/SignIn/SignIn.cs`: `POST /api/v1/identity/sign-in`, `[AllowAnonymous]`.
   - **Order**: `RequireSecureTransport`, then the client block, then the user lookup, then `KnownDeviceService.FindValidAsync`, then the account wait (skipped when a valid known device matches), then `Verify` (or `VerifyAgainstDummy` when the account is missing or unusable).
   - **Failure**: record the throttle failure, and the device failure when a device matched. Record the `sign_in` failed event without the attempted email, with `subject_user_id` set only when the account exists (FR-029). Return 401.
   - **Success**: reset the account throttle, rehash if needed, set `last_sign_in_at_utc`, issue a session, call `KnownDeviceService.RememberAsync`, and record the `sign_in` succeeded event (`knownDevice` set when the exemption applied).
-- [ ] T074 [P] [US2] Create `IDENTITY/Features/SignOut/SignOut.cs`: `POST /api/v1/identity/sign-out`, `[RequireSignedIn]`. It revokes the current session (`sign_out`), clears the cookie and records the event.
-- [ ] T075 [US2] Declare authorization on every action under `src/Modules/Sites/QuickBuilder.Sites/Features/`, per contracts/authorization.md §5:
+- [X] T074 [P] [US2] Create `IDENTITY/Features/SignOut/SignOut.cs`: `POST /api/v1/identity/sign-out`, `[RequireSignedIn]`. It revokes the current session (`sign_out`), clears the cookie and records the event.
+- [X] T075 [US2] Declare authorization on every action under `src/Modules/Sites/QuickBuilder.Sites/Features/`, per contracts/authorization.md §5:
   - `[RequireCapability("sites.create")]` in `src/Modules/Sites/QuickBuilder.Sites/Features/CreateSite/CreateSite.cs`;
   - `[RequireCapability("sites.view")]` in `.../GetSite/GetSite.cs`;
   - `[RequireCapability("sites.host_names.manage")]` in `.../AddHostName/AddHostName.cs`;
   - `[RequireSignedIn]` in `.../ListSites/ListSites.cs`;
   - register the three `CapabilityDefinition`s from data-model.md in `src/Modules/Sites/QuickBuilder.Sites/SitesModule.cs`.
-- [ ] T076 [US2] Check that every Identity controller from Phase 3 (`IDENTITY/Features/GetStatus/GetStatus.cs`, `IDENTITY/Features/CompleteSetup/CompleteSetup.cs`, `IDENTITY/Features/GetMe/GetMe.cs`) carries its declaration (`GetStatus` and `CompleteSetup` → `[AllowAnonymous]`, `GetMe` → `[RequireSignedIn]`), so T071 passes
-- [ ] T077 [P] [US2] Extend `src/admin/src/api/identity.ts` with `signIn` and `signOut`
-- [ ] T078 [US2] Create `src/admin/src/features/identity/SignInView.vue`:
+- [X] T076 [US2] Check that every Identity controller from Phase 3 (`IDENTITY/Features/GetStatus/GetStatus.cs`, `IDENTITY/Features/CompleteSetup/CompleteSetup.cs`, `IDENTITY/Features/GetMe/GetMe.cs`) carries its declaration (`GetStatus` and `CompleteSetup` → `[AllowAnonymous]`, `GetMe` → `[RequireSignedIn]`), so T071 passes
+- [X] T077 [P] [US2] Extend `src/admin/src/api/identity.ts` with `signIn` and `signOut`
+- [X] T078 [US2] Create `src/admin/src/features/identity/SignInView.vue`:
   - email and password fields;
   - the generic error;
   - a throttled message showing the `Retry-After` wait;
   - on success, return to `returnTo` only if `router.resolve(returnTo)` matches a known admin route, and `/sites` otherwise (FR-019).
-- [ ] T079 [US2] Wire sign-in and sign-out into the shell (`src/admin/src/app/router.ts`, `src/admin/src/app/authStore.ts`, `src/admin/src/App.vue`):
+- [X] T079 [US2] Wire sign-in and sign-out into the shell (`src/admin/src/app/router.ts`, `src/admin/src/app/authStore.ts`, `src/admin/src/App.vue`):
   - `src/admin/src/app/router.ts`: add the `/sign-in` route and a guard sending signed-out users there with `returnTo`;
   - `src/admin/src/app/authStore.ts`: `onUnauthenticated` clears the store and redirects preserving `returnTo`;
   - `src/admin/src/App.vue`: a signed-in user menu with "Sign out".
-- [ ] T080 [P] [US2] Add `identity.signIn.*` and `app.userMenu.*` strings to `src/admin/src/i18n/en.json`, and create `src/admin/tests/signInView.spec.ts` (axe, keyboard-only, `returnTo` rejects `//evil.example` and absolute URLs)
-- [ ] T081 [US2] Extend `tests/QuickBuilder.SmokeTests/ReferenceDeploymentSmokeTests.cs`: an anonymous `GET /api/v1/sites` gets 401, then sign out, then sign in with the setup credentials, then continue the journey
+- [X] T080 [P] [US2] Add `identity.signIn.*` and `app.userMenu.*` strings to `src/admin/src/i18n/en.json`, and create `src/admin/tests/signInView.spec.ts` (axe, keyboard-only, `returnTo` rejects `//evil.example` and absolute URLs)
+- [X] T081 [US2] Extend `tests/QuickBuilder.SmokeTests/ReferenceDeploymentSmokeTests.cs`: an anonymous `GET /api/v1/sites` gets 401, then sign out, then sign in with the setup credentials, then continue the journey
 
 **Checkpoint**: E-1 is closed. Every admin endpoint is authenticated and declared, and the build fails otherwise. US1 and US2 together are a shippable, secure installation.
 
@@ -408,7 +408,7 @@ holds the controller action, request/response, command or query, validator and h
   - it revokes your other sessions and keeps the current one;
   - `revoke-others` keeps the current session;
   - an administrator's `sessions/revoke` gets 401 on all the user's sessions while the account stays active and can sign in again.
-- [ ] T086 [P] [US3] Create `ITESTS/Identity/RevocationTests.cs` (SC-004): two app instances on one database. For sign-out, sign-out-everywhere, deactivation, password change, email change and a grant change, the change goes to instance 1 and the user's next request to instance 2, which reflects it.
+- [ ] T086 [P] [US3] Create `ITESTS/Identity/RevocationTests.cs` (SC-004): two app instances on one database. For sign-out, sign-out-everywhere, deactivation, password change, email change and a grant change, the change goes to instance 1 and the user's next request to instance 2, which reflects it. Also assert that deactivation, email change, set-password link use and administrator "sign out everywhere" each revoke the user's known devices (moved from T067).
 
 ### Implementation for User Story 3
 

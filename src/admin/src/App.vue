@@ -1,9 +1,23 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
+import { identityApi } from './api/identity'
+import { useAuthStore } from './app/authStore'
 
 const { t } = useI18n()
 const route = useRoute()
+const router = useRouter()
+const auth = useAuthStore()
+
+async function signOut(): Promise<void> {
+  try {
+    await identityApi.signOut()
+  } finally {
+    // Signed out locally whatever the server said: the session is gone either way.
+    auth.signedOut()
+    await router.push({ name: 'sign-in' })
+  }
+}
 </script>
 
 <template>
@@ -36,6 +50,18 @@ const route = useRoute()
     <div class="shell">
       <header class="shell-header">
         <span class="brand">{{ t('app.title') }}</span>
+        <div
+          v-if="auth.user"
+          class="user-menu"
+        >
+          <span>{{ t('app.userMenu.signedInAs', { name: auth.user.displayName }) }}</span>
+          <button
+            type="button"
+            @click="signOut"
+          >
+            {{ t('app.userMenu.signOut') }}
+          </button>
+        </div>
       </header>
 
       <div class="shell-body">

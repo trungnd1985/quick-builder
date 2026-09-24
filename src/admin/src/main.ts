@@ -17,6 +17,15 @@ setApiHooks({
     auth.markSetupRequired()
     void router.push({ name: 'setup' })
   },
+  onUnauthenticated: () => {
+    // The session ended — signed out elsewhere, expired, or revoked by an administrator.
+    // Screens that are reachable signed out (sign-in itself) show their own message.
+    auth.signedOut()
+    const current = router.currentRoute.value
+    if (!current.meta.public) {
+      void router.push({ name: 'sign-in', query: { returnTo: current.fullPath } })
+    }
+  },
 })
 
 app.mount('#app')

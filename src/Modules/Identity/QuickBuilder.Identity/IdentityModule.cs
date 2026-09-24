@@ -11,6 +11,8 @@ using QuickBuilder.Identity.Contracts;
 using QuickBuilder.Identity.Features.CompleteSetup;
 using QuickBuilder.Identity.Features.GetMe;
 using QuickBuilder.Identity.Features.GetStatus;
+using QuickBuilder.Identity.Features.SignIn;
+using QuickBuilder.Identity.Features.SignOut;
 using QuickBuilder.Identity.Infrastructure;
 using QuickBuilder.Identity.Infrastructure.Authentication;
 using QuickBuilder.Identity.Infrastructure.Authorization;
@@ -95,6 +97,11 @@ public static class IdentityModule
         services.AddScoped<IValidator<CompleteSetupCommand>, CompleteSetupValidator>();
 
         services.AddScoped<IQueryHandler<GetMeQuery, Result<MeResponse>>, GetMeHandler>();
+
+        services.AddScoped<ICommandHandler<SignInCommand, Result<MeResponse>>, SignInHandler>();
+        services.AddScoped<IValidator<SignInCommand>, SignInValidator>();
+
+        services.AddScoped<ICommandHandler<SignOutCommand, Result>, SignOutHandler>();
     }
 
     /// <summary>
@@ -135,13 +142,15 @@ public static class IdentityModule
     /// </summary>
     /// <remarks>
     /// The setup gate comes first: during setup mode an admin request gets "setup required"
-    /// rather than "sign in", because there is nobody to sign in as yet.
+    /// rather than "sign in", because there is nobody to sign in as yet. The request guard
+    /// follows, so a forged state change is refused before authorization runs.
     /// </remarks>
     public static IApplicationBuilder UseIdentityModule(this IApplicationBuilder app)
     {
         ArgumentNullException.ThrowIfNull(app);
 
         app.UseMiddleware<SetupGateMiddleware>();
+        app.UseMiddleware<RequestGuardMiddleware>();
 
         return app;
     }

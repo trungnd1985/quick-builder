@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using QuickBuilder.Shared.Infrastructure.Dispatch;
 using QuickBuilder.Shared.Infrastructure.MultiSite;
+using QuickBuilder.Shared.Kernel.Authorization;
 using QuickBuilder.Shared.Kernel.Dispatch;
 using QuickBuilder.Shared.Kernel.Results;
 using QuickBuilder.Shared.Kernel.Validation;
@@ -88,6 +89,7 @@ public sealed class AddHostNameController(IDispatcher dispatcher) : ControllerBa
 {
     /// <summary>Adds a host name to a site.</summary>
     [HttpPost]
+    [RequireCapability(SitesCapabilities.ManageHostNames)]
     [ProducesResponseType(StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
