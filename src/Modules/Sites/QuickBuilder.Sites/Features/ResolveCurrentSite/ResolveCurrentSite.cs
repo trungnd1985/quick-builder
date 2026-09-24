@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using QuickBuilder.Shared.Infrastructure.Dispatch;
 using QuickBuilder.Shared.Infrastructure.MultiSite;
@@ -63,6 +64,8 @@ internal sealed class CurrentSiteHandler(ISiteContext siteContext, ISiteDirector
 /// </para>
 /// </remarks>
 [ApiController]
+// Public surface: site visitors never authenticate (002 contracts/authorization.md §4).
+[AllowAnonymous]
 [Route("/")]
 public sealed class ResolveCurrentSiteController(IDispatcher dispatcher) : ControllerBase
 {

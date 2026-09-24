@@ -1,10 +1,22 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useAuthStore } from '../../app/authStore'
 import { useSitesStore } from '../../app/sitesStore'
 
 const { t, d } = useI18n()
 const store = useSitesStore()
+const auth = useAuthStore()
+
+// Only administrators create sites (002 FR-027). Hiding the form is a courtesy; the
+// server refuses anyone else regardless (FR-024).
+const canCreate = computed(() => auth.isAdministrator)
+
+// A signed-in user with no role anywhere sees an explanation rather than an empty list
+// that suggests creating a site they cannot create (002 spec edge case).
+const hasNoAccess = computed(
+  () => auth.user !== null && !auth.user.isAdministrator && auth.user.siteRoles.length === 0,
+)
 
 const showCreate = ref(false)
 const name = ref('')
@@ -47,6 +59,7 @@ async function submit(): Promise<void> {
         </p>
       </div>
       <button
+        v-if="canCreate"
         type="button"
         class="primary"
         @click="showCreate = !showCreate"
@@ -61,7 +74,7 @@ async function submit(): Promise<void> {
       announces them rather than leaving them as decoration.
     -->
     <form
-      v-if="showCreate"
+      v-if="canCreate && showCreate"
       class="card"
       novalidate
       @submit.prevent="submit"
@@ -163,6 +176,14 @@ async function submit(): Promise<void> {
       >
         {{ t('sites.error.retry') }}
       </button>
+    </div>
+
+    <div
+      v-else-if="store.sites.length === 0 && hasNoAccess"
+      class="card empty"
+    >
+      <h2>{{ t('sites.noAccess.title') }}</h2>
+      <p>{{ t('sites.noAccess.body') }}</p>
     </div>
 
     <div

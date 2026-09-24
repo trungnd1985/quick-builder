@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
@@ -13,8 +14,18 @@ namespace QuickBuilder.IntegrationTests.Infrastructure;
 /// stubs a handler — the only things overridden are the connection string and whether
 /// background services run, because a test needs to control when dispatch happens rather
 /// than race a five-second timer.
+/// <para>
+/// One test-only middleware is added in front of the pipeline: it lets a request choose
+/// the client address it appears to come from (<see cref="IdentitySeed.RemoteAddressHeader"/>),
+/// which throttling and the HTTPS rule depend on and <c>TestServer</c> otherwise leaves
+/// empty. Every client uses <c>https://localhost</c>, as a production browser behind TLS
+/// would (002 research R-18).
+/// </para>
 /// </remarks>
-public sealed class QuickBuilderApp(string connectionString, bool runBackgroundServices = false)
+public sealed class QuickBuilderApp(
+    string connectionString,
+    bool runBackgroundServices = false,
+    Action<IServiceCollection>? configureTestServices = null)
     : WebApplicationFactory<Program>
 {
     protected override void ConfigureWebHost(IWebHostBuilder builder)
@@ -30,6 +41,10 @@ public sealed class QuickBuilderApp(string connectionString, bool runBackgroundS
         // and hoping. Tests that want the timer can opt in.
         builder.UseSetting("Outbox:Enabled", runBackgroundServices ? "true" : "false");
 
+        IdentitySeed.UseTestRemoteAddress(builder);
+
+        builder.ConfigureServices(services => services.AddSingleton<Serilog.Core.ILogEventSink>(Logs));
+
         builder.ConfigureServices(services =>
         {
             if (!runBackgroundServices)
@@ -44,6 +59,12 @@ public sealed class QuickBuilderApp(string connectionString, bool runBackgroundS
                 }
             }
         });
+
+        // Last, so a test's replacement — a manual clock, a cheaper hasher — wins.
+        if (configureTestServices is not null)
+        {
+            builder.ConfigureTestServices(configureTestServices);
+        }
     }
 
     /// <summary>
@@ -54,10 +75,34 @@ public sealed class QuickBuilderApp(string connectionString, bool runBackgroundS
     /// tests need to control it. The default client sends <c>localhost</c>, which resolves
     /// to nothing — which is itself the FR-014 case.
     /// </remarks>
-    public HttpClient CreateClientForHost(string hostName)
+    /// <summary>
+    /// Releases idle pooled connections along with the application. Npgsql pools outlive the
+    /// host that opened them, and one per test database adds up to the server's connection
+    /// limit over a full run. Safe here because the integration tests run one class at a
+    /// time (see <see cref="DatabaseCollection"/>).
+    /// </summary>
+    protected override void Dispose(bool disposing)
     {
-        var client = CreateClient();
-        client.DefaultRequestHeaders.Host = hostName;
-        return client;
+        base.Dispose(disposing);
+
+        if (disposing)
+        {
+            Npgsql.NpgsqlConnection.ClearAllPools();
+        }
     }
+
+    /// <summary>Every log event this application instance has written.</summary>
+    public LogCapture Logs { get; } = new();
+
+    public HttpClient CreateClientForHost(string hostName) => IdentitySeed.CreateAnonymousClient(this, hostName);
+
+    /// <summary>A client with no session, for the public surface and for refusal tests.</summary>
+    public HttpClient CreateAnonymousClient() => IdentitySeed.CreateAnonymousClient(this);
+
+    /// <summary>
+    /// A signed-in Administrator on a claimed installation: the caller 001's tests assumed
+    /// when the admin surface was open.
+    /// </summary>
+    public Task<HttpClient> CreateAdminClientAsync(string? hostName = null) =>
+        IdentitySeed.CreateAdminClientAsync(this, hostName);
 }

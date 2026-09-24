@@ -4,6 +4,7 @@
     <ProjectReference Include="..\Shared\QuickBuilder.Shared.Kernel\QuickBuilder.Shared.Kernel.csproj" />
     <ProjectReference Include="..\Shared\QuickBuilder.Shared.Infrastructure\QuickBuilder.Shared.Infrastructure.csproj" />
     <ProjectReference Include="..\Modules\Sites\QuickBuilder.Sites\QuickBuilder.Sites.csproj" />
+    <ProjectReference Include="..\Modules\Identity\QuickBuilder.Identity\QuickBuilder.Identity.csproj" />
   </ItemGroup>
 
   <ItemGroup>

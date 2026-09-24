@@ -1,6 +1,10 @@
 using System.Diagnostics;
 using System.Net.Http.Json;
 using System.Text.Json;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using QuickBuilder.Identity.Infrastructure;
+using QuickBuilder.IntegrationTests.Identity;
 using QuickBuilder.IntegrationTests.Infrastructure;
 using Xunit;
 
@@ -53,7 +57,7 @@ public sealed class LoggingTests(DatabaseFixture database) : IAsyncLifetime
         var traceId = ActivityTraceId.CreateRandom().ToString();
         var spanId = ActivitySpanId.CreateRandom().ToString();
 
-        var client = _app.CreateClient();
+        var client = await _app.CreateAdminClientAsync().ConfigureAwait(true);
         client.DefaultRequestHeaders.Add("traceparent", $"00-{traceId}-{spanId}-01");
 
         // A validation failure is the cheapest way to get a problem-details body back.
@@ -88,7 +92,7 @@ public sealed class LoggingTests(DatabaseFixture database) : IAsyncLifetime
     {
         const string secretish = "hunter2-correct-horse-battery-staple";
 
-        var client = _app.CreateClient();
+        var client = await _app.CreateAdminClientAsync().ConfigureAwait(true);
 
         var response = await client
             .PostAsJsonAsync(
@@ -114,7 +118,7 @@ public sealed class LoggingTests(DatabaseFixture database) : IAsyncLifetime
     [Fact]
     public async Task Unknown_routes_do_not_leak_internals()
     {
-        var client = _app.CreateClient();
+        var client = await _app.CreateAdminClientAsync().ConfigureAwait(true);
 
         var response = await client
             .GetAsync(new Uri("/api/v1/sites/not-a-guid", UriKind.Relative))
@@ -125,6 +129,66 @@ public sealed class LoggingTests(DatabaseFixture database) : IAsyncLifetime
         foreach (var leak in new[] { "QuickBuilder.Sites.Infrastructure", "Npgsql", "Password=", "at QuickBuilder" })
         {
             Assert.DoesNotContain(leak, body, StringComparison.OrdinalIgnoreCase);
+        }
+    }
+
+    /// <summary>
+    /// 002 SC-009, FR-030: the identity journeys leave no personal data or secret in the logs.
+    /// </summary>
+    /// <remarks>
+    /// Drives every flow that handles an email address, a name, a password or a token, then
+    /// searches everything captured — messages, templates, properties and exceptions — for
+    /// each of them. The setup-code banner is the one event allowed to carry a secret (FR-004a),
+    /// so it is set aside, and the code is asserted to appear nowhere else.
+    /// </remarks>
+    [Fact]
+    public async Task Identity_journeys_leave_no_personal_data_or_secrets_in_the_logs()
+    {
+        const string ownerEmail = "logged.owner@example.test";
+        const string ownerName = "Quillon Ravensworth";
+        const string ownerPassword = "owner-marker-passphrase-4471";
+        const string wrongPassword = "wrong-marker-passphrase-9902";
+        const string newEmail = "logged.newcomer@example.test";
+        const string changedEmail = "logged.renamed@example.test";
+        const string newPassword = "newcomer-marker-passphrase-3318";
+
+        var code = await SetupHelpers.GetSetupCodeAsync(_app).ConfigureAwait(true);
+        var setup = await SetupHelpers
+            .PostSetupAsync(SetupHelpers.ClientFrom(_app, "198.51.100.20"), code, ownerEmail, ownerPassword, ownerName)
+            .ConfigureAwait(true);
+        setup.EnsureSuccessStatusCode();
+
+        var failed = await SignInHelpers.SignInAsync(SignInHelpers.Browser(_app, "198.51.100.21"), ownerEmail, wrongPassword).ConfigureAwait(true);
+        Assert.False(failed.IsSuccessStatusCode);
+        var signedIn = await SignInHelpers.SignInAsync(SignInHelpers.Browser(_app, "198.51.100.21"), ownerEmail, ownerPassword).ConfigureAwait(true);
+        signedIn.EnsureSuccessStatusCode();
+
+        var admin = SignInHelpers.Browser(_app, "198.51.100.21", SignInHelpers.Cookie(signedIn, "qb_session"));
+        var (userId, firstToken) = await UsersApi.CreateUserAsync(admin, newEmail).ConfigureAwait(true);
+        (await UsersApi.UpdateAsync(admin, userId, new { email = changedEmail }).ConfigureAwait(true)).EnsureSuccessStatusCode();
+        var secondToken = await UsersApi.IssueLinkTokenAsync(admin, userId).ConfigureAwait(true);
+        (await UsersApi.SetPasswordAsync(SignInHelpers.Browser(_app, "198.51.100.22"), secondToken, newPassword).ConfigureAwait(true)).EnsureSuccessStatusCode();
+
+        await using var scope = _app.Services.CreateAsyncScope();
+        var sessionIds = await scope.ServiceProvider.GetRequiredService<IdentityDbContext>()
+            .Sessions.Select(s => s.Id).ToListAsync().ConfigureAwait(true);
+        Assert.NotEmpty(sessionIds);
+
+        string[] forbidden =
+        [
+            ownerEmail, ownerName, ownerPassword, wrongPassword, newEmail, changedEmail, "New Person", newPassword,
+            firstToken, secondToken,
+            SetupHelpers.CookieValue(setup, "qb_session")!, SetupHelpers.CookieValue(signedIn, "qb_session")!,
+            .. sessionIds.SelectMany(id => new[] { id.ToString("D"), id.ToString("N") }),
+        ];
+
+        var events = _app.Logs.Events.Where(e => !e.Properties.ContainsKey("SetupCode")).Select(LogCapture.Render).ToList();
+        Assert.NotEmpty(events);
+
+        foreach (var secret in forbidden.Append(code).Append($"{code[..4]}-{code[4..8]}-{code[8..]}"))
+        {
+            var leak = events.FirstOrDefault(e => e.Contains(secret, StringComparison.OrdinalIgnoreCase));
+            Assert.True(leak is null, $"A log event contains a value that must never be logged: {leak}");
         }
     }
 }

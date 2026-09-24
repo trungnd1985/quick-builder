@@ -29,6 +29,20 @@ public sealed class HostingOptions
 
     /// <summary>Trusted proxy networks in CIDR form, e.g. <c>10.0.0.0/8</c>.</summary>
     public IList<string> KnownNetworks { get; } = [];
+
+    /// <summary>
+    /// The address operators use to reach this installation, e.g.
+    /// <c>https://cms.example.com</c>. Optional; empty by default.
+    /// </summary>
+    /// <remarks>
+    /// Used only by the <c>identity recovery-link</c> command to print a complete link. The
+    /// server never builds links from a request's Host header (002 FR-011b), so nothing
+    /// that serves HTTP reads this.
+    /// </remarks>
+    [RegularExpression(
+        "^(|https?://[^\\s/?#]+(/[^\\s?#]*)?)$",
+        ErrorMessage = "Hosting:PublicUrl must be empty or an absolute http(s) URL such as https://cms.example.com.")]
+    public string PublicUrl { get; set; } = string.Empty;
 }
 
 /// <summary>Outbox tuning (contracts/integration-events.md).</summary>

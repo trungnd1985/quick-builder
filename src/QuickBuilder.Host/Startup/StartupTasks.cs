@@ -1,6 +1,7 @@
 using System.Net;
 using Microsoft.AspNetCore.HttpOverrides;
 using QuickBuilder.Host.Configuration;
+using QuickBuilder.Shared.Infrastructure.Commands;
 using QuickBuilder.Shared.Infrastructure.Migrations;
 
 namespace QuickBuilder.Host;
@@ -39,25 +40,26 @@ internal static class StartupTasks
 /// <remarks>
 /// For operators who set <c>Database:AutoMigrate=false</c> and would rather apply schema
 /// changes as a deliberate, observable step — typically once, before rolling out new
-/// application instances.
+/// application instances. Registered through <see cref="IHostCommand"/> like every other
+/// command (002 research R-16), so the host has no special case for it.
 /// </remarks>
-internal static class MigrateCommand
+internal sealed class MigrateCommand(ModuleMigrationRunner runner, ILogger<MigrateCommand> logger) : IHostCommand
 {
-    internal static async Task<int> RunAsync(WebApplication app)
-    {
-        var runner = app.Services.GetRequiredService<ModuleMigrationRunner>();
+    public string Name => "migrate";
 
+    public async Task<int> RunAsync(IReadOnlyList<string> args, IServiceProvider services, CancellationToken cancellationToken)
+    {
         try
         {
             // force: true — the operator asked for migrations explicitly, so the
             // AutoMigrate setting is not consulted.
-            await runner.RunAsync(force: true, CancellationToken.None).ConfigureAwait(false);
-            app.Logger.LogInformation("Migrations applied. Exiting.");
+            await runner.RunAsync(force: true, cancellationToken).ConfigureAwait(false);
+            logger.LogInformation("Migrations applied. Exiting.");
             return 0;
         }
         catch (Exception ex)
         {
-            app.Logger.LogCritical(ex, "Migration failed.");
+            logger.LogCritical(ex, "Migration failed.");
             return 1;
         }
     }

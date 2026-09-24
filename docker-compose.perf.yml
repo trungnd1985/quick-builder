@@ -1,0 +1,14 @@
+# QuickBuilder — performance override (002 SC-013, research R-19).
+#
+# Layered over docker-compose.yml by the sign-in performance test:
+#
+#   docker compose -f docker-compose.yml -f docker-compose.perf.yml up -d
+#
+# Limits the app to the reference environment (2 CPUs, 4 GB), so the sign-in target is
+# measured on the hardware it is promised for rather than on whatever the test host has.
+# Not for production use: it only constrains resources.
+
+services:
+  app:
+    cpus: 2
+    mem_limit: 4g

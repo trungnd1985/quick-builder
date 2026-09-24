@@ -24,6 +24,10 @@ public sealed class DatabaseFixture : IAsyncLifetime
         .WithDatabase("quickbuilder_tests")
         .WithUsername("quickbuilder")
         .WithPassword("test-only-password")
+        // Every test database gets its own connection pool, and several tests run a burst of
+        // parallel requests. The default of 100 is exhausted by idle pooled connections
+        // across a full run; QuickBuilderApp also clears its pools when disposed.
+        .WithCommand("-c", "max_connections=300")
         // Reuse keeps repeat local runs fast; CI starts clean each time regardless.
         .WithCleanUp(true)
         .Build();
@@ -45,7 +49,8 @@ public sealed class DatabaseFixture : IAsyncLifetime
     /// </remarks>
     public async Task<string> CreateDatabaseAsync(string label)
     {
-        var name = $"qb_{label.ToLowerInvariant()}_{Guid.NewGuid():N}"[..40];
+        var full = $"qb_{label.ToLowerInvariant()}_{Guid.NewGuid():N}";
+        var name = full[..Math.Min(full.Length, 40)];
 
         var result = await _container
             .ExecScriptAsync($"CREATE DATABASE \"{name}\";")

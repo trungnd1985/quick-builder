@@ -25,21 +25,45 @@ public sealed class RulesFireWhenBrokenTests
     private static readonly Assembly Fixtures = typeof(LeaksAcrossModules).Assembly;
 
     /// <summary>The module-isolation predicate catches a cross-module implementation reference.</summary>
+    /// <remarks>
+    /// The fixture assembly references QuickBuilder.Sites through <see cref="LeaksAcrossModules"/>,
+    /// so the real rule's predicate must report it.
+    /// </remarks>
     [Fact]
     public void Module_isolation_rule_catches_a_violation()
     {
-        // Same shape as the real rule: "these types must not depend on that assembly".
-        var result = Types.InAssembly(Fixtures)
-            .That()
-            .HaveNameStartingWith(nameof(LeaksAcrossModules))
-            .ShouldNot()
-            .HaveDependencyOn("QuickBuilder.Sites")
-            .GetResult();
+        var implementationNames = ModuleBoundaryTests.ModuleImplementations
+            .Select(a => a.GetName().Name!)
+            .ToHashSet(StringComparer.Ordinal);
 
-        Assert.False(
-            result.IsSuccessful,
-            "The module-isolation rule did not flag LeaksAcrossModules, which references a " +
-            "module implementation type. The rule is not doing its job.");
+        var referenced = ModuleBoundaryTests.ReferencedImplementations(Fixtures, implementationNames).ToList();
+
+        Assert.True(
+            referenced.Contains("QuickBuilder.Sites"),
+            "The module-isolation rule did not flag a reference to QuickBuilder.Sites. The rule is not doing its job.");
+    }
+
+    /// <summary>
+    /// The module-isolation predicate does not mistake a contracts reference for an
+    /// implementation one.
+    /// </summary>
+    /// <remarks>
+    /// The bug this rule had before 002: matching by name prefix made
+    /// "QuickBuilder.Sites.Contracts" look like "QuickBuilder.Sites".
+    /// </remarks>
+    [Fact]
+    public void Module_isolation_rule_allows_a_contracts_reference()
+    {
+        var implementationNames = ModuleBoundaryTests.ModuleImplementations
+            .Select(a => a.GetName().Name!)
+            .ToHashSet(StringComparer.Ordinal);
+
+        // The fixture assembly references Sites.Contracts (UsesOnlyAContract) as well as
+        // Sites itself; only the implementation may be reported.
+        Assert.Contains(Fixtures.GetReferencedAssemblies(), r => r.Name == "QuickBuilder.Sites.Contracts");
+        Assert.DoesNotContain(
+            "QuickBuilder.Sites.Contracts",
+            ModuleBoundaryTests.ReferencedImplementations(Fixtures, implementationNames));
     }
 
     /// <summary>The contracts-purity predicate catches an EF Core dependency.</summary>
@@ -69,14 +93,29 @@ public sealed class RulesFireWhenBrokenTests
     [Fact]
     public void Site_ownership_rule_catches_an_unmarked_entity()
     {
-        var offenders = Fixtures.GetTypes()
-            .Where(t => t.IsClass && !t.IsAbstract)
-            .Where(t => t.Namespace?.EndsWith(".Fixtures", StringComparison.Ordinal) == true)
-            .Where(t => t.GetProperty("SiteId", BindingFlags.Public | BindingFlags.Instance) is not null)
-            .Where(t => !typeof(ISiteOwned).IsAssignableFrom(t))
-            .ToList();
+        var offenders = ModuleBoundaryTests.UnmarkedSiteReferencingEntities(Fixtures, ".Fixtures").ToList();
 
         Assert.Contains(offenders, t => t == typeof(ForgotTheSiteOwnedMarker));
+    }
+
+    /// <summary>
+    /// The site-ownership predicate honours a reasoned <c>[InstallationScoped]</c>, and only
+    /// that: the unmarked entity beside it is still caught.
+    /// </summary>
+    [Fact]
+    public void Site_ownership_rule_accepts_a_reasoned_exemption()
+    {
+        var offenders = ModuleBoundaryTests.UnmarkedSiteReferencingEntities(Fixtures, ".Fixtures").ToList();
+
+        Assert.DoesNotContain(offenders, t => t == typeof(ReferencesASiteDeliberately));
+        Assert.Contains(offenders, t => t == typeof(ForgotTheSiteOwnedMarker));
+    }
+
+    /// <summary>An exemption without a reason cannot even be written.</summary>
+    [Fact]
+    public void An_installation_scoped_marker_requires_a_reason()
+    {
+        Assert.ThrowsAny<ArgumentException>(() => new Shared.Kernel.Authorization.InstallationScopedAttribute("  "));
     }
 
     /// <summary>The visibility predicate catches a public type that should be internal.</summary>
@@ -93,6 +132,26 @@ public sealed class RulesFireWhenBrokenTests
             .ToList();
 
         Assert.Contains(offenders, t => t == typeof(ShouldHaveBeenInternal));
+    }
+
+    /// <summary>
+    /// Each access-declaration rule catches its fixture, and the well-declared control
+    /// passes (002 FR-025).
+    /// </summary>
+    [Fact]
+    public void Access_declaration_rules_catch_each_violation()
+    {
+        var capabilities = AuthorizationDeclarationTests.RegisteredCapabilities();
+        var allowList = new HashSet<string>(StringComparer.Ordinal);
+
+        List<string> For<T>() => DeclarationRules.Violations([typeof(T)], capabilities, allowList);
+
+        Assert.Contains(For<UndeclaredFixtureController>(), v => v.Contains("declares no access", StringComparison.Ordinal));
+        Assert.Contains(For<DoublyDeclaredFixtureController>(), v => v.Contains("more than once", StringComparison.Ordinal));
+        Assert.Contains(For<UnlistedAnonymousFixtureController>(), v => v.Contains("allow-list", StringComparison.Ordinal));
+        Assert.Contains(For<UnknownCapabilityFixtureController>(), v => v.Contains("no module registers", StringComparison.Ordinal));
+        Assert.Contains(For<SiteScopedWithoutSiteIdFixtureController>(), v => v.Contains("{siteId}", StringComparison.Ordinal));
+        Assert.Empty(For<WellDeclaredFixtureController>());
     }
 
     /// <summary>

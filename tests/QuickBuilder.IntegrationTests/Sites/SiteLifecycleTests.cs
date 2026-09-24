@@ -59,7 +59,7 @@ public sealed class SiteLifecycleTests(DatabaseFixture database) : IAsyncLifetim
     [Fact]
     public async Task Fresh_installation_returns_an_empty_site_list()
     {
-        var client = _app.CreateClient();
+        var client = await _app.CreateAdminClientAsync().ConfigureAwait(true);
 
         var response = await client.GetAsync(new Uri("/api/v1/sites", UriKind.Relative)).ConfigureAwait(true);
         var body = await response.Content.ReadAsStringAsync().ConfigureAwait(true);
@@ -72,7 +72,7 @@ public sealed class SiteLifecycleTests(DatabaseFixture database) : IAsyncLifetim
     [Fact]
     public async Task Created_site_is_reachable_by_its_host_name()
     {
-        var client = _app.CreateClient();
+        var client = await _app.CreateAdminClientAsync().ConfigureAwait(true);
 
         var create = await client
             .PostAsJsonAsync(
@@ -110,7 +110,7 @@ public sealed class SiteLifecycleTests(DatabaseFixture database) : IAsyncLifetim
         var first = await beforeAnySites.GetAsync(new Uri("/", UriKind.Relative)).ConfigureAwait(true);
         var firstBody = await first.Content.ReadAsStringAsync().ConfigureAwait(true);
 
-        var admin = _app.CreateClient();
+        var admin = await _app.CreateAdminClientAsync().ConfigureAwait(true);
         await admin
             .PostAsJsonAsync(
                 new Uri("/api/v1/sites", UriKind.Relative),
@@ -138,7 +138,7 @@ public sealed class SiteLifecycleTests(DatabaseFixture database) : IAsyncLifetim
     [Fact]
     public async Task Duplicate_host_name_is_rejected_as_a_conflict()
     {
-        var client = _app.CreateClient();
+        var client = await _app.CreateAdminClientAsync().ConfigureAwait(true);
 
         await client
             .PostAsJsonAsync(
@@ -169,7 +169,7 @@ public sealed class SiteLifecycleTests(DatabaseFixture database) : IAsyncLifetim
     [Fact]
     public async Task Admin_surface_works_without_a_resolved_site()
     {
-        var client = _app.CreateClientForHost("unrelated.test");
+        var client = await _app.CreateAdminClientAsync("unrelated.test").ConfigureAwait(true);
 
         var sites = await client.GetAsync(new Uri("/api/v1/sites", UriKind.Relative)).ConfigureAwait(true);
         var health = await client.GetAsync(new Uri("/health/ready", UriKind.Relative)).ConfigureAwait(true);

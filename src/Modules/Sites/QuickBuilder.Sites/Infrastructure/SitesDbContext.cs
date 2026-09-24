@@ -58,6 +58,13 @@ internal sealed class SitesDbContext(DbContextOptions<SitesDbContext> options, I
         {
             entity.ToTable("sites", Schema);
             entity.HasKey(e => e.Id);
+
+            // Keys are assigned by the domain (Guid.CreateVersion7), never by the database.
+            // Saying so matters: EF assumes a set, store-generated key means an existing row,
+            // so a host name added to a loaded site was sent as an UPDATE matching nothing
+            // (found by 002's SiteVisibilityTests; nothing in 001 added a host name to an
+            // existing site).
+            entity.Property(e => e.Id).ValueGeneratedNever();
             entity.Property(e => e.Name).HasMaxLength(Site.MaxNameLength).IsRequired();
 
             entity
@@ -73,6 +80,7 @@ internal sealed class SitesDbContext(DbContextOptions<SitesDbContext> options, I
         {
             entity.ToTable("site_host_names", Schema);
             entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).ValueGeneratedNever();
 
             entity
                 .Property(e => e.HostName)

@@ -58,6 +58,13 @@ public static class SitesModule
         services.AddScoped<SiteDirectory>();
         services.AddScoped<ISiteDirectory>(sp => sp.GetRequiredService<SiteDirectory>());
 
+        // What this module lets people do (002 contracts/authorization.md §2). Identity
+        // enforces them; this module only declares them.
+        foreach (var capability in SitesCapabilities.All)
+        {
+            services.AddSingleton(capability);
+        }
+
         // Feature slices. Each is registered here and nowhere else.
         services.AddScoped<ICommandHandler<CreateSiteCommand, Result<SiteDto>>, CreateSiteHandler>();
         services.AddScoped<IValidator<CreateSiteCommand>, CreateSiteValidator>();

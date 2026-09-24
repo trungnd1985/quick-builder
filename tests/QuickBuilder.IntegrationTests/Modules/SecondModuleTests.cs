@@ -52,7 +52,7 @@ public sealed class SecondModuleTests(DatabaseFixture database) : IAsyncLifetime
     [Fact]
     public async Task A_second_module_is_reachable_after_one_line_of_registration()
     {
-        var client = _app.CreateClient();
+        var client = await IdentitySeed.CreateAdminClientAsync(_app).ConfigureAwait(true);
 
         var response = await client
             .GetAsync(new Uri("/api/v1/widgets/count", UriKind.Relative))
@@ -104,7 +104,7 @@ public sealed class SecondModuleTests(DatabaseFixture database) : IAsyncLifetime
     [Fact]
     public async Task Adding_a_module_does_not_disturb_the_existing_one()
     {
-        var client = _app.CreateClient();
+        var client = await IdentitySeed.CreateAdminClientAsync(_app).ConfigureAwait(true);
 
         var create = await client
             .PostAsJsonAsync(
@@ -188,12 +188,7 @@ internal sealed class TwoModuleApp(string connectionString) : WebApplicationFact
         });
     }
 
-    public HttpClient CreateClientForHost(string hostName)
-    {
-        var client = CreateClient();
-        client.DefaultRequestHeaders.Host = hostName;
-        return client;
-    }
+    public HttpClient CreateClientForHost(string hostName) => IdentitySeed.CreateAnonymousClient(this, hostName);
 
     /// <summary>
     /// Creates the fixture module's tables.

@@ -23,6 +23,8 @@
     <ProjectReference Include="..\..\src\Shared\QuickBuilder.Shared.Infrastructure\QuickBuilder.Shared.Infrastructure.csproj" />
     <!-- Domain invariants are internal to the module; InternalsVisibleTo grants access. -->
     <ProjectReference Include="..\..\src\Modules\Sites\QuickBuilder.Sites\QuickBuilder.Sites.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Identity\QuickBuilder.Identity\QuickBuilder.Identity.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Identity\QuickBuilder.Identity.Contracts\QuickBuilder.Identity.Contracts.csproj" />
   </ItemGroup>
 
 </Project>

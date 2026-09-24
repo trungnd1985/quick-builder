@@ -46,7 +46,7 @@ public sealed class StartupTests(DatabaseFixture database) : IAsyncLifetime
 
         using (var first = new QuickBuilderApp(_connectionString))
         {
-            var client = first.CreateClient();
+            var client = await first.CreateAdminClientAsync().ConfigureAwait(true);
             var created = await client
                 .PostAsJsonAsync(
                     new Uri("/api/v1/sites", UriKind.Relative),
@@ -59,7 +59,7 @@ public sealed class StartupTests(DatabaseFixture database) : IAsyncLifetime
         }
 
         using var second = new QuickBuilderApp(_connectionString);
-        var restarted = second.CreateClient();
+        var restarted = await second.CreateAdminClientAsync().ConfigureAwait(true);
 
         var ready = await restarted.GetAsync(new Uri("/health/ready", UriKind.Relative)).ConfigureAwait(true);
         var sites = await restarted.GetAsync(new Uri("/api/v1/sites", UriKind.Relative)).ConfigureAwait(true);

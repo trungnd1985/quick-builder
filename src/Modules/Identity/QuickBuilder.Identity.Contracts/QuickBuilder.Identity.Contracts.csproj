@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The Identity module's public surface: interfaces and DTOs other modules may use, and
+    nothing else. Deliberately references only Shared.Kernel — no EF Core, no ASP.NET
+    Core — which QuickBuilder.ArchitectureTests asserts (Contracts purity).
+  -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\Shared\QuickBuilder.Shared.Kernel\QuickBuilder.Shared.Kernel.csproj" />
+  </ItemGroup>
+
+</Project>

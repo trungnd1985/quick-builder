@@ -3,9 +3,15 @@
     "title": "QuickBuilder",
     "nav": {
       "sites": "Sites",
-      "settings": "Settings"
+      "settings": "Settings",
+      "users": "Users"
     },
-    "skipToContent": "Skip to main content"
+    "skipToContent": "Skip to main content",
+    "userMenu": {
+      "signedInAs": "Signed in as {name}",
+      "signOut": "Sign out",
+      "account": "Your account"
+    }
   },
   "sites": {
     "title": "Sites",
@@ -35,6 +41,10 @@
       "submitting": "Creating…",
       "cancel": "Cancel",
       "failed": "Could not create the site"
+    },
+    "noAccess": {
+      "title": "No access yet",
+      "body": "You are signed in, but you have no role on any site yet. Ask an administrator to give you access."
     }
   },
   "settings": {
@@ -43,5 +53,142 @@
   },
   "common": {
     "dismiss": "Dismiss"
+  },
+  "identity": {
+    "setup": {
+      "title": "Set up QuickBuilder",
+      "intro": "Create the first administrator for this installation. You only do this once.",
+      "code": "Setup code",
+      "codeHelp": "Printed in the application's console output when it starts. With the reference deployment, run: docker compose logs app",
+      "displayName": "Your name",
+      "email": "Email address",
+      "password": "Password",
+      "passwordHelp": "12 to 128 characters. A few unrelated words make a strong, memorable password.",
+      "submit": "Create administrator",
+      "submitting": "Creating…",
+      "errors": {
+        "invalid": "Some details need attention. See the messages below each field.",
+        "unexpected": "Something went wrong. Try again in a moment."
+      }
+    },
+    "errors": {
+      "identity": {
+        "setup_code_invalid": "That setup code is not correct. Copy it again from the console output.",
+        "setup_already_completed": "This installation has already been set up.",
+        "https_required": "For your security, sign-in only works over HTTPS, or from the machine running QuickBuilder.",
+        "throttled": "Too many attempts. Wait {seconds} seconds, then try again.",
+        "invalid_credentials": "That email address and password do not match an account.",
+        "email_taken": "Another account already uses that email address.",
+        "last_administrator": "This would leave nobody able to manage the installation. Make someone else an administrator first.",
+        "user_not_found": "That account no longer exists.",
+        "user_deactivated": "This account is deactivated. Reactivate it first.",
+        "current_password_incorrect": "Your current password is not correct.",
+        "link_invalid": "This link can't be used. Ask an administrator for a new one.",
+        "forbidden": "You do not have permission to do this."
+      }
+    },
+    "signIn": {
+      "title": "Sign in to QuickBuilder",
+      "email": "Email address",
+      "password": "Password",
+      "submit": "Sign in",
+      "submitting": "Signing in…",
+      "errors": {
+        "missing": "Enter your email address and password.",
+        "unexpected": "Something went wrong. Try again in a moment."
+      }
+    },
+    "users": {
+      "title": "Users",
+      "subtitle": "Everyone who can sign in to this installation.",
+      "loading": "Loading users…",
+      "loadError": "Could not load users",
+      "retry": "Try again",
+      "fields": {
+        "displayName": "Name",
+        "email": "Email address",
+        "status": "Status",
+        "roles": "Roles"
+      },
+      "status": {
+        "active": "Active",
+        "invited": "Invited, no password yet",
+        "deactivated": "Deactivated"
+      },
+      "roles": {
+        "administrator": "Administrator",
+        "none": "No access yet",
+        "sites": "{count} site | {count} sites"
+      },
+      "create": {
+        "title": "Add a user",
+        "submit": "Add user",
+        "submitting": "Adding…",
+        "cancel": "Cancel"
+      },
+      "link": {
+        "title": "Set-password link for {name}",
+        "onceOnly": "This link is shown once. Copy it now and send it to the user yourself — QuickBuilder does not send email.",
+        "label": "Link",
+        "expires": "Works once, until {when}.",
+        "copy": "Copy link",
+        "copied": "Copied.",
+        "done": "Done"
+      },
+      "edit": {
+        "back": "All users",
+        "details": "Name and email",
+        "save": "Save",
+        "saved": "Saved.",
+        "emailWarning": "Changing the email address signs this user out everywhere; they sign in with the new address.",
+        "roles": "Roles",
+        "saveRoles": "Save roles",
+        "rolesSaved": "Roles saved. They apply on the user's next request.",
+        "access": "Access",
+        "newLink": "New set-password link",
+        "linkIssued": "New link issued. Any earlier link no longer works.",
+        "signOutEverywhere": "Sign out everywhere",
+        "signedOut": "Signed out everywhere.",
+        "deactivate": "Deactivate",
+        "reactivate": "Reactivate",
+        "deactivated": "Deactivated. The user was signed out.",
+        "reactivated": "Reactivated."
+      }
+    },
+    "grants": {
+      "legend": "Roles",
+      "administrator": "Administrator",
+      "administratorHelp": "Administrators manage users and every site. Site roles do not apply to them.",
+      "sitesUnavailable": "Sites could not be loaded.",
+      "noSites": "There are no sites yet.",
+      "roles": {
+        "none": "No access",
+        "designer": "Designer",
+        "editor": "Editor"
+      }
+    },
+    "setPassword": {
+      "title": "Choose your password",
+      "checking": "Checking your link…",
+      "invalid": "This link can't be used. It may have been used already, expired, or been replaced. Ask an administrator for a new one.",
+      "password": "New password",
+      "submit": "Set password",
+      "submitting": "Saving…",
+      "done": "Your password is set. You can sign in now.",
+      "signIn": "Sign in"
+    },
+    "account": {
+      "title": "Your account",
+      "changePassword": "Change password",
+      "current": "Current password",
+      "next": "New password",
+      "nextHelp": "12 to 128 characters. Changing it signs you out everywhere else.",
+      "submit": "Change password",
+      "passwordChanged": "Password changed. Your other sessions were signed out.",
+      "sessions": "Other sessions",
+      "sessionsHelp": "Signed in somewhere you no longer use? End every session except this one.",
+      "signOutOthers": "Sign out my other sessions",
+      "othersSignedOut": "Your other sessions were signed out."
+    }
   }
 }

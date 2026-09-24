@@ -4,17 +4,21 @@
 # manual database work (SC-001).
 #
 # ─────────────────────────────────────────────────────────────────────────────────────
-#  READ THIS BEFORE CHANGING THE PORT BINDING
+#  READ THIS BEFORE CHANGING THE PORT BINDING (002 FR-033)
 #
-#  This feature ships NO authentication. Anyone who can reach the admin interface can
-#  create, change and delete every site in this installation.
+#  The admin interface requires sign-in, and a fresh installation is claimed with a
+#  one-time setup code printed in the app's logs (`docker compose logs app`). Until
+#  setup is finished, whoever reads that code first becomes the administrator.
 #
-#  That is why the app is published on 127.0.0.1 below: a default installation is
-#  reachable from this machine and from nowhere else. Widening it — to 0.0.0.0, to a
-#  published host IP, or by putting a proxy in front — exposes an unauthenticated admin
-#  interface to whoever can reach it.
-#
-#  Do not widen it until authentication ships (issue #2).
+#  So the app is published on 127.0.0.1 below by default: finish setup from this
+#  machine first. After that you may widen the binding, but only behind an HTTPS proxy:
+#    1. put a TLS-terminating reverse proxy in front of the app;
+#    2. list it in Hosting__KnownProxies__0 so client addresses (used for sign-in
+#       throttling) and the HTTPS check are taken from it and not spoofed;
+#    3. set Identity__AllowInsecureHttp to "false";
+#    4. set Hosting__PublicUrl so recovery links printed by
+#       `identity recovery-link` are complete.
+#  See docs/operations.md.
 # ─────────────────────────────────────────────────────────────────────────────────────
 
 services:
@@ -61,7 +65,21 @@ services:
       # Behind a reverse proxy, name it here so forwarded headers are trusted. Empty
       # means none are, which is deliberate: sites are resolved from the Host header, so
       # a spoofable forwarded host would let a caller choose which site they reach.
+      # Also required before widening the binding: per-client sign-in throttling and the
+      # HTTPS rule read the client address from the proxy you name here.
       # Hosting__KnownProxies__0: "10.0.0.5"
+
+      # The address people use to reach this installation, e.g. https://cms.example.com.
+      # Used only to print complete links from `identity recovery-link`; the app never
+      # guesses its own address from request headers.
+      # Hosting__PublicUrl: "https://cms.example.com"
+
+      # Accept sign-in over plain HTTP. Safe ONLY while the port below stays bound to
+      # 127.0.0.1: inside the container, requests from this machine arrive from the Docker
+      # network, not from loopback, so the app cannot tell them apart from a remote client.
+      # Before widening the binding, put an HTTPS proxy in front and set this to "false".
+      # The app logs a warning at every start while this is on.
+      Identity__AllowInsecureHttp: "true"
     ports:
       # 127.0.0.1 — see the warning at the top of this file.
       - "127.0.0.1:8080:8080"

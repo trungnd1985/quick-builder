@@ -106,7 +106,7 @@ public sealed class SiteScopingTests(DatabaseFixture database) : IAsyncLifetime
     [Fact]
     public async Task Admin_site_list_deliberately_crosses_sites()
     {
-        var client = _app.CreateClient();
+        var client = await _app.CreateAdminClientAsync().ConfigureAwait(true);
 
         var response = await client.GetAsync(new Uri("/api/v1/sites", UriKind.Relative)).ConfigureAwait(true);
         var sites = await response.Content.ReadFromJsonAsync<JsonElement>().ConfigureAwait(true);
@@ -116,6 +116,24 @@ public sealed class SiteScopingTests(DatabaseFixture database) : IAsyncLifetime
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Contains("Alpha", names);
         Assert.Contains("Beta", names);
+    }
+
+    /// <summary>
+    /// 002 FR-022: the same deliberate bypass, narrowed to the caller — a user with a role
+    /// on Alpha only gets Alpha, even though the query itself crosses sites.
+    /// </summary>
+    [Fact]
+    public async Task Site_list_bypass_is_narrowed_to_the_callers_sites()
+    {
+        await IdentitySeed.ClaimInstallationAsync(_app.Services).ConfigureAwait(true);
+        var designer = await IdentitySeed.SeedUserAsync(
+            _app.Services,
+            siteRoles: [(_alphaId, QuickBuilder.Shared.Kernel.Authorization.SystemRole.Designer)]).ConfigureAwait(true);
+        var client = await IdentitySeed.CreateSignedInClientAsync(_app, designer.Id).ConfigureAwait(true);
+
+        var sites = await client.GetFromJsonAsync<JsonElement>(new Uri("/api/v1/sites", UriKind.Relative)).ConfigureAwait(true);
+
+        Assert.Equal([_alphaId], sites.EnumerateArray().Select(s => s.GetProperty("id").GetGuid()));
     }
 
     /// <summary>
@@ -186,7 +204,7 @@ public sealed class SiteScopingTests(DatabaseFixture database) : IAsyncLifetime
 
     private async Task<Guid> CreateSiteAsync(string name, string hostName)
     {
-        var client = _app.CreateClient();
+        var client = await _app.CreateAdminClientAsync().ConfigureAwait(true);
         var response = await client
             .PostAsJsonAsync(new Uri("/api/v1/sites", UriKind.Relative), new { name, hostNames = new[] { hostName } })
             .ConfigureAwait(true);
