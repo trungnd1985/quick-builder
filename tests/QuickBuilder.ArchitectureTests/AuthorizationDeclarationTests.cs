@@ -63,10 +63,7 @@ public sealed class AuthorizationDeclarationTests
             .SelectMany(c => DeclarationRules.Actions(c).Select(m => $"{c.Name}.{m.Name}"))
             .ToHashSet(StringComparer.Ordinal);
 
-        // Entries for endpoints a later story adds are allowed to wait for it; anything
-        // else on the list must exist.
-        var pending = new[] { "CheckSetPasswordLinkController.CheckAsync", "SetPasswordController.SetAsync", "SignInController.SignInAsync" };
-        var missing = AnonymousAllowList.Except(actions).Except(pending).ToList();
+        var missing = AnonymousAllowList.Except(actions).ToList();
 
         Assert.True(missing.Count == 0, "Allow-list entries with no matching action:\n  " + string.Join("\n  ", missing));
     }

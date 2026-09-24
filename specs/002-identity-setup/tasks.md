@@ -386,7 +386,7 @@ holds the controller action, request/response, command or query, validator and h
 
 ### Tests for User Story 3 ⚠️ write first, confirm they fail
 
-- [ ] T082 [P] [US3] Create `ITESTS/Identity/UserManagementTests.cs` (US3 scenarios 1, 4, 5, 6, 9, 10):
+- [X] T082 [P] [US3] Create `ITESTS/Identity/UserManagementTests.cs` (US3 scenarios 1, 4, 5, 6, 9, 10):
   - create returns 201 with a user that has `hasPassword=false`, plus `setPasswordLink`;
   - a duplicate email in any letter case gets 409 `identity.email_taken`;
   - a name change works;
@@ -394,44 +394,44 @@ holds the controller action, request/response, command or query, validator and h
   - deactivation gets 401 on the user's next request and makes sign-in fail, and reactivation restores it;
   - a non-administrator gets 403 on every user endpoint, including a `PATCH` of their own email;
   - two parallel `PATCH` requests to the same user both succeed and the stored values match one of them in full (last write wins), while parallel `PUT …/grants` requests serialise under the administrator lock (spec edge case).
-- [ ] T083 [P] [US3] Create `ITESTS/Identity/SetPasswordLinkTests.cs` (US3 scenarios 2–3, FR-011a, SC-011):
+- [X] T083 [P] [US3] Create `ITESTS/Identity/SetPasswordLinkTests.cs` (US3 scenarios 2–3, FR-011a, SC-011):
   - `check` then `set-password` gives 204;
   - the new password signs in, the old one doesn't, and every earlier session is revoked;
   - used, expired, replaced, deactivated-account and post-email-change links all return an identical 410 `identity.link_invalid`;
   - issuing a new link invalidates the previous one;
   - the endpoints are client-throttled.
-- [ ] T084 [P] [US3] Create `ITESTS/Identity/LastAdministratorTests.cs` (US3 scenario 7, FR-013):
+- [X] T084 [P] [US3] Create `ITESTS/Identity/LastAdministratorTests.cs` (US3 scenario 7, FR-013):
   - with one active Administrator, deactivating them or removing the admin grant gets 409 `identity.last_administrator`;
   - with two, parallel demotion of both leaves exactly one Administrator.
-- [ ] T085 [P] [US3] Create `ITESTS/Identity/OwnAccountTests.cs` (US3 scenarios 8, 11, 12, FR-012, FR-012a):
+- [X] T085 [P] [US3] Create `ITESTS/Identity/OwnAccountTests.cs` (US3 scenarios 8, 11, 12, FR-012, FR-012a):
   - changing your own password needs the correct current one (403 `identity.current_password_incorrect` otherwise, and account-throttled);
   - it revokes your other sessions and keeps the current one;
   - `revoke-others` keeps the current session;
   - an administrator's `sessions/revoke` gets 401 on all the user's sessions while the account stays active and can sign in again.
-- [ ] T086 [P] [US3] Create `ITESTS/Identity/RevocationTests.cs` (SC-004): two app instances on one database. For sign-out, sign-out-everywhere, deactivation, password change, email change and a grant change, the change goes to instance 1 and the user's next request to instance 2, which reflects it. Also assert that deactivation, email change, set-password link use and administrator "sign out everywhere" each revoke the user's known devices (moved from T067).
+- [X] T086 [P] [US3] Create `ITESTS/Identity/RevocationTests.cs` (SC-004): two app instances on one database. For sign-out, sign-out-everywhere, deactivation, password change, email change and a grant change, the change goes to instance 1 and the user's next request to instance 2, which reflects it. Also assert that deactivation, email change, set-password link use and administrator "sign out everywhere" each revoke the user's known devices (moved from T067).
 
 ### Implementation for User Story 3
 
-- [ ] T087 [P] [US3] Create `IDENTITY/Infrastructure/Security/SetPasswordLinkService.cs`:
+- [X] T087 [P] [US3] Create `IDENTITY/Infrastructure/Security/SetPasswordLinkService.cs`:
   - `IssueAsync(userId, issuedBy?)` invalidates the live link as `replaced`, stores the hash and records the event;
   - `CheckAsync(token)`;
   - `ConsumeAsync(token, newPassword)` applies the policy, sets the hash, consumes the link, revokes all sessions (`password_set`), revokes known devices (`KnownDeviceService.RevokeAllAsync`, reason `password_set`) and records the event, all in one transaction.
-- [ ] T088 [P] [US3] Create `IDENTITY/Infrastructure/Security/AdministratorGuard.cs`. `EnsureAnotherActiveAdministratorAsync(excludingUserId)` takes `pg_advisory_xact_lock` via `ExecuteSql` on a key derived from `identity.administrators` inside the caller's transaction, then counts the active Administrator grants (research R-13).
-- [ ] T089 [P] [US3] Create `IDENTITY/Features/ListUsers/ListUsers.cs` and `IDENTITY/Features/GetUser/GetUser.cs`, both `[RequireCapability("identity.users.manage")]`, returning the `User` shape through `AsNoTracking` projections
-- [ ] T090 [US3] Create `IDENTITY/Features/CreateUser/CreateUser.cs`: `[RequireCapability("identity.users.manage")]`.
+- [X] T088 [P] [US3] Create `IDENTITY/Infrastructure/Security/AdministratorGuard.cs`. `EnsureAnotherActiveAdministratorAsync(excludingUserId)` takes `pg_advisory_xact_lock` via `ExecuteSql` on a key derived from `identity.administrators` inside the caller's transaction, then counts the active Administrator grants (research R-13).
+- [X] T089 [P] [US3] Create `IDENTITY/Features/ListUsers/ListUsers.cs` and `IDENTITY/Features/GetUser/GetUser.cs`, both `[RequireCapability("identity.users.manage")]`, returning the `User` shape through `AsNoTracking` projections
+- [X] T090 [US3] Create `IDENTITY/Features/CreateUser/CreateUser.cs`: `[RequireCapability("identity.users.manage")]`.
   - **Validation**: name, email and the grants shape (at most one entry per site). Each `siteId` must resolve through `ISiteDirectory.FindByIdAsync`, with a field error on `grants.siteRoles[n].siteId` otherwise.
   - **One transaction**: insert the user and grants, issue the first link, and record `account_created`.
   - **Response**: 201 with `{ user, setPasswordLink }`, or 409 on a duplicate email.
-- [ ] T091 [US3] Create `IDENTITY/Features/UpdateUser/UpdateUser.cs`: `PATCH …/users/{userId}`, `[RequireCapability("identity.users.manage")]`. It applies name and/or email. An email change also revokes all sessions and known devices (`email_changed`), invalidates the live link and records both addresses (FR-010a). Concurrent edits are last-write-wins, with no concurrency token (spec edge case).
-- [ ] T092 [US3] Create `IDENTITY/Features/ReplaceGrants/ReplaceGrants.cs`: `PUT …/users/{userId}/grants`, `[RequireCapability("identity.users.manage")]`.
+- [X] T091 [US3] Create `IDENTITY/Features/UpdateUser/UpdateUser.cs`: `PATCH …/users/{userId}`, `[RequireCapability("identity.users.manage")]`. It applies name and/or email. An email change also revokes all sessions and known devices (`email_changed`), invalidates the live link and records both addresses (FR-010a). Concurrent edits are last-write-wins, with no concurrency token (spec edge case).
+- [X] T092 [US3] Create `IDENTITY/Features/ReplaceGrants/ReplaceGrants.cs`: `PUT …/users/{userId}/grants`, `[RequireCapability("identity.users.manage")]`.
   - **Validation**: as for `CreateUser`.
   - **Last-administrator guard**: `AdministratorGuard` runs when the Administrator grant is being removed.
   - **Grant replacement**: the full grant set is replaced in one transaction under the administrator lock whether or not the Administrator grant changes, so concurrent replacements serialise, and `grants_changed` is recorded with the before and after grant sets.
-- [ ] T093 [US3] Create `IDENTITY/Features/DeactivateUser/DeactivateUser.cs` and `IDENTITY/Features/ReactivateUser/ReactivateUser.cs`, both `[RequireCapability("identity.users.manage")]`. Deactivation runs the guard, revokes sessions and known devices, invalidates the live link and records the event. Reactivation records its event.
-- [ ] T094 [US3] Create `IDENTITY/Features/IssueSetPasswordLink/IssueSetPasswordLink.cs` (409 `identity.user_deactivated` for an inactive user) and `IDENTITY/Features/RevokeUserSessions/RevokeUserSessions.cs` (revokes sessions and known devices with `sign_out_everywhere`, and records `sessions_revoked` with `by: administrator`), both `[RequireCapability("identity.users.manage")]`
-- [ ] T095 [US3] Create `IDENTITY/Features/CheckSetPasswordLink/CheckSetPasswordLink.cs` and `IDENTITY/Features/SetPassword/SetPassword.cs`, both `[AllowAnonymous]`, with the transport check and the client throttle, delegating to `SetPasswordLinkService`
-- [ ] T096 [US3] Create `IDENTITY/Features/ChangeOwnPassword/ChangeOwnPassword.cs` (verify the current password under the account throttle, apply the policy, rehash, revoke other sessions with `password_changed`) and `IDENTITY/Features/RevokeOwnOtherSessions/RevokeOwnOtherSessions.cs`, both `[RequireSignedIn]`
-- [ ] T097 [P] [US3] Create `src/Modules/Identity/QuickBuilder.Identity.Contracts/UserSummaryDto.cs` and `IUserDirectory.cs` (`FindManyAsync(ids)` returning display names, for attribution by later modules), and the implementation `IDENTITY/Infrastructure/UserDirectory.cs`, registered in `IdentityModule`
+- [X] T093 [US3] Create `IDENTITY/Features/DeactivateUser/DeactivateUser.cs` and `IDENTITY/Features/ReactivateUser/ReactivateUser.cs`, both `[RequireCapability("identity.users.manage")]`. Deactivation runs the guard, revokes sessions and known devices, invalidates the live link and records the event. Reactivation records its event.
+- [X] T094 [US3] Create `IDENTITY/Features/IssueSetPasswordLink/IssueSetPasswordLink.cs` (409 `identity.user_deactivated` for an inactive user) and `IDENTITY/Features/RevokeUserSessions/RevokeUserSessions.cs` (revokes sessions and known devices with `sign_out_everywhere`, and records `sessions_revoked` with `by: administrator`), both `[RequireCapability("identity.users.manage")]`
+- [X] T095 [US3] Create `IDENTITY/Features/CheckSetPasswordLink/CheckSetPasswordLink.cs` and `IDENTITY/Features/SetPassword/SetPassword.cs`, both `[AllowAnonymous]`, with the transport check and the client throttle, delegating to `SetPasswordLinkService`
+- [X] T096 [US3] Create `IDENTITY/Features/ChangeOwnPassword/ChangeOwnPassword.cs` (verify the current password under the account throttle, apply the policy, rehash, revoke other sessions with `password_changed`) and `IDENTITY/Features/RevokeOwnOtherSessions/RevokeOwnOtherSessions.cs`, both `[RequireSignedIn]`
+- [X] T097 [P] [US3] Create `src/Modules/Identity/QuickBuilder.Identity.Contracts/UserSummaryDto.cs` and `IUserDirectory.cs` (`FindManyAsync(ids)` returning display names, for attribution by later modules), and the implementation `IDENTITY/Infrastructure/UserDirectory.cs`, registered in `IdentityModule`
 - [ ] T098 [P] [US3] Extend `src/admin/src/api/identity.ts` with users (list, get, create, update, deactivate, reactivate, issue link, revoke sessions), `checkLink`, `setPassword`, `changeOwnPassword` and `revokeOtherSessions`, plus the `User`, `Grants` and `IssuedLink` types
 - [ ] T099 [US3] Create `src/admin/src/features/users/UsersView.vue` (a table of name, email, status and role summary, with a create dialog for name and email) and `src/admin/src/features/users/CopyLinkDialog.vue`:
   - the dialog builds `location.origin + import.meta.env.BASE_URL + 'set-password#token=' + token`, shows the expiry, and offers a copy button;

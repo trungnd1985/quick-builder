@@ -104,7 +104,11 @@ internal static class IdentitySeed
         await using (var scope = app.Services.CreateAsyncScope())
         {
             var database = scope.ServiceProvider.GetRequiredService<IdentityDbContext>();
-            database.Sessions.Add(Session.Start(userId, Tokens.Hash(token), DateTimeOffset.UtcNow, TimeSpan.FromHours(12), null));
+
+            // The application's clock, which a test may be moving by hand: a session stamped
+            // with the system clock would look expired or not yet started to the app.
+            var now = scope.ServiceProvider.GetRequiredService<TimeProvider>().GetUtcNow();
+            database.Sessions.Add(Session.Start(userId, Tokens.Hash(token), now, TimeSpan.FromHours(12), null));
             await database.SaveChangesAsync().ConfigureAwait(false);
         }
 

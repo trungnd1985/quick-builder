@@ -32,6 +32,29 @@ internal static class IdentityErrors
 
     public static readonly Error RequestRejected = new(
         "identity.request_rejected", "This request did not come from the admin application.");
+
+    public static readonly Error UserNotFound = new(
+        "identity.user_not_found", "No such user.");
+
+    public static readonly Error EmailTaken = new(
+        "identity.email_taken", "Another account already uses that email address.");
+
+    public static readonly Error LastAdministrator = new(
+        "identity.last_administrator",
+        "This would leave the installation without an active administrator. Make someone else an administrator first.");
+
+    /// <summary>
+    /// One answer for every unusable link — used, expired, replaced, or for an account that
+    /// changed — so a link reveals nothing about its account (FR-011a).
+    /// </summary>
+    public static readonly Error LinkInvalid = new(
+        "identity.link_invalid", "This link can't be used. Ask an administrator for a new one.");
+
+    public static readonly Error CurrentPasswordIncorrect = new(
+        "identity.current_password_incorrect", "Your current password is not correct.");
+
+    public static readonly Error UserDeactivated = new(
+        "identity.user_deactivated", "This account is deactivated. Reactivate it first.");
 }
 
 /// <summary>

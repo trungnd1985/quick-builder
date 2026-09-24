@@ -8,11 +8,24 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 using QuickBuilder.Identity.Contracts;
+using QuickBuilder.Identity.Features.ChangeOwnPassword;
+using QuickBuilder.Identity.Features.CheckSetPasswordLink;
 using QuickBuilder.Identity.Features.CompleteSetup;
+using QuickBuilder.Identity.Features.CreateUser;
+using QuickBuilder.Identity.Features.DeactivateUser;
 using QuickBuilder.Identity.Features.GetMe;
 using QuickBuilder.Identity.Features.GetStatus;
+using QuickBuilder.Identity.Features.GetUser;
+using QuickBuilder.Identity.Features.IssueSetPasswordLink;
+using QuickBuilder.Identity.Features.ListUsers;
+using QuickBuilder.Identity.Features.ReactivateUser;
+using QuickBuilder.Identity.Features.ReplaceGrants;
+using QuickBuilder.Identity.Features.RevokeOwnOtherSessions;
+using QuickBuilder.Identity.Features.RevokeUserSessions;
+using QuickBuilder.Identity.Features.SetPassword;
 using QuickBuilder.Identity.Features.SignIn;
 using QuickBuilder.Identity.Features.SignOut;
+using QuickBuilder.Identity.Features.UpdateUser;
 using QuickBuilder.Identity.Infrastructure;
 using QuickBuilder.Identity.Infrastructure.Authentication;
 using QuickBuilder.Identity.Infrastructure.Authorization;
@@ -74,6 +87,9 @@ public static class IdentityModule
         services.AddScoped<SignInThrottleService>();
         services.AddScoped<KnownDeviceService>();
         services.AddScoped<SessionService>();
+        services.AddScoped<SetPasswordLinkService>();
+        services.AddScoped<AdministratorGuard>();
+        services.AddScoped<IUserDirectory, UserDirectory>();
         services.AddHostedService<IdentityStartupChecks>();
 
         // Setup (research R-09, R-12).
@@ -102,6 +118,27 @@ public static class IdentityModule
         services.AddScoped<IValidator<SignInCommand>, SignInValidator>();
 
         services.AddScoped<ICommandHandler<SignOutCommand, Result>, SignOutHandler>();
+
+        // User management (US3).
+        services.AddScoped<IQueryHandler<ListUsersQuery, IReadOnlyList<UserResponse>>, ListUsersHandler>();
+        services.AddScoped<IQueryHandler<GetUserQuery, Result<UserResponse>>, GetUserHandler>();
+        services.AddScoped<ICommandHandler<CreateUserCommand, Result<CreateUserResponse>>, CreateUserHandler>();
+        services.AddScoped<IValidator<CreateUserCommand>, CreateUserValidator>();
+        services.AddScoped<ICommandHandler<UpdateUserCommand, Result<UserResponse>>, UpdateUserHandler>();
+        services.AddScoped<IValidator<UpdateUserCommand>, UpdateUserValidator>();
+        services.AddScoped<ICommandHandler<ReplaceGrantsCommand, Result<UserResponse>>, ReplaceGrantsHandler>();
+        services.AddScoped<IValidator<ReplaceGrantsCommand>, ReplaceGrantsValidator>();
+        services.AddScoped<ICommandHandler<DeactivateUserCommand, Result<UserResponse>>, DeactivateUserHandler>();
+        services.AddScoped<ICommandHandler<ReactivateUserCommand, Result<UserResponse>>, ReactivateUserHandler>();
+        services.AddScoped<ICommandHandler<IssueSetPasswordLinkCommand, Result<IssuedLinkResponse>>, IssueSetPasswordLinkHandler>();
+        services.AddScoped<ICommandHandler<RevokeUserSessionsCommand, Result>, RevokeUserSessionsHandler>();
+
+        // Links and self-service (US3).
+        services.AddScoped<ICommandHandler<CheckSetPasswordLinkCommand, Result<CheckSetPasswordLinkResponse>>, CheckSetPasswordLinkHandler>();
+        services.AddScoped<ICommandHandler<SetPasswordCommand, Result>, SetPasswordHandler>();
+        services.AddScoped<ICommandHandler<ChangeOwnPasswordCommand, Result>, ChangeOwnPasswordHandler>();
+        services.AddScoped<IValidator<ChangeOwnPasswordCommand>, ChangeOwnPasswordValidator>();
+        services.AddScoped<ICommandHandler<RevokeOwnOtherSessionsCommand, Result>, RevokeOwnOtherSessionsHandler>();
     }
 
     /// <summary>
