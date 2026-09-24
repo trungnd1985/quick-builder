@@ -19,11 +19,13 @@ internal sealed record CheckSetPasswordLinkCommand(string? Token) : ICommand<Res
 /// <summary>
 /// Whether a link can be used, so the set-password screen can say so before the user types
 /// a password. Every unusable link gets the same answer (FR-011a); guessing is throttled
-/// per client like guessing passwords.
+/// per client like guessing passwords. The token is a credential, so like the password it
+/// sets it travels only over HTTPS or from this machine (FR-018).
 /// </summary>
 internal sealed class CheckSetPasswordLinkHandler(
     IdentityDbContext database,
     IHttpContextAccessor httpContextAccessor,
+    TransportSecurity transport,
     SignInThrottleService throttle,
     SetPasswordLinkService links)
     : ICommandHandler<CheckSetPasswordLinkCommand, Result<CheckSetPasswordLinkResponse>>
@@ -34,6 +36,12 @@ internal sealed class CheckSetPasswordLinkHandler(
 
         var context = httpContextAccessor.HttpContext
             ?? throw new InvalidOperationException("Checking a link runs only within an HTTP request.");
+
+        if (transport.RequireSecureTransport(context) is { } insecure)
+        {
+            return Result.Failure<CheckSetPasswordLinkResponse>(insecure);
+        }
+
         var clientKey = TransportSecurity.ClientKey(context.Connection.RemoteIpAddress);
 
         var clientCheck = await throttle.CheckClientAsync(clientKey, cancellationToken).ConfigureAwait(false);
@@ -62,6 +70,7 @@ public sealed class CheckSetPasswordLinkController(IDispatcher dispatcher) : Con
     [HttpPost]
     [AllowAnonymous]
     [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status410Gone)]
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     public async Task<IActionResult> CheckAsync(CheckSetPasswordLinkRequest request, CancellationToken cancellationToken)

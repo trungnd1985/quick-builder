@@ -1,7 +1,10 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using QuickBuilder.Identity.Domain;
+using QuickBuilder.Identity.Infrastructure;
 using QuickBuilder.IntegrationTests.Infrastructure;
 using Xunit;
 
@@ -132,6 +135,25 @@ public sealed class SetPasswordLinkTests(DatabaseFixture database) : IAsyncLifet
         }
 
         Assert.Equal(HttpStatusCode.TooManyRequests, (await UsersApi.CheckLinkAsync(guesser, "guess-5").ConfigureAwait(true)).StatusCode);
+    }
+
+    /// <summary>FR-029: opening an unusable link is recorded as a refusal, like using one.</summary>
+    [Fact]
+    public async Task Opening_an_unusable_link_is_recorded()
+    {
+        Assert.Equal(HttpStatusCode.Gone, (await UsersApi.CheckLinkAsync(Anonymous(), "not-a-link").ConfigureAwait(true)).StatusCode);
+
+        await using var scope = _app.Services.CreateAsyncScope();
+        var refusals = await scope.ServiceProvider.GetRequiredService<IdentityDbContext>()
+            .SecurityEvents
+            .Where(e => e.EventType == SecurityEventTypes.SetPasswordLinkUsed && e.Outcome == SecurityEventOutcomes.Refused)
+            .ToListAsync()
+            .ConfigureAwait(true);
+
+        var refusal = Assert.Single(refusals);
+        Assert.Null(refusal.SubjectUserId);
+        Assert.Contains("link_invalid", refusal.Details, StringComparison.Ordinal);
+        Assert.DoesNotContain("not-a-link", refusal.Details, StringComparison.Ordinal);
     }
 
     private HttpClient Anonymous() => SignInHelpers.Browser(_app, $"192.0.2.{++_client}");

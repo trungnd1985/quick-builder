@@ -93,6 +93,19 @@ public sealed class RequestGuardTests(DatabaseFixture database) : IAsyncLifetime
         Assert.Equal("identity.https_required", problem.GetProperty("errorCode").GetString());
     }
 
+    /// <summary>A link token is a credential too: checking one needs HTTPS as well.</summary>
+    [Fact]
+    public async Task Checking_a_link_over_plain_http_from_another_machine_is_refused()
+    {
+        var response = await UsersApi.CheckLinkAsync(
+            SetupHelpers.ClientFrom(_app, "203.0.113.78", https: false),
+            "any-token").ConfigureAwait(true);
+
+        var problem = await response.Content.ReadFromJsonAsync<JsonElement>().ConfigureAwait(true);
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+        Assert.Equal("identity.https_required", problem.GetProperty("errorCode").GetString());
+    }
+
     /// <summary>
     /// Behind a TLS proxy the app sees plain HTTP from the proxy. Once the proxy is listed,
     /// its forwarded scheme is trusted and sign-in works (001 D-12, research R-04).

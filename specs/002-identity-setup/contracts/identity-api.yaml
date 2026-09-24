@@ -197,6 +197,9 @@ paths:
                 required: [expiresAtUtc]
                 properties:
                   expiresAtUtc: { type: string, format: date-time }
+        "403":
+          description: "`identity.https_required`"
+          content: { application/problem+json: { schema: { $ref: "#/components/schemas/Problem" } } }
         "410": { $ref: "#/components/responses/LinkInvalid" }
         "429": { $ref: "#/components/responses/Throttled" }
 

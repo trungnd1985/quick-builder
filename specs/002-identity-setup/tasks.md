@@ -656,3 +656,11 @@ After Foundational:
 - **Security events**: never write a password, token, setup code or session id into a `SecurityEvent.details` or a log message. T117 and T049 enforce this.
 - **Raw SQL**: keep it inside the Identity module, parameterised, with the "no site-owned table" comment (plan Technology Constraints).
 - **Commits**: commit after each task or logical group, on branch `002-identity-setup` (T001).
+
+---
+
+## Phase 9: Convergence
+
+- [X] T126 Add the `RequireSecureTransport` check to `IDENTITY/Features/CheckSetPasswordLink/CheckSetPasswordLink.cs`, ahead of the client throttle as in `SetPassword.cs`, so a link token sent over plain HTTP from a non-loopback client gets 403 `identity.https_required`; cover it in `ITESTS/Identity/RequestGuardTests.cs` per FR-018 (partial)
+- [X] T127 Record a `set_password_link_used` event with outcome `refused` and `{ "reason": "link_invalid" }` when `POST /api/v1/identity/set-password-links/check` refuses a link in `IDENTITY/Features/CheckSetPasswordLink/CheckSetPasswordLink.cs`, matching the refusal path in `SetPasswordLinkService.ConsumeAsync`, and assert it in `ITESTS/Identity/SetPasswordLinkTests.cs` per FR-029 (partial)
+- [X] T128 Document the password policy (12 to 128 code points, counted as typed and never truncated; the bundled common-password list; no composition rules) in `docs/operations.md`, and mention the 128-character maximum in the `passwordHelp` and `nextHelp` strings in `src/admin/src/i18n/en.json` per FR-008 (partial)

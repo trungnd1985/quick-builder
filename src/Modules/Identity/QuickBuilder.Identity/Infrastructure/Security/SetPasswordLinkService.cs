@@ -66,10 +66,18 @@ internal sealed class SetPasswordLinkService(
                 cancellationToken);
     }
 
-    /// <summary>When the link will expire, or null when it cannot be used.</summary>
+    /// <summary>
+    /// When the link will expire, or null when it cannot be used. Opening an unusable link
+    /// is recorded as a refusal, like using one (FR-029). The caller saves.
+    /// </summary>
     public async Task<DateTimeOffset?> CheckAsync(string? token, CancellationToken cancellationToken)
     {
         var found = await FindUsableAsync(token, cancellationToken).ConfigureAwait(false);
+        if (found is null)
+        {
+            RecordRefusal();
+        }
+
         return found?.Link.ExpiresAtUtc;
     }
 
@@ -82,12 +90,7 @@ internal sealed class SetPasswordLinkService(
         var found = await FindUsableAsync(token, cancellationToken).ConfigureAwait(false);
         if (found is not var (link, user))
         {
-            events.Record(
-                SecurityEventTypes.SetPasswordLinkUsed,
-                SecurityEventOutcomes.Refused,
-                actorUserId: null,
-                subjectUserId: null,
-                new ReasonDetails("link_invalid"));
+            RecordRefusal();
             return Result.Failure(IdentityErrors.LinkInvalid);
         }
 
@@ -109,6 +112,18 @@ internal sealed class SetPasswordLinkService(
         events.Record(SecurityEventTypes.SetPasswordLinkUsed, SecurityEventOutcomes.Succeeded, user.Id, user.Id);
         return Result.Success();
     }
+
+    /// <summary>
+    /// The account is never named: an unusable link reveals nothing about it, not even in
+    /// the event (FR-011a).
+    /// </summary>
+    private void RecordRefusal() =>
+        events.Record(
+            SecurityEventTypes.SetPasswordLinkUsed,
+            SecurityEventOutcomes.Refused,
+            actorUserId: null,
+            subjectUserId: null,
+            new ReasonDetails("link_invalid"));
 
     private async Task<(SetPasswordLink Link, User User)?> FindUsableAsync(string? token, CancellationToken cancellationToken)
     {

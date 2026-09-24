@@ -88,6 +88,23 @@ are recorded as security events (`operator_recovery_used`), including refused at
 To recover an account that is not an administrator, sign in as an administrator and issue
 a link from **Users**.
 
+## Passwords
+
+The same rules apply wherever a password is chosen: the setup wizard, a set-password
+link, and changing your own password.
+
+- **Length**: 12 to 128 characters. Every character counts, spaces included, and a
+  password is never trimmed or silently shortened: a longer one is refused, not cut.
+- **Common passwords**: a password on the bundled list of common and breached passwords
+  is refused, whatever its letter case. The list ships with the application, so the check
+  works offline.
+- **Not your email address or name**: a password equal to either is refused.
+- **No composition rules**: there is no requirement for digits, symbols or mixed case.
+  A few unrelated words make a strong password that is easy to remember.
+
+Passwords are stored only as salted PBKDF2 hashes. The cost is
+`Identity:Passwords:Pbkdf2Iterations`; see [configuration](configuration.md).
+
 ## Security events
 
 Sign-ins, sign-outs, account changes, set-password links and the commands above are
