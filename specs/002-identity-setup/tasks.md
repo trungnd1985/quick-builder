@@ -432,19 +432,19 @@ holds the controller action, request/response, command or query, validator and h
 - [X] T095 [US3] Create `IDENTITY/Features/CheckSetPasswordLink/CheckSetPasswordLink.cs` and `IDENTITY/Features/SetPassword/SetPassword.cs`, both `[AllowAnonymous]`, with the transport check and the client throttle, delegating to `SetPasswordLinkService`
 - [X] T096 [US3] Create `IDENTITY/Features/ChangeOwnPassword/ChangeOwnPassword.cs` (verify the current password under the account throttle, apply the policy, rehash, revoke other sessions with `password_changed`) and `IDENTITY/Features/RevokeOwnOtherSessions/RevokeOwnOtherSessions.cs`, both `[RequireSignedIn]`
 - [X] T097 [P] [US3] Create `src/Modules/Identity/QuickBuilder.Identity.Contracts/UserSummaryDto.cs` and `IUserDirectory.cs` (`FindManyAsync(ids)` returning display names, for attribution by later modules), and the implementation `IDENTITY/Infrastructure/UserDirectory.cs`, registered in `IdentityModule`
-- [ ] T098 [P] [US3] Extend `src/admin/src/api/identity.ts` with users (list, get, create, update, deactivate, reactivate, issue link, revoke sessions), `checkLink`, `setPassword`, `changeOwnPassword` and `revokeOtherSessions`, plus the `User`, `Grants` and `IssuedLink` types
-- [ ] T099 [US3] Create `src/admin/src/features/users/UsersView.vue` (a table of name, email, status and role summary, with a create dialog for name and email) and `src/admin/src/features/users/CopyLinkDialog.vue`:
+- [X] T098 [P] [US3] Extend `src/admin/src/api/identity.ts` with users (list, get, create, update, deactivate, reactivate, issue link, revoke sessions), `checkLink`, `setPassword`, `changeOwnPassword` and `revokeOtherSessions`, plus the `User`, `Grants` and `IssuedLink` types
+- [X] T099 [US3] Create `src/admin/src/features/users/UsersView.vue` (a table of name, email, status and role summary, with a create dialog for name and email) and `src/admin/src/features/users/CopyLinkDialog.vue`:
   - the dialog builds `location.origin + import.meta.env.BASE_URL + 'set-password#token=' + token`, shows the expiry, and offers a copy button;
   - it warns that the link is shown once (research R-10).
-- [ ] T100 [US3] Create `src/admin/src/features/users/UserEditView.vue`: edit name and email (with a warning that changing the email signs the user out), deactivate/reactivate, "New set-password link" (opens `CopyLinkDialog`) and "Sign out everywhere". Show a 409 `identity.last_administrator` as an inline explanation.
-- [ ] T101 [P] [US3] Create `src/admin/src/features/identity/SetPasswordView.vue`. It reads `#token`, calls `checkLink` first, and removes the fragment from the address bar via `history.replaceState`. It then shows the password form with policy feedback, and on success goes to sign-in. For a 410 it shows a single "this link can't be used; ask an administrator for a new one" state.
-- [ ] T102 [P] [US3] Create `src/admin/src/features/identity/AccountView.vue` with a change-password form (current and new) and a "Sign out my other sessions" action
-- [ ] T103 [US3] Update `src/admin/src/app/router.ts` and `src/admin/src/App.vue`:
+- [X] T100 [US3] Create `src/admin/src/features/users/UserEditView.vue`: edit name and email (with a warning that changing the email signs the user out), deactivate/reactivate, "New set-password link" (opens `CopyLinkDialog`) and "Sign out everywhere". Show a 409 `identity.last_administrator` as an inline explanation.
+- [X] T101 [P] [US3] Create `src/admin/src/features/identity/SetPasswordView.vue`. It reads `#token`, calls `checkLink` first, and removes the fragment from the address bar via `history.replaceState`. It then shows the password form with policy feedback, and on success goes to sign-in. For a 410 it shows a single "this link can't be used; ask an administrator for a new one" state.
+- [X] T102 [P] [US3] Create `src/admin/src/features/identity/AccountView.vue` with a change-password form (current and new) and a "Sign out my other sessions" action
+- [X] T103 [US3] Update `src/admin/src/app/router.ts` and `src/admin/src/App.vue`:
   - routes: `/users`, `/users/:id`, `/account` (signed-in) and `/set-password` (anonymous, reachable in any setup state);
   - nav: *Users* is shown only when `authStore.isAdministrator`, which is courtesy only (FR-024);
   - the account link goes in the user menu.
-- [ ] T104 [P] [US3] Add `identity.users.*`, `identity.setPassword.*` and `identity.account.*` strings to `src/admin/src/i18n/en.json`
-- [ ] T105 [P] [US3] Create `src/admin/tests/usersView.spec.ts`, `src/admin/tests/setPasswordView.spec.ts` and `src/admin/tests/accountView.spec.ts`, each checking an axe pass and keyboard-only completion. `setPasswordView.spec.ts` also checks that the fragment is cleared and the 410 state renders.
+- [X] T104 [P] [US3] Add `identity.users.*`, `identity.setPassword.*` and `identity.account.*` strings to `src/admin/src/i18n/en.json`
+- [X] T105 [P] [US3] Create `src/admin/tests/usersView.spec.ts`, `src/admin/tests/setPasswordView.spec.ts` and `src/admin/tests/accountView.spec.ts`, each checking an axe pass and keyboard-only completion. `setPasswordView.spec.ts` also checks that the fragment is cleared and the 410 state renders.
 
 **Checkpoint**: multi-user installations work end to end without email. US1 to US3 are each testable on their own.
 

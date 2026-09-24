@@ -55,6 +55,9 @@ async function signOut(): Promise<void> {
           class="user-menu"
         >
           <span>{{ t('app.userMenu.signedInAs', { name: auth.user.displayName }) }}</span>
+          <RouterLink to="/account">
+            {{ t('app.userMenu.account') }}
+          </RouterLink>
           <button
             type="button"
             @click="signOut"
@@ -78,6 +81,12 @@ async function signOut(): Promise<void> {
             <li>
               <RouterLink to="/settings">
                 {{ t('app.nav.settings') }}
+              </RouterLink>
+            </li>
+            <!-- Courtesy only: the server refuses non-administrators regardless (FR-024). -->
+            <li v-if="auth.isAdministrator">
+              <RouterLink to="/users">
+                {{ t('app.nav.users') }}
               </RouterLink>
             </li>
           </ul>
