@@ -9,12 +9,12 @@ using QuickBuilder.Sites.Infrastructure;
 
 namespace QuickBuilder.Sites.Features.ListSites;
 
-internal sealed record ListSitesQuery : IQuery<IReadOnlyList<SiteDto>>;
+internal sealed record ListSitesQuery : IQuery<IReadOnlyList<SiteResponse>>;
 
-internal sealed class ListSitesHandler(SitesDbContext database, IAccessEvaluator access)
-    : IQueryHandler<ListSitesQuery, IReadOnlyList<SiteDto>>
+internal sealed class ListSitesHandler(SitesDbContext database, IAccessEvaluator access, SiteDtoMapper mapper)
+    : IQueryHandler<ListSitesQuery, IReadOnlyList<SiteResponse>>
 {
-    public async Task<IReadOnlyList<SiteDto>> HandleAsync(ListSitesQuery query, CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<SiteResponse>> HandleAsync(ListSitesQuery query, CancellationToken cancellationToken)
     {
         // 002 FR-022: an administrator sees every site; anyone else sees only the sites
         // they hold a role on. Asked of the kernel's IAccessEvaluator, so this module never
@@ -39,16 +39,16 @@ internal sealed class ListSitesHandler(SitesDbContext database, IAccessEvaluator
             sites = sites.Where(s => permitted.Contains(s.Id));
         }
 
-        // AsNoTracking + projection to a DTO: a read path never returns entities
-        // (constitution Technology Constraints).
-        return await sites
+        // AsNoTracking + projection: a read path never returns entities (constitution
+        // Technology Constraints). The mapper finishes what SQL cannot, such as the base URL.
+        var rows = await sites
             .OrderByDescending(s => s.CreatedAtUtc)
-            .Select(s => new SiteDto(
-                s.Id,
-                s.Name,
-                s.HostNames.Select(h => h.HostName).ToList(),
-                s.CreatedAtUtc))
+            .Select(SiteDtoMapper.Projection)
             .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        return await SiteResponses
+            .BuildAsync(rows.Select(mapper.ToDto), access, cancellationToken)
             .ConfigureAwait(false);
     }
 }

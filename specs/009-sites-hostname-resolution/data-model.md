@@ -14,6 +14,7 @@ feature adds columns and one index. It creates no tables. Changes are marked **n
 | `scheme` **new** | `text` | no | `'https'` | `CHECK (scheme IN ('https','http'))`. S-08. |
 | `default_language` **new** | `text` | no | `'en'` | One of the 40 tags in S-09, stored in canonical case. Validated in the domain, no database check, so the list can grow without a migration. |
 | `status` **new** | `text` | no | `'enabled'` | `CHECK (status IN ('enabled','disabled'))`. S-10. |
+| `primary_host_name` **new** | `citext` (≤ 253) | no | `''` (upgrade only) | The normalised name of the primary host name. Always one of the site's host names (see invariants). One column cannot hold two primaries, so "at most one" needs no index (S-05). |
 | `created_at_utc` | `timestamptz` | no | | |
 | `updated_at_utc` | `timestamptz` | no | | Set on **every** aggregate change, including host-name add and remove. This is what makes the `xmin` check below cover the whole aggregate. |
 | `xmin` (system) | `xid` | | | Mapped as `uint Version` with `IsRowVersion()`, and used as the optimistic concurrency token (S-05). Not a real column, so no migration is needed. |
@@ -28,7 +29,6 @@ cross sites through `AcrossAllSites` with a reason, as before.
 | `id` | `uuid` | no | | |
 | `site_id` | `uuid` | no | | FK → `sites.id`, `ON DELETE CASCADE` (unchanged). Query filter `site_id = CurrentSiteId`. |
 | `host_name` | `citext` (≤ 253) | no | | The normalised ASCII form (S-04). |
-| `is_primary` **new** | `boolean` | no | `false` | Exactly one per site (see invariants). |
 | `created_at_utc` | `timestamptz` | no | | Orders the upgrade's choice of primary. |
 
 **Indexes**
@@ -37,7 +37,6 @@ cross sites through `AcrossAllSites` with a reason, as before.
 |---|---|---|
 | `ux_site_host_names_host_name` | `UNIQUE (host_name)` | Existing. Makes names unique across the installation, whatever the site's status (FR-008). It is also the resolution probe (S-01). |
 | `ix_site_host_names_site_id` | `(site_id)` | Existing. |
-| `ux_site_host_names_primary` **new** | `UNIQUE (site_id) WHERE is_primary` | At most one primary per site, enforced by the database. |
 
 ## Invariants of the `Site` aggregate
 
@@ -132,6 +131,11 @@ content actions. The rows are appended by Identity's handlers for the events abo
 deduplicated through Identity's `processed_events`.
 
 ## Validation and error codes
+
+Refusals caught by a request's validator (invalid name, host name, scheme, language or
+primary on create) are reported together, as 001 FR-008 requires: `400 request.invalid`
+with an `errors` entry per field. The `sites.*` codes below are returned when a rule fails
+against stored state, or when the aggregate refuses a change.
 
 | Code | Status | When |
 |---|---|---|

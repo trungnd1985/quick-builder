@@ -50,8 +50,8 @@ decisions are cited as `S-xx`. Error codes are those in
 **Purpose**: the feature's documents and its one configuration key. Nothing here has
 behaviour.
 
-- [ ] T001 Commit `specs/009-sites-hostname-resolution/` (spec, plan, research, data model, contracts, quickstart, checklist, tasks) as the first commit on branch `009-sites-hostname-resolution` at the repository root (plan.md "Development Workflow")
-- [ ] T002 [P] Add `"AdminHostNames": []` to the `Hosting` section of `HOST/appsettings.json`, with the default from research.md "Configuration keys introduced"
+- [X] T001 Commit `specs/009-sites-hostname-resolution/` (spec, plan, research, data model, contracts, quickstart, checklist, tasks) as the first commit on branch `009-sites-hostname-resolution` at the repository root (plan.md "Development Workflow")
+- [X] T002 [P] Add `"AdminHostNames": []` to the `Hosting` section of `HOST/appsettings.json`, with the default from research.md "Configuration keys introduced"
 
 ---
 
@@ -64,73 +64,71 @@ uncached resolution path that every story builds on.
 
 ### Host-name normaliser (S-04)
 
-- [ ] T003 [P] Write `UTESTS/Sites/HostNamesTests.cs`: a theory with at least 40 inputs (SC-004).
+- [X] T003 [P] Write `UTESTS/Sites/HostNamesTests.cs`: a theory with at least 40 inputs (SC-004).
   - **Equivalent spellings** that normalise to one value: case, surrounding spaces, trailing dot, the Unicode and `xn--` forms of `bücher.example`, `127.0.0.1`, and `[::1]`, `::1` and `0:0:0:0:0:0:0:1`.
   - **Refusals**: scheme, port, path, query, `@`, `*`, interior space, empty label, leading or trailing hyphen, a 64-character label, 254 characters in total, invalid Unicode, and `a..b`.
   - **`ToDisplay`**: round-trips, and falls back to ASCII on undecodable input.
-- [ ] T004 Implement `KERNEL/MultiSite/HostNames.cs`: `public static bool TryNormalise(string? input, out string normalised)` and `public static string ToDisplay(string normalised)`, following the ordered steps in S-04. Use `IdnMapping` (UseStd3AsciiRules) and `IPAddress.TryParse` only, with no package references, so that T003 passes.
-- [ ] T005 Make `SITES/Domain/SiteHostName.cs` delegate `Normalise` and `IsValid` to `HostNames.TryNormalise`, and delete its own regex. Then confirm the existing `ITESTS/Sites/SiteLifecycleTests.cs` still pass.
+- [X] T004 Implement `KERNEL/MultiSite/HostNames.cs`: `public static bool TryNormalise(string? input, out string normalised)` and `public static string ToDisplay(string normalised)`, following the ordered steps in S-04. Use `IdnMapping` (UseStd3AsciiRules) and `IPAddress.TryParse` only, with no package references, so that T003 passes.
+- [X] T005 Make `SITES/Domain/SiteHostName.cs` delegate `Normalise` and `IsValid` to `HostNames.TryNormalise`, and delete its own regex. Then confirm the existing `ITESTS/Sites/SiteLifecycleTests.cs` still pass.
 
 ### Schema and domain (S-05, S-08, S-09, S-10, data-model.md)
 
-- [ ] T006 [P] Create `SITES/Domain/SupportedLanguages.cs`: the 40 tags from S-09 in order, `Default = "en"`, and `TryCanonicalise(string?, out string)`, which is case-insensitive and returns the canonical case. Test it in `UTESTS/Sites/SupportedLanguagesTests.cs`.
-- [ ] T007 [P] Create `SITES/Domain/SiteStatus.cs` (`Enabled` = `"enabled"`, `Disabled` = `"disabled"`) and `SITES/Domain/SiteScheme.cs` (`Https`, `Http`, and `TryParse`, which is case-insensitive).
-- [ ] T008 Write `UTESTS/Sites/SiteAggregateTests.cs` for the invariants in data-model.md:
+- [X] T006 [P] Create `SITES/Domain/SupportedLanguages.cs`: the 40 tags from S-09 in order, `Default = "en"`, and `TryCanonicalise(string?, out string)`, which is case-insensitive and returns the canonical case. Test it in `UTESTS/Sites/SupportedLanguagesTests.cs`.
+- [X] T007 [P] Create `SITES/Domain/SiteStatus.cs` (`Enabled` = `"enabled"`, `Disabled` = `"disabled"`) and `SITES/Domain/SiteScheme.cs` (`Https`, `Http`, and `TryParse`, which is case-insensitive).
+- [X] T008 Write `UTESTS/Sites/SiteAggregateTests.cs` for the invariants in data-model.md:
   - create with an optional primary (default: the first host name), scheme and language;
   - `ChangeSettings(name, scheme, language, primary)`, with each error code;
   - `AddHostName`, which never makes the new name primary;
   - `RemoveHostName`, refusing the primary (`sites.primary_host_name_removal`) and the only name (`sites.last_host_name`);
   - `Disable` and `Enable`, which return whether the status changed;
   - `UpdatedAtUtc` moves on every change.
-- [ ] T009 Extend `SITES/Domain/Site.cs` so that T008 passes:
+- [X] T009 Extend `SITES/Domain/Site.cs` so that T008 passes:
   - add `Scheme`, `DefaultLanguage`, `Status` and `uint Version`;
-  - add `PrimaryHostName`, computed from the host name flagged `IsPrimary`;
+  - add `PrimaryHostName`, a column on the site (revised from a per-host-name flag; see S-05);
   - extend `Create(name, hostNames, primaryHostName?, scheme?, language?, clock)`;
   - add `ChangeSettings`, `RemoveHostName`, `Disable` and `Enable`, each returning `Result` or `Result<bool>`.
 
-  Add `IsPrimary` with an internal setter to `SITES/Domain/SiteHostName.cs`.
-- [ ] T010 Update `SITES/Infrastructure/SitesDbContext.cs`:
+- [X] T010 Update `SITES/Infrastructure/SitesDbContext.cs`:
   - columns `scheme`, `default_language` and `status`, with their defaults and the two check constraints;
-  - `is_primary` with a default of `false`;
-  - `Version` mapped to `xmin` with `IsRowVersion()`;
-  - the partial unique index `ux_site_host_names_primary` on `site_id` `WHERE is_primary`.
-- [ ] T011 Generate the migration `SITES/Infrastructure/Migrations/<timestamp>_SiteSettingsAndLifecycle.cs` with `dotnet ef migrations add SiteSettingsAndLifecycle` (project `SITES`, startup `HOST`). Before the index is created, insert the S-16 data step with `migrationBuilder.Sql`: `UPDATE sites.site_host_names h SET is_primary = true FROM (SELECT DISTINCT ON (site_id) id FROM sites.site_host_names ORDER BY site_id, created_at_utc, id) p WHERE h.id = p.id`. Make sure the index is created after the update in `Up`.
-- [ ] T012 [P] Write `ITESTS/Sites/UpgradeFrom003Tests.cs`, following `ITESTS/Media/UpgradeFrom002Tests.cs`:
-  - **Snapshot**: apply the Sites migrations only up to `InitialSites`, plus the full Identity and Media migrations, then seed two sites (one with three host names created at different times), a grant and a media file.
+  - `primary_host_name` (`citext`);
+  - `Version` mapped to `xmin` with `IsRowVersion()`.
+- [X] T011 Generate the migration `SITES/Infrastructure/Migrations/<timestamp>_SiteSettingsAndLifecycle.cs` with `dotnet ef migrations add SiteSettingsAndLifecycle` (project `SITES`, startup `HOST`). Right after `primary_host_name` is added, insert the S-16 data step with `migrationBuilder.Sql`, which sets each site's `primary_host_name` to its earliest host name (`DISTINCT ON (site_id) … ORDER BY site_id, created_at_utc, id`).
+- [X] T012 [P] Write `ITESTS/Sites/UpgradeFrom003Tests.cs`, following `ITESTS/Media/UpgradeFrom002Tests.cs`:
+  - **Snapshot**: apply the Sites migrations only up to `InitialSites`, plus the full Identity and Media migrations, then seed two sites (one with three host names created at different times) and a grant. After the upgrade, a media file is uploaded to an upgraded site and served from its address.
   - **Start**: start the current app.
   - **Assert**: every site is `enabled`, `https` and `en`; the earliest host name is primary; every host name resolves; the media address serves; the grant applies (SC-008, FR-029).
 
 ### Contracts and the directory (S-01, S-02, S-17, contracts/site-context.md)
 
-- [ ] T013 Extend `SITESC/SiteDto.cs`: keep the four positional parameters, and add `required init` properties `PrimaryHostName`, `Scheme`, `BaseUrl`, `DefaultLanguage`, `Status`, `Version` and `UpdatedAtUtc` (contracts/site-context.md §3). Narrow the XML doc of `ISiteDirectory.FindByHostNameAsync` to "the enabled site holding this host name, or null" (S-03).
-- [ ] T014 [P] Create `SITESC/ICurrentSite.cs` with `SiteDto? Site { get; }`, and document it as public-surface only (contracts/site-context.md §2).
-- [ ] T015 [P] Create the four integration events in `SITESC/Events/`:
+- [X] T013 Extend `SITESC/SiteDto.cs`: keep the four positional parameters, and add `required init` properties `PrimaryHostName`, `Scheme`, `BaseUrl`, `DefaultLanguage`, `Status`, `Version` and `UpdatedAtUtc` (contracts/site-context.md §3). Narrow the XML doc of `ISiteDirectory.FindByHostNameAsync` to "the enabled site holding this host name, or null" (S-03).
+- [X] T014 [P] Create `SITESC/ICurrentSite.cs` with `SiteDto? Site { get; }`, and document it as public-surface only (contracts/site-context.md §2).
+- [X] T015 [P] Create the four integration events in `SITESC/Events/`:
   - `HostNameAdded.cs`
   - `HostNameRemoved.cs`
   - `SiteDisabled.cs`
   - `SiteEnabled.cs`
 
   Each is a record with `Id`, `OccurredAtUtc`, `SiteId`, `HostName` where applicable, `Guid? ActorUserId`, and a `static EventType` from data-model.md. Mirror `SITESC/Events/SiteCreated.cs`, including its "names are permanent" remark.
-- [ ] T016 [P] Create `SITES/SitesOptions.cs`, bound in `SitesModule`. It reads `Hosting:BasePath` and `Hosting:AdminHostNames` (normalised with `HostNames.TryNormalise`, and invalid entries ignored here because the host validates them).
-- [ ] T017 Create `SITES/Infrastructure/SiteDtoMapper.cs`: one `Expression<Func<Site, …>>` projection plus a finishing step. It computes `BaseUrl` (S-07: `{scheme}://{primary}{BasePath}`, or with a trailing `/` when the base path is empty), orders `HostNames` primary first, and builds `hostNameDetails` using `HostNames.ToDisplay`. Switch `ListSites`, `GetSite`, `CreateSite` and `SiteDirectory` to it.
-- [ ] T018 Rewrite `SITES/Infrastructure/SiteDirectory.cs` (S-01, S-02, S-20):
+- [X] T016 [P] Create `SITES/SitesOptions.cs`, bound in `SitesModule`. It reads `Hosting:BasePath` and `Hosting:AdminHostNames` (normalised with `HostNames.TryNormalise`, and invalid entries ignored here because the host validates them).
+- [X] T017 Create `SITES/Infrastructure/SiteDtoMapper.cs`: one `Expression<Func<Site, …>>` projection plus a finishing step. It computes `BaseUrl` (S-07: `{scheme}://{primary}{BasePath}`, or with a trailing `/` when the base path is empty), orders `HostNames` primary first, and builds `hostNameDetails` using `HostNames.ToDisplay`. Switch `ListSites`, `GetSite`, `CreateSite` and `SiteDirectory` to it.
+- [X] T018 Rewrite `SITES/Infrastructure/SiteDirectory.cs` (S-01, S-02, S-20):
   - remove `ICacheProvider` and `InvalidateHostName`, and every caller of it in `CreateSite` and `AddHostName`;
   - `FindByHostNameAsync` normalises, then runs an `EF.CompileAsyncQuery` over `HostNames.AcrossAllSites(reason)` joined to `Sites`, filtered on `Status == enabled`, projected with the mapper;
   - memoise the resolved `SiteDto` by id for the scope, so that `FindByIdAsync` for the same id returns it without a query;
   - the resolution bypass is proven by T046.
-- [ ] T019 [P] Create `SITES/Infrastructure/CurrentSite.cs`, which implements `ICurrentSite` from `ISiteContext.SiteId` and `SiteDirectory`'s memo. Register it as scoped in `SITES/SitesModule.cs`.
-- [ ] T020 [P] Create `SITES/Infrastructure/ConcurrencyRetry.cs`: `ExecuteAsync(Func<CancellationToken, Task<Result<T>>>, int attempts = 3)`. It clears the change tracker and retries on `DbUpdateConcurrencyException`, then returns `Error.Conflict("sites.out_of_date", …)` (S-05).
-- [ ] T021 Add `SettingsManage = "sites.settings.manage"` and `AvailabilityManage = "sites.availability.manage"` to `SITES/SitesCapabilities.cs`, both `CapabilityScope.Site` with no roles besides Administrator (S-12). Add both to the capability table in `specs/002-identity-setup/contracts/authorization.md` §2.
+- [X] T019 [P] Create `SITES/Infrastructure/CurrentSite.cs`, which implements `ICurrentSite` from `ISiteContext.SiteId` and `SiteDirectory`'s memo. Register it as scoped in `SITES/SitesModule.cs`.
+- [X] T020 [P] Create `SITES/Infrastructure/ConcurrencyRetry.cs`: `ExecuteAsync(Func<CancellationToken, Task<Result<T>>>, int attempts = 3)`. It clears the change tracker and retries on `DbUpdateConcurrencyException`, then returns `Error.Conflict("sites.out_of_date", …)` (S-05).
+- [X] T021 Add `SettingsManage = "sites.settings.manage"` and `AvailabilityManage = "sites.availability.manage"` to `SITES/SitesCapabilities.cs`, both `CapabilityScope.Site` with no roles besides Administrator (S-12). Add both to the capability table in `specs/002-identity-setup/contracts/authorization.md` §2.
 
 ### Test harness
 
-- [ ] T022 [P] Create `ITESTS/Sites/SitesApi.cs`, typed helpers over `/api/v1/sites` for every endpoint in contracts/sites-api.yaml:
+- [X] T022 [P] Create `ITESTS/Sites/SitesApi.cs`, typed helpers over `/api/v1/sites` for every endpoint in contracts/sites-api.yaml:
   - create, get, list, languages;
   - `PutSettings`, `AddHostName`, `RemoveHostName`, `Disable`, `Enable`;
   - `PublicGetAsync(app, host, path)`.
 
   Reuse `MediaApi`'s request-header conventions.
-- [ ] T023 [P] Generalise `ITESTS/Sites/SiteFilterCoverageTests.cs`. For every registered `IModuleDatabaseProvider`, create its context and assert a query filter on every `ISiteOwned` entity, and that at least one module has one (S-15, FR-024).
+- [X] T023 [P] Generalise `ITESTS/Sites/SiteFilterCoverageTests.cs`. For every registered `IModuleDatabaseProvider`, create its context and assert a query filter on every `ISiteOwned` entity, and that at least one module has one (S-15, FR-024).
 
 **Checkpoint**: the solution builds; `HostNamesTests`, `SiteAggregateTests` and `UpgradeFrom003Tests` pass; existing Sites, Identity and Media tests pass with the uncached directory; the migration applies to an empty and to a 003 database. User-story work can begin.
 

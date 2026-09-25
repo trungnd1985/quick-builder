@@ -29,8 +29,8 @@ The approach, detailed in [research.md](./research.md):
 - **Host names**: one normaliser in `Shared.Kernel` covers trimming, the trailing dot,
   IDNA to ASCII and IP literals. It is used for storage, comparison, resolution and admin
   host names (S-04).
-- **Aggregate integrity**: an `is_primary` flag with a partial unique index, plus
-  optimistic concurrency on the `sites` row through `xmin`. Settings edits carry a
+- **Aggregate integrity**: a `primary_host_name` column on the site, plus optimistic
+  concurrency on the `sites` row through `xmin`. Settings edits carry a
   version. Host-name and availability actions retry on conflict (S-05, S-06).
 - **Settings**: the scheme defaults to HTTPS, with a warning shown for HTTP. The language
   comes from a fixed list of 40 tags, defaulting to `en`. The base URL is derived, never
@@ -58,7 +58,7 @@ Npgsql (`xmin` row version, compiled queries), BCL `IdnMapping` and `IPAddress`.
 Pinia, vue-router and vue-i18n, plus the browser's `Intl.DisplayNames`. Nothing new.
 
 **Storage**: PostgreSQL 16+. The `sites` schema gains three columns on `sites`, one on
-`site_host_names`, and one partial unique index ([data-model.md](./data-model.md)).
+`sites` for the primary host name ([data-model.md](./data-model.md)).
 Identity's security event catalogue gains four types, with no schema change.
 
 **Testing**: xUnit, `WebApplicationFactory` and Testcontainers PostgreSQL, as before.
@@ -214,7 +214,7 @@ src/
     │       ~ SitesCapabilities.cs        # + sites.settings.manage, sites.availability.manage
     │       + SitesOptions.cs             # binds Hosting:BasePath, Hosting:AdminHostNames
     │       ~ Domain/Site.cs              # scheme, language, status, primary, invariants, Version
-    │       ~ Domain/SiteHostName.cs      # IsPrimary; normalisation delegated to HostNames
+    │       ~ Domain/SiteHostName.cs      # normalisation delegated to HostNames
     │       + Domain/SupportedLanguages.cs
     │       + Domain/SiteStatus.cs  SiteScheme.cs
     │       ~ Infrastructure/SitesDbContext.cs    # columns, checks, xmin, partial index

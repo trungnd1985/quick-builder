@@ -52,11 +52,16 @@ Naming and scope rules:
 | `sites.create` | Installation | ✓ | — | — |
 | `sites.view` | Site | ✓ | ✓ | ✓ |
 | `sites.host_names.manage` | Site | ✓ | — | — |
+| `sites.settings.manage` | Site | ✓ | — | — |
+| `sites.availability.manage` | Site | ✓ | — | — |
 
 Later modules register their own capabilities the same way. Media's four
 (`media.files.view`, `media.files.upload`, `media.files.delete`,
 `media.own_files.delete`) are listed in
 [003 research M-18](../../003-media-storage/research.md#m-18-the-four-capabilities-and-the-delete-own-check).
+The two Sites capabilities added by 009, `sites.settings.manage` and
+`sites.availability.manage`, are explained in
+[009 research S-12](../../009-sites-hostname-resolution/research.md#s-12-capabilities).
 
 ## 3. What a caller sees
 
@@ -100,6 +105,10 @@ and a spec that justifies it.
 | `POST /api/v1/sites` | `[RequireCapability("sites.create")]` | None |
 | `GET /api/v1/sites/{siteId}` | `[RequireCapability("sites.view")]` | None |
 | `POST /api/v1/sites/{siteId}/host-names` | `[RequireCapability("sites.host_names.manage")]` | None |
+| `DELETE /api/v1/sites/{siteId}/host-names/{hostName}` (009) | `[RequireCapability("sites.host_names.manage")]` | None |
+| `PUT /api/v1/sites/{siteId}/settings` (009) | `[RequireCapability("sites.settings.manage")]` | None |
+| `POST /api/v1/sites/{siteId}/disable`, `…/enable` (009) | `[RequireCapability("sites.availability.manage")]` | None |
+| `GET /api/v1/sites/languages` (009) | `[RequireSignedIn]` | None |
 | `GET /` (public) | `[AllowAnonymous]` | None |
 
 ## 6. Rules for later modules

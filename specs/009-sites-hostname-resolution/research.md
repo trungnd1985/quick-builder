@@ -137,6 +137,14 @@ Steps, in order:
 For display, `HostNames.ToDisplay(ascii)` returns `IdnMapping.GetUnicode(ascii)`. It falls
 back to the ASCII form if decoding fails.
 
+*Found during implementation*: the product runs with `InvariantGlobalization`. In that mode
+`IdnMapping` still converts to punycode, but it neither lowercases nor applies Unicode
+normalisation. So the normaliser lowercases before converting. Normalisation (NFC) isn't
+available, so a decomposed spelling ("u" plus a combining diaeresis) encodes differently
+from the composed "ü". Browsers send the ASCII form in `Host`, and the admin shell
+normalises typed input with `String.prototype.normalize('NFC')` before sending it. Only
+other API clients that send decomposed Unicode are affected.
+
 Resolution passes the request's `Host.Host` through the same function. A host that fails
 normalisation resolves to nothing, and gets the unknown-site response.
 
@@ -161,9 +169,15 @@ normalisation resolves to nothing, and gets the unknown-site response.
 ## S-05: Primary host name, and the aggregate's invariants under concurrency
 
 **Decision**:
-- **Primary flag**: `site_host_names` gains `is_primary boolean not null`. A partial unique
-  index `ux_site_host_names_primary ON (site_id) WHERE is_primary` guarantees at most one
-  primary per site in the database.
+- **Primary column**: `sites` gains `primary_host_name citext not null`, holding the
+  normalised name of the primary. One column can't hold two primaries, so "at most one"
+  holds by construction.
+  - *Revised during implementation.* The first design put an `is_primary` flag on each
+    host name, with a partial unique index `ON (site_id) WHERE is_primary`. PostgreSQL
+    checks a non-deferrable unique index row by row, so moving the flag from one row to
+    another fails or succeeds depending on the order EF sends the two updates. A partial
+    unique index can't be deferred. The column makes changing the primary one update of
+    one row.
 - **Aggregate invariants**: "exactly one primary" and "at least one host name" are enforced
   by the `Site` aggregate.
 - **Concurrency token**: the `sites` row carries PostgreSQL's `xmin` system column, mapped
@@ -487,12 +501,12 @@ proxy can get wrong or an attacker can spoof.
   - `scheme text not null default 'https'`, with a check constraint;
   - `default_language text not null default 'en'`;
   - `status text not null default 'enabled'`, with a check constraint.
-- **New `site_host_names` column**: `is_primary boolean not null default false`.
-- **Data step**: for each site, set `is_primary = true` on its earliest host name, ordered
+- **New `sites` column**: `primary_host_name citext not null`, with an empty default that
+  only the upgrade uses.
+- **Data step**: for each site, set `primary_host_name` to its earliest host name, ordered
   by `created_at_utc` then `id`. This runs as a single `UPDATE … FROM (SELECT DISTINCT ON
   (site_id) …)`, written in the migration with `migrationBuilder.Sql`. That is permitted,
   because schema changes and their data steps live in EF migrations.
-- **Index**: create `ux_site_host_names_primary` after the data step.
 
 The migration is additive, re-runnable through EF's history, and forward-only.
 
@@ -586,6 +600,10 @@ Site resolution is already on the coverage gate's critical-path list (001). The 
 - The resolution query is an EF Core compiled query (`EF.CompileAsyncQuery`), because it
   runs on every public request, which is the case the constitution names for compiled
   queries.
+  - *Revised during implementation*: it is a plain LINQ query. The cross-site bypass
+    (`AcrossAllSites`) is a method call that EF can't translate inside a compiled query's
+    expression tree. EF's own query cache already avoids recompiling the query, and SC-007
+    is measured either way.
 - The `SiteDto` projection loads host names in the same round trip.
 - `SiteResolutionPerformanceTests` seeds 100 sites with 500 host names on the reference
   compose setup. It then measures p95 for `GET /` on a site host (which resolves) and for

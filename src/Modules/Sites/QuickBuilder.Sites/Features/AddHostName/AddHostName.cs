@@ -4,10 +4,10 @@ using QuickBuilder.Shared.Infrastructure.Dispatch;
 using QuickBuilder.Shared.Infrastructure.MultiSite;
 using QuickBuilder.Shared.Kernel.Authorization;
 using QuickBuilder.Shared.Kernel.Dispatch;
+using QuickBuilder.Shared.Kernel.MultiSite;
 using QuickBuilder.Shared.Kernel.Results;
 using QuickBuilder.Shared.Kernel.Validation;
-using QuickBuilder.Sites.Contracts;
-using QuickBuilder.Sites.Domain;
+using QuickBuilder.Sites.Contracts.Events;
 using QuickBuilder.Sites.Features.CreateSite;
 using QuickBuilder.Sites.Infrastructure;
 
@@ -16,7 +16,13 @@ namespace QuickBuilder.Sites.Features.AddHostName;
 /// <summary>Request body for adding a host name.</summary>
 public sealed record AddHostNameRequest(string HostName);
 
-internal sealed record AddHostNameCommand(Guid SiteId, string HostName) : ICommand<Result<SiteHostNameDto>>;
+/// <summary>
+/// The 001 shape (<c>id</c>, <c>siteId</c>, <c>hostName</c>) plus the readable form and
+/// whether it is primary — always false for a name just added (research S-17).
+/// </summary>
+public sealed record AddHostNameResponse(Guid Id, Guid SiteId, string HostName, string DisplayName, bool IsPrimary);
+
+internal sealed record AddHostNameCommand(Guid SiteId, string HostName) : ICommand<Result<AddHostNameResponse>>;
 
 internal sealed class AddHostNameValidator : IValidator<AddHostNameCommand>
 {
@@ -24,7 +30,7 @@ internal sealed class AddHostNameValidator : IValidator<AddHostNameCommand>
     {
         ArgumentNullException.ThrowIfNull(instance);
 
-        return SiteHostName.IsValid(SiteHostName.Normalise(instance.HostName))
+        return HostNames.TryNormalise(instance.HostName, out _)
             ? ValidationResult.Valid()
             : ValidationResult.Invalid(new ValidationFailure(
                 nameof(instance.HostName),
@@ -35,17 +41,35 @@ internal sealed class AddHostNameValidator : IValidator<AddHostNameCommand>
 internal sealed class AddHostNameHandler(
     SitesDbContext database,
     TimeProvider clock,
+    SitesOptions options,
+    IAccessEvaluator access,
     SiteDirectory directory)
-    : ICommandHandler<AddHostNameCommand, Result<SiteHostNameDto>>
+    : ICommandHandler<AddHostNameCommand, Result<AddHostNameResponse>>
 {
-    public async Task<Result<SiteHostNameDto>> HandleAsync(
+    public async Task<Result<AddHostNameResponse>> HandleAsync(
         AddHostNameCommand command,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(command);
 
+        HostNames.TryNormalise(command.HostName, out var normalised);
+        if (options.IsAdminHostName(normalised))
+        {
+            return Result.Failure<AddHostNameResponse>(CreateSiteHandler.HostNameTaken());
+        }
+
+        return await ConcurrencyRetry
+            .ExecuteAsync(database, ct => AttemptAsync(command, normalised, ct), cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    private async Task<Result<AddHostNameResponse>> AttemptAsync(
+        AddHostNameCommand command,
+        string normalised,
+        CancellationToken cancellationToken)
+    {
         // Cross-site: the admin surface has no resolved site, and the caller named this
-        // one explicitly in the path.
+        // one explicitly in the path. Proven by HostNameManagementTests.
         var site = await database.Sites
             .AcrossAllSites("Admin operation on a site named explicitly in the request path (FR-011b).")
             .Include(s => s.HostNames)
@@ -54,14 +78,18 @@ internal sealed class AddHostNameHandler(
 
         if (site is null)
         {
-            return Result.Failure<SiteHostNameDto>(Error.NotFound("sites.not_found", "No such site."));
+            return Result.Failure<AddHostNameResponse>(Error.NotFound("sites.not_found", "No such site."));
         }
 
         var added = site.AddHostName(command.HostName, clock);
         if (added.IsFailure)
         {
-            return Result.Failure<SiteHostNameDto>(added.Error);
+            return Result.Failure<AddHostNameResponse>(added.Error);
         }
+
+        database.MarkAggregateChanged(site);
+        SitesOutbox.Add(database, new HostNameAdded(
+            Guid.CreateVersion7(), clock.GetUtcNow(), site.Id, normalised, access.UserId));
 
         try
         {
@@ -69,16 +97,16 @@ internal sealed class AddHostNameHandler(
         }
         catch (DbUpdateException ex) when (CreateSiteHandler.IsHostNameConflict(ex))
         {
-            return Result.Failure<SiteHostNameDto>(Error.Conflict(
-                "sites.host_name_taken",
-                "The host name is already assigned to another site."));
+            database.ChangeTracker.Clear();
+            return Result.Failure<AddHostNameResponse>(CreateSiteHandler.HostNameTaken());
         }
 
-        var normalised = SiteHostName.Normalise(command.HostName);
-        directory.InvalidateHostName(normalised);
+        // Saved, so the next request on any instance resolves the name (research S-01).
+        directory.Forget(site.Id);
 
         var created = site.HostNames.First(h => string.Equals(h.HostName, normalised, StringComparison.Ordinal));
-        return Result.Success(new SiteHostNameDto(created.Id, site.Id, created.HostName));
+        return Result.Success(new AddHostNameResponse(
+            created.Id, site.Id, created.HostName, HostNames.ToDisplay(created.HostName), IsPrimary: false));
     }
 }
 
@@ -107,6 +135,6 @@ public sealed class AddHostNameController(IDispatcher dispatcher) : ControllerBa
 
         return result.IsFailure
             ? ErrorResults.ToActionResult(result.Error)
-            : Created($"/api/v1/sites/{siteId}/host-names/{result.Value.Id}", result.Value);
+            : Created($"/api/v1/sites/{siteId}/host-names/{Uri.EscapeDataString(result.Value.HostName)}", result.Value);
     }
 }
