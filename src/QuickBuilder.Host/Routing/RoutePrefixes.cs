@@ -17,6 +17,12 @@ namespace QuickBuilder.Host.Routing;
 /// <b>Public surface</b> — everything else. Always requires a site, resolved from the
 /// Host header. A request that resolves to nothing is rejected (FR-014).
 /// </para>
+/// <para>
+/// <b>Reserved on the public surface</b> — <c>/_media</c> (003 FR-015). Still public and
+/// still site-resolved: a media file is served only on its own site's host names. It is
+/// reserved in the other sense: no page may ever claim a path under it, so the Pages
+/// feature must refuse slugs beginning with <c>_media</c>.
+/// </para>
 /// </remarks>
 public static class RoutePrefixes
 {
@@ -24,7 +30,12 @@ public static class RoutePrefixes
     public const string Admin = "/admin";
     public const string Health = "/health";
 
+    /// <summary>Where each site serves its media files (003 research M-11).</summary>
+    public const string PublicMedia = "/_media";
+
     private static readonly string[] Reserved = [Api, Admin, Health];
+
+    private static readonly string[] PublicReserved = [PublicMedia];
 
     /// <summary>True when the path belongs to the administrative surface.</summary>
     public static bool IsReserved(PathString path) =>
@@ -32,4 +43,10 @@ public static class RoutePrefixes
 
     /// <summary>The reserved prefixes, for tests and documentation.</summary>
     public static IReadOnlyList<string> ReservedPrefixes => Reserved;
+
+    /// <summary>
+    /// Prefixes on the public surface that belong to the platform, not to pages. Site
+    /// resolution still applies to them.
+    /// </summary>
+    public static IReadOnlyList<string> PublicReservedPrefixes => PublicReserved;
 }

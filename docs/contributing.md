@@ -170,6 +170,27 @@ Handlers must be **idempotent** and **short** — they run inside the claim tran
 holding a row lock for their duration. Full semantics in
 [the event contract](../specs/001-foundation-skeleton/contracts/integration-events.md).
 
+## Storing files
+
+Modules store bytes only through `IFileStorage` (`QuickBuilder.Shared.Infrastructure.Storage`),
+never through `File`, `FileStream` or `Directory` — an architecture test fails the build
+otherwise. The rules are in
+[the storage contract](../specs/003-media-storage/contracts/storage-provider.md); the short
+version:
+
+- **Keys are generated, never typed.** Build them from ids you control, never from a file
+  name, slug or anything in a request. `StorageKey` refuses anything outside its grammar.
+- **Site first.** A module's keys begin with the owning site's id, then a segment naming
+  the module: `{siteId:N}/media/{fileId:N}`. That keeps every site's bytes one prefix to back
+  up or remove (constitution Principle V).
+- **Write before you record.** Writes are create-only and all-or-nothing. Store the bytes
+  first, then insert the row that points to them, so nothing is ever listed or served
+  half-written. Bytes left without a row are for a sweep to remove, as Media's orphan sweep
+  does.
+- **A new provider** (S3-compatible, Azure Blob) implements `IFileStorage` and
+  `IFileStorageHealthCheck`, validates its settings at startup, and derives a test class
+  from `FileStorageConformanceTests`. It passes that suite unchanged before it ships.
+
 ## Tests
 
 | Project | What belongs there |

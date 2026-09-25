@@ -25,9 +25,27 @@ namespace QuickBuilder.IntegrationTests.Infrastructure;
 public sealed class QuickBuilderApp(
     string connectionString,
     bool runBackgroundServices = false,
-    Action<IServiceCollection>? configureTestServices = null)
+    Action<IServiceCollection>? configureTestServices = null,
+    string? storagePath = null,
+    IReadOnlyDictionary<string, string>? settings = null)
     : WebApplicationFactory<Program>
 {
+    // 003: each instance stores files in its own temporary directory unless the test
+    // passes one — two instances sharing a directory is how the multi-instance tests model
+    // one shared volume (SC-007).
+    private readonly bool _ownsStorage = storagePath is null;
+
+    /// <summary>The local storage directory this instance uses.</summary>
+    public string StoragePath { get; } = storagePath ?? CreateTemporaryStorage();
+
+    /// <summary>A fresh, empty directory for a storage root. The caller deletes it.</summary>
+    public static string CreateTemporaryStorage()
+    {
+        var path = Path.Combine(Path.GetTempPath(), "quickbuilder-tests", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(path);
+        return path;
+    }
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -35,6 +53,12 @@ public sealed class QuickBuilderApp(
         builder.UseEnvironment("Testing");
 
         builder.UseSetting("ConnectionStrings:Default", connectionString);
+        builder.UseSetting("Storage:Local:Path", StoragePath);
+
+        foreach (var (key, value) in settings ?? new Dictionary<string, string>())
+        {
+            builder.UseSetting(key, value);
+        }
 
         // Outbox dispatch is driven explicitly in tests via OutboxDispatcher.RunOnceAsync,
         // so a test asserts on a pass it triggered rather than waiting out a poll interval
@@ -88,6 +112,27 @@ public sealed class QuickBuilderApp(
         if (disposing)
         {
             Npgsql.NpgsqlConnection.ClearAllPools();
+
+            if (_ownsStorage)
+            {
+                TryDeleteDirectory(StoragePath);
+            }
+        }
+    }
+
+    /// <summary>Removes a test storage directory, tolerating files still held open.</summary>
+    public static void TryDeleteDirectory(string path)
+    {
+        try
+        {
+            if (Directory.Exists(path))
+            {
+                Directory.Delete(path, recursive: true);
+            }
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            // A leftover temp directory is harmless; failing the run over one is not.
         }
     }
 

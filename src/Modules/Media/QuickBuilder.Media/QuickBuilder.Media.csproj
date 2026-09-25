@@ -1,0 +1,39 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The Media module: per-site media libraries, upload validation and safe serving
+    (specs/003-media-storage). Everything is internal apart from the registration entry
+    point and the controllers, mirroring QuickBuilder.Sites and QuickBuilder.Identity.
+
+    It reaches stored bytes only through IFileStorage in Shared.Infrastructure (FR-019),
+    names sites through Sites.Contracts and uploaders through Identity.Contracts — never
+    through another module's implementation.
+  -->
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <Using Include="Microsoft.AspNetCore.Http" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\Shared\QuickBuilder.Shared.Kernel\QuickBuilder.Shared.Kernel.csproj" />
+    <ProjectReference Include="..\..\..\Shared\QuickBuilder.Shared.Infrastructure\QuickBuilder.Shared.Infrastructure.csproj" />
+    <ProjectReference Include="..\QuickBuilder.Media.Contracts\QuickBuilder.Media.Contracts.csproj" />
+    <ProjectReference Include="..\..\Sites\QuickBuilder.Sites.Contracts\QuickBuilder.Sites.Contracts.csproj" />
+    <ProjectReference Include="..\..\Identity\QuickBuilder.Identity.Contracts\QuickBuilder.Identity.Contracts.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="QuickBuilder.IntegrationTests" />
+    <InternalsVisibleTo Include="QuickBuilder.UnitTests" />
+    <InternalsVisibleTo Include="QuickBuilder.ArchitectureTests" />
+  </ItemGroup>
+
+</Project>

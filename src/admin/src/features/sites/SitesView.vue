@@ -212,6 +212,9 @@ async function submit(): Promise<void> {
           <th scope="col">
             {{ t('sites.table.created') }}
           </th>
+          <th scope="col">
+            {{ t('sites.table.media') }}
+          </th>
         </tr>
       </thead>
       <tbody>
@@ -223,6 +226,15 @@ async function submit(): Promise<void> {
           <td>{{ site.hostNames.join(', ') }}</td>
           <td>
             <time :datetime="site.createdAtUtc">{{ d(new Date(site.createdAtUtc), 'short') }}</time>
+          </td>
+          <td>
+            <!-- 003: every site role can open the library; the server checks the capability. -->
+            <RouterLink
+              :to="{ name: 'site-media', params: { siteId: site.id } }"
+              :aria-label="t('sites.table.openMedia', { name: site.name })"
+            >
+              {{ t('sites.table.media') }}
+            </RouterLink>
           </td>
         </tr>
       </tbody>

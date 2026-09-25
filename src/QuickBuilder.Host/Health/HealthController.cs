@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using QuickBuilder.Shared.Infrastructure.Modules;
 using QuickBuilder.Shared.Infrastructure.Startup;
+using QuickBuilder.Shared.Infrastructure.Storage;
 
 namespace QuickBuilder.Host.Health;
 
@@ -50,8 +51,12 @@ public sealed record HealthReport(
 public sealed class HealthController(
     StartupState startupState,
     IEnumerable<IModuleDatabaseProvider> moduleDatabases,
+    IFileStorageHealthCheck storage,
     IServiceProvider services) : ControllerBase
 {
+    /// <summary>How long the storage check may take before it counts as unhealthy (003 research M-22).</summary>
+    internal static readonly TimeSpan StorageCheckTimeout = TimeSpan.FromSeconds(2);
+
     /// <summary>Succeeds whenever the process can serve requests.</summary>
     [HttpGet("live")]
     public IActionResult Live() => Ok(new { status = "Healthy" });
@@ -74,6 +79,12 @@ public sealed class HealthController(
                 healthy ? "Healthy" : "Unhealthy"));
         }
 
+        // 003 research M-22: a media volume that vanishes or turns read-only after startup
+        // must take the instance out of rotation, not leave it "ready" while uploads fail.
+        var storageHealthy = await CheckStorageAsync(cancellationToken).ConfigureAwait(false);
+        allHealthy &= storageHealthy;
+        checks.Add(new HealthCheckResult("storage", storageHealthy ? "Healthy" : "Unhealthy"));
+
         var ready = startupState.IsReady && allHealthy;
 
         var report = new HealthReport(
@@ -83,6 +94,29 @@ public sealed class HealthController(
             checks);
 
         return ready ? Ok(report) : StatusCode(StatusCodes.Status503ServiceUnavailable, report);
+    }
+
+    private async Task<bool> CheckStorageAsync(CancellationToken cancellationToken)
+    {
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        timeout.CancelAfter(StorageCheckTimeout);
+
+        try
+        {
+            // WaitAsync as well as the token: a provider that ignores cancellation must still
+            // not hold the probe past its budget.
+            return await storage.CheckAsync(timeout.Token)
+                .WaitAsync(StorageCheckTimeout, cancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch (TimeoutException)
+        {
+            return false;
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            return false;
+        }
     }
 
 }

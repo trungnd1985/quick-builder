@@ -53,6 +53,11 @@ Naming and scope rules:
 | `sites.view` | Site | ✓ | ✓ | ✓ |
 | `sites.host_names.manage` | Site | ✓ | — | — |
 
+Later modules register their own capabilities the same way. Media's four
+(`media.files.view`, `media.files.upload`, `media.files.delete`,
+`media.own_files.delete`) are listed in
+[003 research M-18](../../003-media-storage/research.md#m-18-the-four-capabilities-and-the-delete-own-check).
+
 ## 3. What a caller sees
 
 | Situation | Status | `errorCode` |
@@ -81,6 +86,7 @@ can see it is told honestly that they may not do this particular thing.
 | `POST /api/v1/identity/set-password` | Using a link |
 | `GET /health/live`, `GET /health/ready` | Orchestrator probes |
 | `GET /` (public surface, 001 `ResolveCurrentSite`) | Site visitors never authenticate |
+| `GET\|HEAD /_media/{file}` (public surface, 003 `ServePublicFile`) | Site visitors never authenticate; justified by 003 FR-026 |
 | `/admin/**` static assets and the SPA fallback | The shell has to load in order to show the sign-in screen |
 
 Adding to this list means changing this document, the list in the architecture test,

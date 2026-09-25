@@ -123,6 +123,80 @@ An hourly sweep deletes events older than `Identity:SecurityEvents:RetentionPeri
 If you need events for longer, for an audit for example, export them before the sweep
 reaches them, or raise the retention period (up to 3650 days).
 
+## Media storage
+
+### Where files live
+
+Uploaded images and PDFs are stored under `Storage:Local:Path`:
+
+- **In the image**: `/var/lib/quickbuilder/media`, which the reference
+  `docker-compose.yml` mounts as the named volume `media-data`.
+- **Outside a container**: `{LocalApplicationData}/QuickBuilder/media` unless you set the
+  path.
+
+The database records which files exist; the storage location holds their bytes. Files are
+laid out as `{site id}/media/{file id}`, so everything belonging to one site is one
+directory.
+
+**If you run the image without the reference compose file**, mount persistent storage at
+`/var/lib/quickbuilder/media`. The image declares it as a volume, but a plain
+`docker run` creates an anonymous volume that a recreated container does not reattach —
+the files then appear lost.
+
+### Back up and restore
+
+Back up the media volume **together with the database**, ideally at the same moment. To
+restore, restore both. If they are restored from different moments:
+
+- a library entry whose bytes are missing is shown as **unavailable**, and its public
+  address answers `404`;
+- bytes with no library entry are removed automatically by the orphan sweep once they are
+  older than `Media:OrphanGracePeriod` (24 hours by default).
+
+Nothing breaks either way, but files uploaded or deleted between the two snapshots are
+inconsistent until you re-upload or delete them.
+
+### Moving an installation
+
+Copy the database and the whole storage directory, then point the new installation at
+both (`ConnectionStrings:Default`, `Storage:Local:Path`). Keep the directory's contents
+exactly as they are: the layout is how files are found.
+
+### Deleted files
+
+Deletion is permanent. A deleted file stops being served on the next request, and its
+bytes are removed straight away (or by the next sweep if that fails). Copies already held
+by visitors' browsers or by a proxy or CDN in front of the installation may keep showing
+until they expire: public files are sent with a one-year cache lifetime because an
+address never changes content. To replace a file, upload the new version — it gets a new
+address — and update whatever linked to the old one.
+
+### Clean-up
+
+Two hourly jobs keep storage tidy, and neither ever touches a file that has a library
+entry:
+
+- **Orphan sweep**: removes bytes with no library entry once they are older than
+  `Media:OrphanGracePeriod`, and logs how many per site.
+- **Incomplete uploads**: removes temporary `.part` files older than one hour from each
+  site's `.incoming` directory.
+
+### More than one instance
+
+Multiple instances behind a load balancer are **not supported yet** (the in-memory cache
+cannot be shared either). Media itself would need every instance to mount the same
+storage directory. A shared storage provider (S3-compatible, Azure Blob) is the planned
+answer.
+
+### Upgrading from feature 002
+
+- The image now declares `VOLUME /var/lib/quickbuilder/media`, and the reference compose
+  file mounts `media-data` there. If you use your own compose file or orchestration, add a
+  persistent mount at that path before uploading anything.
+- Add the media volume to your backups, alongside the database.
+- `/_media/` on every site host is now served by the application.
+- Every site starts with an empty media library. Nothing else changes.
+
 ## Upgrading from the foundation release (feature 001)
 
 Feature 001 had no authentication. After the upgrade:

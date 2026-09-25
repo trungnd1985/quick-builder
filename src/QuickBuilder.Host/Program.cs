@@ -6,11 +6,13 @@ using QuickBuilder.Host.Middleware;
 using QuickBuilder.Host.Observability;
 using QuickBuilder.Host.Routing;
 using QuickBuilder.Identity;
+using QuickBuilder.Media;
 using QuickBuilder.Shared.Infrastructure;
 using QuickBuilder.Shared.Infrastructure.Commands;
 using QuickBuilder.Shared.Infrastructure.Migrations;
 using QuickBuilder.Shared.Infrastructure.Outbox;
 using QuickBuilder.Shared.Infrastructure.Startup;
+using QuickBuilder.Shared.Infrastructure.Storage;
 using QuickBuilder.Sites;
 using Serilog;
 
@@ -65,6 +67,14 @@ builder.Services
 // --- Shared services ---------------------------------------------------------------
 builder.Services.AddSingleton<IOutboxSettingsProvider, OutboxSettingsProvider>();
 builder.Services.AddSharedInfrastructure();
+
+// 003: file storage. The host names its own directories so the local provider can refuse
+// to live inside any of them (research M-05), without Shared.Infrastructure depending on
+// ASP.NET Core to find them.
+builder.Services.AddFileStorage(
+    builder.Configuration,
+    [AppContext.BaseDirectory, builder.Environment.ContentRootPath, builder.Environment.WebRootPath]);
+
 builder.Services.AddSingleton<IHostCommand, MigrateCommand>();
 builder.Services.AddTelemetry(builder.Configuration);
 
@@ -72,13 +82,15 @@ builder.Services.AddTelemetry(builder.Configuration);
 // One line per module. Adding another requires no edit to any existing one (SC-009).
 builder.Services.AddSitesModule(builder.Configuration);
 builder.Services.AddIdentityModule(builder.Configuration);
+builder.Services.AddMediaModule(builder.Configuration);
 
 // Controllers live in their modules and are discovered through application parts
 // (constitution Principle I). Minimal APIs are not used anywhere.
 builder.Services
     .AddControllers()
     .AddApplicationPart(typeof(SitesModule).Assembly)
-    .AddApplicationPart(typeof(IdentityModule).Assembly);
+    .AddApplicationPart(typeof(IdentityModule).Assembly)
+    .AddApplicationPart(typeof(MediaModule).Assembly);
 
 var app = builder.Build();
 

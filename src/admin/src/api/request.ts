@@ -5,7 +5,7 @@
 // the request header that proves a call came from this app (002 research R-11), sending
 // the session cookie, and what to do when the server says "sign in" or "set up first".
 
-const API_ROOT = '/api/v1'
+export const API_ROOT = '/api/v1'
 
 export interface ProblemDetails {
   title: string
@@ -59,6 +59,40 @@ export function setApiHooks(next: ApiHooks): void {
 
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS'])
 
+/** The header that proves a state-changing call came from this app (002 research R-11). */
+export const REQUEST_HEADER = 'X-QuickBuilder-Request'
+
+/**
+ * Turns a refused response into an ApiError and runs the app-wide reaction to it. Shared
+ * with calls that cannot use fetch — uploads use XMLHttpRequest for progress (003 M-10).
+ */
+export function refusal(status: number, statusText: string, body: string, retryAfterHeader?: string | null): ApiError {
+  // A problem-details body is expected, but a proxy or a crash can produce something
+  // else. Falling back to the status text keeps the screen useful either way.
+  let problem: ProblemDetails | undefined
+  try {
+    problem = JSON.parse(body) as ProblemDetails
+  } catch {
+    problem = undefined
+  }
+
+  const retryAfter = Number(retryAfterHeader)
+  const error = new ApiError(
+    problem?.detail ?? problem?.title ?? statusText,
+    status,
+    problem,
+    Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter : undefined,
+  )
+
+  if (status === 401) {
+    hooks.onUnauthenticated?.()
+  } else if (status === 428) {
+    hooks.onSetupRequired?.()
+  }
+
+  return error
+}
+
 export async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const method = (init?.method ?? 'GET').toUpperCase()
 
@@ -69,36 +103,20 @@ export async function request<T>(path: string, init?: RequestInit): Promise<T> {
       'content-type': 'application/json',
       // Browsers cannot add this to a cross-site request without a CORS preflight, which
       // the server never grants, so its presence proves the call came from this app.
-      ...(SAFE_METHODS.has(method) ? {} : { 'X-QuickBuilder-Request': '1' }),
+      ...(SAFE_METHODS.has(method) ? {} : { [REQUEST_HEADER]: '1' }),
       ...(init?.headers ?? {}),
     },
   })
 
   if (!response.ok) {
-    // A problem-details body is expected, but a proxy or a crash can produce something
-    // else. Falling back to the status text keeps the screen useful either way.
-    let problem: ProblemDetails | undefined
+    let body: string
     try {
-      problem = (await response.json()) as ProblemDetails
+      body = response.text ? await response.text() : JSON.stringify(await response.json())
     } catch {
-      problem = undefined
+      body = ''
     }
 
-    const retryAfter = Number(response.headers?.get?.('Retry-After'))
-    const error = new ApiError(
-      problem?.detail ?? problem?.title ?? response.statusText,
-      response.status,
-      problem,
-      Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter : undefined,
-    )
-
-    if (response.status === 401) {
-      hooks.onUnauthenticated?.()
-    } else if (response.status === 428) {
-      hooks.onSetupRequired?.()
-    }
-
-    throw error
+    throw refusal(response.status, response.statusText, body, response.headers?.get?.('Retry-After'))
   }
 
   if (response.status === 204) {

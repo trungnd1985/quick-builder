@@ -164,6 +164,32 @@ public sealed class ReferenceDeploymentSmokeTests(ITestOutputHelper output) : IA
         Assert.Equal("Smoke", payload.GetProperty("siteName").GetString());
         output.WriteLine("public host resolved to the created site");
 
+        // 9a. 003 FR-032: upload an image to the site and fetch it from the site's own public
+        //     address, served by the real image from the real volume.
+        var siteId = (await created.Content.ReadFromJsonAsync<JsonElement>().ConfigureAwait(true)).GetProperty("id").GetGuid();
+        using var upload = new HttpRequestMessage(HttpMethod.Post, new Uri($"/api/v1/media/sites/{siteId}/files", UriKind.Relative))
+        {
+            Content = new ByteArrayContent(Png),
+        };
+        upload.Content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("image/png");
+        upload.Headers.Add("X-QuickBuilder-File-Name", "smoke.png");
+
+        var uploaded = await client.SendAsync(upload).ConfigureAwait(true);
+        Assert.Equal(HttpStatusCode.Created, uploaded.StatusCode);
+        var publicPath = (await uploaded.Content.ReadFromJsonAsync<JsonElement>().ConfigureAwait(true)).GetProperty("publicPath").GetString()!;
+
+        Assert.Equal(Png, await FetchPublicAsync(publicClient, publicPath).ConfigureAwait(true));
+        output.WriteLine($"image uploaded and served at {publicPath}");
+
+        // 9b. 003 SC-005: replace the application container, keeping the volumes, as an
+        //     upgrade does. The file and its record survive and serve identical bytes.
+        var recreate = await _deployment.ComposeAsync("up -d --force-recreate --no-deps app").ConfigureAwait(true);
+        Assert.True(recreate.ExitCode == 0, $"recreating the app container failed:\n{recreate.Output}");
+        await _deployment.WaitForReadyAsync(client).ConfigureAwait(true);
+
+        Assert.Equal(Png, await FetchPublicAsync(publicClient, publicPath).ConfigureAwait(true));
+        output.WriteLine("image still served after the app container was replaced");
+
         // 10. Operator recovery (002 US5): with command-line access to the container, the
         //     operator issues a set-password link for the administrator, sets a new password
         //     through it, and signs in with that password.
@@ -190,6 +216,21 @@ public sealed class ReferenceDeploymentSmokeTests(ITestOutputHelper output) : IA
             .ConfigureAwait(true);
         Assert.Equal(HttpStatusCode.OK, signInAgain.StatusCode);
         output.WriteLine("recovery link issued from the command line; new password signs in");
+    }
+
+    /// <summary>A 1×1 PNG, the smallest real image the upload path accepts.</summary>
+    private static readonly byte[] Png = Convert.FromBase64String(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==");
+
+    private static async Task<byte[]> FetchPublicAsync(HttpClient client, string publicPath)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Get, new Uri(publicPath, UriKind.Relative));
+        request.Headers.Host = "smoke.test";
+
+        using var response = await client.SendAsync(request).ConfigureAwait(false);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal("image/png", response.Content.Headers.ContentType?.MediaType);
+        return await response.Content.ReadAsByteArrayAsync().ConfigureAwait(false);
     }
 
     /// <summary>
