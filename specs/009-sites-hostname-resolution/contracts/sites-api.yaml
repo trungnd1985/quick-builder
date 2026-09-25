@@ -1,0 +1,429 @@
+openapi: 3.1.0
+info:
+  title: QuickBuilder Sites API
+  version: v1
+  description: |
+    HTTP contract for feature 009 (issue #9). It extends the Sites endpoints from 001 and
+    002 **additively** (research S-17): every field and endpoint that existed keeps its
+    shape, so the version stays `v1`.
+
+    Surfaces:
+    - **Administrative**: `/api/v1/sites/…`. The site is named in the route, never
+      inferred from the host (001 FR-011b). When `Hosting:AdminHostNames` is set, these
+      paths answer only on those host names. On any other host they behave as an
+      unmatched public path (research S-13).
+    - **Public**: every other path, resolved to an **enabled** site from the `Host`
+      header, or from `X-Forwarded-Host` when it comes from a trusted proxy (S-14). An
+      unknown host and a disabled site's host get the identical `sites.not_resolved`
+      response (S-03).
+
+    Every error body is `application/problem+json` in 001's shape. Authentication,
+    setup, CSRF and site-visibility failures (401, 403 `identity.*`, 404
+    `sites.not_found`, 428) behave exactly as 002 contracts/authorization.md §3
+    describes, and are not repeated per operation. A caller who may not see a site
+    gets `404 sites.not_found`. A caller who may see it but lacks the capability gets
+    `403`.
+
+    State-changing requests need the `X-QuickBuilder-Request: 1` header and a same-origin
+    `Origin` (002 research R-11).
+
+servers:
+  - url: /
+
+tags:
+  - name: Sites (admin)
+  - name: Sites (public)
+
+paths:
+  /api/v1/sites:
+    get:
+      tags: [Sites (admin)]
+      operationId: listSites
+      summary: List the sites the caller may see, newest first
+      description: |
+        `RequireSignedIn`, filtered by 002 FR-022. Unchanged, apart from the new
+        fields on each item.
+      responses:
+        '200':
+          description: Possibly empty.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Site' }
+
+    post:
+      tags: [Sites (admin)]
+      operationId: createSite
+      summary: Create a site
+      description: |
+        Requires `sites.create` (installation scope, Administrator). The new site is
+        `enabled`. Publishes `Sites.SiteCreated` (unchanged).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateSiteRequest' }
+      responses:
+        '201':
+          description: Created. `Location` points at the site.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Site' }
+        '400':
+          description: |
+            `sites.invalid_name`, `sites.invalid_host_name`, `sites.no_host_names`,
+            `sites.primary_host_name_invalid`, `sites.unsupported_language` or
+            `sites.invalid_scheme`. Validation failures list every problem in
+            `errors`.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '409':
+          description: '`sites.host_name_taken`. It never says which site holds the name.'
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+
+  /api/v1/sites/languages:
+    get:
+      tags: [Sites (admin)]
+      operationId: listSupportedLanguages
+      summary: The languages a site may choose as its default (research S-09)
+      description: |
+        `RequireSignedIn`. A fixed, ordered list of BCP 47 tags. Clients render
+        display names themselves (`Intl.DisplayNames`).
+      responses:
+        '200':
+          description: The list.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [languages, default]
+                properties:
+                  languages:
+                    type: array
+                    items: { type: string, example: pt-BR }
+                  default: { type: string, const: en }
+
+  /api/v1/sites/{siteId}:
+    parameters:
+      - $ref: '#/components/parameters/SiteId'
+    get:
+      tags: [Sites (admin)]
+      operationId: getSite
+      summary: One site, with every setting
+      description: Requires `sites.view`. Designers and Editors hold it on their sites (FR-023).
+      responses:
+        '200':
+          description: The site, in any status.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Site' }
+
+  /api/v1/sites/{siteId}/settings:
+    parameters:
+      - $ref: '#/components/parameters/SiteId'
+    put:
+      tags: [Sites (admin)]
+      operationId: replaceSiteSettings
+      summary: Replace a site's editable settings (research S-06)
+      description: |
+        Requires `sites.settings.manage` (Administrator). Every field is required. When
+        `version` isn't the site's current version, nothing changes and the answer is
+        `409 sites.out_of_date`. Publishes no event: renames and language changes don't
+        change what the public can reach.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SiteSettings' }
+      responses:
+        '200':
+          description: Saved. The body carries the new `version`.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Site' }
+        '400':
+          description: |
+            `sites.invalid_name`, `sites.primary_host_name_invalid`,
+            `sites.unsupported_language` or `sites.invalid_scheme`.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '409':
+          description: '`sites.out_of_date`.'
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+
+  /api/v1/sites/{siteId}/host-names:
+    parameters:
+      - $ref: '#/components/parameters/SiteId'
+    post:
+      tags: [Sites (admin)]
+      operationId: addHostName
+      summary: Add a host name (existing endpoint; normalisation extended)
+      description: |
+        Requires `sites.host_names.manage` (Administrator). The name is normalised as
+        research S-04 describes. It is refused when any site holds it, whatever that
+        site's status, or when it is a configured admin host name. It takes effect for
+        public requests on every instance before this returns (S-01). Publishes
+        `Sites.HostNameAdded`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [hostName]
+              properties:
+                hostName: { type: string, example: bücher.example }
+      responses:
+        '201':
+          description: Added. The body is the unchanged 001 shape plus `displayName` and `isPrimary`.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/HostNameCreated' }
+        '400':
+          description: '`sites.invalid_host_name`.'
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '409':
+          description: '`sites.host_name_taken`, or `sites.out_of_date` after 3 lost races (S-05).'
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+
+  /api/v1/sites/{siteId}/host-names/{hostName}:
+    parameters:
+      - $ref: '#/components/parameters/SiteId'
+      - name: hostName
+        in: path
+        required: true
+        description: |
+          The host name to remove. It is normalised first, so any equivalent spelling
+          works (S-04).
+        schema: { type: string }
+    delete:
+      tags: [Sites (admin)]
+      operationId: removeHostName
+      summary: Remove a host name that isn't the primary
+      description: |
+        Requires `sites.host_names.manage` (Administrator). It takes effect for public
+        requests on every instance before this returns. Publishes
+        `Sites.HostNameRemoved`.
+      responses:
+        '204':
+          description: Removed.
+        '404':
+          description: '`sites.host_name_not_found`: this site doesn''t hold it.'
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '409':
+          description: '`sites.primary_host_name_removal`, `sites.last_host_name` or `sites.out_of_date`.'
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+
+  /api/v1/sites/{siteId}/disable:
+    parameters:
+      - $ref: '#/components/parameters/SiteId'
+    post:
+      tags: [Sites (admin)]
+      operationId: disableSite
+      summary: Take a site offline, keeping everything (research S-10)
+      description: |
+        Requires `sites.availability.manage` (Administrator). Idempotent. From the next
+        public request on every instance, the site's host names answer like unknown
+        hosts. Host names stay taken. The administrative surface keeps working for the
+        site. Publishes `Sites.SiteDisabled` only when the status actually changed.
+      responses:
+        '200':
+          description: The site, now `disabled`.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Site' }
+        '409':
+          description: '`sites.out_of_date` after 3 lost races.'
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+
+  /api/v1/sites/{siteId}/enable:
+    parameters:
+      - $ref: '#/components/parameters/SiteId'
+    post:
+      tags: [Sites (admin)]
+      operationId: enableSite
+      summary: Put a disabled site back online
+      description: |
+        Requires `sites.availability.manage` (Administrator). Idempotent. Publishes
+        `Sites.SiteEnabled` only when the status actually changed.
+      responses:
+        '200':
+          description: The site, now `enabled`.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Site' }
+        '409':
+          description: '`sites.out_of_date` after 3 lost races.'
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+
+  /:
+    get:
+      tags: [Sites (public)]
+      operationId: getCurrentSite
+      summary: Report the resolved site (existing placeholder until Rendering)
+      description: |
+        Anonymous. Answers only for an enabled site. Unknown and disabled hosts get the
+        identical `NotResolved` response, byte for byte.
+      responses:
+        '200':
+          description: The resolved site.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [siteId, siteName]
+                properties:
+                  siteId: { type: string, format: uuid }
+                  siteName: { type: string }
+        '404':
+          $ref: '#/components/responses/NotResolved'
+
+components:
+  parameters:
+    SiteId:
+      name: siteId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+
+  responses:
+    NotResolved:
+      description: |
+        No enabled site holds the requested host name. The body is fixed and never
+        echoes the host:
+        `{"type":"https://quickbuilder.dev/errors/site-not-resolved","title":"Not found","status":404,"errorCode":"sites.not_resolved"}`
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+
+    PublicNotFound:
+      description: |
+        The site resolved, but it has no such public path. The body is fixed and never
+        echoes the path:
+        `{"type":"https://quickbuilder.dev/errors/public-not-found","title":"Not found","status":404,"errorCode":"public.not_found"}`.
+        When `Hosting:AdminHostNames` is set, `/api/**` and `/admin/**` on any host not
+        in that list get this response too.
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+
+  schemas:
+    Site:
+      type: object
+      required: [id, name, hostNames, createdAtUtc, primaryHostName, hostNameDetails,
+                 scheme, baseUrl, defaultLanguage, status, version, updatedAtUtc, permissions]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string, maxLength: 200 }
+        hostNames:
+          description: Existing field. Normalised ASCII host names, the primary first.
+          type: array
+          items: { type: string }
+        createdAtUtc: { type: string, format: date-time }
+        primaryHostName: { type: string, description: New. ASCII form. }
+        hostNameDetails:
+          description: New. The same host names, with display forms.
+          type: array
+          items: { $ref: '#/components/schemas/HostName' }
+        scheme: { type: string, enum: [https, http] }
+        baseUrl:
+          type: string
+          description: New. Derived as `{scheme}://{primaryHostName}{Hosting:BasePath}` (S-07). Never stored.
+          example: https://xn--bcher-kva.example/cms
+        defaultLanguage: { type: string, example: en }
+        status: { type: string, enum: [enabled, disabled] }
+        version:
+          type: integer
+          format: int64
+          minimum: 0
+          description: New. Opaque concurrency token. Send it back with a settings change.
+        updatedAtUtc: { type: string, format: date-time }
+        permissions:
+          type: object
+          description: |
+            New. What the calling user may do on this site, worked out on the server for
+            this request. The admin shell hides or disables controls from it. The server
+            still enforces every action.
+          required: [canManageSettings, canManageHostNames, canManageAvailability]
+          properties:
+            canManageSettings: { type: boolean }
+            canManageHostNames: { type: boolean }
+            canManageAvailability: { type: boolean }
+
+    HostName:
+      type: object
+      required: [hostName, displayName, isPrimary]
+      properties:
+        hostName: { type: string, example: xn--bcher-kva.example }
+        displayName: { type: string, example: bücher.example }
+        isPrimary: { type: boolean }
+
+    HostNameCreated:
+      type: object
+      required: [id, siteId, hostName, displayName, isPrimary]
+      properties:
+        id: { type: string, format: uuid }
+        siteId: { type: string, format: uuid }
+        hostName: { type: string }
+        displayName: { type: string }
+        isPrimary: { type: boolean, const: false }
+
+    CreateSiteRequest:
+      type: object
+      required: [name, hostNames]
+      properties:
+        name: { type: string }
+        hostNames:
+          type: array
+          minItems: 1
+          items: { type: string }
+        primaryHostName:
+          type: string
+          description: New, optional. Must be one of `hostNames`. Defaults to the first.
+        scheme: { type: string, enum: [https, http], default: https }
+        defaultLanguage: { type: string, default: en }
+
+    SiteSettings:
+      type: object
+      required: [name, scheme, defaultLanguage, primaryHostName, version]
+      properties:
+        name: { type: string }
+        scheme: { type: string, enum: [https, http] }
+        defaultLanguage: { type: string }
+        primaryHostName: { type: string }
+        version: { type: integer, format: int64, minimum: 0 }
+
+    Problem:
+      type: object
+      required: [type, title, status, errorCode]
+      properties:
+        type: { type: string }
+        title: { type: string }
+        status: { type: integer }
+        detail: { type: string }
+        errorCode: { type: string }
+        traceId: { type: string }
+        errors:
+          type: object
+          additionalProperties:
+            type: array
+            items: { type: string }
