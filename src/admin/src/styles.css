@@ -280,3 +280,99 @@ label.checkbox {
   gap: 0.75rem;
   margin-top: 0.5rem;
 }
+
+/* --- Media library (003) ------------------------------------------------------------ */
+
+.notice {
+  border-left: 4px solid var(--accent);
+  padding-left: 0.75rem;
+}
+
+.upload-area {
+  max-width: 48rem;
+}
+
+.drop-zone {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  border: 2px dashed var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+}
+
+.drop-zone.dragging {
+  border-color: var(--accent);
+}
+
+.upload-results {
+  list-style: none;
+  padding: 0;
+  margin: 0.75rem 0 0;
+}
+
+.upload-results li {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.25rem 0;
+}
+
+.upload-results .upload-failed {
+  color: var(--danger);
+}
+
+.media-table {
+  max-width: 64rem;
+}
+
+.media-table tr:focus {
+  outline: 3px solid var(--focus);
+  outline-offset: -3px;
+}
+
+.media-table .preview img {
+  display: block;
+  max-width: 4rem;
+  max-height: 3rem;
+  object-fit: contain;
+}
+
+.media-table .file-name {
+  overflow-wrap: anywhere;
+}
+
+.row-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.badge {
+  display: inline-block;
+  padding: 0.125rem 0.375rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+}
+
+button.danger {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgb(22 25 29 / 40%);
+}
+
+.dialog {
+  margin: 0;
+  background: var(--bg);
+  box-shadow: 0 0.5rem 2rem rgb(22 25 29 / 30%);
+}

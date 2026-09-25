@@ -25,6 +25,8 @@
     <ProjectReference Include="..\..\src\Modules\Sites\QuickBuilder.Sites\QuickBuilder.Sites.csproj" />
     <ProjectReference Include="..\..\src\Modules\Identity\QuickBuilder.Identity\QuickBuilder.Identity.csproj" />
     <ProjectReference Include="..\..\src\Modules\Identity\QuickBuilder.Identity.Contracts\QuickBuilder.Identity.Contracts.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Media\QuickBuilder.Media\QuickBuilder.Media.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Media\QuickBuilder.Media.Contracts\QuickBuilder.Media.Contracts.csproj" />
   </ItemGroup>
 
 </Project>

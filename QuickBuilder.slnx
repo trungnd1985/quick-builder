@@ -7,6 +7,10 @@
     <Project Path="src/Modules/Identity/QuickBuilder.Identity.Contracts/QuickBuilder.Identity.Contracts.csproj" />
     <Project Path="src/Modules/Identity/QuickBuilder.Identity/QuickBuilder.Identity.csproj" />
   </Folder>
+  <Folder Name="/src/Modules/Media/">
+    <Project Path="src/Modules/Media/QuickBuilder.Media.Contracts/QuickBuilder.Media.Contracts.csproj" />
+    <Project Path="src/Modules/Media/QuickBuilder.Media/QuickBuilder.Media.csproj" />
+  </Folder>
   <Folder Name="/src/Modules/Sites/">
     <Project Path="src/Modules/Sites/QuickBuilder.Sites.Contracts/QuickBuilder.Sites.Contracts.csproj" />
     <Project Path="src/Modules/Sites/QuickBuilder.Sites/QuickBuilder.Sites.csproj" />

@@ -33,6 +33,8 @@ COPY src/Modules/Sites/QuickBuilder.Sites.Contracts/*.csproj          src/Module
 COPY src/Modules/Sites/QuickBuilder.Sites/*.csproj                    src/Modules/Sites/QuickBuilder.Sites/
 COPY src/Modules/Identity/QuickBuilder.Identity.Contracts/*.csproj    src/Modules/Identity/QuickBuilder.Identity.Contracts/
 COPY src/Modules/Identity/QuickBuilder.Identity/*.csproj              src/Modules/Identity/QuickBuilder.Identity/
+COPY src/Modules/Media/QuickBuilder.Media.Contracts/*.csproj          src/Modules/Media/QuickBuilder.Media.Contracts/
+COPY src/Modules/Media/QuickBuilder.Media/*.csproj                    src/Modules/Media/QuickBuilder.Media/
 RUN dotnet restore src/QuickBuilder.Host/QuickBuilder.Host.csproj
 
 # The .NET folders only. src/admin/ is built by the Node stage above; copying it here

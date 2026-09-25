@@ -28,7 +28,9 @@
     "table": {
       "name": "Name",
       "hostNames": "Host names",
-      "created": "Created"
+      "created": "Created",
+      "media": "Media",
+      "openMedia": "Media for {name}"
     },
     "create": {
       "title": "Create a site",
@@ -45,6 +47,80 @@
     "noAccess": {
       "title": "No access yet",
       "body": "You are signed in, but you have no role on any site yet. Ask an administrator to give you access."
+    }
+  },
+  "media": {
+    "title": "Media — {site}",
+    "subtitle": "Images and PDFs for this site. Files are served from the site’s own addresses.",
+    "back": "Back to sites",
+    "loading": "Loading media…",
+    "error": {
+      "title": "Could not load media",
+      "retry": "Try again"
+    },
+    "empty": {
+      "title": "No files yet",
+      "body": "Upload images or PDFs to use them on this site."
+    },
+    "noHost": "This site has no host name yet. Its files will be reachable at a public address once it has one.",
+    "upload": {
+      "heading": "Upload files",
+      "notice": "Uploaded files are public straight away: anyone with the address can open them. Details embedded in a file, such as where a photo was taken, are published unchanged with it.",
+      "choose": "Choose files",
+      "drop": "Or drop files here",
+      "types": "JPEG, PNG, GIF, WebP, AVIF or PDF.",
+      "resultsLabel": "Upload results",
+      "queued": "{name}: waiting",
+      "uploading": "{name}: uploading {percent}%",
+      "done": "{name}: uploaded",
+      "failed": "{name}: {reason}"
+    },
+    "errors": {
+      "empty": "The file is empty.",
+      "file_name_required": "The file has no usable name.",
+      "type_mismatch": "The file’s name or type does not match its contents.",
+      "too_large": "The file is larger than the limit.",
+      "unsupported_type": "This type of file is not allowed. Use JPEG, PNG, GIF, WebP, AVIF or PDF.",
+      "storage_unavailable": "The file could not be stored. Try again.",
+      "storage_full": "The storage location is full. Ask an administrator.",
+      "unknown": "The file could not be uploaded."
+    },
+    "table": {
+      "caption": "Files in this site’s library",
+      "preview": "Preview",
+      "name": "Name",
+      "type": "Type",
+      "size": "Size",
+      "uploaded": "Uploaded",
+      "uploadedBy": "By",
+      "actions": "Actions",
+      "pdf": "PDF",
+      "unavailable": "Unavailable",
+      "unknownUser": "Unknown user"
+    },
+    "size": {
+      "bytes": "{n} B",
+      "kb": "{n} KB",
+      "mb": "{n} MB"
+    },
+    "count": "{shown} of {total} files",
+    "loadMore": "Load more",
+    "copy": {
+      "button": "Copy address",
+      "label": "Copy address of {name}",
+      "done": "Address copied",
+      "failed": "Could not copy the address"
+    },
+    "delete": {
+      "button": "Delete",
+      "label": "Delete {name}",
+      "title": "Delete {name}?",
+      "body": "This is permanent. The file stops being served straight away and cannot be restored.",
+      "confirm": "Delete permanently",
+      "cancel": "Cancel",
+      "deleting": "Deleting…",
+      "done": "{name} was deleted",
+      "failed": "Could not delete {name}"
     }
   },
   "settings": {

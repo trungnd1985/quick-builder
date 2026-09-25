@@ -460,12 +460,17 @@ uploads, which breaks US3 #1, and cost grows with the page number.
 **Decision**:
 1. Percent-decode the header.
 2. Take the part after the last `/` or `\`.
-3. Normalise to Unicode NFC.
-4. Remove control characters (categories Cc and Cf) and trim whitespace and dots at both
-   ends.
-5. If the result is longer than 255 UTF-16 code units, shorten the stem so the whole name
+3. Remove control characters (categories Cc and Cf) and trim whitespace and dots at both
+   ends. Ill-formed UTF-16 is replaced with U+FFFD.
+4. If the result is longer than 255 UTF-16 code units, shorten the stem so the whole name
    fits while the extension is kept.
-6. If nothing remains, refuse with `media.file_name_required`.
+5. If nothing remains, refuse with `media.file_name_required`.
+
+*Changed during implementation*: the plan also normalised names to Unicode NFC. The
+application builds with `InvariantGlobalization=true` (001), where `string.Normalize`
+does nothing, and enabling ICU for the whole product (plus `icu-libs` in the Alpine
+image) is out of proportion for tidier display. Names are therefore kept as given.
+Normalisation was never a safety property: names are not used in keys or paths.
 
 The result is stored as `file_name` and returned for display and in
 `Content-Disposition`. It is never used in keys (M-03) or paths (M-11).

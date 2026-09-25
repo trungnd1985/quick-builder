@@ -7,6 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 using QuickBuilder.IntegrationTests.Infrastructure;
 using QuickBuilder.Shared.Infrastructure.Migrations;
 using QuickBuilder.Shared.Infrastructure.Startup;
+using QuickBuilder.Shared.Infrastructure.Storage;
 using Xunit;
 
 namespace QuickBuilder.IntegrationTests.Startup;
@@ -155,17 +156,101 @@ public sealed class StartupTests(DatabaseFixture database) : IAsyncLifetime
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
+
+    /// <summary>
+    /// 003 research M-22: a storage location that stops being usable after startup takes the
+    /// instance out of rotation, and putting it right brings it back.
+    /// </summary>
+    /// <remarks>
+    /// Unix only: Windows ACLs are not modelled by <see cref="UnixFileMode"/>. Also skipped
+    /// as root, which ignores permission bits entirely.
+    /// </remarks>
+    [SkippableTheory]
+    [System.Runtime.Versioning.UnsupportedOSPlatform("windows")]
+    [InlineData(UnixFileMode.UserRead | UnixFileMode.UserExecute)]
+    [InlineData((UnixFileMode)0)]
+    public async Task Readiness_fails_while_storage_is_read_only_or_unreadable(UnixFileMode brokenMode)
+    {
+        Skip.If(OperatingSystem.IsWindows(), "Unix file modes only.");
+        Skip.If(Environment.UserName == "root", "Root ignores permission bits.");
+
+        using var app = new QuickBuilderApp(_connectionString);
+        var client = app.CreateAnonymousClient();
+        Assert.Equal(HttpStatusCode.OK, (await ReadyAsync(client).ConfigureAwait(true)).StatusCode);
+
+        var original = File.GetUnixFileMode(app.StoragePath);
+        try
+        {
+            File.SetUnixFileMode(app.StoragePath, brokenMode);
+
+            var broken = await ReadyAsync(client).ConfigureAwait(true);
+            Assert.Equal(HttpStatusCode.ServiceUnavailable, broken.StatusCode);
+            Assert.Equal("Unhealthy", await StorageCheckAsync(broken).ConfigureAwait(true));
+        }
+        finally
+        {
+            File.SetUnixFileMode(app.StoragePath, original);
+        }
+
+        Assert.Equal(HttpStatusCode.OK, (await ReadyAsync(client).ConfigureAwait(true)).StatusCode);
+    }
+
+    /// <summary>003 research M-22: a storage check that hangs counts as unhealthy after 2 seconds.</summary>
+    [Fact]
+    public async Task Readiness_fails_when_the_storage_check_hangs()
+    {
+        using var app = new QuickBuilderApp(
+            _connectionString,
+            configureTestServices: services => services.AddSingleton<IFileStorageHealthCheck, HangingHealthCheck>());
+
+        var started = System.Diagnostics.Stopwatch.StartNew();
+        var response = await ReadyAsync(app.CreateAnonymousClient()).ConfigureAwait(true);
+
+        Assert.Equal(HttpStatusCode.ServiceUnavailable, response.StatusCode);
+        Assert.Equal("Unhealthy", await StorageCheckAsync(response).ConfigureAwait(true));
+        Assert.InRange(started.Elapsed, TimeSpan.FromSeconds(1.5), TimeSpan.FromSeconds(10));
+    }
+
+    private static Task<HttpResponseMessage> ReadyAsync(HttpClient client) =>
+        client.GetAsync(new Uri("/health/ready", UriKind.Relative));
+
+    private static async Task<string?> StorageCheckAsync(HttpResponseMessage response)
+    {
+        using var body = JsonDocument.Parse(await response.Content.ReadAsStringAsync().ConfigureAwait(true));
+        return body.RootElement.GetProperty("checks").EnumerateArray()
+            .Single(c => c.GetProperty("name").GetString() == "storage")
+            .GetProperty("status").GetString();
+    }
+
+    /// <summary>A provider whose health check never answers and ignores cancellation.</summary>
+    private sealed class HangingHealthCheck : IFileStorageHealthCheck
+    {
+        public Task<bool> CheckAsync(CancellationToken cancellationToken = default) =>
+            new TaskCompletionSource<bool>().Task;
+    }
 }
 
 /// <summary>A host with <c>Database:AutoMigrate=false</c>.</summary>
 internal sealed class NoAutoMigrateApp(string connectionString) : WebApplicationFactory<Program>
 {
+    private string StoragePath { get; } = QuickBuilderApp.CreateTemporaryStorage();
+
+    protected override void Dispose(bool disposing)
+    {
+        base.Dispose(disposing);
+        if (disposing)
+        {
+            QuickBuilderApp.TryDeleteDirectory(StoragePath);
+        }
+    }
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Testing");
         builder.UseSetting("ConnectionStrings:Default", connectionString);
         builder.UseSetting("Database:AutoMigrate", "false");
         builder.UseSetting("Outbox:Enabled", "false");
+        builder.UseSetting("Storage:Local:Path", StoragePath);
 
         builder.ConfigureServices(services =>
         {

@@ -161,6 +161,16 @@ public sealed class RulesFireWhenBrokenTests
     /// Without this, a rule that always returns "violation" would pass every test above
     /// while being useless. Cheap insurance against the fixtures proving nothing.
     /// </remarks>
+    /// <summary>The file-system rule catches direct disk access, and spares a compliant type (003 FR-019).</summary>
+    [Fact]
+    public void File_system_rule_catches_direct_disk_access()
+    {
+        var users = ModuleBoundaryTests.FileSystemUsers(Fixtures, t => t.Namespace == typeof(ReadsTheDiskDirectly).Namespace).ToList();
+
+        Assert.Contains(typeof(ReadsTheDiskDirectly).FullName!, users);
+        Assert.DoesNotContain(typeof(WellBehaved).FullName!, users);
+    }
+
     [Fact]
     public void Rules_pass_on_a_type_that_obeys_them()
     {

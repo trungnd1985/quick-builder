@@ -25,6 +25,7 @@ public sealed class ModuleBoundaryTests
     [
         typeof(Sites.SitesModule).Assembly,
         typeof(Identity.IdentityModule).Assembly,
+        typeof(Media.MediaModule).Assembly,
     ];
 
     /// <summary>Every module contracts assembly.</summary>
@@ -32,7 +33,22 @@ public sealed class ModuleBoundaryTests
     [
         typeof(Sites.Contracts.SiteDto).Assembly,
         typeof(Identity.Contracts.IIdentitySetupStatus).Assembly,
+        typeof(Media.Contracts.MediaFileDto).Assembly,
     ];
+
+    /// <summary>The file-system types only a storage provider may use (003 FR-019).</summary>
+    internal static readonly string[] FileSystemTypes =
+    [
+        "System.IO.File",
+        "System.IO.FileInfo",
+        "System.IO.FileStream",
+        "System.IO.FileStreamOptions",
+        "System.IO.Directory",
+        "System.IO.DirectoryInfo",
+    ];
+
+    /// <summary>The one namespace allowed to touch the file system: the local storage provider.</summary>
+    internal const string LocalStorageNamespace = "QuickBuilder.Shared.Infrastructure.Storage.Local";
 
     /// <summary>
     /// A module may reference another module's Contracts, never its implementation.
@@ -189,6 +205,46 @@ public sealed class ModuleBoundaryTests
             name => Assert.False(string.IsNullOrWhiteSpace(
                 ModuleImplementations.Select(a => a.GetType(name)).First(t => t is not null)!
                     .GetCustomAttribute<InstallationScopedAttribute>()!.Reason)));
+    }
+
+    /// <summary>
+    /// Stored bytes are reached only through <c>IFileStorage</c> (003 FR-019, analysis C2).
+    /// </summary>
+    /// <remarks>
+    /// No module touches the file system directly, and within shared code only the local
+    /// storage provider does. A Media handler that reached for <c>File.OpenRead</c> "because
+    /// the local provider is the only one" is exactly how the abstraction would erode into a
+    /// file-system assumption that the S3 and Azure providers then cannot honour.
+    /// </remarks>
+    [Fact]
+    public void Only_the_local_storage_provider_touches_the_file_system()
+    {
+        var offenders = ModuleImplementations
+            .Concat(ModuleContracts)
+            .SelectMany(a => FileSystemUsers(a, _ => true))
+            .Concat(FileSystemUsers(SharedInfrastructure, t => t.Namespace != LocalStorageNamespace))
+            .ToList();
+
+        Assert.True(
+            offenders.Count == 0,
+            "These types use the file system directly; go through IFileStorage instead:\n  " +
+            string.Join("\n  ", offenders));
+    }
+
+    /// <summary>Types in <paramref name="assembly"/>, among those <paramref name="inScope"/> selects, that use a file-system type.</summary>
+    internal static IEnumerable<string> FileSystemUsers(Assembly assembly, Func<Type, bool> inScope)
+    {
+        var failing = Types.InAssembly(assembly)
+            .ShouldNot()
+            .HaveDependencyOnAny(FileSystemTypes)
+            .GetResult()
+            .FailingTypes ?? [];
+
+        return failing
+            .Where(inScope)
+            // Compiler-generated state machines are reported alongside their owner.
+            .Where(t => !t.Name.Contains('<', StringComparison.Ordinal))
+            .Select(t => t.FullName!);
     }
 
     internal static IEnumerable<string> ReferencedImplementations(Assembly module, IReadOnlySet<string> implementationNames) =>

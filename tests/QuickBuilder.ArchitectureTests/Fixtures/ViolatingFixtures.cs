@@ -81,6 +81,15 @@ public sealed class ShouldHaveBeenInternal
 }
 
 /// <summary>
+/// Violates 003 FR-019: reads stored bytes straight off the disk instead of through
+/// <c>IFileStorage</c>.
+/// </summary>
+public sealed class ReadsTheDiskDirectly
+{
+    public static byte[] Read(string path) => System.IO.File.ReadAllBytes(path);
+}
+
+/// <summary>
 /// The control. Breaks nothing, and must not be flagged — otherwise the predicates are too
 /// broad and the tests above would pass for the wrong reason.
 /// </summary>

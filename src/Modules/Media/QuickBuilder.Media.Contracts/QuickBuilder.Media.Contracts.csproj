@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The Media module's public surface: DTOs, and later the read interface Pages will need.
+    Deliberately references only Shared.Kernel and Identity.Contracts (for the uploader's
+    summary) — no EF Core, no ASP.NET Core — so it stays a contract. Asserted by
+    QuickBuilder.ArchitectureTests (Contracts purity).
+  -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\Shared\QuickBuilder.Shared.Kernel\QuickBuilder.Shared.Kernel.csproj" />
+    <ProjectReference Include="..\..\Identity\QuickBuilder.Identity.Contracts\QuickBuilder.Identity.Contracts.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -43,19 +43,19 @@ Research decisions are cited as `M-xx`.
 
 **Purpose**: the new module's projects, wiring and configuration sections. Nothing here has behaviour.
 
-- [ ] T001 Commit `specs/003-media-storage/` (spec, plan, research, data model, contracts, quickstart, checklist, tasks) as the first commit on branch `003-media-storage` at the repository root (plan.md "Development Workflow")
-- [ ] T002 [P] Create `src/Modules/Media/QuickBuilder.Media.Contracts/QuickBuilder.Media.Contracts.csproj`: a class library with no EF Core, ASP.NET Core or Npgsql references, mirroring `src/Modules/Sites/QuickBuilder.Sites.Contracts/QuickBuilder.Sites.Contracts.csproj`
-- [ ] T003 [P] Create `src/Modules/Media/QuickBuilder.Media/QuickBuilder.Media.csproj`, mirroring `src/Modules/Identity/QuickBuilder.Identity/QuickBuilder.Identity.csproj`:
+- [X] T001 Commit `specs/003-media-storage/` (spec, plan, research, data model, contracts, quickstart, checklist, tasks) as the first commit on branch `003-media-storage` at the repository root (plan.md "Development Workflow")
+- [X] T002 [P] Create `src/Modules/Media/QuickBuilder.Media.Contracts/QuickBuilder.Media.Contracts.csproj`: a class library with no EF Core, ASP.NET Core or Npgsql references, mirroring `src/Modules/Sites/QuickBuilder.Sites.Contracts/QuickBuilder.Sites.Contracts.csproj`
+- [X] T003 [P] Create `src/Modules/Media/QuickBuilder.Media/QuickBuilder.Media.csproj`, mirroring `src/Modules/Identity/QuickBuilder.Identity/QuickBuilder.Identity.csproj`:
   - `FrameworkReference` to `Microsoft.AspNetCore.App`;
   - project references to Shared.Kernel, Shared.Infrastructure, Media.Contracts, Sites.Contracts and Identity.Contracts;
   - the EF Core, Npgsql and EF Design packages;
   - `InternalsVisibleTo` for `QuickBuilder.UnitTests`, `QuickBuilder.IntegrationTests` and `QuickBuilder.ArchitectureTests`.
-- [ ] T004 Wire the new projects in:
+- [X] T004 Wire the new projects in:
   - add both projects to `QuickBuilder.slnx`;
   - reference `QuickBuilder.Media` from `src/QuickBuilder.Host/QuickBuilder.Host.csproj`;
   - reference both projects from `tests/QuickBuilder.ArchitectureTests/QuickBuilder.ArchitectureTests.csproj`, `UTESTS/QuickBuilder.UnitTests.csproj` and `ITESTS/QuickBuilder.IntegrationTests.csproj`.
-- [ ] T005 [P] Add `Storage` (`Provider: "Local"`, `Local: { Path: "" }`) and `Media` (`MaxFileSizeBytes: 20971520`, `AllowedTypes` with the six types, `OrphanGracePeriod: "1.00:00:00"`) sections to `src/QuickBuilder.Host/appsettings.json`. Values come from research.md "Configuration keys introduced". An empty `Path` means the per-user default (M-06).
-- [ ] T006 [P] Add the two Media `.csproj` files to the restore `COPY` block in `Dockerfile`, next to the Identity lines, so the restore layer still sees every project
+- [X] T005 [P] Add `Storage` (`Provider: "Local"`, `Local: { Path: "" }`) and `Media` (`MaxFileSizeBytes: 20971520`, `AllowedTypes` with the six types, `OrphanGracePeriod: "1.00:00:00"`) sections to `src/QuickBuilder.Host/appsettings.json`. Values come from research.md "Configuration keys introduced". An empty `Path` means the per-user default (M-06).
+- [X] T006 [P] Add the two Media `.csproj` files to the restore `COPY` block in `Dockerfile`, next to the Identity lines, so the restore layer still sees every project
 
 ---
 
@@ -67,44 +67,44 @@ Research decisions are cited as `M-xx`.
 
 ### Storage abstraction (M-01 to M-05, contracts/storage-provider.md)
 
-- [ ] T007 [P] Create `STORAGE/StorageKey.cs`: a `readonly record struct StorageKey` whose constructor enforces the grammar (1–8 segments of `[a-z0-9-]{1,64}` separated by `/`) and throws `ArgumentException` naming the rule broken. Add `StorageKey.Parse`, `ToString`, `FirstSegment` and `StartsWith(string prefix)`.
-- [ ] T008 [P] Create `STORAGE/IFileStorage.cs` with:
+- [X] T007 [P] Create `STORAGE/StorageKey.cs`: a `readonly record struct StorageKey` whose constructor enforces the grammar (1–8 segments of `[a-z0-9-]{1,64}` separated by `/`) and throws `ArgumentException` naming the rule broken. Add `StorageKey.Parse`, `ToString`, `FirstSegment` and `StartsWith(string prefix)`.
+- [X] T008 [P] Create `STORAGE/IFileStorage.cs` with:
   - the `IFileStorage` interface (`WriteAsync`, `OpenReadAsync`, `ExistsAsync`, `DeleteAsync`, `ListAsync`), with XML docs stating every guarantee in contracts/storage-provider.md §1;
   - `StoredFile` (a disposable `Content` stream, `Length`, `LastModifiedUtc`);
   - `StoredFileInfo` (`Key`, `Length`, `LastModifiedUtc`);
   - `StorageKeyExistsException`;
   - `IFileStorageHealthCheck` (`Task<bool> CheckAsync(CancellationToken)`), declared beside `IFileStorage` but separate from it (M-22).
-- [ ] T009 [P] Create `STORAGE/StorageOptions.cs` (section `Storage`, with `Provider` defaulting to `Local` and a nested `Local.Path`) and `STORAGE/Local/LocalStorageOptionsValidator.cs`, an `IValidateOptions<StorageOptions>` that enforces M-05:
+- [X] T009 [P] Create `STORAGE/StorageOptions.cs` (section `Storage`, with `Provider` defaulting to `Local` and a nested `Local.Path`) and `STORAGE/Local/LocalStorageOptionsValidator.cs`, an `IValidateOptions<StorageOptions>` that enforces M-05:
   - the provider is supported (compared case-insensitively), and the message lists the supported names;
   - the path is absolute; an empty path resolves to `{LocalApplicationData}/QuickBuilder/media`;
   - after `ResolveLinkTarget`, the path is not the same as, or under, any entry of `StorageOptions.ForbiddenRoots`. This is an internal list that the host fills in through `AddFileStorage` (T012, T013) and that is never bound from configuration, so `Shared.Infrastructure` takes no ASP.NET Core dependency (M-05);
   - the directory is created if missing, and a probe file `{root}/.probe-{Guid:N}` is written and deleted.
 
   Every failure message names `Storage:Provider` or `Storage:Local:Path`.
-- [ ] T010 Create `STORAGE/Local/LocalFileStorage.cs`, an internal sealed class implementing `IFileStorage` per M-04:
+- [X] T010 Create `STORAGE/Local/LocalFileStorage.cs`, an internal sealed class implementing `IFileStorage` per M-04:
   - maps a key to `{root}/{key}`, checks with `Path.GetFullPath` that the result lies under `root`, and throws otherwise;
   - `WriteAsync` streams to `{root}/{key.FirstSegment}/.incoming/{Guid:N}.part` (the directory is created if missing, so temporary files are namespaced by site, as Principle V requires) with `UnixCreateMode = 0640` on non-Windows, calls `Flush(true)`, then `File.Move(part, final, overwrite: false)` after creating the parent directory. An existing target maps to `StorageKeyExistsException`, and any failure or cancellation deletes the `.part` file.
   - `OpenReadAsync` returns a seekable `FileStream` (`FileShare.Read | FileShare.Delete`, async, 80 KiB buffer), or `null`;
   - `ListAsync` enumerates lazily under `{root}/{prefix}` and skips every `.incoming` directory, at any depth;
   - `DeleteAsync` ignores missing files;
   - it also implements `IFileStorageHealthCheck`: write `{root}/.probe-{Guid:N}`, read it back, delete it, and return `false` on any exception. The probe code is shared with `LocalStorageOptionsValidator` (T009).
-- [ ] T011 [P] Create `STORAGE/Local/LocalIncomingCleanupService.cs`, a `BackgroundService` that walks `{root}/*/.incoming/`, one first-segment (site) directory at a time, and deletes `.part` files older than one hour, at startup and then hourly on a `PeriodicTimer(TimeProvider)`. It also removes `.probe-*` files at the root that are older than one hour, in case a probe's process died mid-way. It logs counts only (M-04).
-- [ ] T012 Create `STORAGE/StorageRegistration.cs` with `AddFileStorage(this IServiceCollection, IConfiguration, IReadOnlyList<string> forbiddenRoots)`:
+- [X] T011 [P] Create `STORAGE/Local/LocalIncomingCleanupService.cs`, a `BackgroundService` that walks `{root}/*/.incoming/`, one first-segment (site) directory at a time, and deletes `.part` files older than one hour, at startup and then hourly on a `PeriodicTimer(TimeProvider)`. It also removes `.probe-*` files at the root that are older than one hour, in case a probe's process died mid-way. It logs counts only (M-04).
+- [X] T012 Create `STORAGE/StorageRegistration.cs` with `AddFileStorage(this IServiceCollection, IConfiguration, IReadOnlyList<string> forbiddenRoots)`:
   - binds `StorageOptions` with `ValidateOnStart`, copies `forbiddenRoots` (ignoring null or empty entries) into `ForbiddenRoots`, and registers the validator;
   - registers `LocalFileStorage` as the singleton `IFileStorage` when the provider is `Local`, and the same instance as `IFileStorageHealthCheck`;
   - registers `LocalIncomingCleanupService`.
-- [ ] T013 Call `builder.Services.AddFileStorage(builder.Configuration, [AppContext.BaseDirectory, builder.Environment.ContentRootPath, builder.Environment.WebRootPath])` in `src/QuickBuilder.Host/Program.cs`, after `AddSharedInfrastructure()` and before the modules
-- [ ] T014 Add a storage check to `/health/ready` in `src/QuickBuilder.Host/Health/HealthController.cs` (M-22). It calls `IFileStorageHealthCheck.CheckAsync` under a 2-second timeout and reports `Storage: Healthy|Unhealthy`. An unhealthy check makes the instance not ready. Add cases to `ITESTS/Startup/StartupTests.cs`:
+- [X] T013 Call `builder.Services.AddFileStorage(builder.Configuration, [AppContext.BaseDirectory, builder.Environment.ContentRootPath, builder.Environment.WebRootPath])` in `src/QuickBuilder.Host/Program.cs`, after `AddSharedInfrastructure()` and before the modules
+- [X] T014 Add a storage check to `/health/ready` in `src/QuickBuilder.Host/Health/HealthController.cs` (M-22). It calls `IFileStorageHealthCheck.CheckAsync` under a 2-second timeout and reports `Storage: Healthy|Unhealthy`. An unhealthy check makes the instance not ready. Add cases to `ITESTS/Startup/StartupTests.cs`:
   - after startup, making the storage directory read-only, or unreadable, makes `/health/ready` report not ready, and restoring the permissions makes it ready again (both skipped on Windows);
   - a check that hangs past 2 seconds, substituted through `configureTestServices`, also reports not ready.
 
 ### Storage tests (M-19)
 
-- [ ] T015 [P] Unit-test the key grammar in `UTESTS/Storage/StorageKeyTests.cs`:
+- [X] T015 [P] Unit-test the key grammar in `UTESTS/Storage/StorageKeyTests.cs`:
   - valid keys, and each rejected form: `..`, a leading or trailing `/`, upper case, `%2e`, `\`, empty segments, a 65-character segment, 9 segments;
   - `StartsWith`.
-- [ ] T016 [P] Write the abstract conformance suite in `ITESTS/Storage/FileStorageConformanceTests.cs`, with `protected abstract IFileStorage CreateStorage()`. Implement every case in contracts/storage-provider.md §5: round trip (0 B, 1 B, 1 MiB, 25 MiB), create-only, atomicity under a throwing stream and under cancellation, seekable partial reads, missing keys, idempotent delete, listing by prefix, isolation between site prefixes, grammar rejection, and concurrency (20 distinct keys; 20 writers on one key yielding exactly one success).
-- [ ] T017 Create `ITESTS/Storage/LocalFileStorageConformanceTests.cs`, deriving from T016 with a fresh temporary directory per test and deleting it on dispose. Add `ITESTS/Storage/LocalFileStorageTests.cs` for provider-specific behaviour:
+- [X] T016 [P] Write the abstract conformance suite in `ITESTS/Storage/FileStorageConformanceTests.cs`, with `protected abstract IFileStorage CreateStorage()`. Implement every case in contracts/storage-provider.md §5: round trip (0 B, 1 B, 1 MiB, 25 MiB), create-only, atomicity under a throwing stream and under cancellation, seekable partial reads, missing keys, idempotent delete, listing by prefix, isolation between site prefixes, grammar rejection, and concurrency (20 distinct keys; 20 writers on one key yielding exactly one success).
+- [X] T017 Create `ITESTS/Storage/LocalFileStorageConformanceTests.cs`, deriving from T016 with a fresh temporary directory per test and deleting it on dispose. Add `ITESTS/Storage/LocalFileStorageTests.cs` for provider-specific behaviour:
   - the resolved-path containment guard;
   - files have no execute bits (mode `0640`, skipped on Windows);
   - `.part` files never appear in `ListAsync`;
@@ -113,30 +113,29 @@ Research decisions are cited as `M-xx`.
 
 ### Media domain, schema and module
 
-- [ ] T018 [P] Create `MEDIA/MediaOptions.cs` (section `Media`, with `MaxFileSizeBytes`, `AllowedTypes` and `OrphanGracePeriod`) plus an `IValidateOptions` that enforces the ranges in research.md "Configuration keys introduced". Every entry of `AllowedTypes` must be one of the six built-in types, and the list must not be empty (FR-007).
-- [ ] T019 [P] Create `MEDIA/Domain/MediaFileType.cs`: the six types as static instances, each with its canonical MIME type, its extensions (M-08 table), `FromMime` and `Accepts(string extension, string? declaredType)`. `Accepts` treats a null or empty type and `application/octet-stream` as undeclared (M-08).
-- [ ] T020 [P] Create `MEDIA/Domain/MediaFileName.cs` with `Clean(string raw) → string?`, which follows M-17:
+- [X] T018 [P] Create `MEDIA/MediaOptions.cs` (section `Media`, with `MaxFileSizeBytes`, `AllowedTypes` and `OrphanGracePeriod`) plus an `IValidateOptions` that enforces the ranges in research.md "Configuration keys introduced". Every entry of `AllowedTypes` must be one of the six built-in types, and the list must not be empty (FR-007).
+- [X] T019 [P] Create `MEDIA/Domain/MediaFileType.cs`: the six types as static instances, each with its canonical MIME type, its extensions (M-08 table), `FromMime` and `Accepts(string extension, string? declaredType)`. `Accepts` treats a null or empty type and `application/octet-stream` as undeclared (M-08).
+- [X] T020 [P] Create `MEDIA/Domain/MediaFileName.cs` with `Clean(string raw) → string?`, which follows M-17:
   1. percent-decode;
   2. keep only the part after the last `/` or `\`;
-  3. normalise to NFC;
-  4. strip Unicode categories Cc and Cf;
-  5. trim whitespace and dots;
-  6. shorten the stem to at most 255 characters while keeping the extension;
-  7. return `null` if nothing is left.
+  3. strip Unicode categories Cc and Cf (no NFC step: see M-17, changed during implementation);
+  4. trim whitespace and dots;
+  5. shorten the stem to at most 255 characters while keeping the extension;
+  6. return `null` if nothing is left.
 
   Add `Extension(string cleaned)`, which returns the lower-case extension without the dot.
-- [ ] T021 [P] Create `MEDIA/Infrastructure/FileTypeDetector.cs` with `Detect(ReadOnlySpan<byte> head) → MediaFileType?`, using the signatures in M-07. For AVIF, parse the `ftyp` box's major brand and compatible brands within the box size, bounded by `head`.
-- [ ] T022 [P] Create `MEDIA/Domain/MediaFile.cs`: an entity implementing `ISiteOwned` with the fields in data-model.md §1 and a static `Create(...)` that enforces `size > 0` and an extension matching `^[a-z0-9]{1,8}$`. Create `MEDIA/Infrastructure/MediaStorageKeys.cs` with `For(Guid siteId, Guid fileId) → StorageKey` (`{siteId:N}/media/{fileId:N}`) and `SitePrefix(Guid siteId)`.
-- [ ] T023 Create `MEDIA/Infrastructure/MediaDbContext.cs`:
+- [X] T021 [P] Create `MEDIA/Infrastructure/FileTypeDetector.cs` with `Detect(ReadOnlySpan<byte> head) → MediaFileType?`, using the signatures in M-07. For AVIF, parse the `ftyp` box's major brand and compatible brands within the box size, bounded by `head`.
+- [X] T022 [P] Create `MEDIA/Domain/MediaFile.cs`: an entity implementing `ISiteOwned` with the fields in data-model.md §1 and a static `Create(...)` that enforces `size > 0` and an extension matching `^[a-z0-9]{1,8}$`. Create `MEDIA/Infrastructure/MediaStorageKeys.cs` with `For(Guid siteId, Guid fileId) → StorageKey` (`{siteId:N}/media/{fileId:N}`) and `SitePrefix(Guid siteId)`.
+- [X] T023 Create `MEDIA/Infrastructure/MediaDbContext.cs`:
   - schema `media`, with `MediaFiles` mapped to `media_files` through the shared snake-case convention;
   - the filter `SiteId == CurrentSiteId`, via a context property (001 `SiteQueryFilter` guidance);
   - the constraints and indexes in data-model.md §1;
   - `modelBuilder.AddOutbox(Schema)`, unconditionally, as `SitesDbContext` and `IdentityDbContext` do. `OutboxRetentionService` reads `Set<OutboxMessage>()` from every module context and throws without it.
 
   Also create `MEDIA/Infrastructure/MediaDbContextFactory.cs` (design time), mirroring `SitesDbContextFactory`.
-- [ ] T024 Generate the `InitialMedia` migration into `MEDIA/Infrastructure/Migrations/` (`dotnet ef migrations add InitialMedia --project src/Modules/Media/QuickBuilder.Media`). Check that it creates only schema `media`, table `media_files`, the outbox table `media.outbox_messages`, `pk_media_files`, `ux_media_files_storage_key`, `ix_media_files_site_listing` and both check constraints.
-- [ ] T025 [P] Create `MEDIA/MediaCapabilities.cs` with `media.files.view`, `media.files.upload`, `media.files.delete` and `media.own_files.delete`, all `CapabilityScope.Site` and granted as in the M-18 table
-- [ ] T026 [P] Create `MEDIA/Infrastructure/MediaErrorResults.cs`, mapping error codes to statuses in the problem shape of `src/Modules/Sites/QuickBuilder.Sites/ErrorResults.cs`:
+- [X] T024 Generate the `InitialMedia` migration into `MEDIA/Infrastructure/Migrations/` (`dotnet ef migrations add InitialMedia --project src/Modules/Media/QuickBuilder.Media`). Check that it creates only schema `media`, table `media_files`, the outbox table `media.outbox_messages`, `pk_media_files`, `ux_media_files_storage_key`, `ix_media_files_site_listing` and both check constraints.
+- [X] T025 [P] Create `MEDIA/MediaCapabilities.cs` with `media.files.view`, `media.files.upload`, `media.files.delete` and `media.own_files.delete`, all `CapabilityScope.Site` and granted as in the M-18 table
+- [X] T026 [P] Create `MEDIA/Infrastructure/MediaErrorResults.cs`, mapping error codes to statuses in the problem shape of `src/Modules/Sites/QuickBuilder.Sites/ErrorResults.cs`:
 
   | Error codes | Status |
   |---|---|
@@ -146,33 +145,33 @@ Research decisions are cited as `M-xx`.
   | `media.unsupported_type` | 415 |
   | `media.storage_unavailable` | 503 |
   | `media.storage_full` | 507 |
-- [ ] T027 [P] Create `MEDIA/Infrastructure/MediaResponseHeaders.cs` with `Apply(HttpResponse, MediaFile, MediaResponseKind kind)`. `kind` is `Public` or `Preview`, and the headers are exactly those in M-11 and M-12:
+- [X] T027 [P] Create `MEDIA/Infrastructure/MediaResponseHeaders.cs` with `Apply(HttpResponse, MediaFile, MediaResponseKind kind)`. `kind` is `Public` or `Preview`, and the headers are exactly those in M-11 and M-12:
   - `nosniff`;
   - `Content-Disposition: inline; filename*=UTF-8''…` built with `ContentDispositionHeaderValue.SetHttpFileName`;
   - the image-only sandbox CSP;
   - `Cache-Control`, which differs by kind.
 
   It returns the `EntityTagHeaderValue` (`"<id:N>"`) and the `Last-Modified` value for `File(...)`.
-- [ ] T028 [P] Create `src/Modules/Media/QuickBuilder.Media.Contracts/MediaFileDto.cs` with the `MediaFile` fields from contracts/media-api.yaml (`id`, `siteId`, `fileName`, `contentType`, `sizeBytes`, `uploadedAtUtc`, `uploadedBy` as `UserSummaryDto`, `publicPath`, `available`, `canDelete`) and `MediaFilePageDto` (`items`, `totalCount`, `nextCursor`)
-- [ ] T029 Create `MEDIA/MediaModule.cs` with `AddMediaModule(this IServiceCollection, IConfiguration)`, mirroring `SitesModule`:
+- [X] T028 [P] Create `src/Modules/Media/QuickBuilder.Media.Contracts/MediaFileDto.cs` with the `MediaFile` fields from contracts/media-api.yaml (`id`, `siteId`, `fileName`, `contentType`, `sizeBytes`, `uploadedAtUtc`, `uploadedBy` as `UserSummaryDto`, `publicPath`, `available`, `canDelete`) and `MediaFilePageDto` (`items`, `totalCount`, `nextCursor`)
+- [X] T029 Create `MEDIA/MediaModule.cs` with `AddMediaModule(this IServiceCollection, IConfiguration)`, mirroring `SitesModule`:
   - registers `MediaDbContext` with the migration history in schema `media`;
   - registers `MediaDatabaseProvider : IModuleDatabaseProvider`;
   - binds `MediaOptions` with its validator and `ValidateOnStart`;
   - registers `FileTypeDetector` and every capability in `MediaCapabilities`.
 
   Slice registrations are added by each story.
-- [ ] T030 Wire the module in `src/QuickBuilder.Host/Program.cs`: add `builder.Services.AddMediaModule(builder.Configuration);` and `.AddApplicationPart(typeof(MediaModule).Assembly)`
+- [X] T030 Wire the module in `src/QuickBuilder.Host/Program.cs`: add `builder.Services.AddMediaModule(builder.Configuration);` and `.AddApplicationPart(typeof(MediaModule).Assembly)`
 
 ### Test harness
 
-- [ ] T031 Extend `ITESTS/Infrastructure/QuickBuilderApp.cs` to give each app instance its own storage directory:
+- [X] T031 Extend `ITESTS/Infrastructure/QuickBuilderApp.cs` to give each app instance its own storage directory:
   - add an optional `string? storagePath` constructor parameter;
   - when it is null, create a unique temporary directory and pass it with `UseSetting("Storage:Local:Path", …)`;
   - delete it on dispose unless it was supplied;
   - expose it as `StoragePath`.
 
   Two instances in one test share a directory by passing the same path (for SC-007).
-- [ ] T032 [P] Create `ITESTS/Media/MediaApi.cs` with helpers that go through the real HTTP pipeline:
+- [X] T032 [P] Create `ITESTS/Media/MediaApi.cs` with helpers that go through the real HTTP pipeline:
   - `UploadAsync(client, siteId, bytes, fileName, contentType)`, which sets `X-QuickBuilder-Request: 1`, the percent-encoded `X-QuickBuilder-File-Name` and `Content-Type`;
   - `ListAsync(client, siteId, cursor, limit)`;
   - `DeleteAsync(client, siteId, fileId)`;
@@ -180,29 +179,29 @@ Research decisions are cited as `M-xx`.
   - `PublicGetAsync(anonymousClient, host, fileId, ext)`.
 
   Every file name it generates contains a canary marker `zz-canary-<guid>` (M-20).
-- [ ] T033 [P] Create `ITESTS/Media/SampleFiles.cs`:
+- [X] T033 [P] Create `ITESTS/Media/SampleFiles.cs`:
   - minimal valid bytes for each of the six types: 1×1 JPEG, PNG, GIF, WebP and AVIF, and a one-page PDF;
   - `OfSize(type, bytes)`, which pads a valid header to an exact size;
   - `Throwing(afterBytes)`, a stream that throws partway through.
 
 ### Foundational tests
 
-- [ ] T034 [P] Unit-test `FileTypeDetector` in `UTESTS/Media/FileTypeDetectorTests.cs`:
+- [X] T034 [P] Unit-test `FileTypeDetector` in `UTESTS/Media/FileTypeDetectorTests.cs`:
   - each signature;
   - truncated headers;
   - near misses: `GIF88a`, `RIFF….WAVE`, `ftyp` with `mif1` only, `%PDF` without the dash;
   - AVIF with `avif` only as a compatible brand;
   - an empty span.
-- [ ] T035 [P] Unit-test `MediaFileType.Accepts` and `MediaFileName.Clean` in `UTESTS/Media/MediaFileTypeTests.cs` and `UTESTS/Media/MediaFileNameTests.cs`:
+- [X] T035 [P] Unit-test `MediaFileType.Accepts` and `MediaFileName.Clean` in `UTESTS/Media/MediaFileTypeTests.cs` and `UTESTS/Media/MediaFileNameTests.cs`:
   - case-insensitive extensions;
   - an undeclared type, and `application/octet-stream`;
   - a contradicting declared type;
   - paths with `/` and `\`;
   - a right-to-left override (`U+202E`) stripped;
-  - NFC normalisation;
+  - combining marks kept as given, and a lone surrogate replaced rather than failing;
   - a 300-character name shortened with its extension kept;
   - a name that is only dots or spaces returns null.
-- [ ] T036 [P] Unit-test both options validators in `UTESTS/Storage/StorageOptionsValidationTests.cs` and `UTESTS/Media/MediaOptionsValidationTests.cs`:
+- [X] T036 [P] Unit-test both options validators in `UTESTS/Storage/StorageOptionsValidationTests.cs` and `UTESTS/Media/MediaOptionsValidationTests.cs`:
   - an unknown provider lists `Local`;
   - a relative path;
   - a path under `AppContext.BaseDirectory`;
@@ -210,7 +209,7 @@ Research decisions are cited as `M-xx`.
   - an SVG in `AllowedTypes`;
   - an empty `AllowedTypes`;
   - out-of-range size and grace period.
-- [ ] T037 Extend `tests/QuickBuilder.ArchitectureTests/ModuleBoundaryTests.cs`:
+- [X] T037 Extend `tests/QuickBuilder.ArchitectureTests/ModuleBoundaryTests.cs`:
   - Media references no implementation project of another module;
   - `QuickBuilder.Shared.Infrastructure` (including `Storage/`) references no module;
   - no type in `QuickBuilder.Media` uses `System.IO.File`, `FileInfo`, `FileStream`, `Directory` or `DirectoryInfo`, and within `QuickBuilder.Shared.Infrastructure` only the `Storage.Local` namespace may (FR-019: bytes are reached only through `IFileStorage`);
@@ -230,13 +229,13 @@ Research decisions are cited as `M-xx`.
 
 ### Tests for User Story 1 ⚠️ write first, confirm they fail
 
-- [ ] T038 [P] [US1] Write `ITESTS/Media/UploadFileTests.cs`:
+- [X] T038 [P] [US1] Write `ITESTS/Media/UploadFileTests.cs`:
   - each of the six sample types uploads with `201`, and the body matches `MediaFile` in contracts/media-api.yaml, including `uploadedBy.displayName` and a `publicPath` of `/_media/{id:N}.{ext}`;
   - a row and a stored object exist;
   - the stored bytes are identical to the upload;
   - an Editor, a Designer and an Administrator can each upload;
   - a user with no role on the site gets `404 sites.not_found`, and no row is created (US1 #7).
-- [ ] T039 [P] [US1] Write `ITESTS/Media/UploadValidationTests.cs`, a `[Theory]` over a generated set of at least 50 crafted files (M-20):
+- [X] T039 [P] [US1] Write `ITESTS/Media/UploadValidationTests.cs`, a `[Theory]` over a generated set of at least 50 crafted files (M-20):
   - scripts and HTML renamed to `.jpg`, `.png` and `.pdf`;
   - SVG, plain and with script;
   - `MZ`, ELF and Mach-O headers;
@@ -250,13 +249,13 @@ Research decisions are cited as `M-xx`.
   - bodies at the limit, one byte over, and 5× over, both with `Content-Length` and chunked.
 
   Each case asserts the exact status and `errorCode`, and that neither a row nor a stored object was created (SC-002).
-- [ ] T040 [P] [US1] Write `ITESTS/Media/UploadConsistencyTests.cs`:
+- [X] T040 [P] [US1] Write `ITESTS/Media/UploadConsistencyTests.cs`:
   - storage throws mid-write through `SampleFiles.Throwing`: no row, no object, and `503 media.storage_unavailable`;
   - the client aborts mid-body: no row and no object;
   - the database insert fails after the write (an EF `SaveChangesInterceptor` that throws, registered through `configureTestServices`): no row, and the stored object is gone, removed by the handler's best-effort delete. The case where that delete also fails is covered by the sweep tests;
   - storage throws an `IOException` with a disk-full HResult: `507 media.storage_full`, with no row and no object (spec edge case "the storage location fills up");
   - the listing never shows a partial file (US1 #6, FR-011).
-- [ ] T041 [P] [US1] Write `ITESTS/Media/ListFilesTests.cs`:
+- [X] T041 [P] [US1] Write `ITESTS/Media/ListFilesTests.cs`:
   - the newest file comes first;
   - `limit` defaults to 50, the maximum is 100, and 101 gives `400 media.invalid_limit`;
   - following `nextCursor` across three pages visits every file exactly once, including when files are inserted between pages (US3 #1 is also satisfied here);
@@ -265,7 +264,7 @@ Research decisions are cited as `M-xx`.
   - a site the caller cannot see gives `404 sites.not_found`;
   - an Administrator listing a random site id gets `404 sites.not_found`, byte-identical (apart from `traceId`) to 002's response for a missing site;
   - files from another site never appear.
-- [ ] T042 [P] [US1] Write `ITESTS/Media/PreviewTests.cs`:
+- [X] T042 [P] [US1] Write `ITESTS/Media/PreviewTests.cs`:
   - a preview of a site with no host name returns the bytes;
   - the headers match M-12 (`private, no-cache`, `nosniff`, a sandbox CSP for images, none for PDF);
   - `If-None-Match` gives `304`;
@@ -273,7 +272,7 @@ Research decisions are cited as `M-xx`.
   - another site's file id gives `404 media.not_found`;
   - an Administrator previewing under a random site id gets `404 sites.not_found`;
   - no session gives `401`.
-- [ ] T043 [P] [US1] Write `src/admin/tests/mediaLibraryView.spec.ts` (vitest + axe), mirroring `sitesView.spec.ts`:
+- [X] T043 [P] [US1] Write `src/admin/tests/mediaLibraryView.spec.ts` (vitest + axe), mirroring `sitesView.spec.ts`:
   - the privacy notice renders before any upload;
   - the choose-files button is keyboard-operable;
   - each per-file result lands in an `aria-live="polite"` list;
@@ -283,18 +282,18 @@ Research decisions are cited as `M-xx`.
 
 ### Implementation for User Story 1
 
-- [ ] T044 [US1] Create `MEDIA/Infrastructure/UploadSizeLimitAttribute.cs`, an action filter implementing M-09:
+- [X] T044 [US1] Create `MEDIA/Infrastructure/UploadSizeLimitAttribute.cs`, an action filter implementing M-09:
   - a `Content-Length` above `MediaOptions.MaxFileSizeBytes` returns `413 media.too_large` before the body is read;
   - otherwise it sets `IHttpMaxRequestBodySizeFeature.MaxRequestBodySize` to the limit when it is not read-only.
 
   The `413` detail states the limit.
-- [ ] T045 [US1] Create `MEDIA/Infrastructure/MediaFileMapper.cs`. It maps rows to `MediaFileDto`:
+- [X] T045 [US1] Create `MEDIA/Infrastructure/MediaFileMapper.cs`. It maps rows to `MediaFileDto`:
   - resolves uploader names in one `IUserDirectory.FindManyAsync` call;
   - builds `publicPath` from `HttpRequest.PathBase` + `/_media/{id:N}.{ext}`;
   - takes `available` and `canDelete` as inputs, set to `true` and computed from the M-18 rule for now.
 
   US3 refines `available`.
-- [ ] T046 [US1] Implement `MEDIA/Features/UploadFile/UploadFile.cs`:
+- [X] T046 [US1] Implement `MEDIA/Features/UploadFile/UploadFile.cs`:
   - **Request**: `UploadFileCommand(SiteId, UserId, RawFileName, DeclaredType, Stream Body)`.
   - **Handler steps**:
     1. Confirm the site exists through `ISiteDirectory`.
@@ -310,7 +309,7 @@ Research decisions are cited as `M-xx`.
   - **Controller**: `POST api/v1/media/sites/{siteId:guid}/files` with `[RequireCapability(MediaCapabilities.Upload)]` and `[UploadSizeLimit]`. It reads `X-QuickBuilder-File-Name` and `Content-Type` and passes `Request.Body`. It returns `201` with `Location` and a `MediaFileDto` mapped through the helper in T045.
   - **Logging**: file id and site id only (FR-030).
   - **Registration**: in `MEDIA/MediaModule.cs`.
-- [ ] T047 [US1] Implement `MEDIA/Features/ListFiles/ListFiles.cs`:
+- [X] T047 [US1] Implement `MEDIA/Features/ListFiles/ListFiles.cs`:
   - **Request**: `ListFilesQuery(SiteId, Cursor?, Limit)`.
   - **Handler**:
     - first confirms the site exists through `ISiteDirectory.FindByIdAsync`, and otherwise returns `sites.not_found`. Administrators pass the visibility check for any id (002 authorization.md §3), so this check is what keeps a made-up site a `404`;
@@ -320,31 +319,31 @@ Research decisions are cited as `M-xx`.
     - maps through T045.
   - **Controller**: `GET api/v1/media/sites/{siteId:guid}/files` with `[RequireCapability(MediaCapabilities.View)]`.
   - **Registration**: in `MEDIA/MediaModule.cs`.
-- [ ] T048 [US1] Implement `MEDIA/Features/GetFileContent/GetFileContent.cs`:
+- [X] T048 [US1] Implement `MEDIA/Features/GetFileContent/GetFileContent.cs`:
   - **Handler**: confirms the site exists through `ISiteDirectory` (else `sites.not_found`, as in T047), reads the row across sites for the route's `siteId`, then calls `IFileStorage.OpenReadAsync`. It returns `media.not_found` if the row or the bytes are missing.
   - **Controller**: `GET api/v1/media/sites/{siteId:guid}/files/{fileId:guid}/content` with `[RequireCapability(MediaCapabilities.View)]`. It applies `MediaResponseHeaders` with `Preview`, then returns `File(stream, contentType, lastModified, etag, enableRangeProcessing: true)`.
   - **Registration**: in `MEDIA/MediaModule.cs`.
-- [ ] T049 [P] [US1] Create `src/admin/src/api/media.ts`:
+- [X] T049 [P] [US1] Create `src/admin/src/api/media.ts`:
   - typed `MediaFile` and `MediaFilePage`;
   - `listFiles(siteId, cursor?)`;
   - `previewUrl(siteId, fileId)`;
   - `uploadFile(siteId, file, onProgress)`, using `XMLHttpRequest` with `withCredentials`, `X-QuickBuilder-Request: 1`, `X-QuickBuilder-File-Name: encodeURIComponent(file.name)` and `Content-Type: file.type || 'application/octet-stream'`. It maps the response to the same `ApiError` as `src/admin/src/api/request.ts`, including the 401 and 428 handling.
-- [ ] T050 [US1] Add the route `{ path: '/sites/:siteId/media', name: 'site-media', component: MediaLibraryView }` to `src/admin/src/app/router.ts`, and a "Media" link per site in `src/admin/src/features/sites/SitesView.vue`
-- [ ] T051 [P] [US1] Create `src/admin/src/features/media/UploadArea.vue`:
+- [X] T050 [US1] Add the route `{ path: '/sites/:siteId/media', name: 'site-media', component: MediaLibraryView }` to `src/admin/src/app/router.ts`, and a "Media" link per site in `src/admin/src/features/sites/SitesView.vue`
+- [X] T051 [P] [US1] Create `src/admin/src/features/media/UploadArea.vue`:
   - a real `<button>` opening a multiple-file `<input type="file">`, plus a drop zone;
   - the privacy notice from FR-027 above both;
   - uploads the chosen files through `uploadFile`, at most three at a time;
   - shows a per-file progress bar and result in a `<ul aria-live="polite">`;
   - maps each `errorCode` to a translated message;
   - emits `uploaded(file)`.
-- [ ] T052 [P] [US1] Create `src/admin/src/features/media/MediaList.vue`, a table showing:
+- [X] T052 [P] [US1] Create `src/admin/src/features/media/MediaList.vue`, a table showing:
   - a preview (an `<img>` from `previewUrl` for images, and a PDF icon otherwise);
   - the name as text;
   - the type, the size (formatted), the upload time and the uploader.
 
   It also shows an empty state.
-- [ ] T053 [US1] Create `src/admin/src/features/media/MediaLibraryView.vue`: the site's name as a heading, `UploadArea`, and `MediaList` loading the first page through `listFiles`. Newly uploaded files are prepended without a reload.
-- [ ] T054 [US1] Add every new US1 string to `src/admin/src/i18n/en.json` under `media.*`: headings, the privacy notice, buttons, empty state, column headers, and messages for `media.empty`, `media.file_name_required`, `media.type_mismatch`, `media.too_large` (with the limit), `media.unsupported_type`, `media.storage_unavailable` and `media.storage_full`
+- [X] T053 [US1] Create `src/admin/src/features/media/MediaLibraryView.vue`: the site's name as a heading, `UploadArea`, and `MediaList` loading the first page through `listFiles`. Newly uploaded files are prepended without a reload.
+- [X] T054 [US1] Add every new US1 string to `src/admin/src/i18n/en.json` under `media.*`: headings, the privacy notice, buttons, empty state, column headers, and messages for `media.empty`, `media.file_name_required`, `media.type_mismatch`, `media.too_large` (with the limit), `media.unsupported_type`, `media.storage_unavailable` and `media.storage_full`
 
 **Checkpoint**: US1 is independently demoable. Uploads are validated and stored, and they appear in the site's library with previews.
 
