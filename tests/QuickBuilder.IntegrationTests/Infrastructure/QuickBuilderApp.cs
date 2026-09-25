@@ -26,7 +26,8 @@ public sealed class QuickBuilderApp(
     string connectionString,
     bool runBackgroundServices = false,
     Action<IServiceCollection>? configureTestServices = null,
-    string? storagePath = null)
+    string? storagePath = null,
+    IReadOnlyDictionary<string, string>? settings = null)
     : WebApplicationFactory<Program>
 {
     // 003: each instance stores files in its own temporary directory unless the test
@@ -53,6 +54,11 @@ public sealed class QuickBuilderApp(
 
         builder.UseSetting("ConnectionStrings:Default", connectionString);
         builder.UseSetting("Storage:Local:Path", StoragePath);
+
+        foreach (var (key, value) in settings ?? new Dictionary<string, string>())
+        {
+            builder.UseSetting(key, value);
+        }
 
         // Outbox dispatch is driven explicitly in tests via OutboxDispatcher.RunOnceAsync,
         // so a test asserts on a pass it triggered rather than waiting out a poll interval

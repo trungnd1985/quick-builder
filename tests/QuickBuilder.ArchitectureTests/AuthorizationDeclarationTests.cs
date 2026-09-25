@@ -6,6 +6,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using QuickBuilder.ArchitectureTests.Fixtures;
 using QuickBuilder.Identity;
+using QuickBuilder.Media;
 using QuickBuilder.Shared.Kernel.Authorization;
 using QuickBuilder.Sites;
 using Xunit;
@@ -34,6 +35,8 @@ public sealed class AuthorizationDeclarationTests
         "SignInController.SignInAsync",
         "CheckSetPasswordLinkController.CheckAsync",
         "SetPasswordController.SetAsync",
+        // 003 FR-026: media files on each site's public surface.
+        "ServePublicFileController.GetAsync",
     };
 
     private static readonly Assembly[] ControllerAssemblies =
@@ -74,7 +77,8 @@ public sealed class AuthorizationDeclarationTests
         var configuration = new ConfigurationBuilder().Build();
         var services = new ServiceCollection()
             .AddSitesModule(configuration)
-            .AddIdentityModule(configuration);
+            .AddIdentityModule(configuration)
+            .AddMediaModule(configuration);
 
         return services
             .Where(d => d.ServiceType == typeof(CapabilityDefinition))

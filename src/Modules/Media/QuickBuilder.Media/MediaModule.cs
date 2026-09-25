@@ -3,8 +3,10 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using QuickBuilder.Media.Contracts;
+using QuickBuilder.Media.Features.DeleteFile;
 using QuickBuilder.Media.Features.GetFileContent;
 using QuickBuilder.Media.Features.ListFiles;
+using QuickBuilder.Media.Features.ServePublicFile;
 using QuickBuilder.Media.Features.UploadFile;
 using QuickBuilder.Media.Infrastructure;
 using QuickBuilder.Shared.Infrastructure.Modules;
@@ -61,6 +63,8 @@ public static class MediaModule
         services.AddScoped<ICommandHandler<UploadFileCommand, Result<MediaFileDto>>, UploadFileHandler>();
         services.AddScoped<IQueryHandler<ListFilesQuery, Result<MediaFilePageDto>>, ListFilesHandler>();
         services.AddScoped<IQueryHandler<GetFileContentQuery, Result<MediaContent>>, GetFileContentHandler>();
+        services.AddScoped<IQueryHandler<ServePublicFileQuery, Result<MediaContent>>, ServePublicFileHandler>();
+        services.AddScoped<ICommandHandler<DeleteFileCommand, Result>, DeleteFileHandler>();
 
         return services;
     }

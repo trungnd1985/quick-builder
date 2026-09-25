@@ -68,4 +68,24 @@ public sealed class EndpointAuthorizationCoverageTests(DatabaseFixture database)
         Assert.True(endpoints.Count > 5, $"Only {endpoints.Count} endpoints were found; the enumeration is broken.");
         Assert.True(failures.Count == 0, string.Join("\n", failures));
     }
+
+    /// <summary>
+    /// The public surface is exactly the reviewed anonymous endpoints: 001's site placeholder
+    /// and 003's media files (contracts/authorization.md §4, 003 FR-026). A new public
+    /// endpoint fails here until someone adds it on purpose.
+    /// </summary>
+    [Fact]
+    public void The_public_surface_is_exactly_the_reviewed_endpoints()
+    {
+        var reserved = new[] { "/api", "/admin", "/health" };
+        var publicEndpoints = EndpointCatalog.Under(_app, "/")
+            .Where(e => !reserved.Any(prefix => ("/" + e.Pattern.TrimStart('/')).StartsWith(prefix, StringComparison.OrdinalIgnoreCase)))
+            .Select(e => $"{e.Method} /{e.Pattern.TrimStart('/')}")
+            .Order(StringComparer.Ordinal)
+            .ToList();
+
+        Assert.Equal(
+            ["GET /", "GET /_media/{**file}", "HEAD /_media/{**file}"],
+            publicEndpoints);
+    }
 }

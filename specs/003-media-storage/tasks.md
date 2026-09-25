@@ -357,29 +357,29 @@ Research decisions are cited as `M-xx`.
 
 ### Tests for User Story 2 ⚠️ write first, confirm they fail
 
-- [ ] T055 [P] [US2] Write `ITESTS/Media/PublicServingTests.cs`:
+- [X] T055 [P] [US2] Write `ITESTS/Media/PublicServingTests.cs`:
   - GET on the site's host returns the exact bytes, `Content-Length` and type;
   - HEAD returns the same headers with no body;
   - `Range: bytes=0-99` gives `206` with the right `Content-Range`, a range past the end gives `416`, and `If-None-Match` gives `304`;
   - with `Hosting:BasePath` set, the address is served under the base path and `publicPath` includes it;
   - no session is needed.
-- [ ] T056 [P] [US2] Write `ITESTS/Media/MediaSiteIsolationTests.cs`. With two sites and files on each, every combination of host and file is tested:
+- [X] T056 [P] [US2] Write `ITESTS/Media/MediaSiteIsolationTests.cs`. With two sites and files on each, every combination of host and file is tested:
   - the own site returns `200`;
   - the other site's host returns `404 media.not_found`.
 
   Those `404` bodies are compared byte-for-byte, ignoring `traceId`, with the responses for a never-issued id, a wrong extension and a deleted row. An unknown host returns `sites.not_resolved`. Traversal attempts (`..%2F`, `%5C`, `//etc/passwd`, overlong ids, upper-case hex) all return `404` without touching storage, checked with a counting `IFileStorage` decorator (SC-003, US2 #6).
-- [ ] T057 [P] [US2] Write `ITESTS/Media/MediaServingHeadersTests.cs`, a `[Theory]` over every *accepted* case in T039's crafted-file set plus the six samples. On both the public address and the preview it asserts:
+- [X] T057 [P] [US2] Write `ITESTS/Media/MediaServingHeadersTests.cs`, a `[Theory]` over every *accepted* case in T039's crafted-file set plus the six samples. On both the public address and the preview it asserts:
   - the exact `Content-Type`;
   - `X-Content-Type-Options: nosniff`;
   - `Content-Disposition: inline` with `filename*`;
   - for images, `Content-Security-Policy` exactly as in M-11; for PDF, none;
   - `Cache-Control` per kind, a strong `ETag`, `Last-Modified` and `Accept-Ranges: bytes` (SC-004).
-- [ ] T058 [US2] Add `"ServePublicFileController.GetAsync"` to `AnonymousAllowList` in `tests/QuickBuilder.ArchitectureTests/AuthorizationDeclarationTests.cs`. Add an assertion to `ITESTS/Infrastructure/EndpointCatalog.cs` (or its test) that `/_media/{file}` is the only new anonymous endpoint.
+- [X] T058 [US2] Add `"ServePublicFileController.GetAsync"` to `AnonymousAllowList` in `tests/QuickBuilder.ArchitectureTests/AuthorizationDeclarationTests.cs`. Add an assertion to `ITESTS/Infrastructure/EndpointCatalog.cs` (or its test) that `/_media/{file}` is the only new anonymous endpoint.
 
 ### Implementation for User Story 2
 
-- [ ] T059 [US2] Add `PublicMedia = "/_media"` to `src/QuickBuilder.Host/Routing/RoutePrefixes.cs` as a separate `PublicReservedPrefixes` list. It isn't part of `IsReserved`, so `SiteResolutionMiddleware` still resolves the site. The remarks must document that no page may claim it (FR-015, M-11). Add a routing test in `ITESTS/Startup/StartupTests.cs` asserting that `/_media/...` is site-resolved and handled by the media controller, not by the public catch-all.
-- [ ] T060 [US2] Implement `MEDIA/Features/ServePublicFile/ServePublicFile.cs`:
+- [X] T059 [US2] Add `PublicMedia = "/_media"` to `src/QuickBuilder.Host/Routing/RoutePrefixes.cs` as a separate `PublicReservedPrefixes` list. It isn't part of `IsReserved`, so `SiteResolutionMiddleware` still resolves the site. The remarks must document that no page may claim it (FR-015, M-11). Add a routing test in `ITESTS/Startup/StartupTests.cs` asserting that `/_media/...` is site-resolved and handled by the media controller, not by the public catch-all.
+- [X] T060 [US2] Implement `MEDIA/Features/ServePublicFile/ServePublicFile.cs`:
   - **Request**: `ServePublicFileQuery(FileId, Extension)`.
   - **Handler**:
     - reads through the site-filtered `MediaDbContext` (no `AcrossAllSites`), so `ISiteContext` decides the result;
@@ -388,7 +388,7 @@ Research decisions are cited as `M-xx`.
     - returns the same `media.not_found` for every miss, including missing bytes, and logs missing bytes at warning level with the file id and site id.
   - **Controller**: `[AllowAnonymous]` with the comment "Public surface: site visitors never authenticate (002 contracts/authorization.md §4)". The route is `[HttpGet("/_media/{file:regex(^[[0-9a-f]]{{32}}\\.[[a-z0-9]]{{1,8}}$)}")]` plus `[HttpHead]`, and `file` is parsed into id and extension. It applies `MediaResponseHeaders` with `Public` and returns `File(..., enableRangeProcessing: true)`.
   - **Registration**: in `MEDIA/MediaModule.cs`.
-- [ ] T061 [US2] Update `specs/002-identity-setup/contracts/authorization.md` §4, adding the row `GET|HEAD /_media/{file}`: "Site visitors never authenticate; justified by 003 FR-026". Also add a §2 note pointing to the media capabilities in `specs/003-media-storage/research.md` M-18.
+- [X] T061 [US2] Update `specs/002-identity-setup/contracts/authorization.md` §4, adding the row `GET|HEAD /_media/{file}`: "Site visitors never authenticate; justified by 003 FR-026". Also add a §2 note pointing to the media capabilities in `specs/003-media-storage/research.md` M-18.
 
 **Checkpoint**: US1 + US2 make the MVP. Files are uploaded, listed and safely served on their own site only.
 
@@ -404,7 +404,7 @@ Research decisions are cited as `M-xx`.
 
 ### Tests for User Story 3 ⚠️ write first, confirm they fail
 
-- [ ] T062 [P] [US3] Write `ITESTS/Media/DeleteFileTests.cs`, covering the capability matrix from M-18:
+- [X] T062 [P] [US3] Write `ITESTS/Media/DeleteFileTests.cs`, covering the capability matrix from M-18:
   - an Administrator or Designer deletes anyone's file: `204`;
   - an Editor deletes their own file: `204`;
   - an Editor deletes another user's file: `403 identity.forbidden`, and the file is unchanged (US3 #5);
@@ -414,11 +414,11 @@ Research decisions are cited as `M-xx`.
   - after `204`, the row is gone, the stored object is gone, and the public address and preview both return `404`;
   - deleting twice gives `404` the second time;
   - a failing `DeleteAsync` (a decorator that throws) still returns `204`, and the row is gone.
-- [ ] T063 [P] [US3] Write `ITESTS/Media/DeleteAcrossInstancesTests.cs`, using two `QuickBuilderApp` instances on one database and one `storagePath`, following `ITESTS/Identity/RevocationTests.cs`. Upload on A, fetch publicly on B (`200`), delete on A, and the very next public GET on B returns `404` (SC-007).
-- [ ] T064 [P] [US3] Extend `ITESTS/Media/ListFilesTests.cs`:
+- [X] T063 [P] [US3] Write `ITESTS/Media/DeleteAcrossInstancesTests.cs`, using two `QuickBuilderApp` instances on one database and one `storagePath`, following `ITESTS/Identity/RevocationTests.cs`. Upload on A, fetch publicly on B (`200`), delete on A, and the very next public GET on B returns `404` (SC-007).
+- [X] T064 [P] [US3] Extend `ITESTS/Media/ListFilesTests.cs`:
   - an object removed from storage by hand makes that item `available: false` while the listing still succeeds;
   - an Editor's listing marks `canDelete` true only on their own uploads, and a Designer's marks it true on all.
-- [ ] T065 [P] [US3] Extend `src/admin/tests/mediaLibraryView.spec.ts`:
+- [X] T065 [P] [US3] Extend `src/admin/tests/mediaLibraryView.spec.ts`:
   - "Load more" appends the next page and moves focus to the first new row;
   - the Delete button appears only where `canDelete` is true;
   - the confirmation dialog traps focus, and Escape cancels;
@@ -429,7 +429,7 @@ Research decisions are cited as `M-xx`.
 
 ### Implementation for User Story 3
 
-- [ ] T066 [US3] Implement `MEDIA/Features/DeleteFile/DeleteFile.cs`:
+- [X] T066 [US3] Implement `MEDIA/Features/DeleteFile/DeleteFile.cs`:
   - **Request**: `DeleteFileCommand(SiteId, FileId, UserId)`.
   - **Handler**:
     1. Confirm the site exists through `ISiteDirectory` (else `sites.not_found`, as in T047). Read the row across sites for `siteId`; if it is missing, return `media.not_found`.
@@ -438,17 +438,17 @@ Research decisions are cited as `M-xx`.
     4. Call `IFileStorage.DeleteAsync` in a try/catch that logs a warning with the file id and site id and doesn't rethrow (M-13).
   - **Controller**: `DELETE api/v1/media/sites/{siteId:guid}/files/{fileId:guid}` with `[RequireCapability(MediaCapabilities.DeleteOwn)]`. It returns `204`.
   - **Registration**: in `MEDIA/MediaModule.cs`.
-- [ ] T067 [US3] Refine `MEDIA/Features/ListFiles/ListFiles.cs` and `MEDIA/Infrastructure/MediaFileMapper.cs`:
+- [X] T067 [US3] Refine `MEDIA/Features/ListFiles/ListFiles.cs` and `MEDIA/Infrastructure/MediaFileMapper.cs`:
   - `available` comes from `IFileStorage.ExistsAsync` for the page's items, at most eight at a time. Log one warning per listing with the ids of missing files.
   - `canDelete` is `true` when the caller is the uploader and holds `media.own_files.delete`, or holds `media.files.delete`. Each capability is evaluated once per request through `IAccessEvaluator`.
-- [ ] T068 [P] [US3] Create `src/admin/src/features/media/DeleteDialog.vue`: a modal confirmation naming the file (as text), stating that deletion is permanent, with focus trapped, Escape to cancel, and focus returned to the triggering row. It calls `deleteFile(siteId, fileId)`, which is added to `src/admin/src/api/media.ts`.
-- [ ] T069 [US3] Extend `src/admin/src/features/media/MediaList.vue` and `src/admin/src/features/media/MediaLibraryView.vue`:
+- [X] T068 [P] [US3] Create `src/admin/src/features/media/DeleteDialog.vue`: a modal confirmation naming the file (as text), stating that deletion is permanent, with focus trapped, Escape to cancel, and focus returned to the triggering row. It calls `deleteFile(siteId, fileId)`, which is added to `src/admin/src/api/media.ts`.
+- [X] T069 [US3] Extend `src/admin/src/features/media/MediaList.vue` and `src/admin/src/features/media/MediaLibraryView.vue`:
   - a "Load more" button using `nextCursor`, which focuses the first new row;
   - a Delete action only where `canDelete`, opening `DeleteDialog` and removing the row on success;
   - a "Copy address" action, shown when the site has host names, that uses `navigator.clipboard` and announces the result;
   - an "unavailable" label for `available: false`;
   - the no-host-name explanation, reading host names from `src/admin/src/app/sitesStore.ts`.
-- [ ] T070 [US3] Add the US3 strings to `src/admin/src/i18n/en.json`: load more, delete, the confirmation title and body, the permanent-deletion warning, copy address, copied, the unavailable label, and the no-host-name explanation
+- [X] T070 [US3] Add the US3 strings to `src/admin/src/i18n/en.json`: load more, delete, the confirmation title and body, the permanent-deletion warning, copy address, copied, the unavailable label, and the no-host-name explanation
 
 **Checkpoint**: the library is fully manageable, and the deletion rules hold on the server.
 

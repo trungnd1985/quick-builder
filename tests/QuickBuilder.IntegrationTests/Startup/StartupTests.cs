@@ -211,6 +211,18 @@ public sealed class StartupTests(DatabaseFixture database) : IAsyncLifetime
         Assert.InRange(started.Elapsed, TimeSpan.FromSeconds(1.5), TimeSpan.FromSeconds(10));
     }
 
+    /// <summary>
+    /// 003 FR-015: <c>/_media</c> is reserved on the public surface — never a page — yet still
+    /// site-resolved, unlike the administrative prefixes, so a file is served only on its
+    /// own site's host names.
+    /// </summary>
+    [Fact]
+    public void The_media_prefix_is_reserved_for_the_platform_but_still_site_resolved()
+    {
+        Assert.Contains(QuickBuilder.Host.Routing.RoutePrefixes.PublicMedia, QuickBuilder.Host.Routing.RoutePrefixes.PublicReservedPrefixes);
+        Assert.False(QuickBuilder.Host.Routing.RoutePrefixes.IsReserved(new Microsoft.AspNetCore.Http.PathString("/_media/0a0a.png")));
+    }
+
     private static Task<HttpResponseMessage> ReadyAsync(HttpClient client) =>
         client.GetAsync(new Uri("/health/ready", UriKind.Relative));
 
