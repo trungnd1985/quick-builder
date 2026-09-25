@@ -3,6 +3,8 @@ import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '../../app/authStore'
 import { useSitesStore } from '../../app/sitesStore'
+import type { SiteScheme } from '../../api/sites'
+import LanguageSelect from './LanguageSelect.vue'
 
 const { t, d } = useI18n()
 const store = useSitesStore()
@@ -21,6 +23,8 @@ const hasNoAccess = computed(
 const showCreate = ref(false)
 const name = ref('')
 const hostName = ref('')
+const scheme = ref<SiteScheme>('https')
+const defaultLanguage = ref('en')
 const submitting = ref(false)
 const formError = ref<string | null>(null)
 const fieldErrors = ref<Record<string, string[]>>({})
@@ -32,13 +36,18 @@ async function submit(): Promise<void> {
   formError.value = null
   fieldErrors.value = {}
 
-  const result = await store.create(name.value, hostName.value)
+  const result = await store.create(name.value, hostName.value, {
+    scheme: scheme.value,
+    defaultLanguage: defaultLanguage.value,
+  })
 
   submitting.value = false
 
   if (result.ok) {
     name.value = ''
     hostName.value = ''
+    scheme.value = 'https'
+    defaultLanguage.value = 'en'
     showCreate.value = false
   } else {
     formError.value = result.message
@@ -129,6 +138,44 @@ async function submit(): Promise<void> {
         </p>
       </div>
 
+      <div class="field">
+        <label for="site-scheme">{{ t('sites.create.scheme') }}</label>
+        <select
+          id="site-scheme"
+          v-model="scheme"
+          :aria-describedby="scheme === 'http' ? 'site-scheme-warning' : undefined"
+        >
+          <option value="https">
+            {{ t('sites.create.schemeHttps') }}
+          </option>
+          <option value="http">
+            {{ t('sites.create.schemeHttp') }}
+          </option>
+        </select>
+        <p
+          v-if="scheme === 'http'"
+          id="site-scheme-warning"
+          class="warning"
+        >
+          {{ t('sites.settings.httpWarning') }}
+        </p>
+      </div>
+
+      <div class="field">
+        <label for="site-language">{{ t('sites.create.language') }}</label>
+        <LanguageSelect
+          id="site-language"
+          v-model="defaultLanguage"
+          describedby="site-language-help"
+        />
+        <p
+          id="site-language-help"
+          class="help"
+        >
+          {{ t('sites.create.languageHelp') }}
+        </p>
+      </div>
+
       <p
         v-if="formError"
         class="error"
@@ -207,6 +254,9 @@ async function submit(): Promise<void> {
             {{ t('sites.table.name') }}
           </th>
           <th scope="col">
+            {{ t('sites.table.status') }}
+          </th>
+          <th scope="col">
             {{ t('sites.table.hostNames') }}
           </th>
           <th scope="col">
@@ -222,8 +272,28 @@ async function submit(): Promise<void> {
           v-for="site in store.sites"
           :key="site.id"
         >
-          <td>{{ site.name }}</td>
-          <td>{{ site.hostNames.join(', ') }}</td>
+          <td>
+            <!-- 009: every site member can open the settings; editing depends on permissions. -->
+            <RouterLink
+              :to="{ name: 'site', params: { siteId: site.id } }"
+              :aria-label="t('sites.table.open', { name: site.name })"
+            >
+              {{ site.name }}
+            </RouterLink>
+          </td>
+          <td>
+            <span
+              class="badge"
+              :class="{ 'badge-warning': site.status === 'disabled' }"
+            >{{ site.status === 'disabled' ? t('sites.status.disabled') : t('sites.status.enabled') }}</span>
+            <span
+              v-if="site.scheme === 'http'"
+              class="badge badge-warning"
+              :title="t('sites.httpBadgeLabel')"
+              :aria-label="t('sites.httpBadgeLabel')"
+            >{{ t('sites.httpBadge') }}</span>
+          </td>
+          <td>{{ (site.hostNameDetails?.map((h) => h.displayName) ?? site.hostNames).join(', ') }}</td>
           <td>
             <time :datetime="site.createdAtUtc">{{ d(new Date(site.createdAtUtc), 'short') }}</time>
           </td>

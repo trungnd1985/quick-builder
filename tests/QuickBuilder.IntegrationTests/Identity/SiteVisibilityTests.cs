@@ -97,6 +97,53 @@ public sealed class SiteVisibilityTests(DatabaseFixture database) : IAsyncLifeti
         }
     }
 
+    /// <summary>
+    /// 009 FR-022, FR-023: Designers and Editors see every setting of their sites, may
+    /// change none of them, and the response tells the admin shell so.
+    /// </summary>
+    [Fact]
+    public async Task Site_members_see_every_setting_but_change_none_and_are_told_so()
+    {
+        foreach (var role in new[] { SystemRole.Editor, SystemRole.Designer })
+        {
+            var client = await ClientWithAsync((_siteA, role)).ConfigureAwait(true);
+
+            var site = await client.GetFromJsonAsync<JsonElement>(new Uri($"/api/v1/sites/{_siteA}", UriKind.Relative)).ConfigureAwait(true);
+            foreach (var field in new[] { "primaryHostName", "hostNameDetails", "scheme", "baseUrl", "defaultLanguage", "status", "version" })
+            {
+                Assert.True(site.TryGetProperty(field, out _), $"{role} does not see '{field}'");
+            }
+
+            var permissions = site.GetProperty("permissions");
+            Assert.False(permissions.GetProperty("canManageSettings").GetBoolean());
+            Assert.False(permissions.GetProperty("canManageHostNames").GetBoolean());
+            Assert.False(permissions.GetProperty("canManageAvailability").GetBoolean());
+
+            var version = site.GetProperty("version").GetUInt32();
+            var writes = new[]
+            {
+                await client.PutAsJsonAsync(
+                    new Uri($"/api/v1/sites/{_siteA}/settings", UriKind.Relative),
+                    new { name = "Mine", scheme = "https", defaultLanguage = "en", primaryHostName = "site-a.test", version }).ConfigureAwait(true),
+                await client.DeleteAsync(new Uri($"/api/v1/sites/{_siteA}/host-names/site-a.test", UriKind.Relative)).ConfigureAwait(true),
+                await client.PostAsync(new Uri($"/api/v1/sites/{_siteA}/disable", UriKind.Relative), null).ConfigureAwait(true),
+                await client.PostAsync(new Uri($"/api/v1/sites/{_siteA}/enable", UriKind.Relative), null).ConfigureAwait(true),
+            };
+
+            Assert.All(writes, w => Assert.Equal(HttpStatusCode.Forbidden, w.StatusCode));
+        }
+
+        // A user with no role on the site cannot tell it exists, on the new endpoints too.
+        var nobody = await ClientWithAsync().ConfigureAwait(true);
+        Assert.Equal(HttpStatusCode.NotFound, (await nobody.PostAsync(new Uri($"/api/v1/sites/{_siteA}/disable", UriKind.Relative), null).ConfigureAwait(true)).StatusCode);
+
+        var adminView = await _admin.GetFromJsonAsync<JsonElement>(new Uri($"/api/v1/sites/{_siteA}", UriKind.Relative)).ConfigureAwait(true);
+        var adminPermissions = adminView.GetProperty("permissions");
+        Assert.True(adminPermissions.GetProperty("canManageSettings").GetBoolean());
+        Assert.True(adminPermissions.GetProperty("canManageHostNames").GetBoolean());
+        Assert.True(adminPermissions.GetProperty("canManageAvailability").GetBoolean());
+    }
+
     /// <summary>US4 scenario 5: each site is judged by the role held on that site.</summary>
     [Fact]
     public async Task Different_roles_on_different_sites_are_judged_separately()

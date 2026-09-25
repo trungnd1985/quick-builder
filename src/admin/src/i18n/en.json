@@ -30,7 +30,9 @@
       "hostNames": "Host names",
       "created": "Created",
       "media": "Media",
-      "openMedia": "Media for {name}"
+      "openMedia": "Media for {name}",
+      "status": "Status",
+      "open": "Settings for {name}"
     },
     "create": {
       "title": "Create a site",
@@ -42,11 +44,100 @@
       "submit": "Create site",
       "submitting": "Creating…",
       "cancel": "Cancel",
-      "failed": "Could not create the site"
+      "failed": "Could not create the site",
+      "scheme": "Address scheme",
+      "schemeHttps": "HTTPS (recommended)",
+      "schemeHttp": "HTTP (not secure)",
+      "language": "Default language",
+      "languageHelp": "The language of the site's content. You can change it later."
     },
     "noAccess": {
       "title": "No access yet",
       "body": "You are signed in, but you have no role on any site yet. Ask an administrator to give you access."
+    },
+    "status": {
+      "enabled": "Enabled",
+      "disabled": "Disabled"
+    },
+    "httpBadge": "HTTP",
+    "httpBadgeLabel": "Uses HTTP: links to this site are not secure",
+    "detail": {
+      "back": "All sites",
+      "loading": "Loading site…",
+      "errorTitle": "Could not load this site",
+      "retry": "Try again",
+      "baseUrl": "Base URL",
+      "disabledNotice": "This site is disabled. Visitors see \"not found\" at all of its host names. You can keep working on it here.",
+      "readOnly": "You can view this site's settings. Only an administrator can change them."
+    },
+    "settings": {
+      "heading": "Settings",
+      "name": "Site name",
+      "scheme": "Address scheme",
+      "https": "HTTPS",
+      "http": "HTTP",
+      "httpWarning": "Links to this site will use HTTP, which is not secure. Use HTTPS unless the site is only reachable on a private network.",
+      "language": "Default language",
+      "primary": "Primary host name",
+      "primaryHelp": "The base URL uses this host name.",
+      "save": "Save settings",
+      "saving": "Saving…",
+      "saved": "Settings saved.",
+      "outOfDate": "Someone else changed this site while you were editing. Reload to see their changes, then make yours again.",
+      "reload": "Reload"
+    },
+    "hostNames": {
+      "heading": "Host names",
+      "help": "Every host name here reaches this site. A host name can belong to only one site.",
+      "add": "Host name to add",
+      "addHelp": "A domain such as example.com, without a scheme, port or path.",
+      "addButton": "Add host name",
+      "adding": "Adding…",
+      "primary": "Primary",
+      "makePrimary": "Make {host} primary",
+      "remove": "Remove {host}",
+      "cannotRemovePrimary": "The primary host name can't be removed. Make another one primary first.",
+      "cannotRemoveLast": "A site keeps at least one host name.",
+      "confirmTitle": "Remove {host}?",
+      "confirmBody": "Visitors using this host name will no longer reach the site, and another site can then use it.",
+      "confirm": "Remove",
+      "cancel": "Cancel",
+      "removing": "Removing…",
+      "added": "{host} added.",
+      "removed": "{host} removed.",
+      "primaryChanged": "{host} is now the primary host name."
+    },
+    "availability": {
+      "heading": "Availability",
+      "enabledBody": "This site is online. Visitors reach it at its host names.",
+      "disabledBody": "This site is offline. Visitors see \"not found\" at its host names. Its content, settings and host names are kept.",
+      "disable": "Disable site",
+      "enable": "Enable site",
+      "confirmDisableTitle": "Disable {name}?",
+      "confirmDisableBody": "Visitors will see \"not found\" at every host name of this site, as if it did not exist. Nothing is deleted, and you can enable it again at any time.",
+      "confirmEnableTitle": "Enable {name}?",
+      "confirmEnableBody": "Visitors will reach this site again at its host names.",
+      "confirmDisable": "Disable",
+      "confirmEnable": "Enable",
+      "cancel": "Cancel",
+      "working": "Working…",
+      "disabled": "{name} is now disabled.",
+      "enabled": "{name} is now enabled."
+    },
+    "errors": {
+      "host_name_taken": "That host name is already in use.",
+      "invalid_host_name": "That is not a valid host name. Use a domain such as example.com, without a scheme, port or path.",
+      "host_name_not_found": "This site no longer has that host name.",
+      "primary_host_name_removal": "The primary host name can't be removed. Make another one primary first.",
+      "last_host_name": "A site keeps at least one host name.",
+      "primary_host_name_invalid": "The primary host name must be one of this site's host names.",
+      "unsupported_language": "That language is not supported.",
+      "invalid_scheme": "The scheme must be HTTPS or HTTP.",
+      "invalid_name": "A site name must be between 1 and 200 characters.",
+      "out_of_date": "Someone else changed this site at the same time. Reload it and try again.",
+      "not_found": "This site no longer exists, or you can no longer see it.",
+      "forbidden": "You don't have permission to do that.",
+      "unknown": "Something went wrong. Try again."
     }
   },
   "media": {

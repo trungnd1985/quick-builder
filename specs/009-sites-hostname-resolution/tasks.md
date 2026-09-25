@@ -146,19 +146,19 @@ with reasons, and a stale version gets `409 sites.out_of_date`.
 
 ### Tests for User Story 1 ⚠️ write first, confirm they fail
 
-- [ ] T024 [P] [US1] Write `ITESTS/Sites/SiteSettingsTests.cs`:
+- [X] T024 [P] [US1] Write `ITESTS/Sites/SiteSettingsTests.cs`:
   - create with defaults and with explicit primary, scheme and language;
   - each 400 code from data-model.md, returned together in `errors`;
   - `PUT …/settings` changes every field and returns a new `version`, and `baseUrl` follows the primary and scheme;
   - a stale `version` gives 409 `sites.out_of_date`, with nothing changed;
   - a concurrent `PUT` making host X primary, raced against `DELETE` of X, leaves exactly one primary (US1 scenario 5, S-05).
-- [ ] T025 [P] [US1] Extend `ITESTS/Identity/SiteVisibilityTests.cs`:
+- [X] T025 [P] [US1] Extend `ITESTS/Identity/SiteVisibilityTests.cs`:
   - a Designer and an Editor get 200 on `GET /api/v1/sites/{id}` with every new field, and 403 on `PUT …/settings`;
   - a user without a grant gets 404;
   - an Administrator gets 200 (FR-022, FR-023);
   - `permissions` is all false for Designer and Editor, and all true for Administrator.
-- [ ] T026 [P] [US1] Write `ITESTS/Sites/LanguagesEndpointTests.cs`: `GET /api/v1/sites/languages` returns the 40 tags in order with `default: "en"` for any signed-in user, and 401 anonymously.
-- [ ] T027 [P] [US1] Write `src/admin/tests/siteDetailView.spec.ts`, settings section:
+- [X] T026 [P] [US1] Write `ITESTS/Sites/LanguagesEndpointTests.cs`: `GET /api/v1/sites/languages` returns the 40 tags in order with `default: "en"` for any signed-in user, and 401 anonymously.
+- [X] T027 [P] [US1] Write `src/admin/tests/siteDetailView.spec.ts`, settings section:
   - the form loads a site, saves, and on `sites.out_of_date` shows the reload prompt;
   - the HTTP scheme shows the warning;
   - the language select shows `Intl.DisplayNames` names;
@@ -167,34 +167,34 @@ with reasons, and a stale version gets `409 sites.out_of_date`.
 
 ### Implementation for User Story 1
 
-- [ ] T028 [US1] Extend `SITES/Features/CreateSite/CreateSite.cs`:
+- [X] T028 [US1] Extend `SITES/Features/CreateSite/CreateSite.cs`:
   - `CreateSiteRequest` and the command gain optional `PrimaryHostName`, `Scheme` and `DefaultLanguage`;
   - the validator reports `sites.invalid_scheme`, `sites.unsupported_language` and `sites.primary_host_name_invalid`, alongside the existing codes;
   - refuse a host name that equals a configured admin host name with `sites.host_name_taken` (S-13);
   - return the mapped `SiteDto`.
-- [ ] T029 [US1] Create `SITES/Features/UpdateSettings/UpdateSettings.cs`: `PUT api/v1/sites/{siteId:guid}/settings` with `[RequireCapability(SitesCapabilities.SettingsManage)]` and the `SiteSettings` body (S-06).
+- [X] T029 [US1] Create `SITES/Features/UpdateSettings/UpdateSettings.cs`: `PUT api/v1/sites/{siteId:guid}/settings` with `[RequireCapability(SitesCapabilities.SettingsManage)]` and the `SiteSettings` body (S-06).
   - Load the site with `AcrossAllSites(reason)` and set the original `Version` from the request.
   - Call `ChangeSettings` and save.
   - Map `DbUpdateConcurrencyException` to 409 `sites.out_of_date`.
   - Publish no event.
   - Register the handler and validator in `SITES/SitesModule.cs`.
   - The `AcrossAllSites` bypass is proven by T024.
-- [ ] T030 [P] [US1] Create `SITES/Features/ListLanguages/ListLanguages.cs`: `GET api/v1/sites/languages` with `[RequireSignedIn]`, returning `{ languages, default }`. Register it.
-- [ ] T031 [US1] Update `SITES/Features/GetSite/GetSite.cs` and `SITES/Features/ListSites/ListSites.cs` to return the mapper's output, including `hostNameDetails`, and confirm that the existing response fields are unchanged (S-17). Add the `permissions` object to every site response, computed with `IAccessEvaluator` per request. It is HTTP only; `SiteDto` doesn't change.
-- [ ] T032 [P] [US1] Extend `ADMIN/api/sites.ts`: types for `Site` (including `permissions`), `HostName` and `SiteSettings` per contracts/sites-api.yaml, plus `getSite`, `putSettings` and `listLanguages`, and the new `createSite` fields.
-- [ ] T033 [P] [US1] Create `ADMIN/features/sites/LanguageSelect.vue`: options from `listLanguages`, labels from `new Intl.DisplayNames([locale], { type: 'language' })`, falling back to the tag.
-- [ ] T034 [US1] Create `ADMIN/features/sites/SiteDetailView.vue` with the settings section:
+- [X] T030 [P] [US1] Create `SITES/Features/ListLanguages/ListLanguages.cs`: `GET api/v1/sites/languages` with `[RequireSignedIn]`, returning `{ languages, default }`. Register it.
+- [X] T031 [US1] Update `SITES/Features/GetSite/GetSite.cs` and `SITES/Features/ListSites/ListSites.cs` to return the mapper's output, including `hostNameDetails`, and confirm that the existing response fields are unchanged (S-17). Add the `permissions` object to every site response, computed with `IAccessEvaluator` per request. It is HTTP only; `SiteDto` doesn't change.
+- [X] T032 [P] [US1] Extend `ADMIN/api/sites.ts`: types for `Site` (including `permissions`), `HostName` and `SiteSettings` per contracts/sites-api.yaml, plus `getSite`, `putSettings` and `listLanguages`, and the new `createSite` fields.
+- [X] T033 [P] [US1] Create `ADMIN/features/sites/LanguageSelect.vue`: options from `listLanguages`, labels from `new Intl.DisplayNames([locale], { type: 'language' })`, falling back to the tag.
+- [X] T034 [US1] Create `ADMIN/features/sites/SiteDetailView.vue` with the settings section:
   - a form with name, scheme (with an HTTP warning), language and primary;
   - version handling and the out-of-date prompt;
   - read-only when `permissions.canManageSettings` is false.
 
   Add the route `/sites/:siteId` in `ADMIN/app/router.ts`.
-- [ ] T035 [US1] Extend `ADMIN/features/sites/SitesView.vue`:
+- [X] T035 [US1] Extend `ADMIN/features/sites/SitesView.vue`:
   - each row links to the detail page and shows a status badge and an HTTP warning badge;
   - the create dialog gains primary, scheme and `LanguageSelect`.
 
   Update `src/admin/tests/sitesView.spec.ts`.
-- [ ] T036 [US1] Add every new US1 string to `ADMIN/i18n/en.json`: settings labels, scheme warning, out-of-date prompt and error-code messages.
+- [X] T036 [US1] Add every new US1 string to `ADMIN/i18n/en.json`: settings labels, scheme warning, out-of-date prompt and error-code messages.
 
 **Checkpoint**: US1 is demoable. Sites are created and edited with all settings, and the rules hold on the server.
 
@@ -223,7 +223,7 @@ every invalid form is refused as invalid.
   - a removed name can be added to another site;
   - two concurrent adds of one name to two sites: exactly one 201 and one 409.
 - [ ] T038 [P] [US2] Write `ITESTS/Identity/SiteSecurityEventTests.cs` (host-name half): after an add and a remove, and after draining the outbox, Identity holds exactly one `site_host_name_added` and one `site_host_name_removed`, with actor, `siteId` and `hostName`. Redelivering the same outbox message adds nothing (FR-028, S-11).
-- [ ] T039 [P] [US2] Extend `src/admin/tests/siteDetailView.spec.ts` with the host-name section:
+- [X] T039 [P] [US2] Extend `src/admin/tests/siteDetailView.spec.ts` with the host-name section:
   - add, remove and make primary;
   - read-only when `permissions.canManageHostNames` is false;
   - remove disabled, with an explanation, for the primary and last name;
@@ -233,14 +233,14 @@ every invalid form is refused as invalid.
 
 ### Implementation for User Story 2
 
-- [ ] T040 [US2] Update `SITES/Features/AddHostName/AddHostName.cs`:
+- [X] T040 [US2] Update `SITES/Features/AddHostName/AddHostName.cs`:
   - normalise with `HostNames`;
   - refuse admin host names;
   - wrap the work in `ConcurrencyRetry`;
   - write `Sites.HostNameAdded` (actor from `IAccessEvaluator.UserId`) to the outbox in the same `SaveChanges`;
   - return `displayName` and `isPrimary` along with the existing fields;
   - register the event type in `SITES/SitesModule.cs`.
-- [ ] T041 [US2] Create `SITES/Features/RemoveHostName/RemoveHostName.cs`: `DELETE api/v1/sites/{siteId:guid}/host-names/{hostName}` with `[RequireCapability(SitesCapabilities.ManageHostNames)]`.
+- [X] T041 [US2] Create `SITES/Features/RemoveHostName/RemoveHostName.cs`: `DELETE api/v1/sites/{siteId:guid}/host-names/{hostName}` with `[RequireCapability(SitesCapabilities.ManageHostNames)]`.
   - Normalise the route value, then call `Site.RemoveHostName` under `ConcurrencyRetry`.
   - Write `Sites.HostNameRemoved` to the outbox in the same `SaveChanges`.
   - Return 204.
@@ -252,14 +252,14 @@ every invalid form is refused as invalid.
   - A unique-key violation means the event was already recorded, so return without error.
   - Why: the shared dispatcher's marker lives in the publisher's schema and a separate transaction.
   - Register the handlers in `IDENT/IdentityModule.cs`.
-- [ ] T044 [P] [US2] Create `ADMIN/features/sites/HostNameList.vue`:
+- [X] T044 [P] [US2] Create `ADMIN/features/sites/HostNameList.vue`:
   - list with display names and a primary badge;
   - an add field;
   - remove with confirmation;
   - "Make primary", which calls `putSettings` with the current version.
 
   Mount it in `SiteDetailView.vue`, and add `addHostName` and `removeHostName` to `ADMIN/api/sites.ts`.
-- [ ] T045 [US2] Add the US2 strings to `ADMIN/i18n/en.json`.
+- [X] T045 [US2] Add the US2 strings to `ADMIN/i18n/en.json`.
 
 **Checkpoint**: US1 + US2: sites and host names are fully manageable, and every host-name change is audited.
 
@@ -345,7 +345,7 @@ its host name stays taken. Re-enable it and everything is back.
   - Designer and Editor get 403 and non-members 404 (FR-019–FR-022, SC-002);
   - with two instances, disable on one and the other's next request is not resolved (extend T047's fixture).
 - [ ] T058 [P] [US4] Extend `ITESTS/Identity/SiteSecurityEventTests.cs`: disable and enable each record exactly one `site_disabled` or `site_enabled`, idempotent under redelivery, and a no-op disable records nothing.
-- [ ] T059 [P] [US4] Extend `src/admin/tests/siteDetailView.spec.ts` and `sitesView.spec.ts`:
+- [X] T059 [P] [US4] Extend `src/admin/tests/siteDetailView.spec.ts` and `sitesView.spec.ts`:
   - the availability panel with a confirmation stating the visitor effect;
   - the disabled badge in the list;
   - the Media link still usable;
@@ -354,14 +354,14 @@ its host name stays taken. Re-enable it and everything is back.
 
 ### Implementation for User Story 4
 
-- [ ] T060 [US4] Create `SITES/Features/ChangeAvailability/ChangeAvailability.cs` with two actions:
+- [X] T060 [US4] Create `SITES/Features/ChangeAvailability/ChangeAvailability.cs` with two actions:
   - `POST api/v1/sites/{siteId:guid}/disable`
   - `POST api/v1/sites/{siteId:guid}/enable`
 
   Both use `[RequireCapability(SitesCapabilities.AvailabilityManage)]`. Call `Site.Disable` or `Site.Enable` under `ConcurrencyRetry`, and write `Sites.SiteDisabled` or `Sites.SiteEnabled` to the outbox only when the status changed. Return the mapped site, and register the handler and the event types. The `AcrossAllSites` bypass is proven by T057.
 - [ ] T061 [US4] Add the `SiteDisabled` and `SiteEnabled` handlers to `IDENT/Features/RecordSiteSecurityEvents/RecordSiteSecurityEvents.cs`, with the same idempotency as T043, and register them in `IDENT/IdentityModule.cs`.
-- [ ] T062 [P] [US4] Create `ADMIN/features/sites/AvailabilityPanel.vue`: disable and enable, with a confirmation dialog explaining that visitors will see "not found" and nothing is deleted. Mount it in `SiteDetailView.vue`, and add `disableSite` and `enableSite` to `ADMIN/api/sites.ts`.
-- [ ] T063 [US4] Show the disabled state in `ADMIN/features/sites/SitesView.vue` and in the detail header. When the site shown is disabled, keep its screens open with the explanation (spec edge case). Add the US4 strings to `ADMIN/i18n/en.json`.
+- [X] T062 [P] [US4] Create `ADMIN/features/sites/AvailabilityPanel.vue`: disable and enable, with a confirmation dialog explaining that visitors will see "not found" and nothing is deleted. Mount it in `SiteDetailView.vue`, and add `disableSite` and `enableSite` to `ADMIN/api/sites.ts`.
+- [X] T063 [US4] Show the disabled state in `ADMIN/features/sites/SitesView.vue` and in the detail header. When the site shown is disabled, keep its screens open with the explanation (spec edge case). Add the US4 strings to `ADMIN/i18n/en.json`.
 
 **Checkpoint**: US1–US4 are complete. The full site lifecycle is available, apart from deletion, which is deferred to #21.
 

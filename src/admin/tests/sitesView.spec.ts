@@ -114,6 +114,45 @@ describe('SitesView', () => {
     expect(screen.getByText('example.test')).toBeTruthy()
   })
 
+  it('marks disabled and HTTP sites, and shows host names readably (009 US4, S-08)', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => [
+          {
+            id: '0195f3c2-8a1e-7c3d-9b44-2f1a6d5e8c91',
+            name: 'Offline',
+            hostNames: ['xn--bcher-kva.test'],
+            hostNameDetails: [{ hostName: 'xn--bcher-kva.test', displayName: 'bücher.test', isPrimary: true }],
+            createdAtUtc: '2026-09-22T10:31:04.221Z',
+            status: 'disabled',
+            scheme: 'http',
+          },
+        ],
+      }),
+    )
+
+    renderSitesView()
+
+    await waitFor(() => expect(screen.getByText('Offline')).toBeTruthy())
+    expect(screen.getByText(en.sites.status.disabled)).toBeTruthy()
+    expect(screen.getByLabelText(en.sites.httpBadgeLabel)).toBeTruthy()
+    expect(screen.getByText('bücher.test')).toBeTruthy()
+  })
+
+  it('offers scheme and language when creating a site (009 US1)', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => [] }))
+
+    renderSitesView()
+    await waitFor(() => expect(screen.getByText(en.sites.empty.title)).toBeTruthy())
+    screen.getByRole('button', { name: en.sites.create.title }).click()
+
+    await waitFor(() => expect(screen.getByLabelText(en.sites.create.scheme)).toBeTruthy())
+    expect(screen.getByLabelText(en.sites.create.language)).toBeTruthy()
+  })
+
   it('meets the accessibility baseline with the create form open (FR-045b)', async () => {
     vi.stubGlobal(
       'fetch',
