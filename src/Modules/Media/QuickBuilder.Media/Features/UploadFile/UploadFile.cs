@@ -43,6 +43,7 @@ internal sealed class UploadFileHandler(
     ISiteDirectory sites,
     IOptions<MediaOptions> options,
     MediaFileMapper mapper,
+    UploadGate gate,
     TimeProvider clock,
     ILogger<UploadFileHandler> logger) : ICommandHandler<UploadFileCommand, Result<MediaFileDto>>
 {
@@ -96,7 +97,14 @@ internal sealed class UploadFileHandler(
         var key = MediaStorageKeys.For(command.SiteId, fileId);
         var upload = new UploadStream(head.AsMemory(0, headLength), command.Body, settings.MaxFileSizeBytes);
 
-        var stored = await StoreAsync(key, upload, settings.MaxFileSizeBytes, cancellationToken).ConfigureAwait(false);
+        // At most ProcessorCount - 1 uploads write at once, so a burst never takes every core
+        // from the rest of the admin surface (SC-008, research M-23).
+        Error? stored;
+        using (await gate.EnterAsync(cancellationToken).ConfigureAwait(false))
+        {
+            stored = await StoreAsync(key, upload, settings.MaxFileSizeBytes, cancellationToken).ConfigureAwait(false);
+        }
+
         if (stored is not null)
         {
             return Result.Failure<MediaFileDto>(stored);

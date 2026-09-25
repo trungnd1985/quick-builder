@@ -72,6 +72,9 @@ public sealed class StorageOptionsValidationTests : IDisposable
         Assert.True(result.Failed);
         Assert.Contains("Storage:Local:Path", result.FailureMessage, StringComparison.Ordinal);
         Assert.Contains("inside the application", result.FailureMessage, StringComparison.Ordinal);
+
+        // Refused before anything is created: no directory is left inside the application.
+        Assert.False(Directory.Exists(Path.Combine(appRoot, "wwwroot")));
     }
 
     [Fact]

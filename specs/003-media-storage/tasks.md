@@ -512,22 +512,22 @@ Research decisions are cited as `M-xx`.
 
 **Purpose**: the smoke test, performance, privacy, offline and documentation checks, which span every story.
 
-- [ ] T080 Extend `tests/QuickBuilder.SmokeTests/ReferenceDeploymentSmokeTests.cs` (FR-032, SC-001, SC-005):
+- [X] T080 Extend `tests/QuickBuilder.SmokeTests/ReferenceDeploymentSmokeTests.cs` (FR-032, SC-001, SC-005):
   1. After signing in and creating the site, upload a PNG through the API.
   2. Fetch `/_media/{id}.png` with the site's `Host` header and compare the bytes.
   3. Rebuild the image and restart `app` with the volumes kept (`ComposeDeployment` helpers).
   4. Fetch again and compare.
-- [ ] T081 [P] Add `tests/QuickBuilder.SmokeTests/MediaPerformanceTests.cs` (`[Trait("Category","Performance")]`, run under `docker-compose.perf.yml`), with three tests:
+- [X] T081 [P] Add `tests/QuickBuilder.SmokeTests/MediaPerformanceTests.cs` (`[Trait("Category","Performance")]`, run under `docker-compose.perf.yml`), with three tests:
   - a 10 MB upload in ≤ 5 s, and with 10 × 20 MiB uploads in flight, the p95 of `GET /api/v1/sites` ≤ 2× its idle p95 (SC-008);
   - 50 concurrent GETs of a 1 MB image with a p95 time to first byte ≤ 100 ms (SC-009);
   - with 10,000 rows (and matching stored objects) seeded directly into the database and storage volume, the first, middle and last library pages each load through the API in ≤ 1 s. The API page time stands in for the screen's load time (SC-009a).
-- [ ] T082 [P] Extend `ITESTS/Observability/LoggingTests.cs`: run the upload, list, preview, public-serve, delete and sweep journeys with canary file names (T032), and assert that no captured log event renders a canary marker (SC-012, FR-030)
-- [ ] T083 [P] Extend `ITESTS/Observability/NoEgressTests.cs` to run the upload, public serve and sweep steps and assert zero outbound connections (FR-031)
-- [ ] T084 [P] Add Media and `Shared.Infrastructure/Storage` to the critical paths in the coverage gate step of `.github/workflows/ci.yml` (Principle X, 80%). Check that the merged report includes the new assemblies.
-- [ ] T085 [P] Add a "Storing files" section to `docs/contributing.md`, pointing to `specs/003-media-storage/contracts/storage-provider.md`: generated keys only, site-first prefixes, never touching the file system directly, and passing the conformance suite for a new provider
-- [ ] T086 [P] Add the i18n coverage check and the keyboard-only journey for the media screen to `src/admin/tests/mediaLibraryView.spec.ts`: every visible string resolves through the lookup, and upload, load more, copy and delete work without a pointer (SC-013, FR-028)
+- [X] T082 [P] Extend `ITESTS/Observability/LoggingTests.cs`: run the upload, list, preview, public-serve, delete and sweep journeys with canary file names (T032), and assert that no captured log event renders a canary marker (SC-012, FR-030)
+- [X] T083 [P] Extend `ITESTS/Observability/NoEgressTests.cs` to run the upload, public serve and sweep steps and assert zero outbound connections (FR-031)
+- [X] T084 [P] Add Media and `Shared.Infrastructure/Storage` to the critical paths in the coverage gate step of `.github/workflows/ci.yml` (Principle X, 80%). Check that the merged report includes the new assemblies.
+- [X] T085 [P] Add a "Storing files" section to `docs/contributing.md`, pointing to `specs/003-media-storage/contracts/storage-provider.md`: generated keys only, site-first prefixes, never touching the file system directly, and passing the conformance suite for a new provider
+- [X] T086 [P] Add the i18n coverage check and the keyboard-only journey for the media screen to `src/admin/tests/mediaLibraryView.spec.ts`: every visible string resolves through the lookup, and upload, load more, copy and delete work without a pointer (SC-013, FR-028)
 - [ ] T087 Run quickstart §1–§10 end to end on the reference deployment, including the manual Chromium and Firefox polyglot and PDF check in §4. **That §4 step is a merge gate**: it is the only verification of SC-004 for PDF. Record the browser versions and the outcome, and don't open the PR if it fails (plan.md Risks). Record the results in `specs/003-media-storage/quickstart-results.md`, in the format of `specs/002-identity-setup/quickstart-results.md`, and file any failure as a bug with a failing test first (Principle X).
-- [ ] T088 Run `dotnet format --verify-no-changes`, `dotnet build -warnaserror`, the full test suite, and `npm run lint && npm run test && npm run build` in `src/admin/`, and fix every finding before opening the PR that closes #3
+- [X] T088 Run `dotnet format --verify-no-changes`, `dotnet build -warnaserror`, the full test suite, and `npm run lint && npm run test && npm run build` in `src/admin/`, and fix every finding before opening the PR that closes #3
 
 ---
 

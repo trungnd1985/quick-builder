@@ -40,18 +40,10 @@ internal sealed class LocalStorageOptionsValidator : IValidateOptions<StorageOpt
                 $"{PathKey} '{configured}' must be an absolute path.");
         }
 
-        string canonical;
-        try
-        {
-            Directory.CreateDirectory(configured);
-            canonical = LocalStoragePaths.Canonicalize(configured);
-        }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or NotSupportedException or ArgumentException)
-        {
-            return ValidateOptionsResult.Fail(
-                $"{PathKey} '{configured}' cannot be created: {ex.Message}");
-        }
-
+        // The location is checked against the application's own directories before anything
+        // is created: refusing a path inside /app must never leave a directory behind there,
+        // and the operator must hear the real reason, not "cannot be created".
+        var canonical = LocalStoragePaths.Canonicalize(configured);
         foreach (var forbidden in options.ForbiddenRoots)
         {
             var root = LocalStoragePaths.Canonicalize(forbidden);
@@ -62,6 +54,16 @@ internal sealed class LocalStorageOptionsValidator : IValidateOptions<StorageOpt
                     "Uploaded files must live outside every location the application runs code or serves " +
                     "static files from.");
             }
+        }
+
+        try
+        {
+            Directory.CreateDirectory(canonical);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or NotSupportedException or ArgumentException)
+        {
+            return ValidateOptionsResult.Fail(
+                $"{PathKey} '{configured}' cannot be created: {ex.Message}");
         }
 
         // Synchronous by necessity: options validation has no async entry point, and this

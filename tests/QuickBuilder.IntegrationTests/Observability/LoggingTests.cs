@@ -133,6 +133,46 @@ public sealed class LoggingTests(DatabaseFixture database) : IAsyncLifetime
     }
 
     /// <summary>
+    /// 003 SC-012, FR-030: no media journey writes a file's name to the logs.
+    /// </summary>
+    /// <remarks>
+    /// Every name uploaded here carries a canary marker. Upload (accepted and refused), list,
+    /// preview, public serving, a miss, deletion and the orphan sweep all run; then every
+    /// captured event — message, template, properties, exception — is searched for the marker.
+    /// A file's name can itself be personal data ("jane-doe-passport.pdf"), which is why the
+    /// logs carry ids only.
+    /// </remarks>
+    [Fact]
+    public async Task Media_journeys_never_log_a_file_name()
+    {
+        var admin = await _app.CreateAdminClientAsync().ConfigureAwait(true);
+        var siteId = await Media.MediaApi.CreateSiteAsync(admin, "Logged", "logged-media.test").ConfigureAwait(true);
+
+        var accepted = await Media.MediaApi.UploadOkAsync(admin, siteId).ConfigureAwait(true);
+        var refused = await Media.MediaApi
+            .UploadAsync(admin, siteId, "<script>"u8.ToArray(), Media.MediaApi.CanaryName("png"), "image/png")
+            .ConfigureAwait(true);
+        Assert.False(refused.IsSuccessStatusCode);
+
+        await Media.MediaApi.ListOkAsync(admin, siteId).ConfigureAwait(true);
+        await Media.MediaApi.PreviewAsync(admin, siteId, accepted.Id).ConfigureAwait(true);
+        await Media.MediaApi.PublicAsync(_app, "logged-media.test", accepted.PublicPath).ConfigureAwait(true);
+        await Media.MediaApi.PublicAsync(_app, "logged-media.test", Media.MediaApi.PublicPath(Guid.NewGuid(), "png")).ConfigureAwait(true);
+        await Media.MediaApi.DeleteAsync(admin, siteId, accepted.Id).ConfigureAwait(true);
+        await _app.Services.GetRequiredService<QuickBuilder.Media.Infrastructure.MediaOrphanSweepService>()
+            .SweepAsync(CancellationToken.None).ConfigureAwait(true);
+
+        var events = _app.Logs.Events.Select(LogCapture.Render).ToList();
+        Assert.NotEmpty(events);
+
+        var leak = events.FirstOrDefault(e => e.Contains(Media.MediaApi.CanaryMarker, StringComparison.OrdinalIgnoreCase));
+        Assert.True(leak is null, $"A log event contains an uploaded file's name: {leak}");
+
+        // And the events that should be there, are — by id.
+        Assert.Contains(events, e => e.Contains(accepted.Id.ToString(), StringComparison.OrdinalIgnoreCase));
+    }
+
+    /// <summary>
     /// 002 SC-009, FR-030: the identity journeys leave no personal data or secret in the logs.
     /// </summary>
     /// <remarks>

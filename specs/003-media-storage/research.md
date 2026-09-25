@@ -609,6 +609,36 @@ container-properties call.
 non-storage concern on an interface every consumer depends on (M-02 keeps it to exactly
 what consumers use).
 
+## M-23: At most `ProcessorCount − 1` uploads write at once
+
+*Added during implementation, from the performance run (tasks T081, T087).*
+
+**Decision**: the upload handler takes a slot from a process-wide `UploadGate` before it
+streams bytes into storage. The gate allows `max(1, ProcessorCount − 1)` uploads to write
+at once. A waiting upload has read only the 4 KiB it needed for type detection, so TCP
+backpressure holds the client; nothing is buffered on the server beyond the web server's
+own per-request limit.
+
+**Rationale**: with ten 20 MiB uploads at full speed on the reference limits (2 CPUs),
+every other admin request slowed from p95 5 ms to 55 ms. SC-008 allows 2×. The gate leaves
+a core for the rest of the admin surface, the same trade 002 made for password hashing
+(002 research R-19). A single upload is unaffected (10 MB in 32 ms).
+
+**What it does not fully fix, measured on the development workstation**: with the gate,
+the slowdown during the burst is p95 27–28 ms against an idle 5–6 ms. That is half the
+ungated figure, but still above 2×.
+- **Not disk contention**: removing the `fsync` made it no better (40 ms).
+- **What remains**: CPU and network contention inside Docker Desktop's single VM, where the
+  load-generating client, PostgreSQL and the app share cores.
+
+The measurement must be repeated on reference Linux hardware before this half of SC-008
+can be called met (quickstart-results §9).
+
+**Alternatives considered**:
+- *Throttle each upload's throughput*: it would slow every upload to protect a rare burst.
+- *Raise the thread-pool minimum*: measured, and it changed nothing (the cause was not
+  starvation).
+
 ## New dependencies
 
 None. No NuGet or npm package is added, and no third-party data file.

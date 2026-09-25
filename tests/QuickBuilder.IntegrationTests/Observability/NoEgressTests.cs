@@ -112,6 +112,36 @@ public sealed class NoEgressTests(DatabaseFixture database) : IAsyncLifetime
     }
 
     /// <summary>
+    /// 003 FR-031: uploading, serving and sweeping media make no outbound call — no malware
+    /// scan, no CDN purge, no remote storage.
+    /// </summary>
+    [Fact]
+    public async Task Media_journeys_make_no_outbound_http_calls()
+    {
+        var outbound = 0;
+
+        using var listener = new System.Diagnostics.ActivityListener
+        {
+            ShouldListenTo = source => source.Name == "System.Net.Http",
+            Sample = (ref System.Diagnostics.ActivityCreationOptions<System.Diagnostics.ActivityContext> _) =>
+                System.Diagnostics.ActivitySamplingResult.AllData,
+            ActivityStarted = _ => Interlocked.Increment(ref outbound),
+        };
+
+        System.Diagnostics.ActivitySource.AddActivityListener(listener);
+
+        var admin = await _app.CreateAdminClientAsync().ConfigureAwait(true);
+        var siteId = await Media.MediaApi.CreateSiteAsync(admin, "Offline media", "offline-media.test").ConfigureAwait(true);
+        var file = await Media.MediaApi.UploadOkAsync(admin, siteId).ConfigureAwait(true);
+        await Media.MediaApi.PublicAsync(_app, "offline-media.test", file.PublicPath).ConfigureAwait(true);
+        await Media.MediaApi.DeleteAsync(admin, siteId, file.Id).ConfigureAwait(true);
+        await _app.Services.GetRequiredService<QuickBuilder.Media.Infrastructure.MediaOrphanSweepService>()
+            .SweepAsync(CancellationToken.None).ConfigureAwait(true);
+
+        Assert.Equal(0, outbound);
+    }
+
+    /// <summary>
     /// 002 FR-035: the identity journeys make no outbound call either — no breached-password
     /// lookup, no email, no licence check.
     /// </summary>

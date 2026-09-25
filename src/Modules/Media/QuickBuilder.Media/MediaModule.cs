@@ -58,6 +58,7 @@ public static class MediaModule
         }
 
         services.AddScoped<MediaFileMapper>();
+        services.AddSingleton<UploadGate>();
 
         // FR-012: bytes left without a library entry are removed after the grace period.
         services.AddSingleton<MediaOrphanSweepService>();
