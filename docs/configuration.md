@@ -84,6 +84,31 @@ range stops the app and names the key.
 | `Identity:SecurityEvents:RetentionPeriod` | `365.00:00:00` | 1 – 3650 days | How long security events are kept. An hourly sweep removes older ones. |
 | `Identity:AllowInsecureHttp` | `false` | | Accept credentials over plain HTTP from other machines. The app logs a warning at every startup while it is on. The reference compose file turns it on because, inside Docker, requests from your own machine do not arrive from loopback. It is safe only while the port stays bound to `127.0.0.1`. |
 
+## Storage
+
+Where uploaded files live. Every value is checked at startup; an unusable one stops the
+app before it listens, with a message that names the key.
+
+| Key | Default | Meaning |
+|---|---|---|
+| `Storage:Provider` | `Local` | The storage provider. `Local` (the file system) is the only one in this release; any other name stops startup and lists the supported names. S3-compatible and Azure Blob providers are planned. |
+| `Storage:Local:Path` | Image: `/var/lib/quickbuilder/media`. Elsewhere: `{LocalApplicationData}/QuickBuilder/media` | The directory that holds uploaded files. It must be absolute, and it must not be, or be inside, the application's own directory, content root or web root (checked after resolving links). It is created if missing and must be writable. In a container, mount persistent storage here — the reference compose file uses the `media-data` volume. |
+
+`/health/ready` includes a storage check: an instance whose storage location stops being
+writable or readable after startup reports not ready until it recovers.
+
+## Media
+
+| Key | Default | Range | Meaning |
+|---|---|---|---|
+| `Media:MaxFileSizeBytes` | `20971520` (20 MiB) | 1,024 – 1,073,741,824 | The largest file an upload may be. The server stops receiving an upload the moment it passes this. |
+| `Media:AllowedTypes` | all six: `image/jpeg`, `image/png`, `image/gif`, `image/webp`, `image/avif`, `application/pdf` | a subset of those six | Which types uploads may have, decided from each file's contents. Set `Media__AllowedTypes__0`, `__1`, … to narrow the list; any other type (SVG, for example) stops startup. |
+| `Media:OrphanGracePeriod` | `1.00:00:00` (24 h) | 1 hour – 30 days | Stored bytes with no library entry — left by a crash or a failed clean-up — are removed by an hourly sweep once they are this old. |
+
+Every site serves its media files at `/_media/{id}.{ext}` on its own host names. The
+`/_media` path is reserved on every site host: if a reverse proxy handled that path
+itself, it must stop.
+
 ## Outbox
 
 | Key | Default | Meaning |

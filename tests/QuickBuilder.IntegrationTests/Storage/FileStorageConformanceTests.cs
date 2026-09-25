@@ -148,6 +148,25 @@ public abstract class FileStorageConformanceTests : IDisposable
         await AssertAbsentAsync(KeyA);
     }
 
+    /// <summary>
+    /// Idempotent under concurrency too: two sweeps on two instances may delete the same key
+    /// at the same moment (003 research M-15). Found by the orphan sweep tests on Windows,
+    /// where a second delete of a delete-pending file reports "access denied".
+    /// </summary>
+    [Fact]
+    public async Task Concurrent_deletes_of_one_key_all_succeed()
+    {
+        for (var round = 0; round < 10; round++)
+        {
+            var key = new StorageKey($"site-a/media/race-{round}");
+            await Storage.WriteAsync(key, new MemoryStream(RandomBytes(4096)));
+
+            await Task.WhenAll(Enumerable.Range(0, 8).Select(_ => Task.Run(() => Storage.DeleteAsync(key))));
+
+            await AssertAbsentAsync(key);
+        }
+    }
+
     // --- Listing ------------------------------------------------------------------------
 
     [Fact]

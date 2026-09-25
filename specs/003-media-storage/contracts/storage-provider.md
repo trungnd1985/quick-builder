@@ -90,7 +90,7 @@ The suite covers:
 | Atomicity | An input stream that throws halfway, and a cancelled token, both leave the key absent and absent from `ListAsync` |
 | Partial reads | Seeks to the start, the middle and the last byte return the right bytes. `CanSeek` is true. |
 | Missing keys | `OpenReadAsync` is null, `ExistsAsync` is false, and `DeleteAsync` succeeds |
-| Delete | Twice in a row succeeds. After deletion, read, exists and list all agree that the key is gone. |
+| Delete | Twice in a row succeeds, and so do 8 concurrent deletes of one key. After deletion, read, exists and list all agree that the key is gone. |
 | Listing | Only the matching prefix, every committed key exactly once, sizes and times match, and incomplete writes never appear |
 | Isolation | Keys under `{siteA}/` never appear when listing `{siteB}/` |
 | Grammar | `..`, `/x`, `x/`, upper case, `%2e`, backslashes, empty segments, 65-character segments and nine segments all throw before reaching the provider |

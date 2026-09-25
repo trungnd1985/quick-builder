@@ -462,13 +462,13 @@ Research decisions are cited as `M-xx`.
 
 ### Tests for User Story 4 ⚠️ write first, confirm they fail
 
-- [ ] T071 [P] [US4] Write `ITESTS/Startup/StorageStartupValidationTests.cs`, starting `QuickBuilderApp` with each bad setting from quickstart §6: `Storage:Provider=S3`, a relative path, a path under `AppContext.BaseDirectory`, an unwritable path (skipped on Windows), and `Media:AllowedTypes:0=image/svg+xml`. Each must throw `OptionsValidationException` on start, with a message naming the key (SC-010).
-- [ ] T072 [P] [US4] Write `ITESTS/Media/UpgradeFrom002Tests.cs`, modelled on `ITESTS/Identity/UpgradeFrom001Tests.cs`:
+- [X] T071 [P] [US4] Write `ITESTS/Startup/StorageStartupValidationTests.cs`, starting `QuickBuilderApp` with each bad setting from quickstart §6: `Storage:Provider=S3`, a relative path, a path under `AppContext.BaseDirectory`, an unwritable path (skipped on Windows), and `Media:AllowedTypes:0=image/svg+xml`. Each must throw `OptionsValidationException` on start, with a message naming the key (SC-010).
+- [X] T072 [P] [US4] Write `ITESTS/Media/UpgradeFrom002Tests.cs`, modelled on `ITESTS/Identity/UpgradeFrom001Tests.cs`:
   1. Build a 002 snapshot by applying only the Sites and Identity migrations.
   2. Seed sites, users and grants.
   3. Start the app so that all migrations apply.
   4. Assert that the seeded data is unchanged, that schema `media` exists, that every site's library is empty, and that an upload then works (SC-005's database half).
-- [ ] T073 [P] [US4] Write `ITESTS/Media/MediaOrphanSweepTests.cs`, using `ManualClock`:
+- [X] T073 [P] [US4] Write `ITESTS/Media/MediaOrphanSweepTests.cs`, using `ManualClock`:
   - an object with no row, older than the grace period, is deleted;
   - an object with no row that is younger is kept;
   - an object with a row is never touched;
@@ -478,7 +478,7 @@ Research decisions are cited as `M-xx`.
 
 ### Implementation for User Story 4
 
-- [ ] T074 [US4] Implement `MEDIA/Infrastructure/MediaOrphanSweepService.cs`, a `BackgroundService` modelled on `IdentityRetentionService` (M-15):
+- [X] T074 [US4] Implement `MEDIA/Infrastructure/MediaOrphanSweepService.cs`, a `BackgroundService` modelled on `IdentityRetentionService` (M-15):
   - runs at startup, then hourly on a `PeriodicTimer(TimeProvider)`;
   - exposes `SweepAsync()` for tests;
   - streams `ListAsync("")` once, keeping only keys shaped `{32 hex}/media/{32 hex}`. In batches of 1,000, it loads the batch's existing keys with `AcrossAllSites("Background sweep compares stored objects with every site's rows (M-15).")` and `.Where(f => keys.Contains(f.StorageKey))`;
@@ -486,17 +486,17 @@ Research decisions are cited as `M-xx`.
   - totals deletions by the key's first segment and logs one entry per `SiteId`.
 
   Register it in `MEDIA/MediaModule.cs`.
-- [ ] T075 [US4] Add a dedicated test for the sweep's `AcrossAllSites` call in `ITESTS/Media/MediaOrphanSweepTests.cs`, following the pattern of `ITESTS/Sites/SiteScopingTests.cs` for annotated bypasses (001 FR-013a). Then check that the architecture test for bypass reasons passes.
-- [ ] T076 [US4] Update `Dockerfile`'s runtime stage, before `USER app`:
+- [X] T075 [US4] Add a dedicated test for the sweep's `AcrossAllSites` call in `ITESTS/Media/MediaOrphanSweepTests.cs`, following the pattern of `ITESTS/Sites/SiteScopingTests.cs` for annotated bypasses (001 FR-013a). Then check that the architecture test for bypass reasons passes.
+- [X] T076 [US4] Update `Dockerfile`'s runtime stage, before `USER app`:
   - `RUN mkdir -p /var/lib/quickbuilder/media && chown app:app /var/lib/quickbuilder/media`;
   - `ENV Storage__Local__Path=/var/lib/quickbuilder/media`;
   - `VOLUME /var/lib/quickbuilder/media`, with a comment explaining why it must be persistent (M-06).
-- [ ] T077 [US4] Update `docker-compose.yml`:
+- [X] T077 [US4] Update `docker-compose.yml`:
   - mount the named volume `media-data:/var/lib/quickbuilder/media` on `app`;
   - declare `media-data` under `volumes:`;
   - add a comment at the mount saying that media must be backed up with `db-data`, and that custom deployments must mount persistent storage at this path.
-- [ ] T078 [P] [US4] Add **Storage** and **Media** sections to `docs/configuration.md` covering all five keys, their defaults, their validation and the failure message for each. Document `/_media` as a reserved path on every site host, and that `/health/ready` now includes storage (M-22).
-- [ ] T079 [P] [US4] Add a **Media storage** section to `docs/operations.md`:
+- [X] T078 [P] [US4] Add **Storage** and **Media** sections to `docs/configuration.md` covering all five keys, their defaults, their validation and the failure message for each. Document `/_media` as a reserved path on every site host, and that `/health/ready` now includes storage (M-22).
+- [X] T079 [P] [US4] Add a **Media storage** section to `docs/operations.md`:
   - where files live (the volume path, and the per-user default outside containers);
   - backing up and restoring with the database, and what happens if the two are restored from different moments (unavailable entries; bytes swept after the grace period);
   - moving an installation;

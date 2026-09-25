@@ -59,6 +59,10 @@ public static class MediaModule
 
         services.AddScoped<MediaFileMapper>();
 
+        // FR-012: bytes left without a library entry are removed after the grace period.
+        services.AddSingleton<MediaOrphanSweepService>();
+        services.AddHostedService(sp => sp.GetRequiredService<MediaOrphanSweepService>());
+
         // Feature slices. Each is registered here and nowhere else.
         services.AddScoped<ICommandHandler<UploadFileCommand, Result<MediaFileDto>>, UploadFileHandler>();
         services.AddScoped<IQueryHandler<ListFilesQuery, Result<MediaFilePageDto>>, ListFilesHandler>();

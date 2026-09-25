@@ -28,6 +28,10 @@ internal sealed class LocalFileStorage : IFileStorage, IFileStorageHealthCheck
 {
     private const int BufferSize = 81_920;
 
+    private const int DeleteAttempts = 5;
+
+    private static readonly TimeSpan DeleteRetryDelay = TimeSpan.FromMilliseconds(20);
+
     // rw-r----- : no execute bit for anyone (FR-016, Principle IX).
     private const UnixFileMode FileMode =
         UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.GroupRead;
@@ -132,18 +136,35 @@ internal sealed class LocalFileStorage : IFileStorage, IFileStorageHealthCheck
     public Task<bool> ExistsAsync(StorageKey key, CancellationToken cancellationToken = default) =>
         Task.FromResult(File.Exists(PathFor(key)));
 
-    public Task DeleteAsync(StorageKey key, CancellationToken cancellationToken = default)
+    public async Task DeleteAsync(StorageKey key, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            File.Delete(PathFor(key));
-        }
-        catch (DirectoryNotFoundException)
-        {
-            // Idempotent: nothing there to delete.
-        }
+        var path = PathFor(key);
 
-        return Task.CompletedTask;
+        for (var attempt = 1; ; attempt++)
+        {
+            try
+            {
+                File.Delete(path);
+                return;
+            }
+            catch (DirectoryNotFoundException)
+            {
+                // Idempotent: nothing there to delete.
+                return;
+            }
+            catch (Exception ex) when (ex is UnauthorizedAccessException or IOException && attempt < DeleteAttempts)
+            {
+                // Windows: while another delete of the same file is completing, the file is
+                // "delete pending" and a second delete reports access denied rather than
+                // success. Two sweeps on two instances do exactly this (003 research M-15).
+                // Wait for the other delete to finish; if the file is then gone, so is ours.
+                await Task.Delay(DeleteRetryDelay, cancellationToken).ConfigureAwait(false);
+                if (!File.Exists(path))
+                {
+                    return;
+                }
+            }
+        }
     }
 
     public async IAsyncEnumerable<StoredFileInfo> ListAsync(

@@ -55,6 +55,15 @@ RUN dotnet publish src/QuickBuilder.Host/QuickBuilder.Host.csproj \
 FROM mcr.microsoft.com/dotnet/aspnet:10.0-alpine AS runtime
 WORKDIR /app
 
+# 003 research M-06: uploaded media lives outside /app, on a volume, so replacing the image
+# never loses a file. The directory is created and owned by `app` here; a fresh named
+# volume mounted over it copies that ownership, so no operator step is needed. Mount
+# persistent storage at this path in any deployment that is not the reference compose file,
+# or uploads are lost when the container is replaced.
+RUN mkdir -p /var/lib/quickbuilder/media && chown app:app /var/lib/quickbuilder/media
+ENV Storage__Local__Path=/var/lib/quickbuilder/media
+VOLUME /var/lib/quickbuilder/media
+
 # FR-036: non-root. The official aspnet images already ship an `app` user, so this costs
 # one line rather than creating and chowning a user by hand.
 USER app

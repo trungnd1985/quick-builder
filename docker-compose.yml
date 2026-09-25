@@ -80,6 +80,11 @@ services:
       # Before widening the binding, put an HTTPS proxy in front and set this to "false".
       # The app logs a warning at every start while this is on.
       Identity__AllowInsecureHttp: "true"
+    volumes:
+      # Uploaded media (003). Back this up together with db-data: the database records which
+      # files exist, this volume holds their bytes. See docs/operations.md, "Media storage".
+      # If you deploy without this file, mount persistent storage at the same path.
+      - media-data:/var/lib/quickbuilder/media
     ports:
       # 127.0.0.1 — see the warning at the top of this file.
       - "127.0.0.1:8080:8080"
@@ -92,3 +97,4 @@ services:
 
 volumes:
   db-data:
+  media-data:
