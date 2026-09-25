@@ -26,12 +26,20 @@ internal static class SecurityEventTypes
     public const string KnownDeviceRevoked = "known_device_revoked";
     public const string OperatorRecoveryUsed = "operator_recovery_used";
 
+    // 009 FR-028: site changes that alter what the public can reach, recorded from the
+    // Sites module's integration events (research S-11).
+    public const string SiteHostNameAdded = "site_host_name_added";
+    public const string SiteHostNameRemoved = "site_host_name_removed";
+    public const string SiteDisabled = "site_disabled";
+    public const string SiteEnabled = "site_enabled";
+
     public static readonly IReadOnlySet<string> All = new HashSet<string>(StringComparer.Ordinal)
     {
         SetupCompleted, SetupCodeRejected, SignIn, ClientBlocked, SignOut, SessionsRevoked,
         PasswordChanged, AccountCreated, EmailChanged, DisplayNameChanged, AccountDeactivated,
         AccountReactivated, GrantsChanged, SetPasswordLinkIssued, SetPasswordLinkUsed,
         KnownDeviceRevoked, OperatorRecoveryUsed,
+        SiteHostNameAdded, SiteHostNameRemoved, SiteDisabled, SiteEnabled,
     };
 }
 

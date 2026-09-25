@@ -212,7 +212,7 @@ every invalid form is refused as invalid.
 
 ### Tests for User Story 2 ⚠️ write first, confirm they fail
 
-- [ ] T037 [P] [US2] Write `ITESTS/Sites/HostNameManagementTests.cs`:
+- [X] T037 [P] [US2] Write `ITESTS/Sites/HostNameManagementTests.cs`:
   - add an IDN name, and the response carries `hostName` `xn--…` and `displayName`;
   - every equivalent spelling from T003 of a name held by another site gives 409 `sites.host_name_taken`, and the body never contains the other site's id or name;
   - adding a name the same site holds gives 409;
@@ -222,7 +222,7 @@ every invalid form is refused as invalid.
   - removing the primary gives `sites.primary_host_name_removal`, the last name `sites.last_host_name`, and an unknown name 404 `sites.host_name_not_found`;
   - a removed name can be added to another site;
   - two concurrent adds of one name to two sites: exactly one 201 and one 409.
-- [ ] T038 [P] [US2] Write `ITESTS/Identity/SiteSecurityEventTests.cs` (host-name half): after an add and a remove, and after draining the outbox, Identity holds exactly one `site_host_name_added` and one `site_host_name_removed`, with actor, `siteId` and `hostName`. Redelivering the same outbox message adds nothing (FR-028, S-11).
+- [X] T038 [P] [US2] Write `ITESTS/Identity/SiteSecurityEventTests.cs` (host-name half): after an add and a remove, and after draining the outbox, Identity holds exactly one `site_host_name_added` and one `site_host_name_removed`, with actor, `siteId` and `hostName`. Redelivering the same outbox message adds nothing (FR-028, S-11).
 - [X] T039 [P] [US2] Extend `src/admin/tests/siteDetailView.spec.ts` with the host-name section:
   - add, remove and make primary;
   - read-only when `permissions.canManageHostNames` is false;
@@ -246,8 +246,8 @@ every invalid form is refused as invalid.
   - Return 204.
   - Register the handler and the event type.
   - The `AcrossAllSites` bypass is proven by T037.
-- [ ] T042 [US2] Add four security event types to `IDENT/Domain/SecurityEvent.cs` (`site_host_name_added`, `site_host_name_removed`, `site_disabled`, `site_enabled`), with their detail records in `IDENT/Domain/Details/SiteEventDetails.cs` (`{ siteId, hostName? }`).
-- [ ] T043 [US2] Create `IDENT/Features/RecordSiteSecurityEvents/RecordSiteSecurityEvents.cs`, with `IIntegrationEventHandler` implementations for `HostNameAdded` and `HostNameRemoved`.
+- [X] T042 [US2] Add four security event types to `IDENT/Domain/SecurityEvent.cs` (`site_host_name_added`, `site_host_name_removed`, `site_disabled`, `site_enabled`), with their detail records in `IDENT/Domain/Details/SiteEventDetails.cs` (`{ siteId, hostName? }`).
+- [X] T043 [US2] Create `IDENT/Features/RecordSiteSecurityEvents/RecordSiteSecurityEvents.cs`, with `IIntegrationEventHandler` implementations for `HostNameAdded` and `HostNameRemoved`.
   - Each inserts a `ProcessedEvent(eventId, handlerName)` into **Identity's own** `processed_events`, and appends the security event, in one `IdentityDbContext.SaveChanges`.
   - A unique-key violation means the event was already recorded, so return without error.
   - Why: the shared dispatcher's marker lives in the publisher's schema and a separate transaction.
@@ -344,7 +344,7 @@ its host name stays taken. Re-enable it and everything is back.
   - `POST …/enable` restores public access with the same data;
   - Designer and Editor get 403 and non-members 404 (FR-019–FR-022, SC-002);
   - with two instances, disable on one and the other's next request is not resolved (extend T047's fixture).
-- [ ] T058 [P] [US4] Extend `ITESTS/Identity/SiteSecurityEventTests.cs`: disable and enable each record exactly one `site_disabled` or `site_enabled`, idempotent under redelivery, and a no-op disable records nothing.
+- [X] T058 [P] [US4] Extend `ITESTS/Identity/SiteSecurityEventTests.cs`: disable and enable each record exactly one `site_disabled` or `site_enabled`, idempotent under redelivery, and a no-op disable records nothing.
 - [X] T059 [P] [US4] Extend `src/admin/tests/siteDetailView.spec.ts` and `sitesView.spec.ts`:
   - the availability panel with a confirmation stating the visitor effect;
   - the disabled badge in the list;
@@ -359,7 +359,7 @@ its host name stays taken. Re-enable it and everything is back.
   - `POST api/v1/sites/{siteId:guid}/enable`
 
   Both use `[RequireCapability(SitesCapabilities.AvailabilityManage)]`. Call `Site.Disable` or `Site.Enable` under `ConcurrencyRetry`, and write `Sites.SiteDisabled` or `Sites.SiteEnabled` to the outbox only when the status changed. Return the mapped site, and register the handler and the event types. The `AcrossAllSites` bypass is proven by T057.
-- [ ] T061 [US4] Add the `SiteDisabled` and `SiteEnabled` handlers to `IDENT/Features/RecordSiteSecurityEvents/RecordSiteSecurityEvents.cs`, with the same idempotency as T043, and register them in `IDENT/IdentityModule.cs`.
+- [X] T061 [US4] Add the `SiteDisabled` and `SiteEnabled` handlers to `IDENT/Features/RecordSiteSecurityEvents/RecordSiteSecurityEvents.cs`, with the same idempotency as T043, and register them in `IDENT/IdentityModule.cs`.
 - [X] T062 [P] [US4] Create `ADMIN/features/sites/AvailabilityPanel.vue`: disable and enable, with a confirmation dialog explaining that visitors will see "not found" and nothing is deleted. Mount it in `SiteDetailView.vue`, and add `disableSite` and `enableSite` to `ADMIN/api/sites.ts`.
 - [X] T063 [US4] Show the disabled state in `ADMIN/features/sites/SitesView.vue` and in the detail header. When the site shown is disabled, keep its screens open with the explanation (spec edge case). Add the US4 strings to `ADMIN/i18n/en.json`.
 
