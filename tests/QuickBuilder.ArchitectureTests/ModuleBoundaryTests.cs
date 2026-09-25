@@ -235,6 +235,8 @@ public sealed class ModuleBoundaryTests
     internal static IEnumerable<string> FileSystemUsers(Assembly assembly, Func<Type, bool> inScope)
     {
         var failing = Types.InAssembly(assembly)
+            // Coverlet injects a hit tracker that writes to disk and cannot be loaded by name.
+            .That().DoNotResideInNamespace("Coverlet")
             .ShouldNot()
             .HaveDependencyOnAny(FileSystemTypes)
             .GetResult()
