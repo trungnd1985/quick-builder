@@ -1,0 +1,357 @@
+openapi: 3.1.0
+info:
+  title: QuickBuilder Media API
+  version: v1
+  description: |
+    HTTP contract for feature 003 (issue #3).
+
+    Two surfaces:
+    - **Administrative**: `/api/v1/media/sites/{siteId}/…`. Every operation declares a
+      site-scoped capability (002 contracts/authorization.md). The site is named in the
+      route, never inferred from the host.
+    - **Public**: `/_media/{file}` on each site's own host names. It is anonymous and
+      resolved to a site from the `Host` header (001 FR-011a). `/_media` is a reserved
+      public prefix (research M-11).
+
+    Every error body is `application/problem+json` in 001's shape. Authentication,
+    setup, CSRF and site-visibility failures (401, 403 `identity.*`, 404
+    `sites.not_found`, 428) behave exactly as 002 contracts/authorization.md §3
+    describes, and are not repeated per operation.
+
+    State-changing requests need the `X-QuickBuilder-Request: 1` header and a same-origin
+    `Origin` (002 research R-11).
+
+servers:
+  - url: /
+
+tags:
+  - name: Media (admin)
+  - name: Media (public)
+
+paths:
+  /api/v1/media/sites/{siteId}/files:
+    parameters:
+      - $ref: '#/components/parameters/SiteId'
+
+    get:
+      tags: [Media (admin)]
+      operationId: listMediaFiles
+      summary: List a site's media library, newest first
+      description: |
+        Requires `media.files.view`. Paging is by keyset (research M-16): pass the
+        previous response's `nextCursor` to get the next page. Files uploaded while you
+        page never cause duplicates or skips.
+      parameters:
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 50 }
+        - name: cursor
+          in: query
+          description: Opaque. Taken from `nextCursor`, never built by clients.
+          schema: { type: string }
+      responses:
+        '200':
+          description: One page of the library.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MediaFilePage' }
+        '400':
+          description: '`media.invalid_cursor` or `media.invalid_limit`.'
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+
+    post:
+      tags: [Media (admin)]
+      operationId: uploadMediaFile
+      summary: Upload one file to a site's library
+      description: |
+        Requires `media.files.upload`. The request body is the file's raw bytes (research
+        M-10). Upload several files by sending several requests.
+
+        The type is detected from the content (M-07). The extension of
+        `X-QuickBuilder-File-Name` and the declared `Content-Type` must agree with it
+        (M-08). An absent `Content-Type` or `application/octet-stream` counts as
+        undeclared.
+
+        The server stops reading as soon as the body exceeds `Media:MaxFileSizeBytes`
+        (M-09). When `201` is returned, the file is stored durably and is already public.
+      parameters:
+        - name: X-QuickBuilder-File-Name
+          in: header
+          required: true
+          description: The original file name, percent-encoded UTF-8. Cleaned by the server (M-17).
+          schema: { type: string, maxLength: 2048 }
+        - name: Content-Type
+          in: header
+          required: false
+          schema:
+            type: string
+            examples: [image/png, application/pdf, application/octet-stream]
+      requestBody:
+        required: true
+        content:
+          '*/*':
+            schema: { type: string, format: binary }
+      responses:
+        '201':
+          description: Stored and public.
+          headers:
+            Location:
+              schema: { type: string }
+              description: '`/api/v1/media/sites/{siteId}/files/{fileId}/content`'
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MediaFile' }
+        '400':
+          description: |
+            `media.empty` (zero-length body), `media.file_name_required` (the header is
+            missing or empty after cleaning), or `media.type_mismatch` (the extension or
+            declared type disagrees with the content).
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '413':
+          description: '`media.too_large`: over `Media:MaxFileSizeBytes`. `detail` states the limit.'
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '415':
+          description: '`media.unsupported_type`: the content is not one of the allowed types.'
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '503':
+          description: '`media.storage_unavailable`: the storage provider failed. Nothing was added.'
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '507':
+          description: '`media.storage_full`: the storage location is out of space. Nothing was added.'
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+
+  /api/v1/media/sites/{siteId}/files/{fileId}:
+    parameters:
+      - $ref: '#/components/parameters/SiteId'
+      - $ref: '#/components/parameters/FileId'
+
+    delete:
+      tags: [Media (admin)]
+      operationId: deleteMediaFile
+      summary: Permanently delete a file
+      description: |
+        Declared with `media.own_files.delete`. If the caller did not upload the file,
+        the handler also requires `media.files.delete` (research M-18).
+
+        Deletion is permanent. When `204` is returned, the file is gone from the library,
+        and its public address answers `404` on every instance. The bytes are purged
+        straight afterwards, or by the next orphan sweep (M-13).
+      responses:
+        '204':
+          description: Deleted.
+        '403':
+          description: '`identity.forbidden`: the file was uploaded by someone else and the caller lacks `media.files.delete`.'
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '404':
+          description: '`media.not_found`: no such file on this site.'
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+
+  /api/v1/media/sites/{siteId}/files/{fileId}/content:
+    parameters:
+      - $ref: '#/components/parameters/SiteId'
+      - $ref: '#/components/parameters/FileId'
+
+    get:
+      tags: [Media (admin)]
+      operationId: previewMediaFile
+      summary: The file's bytes, for previews in the admin shell
+      description: |
+        Requires `media.files.view`. Works for sites with no host name (FR-018). Uses the
+        same response headers as public serving, except `Cache-Control: private,
+        no-cache`, so every view is re-authorized and an unchanged file costs a `304`
+        (research M-12). Supports `Range`, `If-None-Match` and `If-Modified-Since`.
+      parameters:
+        - $ref: '#/components/parameters/Range'
+        - $ref: '#/components/parameters/IfNoneMatch'
+      responses:
+        '200': { $ref: '#/components/responses/FileContent' }
+        '206': { $ref: '#/components/responses/PartialContent' }
+        '304': { description: Not modified. }
+        '404':
+          description: '`media.not_found`: no such file, or its bytes are missing from storage.'
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '416': { description: The range cannot be satisfied. }
+
+  /_media/{file}:
+    get:
+      tags: [Media (public)]
+      operationId: serveMediaFile
+      summary: A media file on its site's public address
+      description: |
+        Anonymous. It is on 002's anonymous allow-list, which this feature extends (FR-026).
+        Served only when `{fileId}` is a file of the site resolved from the `Host` header,
+        and `{ext}` equals that file's extension.
+
+        Every other case returns the same `404` body, apart from `traceId`: another
+        site's file, a deleted file, an id never issued, a wrong extension, or bytes
+        missing from storage. A host that matches no site gets 001's existing
+        `sites.not_resolved` `404`.
+
+        The response never depends on how or where the bytes are stored (FR-013).
+      parameters:
+        - name: file
+          in: path
+          required: true
+          description: '`{fileId:N}.{ext}`: 32 lower-case hex digits, a dot, and the stored extension.'
+          schema:
+            type: string
+            pattern: '^[0-9a-f]{32}\.[a-z0-9]{1,8}$'
+          example: 7d41c2a90b6e4f0f9c3d8e21a5b7e0c2.jpg
+        - $ref: '#/components/parameters/Range'
+        - $ref: '#/components/parameters/IfNoneMatch'
+      responses:
+        '200': { $ref: '#/components/responses/FileContent' }
+        '206': { $ref: '#/components/responses/PartialContent' }
+        '304': { description: Not modified. }
+        '404':
+          description: '`media.not_found`.'
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '416': { description: The range cannot be satisfied. }
+    head:
+      tags: [Media (public)]
+      operationId: headMediaFile
+      summary: Same as GET, without a body
+      parameters:
+        - name: file
+          in: path
+          required: true
+          schema: { type: string, pattern: '^[0-9a-f]{32}\.[a-z0-9]{1,8}$' }
+      responses:
+        '200': { description: Headers as for GET. }
+        '404': { description: '`media.not_found`.' }
+
+components:
+  parameters:
+    SiteId:
+      name: siteId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    FileId:
+      name: fileId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    Range:
+      name: Range
+      in: header
+      required: false
+      schema: { type: string, example: 'bytes=0-1023' }
+    IfNoneMatch:
+      name: If-None-Match
+      in: header
+      required: false
+      schema: { type: string }
+
+  responses:
+    FileContent:
+      description: The exact stored bytes, with the safety headers from research M-11.
+      headers:
+        Content-Type:
+          description: The type validated at upload, exactly. Never guessed.
+          schema: { type: string }
+        X-Content-Type-Options:
+          schema: { type: string, const: nosniff }
+        Content-Disposition:
+          description: '`inline; filename*=UTF-8''''<cleaned original name>`'
+          schema: { type: string }
+        Content-Security-Policy:
+          description: |
+            Images only: `default-src 'none'; img-src 'self'; style-src 'unsafe-inline'; sandbox`.
+            Absent for PDF (research M-11).
+          schema: { type: string }
+        Cache-Control:
+          description: 'Public: `public, max-age=31536000, immutable`. Preview: `private, no-cache`.'
+          schema: { type: string }
+        ETag:
+          description: 'Strong: `"<fileId:N>"`.'
+          schema: { type: string }
+        Last-Modified:
+          schema: { type: string }
+        Accept-Ranges:
+          schema: { type: string, const: bytes }
+      content:
+        '*/*':
+          schema: { type: string, format: binary }
+    PartialContent:
+      description: The requested byte range, with the same headers plus `Content-Range`.
+      content:
+        '*/*':
+          schema: { type: string, format: binary }
+
+  schemas:
+    MediaFile:
+      type: object
+      required: [id, siteId, fileName, contentType, sizeBytes, uploadedAtUtc, uploadedBy, publicPath, available, canDelete]
+      properties:
+        id: { type: string, format: uuid }
+        siteId: { type: string, format: uuid }
+        fileName:
+          type: string
+          maxLength: 255
+          description: The original name, cleaned for display. Render as text, never as HTML.
+        contentType:
+          type: string
+          enum: [image/jpeg, image/png, image/gif, image/webp, image/avif, application/pdf]
+        sizeBytes: { type: integer, format: int64, minimum: 1 }
+        uploadedAtUtc: { type: string, format: date-time }
+        uploadedBy: { $ref: '#/components/schemas/UserSummary' }
+        publicPath:
+          type: string
+          description: |
+            The public path, including the configured base path, for example
+            `/base/_media/7d41….jpg`. The admin shell prefixes it with the scheme and a
+            host name of the site. The server does not guess host or scheme.
+        available:
+          type: boolean
+          description: False when the bytes are missing from storage (spec edge case). Always true in upload responses.
+        canDelete:
+          type: boolean
+          description: Whether the caller may delete this file (M-18). A courtesy for the UI; the server re-checks.
+    MediaFilePage:
+      type: object
+      required: [items, totalCount]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/MediaFile' }
+        totalCount: { type: integer, minimum: 0 }
+        nextCursor:
+          type: [string, 'null']
+          description: Null on the last page.
+    UserSummary:
+      type: object
+      required: [id, displayName]
+      properties:
+        id: { type: string, format: uuid }
+        displayName: { type: string }
+    Problem:
+      type: object
+      required: [type, title, status, errorCode]
+      properties:
+        type: { type: string }
+        title: { type: string }
+        status: { type: integer }
+        detail: { type: string }
+        errorCode: { type: string }
+        traceId: { type: string }
