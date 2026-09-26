@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Npgsql;
 using QuickBuilder.Pages.Domain;
 using QuickBuilder.Pages.Infrastructure;
@@ -21,7 +22,11 @@ internal sealed record DeleteComponentCommand(Guid SiteId, Guid ComponentId, uin
 /// using the component between the count and the delete, the database refuses the delete,
 /// and the caller gets the same answer with the new count.
 /// </remarks>
-internal sealed class DeleteComponentHandler(PagesDbContext database, PagesAccess access, TimeProvider clock)
+internal sealed class DeleteComponentHandler(
+    PagesDbContext database,
+    PagesAccess access,
+    TimeProvider clock,
+    ILogger<DeleteComponentHandler> logger)
     : ICommandHandler<DeleteComponentCommand, Result>
 {
     public async Task<Result> HandleAsync(DeleteComponentCommand command, CancellationToken cancellationToken)
@@ -72,6 +77,7 @@ internal sealed class DeleteComponentHandler(PagesDbContext database, PagesAcces
             return Result.Failure(PagesErrors.ComponentInUse(await UsageCountAsync(command, cancellationToken).ConfigureAwait(false)));
         }
 
+        logger.LogInformation("Component {ComponentId} deleted from site {SiteId}.", command.ComponentId, command.SiteId);
         return Result.Success();
     }
 

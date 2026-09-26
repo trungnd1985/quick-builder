@@ -37,7 +37,13 @@ public sealed class SiteIsolationSuite(DatabaseFixture database)
         // Administrative surface: B's records through A's route.
         foreach (var request in probe.AdminRequests(siteA, recordsOfB))
         {
-            var response = await admin.SendAsync(new HttpRequestMessage(request.Method, new Uri(request.Path, UriKind.Relative))).ConfigureAwait(true);
+            var message = new HttpRequestMessage(request.Method, new Uri(request.Path, UriKind.Relative));
+            if (request.Body is not null)
+            {
+                message.Content = System.Net.Http.Json.JsonContent.Create(request.Body);
+            }
+
+            var response = await admin.SendAsync(message).ConfigureAwait(true);
             var body = await SitesApi.RawAsync(response).ConfigureAwait(true);
 
             if (request.Kind == ProbeKind.Addressed)

@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using QuickBuilder.Pages.Infrastructure;
 using QuickBuilder.Shared.Infrastructure.Dispatch;
 using QuickBuilder.Shared.Kernel.Authorization;
@@ -16,7 +17,11 @@ internal sealed record DeletePageCommand(Guid SiteId, Guid PageId, int Version) 
 /// Its draft and usage rows go with it through their foreign keys. There is no trash in
 /// this feature (#21); the address is free for reuse at once.
 /// </remarks>
-internal sealed class DeletePageHandler(PageTreeWrites writes, PagesAccess access, PagesDbContext database)
+internal sealed class DeletePageHandler(
+    PageTreeWrites writes,
+    PagesAccess access,
+    PagesDbContext database,
+    ILogger<DeletePageHandler> logger)
     : ICommandHandler<DeletePageCommand, Result>
 {
     public async Task<Result> HandleAsync(DeletePageCommand command, CancellationToken cancellationToken)
@@ -35,7 +40,14 @@ internal sealed class DeletePageHandler(PageTreeWrites writes, PagesAccess acces
             (_, page) => database.Pages.Remove(page),
             cancellationToken).ConfigureAwait(false);
 
-        return deleted.IsFailure ? Result.Failure(deleted.Error) : Result.Success();
+        if (deleted.IsFailure)
+        {
+            return Result.Failure(deleted.Error);
+        }
+
+        // By id only: a title or an address can itself be content (FR-037).
+        logger.LogInformation("Page {PageId} deleted from site {SiteId}.", command.PageId, command.SiteId);
+        return Result.Success();
     }
 }
 
