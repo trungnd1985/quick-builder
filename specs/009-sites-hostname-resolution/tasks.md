@@ -418,7 +418,7 @@ uncovered `ISiteOwned` entity to the test-only module makes the build fail and n
 - [X] T075 [P] Add `KERNEL/MultiSite/HostNames.cs`, `SITES/Domain/Site.cs` and `HOST/Middleware/SiteResolutionMiddleware.cs` to the critical-path coverage list in the coverage gate configuration used by CI (see the 001 gate), and confirm they're at ≥ 80%.
 - [X] T076 Run the full suite: `dotnet build` (warnings as errors), `dotnet test` for all four test projects, and `npm test` plus lint in `src/admin`. Fix any analyzer or formatting finding.
 - [X] T077 Run [quickstart.md](./quickstart.md) §1–§10 against the reference compose deployment, and record the results in `specs/009-sites-hostname-resolution/quickstart-results.md`, as 003 did.
-- [ ] T078 Open the pull request from `009-sites-hostname-resolution` to `main`, titled "Sites and host name resolution (#9)". Its body says "Closes #9" and links to `specs/009-sites-hostname-resolution/spec.md` and `plan.md` (constitution Development Workflow).
+- [X] T078 Open the pull request from `009-sites-hostname-resolution` to `main`, titled "Sites and host name resolution (#9)". Its body says "Closes #9" and links to `specs/009-sites-hostname-resolution/spec.md` and `plan.md` (constitution Development Workflow).
 
 ---
 
