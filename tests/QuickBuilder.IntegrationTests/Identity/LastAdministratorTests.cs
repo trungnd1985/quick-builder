@@ -58,8 +58,13 @@ public sealed class LastAdministratorTests(DatabaseFixture database) : IAsyncLif
             UsersApi.ReplaceGrantsAsync(firstClient, second.Id, UsersApi.Grants(administrator: false)),
             UsersApi.ReplaceGrantsAsync(secondClient, first.Id, UsersApi.Grants(administrator: false))).ConfigureAwait(true);
 
+        // The loser is refused one of two ways, depending on timing. If both requests are
+        // authorized before either commits, the second trips the last-administrator rule
+        // (409). If the winner commits first, the loser is no longer an administrator when
+        // its own request is authorized, and is refused as forbidden (403) before the rule
+        // is even reached. Both are correct; what must never happen is both succeeding.
         Assert.Single(results, r => r.StatusCode == HttpStatusCode.OK);
-        Assert.Single(results, r => r.StatusCode == HttpStatusCode.Conflict);
+        Assert.Single(results, r => r.StatusCode is HttpStatusCode.Conflict or HttpStatusCode.Forbidden);
         Assert.Equal(1, await UsersApi.ActiveAdministratorCountAsync(_app).ConfigureAwait(true));
     }
 }
