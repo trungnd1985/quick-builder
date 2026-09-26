@@ -377,24 +377,24 @@ uncovered `ISiteOwned` entity to the test-only module makes the build fail and n
 
 ### Tests and harness for User Story 5
 
-- [ ] T064 [P] [US5] Create `ITESTS/Isolation/ISiteIsolationProbe.cs` with the members from contracts/site-context.md §6: `Module`, `SeedAsync(HttpClient admin, Guid siteId)` returning `SeededRecords(ids, publicPaths)`, `AdminRequests(Guid siteId, SeededRecords other)` and `PublicRequests(SeededRecords other)`. Also create `ITESTS/Isolation/IsolationProbes.cs`, which lists every probe.
-- [ ] T065 [US5] Create `ITESTS/Isolation/SiteIsolationSuite.cs`, a `[Theory]` over `IsolationProbes`:
+- [X] T064 [P] [US5] Create `ITESTS/Isolation/ISiteIsolationProbe.cs` with the members from contracts/site-context.md §6: `Module`, `SeedAsync(HttpClient admin, Guid siteId)` returning `SeededRecords(ids, publicPaths)`, `AdminRequests(Guid siteId, SeededRecords other)` and `PublicRequests(SeededRecords other)`. Also create `ITESTS/Isolation/IsolationProbes.cs`, which lists every probe.
+- [X] T065 [US5] Create `ITESTS/Isolation/SiteIsolationSuite.cs`, a `[Theory]` over `IsolationProbes`:
   1. Create sites A and B and seed both.
   2. Every admin request on A with B's record ids gives 404, and a fresh read shows B's records unchanged.
   3. Every public request for B's records on A's host is byte-identical to a never-issued id.
   4. Every list or count on A contains none of B's ids.
   5. Disable B: every public request for B's records on B's host is byte-identical to an unknown host (FR-025, FR-026, SC-003).
-- [ ] T066 [P] [US5] Create `ITESTS/Isolation/Probes/SitesIsolationProbe.cs`. It seeds host names. Its admin requests are `DELETE …/{A}/host-names/{B's name}`, which must give 404 `sites.host_name_not_found` with B unchanged, and `GET /api/v1/sites/{A}`, which must not list B's names.
-- [ ] T067 [P] [US5] Create `ITESTS/Isolation/Probes/MediaIsolationProbe.cs`. It seeds one file of each type through `MediaApi`. Its admin requests are the content preview and delete on A for B's file ids, and the list on A. Its public requests are B's `publicPath` values.
-- [ ] T068 [US5] Create `ITESTS/Isolation/IsolationCoverageTests.cs` with two rules:
+- [X] T066 [P] [US5] Create `ITESTS/Isolation/Probes/SitesIsolationProbe.cs`. It seeds host names. Its admin requests are `DELETE …/{A}/host-names/{B's name}`, which must give 404 `sites.host_name_not_found` with B unchanged, and `GET /api/v1/sites/{A}`, which must not list B's names.
+- [X] T067 [P] [US5] Create `ITESTS/Isolation/Probes/MediaIsolationProbe.cs`. It seeds one file of each type through `MediaApi`. Its admin requests are the content preview and delete on A for B's file ids, and the list on A. Its public requests are B's `publicPath` values.
+- [X] T068 [US5] Create `ITESTS/Isolation/IsolationCoverageTests.cs` with two rules:
   - every `IModuleDatabaseProvider` whose model has an `ISiteOwned` entity has a probe with a matching `Module`;
   - every endpoint in `ITESTS/Infrastructure/EndpointCatalog.cs` with a `{siteId}` route value and a record key (a route value ending in `Id` other than `siteId`, or a named key in `RecordKeys = ["hostName"]`) is matched by at least one probe's `AdminRequests` pattern.
 
-  Prove both rules fire with a fixture: add an `ISiteOwned` entity to the test-only module in `ITESTS/Modules/WidgetsModule.cs`, behind a test-only switch, and assert that the guard fails and names it.
+  Prove both rules fire: the module guard names `Widgets` when run against `TwoModuleApp` (the existing test-only module, whose `Widget` is site-owned and has no probe), and the endpoint guard flags a synthetic unexercised endpoint.
 
 ### Documentation for User Story 5
 
-- [ ] T069 [US5] Add "Adding a module with site-owned data" to `docs/contributing.md`: the four obligations from contracts/site-context.md §6, how to write a probe with `MediaIsolationProbe` as the example, and what each guard reports.
+- [X] T069 [US5] Add "Adding a module with site-owned data" to `docs/contributing.md`: the four obligations from contracts/site-context.md §6, how to write a probe with `MediaIsolationProbe` as the example, and what each guard reports.
 
 **Checkpoint**: all five stories are complete and independently testable.
 
