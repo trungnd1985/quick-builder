@@ -32,3 +32,9 @@ internal sealed record GrantsChangedDetails(IReadOnlyList<GrantSummary> Before, 
 internal sealed record LinkIssuedDetails(DateTimeOffset ExpiresAt, string IssuedBy) : SecurityEventDetails;
 
 internal sealed record OperatorCommandDetails(string Command) : SecurityEventDetails;
+
+/// <summary>
+/// 009 FR-028: which site, and which host name where one changed. The host name is what an
+/// auditor needs; it lives here, in the record, and never in a log line (FR-032).
+/// </summary>
+internal sealed record SiteEventDetails(Guid SiteId, string? HostName) : SecurityEventDetails;

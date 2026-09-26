@@ -36,6 +36,7 @@ docker compose run --rm app dotnet QuickBuilder.Host.dll migrate
 | `Hosting:BasePath` | *(empty)* | Serve under a sub-path, e.g. `/cms`. Empty means the root. |
 | `Hosting:KnownProxies:<n>` | *(empty)* | Proxy IP addresses whose forwarded headers are trusted. |
 | `Hosting:KnownNetworks:<n>` | *(empty)* | Trusted proxy networks in CIDR form, e.g. `10.0.0.0/8`. |
+| `Hosting:AdminHostNames:<n>` | *(empty)* | Host names on which the administrative surface (`/api`, `/admin`) answers, e.g. `admin.example.com`. Empty means every host name. When set, `/api` and `/admin` on any other host name answer exactly like a missing page, so client domains never show the sign-in page. `/health` answers on every host. Entries follow the site host-name rules (no scheme, port, path or wildcard); an invalid entry, or one a site holds, stops startup and names the key. |
 | `Hosting:PublicUrl` | *(empty)* | The address people use to reach this installation, including any base path, e.g. `https://cms.example.com`. Must be empty or an absolute `http(s)` URL. Used only to print complete links from `identity recovery-link`; when empty, the command prints the path for you to complete. The app never works out its own address from request headers. |
 
 **Trusting nothing is the default and it matters.** Sites are resolved from the `Host`
@@ -50,6 +51,14 @@ scheme, and behind a proxy they are only correct when the proxy is named here:
   block everyone;
 - the HTTPS rule refuses credentials sent over plain HTTP from other machines, and it
   cannot see that the original request was HTTPS unless it trusts `X-Forwarded-Proto`.
+
+**Several proxies.** Name every hop you run (for example a CDN and the proxy behind it).
+Forwarded values are unwound hop by hop from the nearest one, and unwinding stops at the
+first address that is not named, so an unnamed hop can never choose the host.
+
+**Keeping the admin off client domains.** For an installation that hosts client sites, set
+`Hosting:AdminHostNames` to a name only you use. If you mistype it and lose the admin, remove
+the key (or fix it) and restart: the setting is the only thing that confines the admin.
 
 ## Admin
 

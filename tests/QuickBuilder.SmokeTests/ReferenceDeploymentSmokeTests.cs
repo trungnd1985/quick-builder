@@ -164,6 +164,29 @@ public sealed class ReferenceDeploymentSmokeTests(ITestOutputHelper output) : IA
         Assert.Equal("Smoke", payload.GetProperty("siteName").GetString());
         output.WriteLine("public host resolved to the created site");
 
+        // 9-bis. 009 FR-031: a second site; each host name reaches its own site; disabling one
+        //        takes it off the public surface at once, and enabling brings it back.
+        var second = await client
+            .PostAsJsonAsync(
+                new Uri("/api/v1/sites", UriKind.Relative),
+                new { name = "Second", hostNames = new[] { "second.smoke.test" } })
+            .ConfigureAwait(true);
+        Assert.Equal(HttpStatusCode.Created, second.StatusCode);
+        var secondId = (await second.Content.ReadFromJsonAsync<JsonElement>().ConfigureAwait(true)).GetProperty("id").GetGuid();
+
+        Assert.Equal("Smoke", await PublicSiteNameAsync(publicClient, "smoke.test").ConfigureAwait(true));
+        Assert.Equal("Second", await PublicSiteNameAsync(publicClient, "second.smoke.test").ConfigureAwait(true));
+
+        var disabled = await client.PostAsync(new Uri($"/api/v1/sites/{secondId}/disable", UriKind.Relative), null).ConfigureAwait(true);
+        Assert.Equal(HttpStatusCode.OK, disabled.StatusCode);
+        Assert.Null(await PublicSiteNameAsync(publicClient, "second.smoke.test").ConfigureAwait(true));
+        Assert.Equal("Smoke", await PublicSiteNameAsync(publicClient, "smoke.test").ConfigureAwait(true));
+
+        var enabled = await client.PostAsync(new Uri($"/api/v1/sites/{secondId}/enable", UriKind.Relative), null).ConfigureAwait(true);
+        Assert.Equal(HttpStatusCode.OK, enabled.StatusCode);
+        Assert.Equal("Second", await PublicSiteNameAsync(publicClient, "second.smoke.test").ConfigureAwait(true));
+        output.WriteLine("two sites resolve separately; disable and enable take effect at once");
+
         // 9a. 003 FR-032: upload an image to the site and fetch it from the site's own public
         //     address, served by the real image from the real volume.
         var siteId = (await created.Content.ReadFromJsonAsync<JsonElement>().ConfigureAwait(true)).GetProperty("id").GetGuid();
@@ -221,6 +244,22 @@ public sealed class ReferenceDeploymentSmokeTests(ITestOutputHelper output) : IA
     /// <summary>A 1×1 PNG, the smallest real image the upload path accepts.</summary>
     private static readonly byte[] Png = Convert.FromBase64String(
         "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==");
+
+    /// <summary>The name of the site a host resolves to, or null when it resolves to none.</summary>
+    private static async Task<string?> PublicSiteNameAsync(HttpClient client, string hostName)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Get, new Uri("/", UriKind.Relative));
+        request.Headers.Host = hostName;
+
+        using var response = await client.SendAsync(request).ConfigureAwait(false);
+        if (response.StatusCode == HttpStatusCode.NotFound)
+        {
+            return null;
+        }
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        return (await response.Content.ReadFromJsonAsync<JsonElement>().ConfigureAwait(false)).GetProperty("siteName").GetString();
+    }
 
     private static async Task<byte[]> FetchPublicAsync(HttpClient client, string publicPath)
     {

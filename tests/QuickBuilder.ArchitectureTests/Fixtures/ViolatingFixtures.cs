@@ -97,3 +97,13 @@ public sealed class WellBehaved
 {
     public string Value { get; init; } = string.Empty;
 }
+
+/// <summary>
+/// Violates the resolution rule (009 research S-03): resolves a host name outside the
+/// host's site-resolution middleware, where a disabled site's absence could be mistaken
+/// for something else or the result reused out of context.
+/// </summary>
+public sealed class ResolvesHostNamesItself(Sites.Contracts.ISiteDirectory directory)
+{
+    public Task<Sites.Contracts.SiteDto?> ResolveAsync(string hostName) => directory.FindByHostNameAsync(hostName);
+}

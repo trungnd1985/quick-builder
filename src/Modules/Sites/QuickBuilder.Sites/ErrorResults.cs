@@ -20,7 +20,10 @@ internal static class ErrorResults
 
         var status = error.Code switch
         {
-            "sites.host_name_taken" => StatusCodes.Status409Conflict,
+            "sites.host_name_taken"
+                or "sites.primary_host_name_removal"
+                or "sites.last_host_name"
+                or "sites.out_of_date" => StatusCodes.Status409Conflict,
             "sites.not_found" => StatusCodes.Status404NotFound,
             _ when error.Code.EndsWith("_not_found", StringComparison.Ordinal) => StatusCodes.Status404NotFound,
             _ => StatusCodes.Status400BadRequest,

@@ -11,10 +11,14 @@ using QuickBuilder.Shared.Kernel.Validation;
 using QuickBuilder.Sites.Contracts;
 using QuickBuilder.Sites.Contracts.Events;
 using QuickBuilder.Sites.Features.AddHostName;
+using QuickBuilder.Sites.Features.ChangeAvailability;
 using QuickBuilder.Sites.Features.CreateSite;
 using QuickBuilder.Sites.Features.GetSite;
+using QuickBuilder.Sites.Features.ListLanguages;
 using QuickBuilder.Sites.Features.ListSites;
+using QuickBuilder.Sites.Features.RemoveHostName;
 using QuickBuilder.Sites.Features.ResolveCurrentSite;
+using QuickBuilder.Sites.Features.UpdateSettings;
 using QuickBuilder.Sites.Infrastructure;
 
 namespace QuickBuilder.Sites;
@@ -53,10 +57,17 @@ public static class SitesModule
         // about its internals.
         services.AddSingleton<IModuleDatabaseProvider, SitesDatabaseProvider>();
 
-        // The module's public read surface, plus the concrete type the write paths use for
-        // cache invalidation.
+        // Hosting settings this module reads (base path, admin host names), taken from the
+        // final configuration when first needed rather than at registration.
+        services.AddSingleton(sp => SitesOptions.From(sp.GetRequiredService<IConfiguration>()));
+        services.AddSingleton<SiteDtoMapper>();
+
+        // The module's public read surface. Scoped: it remembers the sites loaded during
+        // one request and nothing longer (research S-01, S-02). The write paths use the
+        // concrete type to forget a site they just changed.
         services.AddScoped<SiteDirectory>();
         services.AddScoped<ISiteDirectory>(sp => sp.GetRequiredService<SiteDirectory>());
+        services.AddScoped<ICurrentSite, CurrentSite>();
 
         // What this module lets people do (002 contracts/authorization.md §2). Identity
         // enforces them; this module only declares them.
@@ -66,15 +77,24 @@ public static class SitesModule
         }
 
         // Feature slices. Each is registered here and nowhere else.
-        services.AddScoped<ICommandHandler<CreateSiteCommand, Result<SiteDto>>, CreateSiteHandler>();
+        services.AddScoped<ICommandHandler<CreateSiteCommand, Result<SiteResponse>>, CreateSiteHandler>();
         services.AddScoped<IValidator<CreateSiteCommand>, CreateSiteValidator>();
 
-        services.AddScoped<IQueryHandler<ListSitesQuery, IReadOnlyList<SiteDto>>, ListSitesHandler>();
+        services.AddScoped<IQueryHandler<ListSitesQuery, IReadOnlyList<SiteResponse>>, ListSitesHandler>();
 
-        services.AddScoped<IQueryHandler<GetSiteQuery, Result<SiteDto>>, GetSiteHandler>();
+        services.AddScoped<IQueryHandler<GetSiteQuery, Result<SiteResponse>>, GetSiteHandler>();
 
-        services.AddScoped<ICommandHandler<AddHostNameCommand, Result<SiteHostNameDto>>, AddHostNameHandler>();
+        services.AddScoped<ICommandHandler<AddHostNameCommand, Result<AddHostNameResponse>>, AddHostNameHandler>();
         services.AddScoped<IValidator<AddHostNameCommand>, AddHostNameValidator>();
+
+        services.AddScoped<ICommandHandler<RemoveHostNameCommand, Result>, RemoveHostNameHandler>();
+
+        services.AddScoped<ICommandHandler<UpdateSettingsCommand, Result<SiteResponse>>, UpdateSettingsHandler>();
+        services.AddScoped<IValidator<UpdateSettingsCommand>, UpdateSettingsValidator>();
+
+        services.AddScoped<ICommandHandler<ChangeAvailabilityCommand, Result<SiteResponse>>, ChangeAvailabilityHandler>();
+
+        services.AddScoped<IQueryHandler<ListLanguagesQuery, ListLanguagesResponse>, ListLanguagesHandler>();
 
         services.AddScoped<IQueryHandler<CurrentSiteQuery, Result<CurrentSiteResponse>>, CurrentSiteHandler>();
 
@@ -82,6 +102,10 @@ public static class SitesModule
         // read a stored payload back into a CLR type.
         services.AddScoped<IIntegrationEventHandler<SiteCreated>, SiteCreatedLogHandler>();
         services.AddSingleton<IEventTypeRegistration>(new EventTypeRegistration<SiteCreated>());
+        services.AddSingleton<IEventTypeRegistration>(new EventTypeRegistration<HostNameAdded>());
+        services.AddSingleton<IEventTypeRegistration>(new EventTypeRegistration<HostNameRemoved>());
+        services.AddSingleton<IEventTypeRegistration>(new EventTypeRegistration<SiteDisabled>());
+        services.AddSingleton<IEventTypeRegistration>(new EventTypeRegistration<SiteEnabled>());
 
         return services;
     }

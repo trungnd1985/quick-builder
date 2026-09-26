@@ -19,6 +19,7 @@ using QuickBuilder.Identity.Features.GetUser;
 using QuickBuilder.Identity.Features.IssueSetPasswordLink;
 using QuickBuilder.Identity.Features.ListUsers;
 using QuickBuilder.Identity.Features.ReactivateUser;
+using QuickBuilder.Identity.Features.RecordSiteSecurityEvents;
 using QuickBuilder.Identity.Features.ReplaceGrants;
 using QuickBuilder.Identity.Features.RevokeOwnOtherSessions;
 using QuickBuilder.Identity.Features.RevokeUserSessions;
@@ -35,8 +36,10 @@ using QuickBuilder.Shared.Infrastructure.Commands;
 using QuickBuilder.Shared.Infrastructure.Modules;
 using QuickBuilder.Shared.Kernel.Authorization;
 using QuickBuilder.Shared.Kernel.Dispatch;
+using QuickBuilder.Shared.Kernel.Events;
 using QuickBuilder.Shared.Kernel.Results;
 using QuickBuilder.Shared.Kernel.Validation;
+using QuickBuilder.Sites.Contracts.Events;
 
 namespace QuickBuilder.Identity;
 
@@ -91,6 +94,14 @@ public static class IdentityModule
         services.AddScoped<SetPasswordLinkService>();
         services.AddScoped<AdministratorGuard>();
         services.AddScoped<IUserDirectory, UserDirectory>();
+
+        // 009: site changes that alter what the public can reach become security events
+        // (FR-028). One handler, deduplicating in Identity's own processed_events.
+        services.AddScoped<RecordSiteSecurityEventsHandler>();
+        services.AddScoped<IIntegrationEventHandler<HostNameAdded>>(sp => sp.GetRequiredService<RecordSiteSecurityEventsHandler>());
+        services.AddScoped<IIntegrationEventHandler<HostNameRemoved>>(sp => sp.GetRequiredService<RecordSiteSecurityEventsHandler>());
+        services.AddScoped<IIntegrationEventHandler<SiteDisabled>>(sp => sp.GetRequiredService<RecordSiteSecurityEventsHandler>());
+        services.AddScoped<IIntegrationEventHandler<SiteEnabled>>(sp => sp.GetRequiredService<RecordSiteSecurityEventsHandler>());
         services.AddHostedService<IdentityStartupChecks>();
 
         // Retention (FR-029a). A singleton as well as a hosted service, so the sweep can be

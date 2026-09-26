@@ -110,7 +110,6 @@ namespace QuickBuilder.Sites.Infrastructure.Migrations
             modelBuilder.Entity("QuickBuilder.Sites.Domain.Site", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
@@ -118,26 +117,63 @@ namespace QuickBuilder.Sites.Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at_utc");
 
+                    b.Property<string>("DefaultLanguage")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("text")
+                        .HasDefaultValue("en")
+                        .HasColumnName("default_language");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)")
                         .HasColumnName("name");
 
+                    b.Property<string>("PrimaryHostName")
+                        .IsRequired()
+                        .HasMaxLength(253)
+                        .HasColumnType("citext")
+                        .HasColumnName("primary_host_name");
+
+                    b.Property<string>("Scheme")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("text")
+                        .HasDefaultValue("https")
+                        .HasColumnName("scheme");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("text")
+                        .HasDefaultValue("enabled")
+                        .HasColumnName("status");
+
                     b.Property<DateTimeOffset>("UpdatedAtUtc")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at_utc");
 
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
                     b.HasKey("Id")
                         .HasName("pk_sites");
 
-                    b.ToTable("sites", "sites");
+                    b.ToTable("sites", "sites", t =>
+                        {
+                            t.HasCheckConstraint("ck_sites_scheme", "scheme IN ('https', 'http')");
+
+                            t.HasCheckConstraint("ck_sites_status", "status IN ('enabled', 'disabled')");
+                        });
                 });
 
             modelBuilder.Entity("QuickBuilder.Sites.Domain.SiteHostName", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 

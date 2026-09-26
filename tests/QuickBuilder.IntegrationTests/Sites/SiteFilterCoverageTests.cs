@@ -1,8 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using QuickBuilder.IntegrationTests.Infrastructure;
+using QuickBuilder.Shared.Infrastructure.Modules;
 using QuickBuilder.Shared.Kernel.MultiSite;
-using QuickBuilder.Sites.Infrastructure;
 using Xunit;
 
 namespace QuickBuilder.IntegrationTests.Sites;
@@ -44,16 +44,26 @@ public sealed class SiteFilterCoverageTests(DatabaseFixture database) : IAsyncLi
         return Task.CompletedTask;
     }
 
+    /// <remarks>
+    /// Every module's model, found through the providers each module registers for
+    /// migration (009 FR-024). Until 009 this looked at the Sites model only, so a second
+    /// module's forgotten filter would have passed.
+    /// </remarks>
     [Fact]
     public void Every_site_owned_entity_has_a_query_filter()
     {
         using var scope = _app.Services.CreateScope();
-        var context = scope.ServiceProvider.GetRequiredService<SitesDbContext>();
+        var providers = scope.ServiceProvider.GetServices<IModuleDatabaseProvider>().ToList();
+        Assert.NotEmpty(providers);
 
-        var siteOwned = context.Model
-            .GetEntityTypes()
-            .Where(e => typeof(ISiteOwned).IsAssignableFrom(e.ClrType))
-            .ToList();
+        var siteOwned = new List<Microsoft.EntityFrameworkCore.Metadata.IEntityType>();
+        foreach (var provider in providers)
+        {
+            using var context = provider.CreateContext(scope.ServiceProvider);
+            siteOwned.AddRange(context.Model
+                .GetEntityTypes()
+                .Where(e => typeof(ISiteOwned).IsAssignableFrom(e.ClrType)));
+        }
 
         // A module with no site-owned entity would make this pass vacuously, which would
         // be worse than a failure — it would look like coverage.

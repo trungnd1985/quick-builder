@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
-using QuickBuilder.Shared.Infrastructure.Caching;
 using QuickBuilder.Shared.Infrastructure.MultiSite;
+using QuickBuilder.Shared.Kernel.MultiSite;
 using QuickBuilder.Sites.Contracts;
 using QuickBuilder.Sites.Domain;
 
@@ -10,70 +10,102 @@ namespace QuickBuilder.Sites.Infrastructure;
 /// The module's read surface for other modules and for site resolution (FR-005).
 /// </summary>
 /// <remarks>
-/// Host-name lookup runs on every public request, so it is cached (D-09). The cache is
-/// invalidated by the write paths that can change the mapping — creating a site and adding
-/// a host name — in the same request that changes it.
+/// <b>No cache across requests</b> (009 research S-01). Until 009 host-name lookups were
+/// cached in memory for five minutes, which an in-memory cache cannot invalidate on other
+/// instances — exception E-4. Once host names could be removed and sites disabled, that
+/// would have kept a removed name or a disabled site working on every other instance for
+/// minutes (FR-012). Resolution is one probe on the unique host-name index instead, and a
+/// change is visible everywhere at the next request.
 /// <para>
-/// Known limitation: the in-memory provider cannot invalidate across instances. Correct
-/// for the single-instance reference deployment; the Redis provider spec must address it
-/// before multi-instance is advertised to operators (research.md D-09).
+/// <b>Within a request</b> the site resolution middleware loads the site once, and this
+/// scoped instance keeps it, so <see cref="ICurrentSite"/> and <see cref="FindByIdAsync"/>
+/// for the same site cost no second query (research S-02).
+/// </para>
+/// <para>
+/// Resolution is a plain LINQ query rather than a compiled one: the cross-site bypass is
+/// a method EF cannot see inside a compiled query's expression, and EF's own query cache
+/// already avoids recompiling it.
 /// </para>
 /// </remarks>
-internal sealed class SiteDirectory(SitesDbContext database, ICacheProvider cache) : ISiteDirectory
+internal sealed class SiteDirectory(SitesDbContext database, SiteDtoMapper mapper) : ISiteDirectory
 {
-    private const string Category = "site-by-host";
+    private readonly Dictionary<Guid, SiteDto> _loaded = [];
 
     public async Task<SiteDto?> FindByHostNameAsync(string hostName, CancellationToken cancellationToken = default)
     {
-        var normalised = SiteHostName.Normalise(hostName);
-        if (!SiteHostName.IsValid(normalised))
+        if (!HostNames.TryNormalise(hostName, out var normalised))
         {
             return null;
         }
 
-        return await cache.GetOrCreateAsync(
-            CacheKey.Global(Category, normalised),
-            ct => LoadByHostNameAsync(normalised, ct),
-            cancellationToken: cancellationToken).ConfigureAwait(false);
+        // Cross-site by necessity: this query is what *decides* the site, so it cannot be
+        // scoped to one. Filtering on status here, in the same statement, is what makes a
+        // disabled site's host names indistinguishable from unknown ones, down to the
+        // timing (research S-03).
+        //
+        // It starts from the unique host-name index and joins to the site, rather than
+        // asking every site whether it holds the name: a hit or a miss is then one index
+        // probe, whatever the number of sites (SC-007, research S-20).
+        var row = await database.HostNames
+            .AsNoTracking()
+            .AcrossAllSites("Resolving a host name to a site is what decides which site the request belongs to.")
+            .Where(h => h.HostName == normalised)
+            .Join(database.Sites, h => h.SiteId, s => s.Id, (h, s) => s)
+            .Where(s => s.Status == SiteStatus.Enabled)
+            .Select(SiteDtoMapper.Projection)
+            .FirstOrDefaultAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        return row is null ? null : Remember(mapper.ToDto(row));
     }
 
     public async Task<SiteDto?> FindByIdAsync(Guid siteId, CancellationToken cancellationToken = default)
     {
-        // Cross-site read: the caller names the site explicitly, and at this point no site
-        // is resolved for the request, so the ambient filter would match nothing.
-        var site = await database.Sites
+        if (_loaded.TryGetValue(siteId, out var known))
+        {
+            return known;
+        }
+
+        // Cross-site: the caller names the site explicitly, and at this point no site is
+        // resolved for the request, so the ambient filter would match nothing.
+        var row = await database.Sites
             .AsNoTracking()
             .AcrossAllSites("Looking up a site by its id, before any site is resolved for the request.")
             .Where(s => s.Id == siteId)
-            .Select(s => new SiteDto(
-                s.Id,
-                s.Name,
-                s.HostNames.Select(h => h.HostName).ToList(),
-                s.CreatedAtUtc))
+            .Select(SiteDtoMapper.Projection)
             .FirstOrDefaultAsync(cancellationToken)
             .ConfigureAwait(false);
 
+        return row is null ? null : Remember(mapper.ToDto(row));
+    }
+
+    public async Task<bool> IsHostNameTakenAsync(string hostName, CancellationToken cancellationToken = default)
+    {
+        if (!HostNames.TryNormalise(hostName, out var normalised))
+        {
+            return false;
+        }
+
+        // Cross-site by definition: the question is whether *any* site holds the name.
+        return await database.HostNames
+            .AsNoTracking()
+            .AcrossAllSites("Checking whether any site holds a host name, before any site is resolved.")
+            .AnyAsync(h => h.HostName == normalised, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    /// <summary>The site resolved or loaded earlier in this request, if it was.</summary>
+    internal SiteDto? Loaded(Guid siteId) => _loaded.GetValueOrDefault(siteId);
+
+    /// <summary>
+    /// Forgets a site after this request changed it, so a later read in the same request
+    /// sees the change.
+    /// </summary>
+    internal void Forget(Guid siteId) => _loaded.Remove(siteId);
+
+    private SiteDto Remember(SiteDto site)
+    {
+        _loaded[site.Id] = site;
         return site;
     }
-
-    private async Task<SiteDto?> LoadByHostNameAsync(string normalisedHostName, CancellationToken cancellationToken)
-    {
-        // Cross-site by necessity: this query is what *determines* the site, so it cannot
-        // be scoped to one. This is the clearest legitimate case for the bypass.
-        var siteId = await database.HostNames
-            .AsNoTracking()
-            .AcrossAllSites("Resolving a host name to a site is what decides which site the request belongs to.")
-            .Where(h => h.HostName == normalisedHostName)
-            .Select(h => h.SiteId)
-            .FirstOrDefaultAsync(cancellationToken)
-            .ConfigureAwait(false);
-
-        return siteId == Guid.Empty
-            ? null
-            : await FindByIdAsync(siteId, cancellationToken).ConfigureAwait(false);
-    }
-
-    /// <summary>Drops the cached mapping for a host name after it changes.</summary>
-    internal void InvalidateHostName(string normalisedHostName) =>
-        cache.Remove(CacheKey.Global(Category, normalisedHostName));
 }

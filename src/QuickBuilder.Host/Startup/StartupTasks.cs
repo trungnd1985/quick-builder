@@ -1,14 +1,68 @@
 using System.Net;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.Extensions.Options;
 using QuickBuilder.Host.Configuration;
 using QuickBuilder.Shared.Infrastructure.Commands;
 using QuickBuilder.Shared.Infrastructure.Migrations;
+using QuickBuilder.Sites.Contracts;
 
 namespace QuickBuilder.Host;
 
 /// <summary>Startup work the host performs before serving traffic.</summary>
 internal static class StartupTasks
 {
+    /// <summary>
+    /// Stops startup when a configured admin host name is held by a site (009 research
+    /// S-13).
+    /// </summary>
+    /// <remarks>
+    /// Such a host would be both the administrative surface and a site at once. The check
+    /// needs the database, so it runs after migrations rather than with the other option
+    /// checks. The host name is operator configuration, not visitor input, so naming it
+    /// in the message is how the operator finds the mistake.
+    /// </remarks>
+    internal static async Task CheckAdminHostNamesAsync(WebApplication app)
+    {
+        var adminHostNames = app.Services.GetRequiredService<IOptions<HostingOptions>>().Value.NormalisedAdminHostNames();
+        if (adminHostNames.Count == 0)
+        {
+            return;
+        }
+
+        await using var scope = app.Services.CreateAsyncScope();
+        var directory = scope.ServiceProvider.GetRequiredService<ISiteDirectory>();
+
+        var taken = new List<string>();
+        try
+        {
+            foreach (var hostName in adminHostNames)
+            {
+                if (await directory.IsHostNameTakenAsync(hostName, app.Lifetime.ApplicationStopping).ConfigureAwait(false))
+                {
+                    taken.Add(hostName);
+                }
+            }
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            // The database is not usable yet; migration has already logged why, and readiness
+            // will say so. Only a conflict actually found stops startup.
+            app.Logger.LogWarning(ex, "Could not check Hosting:AdminHostNames against site host names.");
+            return;
+        }
+
+        if (taken.Count > 0)
+        {
+            throw new OptionsValidationException(
+                HostingOptions.SectionName,
+                typeof(HostingOptions),
+                [
+                    "Hosting:AdminHostNames lists host names that a site holds: " +
+                    string.Join(", ", taken) + ". Remove them from the setting, or from the site.",
+                ]);
+        }
+    }
+
     /// <summary>
     /// Applies migrations (FR-023), or records why it did not.
     /// </summary>
@@ -75,6 +129,12 @@ internal static class ProxySetup
             ForwardedHeaders = ForwardedHeaders.XForwardedFor
                 | ForwardedHeaders.XForwardedProto
                 | ForwardedHeaders.XForwardedHost,
+
+            // 009 research S-14: unwind every trusted hop, so a CDN in front of a proxy
+            // yields the visitor's host rather than the CDN's. This cannot let an untrusted
+            // hop through: processing stops at the first address that is not a configured
+            // proxy or network. The default limit of 1 silently ignored the outer hop.
+            ForwardLimit = null,
         };
 
         // Defaults contain a loopback entry; clear it so only what an operator configured

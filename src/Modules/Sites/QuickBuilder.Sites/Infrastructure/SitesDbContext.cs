@@ -44,6 +44,20 @@ internal sealed class SitesDbContext(DbContextOptions<SitesDbContext> options, I
     /// </remarks>
     internal Guid CurrentSiteId => siteContext.SiteId ?? Guid.Empty;
 
+    /// <summary>
+    /// Makes the next save update the site's own row, so its <c>xmin</c> is checked.
+    /// </summary>
+    /// <remarks>
+    /// Adding or removing a host name changes only <c>site_host_names</c> unless the site
+    /// row changes too. <see cref="Site"/> moves <c>UpdatedAtUtc</c> on every change, but
+    /// when the clock has not moved (two changes in one tick, or a test clock) EF would see
+    /// no difference and skip the row — and with it the concurrency check that keeps the
+    /// aggregate's invariants under concurrent changes (research S-05). Marking the column
+    /// modified forces the update either way.
+    /// </remarks>
+    internal void MarkAggregateChanged(Site site) =>
+        Entry(site).Property(s => s.UpdatedAtUtc).IsModified = true;
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         ArgumentNullException.ThrowIfNull(modelBuilder);
@@ -56,7 +70,6 @@ internal sealed class SitesDbContext(DbContextOptions<SitesDbContext> options, I
 
         modelBuilder.Entity<Site>(entity =>
         {
-            entity.ToTable("sites", Schema);
             entity.HasKey(e => e.Id);
 
             // Keys are assigned by the domain (Guid.CreateVersion7), never by the database.
@@ -66,6 +79,28 @@ internal sealed class SitesDbContext(DbContextOptions<SitesDbContext> options, I
             // existing site).
             entity.Property(e => e.Id).ValueGeneratedNever();
             entity.Property(e => e.Name).HasMaxLength(Site.MaxNameLength).IsRequired();
+
+            // 009 (data-model.md). Defaults exist for the upgrade: rows written by 003 get
+            // them, and the domain always sets every value itself.
+            entity.Property(e => e.Scheme).IsRequired().HasDefaultValue(SiteScheme.Https);
+            entity.Property(e => e.DefaultLanguage).IsRequired().HasDefaultValue(SupportedLanguages.Default);
+            entity.Property(e => e.Status).IsRequired().HasDefaultValue(SiteStatus.Enabled);
+            entity
+                .Property(e => e.PrimaryHostName)
+                .HasColumnType("citext")
+                .HasMaxLength(SiteHostName.MaxLength)
+                .IsRequired();
+
+            // PostgreSQL's xmin system column: no real column, no migration, and it moves on
+            // every update of the row. Every aggregate change updates this row (Site.Touch),
+            // so this one token guards the whole aggregate (research S-05).
+            entity.Property(e => e.Version).IsRowVersion().HasColumnName("xmin").HasColumnType("xid");
+
+            entity.ToTable("sites", Schema, t =>
+            {
+                t.HasCheckConstraint("ck_sites_scheme", "scheme IN ('https', 'http')");
+                t.HasCheckConstraint("ck_sites_status", "status IN ('enabled', 'disabled')");
+            });
 
             entity
                 .HasMany(e => e.HostNames)

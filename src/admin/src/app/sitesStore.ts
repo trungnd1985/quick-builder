@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import { ApiError, sitesApi, type Site } from '../api/sites'
+import { ApiError, sitesApi, type CreateSiteOptions, type Site } from '../api/sites'
 
 /**
  * Sites state for the admin shell.
@@ -33,9 +33,10 @@ export const useSitesStore = defineStore('sites', () => {
   async function create(
     name: string,
     hostName: string,
+    options: CreateSiteOptions = {},
   ): Promise<{ ok: true } | { ok: false; message: string; fields: Record<string, string[]> }> {
     try {
-      const created = await sitesApi.create(name, [hostName])
+      const created = await sitesApi.create(name, [hostName], options)
       sites.value = [created, ...sites.value]
       return { ok: true }
     } catch (caught) {
@@ -50,5 +51,16 @@ export const useSitesStore = defineStore('sites', () => {
     }
   }
 
-  return { sites, loading, error, load, create }
+  /**
+   * Puts a changed site back into the list, so the list and a detail screen never show
+   * two versions of the same site (009).
+   */
+  function replace(site: Site): void {
+    const index = sites.value.findIndex((s) => s.id === site.id)
+    if (index >= 0) {
+      sites.value.splice(index, 1, site)
+    }
+  }
+
+  return { sites, loading, error, load, create, replace }
 })

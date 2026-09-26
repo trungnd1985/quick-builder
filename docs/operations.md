@@ -107,8 +107,10 @@ Passwords are stored only as salted PBKDF2 hashes. The cost is
 
 ## Security events
 
-Sign-ins, sign-outs, account changes, set-password links and the commands above are
-recorded in the `identity.security_events` table. The table is append-only: the
+Sign-ins, sign-outs, account changes, set-password links, the commands above, and site
+changes that alter what the public can reach (`site_host_name_added`,
+`site_host_name_removed`, `site_disabled`, `site_enabled`) are recorded in the
+`identity.security_events` table. The table is append-only: the
 application never changes or deletes an event, except for the retention sweep.
 
 An hourly sweep deletes events older than `Identity:SecurityEvents:RetentionPeriod`
@@ -183,10 +185,11 @@ entry:
 
 ### More than one instance
 
-Multiple instances behind a load balancer are **not supported yet** (the in-memory cache
-cannot be shared either). Media itself would need every instance to mount the same
-storage directory. A shared storage provider (S3-compatible, Azure Blob) is the planned
-answer.
+Multiple instances behind a load balancer are **not supported yet**. Site resolution is
+correct with several instances since feature 009, because nothing caches it; but media
+would need every instance to mount the same storage directory, and the render cache still
+to come needs a shared provider. A shared storage provider (S3-compatible, Azure Blob) is
+the planned answer for media.
 
 ### Upgrading from feature 002
 
@@ -196,6 +199,65 @@ answer.
 - Add the media volume to your backups, alongside the database.
 - `/_media/` on every site host is now served by the application.
 - Every site starts with an empty media library. Nothing else changes.
+
+## Sites and host names
+
+### How a request finds its site
+
+Each public request is matched to a site by the host name the visitor used: the `Host`
+header, or `X-Forwarded-Host` when it comes from a proxy named in `Hosting:KnownProxies`
+or `Hosting:KnownNetworks` (see [configuration](configuration.md#hosting-and-reverse-proxies)).
+Matching ignores letter case, a trailing dot and the port. Internationalised names are
+stored in their ASCII (`xn--…`) form and shown readably in the admin; either spelling can
+be typed.
+
+Every host name belongs to at most one site, disabled sites included. A site keeps at least
+one host name, and one of them is **primary**: the site's base URL is
+`{scheme}://{primary}{Hosting:BasePath}`. The base URL never carries a port, so on a
+non-standard public port (typical only of local testing) it will not open as written.
+Nothing serves requests from the base URL yet.
+
+Changes take effect at the next request, on every instance: nothing caches host names.
+
+### What visitors see
+
+- **A host name no site holds** and **a disabled site's host name** get the same `404`,
+  byte for byte. Disabling a site does not reveal that it exists.
+- **A path a site does not have** gets a fixed `404` too, with a different error code.
+- **With `Hosting:AdminHostNames` set**, `/api` and `/admin` on any other host get that same
+  missing-page `404`.
+
+Neither response, and no log line, contains the host name that was asked for.
+
+### Disabling a site
+
+Disabling takes a site off the public surface at once and keeps everything else: content,
+settings, grants and host names, which stay reserved. Site members keep working on it in
+the admin. Enabling brings it back exactly as it was. Sites cannot be deleted yet.
+
+### TLS and DNS
+
+Certificates and DNS are yours: point each host name at your reverse proxy and terminate
+TLS there. The app only needs to see the host name the visitor used, through the `Host`
+header or a trusted proxy's `X-Forwarded-Host`.
+
+### Audit
+
+Adding or removing a host name, and disabling or enabling a site, are recorded as security
+events (see above) with who did it. They appear within a few seconds, once the outbox
+delivers them (`Outbox:PollInterval`).
+
+### Upgrading from feature 003
+
+- Every existing site becomes **enabled**, uses **HTTPS** and **English**, and takes its
+  earliest host name as **primary**. Nothing that was reachable stops being reachable.
+- Host-name matching also accepts internationalised names and trailing dots now. An
+  internationalised name added from now on is stored in its ASCII form.
+- With several trusted proxies, the forwarded host from the outermost trusted hop is now
+  used. Before, only the nearest hop was.
+- Unmatched public paths now answer with a fixed `404` body (`public.not_found`).
+- **Recommended**: set `Hosting:AdminHostNames`, so client domains stop showing the admin
+  sign-in page.
 
 ## Upgrading from the foundation release (feature 001)
 
