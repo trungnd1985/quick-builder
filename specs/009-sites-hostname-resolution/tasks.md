@@ -335,7 +335,7 @@ its host name stays taken. Re-enable it and everything is back.
 
 ### Tests for User Story 4 ⚠️ write first, confirm they fail
 
-- [ ] T057 [P] [US4] Write `ITESTS/Sites/SiteAvailabilityTests.cs`:
+- [X] T057 [P] [US4] Write `ITESTS/Sites/SiteAvailabilityTests.cs`:
   - `POST …/disable` gives 200 and `status: disabled`;
   - `GET /` and the media address on its host are byte-identical to an unknown host's response;
   - the admin media list and upload still work for the site;
