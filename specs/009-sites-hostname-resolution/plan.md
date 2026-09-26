@@ -293,6 +293,12 @@ section.
 
 ## Risks
 
+- **Resolution under load.** At 20 concurrent requests on the reference two CPUs,
+  resolution adds 9–17 ms at p95, over SC-007's 5 ms. One request at a time it adds
+  1.4–1.9 ms, and that is what the test asserts (research S-20).
+  - *Mitigation*: Rendering's cache-hit budget (20 ms) must include this cost. The fix is
+    a resolution cache with invalidation on every instance, the follow-up E-4 already
+    names. It should be raised as its own issue before Rendering starts.
 - **Resolution now costs a database round trip on every public request.**
   - *Mitigation*: it is a compiled query on a unique index, and SC-007's performance test
     gates it at ≤ 5 ms p95. If Rendering's budgets later need it, a cache keyed by host

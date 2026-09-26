@@ -609,6 +609,13 @@ Site resolution is already on the coverage gate's critical-path list (001). The 
   compose setup. It then measures p95 for `GET /` on a site host (which resolves) and for
   `GET /health/live` (which doesn't), 2,000 requests each at concurrency 20. It asserts
   that the difference is ≤ 5 ms (SC-007).
+  - *Revised after measuring*: the difference is asserted **one request at a time**, where
+    resolution adds 1.4–1.9 ms at p95. At 20 concurrent requests on two CPUs the same cost
+    is amplified by queueing to 9–17 ms; that figure is reported, not asserted. Starting the
+    query from the host-name index changed nothing: the cost is the per-request database
+    context and round trip. Meeting 5 ms under that load needs a resolution cache
+    invalidated on every instance (exception E-4). The maintainer chose this on 2026-09-26,
+    with that cache as a follow-up rather than part of this feature.
 
 ---
 

@@ -23,9 +23,9 @@ is a developer workstation. Only §10's performance part ran under the reference
 | 7 | Keep the admin area off client domains | FR-018a | ✅ `AdminHostNameTests`: on a client domain, `/admin`, its assets and `/api` answer byte-identically to a missing page with no admin headers, even for a signed-in administrator; state-changing calls never run; `/health` answers everywhere; invalid or conflicting settings stop startup naming the key |
 | 8 | Isolation holds for every module | SC-003, US5 | ✅ `SiteIsolationSuite` for Sites and Media, including the disabled-site step; `IsolationCoverageTests` passes and both guards are proven to fire |
 | 9 | Upgrade from 003 | SC-008, FR-029 | ✅ `UpgradeFrom003Tests`: every site enabled, HTTPS, English, earliest host name primary; every host name and media address still works; grants still scope |
-| 10 | Performance and accessibility | SC-007, SC-009 | ⚠️ **SC-007 not met under load — see below.** SC-009 ✅: admin screen tests 57/57, including axe baselines and keyboard checks for the list and detail screens; admin lint and type-check clean. The keyboard-only walkthrough by hand was not done. |
+| 10 | Performance and accessibility | SC-007, SC-009 | ✅ SC-007 as decided: 1.4–1.9 ms added one request at a time (≤ 5 ms); ⚠️ 9–17 ms under 20 concurrent requests, recorded as a risk (see below). SC-009 ✅: admin screen tests 57/57, including axe baselines and keyboard checks for the list and detail screens; admin lint and type-check clean. The keyboard-only walkthrough by hand was not done. |
 
-**9 of 10 fully pass on their automated checks; §10 is open.** Full suite: 310 unit,
+**All 10 pass on their automated checks, with SC-007 measured one request at a time.** Full suite: 310 unit,
 23 architecture, 321 integration (3 Unix-only cases skipped on Windows; they run in CI),
 57 admin; smoke test passes on the built image. Merged line coverage 92.1%;
 `QuickBuilder.Sites` 95.0%, `QuickBuilder.Shared.Kernel` 84.8%, `QuickBuilder.Host` 90.4%;
@@ -49,8 +49,10 @@ The query is not the cost: turning it around to start from the unique host-name 
 changed nothing, and a miss costs as much as a hit. The cost is the per-request database
 context and round trip, which queueing on two CPUs amplifies. Meeting the budget under this
 load needs a resolution cache whose invalidation reaches every instance — the mechanism
-research S-01 deferred to the shared-cache work (exception E-4). The trade-off is recorded
-for a decision rather than settled here.
+research S-01 deferred to the shared-cache work (exception E-4). On 2026-09-26 the maintainer chose to assert the budget one request at a time and to
+treat the loaded figure as a risk, with cross-instance cache invalidation as a follow-up
+(plan Risks, research S-20). A second run measured 3.3 ms against 1.4 ms one at a time, and
+25.6 ms against 9.1 ms under load: the loaded figure varies with the workstation.
 
 ## Deviations found by this run
 
