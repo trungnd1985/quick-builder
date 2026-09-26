@@ -1,0 +1,671 @@
+openapi: 3.1.0
+info:
+  title: QuickBuilder Pages API
+  version: v1
+  description: |
+    HTTP contract for feature 010 (issue #10): the page tree, drafts and shared
+    components of one site. All of it is on the **administrative surface**. The site is
+    named in the route and is never inferred from the host (001 FR-011b). Nothing here is
+    public, and nothing here changes what visitors see (Principle VII).
+
+    Every error body is `application/problem+json` in 001's shape, with `errorCode` and
+    `traceId`. Authentication, setup, CSRF and site-visibility failures (401, 403
+    `identity.*`, 404 `sites.not_found`, 428) behave exactly as 002
+    contracts/authorization.md §3 describes, and are not repeated per operation. A caller
+    who may see the site but lacks the capability gets `403 identity.forbidden`.
+    Another site's page or component id answers `404 pages.not_found` or
+    `404 pages.component_not_found`, the same as an id that never existed.
+
+    State-changing requests need `X-QuickBuilder-Request: 1` and a same-origin `Origin`
+    (002 research R-11).
+
+    Capabilities (research P-13): `pages.content.view` (Designer, Editor),
+    `pages.structure.manage` (Designer), `pages.page_drafts.edit` (Designer, Editor),
+    `pages.components.manage` (Designer). Administrator holds all of them.
+
+servers:
+  - url: /
+
+tags:
+  - name: Page tree
+  - name: Drafts
+  - name: Components
+
+paths:
+  /api/v1/pages/sites/{siteId}/pages:
+    parameters:
+      - $ref: '#/components/parameters/SiteId'
+    get:
+      tags: [Page tree]
+      operationId: getPageTree
+      summary: The site's whole page tree, flat and depth-first
+      description: |
+        Requires `pages.content.view`. Items are ordered depth-first, with each parent
+        before its children and siblings by `position` (P-16). An empty array means the
+        site has no pages yet.
+      responses:
+        '200':
+          description: The tree.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PageTree' }
+    post:
+      tags: [Page tree]
+      operationId: createPage
+      summary: Create a page
+      description: |
+        Requires `pages.structure.manage`. The page is created with an empty draft
+        (FR-015). It is placed after `afterPageId` among the children of `parentId`, or
+        last when `afterPageId` is omitted, or first when it is `null`. Publishes
+        `Pages.PageCreated`, plus `Pages.HomePageChanged` when `isHome` is true.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreatePageRequest' }
+      responses:
+        '201':
+          description: Created. `Location` points at the page.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PageDetail' }
+        '400':
+          $ref: '#/components/responses/Problem'
+          description: '`request.invalid`, `pages.invalid_title` or `pages.invalid_slug`.'
+        '404':
+          $ref: '#/components/responses/Problem'
+          description: '`pages.parent_not_found`.'
+        '409':
+          $ref: '#/components/responses/Problem'
+          description: |
+            `pages.duplicate_address`, `pages.reserved_address`, `pages.address_too_long`,
+            `pages.too_deep`, `pages.too_many_pages`, `pages.home_page_exists`,
+            `pages.home_page_must_be_top_level` or `pages.out_of_date` (anchor no longer
+            a sibling, or 3 lost races).
+
+  /api/v1/pages/sites/{siteId}/pages/{pageId}:
+    parameters:
+      - $ref: '#/components/parameters/SiteId'
+      - $ref: '#/components/parameters/PageId'
+    get:
+      tags: [Page tree]
+      operationId: getPage
+      summary: One page, with its draft's metadata
+      description: Requires `pages.content.view`.
+      responses:
+        '200':
+          description: The page.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PageDetail' }
+        '404':
+          $ref: '#/components/responses/Problem'
+          description: '`pages.not_found`.'
+    put:
+      tags: [Page tree]
+      operationId: updatePage
+      summary: Change a page's title and slug
+      description: |
+        Requires `pages.structure.manage`. A slug change recomputes the page's address and
+        every descendant's address in the same operation, or refuses the whole change
+        (FR-008). A change that alters any address publishes
+        `Pages.PageAddressesChanged`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdatePageRequest' }
+      responses:
+        '200':
+          description: Saved.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PageDetail' }
+        '400':
+          $ref: '#/components/responses/Problem'
+          description: '`request.invalid`, `pages.invalid_title` or `pages.invalid_slug`.'
+        '404':
+          $ref: '#/components/responses/Problem'
+          description: '`pages.not_found`.'
+        '409':
+          $ref: '#/components/responses/Problem'
+          description: |
+            `pages.duplicate_address`, `pages.reserved_address`,
+            `pages.address_too_long` or `pages.out_of_date`.
+    delete:
+      tags: [Page tree]
+      operationId: deletePage
+      summary: Permanently delete a page that has no children
+      description: |
+        Requires `pages.structure.manage`. The deletion is permanent (FR-014), and it
+        removes the page's draft and usage rows. The remaining siblings keep their order.
+        Publishes `Pages.PageDeleted`.
+      parameters:
+        - $ref: '#/components/parameters/Version'
+      responses:
+        '204': { description: Deleted. }
+        '404':
+          $ref: '#/components/responses/Problem'
+          description: '`pages.not_found`.'
+        '409':
+          $ref: '#/components/responses/Problem'
+          description: |
+            `pages.has_children` (extension `childCount`), `pages.home_page` or
+            `pages.out_of_date`.
+
+  /api/v1/pages/sites/{siteId}/pages/{pageId}/move:
+    parameters:
+      - $ref: '#/components/parameters/SiteId'
+      - $ref: '#/components/parameters/PageId'
+    post:
+      tags: [Page tree]
+      operationId: movePage
+      summary: Move a page, and its subtree, to a parent and position; also reorders siblings
+      description: |
+        Requires `pages.structure.manage`. The page goes after `afterPageId` among the
+        children of `parentId` (`null` means top level), or first when `afterPageId` is
+        `null`. Reordering is a move within the same parent. A move to the page's current
+        place succeeds and changes nothing. Publishes `Pages.PageAddressesChanged` when
+        any address changes.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/MovePageRequest' }
+      responses:
+        '200':
+          description: Moved. Returns the whole tree, because positions and addresses may have changed anywhere in the subtree.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PageTree' }
+        '404':
+          $ref: '#/components/responses/Problem'
+          description: '`pages.not_found` or `pages.parent_not_found`.'
+        '409':
+          $ref: '#/components/responses/Problem'
+          description: |
+            `pages.move_into_descendant`, `pages.too_deep`, `pages.duplicate_address`,
+            `pages.reserved_address`, `pages.address_too_long`,
+            `pages.home_page_must_be_top_level` or `pages.out_of_date`.
+
+  /api/v1/pages/sites/{siteId}/pages/{pageId}/make-home:
+    parameters:
+      - $ref: '#/components/parameters/SiteId'
+      - $ref: '#/components/parameters/PageId'
+    post:
+      tags: [Page tree]
+      operationId: makeHomePage
+      summary: Make a top-level page the site's home page
+      description: |
+        Requires `pages.structure.manage`. The former home page becomes an ordinary
+        top-level page at `/{its slug}`, and both subtrees' addresses are recomputed
+        (P-07). Publishes `Pages.HomePageChanged` and `Pages.PageAddressesChanged`.
+        Doing this on the page that is already home succeeds and changes nothing.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/VersionOnly' }
+      responses:
+        '200':
+          description: Done. Returns the whole tree.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PageTree' }
+        '404':
+          $ref: '#/components/responses/Problem'
+          description: '`pages.not_found`.'
+        '409':
+          $ref: '#/components/responses/Problem'
+          description: |
+            `pages.home_page_must_be_top_level`, `pages.duplicate_address`,
+            `pages.reserved_address`, `pages.address_too_long` or
+            `pages.out_of_date`.
+
+  /api/v1/pages/sites/{siteId}/pages/{pageId}/draft:
+    parameters:
+      - $ref: '#/components/parameters/SiteId'
+      - $ref: '#/components/parameters/PageId'
+    get:
+      tags: [Drafts]
+      operationId: getPageDraft
+      summary: The page's draft document
+      description: Requires `pages.content.view`.
+      responses:
+        '200':
+          description: The draft.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Draft' }
+        '404':
+          $ref: '#/components/responses/Problem'
+          description: '`pages.not_found`.'
+    put:
+      tags: [Drafts]
+      operationId: savePageDraft
+      summary: Replace the page's draft document
+      description: |
+        Requires `pages.page_drafts.edit`. The document is validated against the page
+        schema contract before anything is stored (FR-018). Component references are
+        checked against this site's components, and the page's usage rows are rewritten
+        in the same transaction (P-11). The request body is limited to 1.1 MiB, with the
+        document itself at most 1 MiB. Publishes nothing.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SaveDraftRequest' }
+      responses:
+        '200':
+          description: Saved. Returns the draft with its new `version`.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Draft' }
+        '400':
+          $ref: '#/components/responses/DocumentProblem'
+          description: |
+            `pages.invalid_document` (with `rule` and `pointer`),
+            `pages.unsupported_schema_version` or `pages.unknown_component`.
+        '404':
+          $ref: '#/components/responses/Problem'
+          description: '`pages.not_found`.'
+        '409':
+          $ref: '#/components/responses/Problem'
+          description: '`pages.out_of_date`.'
+        '413':
+          $ref: '#/components/responses/Problem'
+          description: '`pages.document_too_large`.'
+
+  /api/v1/pages/sites/{siteId}/components:
+    parameters:
+      - $ref: '#/components/parameters/SiteId'
+    get:
+      tags: [Components]
+      operationId: listComponents
+      summary: The site's shared components, by name
+      description: Requires `pages.content.view`.
+      responses:
+        '200':
+          description: Possibly empty.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ComponentList' }
+    post:
+      tags: [Components]
+      operationId: createComponent
+      summary: Create a shared component with an empty draft
+      description: Requires `pages.components.manage`. Publishes `Pages.ComponentCreated`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ComponentNameRequest' }
+      responses:
+        '201':
+          description: Created. `Location` points at the component.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Component' }
+        '400':
+          $ref: '#/components/responses/Problem'
+          description: '`request.invalid` or `pages.invalid_component_name`.'
+        '409':
+          $ref: '#/components/responses/Problem'
+          description: '`pages.duplicate_component_name`.'
+
+  /api/v1/pages/sites/{siteId}/components/{componentId}:
+    parameters:
+      - $ref: '#/components/parameters/SiteId'
+      - $ref: '#/components/parameters/ComponentId'
+    get:
+      tags: [Components]
+      operationId: getComponent
+      summary: One component
+      description: Requires `pages.content.view`.
+      responses:
+        '200':
+          description: The component.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Component' }
+        '404':
+          $ref: '#/components/responses/Problem'
+          description: '`pages.component_not_found`.'
+    put:
+      tags: [Components]
+      operationId: renameComponent
+      summary: Rename a component
+      description: |
+        Requires `pages.components.manage`. References use the component's id, so a
+        rename leaves pages untouched.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/ComponentNameRequest'
+                - $ref: '#/components/schemas/VersionOnly'
+      responses:
+        '200':
+          description: Renamed.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Component' }
+        '400':
+          $ref: '#/components/responses/Problem'
+          description: '`request.invalid` or `pages.invalid_component_name`.'
+        '404':
+          $ref: '#/components/responses/Problem'
+          description: '`pages.component_not_found`.'
+        '409':
+          $ref: '#/components/responses/Problem'
+          description: '`pages.duplicate_component_name` or `pages.out_of_date`.'
+    delete:
+      tags: [Components]
+      operationId: deleteComponent
+      summary: Permanently delete a component that no page draft uses
+      description: Requires `pages.components.manage`. Publishes `Pages.ComponentDeleted`.
+      parameters:
+        - $ref: '#/components/parameters/Version'
+      responses:
+        '204': { description: Deleted. }
+        '404':
+          $ref: '#/components/responses/Problem'
+          description: '`pages.component_not_found`.'
+        '409':
+          $ref: '#/components/responses/Problem'
+          description: '`pages.component_in_use` (extension `usageCount`) or `pages.out_of_date`.'
+
+  /api/v1/pages/sites/{siteId}/components/{componentId}/usages:
+    parameters:
+      - $ref: '#/components/parameters/SiteId'
+      - $ref: '#/components/parameters/ComponentId'
+    get:
+      tags: [Components]
+      operationId: listComponentUsages
+      summary: The pages whose drafts reference this component
+      description: Requires `pages.content.view`. Ordered by page address.
+      responses:
+        '200':
+          description: Possibly empty.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/PageReference' }
+        '404':
+          $ref: '#/components/responses/Problem'
+          description: '`pages.component_not_found`.'
+
+  /api/v1/pages/sites/{siteId}/components/{componentId}/draft:
+    parameters:
+      - $ref: '#/components/parameters/SiteId'
+      - $ref: '#/components/parameters/ComponentId'
+    get:
+      tags: [Drafts]
+      operationId: getComponentDraft
+      summary: The component's draft document
+      description: Requires `pages.content.view`.
+      responses:
+        '200':
+          description: The draft.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Draft' }
+        '404':
+          $ref: '#/components/responses/Problem'
+          description: '`pages.component_not_found`.'
+    put:
+      tags: [Drafts]
+      operationId: saveComponentDraft
+      summary: Replace the component's draft document
+      description: |
+        Requires `pages.components.manage`. The same validation, size and version rules
+        apply as for a page draft, and a component document may not contain
+        `component-ref` nodes (FR-027), which gives rule `component_ref_not_allowed`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SaveDraftRequest' }
+      responses:
+        '200':
+          description: Saved.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Draft' }
+        '400':
+          $ref: '#/components/responses/DocumentProblem'
+          description: '`pages.invalid_document` or `pages.unsupported_schema_version`.'
+        '404':
+          $ref: '#/components/responses/Problem'
+          description: '`pages.component_not_found`.'
+        '409':
+          $ref: '#/components/responses/Problem'
+          description: '`pages.out_of_date`.'
+        '413':
+          $ref: '#/components/responses/Problem'
+          description: '`pages.document_too_large`.'
+
+components:
+  parameters:
+    SiteId:
+      name: siteId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    PageId:
+      name: pageId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    ComponentId:
+      name: componentId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    Version:
+      name: version
+      in: query
+      required: true
+      description: The `version` the caller last saw.
+      schema: { type: integer, format: int64, minimum: 0 }
+
+  responses:
+    Problem:
+      description: A refusal in 001's problem shape.
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    DocumentProblem:
+      description: A document refusal. `rule` and `pointer` locate the first failure.
+      content:
+        application/problem+json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/Problem'
+              - type: object
+                properties:
+                  rule:
+                    type: string
+                    description: |
+                      One of `malformed_json`, `duplicate_property`, `schema_violation`,
+                      `unknown_type`, `props_invalid`, `children_not_allowed`,
+                      `root_misplaced`, `duplicate_node_id`, `too_many_nodes`,
+                      `too_deep`, `component_ref_not_allowed` or `unknown_component`.
+                  pointer:
+                    type: string
+                    description: A JSON Pointer into the submitted document, e.g. `/root/children/3/props/componentId`.
+                    examples: ['/root/children/3/props/componentId']
+
+  schemas:
+    Problem:
+      type: object
+      required: [type, title, status, errorCode]
+      properties:
+        type: { type: string }
+        title: { type: string }
+        status: { type: integer }
+        detail: { type: string }
+        errorCode: { type: string }
+        traceId: { type: [string, 'null'] }
+        errors:
+          type: object
+          additionalProperties: { type: array, items: { type: string } }
+
+    Permissions:
+      type: object
+      description: What the caller may do on this site, decided per request (P-13). The server checks every action regardless.
+      required: [canManageStructure, canEditPageDrafts, canManageComponents]
+      properties:
+        canManageStructure: { type: boolean }
+        canEditPageDrafts: { type: boolean }
+        canManageComponents: { type: boolean }
+
+    PageTree:
+      type: object
+      required: [pages, permissions]
+      properties:
+        pages:
+          type: array
+          description: Depth-first, parents before children, siblings by position.
+          items: { $ref: '#/components/schemas/PageNode' }
+        permissions: { $ref: '#/components/schemas/Permissions' }
+
+    PageNode:
+      type: object
+      required: [id, parentId, position, depth, title, slug, path, isHome, childCount, version]
+      properties:
+        id: { type: string, format: uuid }
+        parentId: { type: [string, 'null'], format: uuid }
+        position: { type: integer, minimum: 0 }
+        depth: { type: integer, minimum: 1, maximum: 10 }
+        title: { type: string, maxLength: 200 }
+        slug: { type: string, maxLength: 100, pattern: '^[a-z0-9]+(-[a-z0-9]+)*$' }
+        path:
+          type: string
+          maxLength: 1024
+          description: The page's address within the site, e.g. `/services/hosting`. `/` for the home page.
+        isHome: { type: boolean }
+        childCount: { type: integer, minimum: 0 }
+        version:
+          type: integer
+          description: Send it back with a change to this page.
+
+    PageDetail:
+      allOf:
+        - $ref: '#/components/schemas/PageNode'
+        - type: object
+          required: [draft, createdAtUtc, updatedAtUtc, permissions]
+          properties:
+            draft: { $ref: '#/components/schemas/DraftSummary' }
+            createdAtUtc: { type: string, format: date-time }
+            updatedAtUtc: { type: string, format: date-time }
+            permissions: { $ref: '#/components/schemas/Permissions' }
+
+    CreatePageRequest:
+      type: object
+      required: [title, slug]
+      properties:
+        title: { type: string, minLength: 1, maxLength: 200 }
+        slug: { type: string, minLength: 1, maxLength: 100 }
+        parentId: { type: [string, 'null'], format: uuid, description: Omitted or null means top level. }
+        afterPageId:
+          type: [string, 'null']
+          format: uuid
+          description: Omitted means last among the siblings, and null means first.
+        isHome: { type: boolean, default: false }
+
+    UpdatePageRequest:
+      type: object
+      required: [title, slug, version]
+      properties:
+        title: { type: string }
+        slug: { type: string }
+        version: { type: integer }
+
+    MovePageRequest:
+      type: object
+      required: [parentId, afterPageId, version]
+      properties:
+        parentId: { type: [string, 'null'], format: uuid }
+        afterPageId: { type: [string, 'null'], format: uuid }
+        version: { type: integer }
+
+    VersionOnly:
+      type: object
+      required: [version]
+      properties:
+        version: { type: integer }
+
+    DraftSummary:
+      type: object
+      required: [schemaVersion, version, updatedAtUtc, updatedBy]
+      properties:
+        schemaVersion: { type: integer }
+        version: { type: integer }
+        updatedAtUtc: { type: string, format: date-time }
+        updatedBy: { $ref: '#/components/schemas/UserReference' }
+
+    Draft:
+      allOf:
+        - $ref: '#/components/schemas/DraftSummary'
+        - type: object
+          required: [document]
+          properties:
+            document:
+              type: object
+              description: |
+                The envelope, as stored. Equal as a JSON value to what was saved, though
+                key order may differ (P-08). Defined by
+                docs/contracts/page-schema/v1.schema.json.
+
+    SaveDraftRequest:
+      type: object
+      required: [document, version]
+      properties:
+        document: { type: object }
+        version: { type: integer }
+
+    UserReference:
+      type: object
+      required: [id]
+      properties:
+        id: { type: string, format: uuid }
+        displayName: { type: [string, 'null'], description: From Identity's user directory. Null for a user who no longer exists. }
+
+    ComponentNameRequest:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 100 }
+
+    Component:
+      type: object
+      required: [id, name, usageCount, version, draft, createdAtUtc, updatedAtUtc]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        usageCount: { type: integer, minimum: 0 }
+        version: { type: integer }
+        draft: { $ref: '#/components/schemas/DraftSummary' }
+        createdAtUtc: { type: string, format: date-time }
+        updatedAtUtc: { type: string, format: date-time }
+
+    ComponentList:
+      type: object
+      required: [components, permissions]
+      properties:
+        components:
+          type: array
+          items: { $ref: '#/components/schemas/Component' }
+        permissions: { $ref: '#/components/schemas/Permissions' }
+
+    PageReference:
+      type: object
+      required: [id, title, path]
+      properties:
+        id: { type: string, format: uuid }
+        title: { type: string }
+        path: { type: string }
