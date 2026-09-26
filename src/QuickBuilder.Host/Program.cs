@@ -7,6 +7,7 @@ using QuickBuilder.Host.Observability;
 using QuickBuilder.Host.Routing;
 using QuickBuilder.Identity;
 using QuickBuilder.Media;
+using QuickBuilder.Pages;
 using QuickBuilder.Shared.Infrastructure;
 using QuickBuilder.Shared.Infrastructure.Commands;
 using QuickBuilder.Shared.Infrastructure.Migrations;
@@ -84,6 +85,7 @@ builder.Services.AddTelemetry(builder.Configuration);
 builder.Services.AddSitesModule(builder.Configuration);
 builder.Services.AddIdentityModule(builder.Configuration);
 builder.Services.AddMediaModule(builder.Configuration);
+builder.Services.AddPagesModule(builder.Configuration);
 
 // Controllers live in their modules and are discovered through application parts
 // (constitution Principle I). Minimal APIs are not used anywhere.
@@ -91,7 +93,8 @@ builder.Services
     .AddControllers()
     .AddApplicationPart(typeof(SitesModule).Assembly)
     .AddApplicationPart(typeof(IdentityModule).Assembly)
-    .AddApplicationPart(typeof(MediaModule).Assembly);
+    .AddApplicationPart(typeof(MediaModule).Assembly)
+    .AddApplicationPart(typeof(PagesModule).Assembly);
 
 var app = builder.Build();
 

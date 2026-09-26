@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://quickbuilder.dev/contracts/page-schema/v1.schema.json",
+  "title": "QuickBuilder content document, version 1",
+  "type": "object",
+  "required": ["schemaVersion", "root"],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "root": { "$ref": "#/$defs/root" }
+  },
+  "$defs": {
+    "nodeId": { "type": "string", "pattern": "^[A-Za-z0-9_-]{1,64}$" },
+    "root": {
+      "type": "object",
+      "required": ["id", "type", "props", "children"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "#/$defs/nodeId" },
+        "type": { "const": "root" },
+        "props": { "type": "object", "additionalProperties": false, "properties": {} },
+        "children": { "type": "array", "items": { "$ref": "#/$defs/childNode" } }
+      }
+    },
+    "childNode": {
+      "oneOf": [
+        { "$ref": "#/$defs/component-ref" }
+      ]
+    },
+    "component-ref": {
+      "type": "object",
+      "required": ["id", "type", "props", "children"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "#/$defs/nodeId" },
+        "type": { "const": "component-ref" },
+        "props": {
+          "type": "object",
+          "required": ["componentId"],
+          "additionalProperties": false,
+          "properties": { "componentId": { "type": "string", "format": "uuid" } }
+        },
+        "children": { "type": "array", "maxItems": 0 }
+      }
+    }
+  }
+}

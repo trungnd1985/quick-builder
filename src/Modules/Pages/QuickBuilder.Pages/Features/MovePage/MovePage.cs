@@ -1,0 +1,73 @@
+using Microsoft.AspNetCore.Mvc;
+using QuickBuilder.Pages.Features.UpdatePage;
+using QuickBuilder.Pages.Infrastructure;
+using QuickBuilder.Shared.Infrastructure.Dispatch;
+using QuickBuilder.Shared.Kernel.Authorization;
+using QuickBuilder.Shared.Kernel.Dispatch;
+using QuickBuilder.Shared.Kernel.Results;
+
+namespace QuickBuilder.Pages.Features.MovePage;
+
+/// <summary>
+/// Where a page goes: under <see cref="ParentId"/> (null for the top level), after
+/// <see cref="AfterPageId"/> (null for first), given the <see cref="Version"/> the caller saw.
+/// </summary>
+public sealed record MovePageRequest(Guid? ParentId, Guid? AfterPageId, int Version);
+
+internal sealed record MovePageCommand(Guid SiteId, Guid PageId, Guid? ParentId, Guid? AfterPageId, int Version)
+    : ICommand<Result<PageTreeResponse>>;
+
+/// <summary>
+/// Moves a page and its subtree, or reorders it among its siblings (FR-009, FR-010).
+/// </summary>
+/// <remarks>
+/// Returns the whole tree: positions change around both the old and the new place, and
+/// addresses anywhere in the moved subtree.
+/// </remarks>
+internal sealed class MovePageHandler(PageTreeWrites writes, PageReads reads, PagesAccess access)
+    : ICommandHandler<MovePageCommand, Result<PageTreeResponse>>
+{
+    public async Task<Result<PageTreeResponse>> HandleAsync(MovePageCommand command, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(command);
+
+        if (!await access.SiteExistsAsync(command.SiteId, cancellationToken).ConfigureAwait(false))
+        {
+            return Result.Failure<PageTreeResponse>(PagesErrors.SiteNotFound);
+        }
+
+        var moved = await writes.ChangeAsync(
+            command.SiteId,
+            startIfMissing: false,
+            (tree, actor, clock) => UpdatePageHandler.ToUnit(
+                tree.Move(command.PageId, command.ParentId, command.AfterPageId, command.Version, actor, clock)),
+            beforeSave: null,
+            cancellationToken).ConfigureAwait(false);
+
+        return moved.IsFailure
+            ? Result.Failure<PageTreeResponse>(moved.Error)
+            : Result.Success(await reads.TreeAsync(command.SiteId, cancellationToken).ConfigureAwait(false));
+    }
+}
+
+/// <summary>Administrative surface: move or reorder a page.</summary>
+[ApiController]
+[Route("api/v1/pages/sites/{siteId:guid}/pages/{pageId:guid}/move")]
+public sealed class MovePageController(IDispatcher dispatcher) : ControllerBase
+{
+    [HttpPost]
+    [RequireCapability(PagesCapabilities.StructureManage)]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> MoveAsync(Guid siteId, Guid pageId, MovePageRequest request, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        var result = await dispatcher.SendAsync(
+            new MovePageCommand(siteId, pageId, request.ParentId, request.AfterPageId, request.Version),
+            cancellationToken).ConfigureAwait(false);
+
+        return result.IsFailure ? PagesErrorResults.ToActionResult(result.Error) : Ok(result.Value);
+    }
+}

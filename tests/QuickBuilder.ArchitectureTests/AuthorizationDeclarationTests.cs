@@ -7,6 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 using QuickBuilder.ArchitectureTests.Fixtures;
 using QuickBuilder.Identity;
 using QuickBuilder.Media;
+using QuickBuilder.Pages;
 using QuickBuilder.Shared.Kernel.Authorization;
 using QuickBuilder.Sites;
 using Xunit;
@@ -78,7 +79,8 @@ public sealed class AuthorizationDeclarationTests
         var services = new ServiceCollection()
             .AddSitesModule(configuration)
             .AddIdentityModule(configuration)
-            .AddMediaModule(configuration);
+            .AddMediaModule(configuration)
+            .AddPagesModule(configuration);
 
         return services
             .Where(d => d.ServiceType == typeof(CapabilityDefinition))
