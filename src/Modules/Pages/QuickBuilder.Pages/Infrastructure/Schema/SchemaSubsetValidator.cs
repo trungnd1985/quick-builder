@@ -56,7 +56,7 @@ internal sealed class SchemaSubsetValidator
         using var document = JsonDocument.Parse(schema);
         var root = document.RootElement.Clone();
 
-        if (UnsupportedKeywords(root).FirstOrDefault() is { } unsupported)
+        foreach (var unsupported in UnsupportedKeywords(root).Take(1))
         {
             throw new InvalidOperationException(
                 $"The schema uses '{unsupported.Keyword}' at {unsupported.Location}, which the page schema validator does not support (research P-09).");

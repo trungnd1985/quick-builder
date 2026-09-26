@@ -31,9 +31,10 @@ internal sealed class PageDocumentValidator : IPageDocumentValidator
 
     private static readonly JsonDocumentOptions ParseOptions = new()
     {
-        // Deep enough for any document within MaxNodeDepth (each node level is an object
-        // inside an array); anything deeper fails as too deep.
-        MaxDepth = (PageSchema.MaxNodeDepth * 2) + 16,
+        // Well past any document within MaxNodeDepth (a node level is an object inside an
+        // array, so about two JSON levels), so the structural walk — which can say where —
+        // reports ordinary over-deep documents. Only a pathological one hits this cap.
+        MaxDepth = 256,
     };
 
     private readonly Dictionary<int, SchemaSubsetValidator> _schemas;
@@ -64,7 +65,7 @@ internal sealed class PageDocumentValidator : IPageDocumentValidator
             // A whole-input parse, so anything after the document is refused rather than ignored.
             document = JsonDocument.Parse(utf8Json.ToArray(), ParseOptions);
         }
-        catch (JsonException ex) when (ex.Message.Contains("depth", StringComparison.OrdinalIgnoreCase))
+        catch (JsonException ex) when (ex.Message.Contains("maximum configured depth", StringComparison.OrdinalIgnoreCase))
         {
             return Invalid("too_deep", string.Empty, $"Nodes may be nested at most {PageSchema.MaxNodeDepth} deep.");
         }

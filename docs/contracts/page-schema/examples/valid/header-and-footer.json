@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "root": {
+    "id": "root",
+    "type": "root",
+    "props": {},
+    "children": [
+      { "id": "header", "type": "component-ref", "props": { "componentId": "0192f5a0-1b2c-7d3e-8f40-5a6b7c8d9e0f" }, "children": [] },
+      { "id": "footer", "type": "component-ref", "props": { "componentId": "0192f5a0-1b2c-7d3e-8f40-5a6b7c8d9e10" }, "children": [] }
+    ]
+  }
+}
