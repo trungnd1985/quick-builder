@@ -87,7 +87,9 @@ jobs:
           # 003: upload, public serving, site isolation and the storage provider are
           # critical paths in their own right, so each assembly must clear the bar alone —
           # a well-covered rest of the codebase must not carry an untested new module.
-          for package in QuickBuilder.Media QuickBuilder.Shared.Infrastructure; do
+          # 009: site resolution lives in Sites (directory, aggregate), the kernel (the
+          # host-name rules) and the host (the resolution and admin-host middlewares).
+          for package in QuickBuilder.Media QuickBuilder.Shared.Infrastructure QuickBuilder.Sites QuickBuilder.Shared.Kernel QuickBuilder.Host; do
             package_rate=$(grep -o "<package name=\"${package}\"[^>]*" ./TestResults/merged/Cobertura.xml | grep -o 'line-rate="[0-9.]*"' | grep -o '[0-9.]*' || true)
             if [ -z "${package_rate}" ]; then
               echo "::error::No coverage recorded for ${package}."

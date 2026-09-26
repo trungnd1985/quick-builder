@@ -42,10 +42,16 @@ internal sealed class SiteDirectory(SitesDbContext database, SiteDtoMapper mappe
         // scoped to one. Filtering on status here, in the same statement, is what makes a
         // disabled site's host names indistinguishable from unknown ones, down to the
         // timing (research S-03).
-        var row = await database.Sites
+        //
+        // It starts from the unique host-name index and joins to the site, rather than
+        // asking every site whether it holds the name: a hit or a miss is then one index
+        // probe, whatever the number of sites (SC-007, research S-20).
+        var row = await database.HostNames
             .AsNoTracking()
             .AcrossAllSites("Resolving a host name to a site is what decides which site the request belongs to.")
-            .Where(s => s.Status == SiteStatus.Enabled && s.HostNames.Any(h => h.HostName == normalised))
+            .Where(h => h.HostName == normalised)
+            .Join(database.Sites, h => h.SiteId, s => s.Id, (h, s) => s)
+            .Where(s => s.Status == SiteStatus.Enabled)
             .Select(SiteDtoMapper.Projection)
             .FirstOrDefaultAsync(cancellationToken)
             .ConfigureAwait(false);

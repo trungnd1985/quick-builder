@@ -1,8 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using QuickBuilder.IntegrationTests.Infrastructure;
-using QuickBuilder.Shared.Kernel.MultiSite;
 using QuickBuilder.Shared.Infrastructure.Modules;
+using QuickBuilder.Shared.Kernel.MultiSite;
 using Xunit;
 
 namespace QuickBuilder.IntegrationTests.Sites;

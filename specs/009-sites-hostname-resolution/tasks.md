@@ -402,8 +402,8 @@ uncovered `ISiteOwned` entity to the test-only module makes the build fail and n
 
 ## Phase 8: Polish & Cross-Cutting Concerns
 
-- [ ] T070 [P] Document `Hosting:AdminHostNames` in `docs/configuration.md` under "Hosting and reverse proxies". Cover the default, the effect on `/api` and `/admin`, the `/health` exemption, the conflict check, and recovery by removing the key.
-- [ ] T071 [P] Add "Sites and host names" to `docs/operations.md`:
+- [X] T070 [P] Document `Hosting:AdminHostNames` in `docs/configuration.md` under "Hosting and reverse proxies". Cover the default, the effect on `/api` and `/admin`, the `/health` exemption, the conflict check, and recovery by removing the key.
+- [X] T071 [P] Add "Sites and host names" to `docs/operations.md`:
   - how host names reach sites, including normalisation and IDN;
   - what visitors see for unknown and disabled sites;
   - admin host names, and why they're recommended;
@@ -412,12 +412,12 @@ uncovered `ISiteOwned` entity to the test-only module makes the build fail and n
   - that TLS certificates and DNS are the operator's responsibility (FR-030);
   - the audit delay (S-11);
   - "Upgrading from feature 003", with the plan's five upgrade notes.
-- [ ] T072 [P] Update the E-4 wording in `docs/operations.md` "More than one instance" to match the plan's Complexity Tracking: resolution is multi-instance-correct, and multi-instance still isn't advertised.
-- [ ] T073 Extend `tests/QuickBuilder.SmokeTests/ReferenceDeploymentSmokeTests.cs` (FR-031): create a second site, check that each site's host name reaches its own site, disable one and check that it's no longer served, then re-enable it.
+- [X] T072 [P] Update the E-4 wording in `docs/operations.md` "More than one instance" to match the plan's Complexity Tracking: resolution is multi-instance-correct, and multi-instance still isn't advertised.
+- [X] T073 Extend `tests/QuickBuilder.SmokeTests/ReferenceDeploymentSmokeTests.cs` (FR-031): create a second site, check that each site's host name reaches its own site, disable one and check that it's no longer served, then re-enable it.
 - [ ] T074 [P] Create `tests/QuickBuilder.SmokeTests/SiteResolutionPerformanceTests.cs` under the existing `Performance` category and `docker-compose.perf.yml`. Seed 100 sites with 500 host names, then run 2,000 requests at concurrency 20 each to `GET /` on site hosts and to `/health/live`. Assert that the p95 difference is ≤ 5 ms (SC-007, S-20).
-- [ ] T075 [P] Add `KERNEL/MultiSite/HostNames.cs`, `SITES/Domain/Site.cs` and `HOST/Middleware/SiteResolutionMiddleware.cs` to the critical-path coverage list in the coverage gate configuration used by CI (see the 001 gate), and confirm they're at ≥ 80%.
-- [ ] T076 Run the full suite: `dotnet build` (warnings as errors), `dotnet test` for all four test projects, and `npm test` plus lint in `src/admin`. Fix any analyzer or formatting finding.
-- [ ] T077 Run [quickstart.md](./quickstart.md) §1–§10 against the reference compose deployment, and record the results in `specs/009-sites-hostname-resolution/quickstart-results.md`, as 003 did.
+- [X] T075 [P] Add `KERNEL/MultiSite/HostNames.cs`, `SITES/Domain/Site.cs` and `HOST/Middleware/SiteResolutionMiddleware.cs` to the critical-path coverage list in the coverage gate configuration used by CI (see the 001 gate), and confirm they're at ≥ 80%.
+- [X] T076 Run the full suite: `dotnet build` (warnings as errors), `dotnet test` for all four test projects, and `npm test` plus lint in `src/admin`. Fix any analyzer or formatting finding.
+- [X] T077 Run [quickstart.md](./quickstart.md) §1–§10 against the reference compose deployment, and record the results in `specs/009-sites-hostname-resolution/quickstart-results.md`, as 003 did.
 - [ ] T078 Open the pull request from `009-sites-hostname-resolution` to `main`, titled "Sites and host name resolution (#9)". Its body says "Closes #9" and links to `specs/009-sites-hostname-resolution/spec.md` and `plan.md` (constitution Development Workflow).
 
 ---
