@@ -278,21 +278,21 @@ look like missing pages.
 
 ### Tests for User Story 3 ⚠️ write first, confirm they fail
 
-- [ ] T046 [P] [US3] Write `ITESTS/Sites/SiteResolutionTests.cs`:
+- [X] T046 [P] [US3] Write `ITESTS/Sites/SiteResolutionTests.cs`:
   - A and B resolve with case, trailing dot, port and IDN variants;
   - an unknown host gets the fixed `sites.not_resolved` body;
   - `ICurrentSite.Site` inside a request equals `GET /api/v1/sites/{id}` for that site, and the second read in the same request makes no query (count commands with an EF interceptor);
   - an admin request sees `ICurrentSite.Site == null` (FR-013, FR-015).
-- [ ] T047 [P] [US3] Write `ITESTS/Sites/ResolutionAcrossInstancesTests.cs`, modelled on `ITESTS/Media/DeleteAcrossInstancesTests.cs`. With two apps over one database, warm resolution on instance 2, add, remove and change the primary through instance 1, and assert that instance 2's very next request reflects each change (SC-005, FR-012).
-- [ ] T048 [P] [US3] Write `ITESTS/Sites/ProxyResolutionTests.cs`, the S-14 matrix. Configure `Hosting:KnownProxies`, and use `TestServer`'s remote-address feature to vary the connection address:
+- [X] T047 [P] [US3] Write `ITESTS/Sites/ResolutionAcrossInstancesTests.cs`, modelled on `ITESTS/Media/DeleteAcrossInstancesTests.cs`. With two apps over one database, warm resolution on instance 2, add, remove and change the primary through instance 1, and assert that instance 2's very next request reflects each change (SC-005, FR-012).
+- [X] T048 [P] [US3] Write `ITESTS/Sites/ProxyResolutionTests.cs`, the S-14 matrix. Configure `Hosting:KnownProxies`, and use `TestServer`'s remote-address feature to vary the connection address:
   - a trusted `X-Forwarded-Host` resolves;
   - an untrusted one is ignored;
   - two trusted hops use the outer one;
   - an untrusted outer hop is ignored;
   - a forwarded host with a port or mixed case resolves;
   - forwarded proto and for are honoured only when trusted (SC-006).
-- [ ] T049 [P] [US3] Write `ITESTS/Sites/BasePathTests.cs`: with `Hosting:BasePath=/cms`, the public `/cms/`, the admin `/cms/api/v1/sites` and a media address under `/cms/_media/…` all work, and `baseUrl` ends with `/cms` (FR-017).
-- [ ] T050 [P] [US3] Write `ITESTS/Sites/AdminHostNameTests.cs`, with `Hosting:AdminHostNames:0=admin.test`:
+- [X] T049 [P] [US3] Write `ITESTS/Sites/BasePathTests.cs`: with `Hosting:BasePath=/cms`, the public `/cms/`, the admin `/cms/api/v1/sites` and a media address under `/cms/_media/…` all work, and `baseUrl` ends with `/cms` (FR-017).
+- [X] T050 [P] [US3] Write `ITESTS/Sites/AdminHostNameTests.cs`, with `Hosting:AdminHostNames:0=admin.test`:
   - on `admin.test`, `/api` and `/admin` work;
   - on a site host, `/admin/`, `/admin/sites` and `/api/v1/sites` answer byte-identically to `/no-such-page` on that host, and no endpoint runs (assert no authentication cookie is read, through a log or counter hook);
   - on an unknown host, they get `sites.not_resolved`;
@@ -301,21 +301,21 @@ look like missing pages.
   - with an empty list, the old behaviour holds;
   - a configured admin host name held by a site fails startup with a message naming `Hosting:AdminHostNames`;
   - an invalid entry fails startup (FR-018a).
-- [ ] T051 [P] [US3] Add `FindByHostNameAsync_is_called_only_by_the_site_resolution_middleware` to `tests/QuickBuilder.ArchitectureTests/ModuleBoundaryTests.cs`. Also assert that `KERNEL/MultiSite/HostNames` references nothing outside the BCL, and prove the rule fires in `RulesFireWhenBrokenTests.cs` with a fixture.
-- [ ] T052 [P] [US3] Extend `ITESTS/Observability/LoggingTests.cs`: across unknown-host, disabled-host, admin-host-confinement and proxy requests, no captured log line contains the requested host name (FR-032).
+- [X] T051 [P] [US3] Add `tests/QuickBuilder.ArchitectureTests/SiteResolutionRuleTests.cs` (IL scan with Mono.Cecil): `FindByHostNameAsync` is called only by the host's resolution middlewares. Also assert that `KERNEL/MultiSite/HostNames` references nothing outside the BCL, and prove the rule fires in `RulesFireWhenBrokenTests.cs` with a fixture.
+- [X] T052 [P] [US3] Extend `ITESTS/Observability/LoggingTests.cs`: across unknown-host, disabled-host, admin-host-confinement and proxy requests, no captured log line contains the requested host name (FR-032).
 
 ### Implementation for User Story 3
 
-- [ ] T053 [US3] Add `AdminHostNames` to `HOST/Configuration/HostingOptions.cs`, with an options validator that normalises each entry through `HostNames.TryNormalise`, fails startup naming `Hosting:AdminHostNames` for an invalid entry, and exposes the normalised set.
-- [ ] T054 [P] [US3] Create `HOST/Middleware/PublicNotFound.cs`: one fixed `404` problem body for "no such public path on this site" (`errorCode: "public.not_found"`), written with no request data. Register a public fallback endpoint in `HOST/Program.cs` that matches only paths outside `/api`, `/admin`, `/health` and `/_media`, ordered after `MapControllers`. Unknown paths under `/api` keep their current admin-surface 404, `/_media` misses keep Media's 404, and `/admin/*` keeps the SPA fallback. The response is `PublicNotFound` in contracts/sites-api.yaml.
-- [ ] T055 [US3] Rewrite the surface decision in `HOST/Middleware/SiteResolutionMiddleware.cs`, following contracts/site-context.md §1:
+- [X] T053 [US3] Add `AdminHostNames` to `HOST/Configuration/HostingOptions.cs`, with an options validator that normalises each entry through `HostNames.TryNormalise`, fails startup naming `Hosting:AdminHostNames` for an invalid entry, and exposes the normalised set.
+- [X] T054 [P] [US3] Create `HOST/Middleware/PublicResponses.cs` (both fixed public answers) and `HOST/Middleware/AdminHostConfinementMiddleware.cs`, which runs before the security headers and static files: one fixed `404` problem body for "no such public path on this site" (`errorCode: "public.not_found"`), written with no request data. Answer unmatched public paths from the resolution middleware when routing found no endpoint (a fallback endpoint would be a minimal API, which the constitution rules out), for paths outside `/api`, `/admin`, `/health` and `/_media`. Unknown paths under `/api` keep their current admin-surface 404, `/_media` misses keep Media's 404, and `/admin/*` keeps the SPA fallback. The response is `PublicNotFound` in contracts/sites-api.yaml.
+- [X] T055 [US3] Rewrite the surface decision in `HOST/Middleware/SiteResolutionMiddleware.cs`, following contracts/site-context.md §1:
   - `/health` passes through untouched;
   - reserved admin prefixes on an allowed host pass through as the admin surface;
   - reserved admin prefixes on any other host (when the list is non-empty) resolve the site, then write `sites.not_resolved` or `PublicNotFound`, without calling `next`;
   - everything else resolves through `FindByHostNameAsync`, which now returns enabled sites only.
 
   Keep the existing no-host-in-logs rule.
-- [ ] T056 [US3] In `HOST/Startup/StartupTasks.cs`:
+- [X] T056 [US3] In `HOST/Startup/StartupTasks.cs`:
   - set `ForwardLimit = null` in `ProxySetup.BuildOptions` (S-14), with a comment on why untrusted hops still stop processing;
   - after migrations, fail startup when any normalised admin host name is held by a site, naming the key and the host name (S-13). Read the host names through `ISiteDirectory`, and add `Task<bool> IsHostNameTakenAsync(string)` to `SITESC/SiteDto.cs`'s `ISiteDirectory` for this. It is additive. Implement it in `SITES/Infrastructure/SiteDirectory.cs` as an `AnyAsync` over `HostNames.AcrossAllSites(reason)`. Run this task after T013, because both edit `SITESC/SiteDto.cs`.
 

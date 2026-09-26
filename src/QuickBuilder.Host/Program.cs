@@ -45,6 +45,7 @@ builder.Services
     .Bind(builder.Configuration.GetSection(HostingOptions.SectionName))
     .ValidateDataAnnotations()
     .ValidateOnStart();
+builder.Services.AddSingleton<IValidateOptions<HostingOptions>, HostingOptionsValidator>();
 
 builder.Services
     .AddOptions<OutboxOptions>()
@@ -105,10 +106,12 @@ if (commandExitCode is { } exitCode)
 }
 
 await StartupTasks.RunMigrationsAsync(app).ConfigureAwait(false);
+await StartupTasks.CheckAdminHostNamesAsync(app).ConfigureAwait(false);
 
 // --- Pipeline ----------------------------------------------------------------------
 // Order matters and is asserted by tests rather than left to reading:
-//   forwarded headers -> base path -> exceptions -> security headers -> static files
+//   forwarded headers -> base path -> exceptions -> admin host confinement -> security
+//   headers -> static files
 //   -> routing -> site resolution -> authentication -> Identity module (setup gate,
 //   request guard) -> authorization -> endpoints
 //
@@ -124,6 +127,10 @@ if (!string.IsNullOrEmpty(hosting.BasePath))
 }
 
 app.UseMiddleware<ExceptionHandlingMiddleware>();
+
+// 009 FR-018a: before the security headers and static files, either of which would give
+// the administrative surface away on a client domain (research S-13).
+app.UseMiddleware<AdminHostConfinementMiddleware>();
 app.UseMiddleware<SecurityHeadersMiddleware>();
 
 // Serves the built admin assets from wwwroot/admin.

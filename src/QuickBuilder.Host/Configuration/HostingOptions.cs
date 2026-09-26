@@ -1,4 +1,6 @@
 using System.ComponentModel.DataAnnotations;
+using Microsoft.Extensions.Options;
+using QuickBuilder.Shared.Kernel.MultiSite;
 
 namespace QuickBuilder.Host.Configuration;
 
@@ -29,6 +31,25 @@ public sealed class HostingOptions
 
     /// <summary>Trusted proxy networks in CIDR form, e.g. <c>10.0.0.0/8</c>.</summary>
     public IList<string> KnownNetworks { get; } = [];
+
+    /// <summary>
+    /// Host names on which the administrative surface answers (009 FR-018a). Empty, the
+    /// default, means every host name.
+    /// </summary>
+    /// <remarks>
+    /// When set, <c>/api</c> and <c>/admin</c> on any other host name are treated as public
+    /// requests and answered like a missing page, so a client's domain does not expose a
+    /// sign-in page. <c>/health</c> answers everywhere. Entries are normalised like site
+    /// host names; an invalid one, or one a site holds, stops startup (research S-13).
+    /// </remarks>
+    public IList<string> AdminHostNames { get; } = [];
+
+    /// <summary>The admin host names in normalised form. Empty when none are configured.</summary>
+    public IReadOnlySet<string> NormalisedAdminHostNames() =>
+        AdminHostNames
+            .Select(h => HostNames.TryNormalise(h, out var normalised) ? normalised : null)
+            .OfType<string>()
+            .ToHashSet(StringComparer.Ordinal);
 
     /// <summary>
     /// The address operators use to reach this installation, e.g.
@@ -85,4 +106,30 @@ public sealed class AdminOptions
     [Required]
     [RegularExpression("^/[A-Za-z0-9._~-]+$", ErrorMessage = "Admin:PathPrefix must start with '/'.")]
     public string PathPrefix { get; set; } = "/admin";
+}
+
+/// <summary>
+/// Checks what data annotations cannot express for <see cref="HostingOptions"/>.
+/// </summary>
+/// <remarks>
+/// Each admin host name must be a host name by the same rule sites use (009 research S-04):
+/// a port, scheme, path or wildcard stops startup, naming the key, rather than silently
+/// never matching and leaving the admin surface reachable nowhere.
+/// </remarks>
+internal sealed class HostingOptionsValidator : IValidateOptions<HostingOptions>
+{
+    public ValidateOptionsResult Validate(string? name, HostingOptions options)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+
+        var failures = options.AdminHostNames
+            .Select((value, index) => (value, index))
+            .Where(entry => !HostNames.TryNormalise(entry.value, out _))
+            .Select(entry =>
+                $"Hosting:AdminHostNames:{entry.index} ('{entry.value}') is not a host name. Use a " +
+                "name such as admin.example.com, without a scheme, port, path or wildcard.")
+            .ToList();
+
+        return failures.Count == 0 ? ValidateOptionsResult.Success : ValidateOptionsResult.Fail(failures);
+    }
 }

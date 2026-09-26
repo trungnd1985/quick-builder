@@ -30,7 +30,8 @@ public sealed class HostNameManagementTests(DatabaseFixture database) : IAsyncLi
         _app = new QuickBuilderApp(
             await database.CreateDatabaseAsync("host-names").ConfigureAwait(false),
             settings: new Dictionary<string, string> { ["Hosting:AdminHostNames:0"] = "admin.test" });
-        _admin = await _app.CreateAdminClientAsync().ConfigureAwait(false);
+        // With admin host names configured, the administrative surface answers only there.
+        _admin = await _app.CreateAdminClientAsync("admin.test").ConfigureAwait(false);
     }
 
     public Task DisposeAsync()

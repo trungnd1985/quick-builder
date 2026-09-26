@@ -173,6 +173,48 @@ public sealed class LoggingTests(DatabaseFixture database) : IAsyncLifetime
     }
 
     /// <summary>
+    /// 009 FR-032: requested host names never reach the logs — not for unknown hosts, not
+    /// for disabled sites, not for admin paths turned away from a client domain, not for
+    /// forwarded headers. A probe's host name is exactly what someone mapping an
+    /// installation would want confirmed.
+    /// </summary>
+    [Fact]
+    public async Task Site_resolution_never_logs_a_requested_host_name()
+    {
+        const string Canary = "zz-host-canary";
+        using var app = new QuickBuilderApp(
+            await database.CreateDatabaseAsync("logging-hosts").ConfigureAwait(true),
+            settings: new Dictionary<string, string>
+            {
+                ["Hosting:AdminHostNames:0"] = "admin.test",
+                ["Hosting:KnownProxies:0"] = "10.0.0.1",
+            });
+        var admin = await app.CreateAdminClientAsync("admin.test").ConfigureAwait(true);
+        var disabled = (await Sites.SitesApi.CreateOkAsync(admin, "Quiet", [$"{Canary}-disabled.test"]).ConfigureAwait(true)).GetProperty("id").GetGuid();
+        await Sites.SitesApi.CreateOkAsync(admin, "Client", [$"{Canary}-client.test"]).ConfigureAwait(true);
+        await Sites.SitesApi.DisableAsync(admin, disabled).ConfigureAwait(true);
+
+        await Sites.SitesApi.PublicGetAsync(app, $"{Canary}-unknown.test").ConfigureAwait(true);
+        await Sites.SitesApi.PublicGetAsync(app, $"{Canary}-disabled.test").ConfigureAwait(true);
+        await Sites.SitesApi.PublicGetAsync(app, $"{Canary}-client.test", "/admin/").ConfigureAwait(true);
+        await Sites.SitesApi.PublicGetAsync(app, $"{Canary}-client.test", "/api/v1/sites").ConfigureAwait(true);
+        await Sites.SitesApi.PublicGetAsync(app, $"{Canary}-client.test", "/no-such-page").ConfigureAwait(true);
+
+        using var forwarded = new HttpRequestMessage(HttpMethod.Get, new Uri("/", UriKind.Relative));
+        forwarded.Headers.Host = "internal.local";
+        forwarded.Headers.Add(IdentitySeed.RemoteAddressHeader, "10.0.0.1");
+        forwarded.Headers.Add("X-Forwarded-Host", $"{Canary}-forwarded.test");
+        forwarded.Headers.Add("X-Forwarded-For", "203.0.113.1");
+        await app.CreateAnonymousClient().SendAsync(forwarded).ConfigureAwait(true);
+
+        var events = app.Logs.Events.Select(LogCapture.Render).ToList();
+        Assert.NotEmpty(events);
+
+        var leak = events.FirstOrDefault(e => e.Contains(Canary, StringComparison.OrdinalIgnoreCase));
+        Assert.True(leak is null, $"A log event contains a requested host name: {leak}");
+    }
+
+    /// <summary>
     /// 002 SC-009, FR-030: the identity journeys leave no personal data or secret in the logs.
     /// </summary>
     /// <remarks>
