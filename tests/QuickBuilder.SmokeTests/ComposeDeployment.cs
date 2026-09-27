@@ -25,7 +25,17 @@ public sealed class DeploymentGroup
 /// </param>
 internal sealed class ComposeDeployment(params string[] overrideFiles)
 {
-    public const string BaseAddress = "http://127.0.0.1:8080";
+    /// <summary>
+    /// The compose project the tests run as. Never the default: that is the operator's own
+    /// deployment of this checkout (<c>quick-builder</c>), and <c>down -v</c> below would delete
+    /// its database and media volumes.
+    /// </summary>
+    public const string ProjectName = "quickbuilder-smoke";
+
+    /// <summary>Published on its own port, so it can run while a real deployment holds 8080.</summary>
+    public const int Port = 18080;
+
+    public const string BaseAddress = "http://127.0.0.1:18080";
 
     private static readonly TimeSpan ReadyTimeout = TimeSpan.FromMinutes(3);
 
@@ -74,7 +84,7 @@ internal sealed class ComposeDeployment(params string[] overrideFiles)
 
     /// <summary>Runs <c>docker compose</c> with this deployment's files.</summary>
     public Task<(int ExitCode, string Output)> ComposeAsync(string arguments) =>
-        RunAsync("docker", $"compose {_files}{arguments}");
+        RunAsync("docker", $"compose -p {ProjectName} {_files}{arguments}");
 
     /// <summary>
     /// Finds the setup code in the container's log stream, as an operator would with
@@ -142,6 +152,7 @@ internal sealed class ComposeDeployment(params string[] overrideFiles)
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
                 UseShellExecute = false,
+                Environment = { ["QUICKBUILDER_PORT"] = Port.ToString(System.Globalization.CultureInfo.InvariantCulture) },
             },
         };
 

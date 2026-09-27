@@ -87,7 +87,9 @@ services:
       - media-data:/var/lib/quickbuilder/media
     ports:
       # 127.0.0.1 — see the warning at the top of this file.
-      - "127.0.0.1:8080:8080"
+      # QUICKBUILDER_PORT changes the host port (default 8080). The smoke tests use it to
+      # run beside a real deployment without touching it.
+      - "127.0.0.1:${QUICKBUILDER_PORT:-8080}:8080"
     healthcheck:
       test: ["CMD-SHELL", "wget --quiet --spider http://127.0.0.1:8080/health/ready || exit 1"]
       interval: 10s
