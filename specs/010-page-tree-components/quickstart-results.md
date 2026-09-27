@@ -28,6 +28,20 @@ is a developer workstation. Only the performance test ran under the reference li
 92 admin, and smoke plus page tree performance on the built image. Merged line coverage is
 93.0%, and `QuickBuilder.Pages` is at 95.9% (gate 80%).
 
+## Known failure from an earlier feature
+
+A full `dotnet test` run fails one of the six smoke tests:
+`MediaPerformanceTests.Uploads_serving_and_paging_meet_their_targets`. It checks 003's SC-008,
+which says other admin requests must stay within 2× their idle p95 while ten 20 MiB uploads
+run. On this workstation they went from **6 ms to 30 ms**. The test's other checks passed: a
+10 MB upload in 34 ms, a first-byte p95 of 57 ms, and media paging in 5–8 ms.
+
+This branch did not cause it, and it does not block the merge. 003's own run recorded the
+same result, 5–6 ms against 27–28 ms, and put it down to Docker Desktop's shared VM. This
+branch does not touch the media module. CI skips the smoke tests. Re-measuring on reference
+Linux hardware is tracked in
+[#28](https://github.com/trungnd1985/quick-builder/issues/28).
+
 ## Not done by hand
 
 These need a person with a browser. They are the only open part of T097:
