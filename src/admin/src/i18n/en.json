@@ -68,7 +68,11 @@
       "retry": "Try again",
       "baseUrl": "Base URL",
       "disabledNotice": "This site is disabled. Visitors see \"not found\" at all of its host names. You can keep working on it here.",
-      "readOnly": "You can view this site's settings. Only an administrator can change them."
+      "readOnly": "You can view this site's settings. Only an administrator can change them.",
+      "sections": "Work on this site",
+      "pages": "Pages",
+      "components": "Shared components",
+      "media": "Media library"
     },
     "settings": {
       "heading": "Settings",
@@ -212,6 +216,160 @@
       "deleting": "Deleting…",
       "done": "{name} was deleted",
       "failed": "Could not delete {name}"
+    }
+  },
+  "pages": {
+    "back": "Site settings",
+    "heading": "Pages",
+    "intro": "The page structure of {site}. Addresses are built from each page's slug and its parents'.",
+    "loading": "Loading pages…",
+    "errorTitle": "Could not load the pages",
+    "retry": "Try again",
+    "empty": "This site has no pages yet. Add the home page to start.",
+    "readOnly": "You can view this site's pages. Only a designer can change their structure.",
+    "table": {
+      "caption": "Pages of {site}, in site order",
+      "title": "Page",
+      "address": "Address",
+      "level": "Level {level}",
+      "select": "Select {title}",
+      "selected": "selected",
+      "home": "Home"
+    },
+    "actions": {
+      "heading": "Selected page: {title}",
+      "none": "Select a page to see what you can do with it.",
+      "addPage": "Add page",
+      "addChild": "Add child page",
+      "rename": "Rename",
+      "moveUp": "Move up",
+      "moveDown": "Move down",
+      "moveTo": "Move to…",
+      "makeHome": "Make home page",
+      "delete": "Delete"
+    },
+    "details": {
+      "heading": "Draft",
+      "schemaVersion": "Schema version {version}",
+      "lastSaved": "Last saved {when} by {who}",
+      "unknownUser": "an unknown user",
+      "editorLater": "The content of pages is edited in the visual editor, which is not available yet."
+    },
+    "form": {
+      "createTitle": "Add a page",
+      "createChildTitle": "Add a page under {parent}",
+      "renameTitle": "Rename {title}",
+      "title": "Title",
+      "slug": "Slug",
+      "slugHelp": "Lowercase letters, digits and hyphens. The address will be {address}.",
+      "slugInvalid": "Use lowercase letters, digits and single hyphens, without a hyphen at the start or end.",
+      "isHome": "This is the home page (its address is /)",
+      "create": "Create page",
+      "save": "Save",
+      "saving": "Saving…",
+      "cancel": "Cancel"
+    },
+    "move": {
+      "title": "Move {title}",
+      "parent": "Parent",
+      "topLevel": "Top level (no parent)",
+      "position": "Position",
+      "first": "First",
+      "after": "After {title}",
+      "move": "Move",
+      "moving": "Moving…",
+      "cancel": "Cancel"
+    },
+    "confirm": {
+      "deleteTitle": "Delete {title}?",
+      "deleteBody": "The page {address} and its draft are deleted permanently. There is no undo.",
+      "delete": "Delete page",
+      "deleting": "Deleting…",
+      "makeHomeTitle": "Make {title} the home page?",
+      "makeHomeBody": "{title} will be at /, and the current home page will move to its own address. Addresses under both pages change too.",
+      "makeHome": "Make home page",
+      "working": "Working…",
+      "cancel": "Cancel"
+    },
+    "status": {
+      "created": "{title} added.",
+      "renamed": "{title} saved.",
+      "moved": "{title} moved.",
+      "madeHome": "{title} is now the home page.",
+      "deleted": "{title} deleted."
+    },
+    "outOfDate": "Someone else changed this page while you were working. Reload to see their changes, then try again.",
+    "reload": "Reload",
+    "errors": {
+      "invalid": "Check the title and slug and try again.",
+      "forbidden": "You are not allowed to do this on this site.",
+      "unknown": "Something went wrong. Try again.",
+      "invalid_title": "A title must be between 1 and 200 characters.",
+      "invalid_slug": "Use lowercase letters, digits and single hyphens, without a hyphen at the start or end.",
+      "duplicate_address": "Another page already has this address. {detail}",
+      "reserved_address": "This address is reserved by the platform. Choose another slug.",
+      "address_too_long": "The address would be too long.",
+      "too_deep": "Pages can be nested at most 10 levels deep.",
+      "too_many_pages": "This site already has the most pages it can hold (2,000).",
+      "move_into_descendant": "A page cannot be moved under itself or one of its own pages.",
+      "parent_not_found": "That page no longer exists. Reload and try again.",
+      "home_page_exists": "This site already has a home page. Use \"Make home page\" instead.",
+      "home_page_must_be_top_level": "The home page must be a top-level page.",
+      "has_children": "This page has {count} child page(s). Move or delete them first.",
+      "home_page": "The home page cannot be deleted while the site has other pages. Make another page the home page first.",
+      "out_of_date": "Someone else changed this page while you were working. Reload and try again.",
+      "not_found": "That page no longer exists. Reload and try again.",
+      "component_not_found": "That component no longer exists. Reload and try again.",
+      "invalid_component_name": "A component name must be between 1 and 100 characters.",
+      "duplicate_component_name": "This site already has a component with that name.",
+      "component_in_use": "This component is used by {count} page(s). Remove it from them first."
+    }
+  },
+  "components": {
+    "back": "Site settings",
+    "heading": "Shared components",
+    "intro": "Pieces such as a header or footer that many pages of {site} reuse. Pages refer to a component, so changing it once changes it everywhere.",
+    "loading": "Loading components…",
+    "errorTitle": "Could not load the components",
+    "retry": "Try again",
+    "empty": "This site has no shared components yet.",
+    "readOnly": "You can view this site's components. Only a designer can change them.",
+    "table": {
+      "caption": "Shared components of {site}",
+      "name": "Name",
+      "usedBy": "Used by",
+      "usage": "{count} page | {count} pages",
+      "actions": "Actions"
+    },
+    "create": {
+      "heading": "New component",
+      "name": "Component name",
+      "create": "Create component",
+      "creating": "Creating…"
+    },
+    "rename": "Rename {name}",
+    "renameHeading": "Rename {name}",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete {name}",
+    "showUsages": "Pages using {name}",
+    "usages": {
+      "heading": "Pages using {name}",
+      "loading": "Loading…",
+      "none": "No page uses this component.",
+      "close": "Close"
+    },
+    "confirm": {
+      "deleteTitle": "Delete {name}?",
+      "deleteBody": "The component and its draft are deleted permanently. There is no undo.",
+      "delete": "Delete component",
+      "deleting": "Deleting…",
+      "cancel": "Cancel"
+    },
+    "status": {
+      "created": "{name} created.",
+      "renamed": "{name} saved.",
+      "deleted": "{name} deleted."
     }
   },
   "settings": {
