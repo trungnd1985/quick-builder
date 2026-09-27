@@ -61,15 +61,15 @@ feature adds the `Pages` module. Shorthand used below:
 **Purpose**: the feature's documents, the two projects and their wiring. Nothing here has
 behaviour.
 
-- [ ] T001 Commit `specs/010-page-tree-components/` (spec, plan, research, data model, contracts, quickstart, checklist, tasks) as the first commit on branch `010-page-tree-components` at the repository root, referencing #10 (plan.md "Development Workflow")
-- [ ] T002 Create `PAGESC/QuickBuilder.Pages.Contracts.csproj`, referencing only `src/Shared/QuickBuilder.Shared.Kernel`, and `PAGES/QuickBuilder.Pages.csproj`, referencing `PAGESC`, `Shared.Kernel`, `Shared.Infrastructure`, `QuickBuilder.Sites.Contracts` and `QuickBuilder.Identity.Contracts`. Copy the property groups and the `InternalsVisibleTo` entries (UnitTests, IntegrationTests) from `src/Modules/Media/QuickBuilder.Media/QuickBuilder.Media.csproj`. Add both projects to `QuickBuilder.slnx`.
-- [ ] T003 [P] Add `ProjectReference`s to both Pages projects in:
+- [X] T001 Commit `specs/010-page-tree-components/` (spec, plan, research, data model, contracts, quickstart, checklist, tasks) as the first commit on branch `010-page-tree-components` at the repository root, referencing #10 (plan.md "Development Workflow")
+- [X] T002 Create `PAGESC/QuickBuilder.Pages.Contracts.csproj`, referencing only `src/Shared/QuickBuilder.Shared.Kernel`, and `PAGES/QuickBuilder.Pages.csproj`, referencing `PAGESC`, `Shared.Kernel`, `Shared.Infrastructure`, `QuickBuilder.Sites.Contracts` and `QuickBuilder.Identity.Contracts`. Copy the property groups and the `InternalsVisibleTo` entries (UnitTests, IntegrationTests) from `src/Modules/Media/QuickBuilder.Media/QuickBuilder.Media.csproj`. Add both projects to `QuickBuilder.slnx`.
+- [X] T003 [P] Add `ProjectReference`s to both Pages projects in:
   - `ITESTS/QuickBuilder.IntegrationTests.csproj`;
   - `UTESTS/QuickBuilder.UnitTests.csproj`;
   - `ATESTS/QuickBuilder.ArchitectureTests.csproj`.
 
   Add `PAGES` to `HOST/QuickBuilder.Host.csproj`.
-- [ ] T004 [P] Add `typeof(Pages.PagesModule).Assembly` and the `Pages.Contracts` assembly to the module and contract assembly lists in `ATESTS/ModuleBoundaryTests.cs`, next to Media's entries at lines 28 and 36. Add an assertion that `QuickBuilder.Pages.Contracts` references nothing but `Shared.Kernel` and the BCL.
+- [X] T004 [P] Add `typeof(Pages.PagesModule).Assembly` and the `Pages.Contracts` assembly to the module and contract assembly lists in `ATESTS/ModuleBoundaryTests.cs`, next to Media's entries at lines 28 and 36. Add an assertion that `QuickBuilder.Pages.Contracts` references nothing but `Shared.Kernel` and the BCL.
 
 ---
 
@@ -87,24 +87,24 @@ behaviour.
 
 ### Contract constants and the schema file (P-04, P-09, P-10)
 
-- [ ] T005 [P] Create `CONTRACTS/page-schema/v1.schema.json` as the schema in [contracts/page-schema.md §7](./contracts/page-schema.md#7-the-schema-version-1), byte for byte.
-- [ ] T006 [P] Create `PAGESC/PageAddresses.cs` (public static):
+- [X] T005 [P] Create `CONTRACTS/page-schema/v1.schema.json` as the schema in [contracts/page-schema.md §7](./contracts/page-schema.md#7-the-schema-version-1), byte for byte.
+- [X] T006 [P] Create `PAGESC/PageAddresses.cs` (public static):
   - `ReservedFirstSegments = ["api", "admin", "health"]`;
   - `MaxSlugLength = 100`, `MaxPathLength = 1024`, `MaxDepth = 10`, `MaxPagesPerSite = 2000`;
   - `IsValidSlug(string?)` using the generated regex `^[a-z0-9]+(-[a-z0-9]+)*$` and the length limit.
-- [ ] T007 [P] Create `PAGESC/PageSchema.cs` (public static):
+- [X] T007 [P] Create `PAGESC/PageSchema.cs` (public static):
   - `CurrentVersion = 1` and `SupportedVersions = {1}`;
   - `MaxDocumentBytes = 1_048_576`, `MaxNodes = 5000`, `MaxNodeDepth = 32`, `MaxNodeIdLength = 64`;
   - `Stream OpenSchema(int version)`, which reads the embedded resource.
 
   Embed `CONTRACTS/page-schema/v1.schema.json` in `PAGESC/QuickBuilder.Pages.Contracts.csproj` as `<EmbeddedResource Include="..\..\..\..\docs\contracts\page-schema\*.schema.json" LogicalName="QuickBuilder.Pages.Contracts.PageSchema.%(Filename)%(Extension)" />`, so that the file itself, not a copy, is what ships (P-09). `OpenSchema(1)` opens `QuickBuilder.Pages.Contracts.PageSchema.v1.schema.json` and throws `ArgumentOutOfRangeException` for an unsupported version.
-- [ ] T008 [P] Create `PAGESC/IPageDocumentValidator.cs`:
+- [X] T008 [P] Create `PAGESC/IPageDocumentValidator.cs`:
   - `IPageDocumentValidator.Validate(ReadOnlySpan<byte> utf8Json, DocumentKind kind)`;
   - `enum DocumentKind { Page, Component }`;
   - `sealed record DocumentValidationResult`: on success it carries `SchemaVersion`, `IReadOnlySet<Guid> ReferencedComponentIds` and the parsed `JsonElement`; on failure it carries `Code`, `Rule` and `Pointer`.
 
   Write the XML docs from contracts/page-schema.md §3.
-- [ ] T009 [P] Create the six integration events in `PAGESC/Events/`, each a record implementing `IIntegrationEvent` with a static `EventType`, mirroring `src/Modules/Sites/QuickBuilder.Sites.Contracts/Events/SiteDisabled.cs` and its "names are permanent" remark. The payloads are those in the data-model.md events table:
+- [X] T009 [P] Create the six integration events in `PAGESC/Events/`, each a record implementing `IIntegrationEvent` with a static `EventType`, mirroring `src/Modules/Sites/QuickBuilder.Sites.Contracts/Events/SiteDisabled.cs` and its "names are permanent" remark. The payloads are those in the data-model.md events table:
   - `PageCreated.cs`
   - `PageDeleted.cs`
   - `PageAddressesChanged.cs`, with `IReadOnlyList<PageAddressChange> Changes`
@@ -114,8 +114,8 @@ behaviour.
 
 ### Domain shells and mapping (P-02, P-08, P-11, data-model.md)
 
-- [ ] T010 [P] Create `PAGES/Domain/AggregateRoot.cs`: an internal abstract class with a private `List<IDomainEvent>`, `protected void Raise(IDomainEvent)`, `IReadOnlyList<IDomainEvent> DomainEvents` and `ClearDomainEvents()`. Also create the marker `internal interface IDomainEvent` in `PAGES/Domain/Events/IDomainEvent.cs` (P-14).
-- [ ] T011 [P] Create the entity shells with their properties, private EF constructors and **no behaviour yet**:
+- [X] T010 [P] Create `PAGES/Domain/AggregateRoot.cs`: an internal abstract class with a private `List<IDomainEvent>`, `protected void Raise(IDomainEvent)`, `IReadOnlyList<IDomainEvent> DomainEvents` and `ClearDomainEvents()`. Also create the marker `internal interface IDomainEvent` in `PAGES/Domain/Events/IDomainEvent.cs` (P-14).
+- [X] T011 [P] Create the entity shells with their properties, private EF constructors and **no behaviour yet**:
   - `PAGES/Domain/PageTree.cs` (root: `SiteId`, `PageCount`, `UpdatedAtUtc`, `uint Version`, `List<Page> _pages`);
   - `PAGES/Domain/Page.cs` (every column in data-model.md; `ISiteOwned`);
   - `PAGES/Domain/Draft.cs` (abstract: `SiteId`, `SchemaVersion`, `string Document`, `UpdatedAtUtc`, `UpdatedBy`, `uint Version`; `ISiteOwned`);
@@ -125,7 +125,7 @@ behaviour.
   - `PAGES/Domain/ComponentUsage.cs` (`SiteId`, `PageId`, `ComponentId`; `ISiteOwned`).
 
   `PageTree` implements `ISiteOwned`. `PageTree`, `Component`, `PageDraft` and `ComponentDraft` derive from `AggregateRoot` (data-model.md "Aggregates"). `Page` is a plain internal entity inside `PageTree`: its setters are private, it is changed only through `PageTree` methods, and it never raises events itself.
-- [ ] T012 Create `PAGES/Infrastructure/PagesDbContext.cs`, following `src/Modules/Media/QuickBuilder.Media/Infrastructure/MediaDbContext.cs`:
+- [X] T012 Create `PAGES/Infrastructure/PagesDbContext.cs`, following `src/Modules/Media/QuickBuilder.Media/Infrastructure/MediaDbContext.cs`:
   - schema `pages`, with `CurrentSiteId` and a `HasQueryFilter(e => e.SiteId == CurrentSiteId)` per entity;
   - every column, check constraint and index in data-model.md, including `ux_pages_site_path`, the partial `ux_pages_site_home` (`HasFilter("is_home")`) and `ix_pages_site_parent_position`;
   - `xmin` as `IsRowVersion()` on `page_trees`, `components` and both draft tables;
@@ -134,26 +134,26 @@ behaviour.
   - the composite FKs on `component_usages` (`ON DELETE CASCADE` to pages, `RESTRICT` to components) and `pages.parent_id` `RESTRICT`;
   - `AddOutbox(Schema)` and `UseSnakeCaseColumns()`;
   - `MarkTreeChanged(PageTree)`, as `SitesDbContext.MarkAggregateChanged`.
-- [ ] T013 In `PAGES/Infrastructure/PagesDbContext.cs`, add `internal IQueryable<T> ForSite<T>(Guid siteId) where T : class, ISiteOwned`, which returns `Set<T>().AcrossAllSites("Admin operation on a site named explicitly in the route (001 FR-011b).").Where(e => e.SiteId == siteId)`. This is the module's only `AcrossAllSites` call (P-15). Document why in its remarks.
-- [ ] T014 [P] Create `PAGES/Infrastructure/PagesDbContextFactory.cs` (design time), copying `MediaDbContextFactory.cs`.
-- [ ] T015 Generate `PAGES/Infrastructure/Migrations/<timestamp>_InitialPages.cs` with `dotnet ef migrations add InitialPages --project src/Modules/Pages/QuickBuilder.Pages --startup-project src/QuickBuilder.Host --context PagesDbContext --output-dir Infrastructure/Migrations`. Check that it creates `citext` with `IF NOT EXISTS`, every table, constraint and index in data-model.md, and the history table in `pages` (P-18).
+- [X] T013 In `PAGES/Infrastructure/PagesDbContext.cs`, add `internal IQueryable<T> ForSite<T>(Guid siteId) where T : class, ISiteOwned`, which returns `Set<T>().AcrossAllSites("Admin operation on a site named explicitly in the route (001 FR-011b).").Where(e => e.SiteId == siteId)`. This is the module's only `AcrossAllSites` call (P-15). Document why in its remarks.
+- [X] T014 [P] Create `PAGES/Infrastructure/PagesDbContextFactory.cs` (design time), copying `MediaDbContextFactory.cs`.
+- [X] T015 Generate `PAGES/Infrastructure/Migrations/<timestamp>_InitialPages.cs` with `dotnet ef migrations add InitialPages --project src/Modules/Pages/QuickBuilder.Pages --startup-project src/QuickBuilder.Host --context PagesDbContext --output-dir Infrastructure/Migrations`. Check that it creates `citext` with `IF NOT EXISTS`, every table, constraint and index in data-model.md, and the history table in `pages` (P-18).
 
 ### Module plumbing
 
-- [ ] T016 [P] Create `PAGES/PagesCapabilities.cs`, with `ContentView`, `StructureManage`, `PageDraftsEdit` and `ComponentsManage` and their role grants exactly as in P-13 (all `CapabilityScope.Site`). Add the four rows to the capability table in `specs/002-identity-setup/contracts/authorization.md` §2, and a sentence pointing at 010 research P-13.
-- [ ] T017 [P] Create `PAGES/PagesErrorResults.cs`, copying `src/Modules/Sites/QuickBuilder.Sites/ErrorResults.cs`, with the status map from the data-model.md codes table:
+- [X] T016 [P] Create `PAGES/PagesCapabilities.cs`, with `ContentView`, `StructureManage`, `PageDraftsEdit` and `ComponentsManage` and their role grants exactly as in P-13 (all `CapabilityScope.Site`). Add the four rows to the capability table in `specs/002-identity-setup/contracts/authorization.md` §2, and a sentence pointing at 010 research P-13.
+- [X] T017 [P] Create `PAGES/PagesErrorResults.cs`, copying `src/Modules/Sites/QuickBuilder.Sites/ErrorResults.cs`, with the status map from the data-model.md codes table:
   - 409 for the conflict codes;
   - 404 for `*_not_found`;
   - 413 for `pages.document_too_large`;
   - 400 otherwise.
 
   Refusals that carry extra fields (`childCount`, `usageCount`, `rule`, `pointer`) are built by a Pages-internal `PAGES/PagesErrors.cs` factory. It returns an ordinary `Error` whose `Code` stays stable, and stores the extension values in a `ConditionalWeakTable<Error, IReadOnlyDictionary<string, object?>>` owned by `PagesErrorResults`. `ToActionResult` copies them into `ProblemDetails.Extensions`. `Shared.Kernel`'s `Error` is unchanged.
-- [ ] T018 [P] Create `PAGES/Infrastructure/TreeConcurrencyRetry.cs`, modelled on `src/Modules/Sites/QuickBuilder.Sites/Infrastructure/ConcurrencyRetry.cs`:
+- [X] T018 [P] Create `PAGES/Infrastructure/TreeConcurrencyRetry.cs`, modelled on `src/Modules/Sites/QuickBuilder.Sites/Infrastructure/ConcurrencyRetry.cs`:
   - 3 attempts, clearing the change tracker between them;
   - it also retries a `DbUpdateException` whose inner `PostgresException` is a unique violation on `page_trees_pkey` (the first-page race, P-05);
   - after 3 attempts it returns `pages.out_of_date`.
-- [ ] T019 [P] Create `PAGES/Infrastructure/PagesOutbox.cs`: `AddFrom(PagesDbContext, AggregateRoot, Guid? actorUserId)` maps each domain event to its integration event, adds it as in `src/Modules/Sites/QuickBuilder.Sites/Infrastructure/SitesOutbox.cs`, and clears the aggregate's events (P-14).
-- [ ] T020 Create `PAGES/PagesModule.cs` with `AddPagesModule(IServiceCollection, IConfiguration)`, following `src/Modules/Media/QuickBuilder.Media/MediaModule.cs`:
+- [X] T019 [P] Create `PAGES/Infrastructure/PagesOutbox.cs`: `AddFrom(PagesDbContext, AggregateRoot, Guid? actorUserId)` maps each domain event to its integration event, adds it as in `src/Modules/Sites/QuickBuilder.Sites/Infrastructure/SitesOutbox.cs`, and clears the aggregate's events (P-14).
+- [X] T020 Create `PAGES/PagesModule.cs` with `AddPagesModule(IServiceCollection, IConfiguration)`, following `src/Modules/Media/QuickBuilder.Media/MediaModule.cs`:
   - the `DbContext` with its history table in `pages`;
   - `PagesDatabaseProvider : IModuleDatabaseProvider` (module name `"Pages"`), with the same `NoSiteContext` pattern;
   - the capabilities;
@@ -163,13 +163,13 @@ behaviour.
 
 ### Test harness and guards
 
-- [ ] T021 [P] Create `ITESTS/Pages/PagesApi.cs`: typed helpers for every operation in contracts/pages-api.yaml, plus `*OkAsync` variants and `ProblemAsync` (code, `rule`, `pointer`, `childCount`, `usageCount`). Reuse the request-header conventions of `ITESTS/Media/MediaApi.cs`, and add a `SeedTreeAsync(admin, siteId, spec)` helper that builds a tree from an indented outline.
-- [ ] T022 [P] Create `ITESTS/Isolation/Probes/PagesIsolationProbe.cs`, with `Module => "Pages"` and an initially empty `CoveredEndpoints`, `SeedAsync` and `AdminRequests`, and register it in `ITESTS/Isolation/IsolationProbes.cs`. Each story adds its endpoints to it. Until then, `IsolationCoverageTests.Every_module_with_site_owned_data_has_a_probe` passes.
-- [ ] T023 [P] Write `ITESTS/Pages/PagesSiteScopingTests.cs`:
+- [X] T021 [P] Create `ITESTS/Pages/PagesApi.cs`: typed helpers for every operation in contracts/pages-api.yaml, plus `*OkAsync` variants and `ProblemAsync` (code, `rule`, `pointer`, `childCount`, `usageCount`). Reuse the request-header conventions of `ITESTS/Media/MediaApi.cs`, and add a `SeedTreeAsync(admin, siteId, spec)` helper that builds a tree from an indented outline.
+- [X] T022 [P] Create `ITESTS/Isolation/Probes/PagesIsolationProbe.cs`, with `Module => "Pages"` and an initially empty `CoveredEndpoints`, `SeedAsync` and `AdminRequests`, and register it in `ITESTS/Isolation/IsolationProbes.cs`. Each story adds its endpoints to it. Until then, `IsolationCoverageTests.Every_module_with_site_owned_data_has_a_probe` passes.
+- [X] T023 [P] Write `ITESTS/Pages/PagesSiteScopingTests.cs`:
   - `ForSite` returns only the named site's rows for every Pages entity;
   - the site's public filter (`CurrentSiteId`) matches nothing on the admin surface;
   - `ForSite` is the only `AcrossAllSites` call in the `QuickBuilder.Pages` assembly, checked with a reflection or IL scan like `SiteScopingTests`.
-- [ ] T024 [P] Write `ITESTS/Pages/UpgradeFrom009Tests.cs`, following `ITESTS/Sites/UpgradeFrom003Tests.cs`:
+- [X] T024 [P] Write `ITESTS/Pages/UpgradeFrom009Tests.cs`, following `ITESTS/Sites/UpgradeFrom003Tests.cs`:
   - **Snapshot**: build a 009 database, with every Sites, Identity and Media migration and no `pages` schema, and seed two sites, a grant and a media file.
   - **Start**: start the current app.
   - **Assert**: the `pages` schema and its history table exist; sites, host names, the grant and the media address still work; `SiteFilterCoverageTests` covers the Pages model (FR-035).
@@ -191,26 +191,26 @@ are each refused with a reason, and nothing is saved.
 
 ### Tests for User Story 1 ⚠️ write first, confirm they fail
 
-- [ ] T025 [P] [US1] Write `UTESTS/Pages/PageTreeCreateTests.cs`, covering `PageTree.CreatePage`:
+- [X] T025 [P] [US1] Write `UTESTS/Pages/PageTreeCreateTests.cs`, covering `PageTree.CreatePage`:
   - **Placement**: the new page goes last by default; after an anchor; first when the anchor is `null`.
   - **Addresses** follow the P-03 rule, including a child of the home page at `/slug`.
   - **Home page**: created as home only when none exists (`pages.home_page_exists`), and only at the top level (`pages.home_page_must_be_top_level`).
   - **Refusals**: `pages.duplicate_address`, including a top-level `about` against home's child `about`; `pages.reserved_address` for `api`, `admin` and `health`; `pages.too_deep` at level 11; `pages.too_many_pages` at 2,001; `pages.address_too_long`; `pages.parent_not_found`; `pages.invalid_title` and `pages.invalid_slug`.
   - **Bookkeeping**: positions are contiguous afterwards, `PageCount` is updated, and `PageCreated` (plus `HomePageChanged` when home) is raised.
-- [ ] T026 [P] [US1] Write `ITESTS/Pages/PageTreeApiTests.cs` (create, get tree, get page):
+- [X] T026 [P] [US1] Write `ITESTS/Pages/PageTreeApiTests.cs` (create, get tree, get page):
   - **Order**: the flat depth-first order with `depth` and `childCount`;
   - **Draft**: every new page has an empty v1 draft (FR-015);
   - **Refusals**: each refusal code over HTTP, with `request.invalid` listing every field;
   - **Same slug**: `faq` under two different parents is accepted (clarification Q1);
   - **Location**: `Location` on 201;
   - **Outbox**: after `SaveChanges` the outbox holds `Pages.PageCreated`, with no title in its payload.
-- [ ] T027 [P] [US1] Write `ITESTS/Pages/PageTreeConcurrencyTests.cs`, create case: 10 parallel creates of the same slug under the same parent give exactly one 201, and every other request fails with `pages.duplicate_address`. Parallel first-page creates on an empty site all succeed or fail cleanly, with no 500s (P-05).
-- [ ] T028 [P] [US1] Write `ITESTS/Pages/ReservedAddressCoverageTests.cs`: every prefix in `RoutePrefixes.ReservedPrefixes` and `RoutePrefixes.PublicReservedPrefixes` (from `HOST/Routing/RoutePrefixes.cs`), with the leading `/` removed, is in `PageAddresses.ReservedFirstSegments` or fails `PageAddresses.IsValidSlug`. Include a fixture case showing the guard fires for a made-up `/preview` prefix (P-04).
-- [ ] T029 [P] [US1] Start `ITESTS/Pages/PagesAuthorizationTests.cs` with a theory over roles (Administrator, Designer, Editor, no grant):
+- [X] T027 [P] [US1] Write `ITESTS/Pages/PageTreeConcurrencyTests.cs`, create case: 10 parallel creates of the same slug under the same parent give exactly one 201, and every other request fails with `pages.duplicate_address`. Parallel first-page creates on an empty site all succeed or fail cleanly, with no 500s (P-05).
+- [X] T028 [P] [US1] Write `ITESTS/Pages/ReservedAddressCoverageTests.cs`: every prefix in `RoutePrefixes.ReservedPrefixes` and `RoutePrefixes.PublicReservedPrefixes` (from `HOST/Routing/RoutePrefixes.cs`), with the leading `/` removed, is in `PageAddresses.ReservedFirstSegments` or fails `PageAddresses.IsValidSlug`. Include a fixture case showing the guard fires for a made-up `/preview` prefix (P-04).
+- [X] T029 [P] [US1] Start `ITESTS/Pages/PagesAuthorizationTests.cs` with a theory over roles (Administrator, Designer, Editor, no grant):
   - `GET …/pages` and `GET …/pages/{id}`: 200, 200, 200 and 404;
   - `POST …/pages`: 201, 201, 403 and 404;
   - `permissions` in the tree response matches the role (clarification Q3).
-- [ ] T030 [P] [US1] Write `ADMINTESTS/slugify.spec.ts`:
+- [X] T030 [P] [US1] Write `ADMINTESTS/slugify.spec.ts`:
   - `Dịch vụ & Giá` → `dich-vu-gia`;
   - `Đà Nẵng` → `da-nang`;
   - `Straße` → `strasse`;
@@ -218,7 +218,7 @@ are each refused with a reason, and nothing is saved.
   - `  --Hello,  World!--` → `hello-world`;
   - an emoji-only title gives no suggestion;
   - a 150-character title is cut to 100 or fewer at a hyphen (P-04).
-- [ ] T031 [P] [US1] Write `ADMINTESTS/pageTreeView.spec.ts`, US1 part:
+- [X] T031 [P] [US1] Write `ADMINTESTS/pageTreeView.spec.ts`, US1 part:
   - **States**: loading, error and empty;
   - **Rendering**: indented tree rows with addresses and the home badge;
   - **Adding**: the Add page and Add child dialogs suggest a slug until the slug field is edited, show a refusal's message by error code, and keep keyboard focus in the dialog;
@@ -227,28 +227,28 @@ are each refused with a reason, and nothing is saved.
 
 ### Implementation for User Story 1
 
-- [ ] T032 [P] [US1] Create `PAGES/Domain/Slug.cs` (value checks built on `PageAddresses.IsValidSlug`) and `PAGES/Domain/PageAddress.cs` (the address rule, the reserved check and the length check). Test them in `UTESTS/Pages/SlugTests.cs` and `UTESTS/Pages/PageAddressTests.cs`.
-- [ ] T033 [US1] Implement `PageTree.Start(siteId, clock)` and `PageTree.CreatePage(title, slug, parentId?, afterPageId?, isHome, actor, clock) → Result<Page>` in `PAGES/Domain/PageTree.cs`, and the matching `Page` factory in `PAGES/Domain/Page.cs`. Raise `PageCreated` and `HomePageChanged` as domain events in `PAGES/Domain/Events/`, so that T025 passes.
-- [ ] T034 [US1] Implement `PageDraft.CreateEmpty(siteId, pageId, actor, clock)` in `PAGES/Domain/PageDraft.cs`, holding the empty envelope from P-10 as a constant in `PAGES/Domain/Draft.cs`.
-- [ ] T035 [US1] Create `PAGES/Features/CreatePage/CreatePage.cs`: `POST api/v1/pages/sites/{siteId:guid}/pages`, with `StructureManage`.
+- [X] T032 [P] [US1] Create `PAGES/Domain/Slug.cs` (value checks built on `PageAddresses.IsValidSlug`) and `PAGES/Domain/PageAddress.cs` (the address rule, the reserved check and the length check). Test them in `UTESTS/Pages/SlugTests.cs` and `UTESTS/Pages/PageAddressTests.cs`.
+- [X] T033 [US1] Implement `PageTree.Start(siteId, clock)` and `PageTree.CreatePage(title, slug, parentId?, afterPageId?, isHome, actor, clock) → Result<Page>` in `PAGES/Domain/PageTree.cs`, and the matching `Page` factory in `PAGES/Domain/Page.cs`. Raise `PageCreated` and `HomePageChanged` as domain events in `PAGES/Domain/Events/`, so that T025 passes.
+- [X] T034 [US1] Implement `PageDraft.CreateEmpty(siteId, pageId, actor, clock)` in `PAGES/Domain/PageDraft.cs`, holding the empty envelope from P-10 as a constant in `PAGES/Domain/Draft.cs`.
+- [X] T035 [US1] Create `PAGES/Features/CreatePage/CreatePage.cs`: `POST api/v1/pages/sites/{siteId:guid}/pages`, with `StructureManage`.
   - The validator checks the title and the slug grammar, reporting every failure.
   - The handler, inside `TreeConcurrencyRetry`: load or start the tree for the site; create the page; add its empty draft; `MarkTreeChanged`; `PagesOutbox.AddFrom`; save.
   - Return 201 with `PageDetail` and `Location`.
   - Register it in `PAGES/PagesModule.cs`.
-- [ ] T036 [P] [US1] Create `PAGES/Features/GetPageTree/GetPageTree.cs`: `GET …/pages`, with `ContentView`. It runs one `AsNoTracking` projection ordered by `(parent_id, position)`, assembled depth-first in memory, with `depth` and `childCount`, and adds `permissions` from `IAccessEvaluator` (P-16, P-20). Register it.
-- [ ] T037 [P] [US1] Create `PAGES/Features/GetPage/GetPage.cs`: `GET …/pages/{pageId:guid}`, with `ContentView`. It returns `PageDetail`, including the `DraftSummary`, with `updatedBy.displayName` from `IUserDirectory` in Identity.Contracts, and returns `pages.not_found` for another site's id. Register it.
-- [ ] T038 [US1] Extend `ITESTS/Isolation/Probes/PagesIsolationProbe.cs`:
+- [X] T036 [P] [US1] Create `PAGES/Features/GetPageTree/GetPageTree.cs`: `GET …/pages`, with `ContentView`. It runs one `AsNoTracking` projection ordered by `(parent_id, position)`, assembled depth-first in memory, with `depth` and `childCount`, and adds `permissions` from `IAccessEvaluator` (P-16, P-20). Register it.
+- [X] T037 [P] [US1] Create `PAGES/Features/GetPage/GetPage.cs`: `GET …/pages/{pageId:guid}`, with `ContentView`. It returns `PageDetail`, including the `DraftSummary`, with `updatedBy.displayName` from `IUserDirectory` in Identity.Contracts, and returns `pages.not_found` for another site's id. Register it.
+- [X] T038 [US1] Extend `ITESTS/Isolation/Probes/PagesIsolationProbe.cs`:
   - `SeedAsync` creates a home page and a child;
   - `CoveredEndpoints` gains `GET …/pages/{pageId:guid}`;
   - `AdminRequests` gains that endpoint with the other site's ids (Addressed), and `GET …/pages` (Listing).
-- [ ] T039 [P] [US1] Create `ADMIN/api/pages.ts`: types for `PageTree`, `PageNode`, `PageDetail`, `Permissions`, `DraftSummary` and `CreatePageRequest`, from contracts/pages-api.yaml, plus `getTree`, `getPage` and `createPage`, using `ADMIN/api/request.ts`.
-- [ ] T040 [P] [US1] Create `ADMIN/features/pages/slugify.ts` (P-04), so that T030 passes, and `ADMIN/features/pages/pageErrors.ts`, which maps every `pages.*` code to an i18n key.
-- [ ] T041 [US1] Create `ADMIN/features/pages/PageTreeView.vue`, `ADMIN/features/pages/PageRow.vue` and `ADMIN/features/pages/PageFormDialog.vue`:
+- [X] T039 [P] [US1] Create `ADMIN/api/pages.ts`: types for `PageTree`, `PageNode`, `PageDetail`, `Permissions`, `DraftSummary` and `CreatePageRequest`, from contracts/pages-api.yaml, plus `getTree`, `getPage` and `createPage`, using `ADMIN/api/request.ts`.
+- [X] T040 [P] [US1] Create `ADMIN/features/pages/slugify.ts` (P-04), so that T030 passes, and `ADMIN/features/pages/pageErrors.ts`, which maps every `pages.*` code to an i18n key.
+- [X] T041 [US1] Create `ADMIN/features/pages/PageTreeView.vue`, `ADMIN/features/pages/PageRow.vue` and `ADMIN/features/pages/PageFormDialog.vue`:
   - an ARIA `tree` from the flat list;
   - **Add page** and **Add child page** dialogs, with the title, the suggested slug and a *Home page* checkbox shown only when the site has none.
 
   Add the route `/sites/:siteId/pages` (name `site-pages`) in `ADMIN/app/router.ts`, and a **Pages** link in `ADMIN/features/sites/SiteDetailView.vue`, so that T031 passes.
-- [ ] T042 [US1] Add every US1 string to `ADMIN/i18n/en.json`: screen titles, dialog labels, the home badge, the empty state, and the messages for each US1 error code.
+- [X] T042 [US1] Add every US1 string to `ADMIN/i18n/en.json`: screen titles, dialog labels, the home badge, the empty state, and the messages for each US1 error code.
 
 **Checkpoint**: US1 is demoable. A site gets a page structure with correct addresses, and the rules hold on the server.
 
@@ -268,24 +268,24 @@ without false conflicts.
 
 ### Tests for User Story 2 ⚠️ write first, confirm they fail
 
-- [ ] T043 [P] [US2] Write `UTESTS/Pages/PageTreeChangeTests.cs`, covering:
+- [X] T043 [P] [US2] Write `UTESTS/Pages/PageTreeChangeTests.cs`, covering:
   - **`Rename`**: a title-only change keeps the slug and address (US2 #6); a reslug recomputes the whole subtree; a clash names the first conflicting path.
   - **`Move`**: to a new parent, after an anchor, or first; reordering within the same parent; a no-op move changes nothing and raises nothing; `pages.move_into_descendant`; `pages.too_deep` for the moved subtree's deepest page; clash and reserved checks across the subtree; moving the home page under a parent is refused.
   - **`MakeHome`**: the former home's descendants gain its slug, and the new home's lose theirs; a clash refuses the whole change; a child page is refused; the current home is a no-op.
   - **Versions**: a stale page `version` gives `pages.out_of_date`, and so does an anchor that is no longer a sibling.
   - **Versions of other pages**: only pages whose own fields changed get a new version.
   - **Events**: `PageAddressesChanged` carries every (id, old, new) in one event, and a reorder publishes none.
-- [ ] T044 [P] [US2] Write `UTESTS/Pages/PageTreeInvariantTests.cs`: 200 seeded random sequences of 50 operations each (create, rename, move and make-home, with random valid and invalid arguments). After every step, assert every invariant in data-model.md "Invariants of PageTree", including that every stored `path` equals a fresh recomputation from the slugs (SC-002).
-- [ ] T045 [P] [US2] Extend `ITESTS/Pages/PageTreeConcurrencyTests.cs`:
+- [X] T044 [P] [US2] Write `UTESTS/Pages/PageTreeInvariantTests.cs`: 200 seeded random sequences of 50 operations each (create, rename, move and make-home, with random valid and invalid arguments). After every step, assert every invariant in data-model.md "Invariants of PageTree", including that every stored `path` equals a fresh recomputation from the slugs (SC-002).
+- [X] T045 [P] [US2] Extend `ITESTS/Pages/PageTreeConcurrencyTests.cs`:
   - **Crossed moves**: A under B, raced against B under A, gives exactly one success and no cycle.
   - **Reslug race**: raced against a create that would take the resulting address, exactly one succeeds.
   - **No false conflict**: renaming Contact succeeds while Services is being reordered concurrently (P-05).
-- [ ] T046 [P] [US2] Write `ITESTS/Pages/PageStructureApiTests.cs`, for `PUT …/pages/{id}`, `POST …/move` and `POST …/make-home`:
+- [X] T046 [P] [US2] Write `ITESTS/Pages/PageStructureApiTests.cs`, for `PUT …/pages/{id}`, `POST …/move` and `POST …/make-home`:
   - each refusal code, and each success's response shape (the move and make-home responses return the whole tree);
   - **Nothing partial**: after any refusal, `GET …/pages` is identical to before;
   - **Outbox**: holds one `Pages.PageAddressesChanged` for a 3-page subtree move, and `Pages.HomePageChanged` for make-home.
-- [ ] T047 [P] [US2] Extend `ITESTS/Pages/PagesAuthorizationTests.cs` with rename, move and make-home. For each, Administrator and Designer succeed, Editor gets 403 and no grant gets 404.
-- [ ] T048 [P] [US2] Extend `ADMINTESTS/pageTreeView.spec.ts`:
+- [X] T047 [P] [US2] Extend `ITESTS/Pages/PagesAuthorizationTests.cs` with rename, move and make-home. For each, Administrator and Designer succeed, Editor gets 403 and no grant gets 404.
+- [X] T048 [P] [US2] Extend `ADMINTESTS/pageTreeView.spec.ts`:
   - **Rename dialog**: the slug suggestion stops once the slug has been edited.
   - **Move up / Move down** by keyboard. The buttons are disabled at the ends.
   - **Move to… dialog**: the target list excludes the page and its descendants; choose a position; keyboard only.
@@ -295,26 +295,26 @@ without false conflicts.
 
 ### Implementation for User Story 2
 
-- [ ] T049 [US2] Implement `PageTree.Rename(pageId, title, slug, version, actor, clock)`, `PageTree.Move(pageId, parentId?, afterPageId?, version, actor, clock)` and `PageTree.MakeHome(pageId, version, actor, clock)` in `PAGES/Domain/PageTree.cs`:
+- [X] T049 [US2] Implement `PageTree.Rename(pageId, title, slug, version, actor, clock)`, `PageTree.Move(pageId, parentId?, afterPageId?, version, actor, clock)` and `PageTree.MakeHome(pageId, version, actor, clock)` in `PAGES/Domain/PageTree.cs`:
   - one private `RecomputeSubtree(root)` that returns the (id, old, new) changes and validates every new address before anything is applied;
   - renumbering of the affected sibling groups (P-06);
   - `PageAddressesChanged` and `HomePageChanged` domain events.
 
   T043 and T044 must pass.
-- [ ] T050 [US2] Create `PAGES/Features/UpdatePage/UpdatePage.cs` (`PUT …/pages/{pageId:guid}`), `PAGES/Features/MovePage/MovePage.cs` (`POST …/pages/{pageId:guid}/move`) and `PAGES/Features/MakeHomePage/MakeHomePage.cs` (`POST …/pages/{pageId:guid}/make-home`):
+- [X] T050 [US2] Create `PAGES/Features/UpdatePage/UpdatePage.cs` (`PUT …/pages/{pageId:guid}`), `PAGES/Features/MovePage/MovePage.cs` (`POST …/pages/{pageId:guid}/move`) and `PAGES/Features/MakeHomePage/MakeHomePage.cs` (`POST …/pages/{pageId:guid}/make-home`):
   - all with `StructureManage`;
   - each handler runs load-tree, call, `MarkTreeChanged`, `PagesOutbox.AddFrom` and save inside `TreeConcurrencyRetry`;
   - move and make-home return the tree through the `GetPageTree` projection.
 
   Register all three.
-- [ ] T051 [US2] Extend `ITESTS/Isolation/Probes/PagesIsolationProbe.cs` with the three endpoints, sent with the other site's page ids (Addressed): `PUT …/pages/{pageId:guid}`, `POST …/pages/{pageId:guid}/move` and `POST …/pages/{pageId:guid}/make-home`. In `StillIntactAsync`, check that the other site's addresses are unchanged.
-- [ ] T052 [P] [US2] Extend `ADMIN/api/pages.ts` with `updatePage`, `movePage` and `makeHome`.
-- [ ] T053 [US2] Create `ADMIN/features/pages/MoveDialog.vue`, and extend `PageRow.vue`, `PageFormDialog.vue` (rename mode) and `PageTreeView.vue`:
+- [X] T051 [US2] Extend `ITESTS/Isolation/Probes/PagesIsolationProbe.cs` with the three endpoints, sent with the other site's page ids (Addressed): `PUT …/pages/{pageId:guid}`, `POST …/pages/{pageId:guid}/move` and `POST …/pages/{pageId:guid}/make-home`. In `StillIntactAsync`, check that the other site's addresses are unchanged.
+- [X] T052 [P] [US2] Extend `ADMIN/api/pages.ts` with `updatePage`, `movePage` and `makeHome`.
+- [X] T053 [US2] Create `ADMIN/features/pages/MoveDialog.vue`, and extend `PageRow.vue`, `PageFormDialog.vue` (rename mode) and `PageTreeView.vue`:
   - the **Rename**, **Move up**, **Move down**, **Move to…** and **Make home** actions, gated by `permissions.canManageStructure`;
   - after each action, the tree is replaced by the response, or reloaded, and focus returns to the moved row.
 
   T048 must pass.
-- [ ] T054 [US2] Add every US2 string to `ADMIN/i18n/en.json`.
+- [X] T054 [US2] Add every US2 string to `ADMIN/i18n/en.json`.
 
 **Checkpoint**: US1 and US2 together give a fully manageable structure. SC-002 holds under concurrency.
 
@@ -335,9 +335,9 @@ it in step with the schema.
 
 ### Tests for User Story 3 ⚠️ write first, confirm they fail
 
-- [ ] T055 [P] [US3] Create the golden examples listed in [contracts/page-schema.md §8](./contracts/page-schema.md#8-examples-golden-files) under `CONTRACTS/page-schema/examples/valid/` and `CONTRACTS/page-schema/examples/invalid/`. Each invalid file is named `<rule>--<case>.json`, and `unsupported--version-2.json` expects `pages.unsupported_schema_version`. `too_deep` and `too_many_nodes` are generated in code, not stored.
-- [ ] T056 [P] [US3] Write `UTESTS/Pages/SchemaSubsetValidatorTests.cs`: a positive and a negative case per supported keyword from P-09 (`type`, `properties`, `required`, `additionalProperties: false`, `const`, `enum`, `pattern`, `minLength`, `maxLength`, `minimum`, `maximum`, `items`, `maxItems`, `format: uuid`, local `$ref`, and discriminated `oneOf`). The cases follow the JSON Schema 2020-12 specification. The reported pointer is the deepest failing location.
-- [ ] T057 [P] [US3] Write `UTESTS/Pages/PageDocumentValidatorTests.cs`:
+- [X] T055 [P] [US3] Create the golden examples listed in [contracts/page-schema.md §8](./contracts/page-schema.md#8-examples-golden-files) under `CONTRACTS/page-schema/examples/valid/` and `CONTRACTS/page-schema/examples/invalid/`. Each invalid file is named `<rule>--<case>.json`, and `unsupported--version-2.json` expects `pages.unsupported_schema_version`. `too_deep` and `too_many_nodes` are generated in code, not stored.
+- [X] T056 [P] [US3] Write `UTESTS/Pages/SchemaSubsetValidatorTests.cs`: a positive and a negative case per supported keyword from P-09 (`type`, `properties`, `required`, `additionalProperties: false`, `const`, `enum`, `pattern`, `minLength`, `maxLength`, `minimum`, `maximum`, `items`, `maxItems`, `format: uuid`, local `$ref`, and discriminated `oneOf`). The cases follow the JSON Schema 2020-12 specification. The reported pointer is the deepest failing location.
+- [X] T057 [P] [US3] Write `UTESTS/Pages/PageDocumentValidatorTests.cs`:
   - every file in `CONTRACTS/page-schema/examples/`, as golden files: valid ones pass, and invalid ones fail with the `rule` in the name and the expected `pointer`;
   - generated documents at depth 33 and with 5,001 nodes;
   - a body of 1 MiB + 1 byte;
@@ -345,15 +345,15 @@ it in step with the schema.
   - `component-ref` inside a `DocumentKind.Component` document gives `component_ref_not_allowed`;
   - the check order in contracts/page-schema.md §3 (a document that is both too deep and schema-invalid reports `too_deep`);
   - referenced component ids are collected and deduplicated.
-- [ ] T058 [P] [US3] Write `ITESTS/Pages/PageSchemaContractTests.cs` (FR-022, SC-007). It parses `CONTRACTS/page-schema.md` and asserts:
+- [X] T058 [P] [US3] Write `ITESTS/Pages/PageSchemaContractTests.cs` (FR-022, SC-007). It parses `CONTRACTS/page-schema.md` and asserts:
   - the node-type table in §2 equals the schema's node `$defs`, meaning those with a `type` const;
   - the limits table in §4 equals the `PageSchema` and `PageAddresses` constants;
   - the reserved-segment table in §5 equals `PageAddresses.ReservedFirstSegments`;
   - the embedded resource's bytes equal `CONTRACTS/page-schema/v1.schema.json`.
 
   Each failure message names what differs.
-- [ ] T059 [P] [US3] Write `ITESTS/Pages/PageSchemaSubsetTests.cs`: walk `v1.schema.json` and fail on any keyword outside the P-09 subset, naming it and its location. Include a fixture schema with `patternProperties` to prove the guard fires.
-- [ ] T060 [P] [US3] Write `ITESTS/Pages/DraftApiTests.cs`, for `GET` and `PUT …/pages/{id}/draft`:
+- [X] T059 [P] [US3] Write `ITESTS/Pages/PageSchemaSubsetTests.cs`: walk `v1.schema.json` and fail on any keyword outside the P-09 subset, naming it and its location. Include a fixture schema with `patternProperties` to prove the guard fires.
+- [X] T060 [P] [US3] Write `ITESTS/Pages/DraftApiTests.cs`, for `GET` and `PUT …/pages/{id}/draft`:
   - **Round trip**: `valid/empty.json` comes back equal as a JSON value (P-08), with `schemaVersion` 1, a new `version`, `updatedAtUtc` and `updatedBy`;
   - **Refusals**: every invalid example gives 400 with its `rule` and `pointer`, and a `GET` afterwards is unchanged;
   - **Out of date**: a stale `version` gives 409 `pages.out_of_date`;
@@ -361,14 +361,14 @@ it in step with the schema.
   - **Unknown component**: a `component-ref` to a random UUID gives 400 `pages.unknown_component`;
   - **Nothing public**: the public surface response for the page's path is identical before and after (US3 #6);
   - **No event**: no outbox row is written.
-- [ ] T061 [P] [US3] Extend `ITESTS/Pages/PagesAuthorizationTests.cs`:
+- [X] T061 [P] [US3] Extend `ITESTS/Pages/PagesAuthorizationTests.cs`:
   - `GET …/draft`: 200 for every role, 404 without a grant;
   - `PUT …/draft`: 200 for Administrator, Designer **and Editor** (clarification Q3), 404 without a grant.
 
 ### Implementation for User Story 3
 
-- [ ] T062 [US3] Implement `PAGES/Infrastructure/Schema/SchemaSubsetValidator.cs`: it loads a schema from `PageSchema.OpenSchema(v)` once, is cached as a singleton, and interprets the P-09 keyword subset against a `JsonElement`, returning the first failure as a JSON Pointer. It throws at load time on an unsupported keyword. T056 must pass.
-- [ ] T063 [US3] Implement `PAGES/Infrastructure/Schema/PageDocumentValidator.cs` (`IPageDocumentValidator`), in this order:
+- [X] T062 [US3] Implement `PAGES/Infrastructure/Schema/SchemaSubsetValidator.cs`: it loads a schema from `PageSchema.OpenSchema(v)` once, is cached as a singleton, and interprets the P-09 keyword subset against a `JsonElement`, returning the first failure as a JSON Pointer. It throws at load time on an unsupported keyword. T056 must pass.
+- [X] T063 [US3] Implement `PAGES/Infrastructure/Schema/PageDocumentValidator.cs` (`IPageDocumentValidator`), in this order:
   1. size;
   2. `JsonDocument.Parse` with `AllowDuplicateProperties = false` and `MaxDepth` large enough for 32 node levels;
   3. `schemaVersion`;
@@ -377,8 +377,8 @@ it in step with the schema.
   6. the component rules and the collection of referenced ids.
 
   Map each failure to its `rule` from contracts/pages-api.yaml `DocumentProblem`. Register it as a singleton in `PAGES/PagesModule.cs`. T057 must pass.
-- [ ] T064 [US3] Implement `Draft.Replace(document, schemaVersion, actor, clock)` in `PAGES/Domain/Draft.cs`.
-- [ ] T065 [US3] Create `PAGES/Features/GetPageDraft/GetPageDraft.cs` (`GET …/pages/{pageId:guid}/draft`, with `ContentView`) and `PAGES/Features/SavePageDraft/SavePageDraft.cs` (`PUT …/pages/{pageId:guid}/draft`, with `PageDraftsEdit`):
+- [X] T064 [US3] Implement `Draft.Replace(document, schemaVersion, actor, clock)` in `PAGES/Domain/Draft.cs`.
+- [X] T065 [US3] Create `PAGES/Features/GetPageDraft/GetPageDraft.cs` (`GET …/pages/{pageId:guid}/draft`, with `ContentView`) and `PAGES/Features/SavePageDraft/SavePageDraft.cs` (`PUT …/pages/{pageId:guid}/draft`, with `PageDraftsEdit`):
   - `[RequestSizeLimit]` of 1.1 MiB, with overflow mapped to `pages.document_too_large`;
   - the handler validates as `DocumentKind.Page`, then checks every referenced id against `ForSite<Component>(siteId)`, returning `pages.unknown_component` for any id not found;
   - it compares the caller's `version`, replaces the draft, and deletes and re-inserts the page's `component_usages` rows in one `SaveChanges`;
@@ -386,13 +386,13 @@ it in step with the schema.
   - it publishes nothing.
 
   Register both.
-- [ ] T066 [US3] Copy [contracts/page-schema.md](./contracts/page-schema.md) to `CONTRACTS/page-schema.md` as the authoritative version:
+- [X] T066 [US3] Copy [contracts/page-schema.md](./contracts/page-schema.md) to `CONTRACTS/page-schema.md` as the authoritative version:
   - drop the "planning copy" preamble;
   - keep §7 as a pointer to `page-schema/v1.schema.json`, not a second copy.
 
   Update `CONTRACTS/README.md` to list the page schema. T058 must pass.
-- [ ] T067 [US3] Extend `ITESTS/Isolation/Probes/PagesIsolationProbe.cs` with `GET` and `PUT …/pages/{pageId:guid}/draft`, sent with the other site's page ids (Addressed). In `StillIntactAsync`, check that the other site's draft `version` is unchanged.
-- [ ] T068 [P] [US3] Extend `ADMIN/api/pages.ts` with `getPageDraft`. In `ADMIN/features/pages/PageTreeView.vue`, add a details panel for the selected page that shows the draft's schema version and when and by whom it was last saved. There is no editing here (P-17). Add the strings to `ADMIN/i18n/en.json`.
+- [X] T067 [US3] Extend `ITESTS/Isolation/Probes/PagesIsolationProbe.cs` with `GET` and `PUT …/pages/{pageId:guid}/draft`, sent with the other site's page ids (Addressed). In `StillIntactAsync`, check that the other site's draft `version` is unchanged.
+- [X] T068 [P] [US3] Extend `ADMIN/api/pages.ts` with `getPageDraft`. In `ADMIN/features/pages/PageTreeView.vue`, add a details panel for the selected page that shows the draft's schema version and when and by whom it was last saved. There is no editing here (P-17). Add the strings to `ADMIN/i18n/en.json`.
 
 **Checkpoint**: every P1 story is done. Drafts are stored behind the versioned contract, which now lives in `docs/contracts/`.
 
@@ -412,11 +412,11 @@ and a component in use can't be deleted, even under races.
 
 ### Tests for User Story 4 ⚠️ write first, confirm they fail
 
-- [ ] T069 [P] [US4] Write `UTESTS/Pages/ComponentTests.cs`:
+- [X] T069 [P] [US4] Write `UTESTS/Pages/ComponentTests.cs`:
   - **Name**: trimmed, 1–100 characters (`pages.invalid_component_name`);
   - **Rename**: raises nothing;
   - **Events**: `ComponentCreated` and `ComponentDeleted` domain events.
-- [ ] T070 [P] [US4] Write `ITESTS/Pages/ComponentApiTests.cs`, for every component endpoint:
+- [X] T070 [P] [US4] Write `ITESTS/Pages/ComponentApiTests.cs`, for every component endpoint:
   - **Create**: 201 with an empty draft; a duplicate name ignoring case gives 409 `pages.duplicate_component_name`.
   - **Rename**: to the same name in a different case is allowed; a stale `version` gives 409.
   - **Usages**: after two page drafts reference Header, `usageCount` is 2 and `/usages` lists both pages by address; after one reference is removed, it is 1.
@@ -424,12 +424,12 @@ and a component in use can't be deleted, even under races.
   - **Other sites**: a page draft referencing site B's component gives 400 `pages.unknown_component`, identical to a random id.
   - **Component draft**: containing `component-ref`, 400 with rule `component_ref_not_allowed`; the component draft round-trips.
   - **Outbox**: holds `Pages.ComponentCreated` and `Pages.ComponentDeleted`, with no name in the payload.
-- [ ] T071 [P] [US4] Write `ITESTS/Pages/ComponentUsageRaceTests.cs`: race `DELETE` of a component against `PUT` of a page draft that adds a reference to it, 50 times. Each time exactly one of these holds: the delete succeeded and the save failed with `pages.unknown_component`, or the save succeeded and the delete failed with `pages.component_in_use`. There is never a dangling usage row (P-11).
-- [ ] T072 [P] [US4] Extend `ITESTS/Pages/PagesAuthorizationTests.cs`:
+- [X] T071 [P] [US4] Write `ITESTS/Pages/ComponentUsageRaceTests.cs`: race `DELETE` of a component against `PUT` of a page draft that adds a reference to it, 50 times. Each time exactly one of these holds: the delete succeeded and the save failed with `pages.unknown_component`, or the save succeeded and the delete failed with `pages.component_in_use`. There is never a dangling usage row (P-11).
+- [X] T072 [P] [US4] Extend `ITESTS/Pages/PagesAuthorizationTests.cs`:
   - **Views** (list, get, usages, get draft): every role gets 200.
   - **Changes** (create, rename, delete, save draft): Administrator and Designer succeed, and Editor gets 403.
   - **No grant**: 404 everywhere.
-- [ ] T073 [P] [US4] Write `ADMINTESTS/componentsView.spec.ts`:
+- [X] T073 [P] [US4] Write `ADMINTESTS/componentsView.spec.ts`:
   - **States**: loading, error and empty;
   - **Actions**: create, rename, and the duplicate-name message;
   - **Delete**: refused with the usage count shown, and the usages panel lists pages with links to the page tree;
@@ -438,22 +438,22 @@ and a component in use can't be deleted, even under races.
 
 ### Implementation for User Story 4
 
-- [ ] T074 [US4] Implement `Component.Create(siteId, name, actor, clock)`, `Rename(name, version, …)` and `MarkDeleted(actor)` in `PAGES/Domain/Component.cs`, and `ComponentDraft.CreateEmpty` in `PAGES/Domain/ComponentDraft.cs`. T069 must pass.
-- [ ] T075 [US4] Create the slices:
+- [X] T074 [US4] Implement `Component.Create(siteId, name, actor, clock)`, `Rename(name, version, …)` and `MarkDeleted(actor)` in `PAGES/Domain/Component.cs`, and `ComponentDraft.CreateEmpty` in `PAGES/Domain/ComponentDraft.cs`. T069 must pass.
+- [X] T075 [US4] Create the slices:
   - `PAGES/Features/ListComponents/ListComponents.cs` (`GET …/components`, `ContentView`; includes `usageCount` through a grouped count and `permissions`);
   - `PAGES/Features/CreateComponent/CreateComponent.cs` (`POST`, `ComponentsManage`; maps a unique violation on `(site_id, name)` to `pages.duplicate_component_name`);
   - `PAGES/Features/GetComponent/GetComponent.cs` (`GET …/components/{componentId:guid}`, `ContentView`);
   - `PAGES/Features/RenameComponent/RenameComponent.cs` (`PUT`, `ComponentsManage`).
 
   Register all four.
-- [ ] T076 [US4] Create `PAGES/Features/DeleteComponent/DeleteComponent.cs` (`DELETE …/components/{componentId:guid}?version=`, `ComponentsManage`). It counts usages first and returns `pages.component_in_use` with `usageCount`. It then deletes the component and its draft, and maps an FK `RESTRICT` violation to `pages.component_in_use`, so that a lost race answers the same way. Register it.
-- [ ] T077 [US4] Create `PAGES/Features/ListComponentUsages/ListComponentUsages.cs` (`GET …/components/{componentId:guid}/usages`, `ContentView`, ordered by path), `PAGES/Features/GetComponentDraft/GetComponentDraft.cs` (`ContentView`) and `PAGES/Features/SaveComponentDraft/SaveComponentDraft.cs` (`ComponentsManage`; validates as `DocumentKind.Component`; the same size, version and error mapping as T065). Register all three.
-- [ ] T078 [US4] Extend `ITESTS/Isolation/Probes/PagesIsolationProbe.cs`:
+- [X] T076 [US4] Create `PAGES/Features/DeleteComponent/DeleteComponent.cs` (`DELETE …/components/{componentId:guid}?version=`, `ComponentsManage`). It counts usages first and returns `pages.component_in_use` with `usageCount`. It then deletes the component and its draft, and maps an FK `RESTRICT` violation to `pages.component_in_use`, so that a lost race answers the same way. Register it.
+- [X] T077 [US4] Create `PAGES/Features/ListComponentUsages/ListComponentUsages.cs` (`GET …/components/{componentId:guid}/usages`, `ContentView`, ordered by path), `PAGES/Features/GetComponentDraft/GetComponentDraft.cs` (`ContentView`) and `PAGES/Features/SaveComponentDraft/SaveComponentDraft.cs` (`ComponentsManage`; validates as `DocumentKind.Component`; the same size, version and error mapping as T065). Register all three.
+- [X] T078 [US4] Extend `ITESTS/Isolation/Probes/PagesIsolationProbe.cs`:
   - `SeedAsync` creates a component and references it from a page draft;
   - `CoveredEndpoints` and `AdminRequests` gain every `{componentId:guid}` endpoint (Addressed) and `GET …/components` (Listing).
-- [ ] T079 [P] [US4] Extend `ADMIN/api/pages.ts` with the component types and calls.
-- [ ] T080 [US4] Create `ADMIN/features/pages/ComponentsView.vue` and `ADMIN/features/pages/ComponentUsagesPanel.vue`. Add the route `/sites/:siteId/components` in `ADMIN/app/router.ts` and a **Components** link in `ADMIN/features/sites/SiteDetailView.vue`. T073 must pass.
-- [ ] T081 [US4] Add every US4 string to `ADMIN/i18n/en.json`.
+- [X] T079 [P] [US4] Extend `ADMIN/api/pages.ts` with the component types and calls.
+- [X] T080 [US4] Create `ADMIN/features/pages/ComponentsView.vue` and `ADMIN/features/pages/ComponentUsagesPanel.vue`. Add the route `/sites/:siteId/components` in `ADMIN/app/router.ts` and a **Components** link in `ADMIN/features/sites/SiteDetailView.vue`. T073 must pass.
+- [X] T081 [US4] Add every US4 string to `ADMIN/i18n/en.json`.
 
 **Checkpoint**: shared components work end to end, and the database enforces their usage rules.
 
@@ -473,27 +473,27 @@ while other pages exist.
 
 ### Tests for User Story 5 ⚠️ write first, confirm they fail
 
-- [ ] T082 [P] [US5] Write `UTESTS/Pages/PageTreeDeleteTests.cs`:
+- [X] T082 [P] [US5] Write `UTESTS/Pages/PageTreeDeleteTests.cs`:
   - **Leaf**: removed, the siblings renumbered, `PageCount` decremented, `PageDeleted` raised;
   - **Parent**: `pages.has_children` with `childCount`;
   - **Home page**: `pages.home_page` while others exist, but deletable when it is the only page;
   - **Out of date**: a stale `version`.
-- [ ] T083 [P] [US5] Write `ITESTS/Pages/DeletePageTests.cs`:
+- [X] T083 [P] [US5] Write `ITESTS/Pages/DeletePageTests.cs`:
   - **Leaf**: `DELETE …/pages/{id}?version=` gives 204; the page, its draft and its `component_usages` rows are gone; the address can be created again; the outbox holds `Pages.PageDeleted`.
   - **Refusals**: 409 `pages.has_children` with `childCount: 2`, and 409 `pages.home_page`.
   - **Components**: a component used only by the deleted page becomes deletable.
-- [ ] T084 [P] [US5] Extend `ITESTS/Pages/PagesAuthorizationTests.cs` with delete (Administrator and Designer get 204, Editor gets 403, no grant gets 404). Assert the complete Editor matrix from quickstart §5 in one test (US5 #4 and #5).
-- [ ] T085 [P] [US5] Extend `ADMINTESTS/pageTreeView.spec.ts`:
+- [X] T084 [P] [US5] Extend `ITESTS/Pages/PagesAuthorizationTests.cs` with delete (Administrator and Designer get 204, Editor gets 403, no grant gets 404). Assert the complete Editor matrix from quickstart §5 in one test (US5 #4 and #5).
+- [X] T085 [P] [US5] Extend `ADMINTESTS/pageTreeView.spec.ts`:
   - **Delete**: confirmation dialog, and focus moves to the previous row afterwards;
   - **Refusals**: `pages.has_children` shows the child count, and `pages.home_page` shows its message;
   - **Accessibility**: axe is clean.
 
 ### Implementation for User Story 5
 
-- [ ] T086 [US5] Implement `PageTree.Delete(pageId, version, actor, clock)` in `PAGES/Domain/PageTree.cs`, raising `PageDeleted`. T082 must pass.
-- [ ] T087 [US5] Create `PAGES/Features/DeletePage/DeletePage.cs` (`DELETE …/pages/{pageId:guid}?version=`, `StructureManage`). It runs inside `TreeConcurrencyRetry`, and removes the page and its draft, whose usages cascade. Register it.
-- [ ] T088 [US5] Extend `ITESTS/Isolation/Probes/PagesIsolationProbe.cs` with `DELETE …/pages/{pageId:guid}` (Addressed).
-- [ ] T089 [US5] Create `ADMIN/features/pages/DeletePageDialog.vue`, add `deletePage` to `ADMIN/api/pages.ts`, add the **Delete** action to `PageRow.vue`, and add the strings to `ADMIN/i18n/en.json`. T085 must pass.
+- [X] T086 [US5] Implement `PageTree.Delete(pageId, version, actor, clock)` in `PAGES/Domain/PageTree.cs`, raising `PageDeleted`. T082 must pass.
+- [X] T087 [US5] Create `PAGES/Features/DeletePage/DeletePage.cs` (`DELETE …/pages/{pageId:guid}?version=`, `StructureManage`). It runs inside `TreeConcurrencyRetry`, and removes the page and its draft, whose usages cascade. Register it.
+- [X] T088 [US5] Extend `ITESTS/Isolation/Probes/PagesIsolationProbe.cs` with `DELETE …/pages/{pageId:guid}` (Addressed).
+- [X] T089 [US5] Create `ADMIN/features/pages/DeletePageDialog.vue`, add `deletePage` to `ADMIN/api/pages.ts`, add the **Delete** action to `PageRow.vue`, and add the strings to `ADMIN/i18n/en.json`. T085 must pass.
 
 **Checkpoint**: every user story is complete. `SiteIsolationSuite` passes for Pages, with every page and component endpoint covered.
 
@@ -503,13 +503,13 @@ while other pages exist.
 
 **Purpose**: logging, smoke and performance, CI, documentation, and the quickstart run.
 
-- [ ] T090 [P] Extend `ITESTS/Observability/LoggingTests.cs` with a Pages case: create, rename, draft saves and component operations with distinctive titles, slugs, names and document text. None of them appears in the captured logs, and ids do (FR-037).
-- [ ] T091 [P] Extend `STESTS/ReferenceDeploymentSmokeTests.cs`: after the site steps, create a page and a child page, save `valid/empty.json` as the child's draft, and read it back, against the built image (FR-036). Update the class remarks: E-3 is now narrowed to publish and view.
-- [ ] T092 [P] Create `STESTS/PageTreePerformanceTests.cs`, modelled on `STESTS/SiteResolutionPerformanceTests.cs`. Seed 2,000 pages, one subtree having 200 descendants. Time 20 runs each of `GET …/pages` and a move of that subtree back and forth, and assert p95 under 2 s for both (SC-004, SC-005).
-- [ ] T093 [P] Add a 2,000-row render check to `ADMINTESTS/pageTreeView.spec.ts`: the view mounts 2,000 rows from a stub response, and every row is present. Mounting must complete in under 1 s in jsdom, as a guard against accidental quadratic rendering. The 2 s screen budget itself is timed in T097 (SC-005).
-- [ ] T094 [P] Add `QuickBuilder.Pages` to the per-package list of the coverage gate in `.github/workflows/ci.yml`, with a comment citing P-19.
-- [ ] T095 [P] Update `docs/operations.md`: a **Pages** section on reserved addresses (`/api`, `/admin`, `/health`), the limits, the fact that nothing is public until #12, and the upgrade notes from plan.md.
-- [ ] T096 [P] Update `docs/contributing.md`:
+- [X] T090 [P] Extend `ITESTS/Observability/LoggingTests.cs` with a Pages case: create, rename, draft saves and component operations with distinctive titles, slugs, names and document text. None of them appears in the captured logs, and ids do (FR-037).
+- [X] T091 [P] Extend `STESTS/ReferenceDeploymentSmokeTests.cs`: after the site steps, create a page and a child page, save `valid/empty.json` as the child's draft, and read it back, against the built image (FR-036). Update the class remarks: E-3 is now narrowed to publish and view.
+- [X] T092 [P] Create `STESTS/PageTreePerformanceTests.cs`, modelled on `STESTS/SiteResolutionPerformanceTests.cs`. Seed 2,000 pages, one subtree having 200 descendants. Time 20 runs each of `GET …/pages` and a move of that subtree back and forth, and assert p95 under 2 s for both (SC-004, SC-005).
+- [X] T093 [P] Add a 2,000-row render check to `ADMINTESTS/pageTreeView.spec.ts`: the view mounts 2,000 rows from a stub response, and every row is present. Mounting must complete in under 1 s in jsdom, as a guard against accidental quadratic rendering. The 2 s screen budget itself is timed in T097 (SC-005).
+- [X] T094 [P] Add `QuickBuilder.Pages` to the per-package list of the coverage gate in `.github/workflows/ci.yml`, with a comment citing P-19.
+- [X] T095 [P] Update `docs/operations.md`: a **Pages** section on reserved addresses (`/api`, `/admin`, `/health`), the limits, the fact that nothing is public until #12, and the upgrade notes from plan.md.
+- [X] T096 [P] Update `docs/contributing.md`:
   - **Adding a block type**: a `$defs` entry plus a `oneOf` branch in `docs/contracts/page-schema/v1.schema.json`, the node-type table row in `docs/contracts/page-schema.md`, and golden examples; a breaking change follows §6.
   - **Adding a module with site-owned data**: cite `PagesIsolationProbe` as the second worked example.
 - [ ] T097 Run [quickstart.md](./quickstart.md) §1–§7 against `docker compose up`, including the timed SC-001 build, the time for the Pages screen to show a 2,000-page tree seeded with `PageTreePerformanceTests`' seeding helper (SC-005, pass under 2 s), and the keyboard-only journeys. Record the results, timings and any deviations in `specs/010-page-tree-components/quickstart-results.md`, following `specs/009-sites-hostname-resolution/quickstart-results.md`.
@@ -640,3 +640,38 @@ After US1:
   tokens.** Draft saves must never mark the tree changed (P-08).
 - **No titles, slugs, names or document content in log messages or event payloads.**
   Only ids and paths (FR-037).
+
+## Implementation notes
+
+Where the delivered code differs from a task's wording, and why:
+
+- **T011, drafts**: `PageDraft` and `ComponentDraft` share an abstract `Draft` base that
+  is deliberately *not* in the EF model; each maps to its own table on its own. This
+  replaces the EF TPC mapping in research P-08, because TPC needs one key property
+  shared by both types, while the two tables are keyed by different owners (`page_id`,
+  `component_id`) with different foreign keys. Tables, columns and behaviour are as
+  data-model.md describes.
+- **T032, `Slug.cs` and `PageAddress.cs`**: not created. The slug rule lives in
+  `PageAddresses.IsValidSlug` (contracts), and the address rule in `PageTree.Plan`, the
+  only place addresses are computed (P-03). `PageTreeCreateTests` covers both.
+- **T055, golden examples**: `unsupported--version-2.json` became
+  `unsupported_schema_version--version-2.json`, so every file name starts with its rule.
+  Two examples were added (`malformed_json--truncated`, `schema_violation--bad-node-id`).
+  Each example's expected pointer is in `invalid/expected.json`, which the editor (#11)
+  can reuse. The contract document lists all of them.
+- **T041, T053, the tree screen**: a table in site order, where selecting a row opens one
+  keyboard-operable toolbar, instead of an ARIA `tree` with actions on every row. At 2,000
+  pages, per-row actions would put about 14,000 buttons in the page (SC-005).
+  `PageRow.vue` and `DeletePageDialog.vue` were not needed: rows are part of the table,
+  and deletion reuses the sites `ConfirmDialog`.
+- **T093**: the jsdom render check allows 5 s, not 1 s. jsdom is far slower than a
+  browser; the 2 s screen budget itself is timed in a real browser in T097.
+- **Delete logging** (FR-037): deleting a page or a component writes one information
+  event naming ids only, like Media's delete. The other operations log nothing: their
+  outbox events already record them.
+- **Isolation suite**: `ProbeRequest` gained an optional `Body`, so endpoints that take a
+  body are tested for another site's ids rather than refused for a missing body.
+- **Draft size**: over-limit bodies are refused by a resource filter,
+  `DraftSizeLimitAttribute`, modelled on Media's upload limit, as well as by the validator.
+  The test server does not enforce request body limits, so the validator's own 1 MiB
+  check is what the integration tests exercise.

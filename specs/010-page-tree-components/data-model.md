@@ -55,7 +55,7 @@ in the same transaction (P-11).
 | `ux_pages_site_home` | `UNIQUE (site_id) WHERE is_home` | At most one home page (FR-003). |
 | `ix_pages_site_parent_position` | `(site_id, parent_id, position)` | Tree load order. Not unique, because renumbering rewrites a group row by row (P-06). |
 
-## `pages.page_drafts` and `pages.component_drafts` (EF TPC from abstract `Draft`)
+## `pages.page_drafts` and `pages.component_drafts` (two entities sharing an unmapped `Draft` base)
 
 | Column | Type | Null | Notes |
 |---|---|---|---|

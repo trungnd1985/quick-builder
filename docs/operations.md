@@ -259,6 +259,43 @@ delivers them (`Outbox:PollInterval`).
 - **Recommended**: set `Hosting:AdminHostNames`, so client domains stop showing the admin
   sign-in page.
 
+## Pages
+
+Each site has a tree of pages and a set of shared components (a header, a footer), managed
+under **Sites → a site → Pages** and **Shared components** in the admin shell. Designers
+build the structure and the components; editors can see them and save page drafts.
+
+### Nothing is public yet
+
+Pages have addresses, drafts and structure, but visitors see none of it until publishing
+arrives (#12). A public request for a page address answers exactly as it did before.
+
+### Addresses the platform keeps
+
+No page address can begin with `/api`, `/admin` or `/health`: the platform answers there
+before any page could. `/_media` is safe by construction, because slugs cannot contain
+`_`. The list is part of the page schema contract
+([docs/contracts/page-schema.md](contracts/page-schema.md) §5).
+
+### Limits
+
+A site holds at most 2,000 pages, nested at most 10 levels deep. A page's content document
+is at most 1 MiB and 5,000 elements. These are part of the page schema contract, not
+settings: a site valid on one installation is valid on every other, which export and
+import rely on.
+
+### Deleting
+
+Deleting a page or a component is permanent; there is no trash yet (#21). A page with
+child pages, the home page while other pages exist, and a component that pages still use
+cannot be deleted — the admin shell says why.
+
+### Upgrading from feature 009
+
+- The upgrade adds a `pages` schema with its own migration history. Nothing else changes.
+- Sites have no pages after the upgrade. Start each with its home page.
+- No configuration changes are needed.
+
 ## Upgrading from the foundation release (feature 001)
 
 Feature 001 had no authentication. After the upgrade:

@@ -232,8 +232,9 @@ and this decision agree. `/speckit-analyze` should see no conflict.
 - `pages.page_drafts` and `pages.component_drafts` hold one row each per page and per
   component. Each row has `schema_version`, `document jsonb`, `updated_at_utc`,
   `updated_by` and `xmin` as its version.
-- Both are mapped from one abstract `Draft` entity using EF Core TPC (table per concrete
-  type).
+- Both derive from one abstract `Draft` class that is not itself in the EF model, so each
+  maps to its own table with its own key and foreign key. (Planned as EF TPC; TPC needs a
+  key shared by both types, which two differently-owned tables do not have.)
 - A save replaces the whole document (spec assumption) when the caller's `version`
   matches (FR-021).
 - Draft saves don't touch the tree row, so writing content never contends with

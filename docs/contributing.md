@@ -209,7 +209,9 @@ checks that you did it (009 FR-024, FR-025). Four obligations, detailed in
    and a test that exercises the read. *Guard*: the banned-API analyser.
 3. **Register an isolation probe.** Add a class implementing `ISiteIsolationProbe` under
    `tests/QuickBuilder.IntegrationTests/Isolation/Probes/` and list it in
-   `IsolationProbes.All`. `MediaIsolationProbe` is the worked example:
+   `IsolationProbes.All`. `MediaIsolationProbe` is the worked example, and
+   `PagesIsolationProbe` shows endpoints that take a request body (pass it as
+   `ProbeRequest.Body`, so the request fails on the site rather than on a missing body):
    - `SeedAsync` creates one of each record through your module's API;
    - `AdminRequests` returns every administrative request that takes a record id, built
      with the *other* site's ids — addressed ones must answer 404, listings must not
@@ -222,6 +224,27 @@ checks that you did it (009 FR-024, FR-025). Four obligations, detailed in
    `RecordKeys`) that no probe covers.
 4. **Pass the suite.** `SiteIsolationSuite` runs every probe across two sites, then with
    one of them disabled.
+
+## Adding a block type
+
+Page and component content follows the page schema contract,
+[docs/contracts/page-schema.md](contracts/page-schema.md). A new kind of block is an
+**additive** change to version 1, so no stored document needs migrating:
+
+1. Add a `$defs` entry for it in `docs/contracts/page-schema/v1.schema.json`, and a branch
+   for it in `childNode.oneOf`. Its `properties.type` must be a `const` — that is how the
+   validator tells branches apart — and it must use only the keywords listed in §7.
+   *Guard*: `PageSchemaSubsetTests`.
+2. Add its row to the node-type table in `page-schema.md` §2. *Guard*:
+   `PageSchemaContractTests` fails while the table and the schema disagree.
+3. Add golden examples under `docs/contracts/page-schema/examples/`: at least one valid
+   document using it, and an invalid one for each rule its props can break, listed in
+   `invalid/expected.json`.
+4. Never give it a property that holds HTML. Rich text is structured JSON (§3 rule 8).
+
+Anything that would make a stored document invalid — removing or renaming a type or a prop,
+making a prop required — is a **breaking** change: it needs `v2.schema.json`, a forward
+migration of stored drafts and the other steps in §6, in the same pull request.
 
 ## Tests
 

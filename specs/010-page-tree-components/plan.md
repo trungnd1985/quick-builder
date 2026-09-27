@@ -30,7 +30,7 @@ The approach, detailed in [research.md](./research.md):
   keeps its slug in reserve (P-03, P-07).
 - **Reserved addresses**: `api`, `admin` and `health`. A coverage test keeps the list
   complete against `RoutePrefixes` (P-04).
-- **Drafts** are separate aggregates (`page_drafts`, `component_drafts`, EF TPC), with
+- **Drafts** are separate aggregates (`page_drafts`, `component_drafts`, two entities over one unmapped base class), with
   `jsonb` documents, whole-document saves against a version, and no contention with
   structure (P-08).
 - **Page schema**: `docs/contracts/page-schema/v1.schema.json` is the single definition
@@ -58,7 +58,7 @@ There are no new NuGet or npm packages. JsonSchema.Net was rejected over its lic
 **Language/Version**: C# / .NET 10; TypeScript (strict) for the admin app. Unchanged.
 
 **Primary Dependencies**:
-- **Backend**: ASP.NET Core MVC, EF Core 10 + Npgsql (`jsonb`, `xmin`, TPC mapping,
+- **Backend**: ASP.NET Core MVC, EF Core 10 + Npgsql (`jsonb`, `xmin`,
   composite FKs) and `System.Text.Json` (`JsonDocument`, duplicate-property detection).
   Nothing new.
 - **Admin**: Vue 3, Pinia, vue-router, vue-i18n and `String.prototype.normalize`.
@@ -132,7 +132,7 @@ this section).*
 - EF Core only:
   - `jsonb` for documents, as the constitution requires;
   - `xmin` tokens;
-  - TPC for the two draft tables;
+  - two draft entities over one unmapped base class, each with its own table;
   - composite FKs and partial unique indexes, declared through the model, with the
     partial index filter in `HasFilter`.
 - No raw SQL beyond what EF migrations generate.
@@ -217,7 +217,7 @@ src/
             + Domain/PageTree.cs  Page.cs  PageAddress.cs  Slug.cs
             + Domain/Component.cs  Draft.cs  PageDraft.cs  ComponentDraft.cs
             + Domain/Events/*.cs                   # domain events
-            + Infrastructure/PagesDbContext.cs     # schema, filters, TPC, composite FKs, ForSite helper
+            + Infrastructure/PagesDbContext.cs     # schema, filters, composite FKs, ForSite helper
             + Infrastructure/PagesOutbox.cs        # domain → integration events
             + Infrastructure/TreeConcurrencyRetry.cs
             + Infrastructure/Schema/SchemaSubsetValidator.cs    # the keyword subset

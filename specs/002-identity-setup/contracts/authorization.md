@@ -63,6 +63,17 @@ The two Sites capabilities added by 009, `sites.settings.manage` and
 `sites.availability.manage`, are explained in
 [009 research S-12](../../009-sites-hostname-resolution/research.md#s-12-capabilities).
 
+Pages (010) registers four, following its clarification that the Designer builds and
+the Editor writes. They are explained in
+[010 research P-13](../../010-page-tree-components/research.md#p-13-capabilities).
+
+| Capability | Scope | Administrator | Designer | Editor |
+|---|---|---|---|---|
+| `pages.content.view` | Site | ✓ | ✓ | ✓ |
+| `pages.structure.manage` | Site | ✓ | ✓ | — |
+| `pages.page_drafts.edit` | Site | ✓ | ✓ | ✓ |
+| `pages.components.manage` | Site | ✓ | ✓ | — |
+
 ## 3. What a caller sees
 
 | Situation | Status | `errorCode` |

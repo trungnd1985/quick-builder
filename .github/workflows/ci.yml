@@ -89,7 +89,9 @@ jobs:
           # a well-covered rest of the codebase must not carry an untested new module.
           # 009: site resolution lives in Sites (directory, aggregate), the kernel (the
           # host-name rules) and the host (the resolution and admin-host middlewares).
-          for package in QuickBuilder.Media QuickBuilder.Shared.Infrastructure QuickBuilder.Sites QuickBuilder.Shared.Kernel QuickBuilder.Host; do
+          # 010: the page tree, the document validator and draft storage are the start of
+          # the publish and render path (research P-19).
+          for package in QuickBuilder.Media QuickBuilder.Shared.Infrastructure QuickBuilder.Sites QuickBuilder.Shared.Kernel QuickBuilder.Host QuickBuilder.Pages; do
             package_rate=$(grep -o "<package name=\"${package}\"[^>]*" ./TestResults/merged/Cobertura.xml | grep -o 'line-rate="[0-9.]*"' | grep -o '[0-9.]*' || true)
             if [ -z "${package_rate}" ]; then
               echo "::error::No coverage recorded for ${package}."
