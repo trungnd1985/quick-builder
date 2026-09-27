@@ -13,6 +13,8 @@
 .github/
 specs/
 docs/
+# 010: the page schema is a build input (embedded by Pages.Contracts), not documentation.
+!docs/contracts/
 
 Dockerfile*
 .dockerignore

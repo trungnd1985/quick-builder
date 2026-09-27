@@ -173,6 +173,42 @@ public sealed class LoggingTests(DatabaseFixture database) : IAsyncLifetime
     }
 
     /// <summary>
+    /// 010 FR-037: pages and components are logged by id, never by title, name or content.
+    /// </summary>
+    /// <remarks>
+    /// Titles, component names and a node id carry the canary marker; the journey covers
+    /// create, rename, a refused change, draft saves (accepted and refused) and both deletes.
+    /// </remarks>
+    [Fact]
+    public async Task Page_journeys_never_log_titles_names_or_content()
+    {
+        var admin = await _app.CreateAdminClientAsync().ConfigureAwait(true);
+        var siteId = await Media.MediaApi.CreateSiteAsync(admin, "Logged", "logged-pages.test").ConfigureAwait(true);
+        var canary = Pages.PagesApi.CanaryMarker;
+
+        var page = (await Pages.PagesApi.CreateOkAsync(admin, siteId, "about", title: $"{canary}title").ConfigureAwait(true)).GetProperty("id").GetGuid();
+        await Pages.PagesApi.UpdateAsync(admin, siteId, page, $"{canary}renamed", "about", 1).ConfigureAwait(true);
+        await Pages.PagesApi.CreateAsync(admin, siteId, "about", title: $"{canary}clash").ConfigureAwait(true);
+        var component = (await Pages.PagesApi.CreateComponentOkAsync(admin, siteId, $"{canary}name").ConfigureAwait(true)).GetProperty("id").GetGuid();
+
+        var path = Pages.PagesApi.PagePath(siteId, page);
+        await Pages.PagesApi.SaveCurrentDraftAsync(admin, path, $$$"""{"schemaVersion":1,"root":{"id":"{{{canary}}}root","type":"root","props":{},"children":[]}}""").ConfigureAwait(true);
+        await Pages.PagesApi.SaveCurrentDraftAsync(admin, path, $$$"""{"schemaVersion":1,"root":{"id":"root","type":"{{{canary}}}type","props":{},"children":[]}}""").ConfigureAwait(true);
+
+        var version = (await Pages.PagesApi.OkAsync(await Pages.PagesApi.GetComponentAsync(admin, siteId, component).ConfigureAwait(true)).ConfigureAwait(true))
+            .GetProperty("version").GetUInt32();
+        await Pages.PagesApi.DeleteComponentAsync(admin, siteId, component, version).ConfigureAwait(true);
+        await Pages.PagesApi.DeleteAsync(admin, siteId, page, 2).ConfigureAwait(true);
+
+        var events = _app.Logs.Events.Select(LogCapture.Render).ToList();
+        var leak = events.FirstOrDefault(e => e.Contains(canary, StringComparison.OrdinalIgnoreCase));
+        Assert.True(leak is null, $"A log event contains page content: {leak}");
+
+        Assert.Contains(events, e => e.Contains(page.ToString(), StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(events, e => e.Contains(component.ToString(), StringComparison.OrdinalIgnoreCase));
+    }
+
+    /// <summary>
     /// 009 FR-032: requested host names never reach the logs — not for unknown hosts, not
     /// for disabled sites, not for admin paths turned away from a client domain, not for
     /// forwarded headers. A probe's host name is exactly what someone mapping an

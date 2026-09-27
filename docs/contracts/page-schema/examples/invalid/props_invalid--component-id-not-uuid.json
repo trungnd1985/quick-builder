@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "root": {
+    "id": "root",
+    "type": "root",
+    "props": {},
+    "children": [
+      { "id": "header", "type": "component-ref", "props": { "componentId": "header" }, "children": [] }
+    ]
+  }
+}

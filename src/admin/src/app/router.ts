@@ -2,6 +2,8 @@ import { createRouter, createWebHistory, type Router, type RouterHistory } from 
 import SitesView from '../features/sites/SitesView.vue'
 import SiteDetailView from '../features/sites/SiteDetailView.vue'
 import MediaLibraryView from '../features/media/MediaLibraryView.vue'
+import PageTreeView from '../features/pages/PageTreeView.vue'
+import ComponentsView from '../features/pages/ComponentsView.vue'
 import SettingsView from '../features/sites/SettingsView.vue'
 import SetupView from '../features/identity/SetupView.vue'
 import SignInView from '../features/identity/SignInView.vue'
@@ -44,6 +46,8 @@ export function createAppRouter(history: RouterHistory = createWebHistory('/admi
       { path: '/sites', name: 'sites', component: SitesView },
       { path: '/sites/:siteId', name: 'site', component: SiteDetailView },
       { path: '/sites/:siteId/media', name: 'site-media', component: MediaLibraryView },
+      { path: '/sites/:siteId/pages', name: 'site-pages', component: PageTreeView },
+      { path: '/sites/:siteId/components', name: 'site-components', component: ComponentsView },
       { path: '/settings', name: 'settings', component: SettingsView },
       { path: '/account', name: 'account', component: AccountView },
       { path: '/users', name: 'users', component: UsersView, meta: { administrators: true } },

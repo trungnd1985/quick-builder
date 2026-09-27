@@ -86,6 +86,9 @@ async function renderView() {
     routes: [
       { path: '/sites', name: 'sites', component: { template: '<div />' } },
       { path: '/sites/:siteId', name: 'site', component: SiteDetailView },
+      { path: '/sites/:siteId/pages', name: 'site-pages', component: { template: '<div />' } },
+      { path: '/sites/:siteId/components', name: 'site-components', component: { template: '<div />' } },
+      { path: '/sites/:siteId/media', name: 'site-media', component: { template: '<div />' } },
     ],
   })
   await router.push(`/sites/${SITE}`)

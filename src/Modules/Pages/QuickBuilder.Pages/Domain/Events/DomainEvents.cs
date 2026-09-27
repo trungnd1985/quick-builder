@@ -1,0 +1,32 @@
+using QuickBuilder.Pages.Contracts.Events;
+
+namespace QuickBuilder.Pages.Domain.Events;
+
+/// <summary>Something that happened to a Pages aggregate (research P-14).</summary>
+/// <remarks>
+/// Each has exactly one integration event in <c>Pages.Contracts.Events</c>, added to the
+/// outbox by <c>PagesOutbox</c>. They carry ids and paths only (FR-037).
+/// </remarks>
+internal interface IDomainEvent
+{
+    DateTimeOffset OccurredAtUtc { get; }
+}
+
+internal sealed record PageCreatedEvent(Guid SiteId, Guid PageId, Guid? ParentId, string Path, DateTimeOffset OccurredAtUtc)
+    : IDomainEvent;
+
+internal sealed record PageDeletedEvent(Guid SiteId, Guid PageId, string Path, DateTimeOffset OccurredAtUtc)
+    : IDomainEvent;
+
+/// <summary>Every address one operation changed, old and new (P-14).</summary>
+internal sealed record PageAddressesChangedEvent(
+    Guid SiteId,
+    IReadOnlyList<PageAddressChange> Changes,
+    DateTimeOffset OccurredAtUtc) : IDomainEvent;
+
+internal sealed record HomePageChangedEvent(Guid SiteId, Guid PageId, Guid? PreviousPageId, DateTimeOffset OccurredAtUtc)
+    : IDomainEvent;
+
+internal sealed record ComponentCreatedEvent(Guid SiteId, Guid ComponentId, DateTimeOffset OccurredAtUtc) : IDomainEvent;
+
+internal sealed record ComponentDeletedEvent(Guid SiteId, Guid ComponentId, DateTimeOffset OccurredAtUtc) : IDomainEvent;

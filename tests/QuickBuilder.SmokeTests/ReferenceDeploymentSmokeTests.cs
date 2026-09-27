@@ -19,8 +19,8 @@ namespace QuickBuilder.SmokeTests;
 /// The constitution specifies this smoke test as setup wizard → create page → publish →
 /// view. Feature 002 added the first step: the journey now begins with the setup wizard,
 /// reading the setup code from the container logs as an operator would, and runs every
-/// later step as the administrator it created. Create page, publish and view arrive with
-/// the Pages and Rendering specs (issue #4).
+/// later step as the administrator it created. Feature 010 added "create page": a page, a
+/// child page and a saved draft. Publish and view arrive with Rendering (#12, issue #4).
 /// </para>
 /// <para>
 /// Excluded from the normal test run — CI filters on <c>FullyQualifiedName!~SmokeTests</c>
@@ -212,6 +212,34 @@ public sealed class ReferenceDeploymentSmokeTests(ITestOutputHelper output) : IA
 
         Assert.Equal(Png, await FetchPublicAsync(publicClient, publicPath).ConfigureAwait(true));
         output.WriteLine("image still served after the app container was replaced");
+
+        // 9c. 010 FR-036: create a page and a child page, save a draft and read it back — the
+        //     "create page" step of the constitution's journey. Publish and view wait for #12.
+        var pages = $"/api/v1/pages/sites/{siteId}/pages";
+        var home = await client
+            .PostAsJsonAsync(new Uri(pages, UriKind.Relative), new { title = "Home", slug = "home", isHome = true })
+            .ConfigureAwait(true);
+        Assert.Equal(HttpStatusCode.Created, home.StatusCode);
+        var homeId = (await home.Content.ReadFromJsonAsync<JsonElement>().ConfigureAwait(true)).GetProperty("id").GetGuid();
+
+        var child = await client
+            .PostAsJsonAsync(new Uri(pages, UriKind.Relative), new { title = "News", slug = "news", parentId = homeId })
+            .ConfigureAwait(true);
+        Assert.Equal(HttpStatusCode.Created, child.StatusCode);
+        var childBody = await child.Content.ReadFromJsonAsync<JsonElement>().ConfigureAwait(true);
+        Assert.Equal("/news", childBody.GetProperty("path").GetString());
+
+        var draftPath = new Uri($"{pages}/{childBody.GetProperty("id").GetGuid()}/draft", UriKind.Relative);
+        var draftVersion = (await client.GetFromJsonAsync<JsonElement>(draftPath).ConfigureAwait(true)).GetProperty("version").GetUInt32();
+        const string Document = """{"schemaVersion":1,"root":{"id":"root","type":"root","props":{},"children":[]}}""";
+        using var save = new StringContent($$"""{"version":{{draftVersion}},"document":{{Document}}}""", System.Text.Encoding.UTF8, "application/json");
+        var saved = await client.PutAsync(draftPath, save).ConfigureAwait(true);
+        Assert.Equal(HttpStatusCode.OK, saved.StatusCode);
+
+        var readBack = await client.GetFromJsonAsync<JsonElement>(draftPath).ConfigureAwait(true);
+        using var expected = JsonDocument.Parse(Document);
+        Assert.True(JsonElement.DeepEquals(expected.RootElement, readBack.GetProperty("document")));
+        output.WriteLine("page and child page created; draft saved and read back");
 
         // 10. Operator recovery (002 US5): with command-line access to the container, the
         //     operator issues a set-password link for the administrator, sets a new password

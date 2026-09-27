@@ -26,6 +26,7 @@ public sealed class ModuleBoundaryTests
         typeof(Sites.SitesModule).Assembly,
         typeof(Identity.IdentityModule).Assembly,
         typeof(Media.MediaModule).Assembly,
+        typeof(Pages.PagesModule).Assembly,
     ];
 
     /// <summary>Every module contracts assembly.</summary>
@@ -34,6 +35,7 @@ public sealed class ModuleBoundaryTests
         typeof(Sites.Contracts.SiteDto).Assembly,
         typeof(Identity.Contracts.IIdentitySetupStatus).Assembly,
         typeof(Media.Contracts.MediaFileDto).Assembly,
+        typeof(Pages.Contracts.PageSchema).Assembly,
     ];
 
     /// <summary>The file-system types only a storage provider may use (003 FR-019).</summary>
@@ -95,6 +97,26 @@ public sealed class ModuleBoundaryTests
 
             Assert.True(result.IsSuccessful, Describe(result, "a contracts type depends on EF Core or ASP.NET Core"));
         }
+    }
+
+    /// <summary>
+    /// The page schema contract depends on nothing but the kernel (010 research P-09).
+    /// </summary>
+    /// <remarks>
+    /// Rendering (#12) will take Pages.Contracts for the validator and the schema. If it
+    /// pulled in another module's contracts, depending on the page schema would quietly mean
+    /// depending on that module too.
+    /// </remarks>
+    [Fact]
+    public void Pages_contracts_reference_only_the_kernel()
+    {
+        var references = typeof(Pages.Contracts.PageSchema).Assembly
+            .GetReferencedAssemblies()
+            .Select(a => a.Name!)
+            .Where(name => name.StartsWith("QuickBuilder.", StringComparison.Ordinal))
+            .ToList();
+
+        Assert.Equal([Kernel.GetName().Name!], references);
     }
 
     /// <summary>The host composes; it holds no business logic or data access (FR-001).</summary>

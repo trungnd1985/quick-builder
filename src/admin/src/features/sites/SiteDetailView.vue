@@ -151,6 +151,22 @@ watch(siteId, load)
         </div>
       </header>
 
+      <!-- 010: every site role can open these; the server checks each capability. -->
+      <nav
+        class="site-sections"
+        :aria-label="t('sites.detail.sections')"
+      >
+        <RouterLink :to="{ name: 'site-pages', params: { siteId: site.id } }">
+          {{ t('sites.detail.pages') }}
+        </RouterLink>
+        <RouterLink :to="{ name: 'site-components', params: { siteId: site.id } }">
+          {{ t('sites.detail.components') }}
+        </RouterLink>
+        <RouterLink :to="{ name: 'site-media', params: { siteId: site.id } }">
+          {{ t('sites.detail.media') }}
+        </RouterLink>
+      </nav>
+
       <!-- The spec's edge case: a disabled site stays open here, clearly marked. -->
       <p
         v-if="site.status === 'disabled'"

@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The Pages module's public surface (specs/010-page-tree-components): address rules, the
+    page schema and its validator interface, and the integration events. References only
+    Shared.Kernel — no EF Core, no ASP.NET Core — so it stays a contract that Rendering (#12)
+    can take. Asserted by QuickBuilder.ArchitectureTests (Contracts purity).
+  -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\Shared\QuickBuilder.Shared.Kernel\QuickBuilder.Shared.Kernel.csproj" />
+  </ItemGroup>
+
+  <!--
+    Research P-09: the schema in docs/contracts/ is the single definition. It is embedded
+    from where it lives, not copied, so what ships is the file the contract document
+    describes. PageSchemaContractTests asserts the embedded bytes equal the file.
+  -->
+  <ItemGroup>
+    <EmbeddedResource Include="..\..\..\..\docs\contracts\page-schema\*.schema.json"
+                      LogicalName="QuickBuilder.Pages.Contracts.PageSchema.%(Filename)%(Extension)" />
+  </ItemGroup>
+
+</Project>

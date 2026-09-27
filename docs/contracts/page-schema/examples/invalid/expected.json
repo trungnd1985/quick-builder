@@ -1,0 +1,14 @@
+{
+  "$comment": "What each invalid example must fail with: the rule (also the start of its file name) and the JSON Pointer of the first failure. Shared by every validator of the page schema (docs/contracts/page-schema.md §8).",
+  "schema_violation--missing-schema-version.json": { "rule": "schema_violation", "pointer": "" },
+  "schema_violation--bad-node-id.json": { "rule": "schema_violation", "pointer": "/root/id" },
+  "unsupported_schema_version--version-2.json": { "rule": "unsupported_schema_version", "pointer": "/schemaVersion" },
+  "unknown_type--paragraph.json": { "rule": "unknown_type", "pointer": "/root/children/0/type" },
+  "props_invalid--component-id-not-uuid.json": { "rule": "props_invalid", "pointer": "/root/children/0/props/componentId" },
+  "props_invalid--extra-prop.json": { "rule": "props_invalid", "pointer": "/root/children/0/props/label" },
+  "children_not_allowed--ref-with-child.json": { "rule": "children_not_allowed", "pointer": "/root/children/0/children" },
+  "root_misplaced--nested-root.json": { "rule": "root_misplaced", "pointer": "/root/children/0" },
+  "duplicate_node_id--twice.json": { "rule": "duplicate_node_id", "pointer": "/root/children/1/id" },
+  "duplicate_property--props.json": { "rule": "duplicate_property", "pointer": "/root/children/0/props/componentId" },
+  "malformed_json--truncated.json": { "rule": "malformed_json", "pointer": "" }
+}

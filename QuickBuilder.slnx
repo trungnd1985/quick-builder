@@ -11,6 +11,10 @@
     <Project Path="src/Modules/Media/QuickBuilder.Media.Contracts/QuickBuilder.Media.Contracts.csproj" />
     <Project Path="src/Modules/Media/QuickBuilder.Media/QuickBuilder.Media.csproj" />
   </Folder>
+  <Folder Name="/src/Modules/Pages/">
+    <Project Path="src/Modules/Pages/QuickBuilder.Pages.Contracts/QuickBuilder.Pages.Contracts.csproj" />
+    <Project Path="src/Modules/Pages/QuickBuilder.Pages/QuickBuilder.Pages.csproj" />
+  </Folder>
   <Folder Name="/src/Modules/Sites/">
     <Project Path="src/Modules/Sites/QuickBuilder.Sites.Contracts/QuickBuilder.Sites.Contracts.csproj" />
     <Project Path="src/Modules/Sites/QuickBuilder.Sites/QuickBuilder.Sites.csproj" />

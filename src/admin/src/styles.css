@@ -414,3 +414,61 @@ button.danger {
   gap: 0.5rem;
   margin-left: auto;
 }
+
+/* 010: a site's sections, and the page tree. */
+.site-sections {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin: 0 0 1rem;
+}
+
+.page-tree {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.page-tree th,
+.page-tree td {
+  padding: 0.35rem 0.5rem;
+  border-bottom: 1px solid var(--border, #d0d4da);
+  text-align: left;
+  vertical-align: middle;
+}
+
+.page-tree tr[aria-selected='true'] {
+  background: var(--selected, #e8f0fe);
+}
+
+.page-tree .page-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.page-tree .page-address {
+  overflow-wrap: anywhere;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.page-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+/* A button that reads as a link: the page tree's row selectors. */
+button.link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+button.link[aria-pressed='true'] {
+  font-weight: 600;
+}

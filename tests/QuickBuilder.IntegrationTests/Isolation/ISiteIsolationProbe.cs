@@ -49,7 +49,11 @@ public interface ISiteIsolationProbe
 public sealed record SeededRecords(IReadOnlyList<string> Ids, IReadOnlyList<string> PublicPaths);
 
 /// <summary>One administrative request the suite sends.</summary>
-public sealed record ProbeRequest(HttpMethod Method, string Path, ProbeKind Kind);
+/// <remarks>
+/// <see cref="Body"/>, when set, is sent as JSON: an endpoint that takes a body refuses a
+/// bodiless request before it ever looks for the record, which would prove nothing (010).
+/// </remarks>
+public sealed record ProbeRequest(HttpMethod Method, string Path, ProbeKind Kind, object? Body = null);
 
 public enum ProbeKind
 {
