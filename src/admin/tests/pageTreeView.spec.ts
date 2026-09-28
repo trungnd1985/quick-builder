@@ -111,6 +111,7 @@ async function renderView() {
     routes: [
       { path: '/sites/:siteId', name: 'site', component: { template: '<div />' } },
       { path: '/sites/:siteId/pages', name: 'site-pages', component: PageTreeView },
+      { path: '/sites/:siteId/pages/:pageId/edit', name: 'page-editor', component: { template: '<div />' } },
     ],
   })
   await router.push(`/sites/${SITE}/pages`)

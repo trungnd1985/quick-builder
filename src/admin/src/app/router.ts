@@ -15,7 +15,7 @@ import { useAuthStore } from './authStore'
 
 declare module 'vue-router' {
   interface RouteMeta {
-    /** Shown without the navigation frame: the screens before anyone is signed in. */
+    /** Shown without the navigation frame: the screens before anyone is signed in, and the editor. */
     bare?: boolean
     /** Reachable without a session. */
     public?: boolean
@@ -48,6 +48,15 @@ export function createAppRouter(history: RouterHistory = createWebHistory('/admi
       { path: '/sites/:siteId/media', name: 'site-media', component: MediaLibraryView },
       { path: '/sites/:siteId/pages', name: 'site-pages', component: PageTreeView },
       { path: '/sites/:siteId/components', name: 'site-components', component: ComponentsView },
+      // 011 ED-22: the editor loads on demand, so TipTap and the canvas stay out of the shell's
+      // main chunk. It uses the whole window, without the navigation frame.
+      {
+        path: '/sites/:siteId/pages/:pageId/edit',
+        name: 'page-editor',
+        component: () => import('../editor/EditorView.vue'),
+        props: (route) => ({ siteId: route.params.siteId, kind: 'page', documentId: route.params.pageId }),
+        meta: { bare: true },
+      },
       { path: '/settings', name: 'settings', component: SettingsView },
       { path: '/account', name: 'account', component: AccountView },
       { path: '/users', name: 'users', component: UsersView, meta: { administrators: true } },

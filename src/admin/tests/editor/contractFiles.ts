@@ -16,6 +16,6 @@ export const jsonFiles = (directory: string): string[] =>
 export const pageExamples = join(contractsDir, 'page-schema', 'examples')
 
 export const expectedFailures = (directory: string): Record<string, { rule?: string; code?: string; pointer: string }> => {
-  const { $comment: _comment, ...entries } = readJson(join(directory, 'expected.json')) as Record<string, never>
-  return entries
+  const all = readJson(join(directory, 'expected.json')) as Record<string, never>
+  return Object.fromEntries(Object.entries(all).filter(([name]) => !name.startsWith('$')))
 }

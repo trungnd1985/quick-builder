@@ -246,7 +246,8 @@
       "moveDown": "Move down",
       "moveTo": "Move to…",
       "makeHome": "Make home page",
-      "delete": "Delete"
+      "delete": "Delete",
+      "editContent": "Edit content"
     },
     "details": {
       "heading": "Draft",
@@ -514,6 +515,155 @@
       "sessionsHelp": "Signed in somewhere you no longer use? End every session except this one.",
       "signOutOthers": "Sign out my other sessions",
       "othersSignedOut": "Your other sessions were signed out."
+    }
+  },
+  "editor": {
+    "loading": "Opening the editor…",
+    "untitledPage": "Untitled page",
+    "untitledComponent": "Untitled component",
+    "backToPages": "← Pages",
+    "backToComponents": "← Components",
+    "dismiss": "Dismiss",
+    "sidebar": "Properties and layers",
+    "notFound": {
+      "title": "This page does not exist",
+      "body": "It may have been deleted, or it belongs to a site you cannot see."
+    },
+    "loadError": {
+      "title": "The editor could not open this page",
+      "retry": "Try again"
+    },
+    "leave": {
+      "confirm": "Some changes are not saved yet. Leave anyway and lose them?"
+    },
+    "palette": {
+      "title": "Blocks",
+      "help": "Drag a block onto the page, or choose one and press Enter to add it after the selected block."
+    },
+    "blocks": {
+      "section": "Section",
+      "container": "Container",
+      "heading": "Heading",
+      "text": "Text",
+      "richText": "Rich text",
+      "image": "Image",
+      "button": "Button",
+      "spacer": "Spacer",
+      "divider": "Divider",
+      "embed": "Video embed",
+      "buttonInitialLabel": "Button",
+      "placeholder": {
+        "heading": "Type a heading",
+        "text": "Type some text",
+        "richText": "Select this block and edit it to add formatted text",
+        "image": "Choose an image in the properties panel",
+        "imageMissing": "This image is missing from the media library. Choose another one.",
+        "embed": "Choose a video: paste a YouTube or Vimeo address in the properties panel"
+      },
+      "embedProvider": {
+        "youtube": "YouTube video",
+        "vimeo": "Vimeo video"
+      }
+    },
+    "canvas": {
+      "label": "Page canvas",
+      "region": "Page",
+      "keysHelp": "Use the arrow keys to move between blocks, Enter to edit a block's text, Alt with the arrow keys to move a block, Control D to duplicate, Delete to remove, Control Z to undo and Control S to save.",
+      "emptySlot": "Drop blocks here",
+      "dragHandle": "Drag to move",
+      "unknownBlock": "This block ({type}) cannot be shown in the editor.",
+      "notAllowedHere": "Not allowed here",
+      "emptyPage": {
+        "title": "This page is empty.",
+        "body": "Drag a Section from the blocks on the left, or choose Section and press Enter. Put headings, text and images inside it.",
+        "componentBody": "Drag a Section from the blocks on the left, or choose Section and press Enter, then add the component's content inside it."
+      }
+    },
+    "save": {
+      "saveNow": "Save now",
+      "retryNow": "Retry now",
+      "state": {
+        "saved": "All changes saved",
+        "dirty": "Unsaved changes",
+        "saving": "Saving…",
+        "retrying": "Not saved — trying again",
+        "conflict": "Not saved — changed elsewhere",
+        "forbidden": "Not saved — no permission",
+        "gone": "Not saved — the page is gone",
+        "invalid": "Not saved — the page could not be checked"
+      }
+    },
+    "readOnly": {
+      "conflict": "Someone else saved this page after you opened it, so your changes were not saved. Your version is shown read-only: copy the blocks you want to keep, then reload the latest version and paste them back.",
+      "forbidden": "You no longer have permission to edit this page. Your changes were not saved.",
+      "gone": "This page no longer exists. Your changes were not saved.",
+      "invalid": "This page cannot be edited here because its stored content does not pass the page schema check.",
+      "invalidRule": "This page cannot be edited here: {reason}",
+      "recovery": "You are viewing unsaved changes from an earlier visit, read-only. Copy the blocks you want to keep."
+    },
+    "announce": {
+      "inserted": "{name} added",
+      "copied": "{name} copied",
+      "pasted": "Pasted",
+      "duplicated": "{name} duplicated",
+      "removed": "{name} removed",
+      "moved": "{name} moved into {parent}, position {position}",
+      "page": "the page"
+    },
+    "errors": {
+      "ops": {
+        "nesting_not_allowed": "That block cannot go there. Sections sit on the page itself; everything else goes inside a Section or a Container.",
+        "too_many_nodes": "A page can hold at most 5,000 blocks.",
+        "too_deep": "Blocks can be nested at most 32 levels deep.",
+        "too_large": "The page would be larger than 1 MB, which is the most a page can hold.",
+        "not_found": "That block no longer exists.",
+        "invalid_value": "That value is not allowed here.",
+        "required": "This property is required and cannot be removed.",
+        "rich_text_too_long": "A rich text block can hold at most 20,000 characters.",
+        "cannot_change_root": "The page itself cannot be moved or removed.",
+        "into_itself": "A block cannot be moved inside itself.",
+        "read_only": "This page is read-only right now.",
+        "needs_section": "Add a Section first: headings, text and images go inside one.",
+        "clipboard_empty": "Nothing has been copied from this site yet."
+      },
+      "rules": {
+        "malformed_json": "The page content is not well-formed.",
+        "duplicate_property": "The page content repeats a property.",
+        "schema_violation": "The page content does not follow the page schema.",
+        "unknown_type": "The page contains a block type this installation does not know.",
+        "props_invalid": "A block has a property value that is not allowed.",
+        "children_not_allowed": "A block that cannot hold other blocks holds some.",
+        "root_misplaced": "The page's root appears inside the page.",
+        "nesting_not_allowed": "A block is somewhere it is not allowed.",
+        "duplicate_node_id": "Two blocks have the same identifier.",
+        "too_many_nodes": "The page holds more than 5,000 blocks.",
+        "too_deep": "Blocks are nested more than 32 levels deep.",
+        "too_large": "The page is larger than 1 MB.",
+        "component_ref_not_allowed": "A shared component cannot contain another shared component.",
+        "unknown_component": "The page uses a shared component that no longer exists.",
+        "unsupported_schema_version": "The page was written by a newer version of QuickBuilder.",
+        "rich_text_too_long": "A rich text block holds more than 20,000 characters."
+      },
+      "server": {
+        "unexpected": "Something went wrong. Try again in a moment.",
+        "pages_out_of_date": "Someone else changed this since you opened it.",
+        "pages_not_found": "This page no longer exists.",
+        "pages_component_not_found": "This component no longer exists.",
+        "pages_invalid_document": "The page content was refused.",
+        "pages_unsupported_schema_version": "The page was written by a newer version of QuickBuilder.",
+        "pages_document_too_large": "The page is larger than 1 MB.",
+        "pages_unknown_component": "The page uses a shared component that no longer exists.",
+        "pages_invalid_token_id": "That is not a valid token id.",
+        "sites_not_found": "This site does not exist.",
+        "identity_forbidden": "You do not have permission to do that.",
+        "editor_out_of_date": "Someone else changed the design tokens since you opened them. Reload to see their changes.",
+        "editor_invalid_tokens": "The design tokens are not valid.",
+        "editor_duplicate_token_id": "Two tokens have the same id.",
+        "editor_duplicate_token_name": "Two tokens of the same kind have the same name.",
+        "editor_token_required": "Keep at least one colour, one text size and one spacing step.",
+        "editor_tokens_too_large": "The design tokens are larger than 64 KB.",
+        "editor_unsupported_schema_version": "These design tokens were written by a newer version of QuickBuilder."
+      }
     }
   }
 }

@@ -269,11 +269,11 @@ action also possible by keyboard, and have the draft saved without pressing anyt
 
 ### Tests for User Story 1 ⚠️
 
-- [ ] T047 [P] [US1] Create `ADMINTESTS/editor/BlockRegistryCoverage.spec.ts`, which must fail first:
+- [X] T047 [P] [US1] Create `ADMINTESTS/editor/BlockRegistryCoverage.spec.ts`, which must fail first:
   - every `blockTypes` entry has a registry entry, and every registry entry is a schema block type;
   - every schema prop of each type has a control in its definition, and no definition names a prop the schema lacks;
   - every required prop has an `initialProps` value that validates.
-- [ ] T048 [P] [US1] Create `ADMINTESTS/editor/EditorView.spec.ts`, with Testing Library, a fake API and axe:
+- [X] T048 [P] [US1] Create `ADMINTESTS/editor/EditorView.spec.ts`, with Testing Library, a fake API and axe:
   - opening a page shows the canvas, palette, panel placeholder and layer region;
   - a stored draft with `schemaVersion: 2` opens read-only with the reason and never saves;
   - dropping a palette Section onto the empty canvas inserts it and selects it;
@@ -282,71 +282,71 @@ action also possible by keyboard, and have the draft saved without pressing anyt
   - typing in a Heading on the canvas changes the document;
   - after 2 s idle, `savePageDraft` is called with a document that `documentValidator` accepts, and the status reads saved;
   - axe finds no violations.
-- [ ] T049 [P] [US1] Create `ADMINTESTS/editor/CanvasStyleIsolation.spec.ts`. Render an `h1` and a `button` inside `.qb-canvas` and outside it, and assert that the admin rules from `styles.css` apply only outside (ED-01).
+- [X] T049 [P] [US1] Create `ADMINTESTS/editor/CanvasStyleIsolation.spec.ts`. Render an `h1` and a `button` inside `.qb-canvas` and outside it, and assert that the admin rules from `styles.css` apply only outside (ED-01).
 
 ### Implementation for User Story 1
 
-- [ ] T050 [US1] Wrap every element-type selector in `ADMIN/styles.css` (`h1`, `h2`, `label`, `select`, `input[...]`, `button` and their variants, `*`) in `:where(:not(.qb-canvas *))` or `:where(:not(.qb-canvas, .qb-canvas *))` as appropriate, leaving class selectors untouched (ED-01).
-- [ ] T051 [US1] Create `ED/blocks/registry.ts`. The `BlockDefinition` interface has:
+- [X] T050 [US1] Wrap every element-type selector in `ADMIN/styles.css` (`h1`, `h2`, `label`, `select`, `input[...]`, `button` and their variants, `*`) in `:where(:not(.qb-canvas *))` or `:where(:not(.qb-canvas, .qb-canvas *))` as appropriate, leaving class selectors untouched (ED-01).
+- [X] T051 [US1] Create `ED/blocks/registry.ts`. The `BlockDefinition` interface has:
   - `type`, `paletteLabelKey`, `icon`;
   - `groups: { labelKey, props: { name, control } [] }[]`;
   - `initialProps(t)`;
   - `component`.
 
   `registry` maps each type to its definition. `ED/blocks/blocks.css` opens `@layer qb-blocks` with the canvas-local reset (`.qb-canvas` resets margins, fonts to `var(--qb-font-body)` and base size) and the shared rules.
-- [ ] T052 [P] [US1] Create `ED/blocks/section/definition.ts` and `SectionBlock.vue`: background, `paddingY` and width via `tokenValue`; a `width: contained` max width of 1,200 px; renders its children through `CanvasNode`. Add its rules to `blocks.css`.
-- [ ] T053 [P] [US1] Create `ED/blocks/container/definition.ts` and `ContainerBlock.vue`: a flex layout by `direction`, with gap, padding, align and background. When `stackOnMobile` is set, add `@container page (max-width: 480px) { flex-direction: column }` in `blocks.css` (ED-09).
-- [ ] T054 [P] [US1] Create `ED/blocks/heading/definition.ts` and `HeadingBlock.vue`:
+- [X] T052 [P] [US1] Create `ED/blocks/section/definition.ts` and `SectionBlock.vue`: background, `paddingY` and width via `tokenValue`; a `width: contained` max width of 1,200 px; renders its children through `CanvasNode`. Add its rules to `blocks.css`.
+- [X] T053 [P] [US1] Create `ED/blocks/container/definition.ts` and `ContainerBlock.vue`: a flex layout by `direction`, with gap, padding, align and background. When `stackOnMobile` is set, add `@container page (max-width: 480px) { flex-direction: column }` in `blocks.css` (ED-09).
+- [X] T054 [P] [US1] Create `ED/blocks/heading/definition.ts` and `HeadingBlock.vue`:
   - renders `h{level}` with the heading font and the level-to-size map from data-model §2;
   - edits in place with `contenteditable="plaintext-only"`;
   - strips line breaks;
   - commits through `setProp` on input;
   - shows a translated placeholder when empty.
-- [ ] T055 [P] [US1] Create `ED/blocks/text/definition.ts` and `TextBlock.vue`: plain text with line breaks kept (`white-space: pre-wrap`), in-place editing as T054, and size, colour and align from tokens.
-- [ ] T056 [P] [US1] Create `ED/blocks/rich-text/definition.ts` and `RichTextBlock.vue`. The canvas render of the stored `doc` uses Vue render functions mapping `paragraph`, `bulletList`, `orderedList`, `listItem`, `text` with marks and `hardBreak` to elements, with **no `v-html`**. In-place editing is added in US2 (T071).
-- [ ] T057 [P] [US1] Create `ED/blocks/image/definition.ts` and `ImageBlock.vue`:
+- [X] T055 [P] [US1] Create `ED/blocks/text/definition.ts` and `TextBlock.vue`: plain text with line breaks kept (`white-space: pre-wrap`), in-place editing as T054, and size, colour and align from tokens.
+- [X] T056 [P] [US1] Create `ED/blocks/rich-text/definition.ts` and `RichTextBlock.vue`. The canvas render of the stored `doc` uses Vue render functions mapping `paragraph`, `bulletList`, `orderedList`, `listItem`, `text` with marks and `hardBreak` to elements, with **no `v-html`**. In-place editing is added in US2 (T071).
+- [X] T057 [P] [US1] Create `ED/blocks/image/definition.ts` and `ImageBlock.vue`:
   - renders `mediaApi.previewUrl(siteId, mediaId)` as `<img>`, with `alt`, or `alt=""` when `decorative`, and the `width` mode;
   - with no media, or on a load error, shows the translated "image missing / choose an image" placeholder (spec Edge Cases).
-- [ ] T058 [P] [US1] Create `ED/blocks/button/definition.ts` (with `initialProps` label `t('editor.blocks.button.initialLabel')`) and `ButtonBlock.vue`: styles `primary`, `secondary` and `outline` from the brand colour token, and in-place label editing as T054. It never navigates in the canvas.
-- [ ] T059 [P] [US1] Create the definitions and components for `ED/blocks/spacer/` (`SpacerBlock.vue`: a height from the token, with a hatched editing aid), `ED/blocks/divider/` (`DividerBlock.vue`: `<hr>` with colour, thickness and spacing) and `ED/blocks/embed/` (`EmbedBlock.vue`: a placeholder card with the provider name derived from the URL, the URL as text and the aspect ratio, and "choose a video" when there is no URL; **never an iframe or any network request**, ED-06, SC-008). Add their rules to `blocks.css`.
-- [ ] T060 [US1] Create `ED/canvas/CanvasNode.vue` and `ED/canvas/Canvas.vue`:
+- [X] T058 [P] [US1] Create `ED/blocks/button/definition.ts` (with `initialProps` label `t('editor.blocks.button.initialLabel')`) and `ButtonBlock.vue`: styles `primary`, `secondary` and `outline` from the brand colour token, and in-place label editing as T054. It never navigates in the canvas.
+- [X] T059 [P] [US1] Create the definitions and components for `ED/blocks/spacer/` (`SpacerBlock.vue`: a height from the token, with a hatched editing aid), `ED/blocks/divider/` (`DividerBlock.vue`: `<hr>` with colour, thickness and spacing) and `ED/blocks/embed/` (`EmbedBlock.vue`: a placeholder card with the provider name derived from the URL, the URL as text and the aspect ratio, and "choose a video" when there is no URL; **never an iframe or any network request**, ED-06, SC-008). Add their rules to `blocks.css`.
+- [X] T060 [US1] Create `ED/canvas/CanvasNode.vue` and `ED/canvas/Canvas.vue`:
   - `CanvasNode.vue` renders `registry[node.type].component` with `node` as a prop, a selection outline, a `data-node-id` attribute and a click to select;
   - `Canvas.vue` is the `.qb-canvas` frame with `container-type: inline-size; container-name: page` and the `tokenCss(tokens)` style, iterating `root.children`, with an empty state inviting a first block (spec Edge Cases).
 
   Unchanged node objects must not re-render (ED-10). Verify this with a render counter in `EditorView.spec.ts`.
-- [ ] T061 [US1] Create `ED/dnd/useDragDrop.ts` and `ED/canvas/DropIndicator.vue` (ED-02):
+- [X] T061 [US1] Create `ED/dnd/useDragDrop.ts` and `ED/canvas/DropIndicator.vue` (ED-02):
   - `dragstart` from the palette carries `{ source: 'palette', type }`, and from the canvas or layers carries `{ source: 'node', id }`;
   - `dragover` computes `{ parentId, index }` from the pointer position (before or after a sibling, or inside an empty or hovered Section or Container) and checks `canDrop`;
   - `drop` applies `insert` or `move` through the store;
   - it sets `dropEffect = 'none'` and shows the "not allowed" indicator when refused.
-- [ ] T062 [US1] Create `ED/palette/Palette.vue`: a listbox of the ten block types (translated labels and icons from the registry), draggable. Arrow keys move; `Enter` inserts after the selection, or as the last child when the selection takes children and `canDrop` allows (ED-11).
-- [ ] T063 [US1] Create `ED/state/keyboard.ts` with editor shortcuts bound on the editor root (not globally): arrows for selection, `Enter` and `Escape` for text editing, `Alt+↑/↓/→/←` moves, `Ctrl/⌘+D`, `Delete`, `Ctrl/⌘+C/V` and `Ctrl/⌘+S`, per ED-11. Announce moves and inserts in a polite live region in `EditorView.vue`. Undo and redo are added in US3.
-- [ ] T064 [US1] Create `ED/state/clipboard.ts` (ED-18):
+- [X] T062 [US1] Create `ED/palette/Palette.vue`: a listbox of the ten block types (translated labels and icons from the registry), draggable. Arrow keys move; `Enter` inserts after the selection, or as the last child when the selection takes children and `canDrop` allows (ED-11).
+- [X] T063 [US1] Create `ED/state/keyboard.ts` with editor shortcuts bound on the editor root (not globally): arrows for selection, `Enter` and `Escape` for text editing, `Alt+↑/↓/→/←` moves, `Ctrl/⌘+D`, `Delete`, `Ctrl/⌘+C/V` and `Ctrl/⌘+S`, per ED-11. Announce moves and inserts in a polite live region in `EditorView.vue`. Undo and redo are added in US3.
+- [X] T064 [US1] Create `ED/state/clipboard.ts` (ED-18):
   - `copy(nodes)` writes `{ userId, siteId, nodes }` to `localStorage['qb.editor.clipboard']`, and the blocks' plain text to `navigator.clipboard.writeText`, ignoring failure;
   - `read(siteId, userId)` returns nodes only for a matching site and user;
   - `clear()`.
 
   Paste uses `paste` from T045. Cover it in `ADMINTESTS/editor/clipboard.spec.ts`: another site is refused, and nodes are re-ided.
-- [ ] T065 [US1] Create `ED/state/autosave.ts` with the base state machine from data-model §5 (`saved`, `dirty`, `saving`):
+- [X] T065 [US1] Create `ED/state/autosave.ts` with the base state machine from data-model §5 (`saved`, `dirty`, `saving`):
   - a 2 s debounce after the last change, and `saveNow()`;
   - one request in flight at a time;
   - a pre-check with `documentValidator` (a failure goes to `invalid` and sends nothing);
   - on 200, set `baseVersion` from the response and go to `saved`, or to `dirty` if the document changed meanwhile.
 
   Wire it into `editorStore.apply`. Retry and stop states are added in US3.
-- [ ] T065a [US1] Create `ED/editorErrors.ts`, the single map from refusals to i18n keys (FR-042):
+- [X] T065a [US1] Create `ED/editorErrors.ts`, the single map from refusals to i18n keys (FR-042):
   - every `editor.*` code and `pages.invalid_token_id` in data-model §6;
   - every `DocumentProblem.rule` (010's rules plus `nesting_not_allowed` and `rich_text_too_long`);
   - 010's `pages.*` codes that the editor can meet;
   - the op refusal reasons from `ED/ops/`.
 
   Add the keys to `ADMIN/i18n/en.json`. Create `ADMINTESTS/editor/editorErrors.spec.ts`, asserting that every code, rule and reason has a key present in `en.json`. T072, T082, T084 and T106 show messages only through this map.
-- [ ] T066 [US1] Create `ED/EditorView.vue`, `ED/EditorTopBar.vue` and `ED/SaveStatus.vue`:
+- [X] T066 [US1] Create `ED/EditorView.vue`, `ED/EditorTopBar.vue` and `ED/SaveStatus.vue`:
   - a layout with the palette on the left, the canvas in the centre, and the property panel and layer view regions on the right (placeholders filled by US2 and US4);
   - a top bar with the page title, a back link to Pages, a save status and Save now;
   - loading, error and not-found states (spec US1 #7).
-- [ ] T067 [US1] Add the lazy route `{ path: '/sites/:siteId/pages/:pageId/edit', name: 'page-editor', component: () => import('../editor/EditorView.vue'), meta: { bare: true } }` in `ADMIN/app/router.ts`, with `props` for `kind: 'page'`. Add an **Edit** action per page, shown when `permissions.canEditPageDrafts`, in `ADMIN/features/pages/PageTreeView.vue` (ED-22).
-- [ ] T068 [US1] Add every `editor.*` key used in T050–T067 to `ADMIN/i18n/en.json`. Run `npm run lint`, `npm run type-check` and `npm test`; T047–T049 now pass.
+- [X] T067 [US1] Add the lazy route `{ path: '/sites/:siteId/pages/:pageId/edit', name: 'page-editor', component: () => import('../editor/EditorView.vue'), meta: { bare: true } }` in `ADMIN/app/router.ts`, with `props` for `kind: 'page'`. Add an **Edit** action per page, shown when `permissions.canEditPageDrafts`, in `ADMIN/features/pages/PageTreeView.vue` (ED-22).
+- [X] T068 [US1] Add every `editor.*` key used in T050–T067 to `ADMIN/i18n/en.json`. Run `npm run lint`, `npm run type-check` and `npm test`; T047–T049 now pass.
 
 **Checkpoint**: US1 is fully functional, and quickstart §1 passes. This is the MVP.
 

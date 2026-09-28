@@ -1,0 +1,106 @@
+<script setup lang="ts">
+// The page as visitors will see it (FR-002): the site's tokens as custom properties on a
+// frame that is the `page` container for the block styles' container queries (research
+// ED-09). Drops from the palette and moves of blocks land here.
+import { computed, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { dragState, dropResult, endDrag, resolveTarget, setTarget, sourceOf, type DropPosition } from '../dnd/useDragDrop'
+import { useEditorStore } from '../state/editorStore'
+import { tokenCss } from '../tokens/tokenCss'
+import { takesChildren } from '../schema/schema'
+import { locate } from '../ops/tree'
+import CanvasChildren from './CanvasChildren.vue'
+import DropIndicator from './DropIndicator.vue'
+import '../blocks/blocks.css'
+import './canvas.css'
+
+const props = withDefaults(defineProps<{ width?: number }>(), { width: 1280 })
+const emit = defineEmits<{ refused: [code: string] }>()
+
+const { t } = useI18n()
+const store = useEditorStore()
+const frame = ref<HTMLElement | null>(null)
+
+const style = computed(() => ({ ...tokenCss(store.tokens), width: `${props.width}px` }))
+const empty = computed(() => (store.root?.children.length ?? 0) === 0)
+
+/** Where over which node the pointer is, from the geometry of the node under it. */
+function positionOver(event: DragEvent): { id: string; position: DropPosition } | null {
+  const element = (event.target as HTMLElement | null)?.closest<HTMLElement>('[data-node-id], [data-empty-parent]')
+  if (!element) return store.root ? { id: store.root.id, position: 'inside' } : null
+
+  if (element.dataset.emptyParent) return { id: element.dataset.emptyParent, position: 'inside' }
+
+  const id = element.dataset.nodeId!
+  const node = store.root ? locate(store.root, id)?.node : undefined
+  const rect = element.getBoundingClientRect()
+  // Beside a block in a row means left or right of it, not above or below.
+  const horizontal = element.parentElement?.classList.contains('qb-container--horizontal') === true
+  const offset = horizontal ? (event.clientX - rect.left) / Math.max(rect.width, 1) : (event.clientY - rect.top) / Math.max(rect.height, 1)
+
+  // A block that holds others takes drops in its middle; its edges are for beside it.
+  if (node && takesChildren(node.type) && offset > 0.25 && offset < 0.75) return { id, position: 'inside' }
+  return { id, position: offset < 0.5 ? 'before' : 'after' }
+}
+
+function onDragOver(event: DragEvent): void {
+  const source = sourceOf(event)
+  const over = positionOver(event)
+  if (!source || !over || !store.root || store.readOnly) return
+
+  const target = setTarget(resolveTarget(store.root, source, over.id, over.position, store.kind))
+  if (target?.allowed) {
+    event.preventDefault()
+    if (event.dataTransfer) event.dataTransfer.dropEffect = source.source === 'palette' ? 'copy' : 'move'
+  } else if (event.dataTransfer) {
+    event.dataTransfer.dropEffect = 'none'
+  }
+}
+
+function onDrop(event: DragEvent): void {
+  event.preventDefault()
+  const source = sourceOf(event)
+  const target = dragState.target
+  endDrag()
+  if (!source || !target || !store.root) return
+  if (!target.allowed) {
+    emit('refused', 'nesting_not_allowed')
+    return
+  }
+
+  const refused = store.apply(dropResult(store.root, source, target, store.kind, t))
+  if (refused) emit('refused', refused.code)
+}
+
+function onDragLeave(event: DragEvent): void {
+  if (!frame.value?.contains(event.relatedTarget as Node | null)) setTarget(null)
+}
+
+defineExpose({ frame })
+</script>
+
+<template>
+  <div
+    ref="frame"
+    class="qb-canvas"
+    :class="{ 'qb-canvas--dragging': dragState.dragging !== null }"
+    :style="style"
+    @click="store.select(null)"
+    @dragover="onDragOver"
+    @dragleave="onDragLeave"
+    @drop="onDrop"
+  >
+    <CanvasChildren
+      v-if="store.root"
+      :node="store.root"
+    />
+    <div
+      v-if="empty"
+      class="qb-editor-empty-page"
+    >
+      <p>{{ t('editor.canvas.emptyPage.title') }}</p>
+      <p>{{ t(store.kind === 'page' ? 'editor.canvas.emptyPage.body' : 'editor.canvas.emptyPage.componentBody') }}</p>
+    </div>
+    <DropIndicator :frame="frame" />
+  </div>
+</template>

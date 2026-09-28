@@ -1,0 +1,205 @@
+/*
+  Block styles (011 research ED-01, ED-09; docs/contracts/page-schema.md §9).
+
+  Written for the page, not for the editor: the renderer (#12) is meant to serve the same
+  rules to visitors, so nothing here knows about selection or dragging — that is canvas.css.
+  Every value comes from a token custom property set on the frame (tokenCss.ts), so changing
+  a token changes every block that uses it.
+
+  Responsive rules use container queries on the frame named `page`, not media queries: the
+  editor previews widths inside the admin page, and a published page wraps its body the same
+  way.
+*/
+
+@layer qb-reset, qb-blocks;
+
+@layer qb-reset {
+  .qb-canvas,
+  .qb-canvas * {
+    box-sizing: border-box;
+  }
+
+  .qb-canvas {
+    color: var(--qb-color-color-text);
+    background: var(--qb-color-color-background);
+    font-family: var(--qb-font-body);
+    font-size: var(--qb-base-size);
+    line-height: 1.5;
+  }
+
+  .qb-canvas :is(h1, h2, h3, h4, h5, h6, p, ul, ol, figure, hr) {
+    margin: 0;
+  }
+}
+
+@layer qb-blocks {
+  /* Alignment, shared by every block that has it. */
+  .qb-align--start { text-align: start; justify-content: flex-start; }
+  .qb-align--center { text-align: center; justify-content: center; }
+  .qb-align--end { text-align: end; justify-content: flex-end; }
+
+  .qb-section {
+    background: var(--qb-section-bg);
+    padding-block: var(--qb-section-pad);
+    padding-inline: calc(var(--qb-base-size) * 1.5);
+  }
+
+  .qb-section__inner {
+    display: flex;
+    flex-direction: column;
+    gap: calc(var(--qb-base-size) * 1);
+    max-width: 1200px;
+    margin-inline: auto;
+  }
+
+  .qb-section--full .qb-section__inner {
+    max-width: none;
+  }
+
+  .qb-container {
+    display: flex;
+    gap: var(--qb-container-gap);
+    padding: var(--qb-container-pad);
+    background: var(--qb-container-bg);
+  }
+
+  .qb-container--vertical {
+    flex-direction: column;
+  }
+
+  .qb-container--horizontal {
+    flex-direction: row;
+    flex-wrap: nowrap;
+  }
+
+  .qb-container--horizontal > * {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
+  .qb-container--vertical.qb-align--center { align-items: center; }
+  .qb-container--vertical.qb-align--end { align-items: flex-end; }
+
+  .qb-heading {
+    color: var(--qb-heading-color);
+    font-family: var(--qb-font-heading);
+    font-size: var(--qb-heading-size);
+    line-height: 1.2;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  }
+
+  .qb-text {
+    color: var(--qb-text-color);
+    font-size: var(--qb-text-size);
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+
+  .qb-rich-text {
+    color: var(--qb-text-color);
+    overflow-wrap: anywhere;
+  }
+
+  .qb-rich-text__body > * + * {
+    margin-top: calc(var(--qb-base-size) * 0.75);
+  }
+
+  .qb-rich-text ul,
+  .qb-rich-text ol {
+    padding-inline-start: 1.5em;
+  }
+
+  .qb-rich-text .qb-link {
+    color: var(--qb-color-color-brand);
+    text-decoration: underline;
+  }
+
+  .qb-image img {
+    display: block;
+    max-width: 100%;
+    height: auto;
+  }
+
+  .qb-image--full img {
+    width: 100%;
+  }
+
+  .qb-button-row {
+    display: flex;
+  }
+
+  .qb-button {
+    display: inline-block;
+    padding: calc(var(--qb-base-size) * 0.625) calc(var(--qb-base-size) * 1.25);
+    border-radius: 6px;
+    border: 2px solid var(--qb-button-brand);
+    font-weight: 600;
+    min-width: 2em;
+  }
+
+  .qb-button--primary {
+    background: var(--qb-button-brand);
+    color: var(--qb-button-on-brand);
+  }
+
+  .qb-button--secondary {
+    background: var(--qb-color-color-brand-light);
+    border-color: var(--qb-color-color-brand-light);
+    color: var(--qb-button-brand);
+  }
+
+  .qb-button--outline {
+    background: transparent;
+    color: var(--qb-button-brand);
+  }
+
+  .qb-spacer {
+    height: var(--qb-spacer-height);
+  }
+
+  .qb-divider {
+    border: 0;
+    border-top: 1px solid var(--qb-divider-color);
+    margin-block: var(--qb-divider-spacing);
+  }
+
+  .qb-divider--thick {
+    border-top-width: 4px;
+  }
+
+  .qb-embed {
+    width: 100%;
+  }
+
+  /* Tablet: sections breathe less, horizontal containers may wrap. */
+  @container page (max-width: 767px) {
+    .qb-section {
+      padding-block: calc(var(--qb-section-pad) * 0.75);
+      padding-inline: calc(var(--qb-base-size) * 1);
+    }
+
+    .qb-container--horizontal {
+      flex-wrap: wrap;
+    }
+
+    .qb-container--horizontal > * {
+      flex-basis: 12rem;
+    }
+  }
+
+  /* Mobile: headings step down, horizontal containers stack unless told not to. */
+  @container page (max-width: 480px) {
+    .qb-heading {
+      font-size: calc(var(--qb-heading-size) * 0.8);
+    }
+
+    .qb-container--horizontal.qb-container--stack-on-mobile {
+      flex-direction: column;
+    }
+
+    .qb-container--horizontal.qb-container--stack-on-mobile > * {
+      flex-basis: auto;
+    }
+  }
+}
