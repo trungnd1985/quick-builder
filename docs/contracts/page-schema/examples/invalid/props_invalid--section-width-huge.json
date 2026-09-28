@@ -9,7 +9,7 @@
         "id": "s",
         "type": "section",
         "props": {
-          "width": "wide"
+          "width": "huge"
         },
         "children": []
       }

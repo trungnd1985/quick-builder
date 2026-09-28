@@ -18,6 +18,13 @@ export interface ScaleToken extends TokenEntry {
   rem: number
 }
 
+/** The three named content widths, in CSS pixels (design-tokens.md §2). */
+export interface ContentWidths {
+  narrow: number
+  normal: number
+  wide: number
+}
+
 /** A design token set (docs/contracts/design-tokens.md). */
 export interface TokenSet {
   schemaVersion: number
@@ -29,6 +36,8 @@ export interface TokenSet {
     sizes: ScaleToken[]
   }
   spacing: ScaleToken[]
+  /** Optional: a set saved before content widths existed has none, and takes the defaults. */
+  contentWidths?: ContentWidths
 }
 
 export const defaultTokens: Readonly<TokenSet> = defaults as TokenSet

@@ -54,5 +54,10 @@ export function validateTokenSet(set: unknown): TokenValidation {
     }
   }
 
+  const widths = isObject(set) ? set.contentWidths : undefined
+  if (isObject(widths) && !((widths.narrow as number) <= (widths.normal as number) && (widths.normal as number) <= (widths.wide as number))) {
+    return fail('editor.content_widths_order', '/contentWidths')
+  }
+
   return { valid: true }
 }

@@ -46,6 +46,10 @@ internal static class EditorErrors
         Error.Validation("editor.duplicate_token_name", "Two tokens of the same kind have the same name."),
         ("pointer", pointer));
 
+    internal static Error ContentWidthsOrder { get; } = With(
+        Error.Validation("editor.content_widths_order", "The content widths must go from narrowest to widest: Narrow, then Normal, then Wide."),
+        ("pointer", "/contentWidths"));
+
     /// <summary>The extra problem fields attached to <paramref name="error"/>, if any.</summary>
     internal static IReadOnlyDictionary<string, object?>? ExtensionsOf(Error error) =>
         ExtensionsByError.TryGetValue(error, out var extensions) ? extensions : null;

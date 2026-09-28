@@ -37,7 +37,8 @@ changing a token's value changes every block that uses it, and renaming it break
     "baseSizePx": 16,
     "sizes": [ { "id": "text-md", "name": "Normal", "rem": 1 } ]
   },
-  "spacing": [ { "id": "space-md", "name": "Medium", "rem": 1 } ]
+  "spacing": [ { "id": "space-md", "name": "Medium", "rem": 1 } ],
+  "contentWidths": { "narrow": 720, "normal": 1200, "wide": 1440 }
 }
 ```
 
@@ -59,6 +60,7 @@ see; publishing (#12) decides how they reach published pages.
 | `typography.baseSizePx` | An integer from 12 to 24. `1rem` equals this. |
 | `typography.sizes` | 1–12 entries of `{ id, name, rem }`, with `rem` from 0.5 to 6. |
 | `spacing` | 1–12 entries of `{ id, name, rem }`, with `rem` from 0 to 16. |
+| `contentWidths` | Optional. `{ narrow, normal, wide }`, each an integer from 320 to 2560 (CSS pixels), with narrow ≤ normal ≤ wide. All three are always present: none can be added or deleted. When it is absent, the default set's widths apply. |
 | `id` | Matches `^[a-z0-9-]{1,40}$`. **Unique across all three lists.** It never changes; a new entry gets a new id. |
 | `name` | 1–40 characters, unique within its list ignoring case. Display only. |
 | Size | At most 64 KiB of UTF-8 JSON. |
@@ -73,7 +75,9 @@ there is one, a JSON `pointer`:
 4. the schema (`editor.invalid_tokens`);
 5. ids unique across lists (`editor.duplicate_token_id`, at the second occurrence);
 6. names unique within a list, ignoring case (`editor.duplicate_token_name`, at the second
-   occurrence).
+   occurrence);
+7. content widths in order, narrow ≤ normal ≤ wide (`editor.content_widths_order`, at
+   `/contentWidths`).
 
 **Deleting** a token means leaving it out. Documents that still refer to it stay valid, and
 consumers use the referring property's schema `default` (page-schema.md §2a). There is
@@ -82,6 +86,12 @@ never a dangling-reference error.
 **Fallbacks always resolve**: consumers always define every id of the default set. An id
 missing from the site's set takes its value from the default set. So a property whose token
 and default token were both deleted still renders.
+
+**Content widths** give the Narrow, Normal and Wide widths of Sections and Containers their
+size ([page-schema.md](page-schema.md) §2). They are not tokens: they have no id, and
+documents name them by width (`narrow`, `normal`, `wide`). A token set saved before content
+widths existed has no `contentWidths`. It stays valid, and consumers use the default set's
+widths: 720, 1200 and 1440.
 
 ## 3. Font stacks
 
@@ -131,7 +141,7 @@ Every validator of this schema runs the same files:
 | File | Expected |
 |---|---|
 | `valid/default.json` | passes: the default set |
-| `valid/full.json` | passes: 24 colours, 12 sizes, 12 spacing steps |
+| `valid/full.json` | passes: 24 colours, 12 sizes, 12 spacing steps, the extreme content widths |
 | `invalid/editor.invalid_tokens--bad-colour.json` | at `/colors/0/value` |
 | `invalid/editor.invalid_tokens--uppercase-colour.json` | at `/colors/0/value` |
 | `invalid/editor.invalid_tokens--25-colours.json` | at `/colors` |
@@ -142,3 +152,5 @@ Every validator of this schema runs the same files:
 | `invalid/editor.duplicate_token_name--case.json` | at `/colors/1/name` |
 | `invalid/editor.token_required--empty-spacing.json` | at `/spacing` |
 | `invalid/editor.unsupported_schema_version--version-2.json` | at `/schemaVersion` |
+| `invalid/editor.invalid_tokens--wide-3000.json` | at `/contentWidths/wide` |
+| `invalid/editor.content_widths_order--narrow-over-normal.json` | at `/contentWidths` |

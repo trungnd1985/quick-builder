@@ -578,6 +578,7 @@
       "dragHandle": "Drag to move",
       "unknownBlock": "This block ({type}) cannot be shown in the editor.",
       "notAllowedHere": "Not allowed here",
+      "brokenLink": "Broken link: the page no longer exists",
       "emptyPage": {
         "title": "This page is empty.",
         "body": "Drag a Section from the blocks on the left, or choose Section and press Enter. Put headings, text and images inside it.",
@@ -665,6 +666,7 @@
         "editor_invalid_tokens": "The design tokens are not valid.",
         "editor_duplicate_token_id": "Two tokens have the same id.",
         "editor_duplicate_token_name": "Two tokens of the same kind have the same name.",
+        "editor_content_widths_order": "The content widths must go from narrowest to widest: Narrow, then Normal, then Wide.",
         "editor_token_required": "Keep at least one colour, one text size and one spacing step.",
         "editor_tokens_too_large": "The design tokens are larger than 64 KB.",
         "editor_unsupported_schema_version": "These design tokens were written by a newer version of QuickBuilder."
@@ -703,6 +705,8 @@
         "gap": "Space between blocks",
         "padding": "Inner space",
         "stackOnMobile": "Stack on mobile",
+        "columns": "Column widths",
+        "maxWidth": "Maximum width",
         "size": "Text size",
         "content": "Text",
         "media": "Image",
@@ -727,9 +731,25 @@
           "end": "End"
         },
         "width": {
+          "narrow": "Narrow",
+          "contained": "Normal",
+          "wide": "Wide",
           "full": "Full width",
-          "contained": "Contained",
           "natural": "Natural size"
+        },
+        "maxWidth": {
+          "narrow": "Narrow",
+          "normal": "Normal",
+          "wide": "Wide",
+          "full": "Full width"
+        },
+        "columns": {
+          "equal": "Equal",
+          "2-1": "2/3 + 1/3",
+          "1-2": "1/3 + 2/3",
+          "3-1": "3/4 + 1/4",
+          "1-3": "1/4 + 3/4",
+          "2-1-1": "1/2 + 1/4 + 1/4"
         },
         "direction": {
           "vertical": "Stacked",
@@ -877,6 +897,13 @@
       "help": "Steps in multiples of the base text size, from 0 to 16.",
       "add": "Add spacing step",
       "newName": "Step {n}"
+    },
+    "widths": {
+      "title": "Content widths",
+      "help": "How wide Sections and Containers set to Narrow, Normal or Wide may grow, in pixels from 320 to 2560. Narrow is at most Normal, and Normal at most Wide.",
+      "narrow": "Narrow width, in pixels",
+      "normal": "Normal width, in pixels",
+      "wide": "Wide width, in pixels"
     },
     "fonts": {
       "system-ui": "System",

@@ -25,6 +25,8 @@
   "props_invalid--image-media-not-uuid.json": { "rule": "props_invalid", "pointer": "/root/children/0/children/0/props/media/mediaId" },
   "props_invalid--spacer-extra-prop.json": { "rule": "props_invalid", "pointer": "/root/children/0/children/0/props/color" },
   "props_invalid--divider-thickness.json": { "rule": "props_invalid", "pointer": "/root/children/0/children/0/props/thickness" },
-  "props_invalid--section-width.json": { "rule": "props_invalid", "pointer": "/root/children/0/props/width" },
+  "props_invalid--section-width-huge.json": { "rule": "props_invalid", "pointer": "/root/children/0/props/width" },
+  "props_invalid--container-max-width.json": { "rule": "props_invalid", "pointer": "/root/children/0/children/0/props/maxWidth" },
+  "props_invalid--container-columns.json": { "rule": "props_invalid", "pointer": "/root/children/0/children/0/props/columns" },
   "rich_text_too_long--20001.json": { "rule": "rich_text_too_long", "pointer": "/root/children/0/children/0/props/content" }
 }

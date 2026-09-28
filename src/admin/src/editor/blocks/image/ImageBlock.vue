@@ -7,11 +7,14 @@ import { useI18n } from 'vue-i18n'
 import { mediaApi } from '../../../api/media'
 import type { ContentNode } from '../../schema/schema'
 import { isObject } from '../../schema/subsetValidator'
+import { useBrokenLinks } from '../brokenLinks'
 import { useBlock } from '../useBlock'
 
 const props = defineProps<{ node: ContentNode }>()
 const { t } = useI18n()
 const { store, prop } = useBlock(() => props.node)
+const isBroken = useBrokenLinks(() => store.siteId)
+const broken = computed(() => isBroken.value(props.node.props.link))
 
 const mediaId = computed(() => {
   const media = props.node.props.media
@@ -42,5 +45,9 @@ const alt = computed(() => (prop<boolean>('decorative') ? '' : prop<string | und
     >
       {{ mediaId ? t('editor.blocks.placeholder.imageMissing') : t('editor.blocks.placeholder.image') }}
     </div>
+    <span
+      v-if="broken"
+      class="qb-editor-broken-link"
+    >{{ t('editor.canvas.brokenLink') }}</span>
   </figure>
 </template>

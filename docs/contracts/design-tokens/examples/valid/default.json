@@ -105,5 +105,10 @@
       "name": "2x large",
       "rem": 6
     }
-  ]
+  ],
+  "contentWidths": {
+    "narrow": 720,
+    "normal": 1200,
+    "wide": 1440
+  }
 }

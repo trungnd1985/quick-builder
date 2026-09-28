@@ -119,6 +119,38 @@ public sealed class TokenSetValidatorTests
         Assert.Equal(("editor.duplicate_token_id", "/colors/2/id"), (result.Error!.Code, TokenSetValidator.PointerOf(result.Error)));
     }
 
+    [Theory]
+    [InlineData(720, 1200, 1100)]
+    [InlineData(1300, 1200, 1440)]
+    public void Content_widths_out_of_order_are_refused(int narrow, int normal, int wide)
+    {
+        var set = Default();
+        set["contentWidths"] = new JsonObject { ["narrow"] = narrow, ["normal"] = normal, ["wide"] = wide };
+
+        var result = Validator.Validate(Encoding.UTF8.GetBytes(set.ToJsonString()));
+
+        Assert.Equal(("editor.content_widths_order", "/contentWidths"), (result.Error!.Code, TokenSetValidator.PointerOf(result.Error)));
+    }
+
+    [Fact]
+    public void Equal_content_widths_are_in_order()
+    {
+        var set = Default();
+        set["contentWidths"] = new JsonObject { ["narrow"] = 960, ["normal"] = 960, ["wide"] = 960 };
+
+        Assert.True(Validator.Validate(Encoding.UTF8.GetBytes(set.ToJsonString())).IsSuccess);
+    }
+
+    [Fact]
+    public void A_set_without_content_widths_is_valid()
+    {
+        // Saved before content widths existed (011 spec, Edge Cases).
+        var set = Default();
+        set.Remove("contentWidths");
+
+        Assert.True(Validator.Validate(Encoding.UTF8.GetBytes(set.ToJsonString())).IsSuccess);
+    }
+
     [Fact]
     public void The_validated_version_is_reported()
     {

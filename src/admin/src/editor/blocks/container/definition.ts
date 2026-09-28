@@ -10,8 +10,10 @@ const definition: BlockDefinition = {
       labelKey: 'layout',
       props: [
         { prop: 'direction', control: 'choice' },
+        { prop: 'columns', control: 'choice' },
         { prop: 'stackOnMobile', control: 'toggle' },
         { prop: 'align', control: 'choice' },
+        { prop: 'maxWidth', control: 'choice' },
         { prop: 'gap', control: 'spaceToken' },
         { prop: 'padding', control: 'spaceToken' },
       ],

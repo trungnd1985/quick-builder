@@ -1,5 +1,6 @@
 <script setup lang="ts">
-// A full-width band of the page. Every piece of content sits in one (FR-012).
+// A full-width band of the page. Every piece of content sits in one (FR-012). Its content is
+// capped at one of the site's content widths and centred, or spans the page (FR-013).
 import { computed } from 'vue'
 import CanvasChildren from '../../canvas/CanvasChildren.vue'
 import type { ContentNode } from '../../schema/schema'
@@ -17,7 +18,7 @@ const style = computed(() => ({
 <template>
   <section
     class="qb-section"
-    :class="{ 'qb-section--full': prop('width') === 'full' }"
+    :class="`qb-section--${prop('width')}`"
     :style="style"
   >
     <div class="qb-section__inner">

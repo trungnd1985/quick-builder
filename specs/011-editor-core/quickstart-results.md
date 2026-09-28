@@ -8,12 +8,16 @@ as *pending* rather than claimed.
 
 ## Automated results
 
+Counts updated on 2026-09-29 after the width convergence (T121–T128). The smoke test,
+the performance test, coverage and the build sizes are from 2026-09-28 and were not rerun:
+that change touched no server endpoint, query or image build step.
+
 | Check | Result |
 |---|---|
-| .NET unit tests | 681 passed |
+| .NET unit tests | 690 passed |
 | .NET architecture tests | 25 passed |
-| .NET integration tests (Testcontainers PostgreSQL) | 456 passed, 3 skipped (Unix file-mode tests, skipped on Windows as before this feature) |
-| Admin tests (vitest, jsdom, axe) | 351 passed across 29 files |
+| .NET integration tests (Testcontainers PostgreSQL) | 461 passed, 3 skipped (Unix file-mode tests, skipped on Windows as before this feature) |
+| Admin tests (vitest, jsdom, axe) | 364 passed across 29 files |
 | `dotnet format --verify-no-changes` | clean |
 | `eslint --max-warnings 0`, `vue-tsc -b` | clean |
 | Editor module line coverage (integration tests alone) | 92.1% (gate: 80%) |

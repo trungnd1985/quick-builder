@@ -77,8 +77,8 @@ paths:
           $ref: '#/components/responses/TokensProblem'
           description: |
             `editor.invalid_tokens` (with `pointer`), `editor.unsupported_schema_version`,
-            `editor.duplicate_token_id`, `editor.duplicate_token_name` or
-            `editor.token_required`.
+            `editor.duplicate_token_id`, `editor.duplicate_token_name`,
+            `editor.content_widths_order` or `editor.token_required`.
         '409':
           $ref: '#/components/responses/Problem'
           description: '`editor.out_of_date`.'

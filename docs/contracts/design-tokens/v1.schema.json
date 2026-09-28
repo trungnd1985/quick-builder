@@ -60,6 +60,27 @@
       "items": {
         "$ref": "#/$defs/space"
       }
+    },
+    "contentWidths": {
+      "description": "Optional. A set without it uses the default set's widths (design-tokens.md §2).",
+      "type": "object",
+      "required": [
+        "narrow",
+        "normal",
+        "wide"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "narrow": {
+          "$ref": "#/$defs/contentWidth"
+        },
+        "normal": {
+          "$ref": "#/$defs/contentWidth"
+        },
+        "wide": {
+          "$ref": "#/$defs/contentWidth"
+        }
+      }
     }
   },
   "$defs": {
@@ -158,6 +179,12 @@
           "maximum": 16
         }
       }
+    },
+    "contentWidth": {
+      "description": "A content width in CSS pixels.",
+      "type": "integer",
+      "minimum": 320,
+      "maximum": 2560
     }
   }
 }

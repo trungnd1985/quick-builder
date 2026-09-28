@@ -250,5 +250,10 @@
       "name": "Step 11",
       "rem": 11
     }
-  ]
+  ],
+  "contentWidths": {
+    "narrow": 320,
+    "normal": 320,
+    "wide": 2560
+  }
 }

@@ -76,6 +76,24 @@ public sealed class DesignTokensApiTests(DatabaseFixture database)
     }
 
     [Fact]
+    public async Task A_set_saved_without_content_widths_reads_back_unchanged_and_valid()
+    {
+        // 011 spec, Edge Cases: a set from before content widths existed stays valid; the
+        // consumers, not the store, fill in the default widths.
+        using var scenario = await PagesScenario.CreateAsync(database, "ed-tokens-nowidths").ConfigureAwait(true);
+        var node = System.Text.Json.Nodes.JsonNode.Parse(EditorApi.DefaultDocument)!.AsObject();
+        node.Remove("contentWidths");
+        var set = node.ToJsonString();
+
+        await PagesApi.OkAsync(await EditorApi.SaveAsync(scenario.Admin, scenario.SiteA, set, 0).ConfigureAwait(true)).ConfigureAwait(true);
+        var read = await EditorApi.GetOkAsync(scenario.Admin, scenario.SiteA).ConfigureAwait(true);
+
+        Assert.False(read.GetProperty("document").TryGetProperty("contentWidths", out _));
+        var again = await EditorApi.SaveAsync(scenario.Admin, scenario.SiteA, read.GetProperty("document").GetRawText(), read.GetProperty("version").GetUInt32()).ConfigureAwait(true);
+        Assert.Equal(HttpStatusCode.OK, again.StatusCode);
+    }
+
+    [Fact]
     public async Task A_save_based_on_an_old_version_is_out_of_date()
     {
         using var scenario = await PagesScenario.CreateAsync(database, "ed-tokens-stale").ConfigureAwait(true);

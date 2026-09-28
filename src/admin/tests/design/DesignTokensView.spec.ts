@@ -18,10 +18,10 @@ interface Call {
   body?: { document: TokenSet; version: number }
 }
 
-function stub(options: { canManage?: boolean; usage?: number; saveStatus?: number } = {}) {
+function stub(options: { canManage?: boolean; usage?: number; saveStatus?: number; document?: TokenSet } = {}) {
   const calls: Call[] = []
   let version = 0
-  let document: TokenSet = JSON.parse(JSON.stringify(defaultTokens))
+  let document: TokenSet = options.document ?? JSON.parse(JSON.stringify(defaultTokens))
 
   vi.stubGlobal('fetch', vi.fn(async (url: string, init?: RequestInit) => {
     const method = (init?.method ?? 'GET').toUpperCase()
@@ -168,11 +168,50 @@ describe('DesignTokensView (US6)', () => {
     expect(screen.getByRole('button', { name: en.design.reload })).toBeTruthy()
   })
 
+  it('edits the three content widths and saves them with the set', async () => {
+    const calls = stub()
+    await renderView()
+
+    const widths = screen.getByRole('group', { name: en.design.widths.title })
+    expect(within(widths).getAllByRole('spinbutton')).toHaveLength(3)
+    expect(within(widths).queryByRole('button')).toBeNull()
+
+    await fireEvent.update(screen.getByLabelText(en.design.widths.normal), '1100')
+    await fireEvent.click(screen.getByRole('button', { name: en.design.save }))
+
+    await waitFor(() => expect(calls.some((c) => c.method === 'PUT')).toBe(true))
+    expect(calls.find((c) => c.method === 'PUT')!.body!.document.contentWidths).toEqual({ narrow: 720, normal: 1100, wide: 1440 })
+  })
+
+  it('refuses content widths out of order, before saving', async () => {
+    const calls = stub()
+    await renderView()
+
+    await fireEvent.update(screen.getByLabelText(en.design.widths.narrow), '1300')
+    await fireEvent.click(screen.getByRole('button', { name: en.design.save }))
+
+    await waitFor(() => expect(screen.getByText(en.editor.errors.server.editor_content_widths_order)).toBeTruthy())
+    expect(calls.some((c) => c.method === 'PUT')).toBe(false)
+  })
+
+  it('shows the default widths for a set saved before content widths existed', async () => {
+    // 011 spec, Edge Cases.
+    const legacy = JSON.parse(JSON.stringify(defaultTokens)) as TokenSet
+    delete legacy.contentWidths
+    stub({ document: legacy })
+    await renderView()
+
+    expect((screen.getByLabelText(en.design.widths.narrow) as HTMLInputElement).value).toBe('720')
+    expect((screen.getByLabelText(en.design.widths.normal) as HTMLInputElement).value).toBe('1200')
+    expect((screen.getByLabelText(en.design.widths.wide) as HTMLInputElement).value).toBe('1440')
+  })
+
   it('shows the tokens read-only to a member who may not change them', async () => {
     stub({ canManage: false })
     await renderView()
 
     expect((within(colours()).getByDisplayValue('Brand') as HTMLInputElement).disabled).toBe(true)
+    expect((screen.getByLabelText(en.design.widths.wide) as HTMLInputElement).disabled).toBe(true)
     expect(screen.queryByRole('button', { name: en.design.save })).toBeNull()
     expect(screen.queryByRole('button', { name: en.design.colors.add })).toBeNull()
     expect(screen.getByText(en.design.readOnly)).toBeTruthy()

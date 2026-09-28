@@ -1,0 +1,114 @@
+{
+  "schemaVersion": 1,
+  "colors": [
+    {
+      "id": "color-brand",
+      "name": "Brand",
+      "value": "#2563eb"
+    },
+    {
+      "id": "color-brand-light",
+      "name": "Brand light",
+      "value": "#dbeafe"
+    },
+    {
+      "id": "color-text",
+      "name": "Text",
+      "value": "#111827"
+    },
+    {
+      "id": "color-muted",
+      "name": "Muted text",
+      "value": "#6b7280"
+    },
+    {
+      "id": "color-background",
+      "name": "Background",
+      "value": "#ffffff"
+    },
+    {
+      "id": "color-border",
+      "name": "Border",
+      "value": "#e5e7eb"
+    }
+  ],
+  "typography": {
+    "headingFont": "system-ui",
+    "bodyFont": "system-ui",
+    "baseSizePx": 16,
+    "sizes": [
+      {
+        "id": "text-sm",
+        "name": "Small",
+        "rem": 0.875
+      },
+      {
+        "id": "text-md",
+        "name": "Normal",
+        "rem": 1
+      },
+      {
+        "id": "text-lg",
+        "name": "Large",
+        "rem": 1.25
+      },
+      {
+        "id": "text-xl",
+        "name": "Extra large",
+        "rem": 1.5
+      },
+      {
+        "id": "text-2xl",
+        "name": "2x large",
+        "rem": 2
+      },
+      {
+        "id": "text-3xl",
+        "name": "3x large",
+        "rem": 2.5
+      }
+    ]
+  },
+  "spacing": [
+    {
+      "id": "space-none",
+      "name": "None",
+      "rem": 0
+    },
+    {
+      "id": "space-xs",
+      "name": "Extra small",
+      "rem": 0.25
+    },
+    {
+      "id": "space-sm",
+      "name": "Small",
+      "rem": 0.5
+    },
+    {
+      "id": "space-md",
+      "name": "Medium",
+      "rem": 1
+    },
+    {
+      "id": "space-lg",
+      "name": "Large",
+      "rem": 2
+    },
+    {
+      "id": "space-xl",
+      "name": "Extra large",
+      "rem": 4
+    },
+    {
+      "id": "space-2xl",
+      "name": "2x large",
+      "rem": 6
+    }
+  ],
+  "contentWidths": {
+    "narrow": 1300,
+    "normal": 1200,
+    "wide": 1440
+  }
+}

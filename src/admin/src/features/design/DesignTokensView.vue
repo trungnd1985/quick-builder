@@ -13,7 +13,7 @@ import { ApiError } from '../../api/request'
 import { editorApi, type DesignTokens } from '../../api/editor'
 import { pagesApi } from '../../api/pages'
 import { serverKey } from '../../editor/editorErrors'
-import type { TokenSet } from '../../editor/tokens/defaultTokens'
+import { defaultTokens, type TokenSet } from '../../editor/tokens/defaultTokens'
 import { validateTokenSet } from '../../editor/tokens/tokenValidator'
 import ColorList from './ColorList.vue'
 import FontSelect from './FontSelect.vue'
@@ -41,7 +41,7 @@ async function load(): Promise<void> {
   error.value = ''
   try {
     loaded.value = await editorApi.designTokens(siteId.value)
-    draft.value = JSON.parse(JSON.stringify(loaded.value.document)) as TokenSet
+    draft.value = editable(loaded.value.document)
   } catch {
     loadFailed.value = true
   } finally {
@@ -50,6 +50,18 @@ async function load(): Promise<void> {
 }
 
 onMounted(load)
+
+/**
+ * A copy to edit. A set saved before content widths existed has none; the three widths are
+ * always shown, so it gets the defaults, which it was using anyway (design-tokens.md §2).
+ */
+function editable(document: TokenSet): TokenSet {
+  const copy = JSON.parse(JSON.stringify(document)) as TokenSet
+  copy.contentWidths ??= { ...defaultTokens.contentWidths! }
+  return copy
+}
+
+const WIDTHS = ['narrow', 'normal', 'wide'] as const
 
 /** A new, never-reused id for a token of one kind (research ED-14). */
 function newId(prefix: 'color' | 'text' | 'space'): string {
@@ -104,7 +116,7 @@ async function save(): Promise<void> {
   saving.value = true
   try {
     loaded.value = await editorApi.saveDesignTokens(siteId.value, draft.value, loaded.value.version)
-    draft.value = JSON.parse(JSON.stringify(loaded.value.document)) as TokenSet
+    draft.value = editable(loaded.value.document)
     message.value = t('design.saved')
   } catch (failure) {
     const code = failure instanceof ApiError ? failure.errorCode : undefined
@@ -242,6 +254,35 @@ async function save(): Promise<void> {
         @add="addStep('spacing')"
         @remove="(id) => remove('spacing', id)"
       />
+
+      <fieldset
+        v-if="draft.contentWidths"
+        class="design-group"
+        aria-describedby="design-widths-help"
+      >
+        <legend>{{ t('design.widths.title') }}</legend>
+        <p
+          id="design-widths-help"
+          class="help"
+        >
+          {{ t('design.widths.help') }}
+        </p>
+        <template
+          v-for="width in WIDTHS"
+          :key="width"
+        >
+          <label :for="`design-width-${width}`">{{ t(`design.widths.${width}`) }}</label>
+          <input
+            :id="`design-width-${width}`"
+            v-model.number="draft.contentWidths[width]"
+            type="number"
+            min="320"
+            max="2560"
+            step="1"
+            :disabled="readOnly"
+          >
+        </template>
+      </fieldset>
     </template>
   </div>
 </template>

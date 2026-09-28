@@ -21,6 +21,19 @@ function entries(set: Readonly<TokenSet>): [string, string][] {
     ['--qb-font-heading', fontFamily(set.typography.headingFont)],
     ['--qb-font-body', fontFamily(set.typography.bodyFont)],
     ['--qb-base-size', `${set.typography.baseSizePx}px`],
+    ...widths(set),
+  ]
+}
+
+// Content widths are pixels, not scaled by the base size: they are layout, not type. A set
+// saved before they existed has none, so the default set's widths stand (design-tokens.md §2).
+function widths(set: Readonly<TokenSet>): [string, string][] {
+  const w = set.contentWidths ?? defaultTokens.contentWidths
+  if (!w) return []
+  return [
+    ['--qb-width-narrow', `${w.narrow}px`],
+    ['--qb-width-normal', `${w.normal}px`],
+    ['--qb-width-wide', `${w.wide}px`],
   ]
 }
 

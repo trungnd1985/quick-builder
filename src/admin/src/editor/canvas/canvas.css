@@ -91,6 +91,23 @@
     text-align: center;
   }
 
+  /* A link to a page that no longer exists (spec Edge Cases). Never part of the page. */
+  .qb-editor-broken-link {
+    display: inline-block;
+    margin-inline-start: 0.5rem;
+    padding: 0.125rem 0.375rem;
+    border-radius: 4px;
+    background: #fdecea;
+    color: #9b1c1c;
+    font: 600 0.75rem/1.4 system-ui, sans-serif;
+    font-style: normal;
+    vertical-align: middle;
+  }
+
+  .qb-editor-broken-link-text {
+    text-decoration: underline wavy #c81e1e;
+  }
+
   .qb-embed__url {
     overflow-wrap: anywhere;
   }

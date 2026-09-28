@@ -59,6 +59,7 @@ export const SERVER_CODES: readonly string[] = [
   'editor.invalid_tokens',
   'editor.duplicate_token_id',
   'editor.duplicate_token_name',
+  'editor.content_widths_order',
   'editor.token_required',
   'editor.tokens_too_large',
   'editor.unsupported_schema_version',

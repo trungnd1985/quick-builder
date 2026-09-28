@@ -1,0 +1,207 @@
+{
+  "schemaVersion": 1,
+  "root": {
+    "id": "root",
+    "type": "root",
+    "props": {},
+    "children": [
+      {
+        "id": "s-narrow",
+        "type": "section",
+        "props": {
+          "width": "narrow"
+        },
+        "children": [
+          {
+            "id": "c-narrow",
+            "type": "container",
+            "props": {
+              "maxWidth": "narrow",
+              "align": "center"
+            },
+            "children": [
+              {
+                "id": "t1",
+                "type": "text",
+                "props": {
+                  "text": "Narrow, centred"
+                },
+                "children": []
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "s-normal",
+        "type": "section",
+        "props": {
+          "width": "contained"
+        },
+        "children": [
+          {
+            "id": "c-cols",
+            "type": "container",
+            "props": {
+              "direction": "horizontal",
+              "columns": "2-1",
+              "maxWidth": "normal"
+            },
+            "children": [
+              {
+                "id": "t2",
+                "type": "text",
+                "props": {
+                  "text": "Two thirds"
+                },
+                "children": []
+              },
+              {
+                "id": "t3",
+                "type": "text",
+                "props": {
+                  "text": "One third"
+                },
+                "children": []
+              },
+              {
+                "id": "t4",
+                "type": "text",
+                "props": {
+                  "text": "Next row, two thirds"
+                },
+                "children": []
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "s-wide",
+        "type": "section",
+        "props": {
+          "width": "wide"
+        },
+        "children": [
+          {
+            "id": "c-wide",
+            "type": "container",
+            "props": {
+              "direction": "horizontal",
+              "columns": "2-1-1",
+              "maxWidth": "wide",
+              "align": "end",
+              "stackOnMobile": false
+            },
+            "children": [
+              {
+                "id": "t5",
+                "type": "text",
+                "props": {
+                  "text": "Half"
+                },
+                "children": []
+              },
+              {
+                "id": "t6",
+                "type": "text",
+                "props": {
+                  "text": "Quarter"
+                },
+                "children": []
+              },
+              {
+                "id": "t7",
+                "type": "text",
+                "props": {
+                  "text": "Quarter"
+                },
+                "children": []
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "s-full",
+        "type": "section",
+        "props": {
+          "width": "full"
+        },
+        "children": [
+          {
+            "id": "c-rest",
+            "type": "container",
+            "props": {
+              "direction": "horizontal",
+              "columns": "1-3"
+            },
+            "children": [
+              {
+                "id": "t8",
+                "type": "text",
+                "props": {
+                  "text": "A"
+                },
+                "children": []
+              },
+              {
+                "id": "t9",
+                "type": "text",
+                "props": {
+                  "text": "B"
+                },
+                "children": []
+              }
+            ]
+          },
+          {
+            "id": "c-rest2",
+            "type": "container",
+            "props": {
+              "direction": "horizontal",
+              "columns": "3-1"
+            },
+            "children": [
+              {
+                "id": "t10",
+                "type": "text",
+                "props": {
+                  "text": "A"
+                },
+                "children": []
+              },
+              {
+                "id": "t11",
+                "type": "text",
+                "props": {
+                  "text": "B"
+                },
+                "children": []
+              }
+            ]
+          },
+          {
+            "id": "c-rest3",
+            "type": "container",
+            "props": {
+              "direction": "horizontal",
+              "columns": "equal",
+              "maxWidth": "full"
+            },
+            "children": [
+              {
+                "id": "t12",
+                "type": "text",
+                "props": {
+                  "text": "A"
+                },
+                "children": []
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

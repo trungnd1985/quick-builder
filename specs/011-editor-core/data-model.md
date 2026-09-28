@@ -54,8 +54,8 @@ editor limits it to 4 levels.
 
 | Type | Children | Props (type, allowed values, **default**) |
 |---|---|---|
-| `section` | `contentChild[]` | `background`: `colorRef`, **none** (transparent). `paddingY`: `spaceRef`, **`space-xl`**. `width`: `"full"` or `"contained"`, **`contained`**. |
-| `container` | `contentChild[]` | `direction`: `"vertical"` or `"horizontal"`, **`vertical`**. `gap`: `spaceRef`, **`space-md`**. `padding`: `spaceRef`, **`space-none`**. `align`: `align`, **`start`**. `background`: `colorRef`, **none**. `stackOnMobile`: boolean, **true**. |
+| `section` | `contentChild[]` | `background`: `colorRef`, **none** (transparent). `paddingY`: `spaceRef`, **`space-xl`**. `width`: `"narrow"`, `"contained"` (shown as Normal), `"wide"` or `"full"`, **`contained`**. Narrow, Normal and Wide cap the content at the site's content width and centre it; Full spans the page. |
+| `container` | `contentChild[]` | `direction`: `"vertical"` or `"horizontal"`, **`vertical`**. `columns`: `"equal"`, `"2-1"`, `"1-2"`, `"3-1"`, `"1-3"` or `"2-1-1"`, **`equal`**; horizontal only; blocks beyond the pattern start a new row; kept at tablet width, stacked at mobile width when `stackOnMobile`. `gap`: `spaceRef`, **`space-md`**. `padding`: `spaceRef`, **`space-none`**. `align`: `align`, **`start`**. `maxWidth`: `"narrow"`, `"normal"`, `"wide"` or `"full"`, **`full`**; caps the Container itself, placed by `align`, never wider than its parent. `background`: `colorRef`, **none**. `stackOnMobile`: boolean, **true**. |
 | `heading` | none | `text` *(required)*: string, 0–300 characters, no line breaks. `level`: integer 1–6, **2**. `align`: `align`. `color`: `colorRef`, **`color-text`**. |
 | `text` | none | `text` *(required)*: string, 0–5,000 characters; line breaks allowed. `align`: `align`. `color`: `colorRef`, **`color-text`**. `size`: `textSizeRef`, **`text-md`**. |
 | `rich-text` | none | `content` *(required)*: `richText`. `align`: `align`. `color`: `colorRef`, **`color-text`**. |
@@ -130,7 +130,8 @@ One document per site. JSON shape:
   },
   "spacing": [
     { "id": "space-md", "name": "Medium", "rem": 1 }
-  ]
+  ],
+  "contentWidths": { "narrow": 720, "normal": 1200, "wide": 1440 }
 }
 ```
 
@@ -142,6 +143,7 @@ One document per site. JSON shape:
 | `typography.baseSizePx` | An integer from 12 to 24. |
 | `typography.sizes` | 1–12 entries. `id` and `name` as for colours. `rem` is a number from 0.5 to 6. |
 | `spacing` | 1–12 entries. `id` and `name` as for colours. `rem` is a number from 0 to 16. |
+| `contentWidths` | Optional. `narrow`, `normal` and `wide`, each an integer from 320 to 2560 (px), with narrow ≤ normal ≤ wide (`editor.content_widths_order`). Always all three; none can be added or deleted. Absent (a set saved before they existed), the default widths apply. |
 | **Ids** | Unique across `colors`, `typography.sizes` and `spacing` together (ED-14). Never change once created. |
 
 **Defaults** (the lazy default set, a constant in `Editor.Contracts`, with its copy in the
@@ -152,6 +154,7 @@ admin checked by `DefaultTokensParityTests`):
 | Colours | `color-brand` Brand `#2563eb`; `color-brand-light` Brand light `#dbeafe`; `color-text` Text `#111827`; `color-muted` Muted text `#6b7280`; `color-background` Background `#ffffff`; `color-border` Border `#e5e7eb` |
 | Fonts | `system-ui` for both headings and body; base 16 px |
 | Text sizes | `text-sm` 0.875; `text-md` 1; `text-lg` 1.25; `text-xl` 1.5; `text-2xl` 2; `text-3xl` 2.5 |
+| Content widths | Narrow 720; Normal 1200; Wide 1440 (px) |
 | Spacing | `space-none` 0; `space-xs` 0.25; `space-sm` 0.5; `space-md` 1; `space-lg` 2; `space-xl` 4; `space-2xl` 6 |
 
 **Heading sizes**: headings map levels to text sizes by fixed rule (1 → `text-3xl` …
@@ -175,7 +178,7 @@ way.
 | `Document` | The validated token document above. |
 | `Version` | `xmin`. A save carries the version it was based on, and a stale one gives `editor.out_of_date`. |
 | `UpdatedAtUtc`, `UpdatedBy` | Set on each save. |
-| `Replace(document, expectedVersion, user)` | Validates in this order: size (`editor.tokens_too_large`); version (`editor.unsupported_schema_version`); an empty `colors`, `typography.sizes` or `spacing` list (`editor.token_required`, before the schema so that deleting the last entry gets its own reason); schema (`editor.invalid_tokens`, with a pointer); ids unique across kinds (`editor.duplicate_token_id`); names unique per kind ignoring case (`editor.duplicate_token_name`). Ids are never edited: the admin generates an id only for a new entry and never offers to change one. A changed id is indistinguishable from a delete plus an add, and it is treated as such. |
+| `Replace(document, expectedVersion, user)` | Validates in this order: size (`editor.tokens_too_large`); version (`editor.unsupported_schema_version`); an empty `colors`, `typography.sizes` or `spacing` list (`editor.token_required`, before the schema so that deleting the last entry gets its own reason); schema (`editor.invalid_tokens`, with a pointer); ids unique across kinds (`editor.duplicate_token_id`); names unique per kind ignoring case (`editor.duplicate_token_name`); content widths in order (`editor.content_widths_order`). Ids are never edited: the admin generates an id only for a new entry and never offers to change one. A changed id is indistinguishable from a delete plus an add, and it is treated as such. |
 | *(no row)* | `Read` returns the default set with `version: 0`. The first save inserts, and it succeeds only when `version` is `0`. |
 
 There are no domain events or integration events in this feature (research ED-14).
@@ -254,6 +257,7 @@ Every state other than `saved` triggers the leave warning (FR-030).
 | `editor.invalid_tokens` | 400 | save tokens | The document breaks the token schema; with `pointer`. |
 | `editor.duplicate_token_id` | 400 | save tokens | Two entries share an id. |
 | `editor.duplicate_token_name` | 400 | save tokens | Two entries of one kind share a name, ignoring case. |
+| `editor.content_widths_order` | 400 | save tokens | The content widths are not narrow ≤ normal ≤ wide; `pointer` is `/contentWidths`. |
 | `editor.token_required` | 400 | save tokens | A kind would have no entries left. |
 | `editor.tokens_too_large` | 413 | save tokens | The document is over 64 KiB. |
 | `editor.unsupported_schema_version` | 400 | save tokens | An unknown `schemaVersion`. |

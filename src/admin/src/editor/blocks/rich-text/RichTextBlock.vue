@@ -13,6 +13,7 @@ import { fromContractRichText, toContractRichText } from '../../richtext/toContr
 import { setProp } from '../../ops'
 import type { ContentNode } from '../../schema/schema'
 import { isObject, type Json } from '../../schema/subsetValidator'
+import { useBrokenLinks } from '../brokenLinks'
 import { useBlock } from '../useBlock'
 
 const props = defineProps<{ node: ContentNode }>()
@@ -32,6 +33,8 @@ const empty = computed(() => {
   return !isObject(doc) || !Array.isArray(doc.content) || doc.content.length === 0
 })
 const style = computed(() => ({ '--qb-text-color': token('color', 'color') }))
+const isBroken = useBrokenLinks(() => store.siteId)
+const links = computed(() => ({ isBroken: isBroken.value, label: t('editor.canvas.brokenLink') }))
 
 async function startEditing(): Promise<void> {
   if (editing.value || !editable.value) return
@@ -120,6 +123,7 @@ onBeforeUnmount(stopEditing)
     <RichTextView
       v-else
       :doc="content"
+      :links="links"
     />
   </div>
 </template>

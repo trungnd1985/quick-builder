@@ -57,6 +57,10 @@ public sealed partial class DesignTokenContractTests
         Assert.Equal(DesignTokens.MaxSizes, properties.GetProperty("typography").GetProperty("properties").GetProperty("sizes").GetProperty("maxItems").GetInt32());
         Assert.Equal(DesignTokens.MaxSpacing, properties.GetProperty("spacing").GetProperty("maxItems").GetInt32());
         Assert.Equal(DesignTokens.TokenIdPattern, Schema().GetProperty("$defs").GetProperty("tokenId").GetProperty("pattern").GetString());
+
+        var width = Schema().GetProperty("$defs").GetProperty("contentWidth");
+        Assert.Equal(DesignTokens.MinContentWidthPx, width.GetProperty("minimum").GetInt32());
+        Assert.Equal(DesignTokens.MaxContentWidthPx, width.GetProperty("maximum").GetInt32());
     }
 
     [Fact]
@@ -69,6 +73,7 @@ public sealed partial class DesignTokenContractTests
         Assert.Contains($"1–{DesignTokens.MaxSpacing} entries", rules["spacing"], StringComparison.Ordinal);
         Assert.Contains(DesignTokens.TokenIdPattern, rules["id"], StringComparison.Ordinal);
         Assert.Contains($"{DesignTokens.MaxDocumentBytes / 1024} KiB", rules["Size"], StringComparison.Ordinal);
+        Assert.Contains($"from {DesignTokens.MinContentWidthPx} to {DesignTokens.MaxContentWidthPx}", rules["contentWidths"], StringComparison.Ordinal);
     }
 
     [Fact]

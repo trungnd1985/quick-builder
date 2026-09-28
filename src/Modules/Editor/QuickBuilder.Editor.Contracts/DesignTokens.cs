@@ -30,6 +30,12 @@ public static class DesignTokens
     /// <summary>The most spacing steps one set may hold.</summary>
     public const int MaxSpacing = 12;
 
+    /// <summary>The narrowest a named content width may be, in CSS pixels.</summary>
+    public const int MinContentWidthPx = 320;
+
+    /// <summary>The widest a named content width may be, in CSS pixels.</summary>
+    public const int MaxContentWidthPx = 2560;
+
     private const string ResourcePrefix = "QuickBuilder.Editor.Contracts.DesignTokens.v";
 
     /// <summary>Every version the product can validate and store.</summary>

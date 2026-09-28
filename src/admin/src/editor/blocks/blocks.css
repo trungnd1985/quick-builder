@@ -48,13 +48,14 @@
     display: flex;
     flex-direction: column;
     gap: calc(var(--qb-base-size) * 1);
-    max-width: 1200px;
+    max-width: var(--qb-width-normal);
     margin-inline: auto;
   }
 
-  .qb-section--full .qb-section__inner {
-    max-width: none;
-  }
+  /* Content widths come from the site's token set (design-tokens.md §2). */
+  .qb-section--narrow .qb-section__inner { max-width: var(--qb-width-narrow); }
+  .qb-section--wide .qb-section__inner { max-width: var(--qb-width-wide); }
+  .qb-section--full .qb-section__inner { max-width: none; }
 
   .qb-container {
     display: flex;
@@ -79,6 +80,37 @@
 
   .qb-container--vertical.qb-align--center { align-items: center; }
   .qb-container--vertical.qb-align--end { align-items: flex-end; }
+
+  /*
+    A capped Container fills its parent up to its maximum width, and never beyond the parent
+    (width: 100% with max-width), placed by its own alignment.
+  */
+  :is(.qb-container--max-narrow, .qb-container--max-normal, .qb-container--max-wide) {
+    width: 100%;
+  }
+
+  .qb-container--max-narrow { max-width: var(--qb-width-narrow); }
+  .qb-container--max-normal { max-width: var(--qb-width-normal); }
+  .qb-container--max-wide { max-width: var(--qb-width-wide); }
+
+  :is(.qb-container--max-narrow, .qb-container--max-normal, .qb-container--max-wide).qb-align--start { margin-inline: 0 auto; }
+  :is(.qb-container--max-narrow, .qb-container--max-normal, .qb-container--max-wide).qb-align--center { margin-inline: auto; }
+  :is(.qb-container--max-narrow, .qb-container--max-normal, .qb-container--max-wide).qb-align--end { margin-inline: auto 0; }
+
+  /*
+    Column patterns: a grid, so blocks beyond the pattern start a new row with the same
+    pattern. It holds at tablet width too (the tablet wrap below is for Equal only, which is
+    flex); at mobile width it stacks when stackOnMobile is on.
+  */
+  .qb-container--grid {
+    display: grid;
+  }
+
+  .qb-columns--2-1 { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); }
+  .qb-columns--1-2 { grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); }
+  .qb-columns--3-1 { grid-template-columns: minmax(0, 3fr) minmax(0, 1fr); }
+  .qb-columns--1-3 { grid-template-columns: minmax(0, 1fr) minmax(0, 3fr); }
+  .qb-columns--2-1-1 { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr); }
 
   .qb-heading {
     color: var(--qb-heading-color);
@@ -200,6 +232,10 @@
 
     .qb-container--horizontal.qb-container--stack-on-mobile > * {
       flex-basis: auto;
+    }
+
+    .qb-container--grid.qb-container--stack-on-mobile {
+      grid-template-columns: minmax(0, 1fr);
     }
   }
 }

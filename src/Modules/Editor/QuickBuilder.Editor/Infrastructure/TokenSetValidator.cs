@@ -19,6 +19,7 @@ namespace QuickBuilder.Editor.Infrastructure;
 /// <item><b>The schema</b>, through the shared <see cref="SchemaSubsetValidator"/> over the embedded file.</item>
 /// <item><b>Ids unique across all lists</b>, then <b>names unique within a list</b> ignoring case —
 /// rules the schema cannot say.</item>
+/// <item><b>Content widths in order</b>, Narrow ≤ Normal ≤ Wide, when the set has them.</item>
 /// </list>
 /// Stops at the first failure. Messages never quote the token set (011 FR-045).
 /// </remarks>
@@ -134,6 +135,13 @@ internal sealed class TokenSetValidator
 
                 index++;
             }
+        }
+
+        if (At(root, ["contentWidths"]) is { } widths
+            && !(widths.GetProperty("narrow").GetInt32() <= widths.GetProperty("normal").GetInt32()
+                && widths.GetProperty("normal").GetInt32() <= widths.GetProperty("wide").GetInt32()))
+        {
+            return Result.Failure<int>(EditorErrors.ContentWidthsOrder);
         }
 
         return Result.Success(version);

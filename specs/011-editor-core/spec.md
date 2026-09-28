@@ -62,6 +62,23 @@ uses the latter numbers.
   is unchanged since they loaded it, or to open them read-only for copying blocks if it
   has changed. The copy is discarded after a successful save or when declined.
 
+### Session 2026-09-29
+
+- Q: How should a member choose how wide a Section's content can be? → **A: a per-section
+  choice of Narrow, Normal, Wide or Full.** Narrow, Normal and Wide are site-wide design
+  tokens (defaults 720, 1,200 and 1,440 pixels) that a designer can change on the Design
+  screen; Full spans the page edge to edge. Sections saved before this as "contained" are
+  Normal.
+- Q: Should a Container have its own width setting, or always fill its parent? → **A: an
+  optional maximum width** of Narrow, Normal or Wide (the same site tokens) or Full, the
+  default. A Container narrower than its parent is placed at the start, centre or end by
+  its existing alignment setting.
+- Q: How should the member set how a horizontal Container's row is split between its
+  blocks? → **A: a column pattern on the Container**: Equal (default), 2/3 + 1/3,
+  1/3 + 2/3, 3/4 + 1/4, 1/4 + 3/4, or 1/2 + 1/4 + 1/4. Blocks beyond the pattern start a
+  new row with the same pattern. It applies at desktop and tablet widths; at mobile width
+  the row stacks as before when "stack on mobile" is on.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - A site member builds a page by dragging blocks onto a canvas (Priority: P1)
@@ -423,6 +440,9 @@ on both pages the next time they are opened.
   new unsaved change that is autosaved in turn.
 - **Undo history across sessions**: it lasts for the editing session and is cleared when
   the editor is reloaded or another page is opened.
+- **A token set saved before content widths existed**: it takes the default widths (720,
+  1,200 and 1,440 pixels) until a designer saves the set again, so every Section and
+  Container width choice always resolves.
 - **A deleted colour token**: blocks that used it fall back to their default colour and
   keep the reference, so the draft stays valid; choosing a new colour clears the mark.
   Deleting the last remaining colour is refused (FR-031 requires at least one).
@@ -498,10 +518,19 @@ on both pages the next time they are opened.
     content sits in a Section.
 - **FR-013**: The block types MUST provide at least these properties:
   - **Section**: background colour token, vertical padding from the spacing scale, content
-    width (full or contained).
+    width (Narrow, Normal, Wide or Full; Normal by default). Narrow, Normal and Wide cap the
+    content at the site's content-width tokens and centre it; Full spans the page. A
+    Section saved as "contained" before this choice existed is Normal.
   - **Container**: direction (vertical or horizontal), gap and padding from the spacing
-    scale, alignment, background colour token, and whether a horizontal layout stacks at
-    mobile width (on by default).
+    scale, alignment, background colour token, whether a horizontal layout stacks at
+    mobile width (on by default), and a maximum width (Narrow, Normal or Wide from the
+    site's content-width tokens, or Full by default). A Container narrower than its parent
+    is placed by its alignment; it never grows wider than its parent. A horizontal
+    Container also has a column pattern — Equal (default), 2/3 + 1/3, 1/3 + 2/3,
+    3/4 + 1/4, 1/4 + 3/4 or 1/2 + 1/4 + 1/4 — that sets how each row is split between its
+    blocks; blocks beyond the pattern start a new row with the same pattern. The pattern
+    applies at desktop and tablet widths; at mobile width the row stacks when "stack on
+    mobile" is on.
   - **Heading**: text (plain, up to 300 characters), level 1 to 6, alignment, colour token.
   - **Text**: text (plain, up to 5,000 characters, line breaks kept), alignment, colour
     token, size step from the typography scale.
@@ -606,6 +635,9 @@ on both pages the next time they are opened.
     large), each with an identifier that never changes and a size. Deleting a step follows
     the same rule as deleting a colour, with the block type's default spacing as the
     fallback.
+  - **Content widths**: three fixed, named widths — Narrow, Normal and Wide — each a size
+    in pixels from 320 to 2,560, with Narrow ≤ Normal ≤ Wide. They cannot be added or
+    deleted, only resized, so every Section's width choice always resolves.
 - **FR-032**: A new site, and every existing site on upgrade, MUST start with a default
   token set that makes all ten block types look complete and readable.
 - **FR-033**: Changing a token's value MUST change every block that uses it, on the canvas
@@ -678,8 +710,9 @@ on both pages the next time they are opened.
   a Rich Text block and limited to the allowed formats.
 - **Link**: a reference either to a page of the same site by identifier or to an external
   address with an allowed scheme.
-- **Design Token Set**: a site's colours, typography and spacing scale. Each colour and
-  spacing step has an identifier that never changes, so blocks can refer to it.
+- **Design Token Set**: a site's colours, typography, spacing scale and the three content
+  widths (Narrow, Normal, Wide). Each colour and spacing step has an identifier that never
+  changes, so blocks can refer to it; the content widths are fixed by name.
 - **Editing Session**: one member's work on one document in the editor: the loaded draft
   version, unsaved changes, undo and redo history, selection, save status and preview
   width. It is not stored on the server beyond the drafts it saves; its unsaved changes are
@@ -774,8 +807,9 @@ on both pages the next time they are opened.
   published with pages or on their own.
 - **Default tokens** are a neutral palette (brand, brand light, text, muted text,
   background, border), a system sans-serif font stack for both headings and body, a 16
-  pixel base size and a spacing scale of none, extra small, small, medium, large, extra
-  large and double extra large.
+  pixel base size, a spacing scale of none, extra small, small, medium, large, extra
+  large and double extra large, and content widths of 720 (Narrow), 1,200 (Normal) and
+  1,440 (Wide) pixels.
 - **Supported embed providers** start with YouTube and Vimeo. Adding a provider is a change
   to the Embed block's definition, not a new block type.
 - **Editor chrome is used on desktop-class screens** (at least 1,280 pixels wide). The admin

@@ -36,6 +36,29 @@ describe('tokenCss', () => {
     expect(css['--qb-color-color-text']).toBe('#111827')
     expect(css['--qb-text-text-3xl']).toBe('calc(var(--qb-base-size) * 2.5)')
   })
+
+  it('turns the content widths into pixel widths', () => {
+    const set = clone()
+    set.contentWidths = { narrow: 640, normal: 1000, wide: 1600 }
+
+    const css = tokenCss(set)
+
+    expect(css['--qb-width-narrow']).toBe('640px')
+    expect(css['--qb-width-normal']).toBe('1000px')
+    expect(css['--qb-width-wide']).toBe('1600px')
+  })
+
+  it('gives a set saved before content widths existed the default widths', () => {
+    // 011 spec, Edge Cases: such a set stays valid and takes the defaults.
+    const set = clone()
+    delete set.contentWidths
+
+    const css = tokenCss(set)
+
+    expect(css['--qb-width-narrow']).toBe('720px')
+    expect(css['--qb-width-normal']).toBe('1200px')
+    expect(css['--qb-width-wide']).toBe('1440px')
+  })
 })
 
 describe('tokenValue', () => {

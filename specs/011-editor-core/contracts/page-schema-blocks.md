@@ -18,7 +18,7 @@ Research: ED-04 … ED-08. Data model: [data-model.md §1](../data-model.md).
 | `root` | none | `rootChild` | the envelope's `root` only |
 | `component-ref` | `componentId` (UUID, same site) | none | page documents, under `root` only |
 | `section` | `background`, `paddingY`, `width`, `layerLabel` | `contentChild` | under `root` |
-| `container` | `direction`, `gap`, `padding`, `align`, `background`, `stackOnMobile`, `layerLabel` | `contentChild` | in `section` or `container` |
+| `container` | `direction`, `columns`, `gap`, `padding`, `align`, `maxWidth`, `background`, `stackOnMobile`, `layerLabel` | `contentChild` | in `section` or `container` |
 | `heading` | `text`\*, `level`, `align`, `color`, `layerLabel` | none | in `section` or `container` |
 | `text` | `text`\*, `align`, `color`, `size`, `layerLabel` | none | 〃 |
 | `rich-text` | `content`\*, `align`, `color`, `layerLabel` | none | 〃 |
@@ -141,13 +141,15 @@ node envelope (`id`, `type`, `props`, `children`, all required) are written once
   "section":   NODE("section", {
       "background": { "$ref":"#/$defs/colorRef" },
       "paddingY":   { "$ref":"#/$defs/spaceRef", "default": {"token":"space-xl"} },
-      "width":      { "enum": ["full","contained"], "default": "contained" } },
+      "width":      { "enum": ["narrow","contained","wide","full"], "default": "contained" } },
     "contentChildren"),
   "container": NODE("container", {
       "direction":  { "enum": ["vertical","horizontal"], "default": "vertical" },
+      "columns":    { "enum": ["equal","2-1","1-2","3-1","1-3","2-1-1"], "default": "equal" },
       "gap":        { "$ref":"#/$defs/spaceRef", "default": {"token":"space-md"} },
       "padding":    { "$ref":"#/$defs/spaceRef", "default": {"token":"space-none"} },
       "align":      { "$ref":"#/$defs/align" },
+      "maxWidth":   { "enum": ["narrow","normal","wide","full"], "default": "full" },
       "background": { "$ref":"#/$defs/colorRef" },
       "stackOnMobile": { "type":"boolean", "default": true } },
     "contentChildren"),

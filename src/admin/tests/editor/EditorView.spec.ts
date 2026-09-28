@@ -8,7 +8,7 @@ import { validateDocument } from '../../src/editor/schema/documentValidator'
 import { blockTypes } from '../../src/editor/schema/schema'
 import { locate } from '../../src/editor/ops/tree'
 import { enableRenderProbe, renderCounts } from '../../src/editor/canvas/renderProbe'
-import { documentWith, drag, emptyDocument, mountEditor, press, stubServer } from './harness'
+import { documentWith, drag, emptyDocument, mountEditor, PAGE, press, stubServer } from './harness'
 
 // 011 US1, FR-001 to FR-008, SC-002, SC-006: building a page by dragging blocks or by
 // keyboard, typing in place, and the draft saving itself.
@@ -271,6 +271,68 @@ describe('EditorView — building a page (US1)', () => {
     heading.textContent = 'Small screen'
     await fireEvent.input(heading)
     expect(locate(useEditorStore().root!, 'h')!.node.props.text).toBe('Small screen')
+  })
+
+  it('draws Section widths, Container maximum widths and column patterns from the site widths (FR-013, FR-031)', async () => {
+    const text = (id: string) => ({ id, type: 'text', props: { text: id }, children: [] })
+    stubServer(documentWith(
+      { id: 's-narrow', type: 'section', props: { width: 'narrow' }, children: [text('a')] },
+      { id: 's-normal', type: 'section', props: {}, children: [
+        { id: 'c-cols', type: 'container', props: { direction: 'horizontal', columns: '2-1', maxWidth: 'wide', align: 'center' }, children: [text('b'), text('c'), text('d')] },
+        { id: 'c-equal', type: 'container', props: { direction: 'horizontal' }, children: [text('e')] },
+        { id: 'c-vertical', type: 'container', props: { columns: '2-1' }, children: [text('f')] },
+      ] },
+    ))
+    const { container } = await mountEditor()
+    const block = (id: string) => container.querySelector<HTMLElement>(`[data-node-id="${id}"] > *`)!
+
+    expect(block('s-narrow').classList).toContain('qb-section--narrow')
+    expect(block('s-normal').classList).toContain('qb-section--contained')
+
+    const columns = block('c-cols').classList
+    expect([...columns]).toEqual(expect.arrayContaining(['qb-container--grid', 'qb-columns--2-1', 'qb-container--max-wide', 'qb-align--center', 'qb-container--stack-on-mobile']))
+    expect(block('c-equal').classList).not.toContain('qb-container--grid')
+    expect(block('c-equal').classList).toContain('qb-container--max-full')
+    expect(block('c-vertical').classList).not.toContain('qb-container--grid')
+
+    // The frame carries the site's widths; the defaults here.
+    const frame = container.querySelector<HTMLElement>('.qb-canvas')!
+    expect(frame.style.getPropertyValue('--qb-width-narrow')).toBe('720px')
+    expect(frame.style.getPropertyValue('--qb-width-wide')).toBe('1440px')
+
+    // A patterned row still stacks at mobile width when stackOnMobile is on.
+    const { readFileSync } = await import('node:fs')
+    const { resolve } = await import('node:path')
+    const css = readFileSync(resolve(process.cwd(), 'src/editor/blocks/blocks.css'), 'utf8')
+    const mobile = css.slice(css.indexOf('@container page (max-width: 480px)'))
+    expect(mobile).toMatch(/\.qb-container--grid\.qb-container--stack-on-mobile\s*\{\s*grid-template-columns: minmax\(0, 1fr\);/)
+  })
+
+  it('marks links to pages that no longer exist, on buttons, images and rich text (spec Edge Cases)', async () => {
+    const gone = { type: 'page', pageId: '99999999-9999-4999-8999-999999999999' }
+    const here = { type: 'page', pageId: PAGE }
+    const rich = (to: unknown, text: string) => ({ type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text, marks: [{ type: 'link', attrs: { to } }] }] }] })
+    stubServer(documentWith({ id: 's', type: 'section', props: {}, children: [
+      { id: 'b-gone', type: 'button', props: { label: 'Gone', link: gone }, children: [] },
+      { id: 'b-here', type: 'button', props: { label: 'Here', link: here }, children: [] },
+      { id: 'b-url', type: 'button', props: { label: 'Out', link: { type: 'url', href: 'https://example.com' } }, children: [] },
+      { id: 'i-gone', type: 'image', props: { decorative: true, link: gone }, children: [] },
+      { id: 'r-gone', type: 'rich-text', props: { content: rich(gone, 'old page') }, children: [] },
+      { id: 'r-here', type: 'rich-text', props: { content: rich(here, 'about') }, children: [] },
+    ] }))
+    const { container } = await mountEditor()
+    const marked = (id: string) => container.querySelector(`[data-node-id="${id}"] .qb-editor-broken-link`)
+
+    await waitFor(() => expect(marked('b-gone')?.textContent).toBe(en.editor.canvas.brokenLink))
+    expect(marked('b-here')).toBeNull()
+    expect(marked('b-url')).toBeNull()
+    expect(marked('i-gone')).not.toBeNull()
+    expect(marked('r-gone')).not.toBeNull()
+    expect(container.querySelector('[data-node-id="r-gone"] a[data-broken-link]')?.getAttribute('title')).toBe(en.editor.canvas.brokenLink)
+    expect(marked('r-here')).toBeNull()
+
+    // Marking is an editing aid: the stored document is untouched and still valid.
+    expect(validateDocument({ schemaVersion: 1, root: useEditorStore().root! }, 'page')).toEqual({ valid: true })
   })
 
   it('opens at the width the member chose last time, and at desktop when storage fails', async () => {

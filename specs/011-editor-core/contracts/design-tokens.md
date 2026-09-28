@@ -27,7 +27,8 @@ and renaming it breaks nothing.
     "baseSizePx": 16,
     "sizes": [ { "id": "text-md", "name": "Normal", "rem": 1 } ]
   },
-  "spacing": [ { "id": "space-md", "name": "Medium", "rem": 1 } ]
+  "spacing": [ { "id": "space-md", "name": "Medium", "rem": 1 } ],
+  "contentWidths": { "narrow": 720, "normal": 1200, "wide": 1440 }
 }
 ```
 
@@ -41,6 +42,7 @@ and renaming it breaks nothing.
 | `typography.baseSizePx` | An integer from 12 to 24. `1rem` equals this. |
 | `typography.sizes` | 1–12 entries of `{ id, name, rem }`, with `rem` from 0.5 to 6. |
 | `spacing` | 1–12 entries of `{ id, name, rem }`, with `rem` from 0 to 16. |
+| `contentWidths` | Optional. `{ narrow, normal, wide }`, each an integer from 320 to 2560 (px), with narrow ≤ normal ≤ wide. All three always present; none added or deleted. Absent, the default widths (720, 1200, 1440) apply. |
 | `id` | Matches `^[a-z0-9-]{1,40}$`. **Unique across all three lists.** It never changes; a new entry gets a new id. |
 | `name` | 1–40 characters, unique within its list ignoring case. Display only. |
 | Size | At most 64 KiB of UTF-8 JSON. |
@@ -51,7 +53,8 @@ Checks run in this order:
 3. no empty list (`token_required`, so that deleting the last entry has its own reason);
 4. the schema;
 5. unique ids across lists;
-6. unique names ignoring case. The first failure is reported with a
+6. unique names ignoring case;
+7. content widths in order (`content_widths_order`). The first failure is reported with a
 `pointer`.
 
 **Deleting** a token means leaving it out. Documents that still refer to it stay valid, and
@@ -104,6 +107,8 @@ need `v2.schema.json`, this document updated, and a forward migration of stored 
 - an empty `spacing` list;
 - an unknown font;
 - `baseSizePx` of 30;
-- a bad id.
+- a bad id;
+- a Wide content width of 3000;
+- content widths out of order.
 
 `DesignTokenContractTests` (C#) and `designTokens.spec.ts` (TS) run them all.
