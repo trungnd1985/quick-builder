@@ -12,7 +12,7 @@ import { useI18n } from 'vue-i18n'
 import { definitionOf } from '../blocks/registry'
 import { dragState, dropResult, endDrag, resolveTarget, setTarget, sourceOf, startDrag, type DropPosition } from '../dnd/useDragDrop'
 import { setLabel } from '../ops'
-import { takesChildren, type ContentNode } from '../schema/schema'
+import { propNames, takesChildren, type ContentNode } from '../schema/schema'
 import { useEditorStore } from '../state/editorStore'
 
 const emit = defineEmits<{ refused: [code: string] }>()
@@ -150,7 +150,7 @@ function onKeydown(event: KeyboardEvent, row: Row): void {
 }
 
 async function startRename(node: ContentNode): Promise<void> {
-  if (store.readOnly) return
+  if (store.readOnly || !propNames(node.type).includes('layerLabel')) return
   renaming.value = node.id
   draftName.value = typeof node.props.layerLabel === 'string' ? node.props.layerLabel : ''
   await nextTick()

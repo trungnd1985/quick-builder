@@ -344,6 +344,14 @@ async function confirmDelete(): Promise<void> {
                 v-if="canManage"
                 class="page-toolbar"
               >
+                <!-- 011 US7, FR-037: components are built in the same editor as pages. -->
+                <RouterLink
+                  class="button-link primary"
+                  :to="{ name: 'component-editor', params: { siteId, componentId: component.id } }"
+                  :aria-label="t('components.edit', { name: component.name })"
+                >
+                  {{ t('components.editContent') }}
+                </RouterLink>
                 <button
                   type="button"
                   :aria-label="t('components.rename', { name: component.name })"

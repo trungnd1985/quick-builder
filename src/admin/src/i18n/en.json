@@ -372,7 +372,9 @@
       "created": "{name} created.",
       "renamed": "{name} saved.",
       "deleted": "{name} deleted."
-    }
+    },
+    "edit": "Edit the content of {name}",
+    "editContent": "Edit content"
   },
   "settings": {
     "title": "Settings",
@@ -539,7 +541,8 @@
     },
     "palette": {
       "title": "Blocks",
-      "help": "Drag a block onto the page, or choose one and press Enter to add it after the selected block."
+      "help": "Drag a block onto the page, or choose one and press Enter to add it after the selected block.",
+      "components": "Shared components"
     },
     "blocks": {
       "section": "Section",
@@ -564,7 +567,8 @@
       "embedProvider": {
         "youtube": "YouTube video",
         "vimeo": "Vimeo video"
-      }
+      },
+      "componentRef": "Shared component"
     },
     "canvas": {
       "label": "Page canvas",
@@ -817,6 +821,12 @@
       "tablet": "Tablet",
       "mobile": "Mobile",
       "width": "{width} pixels wide"
+    },
+    "components": {
+      "shared": "Shared",
+      "open": "Open the component to edit it",
+      "loading": "Loading the shared component…",
+      "missing": "This shared component could not be shown."
     }
   },
   "design": {

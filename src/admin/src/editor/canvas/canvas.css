@@ -160,3 +160,27 @@
     border-radius: 3px;
   }
 }
+
+@layer qb-editor {
+  .qb-component-ref {
+    position: relative;
+    outline: 2px dashed #7c3aed;
+    outline-offset: -2px;
+  }
+
+  .qb-component-ref__badge {
+    position: absolute;
+    top: 0.25rem;
+    right: 0.25rem;
+    z-index: 1;
+    padding: 0.125rem 0.5rem;
+    background: #7c3aed;
+    color: #ffffff;
+    font: 600 0.75rem/1.2 system-ui, sans-serif;
+    border-radius: 3px;
+  }
+
+  .qb-component-ref__content {
+    pointer-events: none;
+  }
+}

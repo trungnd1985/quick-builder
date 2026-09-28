@@ -5,19 +5,22 @@
 //
 // The node arrives as a prop and nothing else: when an edit elsewhere keeps this node's
 // object, Vue skips it entirely (research ED-10).
-import { computed, onBeforeUpdate } from 'vue'
+import { computed, inject, onBeforeUpdate } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { definitionOf } from '../blocks/registry'
 import { endDrag, startDrag } from '../dnd/useDragDrop'
 import type { ContentNode } from '../schema/schema'
 import { useEditorStore } from '../state/editorStore'
 import { renderCount } from './renderProbe'
+import { STATIC_CANVAS } from './staticCanvas'
 
 const props = defineProps<{ node: ContentNode }>()
 const { t } = useI18n()
 const store = useEditorStore()
 
 const definition = computed(() => definitionOf(props.node.type))
+/** Inside a shared component shown on a page: drawn, but not part of this document. */
+const isStatic = inject(STATIC_CANVAS, false)
 const selected = computed(() => store.selection === props.node.id)
 const label = computed(() =>
   typeof props.node.props.layerLabel === 'string' ? props.node.props.layerLabel : definition.value ? t(definition.value.labelKey) : props.node.type,
@@ -38,7 +41,13 @@ onBeforeUpdate(() => renderCount(props.node.id))
 </script>
 
 <template>
+  <component
+    :is="definition.component"
+    v-if="isStatic && definition"
+    :node="node"
+  />
   <div
+    v-else
     class="qb-node"
     :class="{ 'qb-node--selected': selected }"
     :data-node-id="node.id"

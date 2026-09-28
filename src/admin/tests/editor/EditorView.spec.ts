@@ -296,6 +296,72 @@ describe('EditorView — building a page (US1)', () => {
     getItem.mockRestore()
   })
 
+  it('edits a shared component with the same editor, without offering components (US7 #1)', async () => {
+    const server = stubServer(emptyDocument(), { title: 'Header', components: [{ id: 'c1', name: 'Header' }] })
+    const { container } = await mountEditor('component')
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Header' })).toBeTruthy()
+    expect(screen.queryByRole('listbox', { name: en.editor.palette.components })).toBeNull()
+
+    await fireEvent.keyDown(option(container, 'section'), { key: 'Enter' })
+    await vi.advanceTimersByTimeAsync(2100)
+    await waitFor(() => expect(server.calls.some((c) => c.method === 'PUT' && c.url.includes('/components/'))).toBe(true))
+  })
+
+  it('shows a shared component on a page, read-only, as one unit, with a way to open it (US7 #2, #3)', async () => {
+    stubServer(
+      documentWith({ id: 'ref', type: 'component-ref', props: { componentId: '55555555-5555-5555-5555-555555555555' }, children: [] }),
+      { components: [{ id: '55555555-5555-5555-5555-555555555555', name: 'Header' }] },
+    )
+    // The component's own draft: what the reference shows.
+    const componentDraft = documentWith({ id: 'h', type: 'section', props: {}, children: [{ id: 'x', type: 'heading', props: { text: 'Shared title' }, children: [] }] })
+    const fetchMock = globalThis.fetch as unknown as ReturnType<typeof vi.fn>
+    const original = fetchMock.getMockImplementation()!
+    fetchMock.mockImplementation(async (url: string, init?: RequestInit) =>
+      url.endsWith('/components/55555555-5555-5555-5555-555555555555/draft')
+        ? { ok: true, status: 200, statusText: 'x', headers: { get: () => null }, json: async () => ({ schemaVersion: 1, version: 1, document: componentDraft }), text: async () => '' }
+        : original(url, init))
+
+    const { container } = await mountEditor()
+    const store = useEditorStore()
+
+    const ref = container.querySelector<HTMLElement>('[data-node-id="ref"]')!
+    await waitFor(() => expect(ref.textContent).toContain('Shared title'))
+    expect(ref.textContent).toContain(en.editor.components.shared)
+    // The component's blocks are not blocks of this page: not addressable, not editable.
+    expect(ref.querySelector('[data-node-id="x"]')).toBeNull()
+    expect(ref.querySelector('[contenteditable="plaintext-only"]')).toBeNull()
+
+    await fireEvent.click(ref.querySelector('.qb-heading')!)
+    expect(store.selection).toBe('ref')
+    const panel = screen.getByRole('region', { name: en.editor.panel.title })
+    expect(within(panel).getByRole('link', { name: en.editor.components.open })).toBeTruthy()
+  })
+
+  it('inserts a shared component from the palette at the page level only (US7 #2)', async () => {
+    stubServer(
+      documentWith({ id: 's', type: 'section', props: {}, children: [] }),
+      { components: [{ id: '55555555-5555-5555-5555-555555555555', name: 'Footer' }] },
+    )
+    const { container } = await mountEditor()
+    const store = useEditorStore()
+
+    const components = await screen.findByRole('listbox', { name: en.editor.palette.components })
+    const footer = await within(components).findByRole('option', { name: /Footer/ })
+    store.select('s')
+    await fireEvent.keyDown(footer, { key: 'Enter' })
+
+    expect(store.root!.children.map((c) => c.type)).toEqual(['section', 'component-ref'])
+    expect(store.root!.children[1].props).toEqual({ componentId: '55555555-5555-5555-5555-555555555555' })
+
+    // Dropped inside a Section: refused.
+    drag(footer, 'dragstart')
+    drag(container.querySelector('[data-empty-parent="s"]')!, 'dragover')
+    drag(container.querySelector('[data-empty-parent="s"]')!, 'drop')
+    await waitFor(() => expect(screen.getByText(en.editor.errors.ops.nesting_not_allowed)).toBeTruthy())
+  })
+
   it('re-renders only the blocks on the path of an edit (research ED-10, SC-005)', async () => {
     stubServer(documentWith(
       { id: 's1', type: 'section', props: {}, children: [{ id: 'a', type: 'heading', props: { text: 'A' }, children: [] }] },

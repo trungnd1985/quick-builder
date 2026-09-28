@@ -17,6 +17,7 @@ import button from './button/definition'
 import spacer from './spacer/definition'
 import divider from './divider/definition'
 import embed from './embed/definition'
+import componentRef from './component-ref'
 
 /** How the property panel edits a property (US2). */
 export type ControlKind =
@@ -55,14 +56,9 @@ export interface BlockDefinition {
   inlineText?: string
 }
 
-const definitions: BlockDefinition[] = [section, container, heading, text, richText, image, button, spacer, divider, embed]
+const definitions: BlockDefinition[] = [section, container, heading, text, richText, image, button, spacer, divider, embed, componentRef]
 
 export const registry: Readonly<Record<string, BlockDefinition>> = Object.fromEntries(definitions.map((d) => [d.type, d]))
-
-/** Registers another node type's definition; the component reference joins in US7. */
-export function register(definition: BlockDefinition): void {
-  ;(registry as Record<string, BlockDefinition>)[definition.type] = definition
-}
 
 /** The definition for a type, or undefined for one the editor does not draw. */
 export const definitionOf = (type: string): BlockDefinition | undefined => registry[type]

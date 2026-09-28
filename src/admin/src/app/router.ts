@@ -59,6 +59,13 @@ export function createAppRouter(history: RouterHistory = createWebHistory('/admi
         props: (route) => ({ siteId: route.params.siteId, kind: 'page', documentId: route.params.pageId }),
         meta: { bare: true },
       },
+      {
+        path: '/sites/:siteId/components/:componentId/edit',
+        name: 'component-editor',
+        component: () => import('../editor/EditorView.vue'),
+        props: (route) => ({ siteId: route.params.siteId, kind: 'component', documentId: route.params.componentId }),
+        meta: { bare: true },
+      },
       { path: '/settings', name: 'settings', component: SettingsView },
       { path: '/account', name: 'account', component: AccountView },
       { path: '/users', name: 'users', component: UsersView, meta: { administrators: true } },

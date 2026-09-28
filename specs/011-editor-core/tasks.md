@@ -613,7 +613,7 @@ component's content, read-only in place; the palette inserts components into pag
 
 ### Tests for User Story 7 ⚠️
 
-- [ ] T108 [P] [US7] Extend `ADMINTESTS/editor/EditorView.spec.ts`, which must fail first:
+- [X] T108 [P] [US7] Extend `ADMINTESTS/editor/EditorView.spec.ts`, which must fail first:
   - the component editor loads with `kind: 'component'`, and its palette has no Components group;
   - saving calls `saveComponentDraft`;
   - on a page, a `component-ref` renders the component draft's content with a *Shared* badge, is selected as one unit, has no in-place editing, and its panel offers **Open component**;
@@ -622,9 +622,9 @@ component's content, read-only in place; the palette inserts components into pag
 
 ### Implementation for User Story 7
 
-- [ ] T109 [US7] Create `ED/canvas/ComponentRefBlock.vue`. It fetches `getComponentDraft` for `props.componentId` (cached per editing session in `editorStore.componentCache`) and renders its root's children through `CanvasNode` with editing disabled (`inert` on the subtree for pointer and focus). It adds a *Shared* badge and the component's name from `pagesApi.listComponents`. Register `component-ref` in `ED/blocks/registry.ts` with no editable groups, and a panel action **Open component** routing to the component editor.
-- [ ] T110 [US7] Add a Components group to `ED/palette/Palette.vue` for `kind === 'page'`, listing the site's components from `pagesApi.listComponents`, which inserts `{ type: 'component-ref', props: { componentId } }` through `insert`.
-- [ ] T111 [US7] Add the lazy route `/sites/:siteId/components/:componentId/edit` (`kind: 'component'`) in `ADMIN/app/router.ts`, and an **Edit** action shown when `permissions.canManageComponents` in `ADMIN/features/pages/ComponentsView.vue`. Make `ED/state/autosave.ts` call `saveComponentDraft` for components. Add the `editor.components.*` keys to `ADMIN/i18n/en.json`. T108 now passes.
+- [X] T109 [US7] Create `ED/canvas/ComponentRefBlock.vue`. It fetches `getComponentDraft` for `props.componentId` (cached per editing session in `editorStore.componentCache`) and renders its root's children through `CanvasNode` with editing disabled (`inert` on the subtree for pointer and focus). It adds a *Shared* badge and the component's name from `pagesApi.listComponents`. Register `component-ref` in `ED/blocks/registry.ts` with no editable groups, and a panel action **Open component** routing to the component editor.
+- [X] T110 [US7] Add a Components group to `ED/palette/Palette.vue` for `kind === 'page'`, listing the site's components from `pagesApi.listComponents`, which inserts `{ type: 'component-ref', props: { componentId } }` through `insert`.
+- [X] T111 [US7] Add the lazy route `/sites/:siteId/components/:componentId/edit` (`kind: 'component'`) in `ADMIN/app/router.ts`, and an **Edit** action shown when `permissions.canManageComponents` in `ADMIN/features/pages/ComponentsView.vue`. Make `ED/state/autosave.ts` call `saveComponentDraft` for components. Add the `editor.components.*` keys to `ADMIN/i18n/en.json`. T108 now passes.
 
 **Checkpoint**: all seven stories work, and quickstart §1–§7 pass.
 

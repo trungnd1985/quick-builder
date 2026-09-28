@@ -9,7 +9,7 @@ import { computed, reactive, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { definitionOf, type ControlKind } from '../blocks/registry'
 import { setLabel, setProp, type OpRefusal } from '../ops'
-import { defaultOf, requiredProps, resolvedPropSchema } from '../schema/schema'
+import { defaultOf, propNames, requiredProps, resolvedPropSchema } from '../schema/schema'
 import type { Json } from '../schema/subsetValidator'
 import { useEditorStore } from '../state/editorStore'
 import { refusalKey } from '../editorErrors'
@@ -65,7 +65,10 @@ const groups = computed(() => {
 
   return [
     ...def.groups.map((group) => ({ key: group.labelKey, label: t(`editor.panel.groups.${group.labelKey}`), fields: group.props.map((p) => field(p.prop, p.control)) })),
-    { key: 'layer', label: t('editor.panel.groups.layer'), fields: [field('layerLabel', 'text')] },
+    // Every block can be named for the layer view; the component reference (010) cannot.
+    ...(propNames(current.type).includes('layerLabel')
+      ? [{ key: 'layer', label: t('editor.panel.groups.layer'), fields: [field('layerLabel', 'text' as ControlKind)] }]
+      : []),
   ]
 })
 
@@ -118,6 +121,14 @@ const tokenKind = (control: ControlKind) => (control === 'colorToken' ? 'color' 
     <template v-else-if="definition">
       <p class="editor-panel__type">
         {{ t(definition.labelKey) }}
+      </p>
+      <p v-if="node.type === 'component-ref'">
+        <RouterLink
+          class="button-link"
+          :to="{ name: 'component-editor', params: { siteId: store.siteId, componentId: String(node.props.componentId) } }"
+        >
+          {{ t('editor.components.open') }}
+        </RouterLink>
       </p>
       <p
         v-if="store.readOnly"

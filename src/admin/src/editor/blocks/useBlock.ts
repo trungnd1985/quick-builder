@@ -1,7 +1,8 @@
 // What every block component needs: its properties with their schema defaults, token
 // values as CSS, and in-place text editing that leaves the caret alone (011 FR-019).
 
-import { computed, onMounted, watch, type Ref } from 'vue'
+import { computed, inject, onMounted, watch, type Ref } from 'vue'
+import { STATIC_CANVAS } from '../canvas/staticCanvas'
 import { setProp } from '../ops'
 import { defaultOf, type ContentNode } from '../schema/schema'
 import type { Json } from '../schema/subsetValidator'
@@ -18,7 +19,9 @@ export function useBlock(node: () => ContentNode) {
   const token = (name: string, kind: TokenKind, fallback = 'initial'): string =>
     tokenValue(node().props[name], kind, store.tokens, defaultOf(node().type, name), fallback)
 
-  const editable = computed(() => !store.readOnly)
+  // Content of a shared component shown on a page is never edited there (FR-038).
+  const isStatic = inject(STATIC_CANVAS, false)
+  const editable = computed(() => !store.readOnly && !isStatic)
 
   return { store, prop, token, editable }
 }

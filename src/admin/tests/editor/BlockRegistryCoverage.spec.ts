@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { registry } from '../../src/editor/blocks/registry'
-import { blockTypes, pageSchema, propNames, propSchema, requiredProps } from '../../src/editor/schema/schema'
+import { blockTypes, nodeTypes, pageSchema, propNames, propSchema, requiredProps } from '../../src/editor/schema/schema'
 import en from '../../src/i18n/en.json'
 
 // 011 research ED-08, Principle VI: each block type is defined once. The schema says what it
@@ -11,8 +11,8 @@ import en from '../../src/i18n/en.json'
 const t = (key: string) => key.split('.').reduce<unknown>((n, p) => (n as Record<string, unknown>)?.[p], en) as string
 
 describe('block registry against the schema', () => {
-  it('has a definition for exactly the schema block types', () => {
-    expect(Object.keys(registry).sort()).toEqual([...blockTypes].sort())
+  it('has a definition for exactly the schema node types', () => {
+    expect(Object.keys(registry).sort()).toEqual([...nodeTypes].sort())
   })
 
   it.each(blockTypes)('covers every property of %s with a control, and invents none', (type) => {
