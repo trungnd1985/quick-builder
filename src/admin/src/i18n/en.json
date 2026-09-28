@@ -664,6 +664,123 @@
         "editor_tokens_too_large": "The design tokens are larger than 64 KB.",
         "editor_unsupported_schema_version": "These design tokens were written by a newer version of QuickBuilder."
       }
+    },
+    "richText": {
+      "toolbar": "Text formatting",
+      "bold": "Bold",
+      "italic": "Italic",
+      "bulletList": "Bulleted list",
+      "orderedList": "Numbered list",
+      "link": "Link"
+    },
+    "panel": {
+      "title": "Properties",
+      "nothingSelected": "Select a block on the page or in the layers to see its properties.",
+      "readOnly": "This page is read-only right now, so its properties cannot be changed.",
+      "count": "{length} / {max} characters",
+      "defaultMark": "(default)",
+      "embedHelp": "Paste the address of a YouTube or Vimeo video. The video is not played in the editor.",
+      "groups": {
+        "content": "Content",
+        "layout": "Layout",
+        "style": "Style",
+        "layer": "Layer"
+      },
+      "props": {
+        "text": "Text",
+        "level": "Heading level",
+        "align": "Alignment",
+        "color": "Colour",
+        "background": "Background",
+        "paddingY": "Space above and below",
+        "width": "Width",
+        "direction": "Direction",
+        "gap": "Space between blocks",
+        "padding": "Inner space",
+        "stackOnMobile": "Stack on mobile",
+        "size": "Text size",
+        "content": "Text",
+        "media": "Image",
+        "alt": "Alternative text",
+        "decorative": "Decorative image (no alternative text)",
+        "link": "Link",
+        "label": "Label",
+        "style": "Style",
+        "newTab": "Open in a new tab",
+        "height": "Height",
+        "thickness": "Thickness",
+        "spacing": "Space above and below",
+        "url": "Video address",
+        "title": "Accessible title",
+        "aspectRatio": "Shape",
+        "layerLabel": "Layer name"
+      },
+      "values": {
+        "align": {
+          "start": "Start",
+          "center": "Centre",
+          "end": "End"
+        },
+        "width": {
+          "full": "Full width",
+          "contained": "Contained",
+          "natural": "Natural size"
+        },
+        "direction": {
+          "vertical": "Stacked",
+          "horizontal": "Side by side"
+        },
+        "style": {
+          "primary": "Primary",
+          "secondary": "Secondary",
+          "outline": "Outline"
+        },
+        "thickness": {
+          "thin": "Thin",
+          "thick": "Thick"
+        }
+      },
+      "token": {
+        "default": "Default ({name})",
+        "none": "none",
+        "deleted": "This block used a token that has been deleted, so it shows the default. Choose another one."
+      },
+      "link": {
+        "none": "No link",
+        "page": "A page of this site",
+        "address": "An address",
+        "pageField": "Page",
+        "choosePage": "Choose a page",
+        "addressField": "Address",
+        "addressHelp": "Starts with https://, http://, mailto: or tel:",
+        "broken": "This link goes to a page that no longer exists."
+      },
+      "media": {
+        "none": "No image chosen",
+        "choose": "Choose image",
+        "change": "Change image",
+        "remove": "Remove image",
+        "missing": "The chosen image is no longer in the media library.",
+        "loading": "Loading images…",
+        "loadFailed": "The media library could not be loaded.",
+        "empty": "The media library has no images yet. Upload one below.",
+        "upload": "Upload a new image",
+        "uploading": "Uploading… {percent}%",
+        "uploadFailed": "The image could not be uploaded."
+      },
+      "richText": {
+        "help": "Rich text is edited on the page itself, where you see it as visitors will.",
+        "edit": "Edit text on the page"
+      },
+      "errors": {
+        "invalid": "That value is not allowed here.",
+        "maxLength": "At most {max} characters.",
+        "minLength": "At least {min} character(s).",
+        "range": "Choose a value from {min} to {max}.",
+        "link": "An address must start with https://, http://, mailto: or tel:.",
+        "url": "Only YouTube and Vimeo videos can be embedded, with an https:// address.",
+        "text": "A heading is a single line."
+      }
     }
   }
 }

@@ -151,7 +151,9 @@ export function handleEditorKey(event: KeyboardEvent, context: KeyboardContext):
       // Node ids are [A-Za-z0-9_-], so they need no escaping in a selector.
       const scope = `[data-node-id="${selected.node.id}"]`
       const editable = document.querySelector<HTMLElement>(`${scope} [contenteditable="plaintext-only"], ${scope} [contenteditable="true"]`)
-      editable?.focus()
+      if (editable) editable.focus()
+      // Rich text opens its editor on request (RichTextBlock listens for this).
+      else document.querySelector(scope)?.querySelector('.qb-rich-text')?.dispatchEvent(new CustomEvent('qb-edit'))
     })
   }
 

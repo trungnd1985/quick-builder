@@ -364,44 +364,44 @@ embed and a Heading over 300 characters are refused in the panel (quickstart §2
 
 ### Tests for User Story 2 ⚠️
 
-- [ ] T069 [P] [US2] Create `ADMINTESTS/editor/PropertyPanel.spec.ts`, which must fail first:
+- [X] T069 [P] [US2] Create `ADMINTESTS/editor/PropertyPanel.spec.ts`, which must fail first:
   - for each block type, the panel shows exactly the schema props with their defaults;
   - a change updates the document and the canvas;
   - a `javascript:alert(1)` link, a `https://example.com/video` embed and a 301-character heading are refused with a translated reason, and the last valid value is kept (FR-021);
   - a colour control lists the site's tokens and stores `{ token }`;
   - axe finds no violations.
-- [ ] T070 [P] [US2] Create `ADMINTESTS/editor/toContractRichText.spec.ts`:
+- [X] T070 [P] [US2] Create `ADMINTESTS/editor/toContractRichText.spec.ts`:
   - TipTap JSON with null attrs, an unknown mark, underline, a heading node and an image node is normalised to the contract, validated by `documentValidator`;
   - links map to `{ to: { type: 'page' | 'url' } }`;
   - a pasted HTML fragment with a script, a style and an image keeps only the allowed formats.
 
 ### Implementation for User Story 2
 
-- [ ] T071 [US2] Create `ED/richtext/tiptap.ts`, which makes a TipTap `Editor` with only Document, Paragraph, Text, HardBreak, Bold, Italic, the lists (bullet, ordered, list item) and a Link mark extended with a `to` attribute. There is no history extension (ED-03, ED-12). Create `ED/richtext/toContractRichText.ts`, which normalises TipTap JSON to data-model §1.1 `richText`. Wire in-place editing into `ED/blocks/rich-text/RichTextBlock.vue`: TipTap mounts on `Enter` or double click, commits `setProp(content)` on each document-changing transaction, and unmounts on blur or `Escape`. Add a small floating toolbar (bold, italic, link, bulleted, numbered).
-- [ ] T072 [P] [US2] Create the basic controls in `ED/panel/controls/`: `TextControl.vue` (single or multi-line, `maxLength` from the schema, a live character count), `ChoiceControl.vue` (enum), `ToggleControl.vue` (boolean) and `NumberControl.vue` (integer with `minimum` and `maximum`, for example Heading level). Each validates with `subsetValidator` against `propSchema` before emitting, and shows the reason inline with `aria-invalid` and `aria-describedby`.
-- [ ] T073 [P] [US2] Create `ED/panel/controls/ColorTokenControl.vue`, `SpaceTokenControl.vue` and `TextSizeTokenControl.vue`:
+- [X] T071 [US2] Create `ED/richtext/tiptap.ts`, which makes a TipTap `Editor` with only Document, Paragraph, Text, HardBreak, Bold, Italic, the lists (bullet, ordered, list item) and a Link mark extended with a `to` attribute. There is no history extension (ED-03, ED-12). Create `ED/richtext/toContractRichText.ts`, which normalises TipTap JSON to data-model §1.1 `richText`. Wire in-place editing into `ED/blocks/rich-text/RichTextBlock.vue`: TipTap mounts on `Enter` or double click, commits `setProp(content)` on each document-changing transaction, and unmounts on blur or `Escape`. Add a small floating toolbar (bold, italic, link, bulleted, numbered).
+- [X] T072 [P] [US2] Create the basic controls in `ED/panel/controls/`: `TextControl.vue` (single or multi-line, `maxLength` from the schema, a live character count), `ChoiceControl.vue` (enum), `ToggleControl.vue` (boolean) and `NumberControl.vue` (integer with `minimum` and `maximum`, for example Heading level). Each validates with `subsetValidator` against `propSchema` before emitting, and shows the reason inline with `aria-invalid` and `aria-describedby`.
+- [X] T073 [P] [US2] Create `ED/panel/controls/ColorTokenControl.vue`, `SpaceTokenControl.vue` and `TextSizeTokenControl.vue`:
   - pick from the store's `tokens` and store `{ token: id }`, or clear back to the default;
   - swatches or sizes rendered from `tokenCss`;
   - a reference to a missing id is shown as "deleted colour (using default)" (FR-031, clarification Q4).
-- [ ] T074 [P] [US2] Create `ED/panel/controls/LinkControl.vue`:
+- [X] T074 [P] [US2] Create `ED/panel/controls/LinkControl.vue`:
   - a choice of Page or Address, with no link as a third option;
   - Page uses a searchable list of the site's pages from `pagesApi.tree`, and stores `{ type: 'page', pageId }`;
   - Address validates the scheme against the schema pattern (FR-015);
   - a `pageId` not in the tree shows "broken link" (spec Edge Cases).
-- [ ] T075 [P] [US2] Create `ED/panel/controls/MediaControl.vue`:
+- [X] T075 [P] [US2] Create `ED/panel/controls/MediaControl.vue`:
   - a picker dialog over `mediaApi.list` (images only) with previews via `previewUrl`, and upload through `mediaApi.upload` when the member may upload (FR-017);
   - stores `{ mediaId }`;
   - shows "missing" for an unavailable file.
 
   Pair it with alt text and decorative fields in the Image definition's groups.
-- [ ] T076 [US2] Create `ED/panel/PropertyPanel.vue`, which generates the panel for the selected node from `registry[type].groups` and `propSchema(type)` (FR-018):
+- [X] T076 [US2] Create `ED/panel/PropertyPanel.vue`, which generates the panel for the selected node from `registry[type].groups` and `propSchema(type)` (FR-018):
   - one control per prop, with the value or the schema default shown as the placeholder;
   - emits `setProp`;
   - an empty state when nothing is selected;
   - `layerLabel` is shown for every block in a common "Layer" group.
 
   Mount it in `ED/EditorView.vue`.
-- [ ] T077 [US2] Make in-place text editing and the panel stay in step (FR-019): both read the same node from the store, and in-place components do not overwrite the caret when the value changes from the panel (compare before assigning `textContent`). Add the Embed URL control's provider hint listing YouTube and Vimeo. Add all `editor.panel.*` keys to `ADMIN/i18n/en.json`. T069 and T070 now pass.
+- [X] T077 [US2] Make in-place text editing and the panel stay in step (FR-019): both read the same node from the store, and in-place components do not overwrite the caret when the value changes from the panel (compare before assigning `textContent`). Add the Embed URL control's provider hint listing YouTube and Vimeo. Add all `editor.panel.*` keys to `ADMIN/i18n/en.json`. T069 and T070 now pass.
 
 **Checkpoint**: US1 and US2 work together, and quickstart §2 passes.
 

@@ -40,7 +40,7 @@ export interface Server {
  * Serves one page (or component) draft, the site's tokens and the page itself. A save stores
  * the document and bumps the version, as the server does.
  */
-export function stubServer(initial: Json = emptyDocument(), options: { version?: number; title?: string; components?: Json[] } = {}): Server {
+export function stubServer(initial: Json = emptyDocument(), options: { version?: number; title?: string; components?: Json[]; usage?: number } = {}): Server {
   const calls: Call[] = []
   const queued = new Map<string, Reply[]>()
   let stored = initial
@@ -72,10 +72,12 @@ export function stubServer(initial: Json = emptyDocument(), options: { version?:
         reply = { status: 200, body: { components: options.components ?? [], permissions: { canManageStructure: true, canEditPageDrafts: true, canManageComponents: true } } }
       } else if (path.includes('/components/')) {
         reply = { status: 200, body: { id: COMPONENT, name: options.title ?? 'Header', usageCount: 0, version: 1 } }
+      } else if (path.includes('/token-usages/')) {
+        reply = { status: 200, body: { tokenId: path.split('/').at(-1), blockCount: options.usage ?? 0, documentCount: options.usage ? 1 : 0 } }
+      } else if (path.endsWith('/pages') && method === 'GET') {
+        reply = { status: 200, body: { pages: [{ id: PAGE, parentId: null, title: 'About', path: '/about', slug: 'about', depth: 1, position: 0, isHome: false, childCount: 0, version: 1 }], permissions: { canManageStructure: true, canEditPageDrafts: true, canManageComponents: true } } }
       } else if (path.includes('/pages/')) {
         reply = { status: 200, body: { id: PAGE, title: options.title ?? 'About', slug: 'about', path: '/about' } }
-      } else if (path.endsWith('/pages')) {
-        reply = { status: 200, body: { pages: [{ id: PAGE, parentId: null, title: 'About', path: '/about', slug: 'about', depth: 1, position: 0, isHome: false, childCount: 0, version: 1 }], permissions: { canManageStructure: true, canEditPageDrafts: true, canManageComponents: true } } }
       } else {
         reply = { status: 404, body: { title: 'Not found', status: 404, errorCode: 'pages.not_found' } }
       }

@@ -11,6 +11,7 @@ import { pagesApi } from '../api/pages'
 import { useAuthStore } from '../app/authStore'
 import PageCanvas from './canvas/PageCanvas.vue'
 import BlockPalette from './palette/BlockPalette.vue'
+import PropertyPanel from './panel/PropertyPanel.vue'
 import EditorTopBar from './EditorTopBar.vue'
 import { refusalKey, ruleKey } from './editorErrors'
 import { definitionOf } from './blocks/registry'
@@ -18,6 +19,7 @@ import type { DocumentKind } from './schema/schema'
 import { createAutosave, type Autosave } from './state/autosave'
 import { useEditorStore } from './state/editorStore'
 import { handleEditorKey } from './state/keyboard'
+import './editor.css'
 
 const props = defineProps<{ siteId: string; kind: DocumentKind; documentId: string }>()
 
@@ -223,7 +225,7 @@ defineExpose({ autosave: () => autosave })
         class="editor-right"
         :aria-label="t('editor.sidebar')"
       >
-        <slot name="panel" />
+        <PropertyPanel />
       </aside>
     </div>
 
