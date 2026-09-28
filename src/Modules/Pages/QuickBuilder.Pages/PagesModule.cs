@@ -13,6 +13,7 @@ using QuickBuilder.Pages.Features.GetComponentDraft;
 using QuickBuilder.Pages.Features.GetPage;
 using QuickBuilder.Pages.Features.GetPageDraft;
 using QuickBuilder.Pages.Features.GetPageTree;
+using QuickBuilder.Pages.Features.GetTokenUsage;
 using QuickBuilder.Pages.Features.ListComponents;
 using QuickBuilder.Pages.Features.ListComponentUsages;
 using QuickBuilder.Pages.Features.MakeHomePage;
@@ -109,6 +110,9 @@ public static class PagesModule
         services.AddScoped<IQueryHandler<GetComponentDraftQuery, Result<DraftResponse>>, GetComponentDraftHandler>();
         services.AddScoped<ICommandHandler<SaveComponentDraftCommand, Result<DraftResponse>>, SaveComponentDraftHandler>();
         services.AddScoped<IValidator<SaveComponentDraftCommand>, SaveComponentDraftValidator>();
+
+        // 011 research ED-16: the token usage count the admin asks before deleting a token.
+        services.AddScoped<IQueryHandler<GetTokenUsageQuery, Result<TokenUsageResponse>>, GetTokenUsageHandler>();
 
         return services;
     }

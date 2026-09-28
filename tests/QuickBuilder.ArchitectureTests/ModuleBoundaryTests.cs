@@ -138,7 +138,8 @@ public sealed class ModuleBoundaryTests
             .Where(name => name.StartsWith("QuickBuilder.", StringComparison.Ordinal))
             .ToList();
 
-        Assert.Equal([Kernel.GetName().Name!], references);
+        // Nothing but the kernel; today it needs not even that.
+        Assert.All(references, name => Assert.Equal(Kernel.GetName().Name, name));
     }
 
     /// <summary>The host composes; it holds no business logic or data access (FR-001).</summary>

@@ -74,6 +74,19 @@ the Editor writes. They are explained in
 | `pages.page_drafts.edit` | Site | ✓ | ✓ | ✓ |
 | `pages.components.manage` | Site | ✓ | ✓ | — |
 
+The editor core (011) adds no Pages capability:
+- holding `pages.page_drafts.edit` allows every editor action on a page's draft
+  (011 clarification Q1);
+- the token usage count (`GET …/token-usages/{tokenId}`) needs `pages.content.view`.
+
+The Editor module (011) registers two, for a site's design tokens. They are explained in
+[011 research ED-20](../../011-editor-core/research.md#ed-20-authorization).
+
+| Capability | Scope | Administrator | Designer | Editor |
+|---|---|---|---|---|
+| `editor.design_tokens.view` | Site | ✓ | ✓ | ✓ |
+| `editor.design_tokens.manage` | Site | ✓ | ✓ | — |
+
 ## 3. What a caller sees
 
 | Situation | Status | `errorCode` |

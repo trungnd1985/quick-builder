@@ -1,5 +1,6 @@
 using System.Text.Json;
 using QuickBuilder.Pages.Contracts;
+using QuickBuilder.Pages.Contracts.Schema;
 
 namespace QuickBuilder.Pages.Infrastructure.Schema;
 

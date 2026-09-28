@@ -1,5 +1,5 @@
 using System.Text.Json;
-using QuickBuilder.Pages.Infrastructure.Schema;
+using QuickBuilder.Pages.Contracts.Schema;
 
 namespace QuickBuilder.IntegrationTests.Pages;
 

@@ -135,24 +135,24 @@ build wiring, and the constitution amendment. Nothing here has behaviour.
 
   Add `public const int MaxRichTextChars = 20_000;` to `PAGESC/PageSchema.cs`.
 - [X] T020 Update the `DocumentProblem.rule` description in `specs/010-page-tree-components/contracts/pages-api.yaml` to include `nesting_not_allowed` and `rich_text_too_long`, noting "added by 011".
-- [ ] T021 Create `ITESTS/Pages/UpgradeFrom010Tests.cs` following `UpgradeFrom009Tests.cs`'s snapshot pattern. Take a 010 snapshot with a page draft holding two `component-ref`s and an empty component draft, and upgrade it. Assert that:
+- [X] T021 Create `ITESTS/Pages/UpgradeFrom010Tests.cs` following `UpgradeFrom009Tests.cs`'s snapshot pattern. Take a 010 snapshot with a page draft holding two `component-ref`s and an empty component draft, and upgrade it. Assert that:
   - every stored draft is byte-for-byte unchanged and still validates;
   - `GET /api/v1/editor/sites/{id}/design-tokens` returns the default set with `version: 0` for every existing site (FR-043).
 
 ### Page schema: TypeScript validator (ED-08)
 
-- [ ] T022 [P] Create `ADMINTESTS/editor/documentValidator.spec.ts`. It imports every file under `@contracts/page-schema/examples/` with `import.meta.glob` and asserts the same rule and pointer as `expected.json`. It must fail first.
-- [ ] T023 [P] Create `ED/schema/schema.ts`. It imports `@contracts/page-schema/v1.schema.json` and exports:
+- [X] T022 [P] Create `ADMINTESTS/editor/documentValidator.spec.ts`. It imports every file under `@contracts/page-schema/examples/` with `import.meta.glob` and asserts the same rule and pointer as `expected.json`. It must fail first.
+- [X] T023 [P] Create `ED/schema/schema.ts`. It imports `@contracts/page-schema/v1.schema.json` and exports:
   - the raw schema;
   - `blockTypes` (every `$defs` key referenced from `rootChild` or `contentChild`);
   - `placement`: `{ rootChild: Set<string>, contentChild: Set<string> }`;
   - `propSchema(type)`, `defaultOf(type, prop)` and `requiredProps(type)`;
   - `canDrop(parentType, childType, kind)`. Component documents exclude `component-ref`, per data-model §1.3.
-- [ ] T024 Create `ED/schema/subsetValidator.ts`, a TypeScript port of `SchemaSubsetValidator.cs`:
+- [X] T024 Create `ED/schema/subsetValidator.ts`, a TypeScript port of `SchemaSubsetValidator.cs`:
   - the same keywords (including `default` and `minItems`), the same fixed keyword order, and the same first-failure `{ keyword, location, message }`;
   - `oneOf` told apart by a `type` const, reporting `discriminator`;
   - patterns compiled with `new RegExp(p, 'u')`.
-- [ ] T025 Create `ED/schema/documentValidator.ts`, porting `PageDocumentValidator.cs`:
+- [X] T025 Create `ED/schema/documentValidator.ts`, porting `PageDocumentValidator.cs`:
   - size (UTF-8 byte length of `JSON.stringify`);
   - `schemaVersion`;
   - the structural walk (depth 32, 5,000 nodes, unique ids);
@@ -163,42 +163,42 @@ build wiring, and the constitution amendment. Nothing here has behaviour.
 
 ### Design tokens: contract, module and read path
 
-- [ ] T026 [P] Create `CONTRACTS/design-tokens.md` from [contracts/design-tokens.md](./contracts/design-tokens.md), without the "planning copy" note, and `CONTRACTS/design-tokens/v1.schema.json` using only the page schema's subset:
+- [X] T026 [P] Create `CONTRACTS/design-tokens.md` from [contracts/design-tokens.md](./contracts/design-tokens.md), without the "planning copy" note, and `CONTRACTS/design-tokens/v1.schema.json` using only the page schema's subset:
   - `colors` (minItems 1, maxItems 24);
   - `typography` (`headingFont`, `bodyFont` as an enum of the §3 ids, `baseSizePx` 12–24, `sizes` minItems 1, maxItems 12);
   - `spacing` (minItems 1, maxItems 12);
   - the id pattern `^[a-z0-9-]{1,40}$`, the colour pattern `^#[0-9a-f]{6}([0-9a-f]{2})?$`, `name` 1–40, and the `rem` ranges from data-model §2.
 
   List it in `CONTRACTS/README.md`.
-- [ ] T027 [P] Add golden files `CONTRACTS/design-tokens/examples/valid/default.json` (exactly the default set in data-model §2) and `valid/full.json` (24 colours, 12 sizes, 12 spacing steps). Add `invalid/<code>--<case>.json` for each case in design-tokens.md §5, and `invalid/expected.json` with the error code and pointer for each.
-- [ ] T028 [P] Create `EDITORC/DesignTokens.cs` with:
+- [X] T027 [P] Add golden files `CONTRACTS/design-tokens/examples/valid/default.json` (exactly the default set in data-model §2) and `valid/full.json` (24 colours, 12 sizes, 12 spacing steps). Add `invalid/<code>--<case>.json` for each case in design-tokens.md §5, and `invalid/expected.json` with the error code and pointer for each.
+- [X] T028 [P] Create `EDITORC/DesignTokens.cs` with:
   - `CurrentVersion = 1`;
   - `MaxDocumentBytes = 65_536`;
   - `TokenIdPattern`, `MaxColors = 24`, `MaxSizes = 12` and `MaxSpacing = 12`;
   - `OpenSchema(int version)` over the embedded resource, as `PAGESC/PageSchema.cs` does.
-- [ ] T029 [P] Create `EDITORC/FontStacks.cs`, an ordered `IReadOnlyDictionary<string, string>` from id to `font-family`, exactly as design-tokens.md §3 lists them (ED-17).
-- [ ] T030 [P] Create `EDITORC/DefaultDesignTokens.cs`. It exposes the default set from data-model §2 as a `JsonElement` built from an embedded literal, plus `public static string Json`.
-- [ ] T031 [P] Create `EDITORC/IDesignTokenReader.cs`: `Task<DesignTokenSetDto> ReadAsync(Guid siteId, CancellationToken ct)`, returning the stored or default set with `Version` and `IsDefault`. Put `DesignTokenSetDto` in the same file.
-- [ ] T032 Create `EDITOR/Infrastructure/EditorDbContext.cs` with schema `editor` and entity `DesignTokenSetRow` (`site_id` PK, `schema_version`, `document` jsonb, `updated_at_utc`, `updated_by`, `xmin` concurrency token), implementing `ISiteOwned` with the global query filter. Create `EditorDbContextFactory.cs` as `PAGES/Infrastructure/PagesDbContextFactory.cs` does, with its own migrations history table in `editor`. Then generate `EDITOR/Infrastructure/Migrations/<ts>_InitialEditor.cs` with `dotnet ef migrations add InitialEditor`.
-- [ ] T033 Create `EDITOR/EditorCapabilities.cs` (ED-20):
+- [X] T029 [P] Create `EDITORC/FontStacks.cs`, an ordered `IReadOnlyDictionary<string, string>` from id to `font-family`, exactly as design-tokens.md §3 lists them (ED-17).
+- [X] T030 [P] Create `EDITORC/DefaultDesignTokens.cs`. It exposes the default set from data-model §2 as a `JsonElement` built from an embedded literal, plus `public static string Json`.
+- [X] T031 [P] Create `EDITORC/IDesignTokenReader.cs`: `Task<DesignTokenSetDto> ReadAsync(Guid siteId, CancellationToken ct)`, returning the stored or default set with `Version` and `IsDefault`. Put `DesignTokenSetDto` in the same file.
+- [X] T032 Create `EDITOR/Infrastructure/EditorDbContext.cs` with schema `editor` and entity `DesignTokenSetRow` (`site_id` PK, `schema_version`, `document` jsonb, `updated_at_utc`, `updated_by`, `xmin` concurrency token), implementing `ISiteOwned` with the global query filter. Create `EditorDbContextFactory.cs` as `PAGES/Infrastructure/PagesDbContextFactory.cs` does, with its own migrations history table in `editor`. Then generate `EDITOR/Infrastructure/Migrations/<ts>_InitialEditor.cs` with `dotnet ef migrations add InitialEditor`.
+- [X] T033 Create `EDITOR/EditorCapabilities.cs` (ED-20):
   - `DesignTokensView = "editor.design_tokens.view"` for Designer and Editor;
   - `DesignTokensManage = "editor.design_tokens.manage"` for Designer;
   - both site-scoped, in `All`.
 
   Fill `EDITOR/EditorModule.cs`: DbContext, `IModuleDatabaseProvider`, capability registration as `PagesModule` does, `IDesignTokenReader`, handlers.
-- [ ] T034 Create `EDITOR/Infrastructure/DesignTokenReader.cs`, implementing `IDesignTokenReader` with an `AsNoTracking` projection. No row gives `DefaultDesignTokens` with `Version = 0` and `IsDefault = true` (ED-14).
-- [ ] T035 Create `EDITOR/EditorErrors.cs` and `EDITOR/EditorErrorResults.cs` with the `editor.*` codes of data-model §6, in the problem shape Pages uses.
-- [ ] T036 Create `EDITOR/Features/GetDesignTokens/GetDesignTokens.cs`:
+- [X] T034 Create `EDITOR/Infrastructure/DesignTokenReader.cs`, implementing `IDesignTokenReader` with an `AsNoTracking` projection. No row gives `DefaultDesignTokens` with `Version = 0` and `IsDefault = true` (ED-14).
+- [X] T035 Create `EDITOR/EditorErrors.cs` and `EDITOR/EditorErrorResults.cs` with the `editor.*` codes of data-model §6, in the problem shape Pages uses.
+- [X] T036 Create `EDITOR/Features/GetDesignTokens/GetDesignTokens.cs`:
   - `GET /api/v1/editor/sites/{siteId}/design-tokens`, with `[RequireCapability(EditorCapabilities.DesignTokensView)]`;
   - the site check;
   - the response `DesignTokens` from editor-api.yaml, including `permissions.canManage`.
-- [ ] T037 [P] Create `ITESTS/Editor/EditorApi.cs` (client helpers) and `ITESTS/Editor/DesignTokensApiTests.cs` with the GET cases:
+- [X] T037 [P] Create `ITESTS/Editor/EditorApi.cs` (client helpers) and `ITESTS/Editor/DesignTokensApiTests.cs` with the GET cases:
   - defaults with `version: 0` and `isDefault: true`;
   - an unknown site gives 404 `sites.not_found`;
   - another site's grant only gives 404;
   - an Editor can read.
-- [ ] T038 [P] Create `ITESTS/Isolation/Probes/EditorIsolationProbe.cs` following `PagesIsolationProbe.cs`: site A's token set is never returned for site B, on either surface. Register it in `ITESTS/Isolation/IsolationProbes.cs`.
-- [ ] T039 [P] Create `ITESTS/Editor/DesignTokenContractTests.cs`, `FontStackParityTests.cs` and `DefaultTokensParityTests.cs`:
+- [X] T038 [P] Create `ITESTS/Isolation/Probes/EditorIsolationProbe.cs` following `PagesIsolationProbe.cs`: site A's token set is never returned for site B, on either surface. Register it in `ITESTS/Isolation/IsolationProbes.cs`.
+- [X] T039 [P] Create `ITESTS/Editor/DesignTokenContractTests.cs`, `FontStackParityTests.cs` and `DefaultTokensParityTests.cs`:
   - the document's tables equal the schema's enums and ranges;
   - `FontStacks` equals §3;
   - `DefaultDesignTokens.Json` equals `valid/default.json` and the admin's `ED/tokens/defaultTokens.ts` export, which is read as text and parsed;
@@ -206,7 +206,7 @@ build wiring, and the constitution amendment. Nothing here has behaviour.
 
 ### Admin foundations: tokens, API clients, operations and store
 
-- [ ] T040 [P] Create `ED/tokens/defaultTokens.ts`, with the default set as `export const defaultTokens = {...} as const`, byte-equal as JSON to `valid/default.json`, and `ED/tokens/fontStacks.ts`, mirroring §3.
+- [X] T040 [P] Create `ED/tokens/defaultTokens.ts`, with the default set as `export const defaultTokens = {...} as const`, byte-equal as JSON to `valid/default.json`, and `ED/tokens/fontStacks.ts`, mirroring §3.
 - [ ] T041 [P] Create `ED/tokens/tokenCss.ts`. `tokenCss(set)` returns CSS custom properties, per page-schema-blocks.md §9:
   - `--qb-color-<id>`, `--qb-space-<id>` (`rem`) and `--qb-text-<id>` (`rem`);
   - `--qb-font-heading` and `--qb-font-body`;
@@ -534,7 +534,7 @@ see the tokens read-only.
 
 ### Tests for User Story 6 ⚠️
 
-- [ ] T096 [P] [US6] Create `UTESTS/Editor/DesignTokenSetTests.cs` and `UTESTS/Editor/TokenSetValidatorTests.cs`, which must fail first. They cover each data-model §2 rule and its order:
+- [X] T096 [P] [US6] Create `UTESTS/Editor/DesignTokenSetTests.cs` and `UTESTS/Editor/TokenSetValidatorTests.cs`, which must fail first. They cover each data-model §2 rule and its order:
   - too large;
   - unsupported version;
   - an empty list gives `token_required`;
@@ -543,20 +543,20 @@ see the tokens read-only.
   - a name duplicated ignoring case;
   - the first save only at version 0;
   - every design-tokens golden file.
-- [ ] T097 [P] [US6] Extend `ITESTS/Editor/DesignTokensApiTests.cs` with the PUT cases:
+- [X] T097 [P] [US6] Extend `ITESTS/Editor/DesignTokensApiTests.cs` with the PUT cases:
   - a Designer saves and reads back with a new version;
   - a stale version gives 409 `editor.out_of_date`;
   - each 400 code;
   - 413 over 64 KiB;
   - two concurrent first saves: exactly one succeeds.
-- [ ] T098 [P] [US6] Create `ITESTS/Editor/EditorAuthorizationTests.cs`:
+- [X] T098 [P] [US6] Create `ITESTS/Editor/EditorAuthorizationTests.cs`:
   - an Editor gets GET 200 and PUT 403 `identity.forbidden`;
   - a Designer gets both;
   - a user with no role on the site gets 404 for both;
   - Administrator gets both everywhere.
 
   Update `ITESTS/Isolation/Probes/EditorIsolationProbe.cs` to cover the PUT.
-- [ ] T099 [P] [US6] Create `ITESTS/Pages/TokenUsageApiTests.cs` and `ITESTS/Pages/TokenUsageSiteFilterTests.cs`:
+- [X] T099 [P] [US6] Create `ITESTS/Pages/TokenUsageApiTests.cs` and `ITESTS/Pages/TokenUsageSiteFilterTests.cs`:
   - the counts over page and component drafts, with a block using a token in two props counted once;
   - a text value equal to the token id is not counted;
   - an invalid token id gives 400 `pages.invalid_token_id`;
@@ -575,23 +575,23 @@ see the tokens read-only.
 
 ### Implementation for User Story 6
 
-- [ ] T101 [US6] Create `EDITOR/Infrastructure/TokenSetValidator.cs`: the subset validator scoped to the token schema, as plan "Complexity Tracking" describes, a copy of `PAGES/Infrastructure/Schema/SchemaSubsetValidator.cs`'s keyword semantics with a header comment naming the original and `TokenSetValidatorTests`.
-- [ ] T102 [US6] Create `EDITOR/Domain/DesignTokenSet.cs` with `Replace(document, expectedVersion, userId, now)`, validating in data-model §2's order through `TokenSetValidator`, and returning `Result` with the `editor.*` codes. Map it in `EDITOR/Infrastructure/EditorDbContext.cs` (`xmin` as the concurrency token).
-- [ ] T103 [US6] Create `EDITOR/Features/SaveDesignTokens/SaveDesignTokens.cs`:
+- [X] T101 [US6] Create `EDITOR/Infrastructure/TokenSetValidator.cs`: the subset validator scoped to the token schema, as plan "Complexity Tracking" describes, a copy of `PAGES/Infrastructure/Schema/SchemaSubsetValidator.cs`'s keyword semantics with a header comment naming the original and `TokenSetValidatorTests`.
+- [X] T102 [US6] Create `EDITOR/Domain/DesignTokenSet.cs` with `Replace(document, expectedVersion, userId, now)`, validating in data-model §2's order through `TokenSetValidator`, and returning `Result` with the `editor.*` codes. Map it in `EDITOR/Infrastructure/EditorDbContext.cs` (`xmin` as the concurrency token).
+- [X] T103 [US6] Create `EDITOR/Features/SaveDesignTokens/SaveDesignTokens.cs`:
   - `PUT /api/v1/editor/sites/{siteId}/design-tokens`, with `[RequireCapability(EditorCapabilities.DesignTokensManage)]`;
   - a request size limit of 64 KiB plus the envelope, before parsing;
   - `version: 0` inserts, and a unique violation or concurrency conflict gives 409 `editor.out_of_date`;
   - otherwise it loads, calls `Replace` and saves, with a concurrency exception giving 409.
 
   Log only the site id and version (FR-045).
-- [ ] T104 [US6] Create `PAGES/Features/GetTokenUsage/GetTokenUsage.cs` (ED-16):
+- [X] T104 [US6] Create `PAGES/Features/GetTokenUsage/GetTokenUsage.cs` (ED-16):
   - `GET /api/v1/pages/sites/{siteId}/token-usages/{tokenId}`, with `[RequireCapability(PagesCapabilities.ContentView)]`;
   - validate `tokenId` against `^[a-z0-9-]{1,40}$`, else `pages.invalid_token_id`;
   - run one `SqlQuery<TokenUsageRow>` over `pages.page_drafts UNION ALL pages.component_drafts`, `WHERE site_id = @siteId` explicitly, counting nodes with `jsonb_path_query(document, 'strict $.** ? (exists(@.props.** ? (@.token == $id)))', jsonb_build_object('id', @tokenId))`, and summing to `{ blockCount, documentCount }`;
   - a comment citing the Technology Constraint on raw SQL and `TokenUsageSiteFilterTests`.
 
   Add `pages.invalid_token_id` to `PAGES/PagesErrors.cs` and `PAGES/PagesErrorResults.cs`.
-- [ ] T105 [US6] Add the two Editor capabilities to §2 of `specs/002-identity-setup/contracts/authorization.md`, and add `GetTokenUsage` to the Pages list there, as that document requires.
+- [X] T105 [US6] Add the two Editor capabilities to §2 of `specs/002-identity-setup/contracts/authorization.md`, and add `GetTokenUsage` to the Pages list there, as that document requires.
 - [ ] T106 [US6] Create `ADMIN/features/design/DesignTokensView.vue`, `ColorList.vue`, `ScaleList.vue` (used for both text sizes and spacing) and `FontSelect.vue`:
   - edit colours (a name, plus a colour input with a hex field), fonts (the stack names, previewed in their own family), the base size, text sizes and spacing steps;
   - new entries get an id of `<kind>-` plus 8 random `[a-z0-9]` characters, and ids are never shown for editing;

@@ -337,13 +337,19 @@ Status of exceptions carried over from earlier plans, as the Governance section 
 | **E-4** (the cache can't invalidate across instances) | Unchanged. No cache is added. |
 | **E-5** (new): FR-044 wants the smoke test to "open the editor, add a Section with a Heading, wait for autosave". There is no browser in the release pipeline, and the end-to-end browser harness is #25. | **Why needed**: driving a real browser in the release smoke test is exactly what #25 specifies. Building a one-off harness here would duplicate it. **Covered meanwhile by**: the smoke test (route served, real draft save and read-back); vitest (the editor's autosave path against a fake API); and quickstart §1 and §8, run by hand and recorded in `quickstart-results.md`, including SC-005's browser timings. **Removal**: #25 adds the browser journey to the smoke test; tracked on issue #4. |
 
-**Also considered and rejected**:
-- **Moving the subset validator into `Shared.Kernel`** so that Editor and Pages share it.
-  The constitution keeps shared code small and free of module concepts, and the validator
-  is about 300 lines. Editor keeps a copy scoped to the token schema, and
-  `TokenSetValidatorTests` pins it to the same keyword semantics. If a third schema
-  appears (collections, #14), moving it to a small shared package is the recorded
-  follow-up.
+**Changed during implementation**:
+- **The subset validator moved into `QuickBuilder.Pages.Contracts`** (namespace
+  `…Contracts.Schema`), rather than Editor keeping a copy.
+  - A module may reference another module's Contracts. The validator depends on nothing
+    but the BCL, so Pages.Contracts stays kernel-only.
+  - Pages (page documents), Editor (token sets) and later Rendering (#12) now share one
+    implementation, which is the constitution's "shared schema package" (Principle VI).
+  - `Shared.Kernel` was still rejected: the validator is about content contracts, a module
+    concept.
+  - `TokenSetValidator` in Editor only adds the token-specific rules around it.
+- **`fake-indexeddb` is Apache-2.0**, not MIT. It is a dev-only dependency and compatible
+  with redistribution.
+- **`@floating-ui/dom`** (MIT) is installed as the peer dependency of `@tiptap/vue-3`.
 
 ## Risks
 

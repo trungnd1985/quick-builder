@@ -1,6 +1,7 @@
 using System.Text;
 using System.Text.Json.Nodes;
 using QuickBuilder.Pages.Contracts;
+using QuickBuilder.Pages.Contracts.Schema;
 using QuickBuilder.Pages.Infrastructure.Schema;
 
 namespace QuickBuilder.UnitTests.Pages;

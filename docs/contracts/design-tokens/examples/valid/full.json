@@ -1,0 +1,254 @@
+{
+  "schemaVersion": 1,
+  "colors": [
+    {
+      "id": "color-c0",
+      "name": "Colour 0",
+      "value": "#102030ff"
+    },
+    {
+      "id": "color-c1",
+      "name": "Colour 1",
+      "value": "#000061"
+    },
+    {
+      "id": "color-c2",
+      "name": "Colour 2",
+      "value": "#102030ff"
+    },
+    {
+      "id": "color-c3",
+      "name": "Colour 3",
+      "value": "#000123"
+    },
+    {
+      "id": "color-c4",
+      "name": "Colour 4",
+      "value": "#102030ff"
+    },
+    {
+      "id": "color-c5",
+      "name": "Colour 5",
+      "value": "#0001e5"
+    },
+    {
+      "id": "color-c6",
+      "name": "Colour 6",
+      "value": "#102030ff"
+    },
+    {
+      "id": "color-c7",
+      "name": "Colour 7",
+      "value": "#0002a7"
+    },
+    {
+      "id": "color-c8",
+      "name": "Colour 8",
+      "value": "#102030ff"
+    },
+    {
+      "id": "color-c9",
+      "name": "Colour 9",
+      "value": "#000369"
+    },
+    {
+      "id": "color-c10",
+      "name": "Colour 10",
+      "value": "#102030ff"
+    },
+    {
+      "id": "color-c11",
+      "name": "Colour 11",
+      "value": "#00042b"
+    },
+    {
+      "id": "color-c12",
+      "name": "Colour 12",
+      "value": "#102030ff"
+    },
+    {
+      "id": "color-c13",
+      "name": "Colour 13",
+      "value": "#0004ed"
+    },
+    {
+      "id": "color-c14",
+      "name": "Colour 14",
+      "value": "#102030ff"
+    },
+    {
+      "id": "color-c15",
+      "name": "Colour 15",
+      "value": "#0005af"
+    },
+    {
+      "id": "color-c16",
+      "name": "Colour 16",
+      "value": "#102030ff"
+    },
+    {
+      "id": "color-c17",
+      "name": "Colour 17",
+      "value": "#000671"
+    },
+    {
+      "id": "color-c18",
+      "name": "Colour 18",
+      "value": "#102030ff"
+    },
+    {
+      "id": "color-c19",
+      "name": "Colour 19",
+      "value": "#000733"
+    },
+    {
+      "id": "color-c20",
+      "name": "Colour 20",
+      "value": "#102030ff"
+    },
+    {
+      "id": "color-c21",
+      "name": "Colour 21",
+      "value": "#0007f5"
+    },
+    {
+      "id": "color-c22",
+      "name": "Colour 22",
+      "value": "#102030ff"
+    },
+    {
+      "id": "color-c23",
+      "name": "Colour 23",
+      "value": "#0008b7"
+    }
+  ],
+  "typography": {
+    "headingFont": "didone",
+    "bodyFont": "humanist",
+    "baseSizePx": 18,
+    "sizes": [
+      {
+        "id": "text-s0",
+        "name": "Size 0",
+        "rem": 0.5
+      },
+      {
+        "id": "text-s1",
+        "name": "Size 1",
+        "rem": 1
+      },
+      {
+        "id": "text-s2",
+        "name": "Size 2",
+        "rem": 1.5
+      },
+      {
+        "id": "text-s3",
+        "name": "Size 3",
+        "rem": 2
+      },
+      {
+        "id": "text-s4",
+        "name": "Size 4",
+        "rem": 2.5
+      },
+      {
+        "id": "text-s5",
+        "name": "Size 5",
+        "rem": 3
+      },
+      {
+        "id": "text-s6",
+        "name": "Size 6",
+        "rem": 3.5
+      },
+      {
+        "id": "text-s7",
+        "name": "Size 7",
+        "rem": 4
+      },
+      {
+        "id": "text-s8",
+        "name": "Size 8",
+        "rem": 4.5
+      },
+      {
+        "id": "text-s9",
+        "name": "Size 9",
+        "rem": 5
+      },
+      {
+        "id": "text-s10",
+        "name": "Size 10",
+        "rem": 5.5
+      },
+      {
+        "id": "text-s11",
+        "name": "Size 11",
+        "rem": 6
+      }
+    ]
+  },
+  "spacing": [
+    {
+      "id": "space-s0",
+      "name": "Step 0",
+      "rem": 0
+    },
+    {
+      "id": "space-s1",
+      "name": "Step 1",
+      "rem": 1
+    },
+    {
+      "id": "space-s2",
+      "name": "Step 2",
+      "rem": 2
+    },
+    {
+      "id": "space-s3",
+      "name": "Step 3",
+      "rem": 3
+    },
+    {
+      "id": "space-s4",
+      "name": "Step 4",
+      "rem": 4
+    },
+    {
+      "id": "space-s5",
+      "name": "Step 5",
+      "rem": 5
+    },
+    {
+      "id": "space-s6",
+      "name": "Step 6",
+      "rem": 6
+    },
+    {
+      "id": "space-s7",
+      "name": "Step 7",
+      "rem": 7
+    },
+    {
+      "id": "space-s8",
+      "name": "Step 8",
+      "rem": 8
+    },
+    {
+      "id": "space-s9",
+      "name": "Step 9",
+      "rem": 9
+    },
+    {
+      "id": "space-s10",
+      "name": "Step 10",
+      "rem": 10
+    },
+    {
+      "id": "space-s11",
+      "name": "Step 11",
+      "rem": 11
+    }
+  ]
+}

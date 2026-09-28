@@ -17,6 +17,10 @@
   <ItemGroup>
     <EmbeddedResource Include="..\..\..\..\docs\contracts\design-tokens\*.schema.json"
                       LogicalName="QuickBuilder.Editor.Contracts.DesignTokens.%(Filename)%(Extension)" />
+    <!-- The default set is the contract's own golden file, so the product and the contract
+         can never disagree about it (design-tokens.md §1). -->
+    <EmbeddedResource Include="..\..\..\..\docs\contracts\design-tokens\examples\valid\default.json"
+                      LogicalName="QuickBuilder.Editor.Contracts.DesignTokens.default.json" />
   </ItemGroup>
 
 </Project>

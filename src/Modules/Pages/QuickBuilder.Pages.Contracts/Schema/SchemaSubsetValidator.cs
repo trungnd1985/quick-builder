@@ -1,7 +1,7 @@
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
-namespace QuickBuilder.Pages.Infrastructure.Schema;
+namespace QuickBuilder.Pages.Contracts.Schema;
 
 /// <summary>
 /// Checks a JSON value against a JSON Schema (2020-12) written in a declared subset of the
@@ -36,11 +36,16 @@ namespace QuickBuilder.Pages.Infrastructure.Schema;
 /// <b>First failure only.</b> Keywords are checked in a fixed order, and object properties in
 /// document order, so a given document always reports the same failure and location.
 /// </para>
+/// <para>
+/// <b>Shared.</b> In Pages.Contracts since 011, so every module that validates a content
+/// contract uses this one implementation: Pages for page documents, Editor for design token
+/// sets, and Rendering (#12). It depends on nothing but the BCL.
+/// </para>
 /// </remarks>
-internal sealed class SchemaSubsetValidator
+public sealed class SchemaSubsetValidator
 {
     /// <summary>The keywords this validator interprets or knowingly ignores.</summary>
-    internal static readonly IReadOnlySet<string> SupportedKeywords = new HashSet<string>(StringComparer.Ordinal)
+    public static IReadOnlySet<string> SupportedKeywords { get; } = new HashSet<string>(StringComparer.Ordinal)
     {
         "$schema", "$id", "$defs", "$ref", "title", "description", "default",
         "type", "properties", "required", "additionalProperties", "const", "enum",
@@ -81,7 +86,7 @@ internal sealed class SchemaSubsetValidator
     }
 
     /// <summary>Every keyword outside the subset, with where it is. Used by the load check and the build guard.</summary>
-    internal static IEnumerable<(string Keyword, string Location)> UnsupportedKeywords(JsonElement schema, string location = "")
+    public static IEnumerable<(string Keyword, string Location)> UnsupportedKeywords(JsonElement schema, string location = "")
     {
         if (schema.ValueKind != JsonValueKind.Object)
         {
@@ -137,7 +142,7 @@ internal sealed class SchemaSubsetValidator
     /// The <c>type</c> constants of the <c>oneOf</c> branches of <c>$defs/<paramref name="definition"/></c>:
     /// for the page schema's placement lists, the node types each admits (011 research ED-05).
     /// </summary>
-    internal IReadOnlySet<string> BranchTypes(string definition)
+    public IReadOnlySet<string> BranchTypes(string definition)
     {
         var types = new HashSet<string>(StringComparer.Ordinal);
         if (!_root.TryGetProperty("$defs", out var defs)
@@ -432,10 +437,10 @@ internal sealed class SchemaSubsetValidator
     }
 
     /// <summary>A JSON Pointer reference token (RFC 6901): <c>~</c> and <c>/</c> escaped.</summary>
-    internal static string Escape(string token) => token.Replace("~", "~0", StringComparison.Ordinal).Replace("/", "~1", StringComparison.Ordinal);
+    public static string Escape(string token) => token.Replace("~", "~0", StringComparison.Ordinal).Replace("/", "~1", StringComparison.Ordinal);
 
     private static string Unescape(string token) => token.Replace("~1", "/", StringComparison.Ordinal).Replace("~0", "~", StringComparison.Ordinal);
 }
 
 /// <summary>Where a value first failed its schema, and which keyword it failed.</summary>
-internal sealed record SchemaFailure(string Location, string Keyword, string Message);
+public sealed record SchemaFailure(string Location, string Keyword, string Message);
