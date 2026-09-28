@@ -19,16 +19,21 @@ Other ways back in are in [operations](operations.md).
 **For development**, with the backend on the host and the admin app hot-reloading:
 
 ```bash
-# 1. A database
-docker compose up -d db
+# 1. The database, published on 127.0.0.1:5432 for the host. If the app container is
+#    running, stop it: the admin dev server proxies to port 8080, and so would reach it.
+docker compose stop app
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d db
 
-# 2. The backend
+# 2. The backend, on the port the admin dev server proxies to
 ConnectionStrings__Default="Host=localhost;Port=5432;Database=quickbuilder;Username=quickbuilder;Password=change-me-before-real-use" \
-  dotnet run --project src/QuickBuilder.Host
+  dotnet run --project src/QuickBuilder.Host -- --urls http://127.0.0.1:8080
 
-# 3. The admin app (proxies /api to the backend)
+# 3. The admin app, hot-reloading, at http://localhost:5173/admin/ (proxies /api to 8080)
 cd src/admin && npm install && npm run dev
 ```
+
+The backend runs its migrations on start. Back to the container afterwards with
+`docker compose up -d` (it rebuilds nothing; `docker compose up -d --build` does).
 
 Needs .NET 10 SDK, Node 24+, and a container runtime (Testcontainers uses it).
 
