@@ -27,6 +27,7 @@ public sealed class ModuleBoundaryTests
         typeof(Identity.IdentityModule).Assembly,
         typeof(Media.MediaModule).Assembly,
         typeof(Pages.PagesModule).Assembly,
+        typeof(Editor.EditorModule).Assembly,
     ];
 
     /// <summary>Every module contracts assembly.</summary>
@@ -36,6 +37,7 @@ public sealed class ModuleBoundaryTests
         typeof(Identity.Contracts.IIdentitySetupStatus).Assembly,
         typeof(Media.Contracts.MediaFileDto).Assembly,
         typeof(Pages.Contracts.PageSchema).Assembly,
+        typeof(Editor.Contracts.DesignTokens).Assembly,
     ];
 
     /// <summary>The file-system types only a storage provider may use (003 FR-019).</summary>
@@ -111,6 +113,26 @@ public sealed class ModuleBoundaryTests
     public void Pages_contracts_reference_only_the_kernel()
     {
         var references = typeof(Pages.Contracts.PageSchema).Assembly
+            .GetReferencedAssemblies()
+            .Select(a => a.Name!)
+            .Where(name => name.StartsWith("QuickBuilder.", StringComparison.Ordinal))
+            .ToList();
+
+        Assert.Equal([Kernel.GetName().Name!], references);
+    }
+
+    /// <summary>
+    /// The design token contract depends on nothing but the kernel (011 research ED-14).
+    /// </summary>
+    /// <remarks>
+    /// Rendering (#12) will take Editor.Contracts to read token sets, for the same reason it
+    /// takes Pages.Contracts: depending on the contract must not mean depending on a third
+    /// module.
+    /// </remarks>
+    [Fact]
+    public void Editor_contracts_reference_only_the_kernel()
+    {
+        var references = typeof(Editor.Contracts.DesignTokens).Assembly
             .GetReferencedAssemblies()
             .Select(a => a.Name!)
             .Where(name => name.StartsWith("QuickBuilder.", StringComparison.Ordinal))

@@ -67,23 +67,23 @@ Shorthand used below:
 **Purpose**: the feature's documents, the new module's projects, the admin dependencies and
 build wiring, and the constitution amendment. Nothing here has behaviour.
 
-- [ ] T001 Commit `specs/011-editor-core/` (spec, plan, research, data model, contracts, quickstart, checklist, tasks) as the first commit on branch `011-editor-core`, referencing #11 (plan.md "Development Workflow").
-- [ ] T002 Amend the constitution in `.specify/memory/constitution.md`:
+- [X] T001 Commit `specs/011-editor-core/` (spec, plan, research, data model, contracts, quickstart, checklist, tasks) as the first commit on branch `011-editor-core`, referencing #11 (plan.md "Development Workflow").
+- [X] T002 Amend the constitution in `.specify/memory/constitution.md`:
   - replace "The editor canvas library is decided in the editor-core spec and then recorded here." with the decision in plan.md "Technology Constraints" (ED-01, ED-02, ED-03, ED-09);
   - bump the version from 2.3.1 to 2.4.0 (MINOR) and set Last Amended to today;
   - prepend a Sync Impact Report naming specs/011-editor-core as the affected spec.
-- [ ] T003 Create the two Editor projects and add both to `QuickBuilder.slnx`:
+- [X] T003 Create the two Editor projects and add both to `QuickBuilder.slnx`:
   - `EDITORC/QuickBuilder.Editor.Contracts.csproj`, referencing only `src/Shared/QuickBuilder.Shared.Kernel`, with an `EmbeddedResource` for `../../../../docs/contracts/design-tokens/v1.schema.json` whose `LogicalName` is `QuickBuilder.Editor.Contracts.DesignTokens.v1.schema.json`, in the same form as `PAGESC/QuickBuilder.Pages.Contracts.csproj`;
   - `EDITOR/QuickBuilder.Editor.csproj`, referencing `EDITORC`, `Shared.Kernel`, `Shared.Infrastructure`, `QuickBuilder.Sites.Contracts` and `QuickBuilder.Identity.Contracts`. Copy the property groups and the `InternalsVisibleTo` entries from `PAGES/QuickBuilder.Pages.csproj`.
-- [ ] T004 [P] Add `ProjectReference`s to both Editor projects in `ITESTS/QuickBuilder.IntegrationTests.csproj`, `UTESTS/QuickBuilder.UnitTests.csproj` and `ATESTS/QuickBuilder.ArchitectureTests.csproj`. Add `EDITOR` to `HOST/QuickBuilder.Host.csproj`.
-- [ ] T005 [P] Add the Editor module and contracts assemblies to the lists in `ATESTS/ModuleBoundaryTests.cs`, next to the Pages entries. Assert that `QuickBuilder.Editor.Contracts` references nothing but `Shared.Kernel` and the BCL.
-- [ ] T006 [P] Add the admin dependencies to `src/admin/package.json` and update `src/admin/package-lock.json` with `npm install`:
+- [X] T004 [P] Add `ProjectReference`s to both Editor projects in `ITESTS/QuickBuilder.IntegrationTests.csproj`, `UTESTS/QuickBuilder.UnitTests.csproj` and `ATESTS/QuickBuilder.ArchitectureTests.csproj`. Add `EDITOR` to `HOST/QuickBuilder.Host.csproj`.
+- [X] T005 [P] Add the Editor module and contracts assemblies to the lists in `ATESTS/ModuleBoundaryTests.cs`, next to the Pages entries. Assert that `QuickBuilder.Editor.Contracts` references nothing but `Shared.Kernel` and the BCL.
+- [X] T006 [P] Add the admin dependencies to `src/admin/package.json` and update `src/admin/package-lock.json` with `npm install`:
   - runtime, pinned to one exact minor version (plan Risks): `@tiptap/core`, `@tiptap/pm`, `@tiptap/vue-3`, `@tiptap/extension-document`, `@tiptap/extension-paragraph`, `@tiptap/extension-text`, `@tiptap/extension-hard-break`, `@tiptap/extension-bold`, `@tiptap/extension-italic`, `@tiptap/extension-link` and `@tiptap/extension-list`;
   - dev only: `fake-indexeddb`.
-- [ ] T007 [P] Add the `@contracts` alias in `src/admin/vite.config.ts`, resolving to `path.resolve(__dirname, '../../docs/contracts')`, and allow that folder in `server.fs.allow`. Mirror the alias in `compilerOptions.paths` in `src/admin/tsconfig.app.json`, with `resolveJsonModule` on (ED-08).
-- [ ] T008 [P] In the admin build stage of `Dockerfile`, add `COPY docs/contracts/ /docs/contracts/` before `RUN npm run build`, so that `/admin/../../docs/contracts` resolves the same way as in a checkout. Add a comment citing ED-08.
-- [ ] T009 [P] Make `vue/no-v-html` an error for all of `src/**` in `src/admin/eslint.config.js` (plan, Principle IX row).
-- [ ] T010 [P] Register the Editor module in `HOST/Program.cs`: `builder.Services.AddEditorModule(builder.Configuration)` after `AddPagesModule`, and `.AddApplicationPart(typeof(EditorModule).Assembly)`. Create an empty `EDITOR/EditorModule.cs` with `AddEditorModule` so that it compiles.
+- [X] T007 [P] Add the `@contracts` alias in `src/admin/vite.config.ts`, resolving to `path.resolve(__dirname, '../../docs/contracts')`, and allow that folder in `server.fs.allow`. Mirror the alias in `compilerOptions.paths` in `src/admin/tsconfig.app.json`, with `resolveJsonModule` on (ED-08).
+- [X] T008 [P] In the admin build stage of `Dockerfile`, add `COPY docs/contracts/ /docs/contracts/` before `RUN npm run build`, so that `/admin/../../docs/contracts` resolves the same way as in a checkout. Add a comment citing ED-08.
+- [X] T009 [P] Make `vue/no-v-html` an error for all of `src/**` in `src/admin/eslint.config.js` (plan, Principle IX row).
+- [X] T010 [P] Register the Editor module in `HOST/Program.cs`: `builder.Services.AddEditorModule(builder.Configuration)` after `AddPagesModule`, and `.AddApplicationPart(typeof(EditorModule).Assembly)`. Create an empty `EDITOR/EditorModule.cs` with `AddEditorModule` so that it compiles.
 
 ---
 

@@ -49,6 +49,10 @@ export default [
       ],
       '@intlify/vue-i18n/no-missing-keys': 'error',
 
+      // 011 (Principle IX): nothing is ever rendered as raw HTML. The editor canvas shows
+      // user content, and rich text is structured JSON rendered through Vue, never markup.
+      'vue/no-v-html': 'error',
+
       // Off, not downgraded. The rule cannot see a key reached through a computed path,
       // and this codebase resolves error and empty-state messages that way — so it
       // reports keys that are genuinely used. A rule that cries wolf gets ignored, and

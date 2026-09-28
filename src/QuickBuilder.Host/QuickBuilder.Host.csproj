@@ -7,6 +7,7 @@
     <ProjectReference Include="..\Modules\Identity\QuickBuilder.Identity\QuickBuilder.Identity.csproj" />
     <ProjectReference Include="..\Modules\Media\QuickBuilder.Media\QuickBuilder.Media.csproj" />
     <ProjectReference Include="..\Modules\Pages\QuickBuilder.Pages\QuickBuilder.Pages.csproj" />
+    <ProjectReference Include="..\Modules\Editor\QuickBuilder.Editor\QuickBuilder.Editor.csproj" />
   </ItemGroup>
 
   <ItemGroup>

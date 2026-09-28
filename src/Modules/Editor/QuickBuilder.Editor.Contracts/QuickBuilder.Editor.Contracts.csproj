@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The Editor module's public surface (specs/011-editor-core): the design token contract,
+    its default set, the font stacks and IDesignTokenReader for Rendering (#12). References
+    only Shared.Kernel, so it stays a contract. Asserted by QuickBuilder.ArchitectureTests.
+  -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\Shared\QuickBuilder.Shared.Kernel\QuickBuilder.Shared.Kernel.csproj" />
+  </ItemGroup>
+
+  <!--
+    Research ED-14: docs/contracts/design-tokens/ is the single definition of a token set.
+    It is embedded from where it lives, as Pages.Contracts embeds the page schema, so what
+    ships is the file the contract document describes.
+  -->
+  <ItemGroup>
+    <EmbeddedResource Include="..\..\..\..\docs\contracts\design-tokens\*.schema.json"
+                      LogicalName="QuickBuilder.Editor.Contracts.DesignTokens.%(Filename)%(Extension)" />
+  </ItemGroup>
+
+</Project>

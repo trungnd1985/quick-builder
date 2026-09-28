@@ -32,6 +32,8 @@
     <ProjectReference Include="..\..\src\Modules\Media\QuickBuilder.Media.Contracts\QuickBuilder.Media.Contracts.csproj" />
     <ProjectReference Include="..\..\src\Modules\Pages\QuickBuilder.Pages\QuickBuilder.Pages.csproj" />
     <ProjectReference Include="..\..\src\Modules\Pages\QuickBuilder.Pages.Contracts\QuickBuilder.Pages.Contracts.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Editor\QuickBuilder.Editor\QuickBuilder.Editor.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Editor\QuickBuilder.Editor.Contracts\QuickBuilder.Editor.Contracts.csproj" />
   </ItemGroup>
 
 </Project>

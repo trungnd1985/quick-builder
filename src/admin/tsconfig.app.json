@@ -4,6 +4,9 @@
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
     "types": ["vite/client"],
     "allowArbitraryExtensions": true,
+    "resolveJsonModule": true,
+    /* 011 ED-08: the contracts are imported from docs/contracts/, where they live. */
+    "paths": { "@contracts/*": ["../../docs/contracts/*"] },
 
     /* Linting */
     "noUnusedLocals": true,
@@ -11,5 +14,5 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.vue"]
+  "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.vue", "../../docs/contracts/**/*.json"]
 }

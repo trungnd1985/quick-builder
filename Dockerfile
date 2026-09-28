@@ -12,6 +12,10 @@ COPY src/admin/package.json src/admin/package-lock.json ./
 RUN npm ci
 
 COPY src/admin/ ./
+# 011 ED-08: the editor imports the page schema and design token contracts from
+# docs/contracts/ through the `@contracts` alias (../../docs/contracts from src/admin).
+# From /admin that resolves to /docs/contracts, so they go there.
+COPY docs/contracts/ /docs/contracts/
 # Vite writes content-hashed filenames (FR-046), which is what stops an upgrade serving
 # a stale mix of old and new assets.
 RUN npm run build -- --outDir /admin/dist --emptyOutDir

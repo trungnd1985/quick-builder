@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Extensions.Options;
+using QuickBuilder.Editor;
 using QuickBuilder.Host;
 using QuickBuilder.Host.Configuration;
 using QuickBuilder.Host.Middleware;
@@ -86,6 +87,7 @@ builder.Services.AddSitesModule(builder.Configuration);
 builder.Services.AddIdentityModule(builder.Configuration);
 builder.Services.AddMediaModule(builder.Configuration);
 builder.Services.AddPagesModule(builder.Configuration);
+builder.Services.AddEditorModule(builder.Configuration);
 
 // Controllers live in their modules and are discovered through application parts
 // (constitution Principle I). Minimal APIs are not used anywhere.
@@ -94,7 +96,8 @@ builder.Services
     .AddApplicationPart(typeof(SitesModule).Assembly)
     .AddApplicationPart(typeof(IdentityModule).Assembly)
     .AddApplicationPart(typeof(MediaModule).Assembly)
-    .AddApplicationPart(typeof(PagesModule).Assembly);
+    .AddApplicationPart(typeof(PagesModule).Assembly)
+    .AddApplicationPart(typeof(EditorModule).Assembly);
 
 var app = builder.Build();
 

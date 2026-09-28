@@ -1,31 +1,21 @@
 <!--
 Sync Impact Report
-Version change: 2.3.0 → 2.3.1
-Modified principles: none. No principle was added, removed or redefined; this
-  amendment is editorial only, which is why it is a PATCH under the Governance
-  versioning rule.
+Version change: 2.3.1 → 2.4.0
+Modified principles: none.
 Modified sections:
-  - Document title: "Web Builder Constitution" → "QuickBuilder Constitution".
-  - I. Modular Monolith with Vertical Slices: project names renamed from
-    `WebBuilder.*` to `QuickBuilder.*` throughout —
-    `QuickBuilder.<Module>.Contracts`, `QuickBuilder.<Module>`,
-    `QuickBuilder.Host`, `QuickBuilder.Shared.Kernel` and
-    `QuickBuilder.Shared.Infrastructure`. These names are normative: the
-    architecture tests required by this principle assert on them, so the
-    document and the code had to agree.
-Reason: the product is named QuickBuilder and its assemblies follow the
-  `QuickBuilder.*` format. The earlier name was carried over from the initial
-  scaffold and never matched the project.
+  - Technology Constraints: the placeholder "The editor canvas library is
+    decided in the editor-core spec and then recorded here." is replaced by the
+    decision itself. The placeholder deferred a normative constraint; filling it
+    adds a binding rule that plans must follow, which is a MINOR change under
+    the Governance versioning rule.
+Reason: feature 011 (editor core, issue #11) made the decision the placeholder
+  asked for (specs/011-editor-core/research.md ED-01, ED-02, ED-03, ED-09).
 Affected specs/plans:
-  - specs/001-foundation-skeleton/ — plan.md, quickstart.md,
-    contracts/module-contract.md and contracts/admin-api.yaml were renamed in
-    the same change. spec.md is technology-agnostic and names no assemblies, so
-    it needed no edit beyond the terminology note in its Clarifications section.
-  - No other spec exists yet, so nothing else is affected.
+  - specs/011-editor-core/ — plan.md records this amendment in its
+    Technology Constraints section.
+  - No earlier spec touches the editor canvas, so nothing else is affected.
 Templates requiring updates:
-  - .specify/templates/*: checked for "WebBuilder" and "Web Builder" — no
-    occurrences. Templates read this constitution at runtime and are not edited
-    by this command.
+  - .specify/templates/*: none. Templates read this constitution at runtime.
 Follow-up TODOs: none.
 -->
 
@@ -246,8 +236,12 @@ a constitution amendment is approved first.
 - Frontend (admin + editor): Vue 3 with Composition API, TypeScript strict mode,
   Vite, Pinia. Built assets are embedded in or served by the ASP.NET Core app;
   operators never run a separate Node process.
-- The editor canvas library is decided in the editor-core spec and then
-  recorded here.
+- Editor canvas: in-house Vue 3 components rendered in the admin document (no
+  iframe, no page-builder framework); native HTML5 drag and drop, with a
+  keyboard equivalent for every drag action; CSS container queries for the
+  responsive preview, so the same block stylesheet serves published pages;
+  TipTap (ProseMirror) for rich text only. Decided in
+  specs/011-editor-core (research ED-01, ED-02, ED-03, ED-09).
 - Distribution: multi-arch (amd64, arm64) Docker images built by GitHub Actions
   and published to a container registry, plus release notes and upgrade notes.
 - Observability: structured logging (Serilog) to console by default,
@@ -285,4 +279,4 @@ a constitution amendment is approved first.
 - Any exception to a MUST rule is recorded in the plan's Complexity Tracking
   section with justification and a follow-up task to remove it.
 
-**Version**: 2.3.1 | **Ratified**: 2026-09-22 | **Last Amended**: 2026-09-22
+**Version**: 2.4.0 | **Ratified**: 2026-09-22 | **Last Amended**: 2026-09-28
