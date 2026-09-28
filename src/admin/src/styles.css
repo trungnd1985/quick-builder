@@ -120,12 +120,18 @@ body {
   gap: 1rem;
 }
 
-h1 {
+/*
+  011 research ED-01: element rules end in :where(:not(.qb-canvas *)), so they style the
+  admin but never the editor's canvas, where a site's own blocks are drawn. :where() adds no
+  specificity, so the cascade here is exactly what it was. Class rules need no guard: blocks
+  use their own qb- classes. CanvasStyleIsolation.spec.ts holds this in place.
+*/
+h1:where(:not(.qb-canvas *)) {
   font-size: 1.5rem;
   margin: 0 0 0.25rem;
 }
 
-h2 {
+h2:where(:not(.qb-canvas *)) {
   font-size: 1.125rem;
   margin: 0 0 0.75rem;
 }
@@ -163,16 +169,16 @@ h2 {
   margin-bottom: 1rem;
 }
 
-label {
+label:where(:not(.qb-canvas *)) {
   display: block;
   font-weight: 600;
   margin-bottom: 0.25rem;
 }
 
-input[type='text'],
-input[type='email'],
-input[type='password'],
-select {
+input[type='text']:where(:not(.qb-canvas *)),
+input[type='email']:where(:not(.qb-canvas *)),
+input[type='password']:where(:not(.qb-canvas *)),
+select:where(:not(.qb-canvas *)) {
   width: 100%;
   padding: 0.5rem 0.625rem;
   border: 1px solid var(--border);
@@ -182,7 +188,7 @@ select {
   color: var(--text);
 }
 
-input[aria-invalid='true'] {
+input[aria-invalid='true']:where(:not(.qb-canvas *)) {
   border-color: var(--danger);
   border-width: 2px;
 }
@@ -198,7 +204,7 @@ input[aria-invalid='true'] {
   gap: 0.5rem;
 }
 
-button {
+button:where(:not(.qb-canvas *)) {
   font: inherit;
   padding: 0.5rem 0.875rem;
   border: 1px solid var(--border);
@@ -208,14 +214,14 @@ button {
   cursor: pointer;
 }
 
-button.primary {
+button.primary:where(:not(.qb-canvas *)) {
   background: var(--accent);
   border-color: var(--accent);
   color: var(--accent-text);
   font-weight: 600;
 }
 
-button:disabled {
+button:disabled:where(:not(.qb-canvas *)) {
   opacity: 0.6;
   cursor: not-allowed;
 }
@@ -249,6 +255,12 @@ button:disabled {
   padding: 0 1rem;
 }
 
+/* 011: the editor takes the whole window, with no navigation frame and no width cap. */
+.fullscreen {
+  margin: 0;
+  padding: 0;
+}
+
 .user-menu {
   display: flex;
   align-items: center;
@@ -267,7 +279,7 @@ button:disabled {
   padding: 0 0.25rem;
 }
 
-label.checkbox {
+label.checkbox:where(:not(.qb-canvas *)) {
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -357,7 +369,7 @@ label.checkbox {
   color: var(--text-muted);
 }
 
-button.danger {
+button.danger:where(:not(.qb-canvas *)) {
   border-color: var(--danger);
   color: var(--danger);
 }
@@ -458,7 +470,7 @@ button.danger {
 }
 
 /* A button that reads as a link: the page tree's row selectors. */
-button.link {
+button.link:where(:not(.qb-canvas *)) {
   padding: 0;
   border: 0;
   background: none;
@@ -469,6 +481,22 @@ button.link {
   cursor: pointer;
 }
 
-button.link[aria-pressed='true'] {
+button.link[aria-pressed='true']:where(:not(.qb-canvas *)) {
   font-weight: 600;
+}
+
+/* A link that leads somewhere but looks like the action it is (011: "Edit content"). */
+a.button-link {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+a.button-link.primary {
+  background: var(--accent);
+  color: var(--accent-text);
 }

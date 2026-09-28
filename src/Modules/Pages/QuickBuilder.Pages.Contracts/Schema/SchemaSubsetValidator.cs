@@ -1,7 +1,7 @@
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
-namespace QuickBuilder.Pages.Infrastructure.Schema;
+namespace QuickBuilder.Pages.Contracts.Schema;
 
 /// <summary>
 /// Checks a JSON value against a JSON Schema (2020-12) written in a declared subset of the
@@ -21,26 +21,44 @@ namespace QuickBuilder.Pages.Infrastructure.Schema;
 /// <b>Supported</b>: <c>type</c>, <c>properties</c>, <c>required</c>,
 /// <c>additionalProperties</c> (boolean or schema), <c>const</c>, <c>enum</c>, <c>pattern</c>,
 /// <c>minLength</c>, <c>maxLength</c>, <c>minimum</c>, <c>maximum</c>, <c>items</c>,
-/// <c>maxItems</c>, <c>format: uuid</c>, <c>$ref</c> to <c>#/$defs/…</c>, and <c>oneOf</c> whose
-/// branches are told apart by a <c>type</c> property's <c>const</c>. Annotations
-/// (<c>$schema</c>, <c>$id</c>, <c>title</c>, <c>description</c>, <c>$defs</c>) are read or
-/// ignored as the specification says.
+/// <c>minItems</c>, <c>maxItems</c>, <c>format: uuid</c>, <c>$ref</c> to <c>#/$defs/…</c>, and
+/// <c>oneOf</c> whose branches are told apart by a <c>type</c> property's <c>const</c>.
+/// Annotations (<c>$schema</c>, <c>$id</c>, <c>title</c>, <c>description</c>, <c>$defs</c>,
+/// <c>default</c>) are read or ignored as the specification says; <c>default</c> is never
+/// validated, even beside a <c>$ref</c> (011 research ED-07).
+/// </para>
+/// <para>
+/// <b>Patterns</b> are compiled with ECMAScript semantics and must stay within what .NET and
+/// JavaScript read alike: no lookbehind, named groups or Unicode property classes. The editor
+/// runs a TypeScript port of this class over the same file (011 research ED-06, ED-08).
 /// </para>
 /// <para>
 /// <b>First failure only.</b> Keywords are checked in a fixed order, and object properties in
 /// document order, so a given document always reports the same failure and location.
 /// </para>
+/// <para>
+/// <b>Shared.</b> In Pages.Contracts since 011, so every module that validates a content
+/// contract uses this one implementation: Pages for page documents, Editor for design token
+/// sets, and Rendering (#12). It depends on nothing but the BCL.
+/// </para>
 /// </remarks>
-internal sealed class SchemaSubsetValidator
+public sealed class SchemaSubsetValidator
 {
     /// <summary>The keywords this validator interprets or knowingly ignores.</summary>
-    internal static readonly IReadOnlySet<string> SupportedKeywords = new HashSet<string>(StringComparer.Ordinal)
+    public static IReadOnlySet<string> SupportedKeywords { get; } = new HashSet<string>(StringComparer.Ordinal)
     {
-        "$schema", "$id", "$defs", "$ref", "title", "description",
+        "$schema", "$id", "$defs", "$ref", "title", "description", "default",
         "type", "properties", "required", "additionalProperties", "const", "enum",
         "pattern", "minLength", "maxLength", "minimum", "maximum",
-        "items", "maxItems", "format", "oneOf",
+        "items", "minItems", "maxItems", "format", "oneOf",
     };
+
+    /// <summary>
+    /// Pattern constructs that mean something different, or nothing, in JavaScript, where the
+    /// editor checks the same patterns (011 research ED-06): lookbehind, named groups and
+    /// Unicode property classes.
+    /// </summary>
+    private static readonly string[] NonPortablePatternConstructs = ["(?<", @"\p{", @"\P{"];
 
     private readonly JsonElement _root;
     private readonly Dictionary<string, Regex> _patterns = new(StringComparer.Ordinal);
@@ -68,7 +86,7 @@ internal sealed class SchemaSubsetValidator
     }
 
     /// <summary>Every keyword outside the subset, with where it is. Used by the load check and the build guard.</summary>
-    internal static IEnumerable<(string Keyword, string Location)> UnsupportedKeywords(JsonElement schema, string location = "")
+    public static IEnumerable<(string Keyword, string Location)> UnsupportedKeywords(JsonElement schema, string location = "")
     {
         if (schema.ValueKind != JsonValueKind.Object)
         {
@@ -95,6 +113,13 @@ internal sealed class SchemaSubsetValidator
                 yield return ($"$ref: {property.Value.GetString()}", here);
             }
 
+            if (property.Name == "pattern"
+                && property.Value.GetString() is { } pattern
+                && NonPortablePatternConstructs.Any(c => pattern.Contains(c, StringComparison.Ordinal)))
+            {
+                yield return ($"pattern: {pattern} (not portable to ECMAScript)", here);
+            }
+
             var subschemas = property.Name switch
             {
                 "properties" or "$defs" => property.Value.EnumerateObject().Select(p => (p.Value, $"{here}/{Escape(p.Name)}")),
@@ -111,6 +136,35 @@ internal sealed class SchemaSubsetValidator
                 }
             }
         }
+    }
+
+    /// <summary>
+    /// The <c>type</c> constants of the <c>oneOf</c> branches of <c>$defs/<paramref name="definition"/></c>:
+    /// for the page schema's placement lists, the node types each admits (011 research ED-05).
+    /// </summary>
+    public IReadOnlySet<string> BranchTypes(string definition)
+    {
+        var types = new HashSet<string>(StringComparer.Ordinal);
+        if (!_root.TryGetProperty("$defs", out var defs)
+            || !defs.TryGetProperty(definition, out var list)
+            || !list.TryGetProperty("oneOf", out var branches))
+        {
+            return types;
+        }
+
+        foreach (var branch in branches.EnumerateArray())
+        {
+            var resolved = branch.TryGetProperty("$ref", out var reference) ? Resolve(reference.GetString()!) : branch;
+            if (resolved.TryGetProperty("properties", out var properties)
+                && properties.TryGetProperty("type", out var typeSchema)
+                && typeSchema.TryGetProperty("const", out var value)
+                && value.ValueKind == JsonValueKind.String)
+            {
+                types.Add(value.GetString()!);
+            }
+        }
+
+        return types;
     }
 
     /// <summary>The first failure of <paramref name="instance"/> against the schema, or null.</summary>
@@ -243,6 +297,11 @@ internal sealed class SchemaSubsetValidator
 
     private SchemaFailure? CheckArray(JsonElement schema, JsonElement instance, string pointer)
     {
+        if (schema.TryGetProperty("minItems", out var minItems) && instance.GetArrayLength() < minItems.GetInt32())
+        {
+            return new SchemaFailure(pointer, "minItems", $"At least {minItems.GetInt32()} item(s) are required.");
+        }
+
         if (schema.TryGetProperty("maxItems", out var maxItems) && instance.GetArrayLength() > maxItems.GetInt32())
         {
             return new SchemaFailure(pointer, "maxItems", $"At most {maxItems.GetInt32()} item(s) are allowed.");
@@ -354,10 +413,13 @@ internal sealed class SchemaSubsetValidator
                 {
                     if (property.Name == "pattern" && property.Value.ValueKind == JsonValueKind.String)
                     {
+                        // ECMAScript semantics, so \w, \d and \s mean what they mean in the
+                        // editor's JavaScript (011 research ED-06). The option cannot be
+                        // combined with CultureInvariant, and needs no culture anyway.
                         var pattern = property.Value.GetString()!;
-                        _patterns.TryAdd(pattern, new Regex(pattern, RegexOptions.CultureInvariant, TimeSpan.FromSeconds(1)));
+                        _patterns.TryAdd(pattern, new Regex(pattern, RegexOptions.ECMAScript, TimeSpan.FromSeconds(1)));
                     }
-                    else if (property.Name is not ("const" or "enum"))
+                    else if (property.Name is not ("const" or "enum" or "default"))
                     {
                         CompilePatterns(property.Value);
                     }
@@ -375,10 +437,10 @@ internal sealed class SchemaSubsetValidator
     }
 
     /// <summary>A JSON Pointer reference token (RFC 6901): <c>~</c> and <c>/</c> escaped.</summary>
-    internal static string Escape(string token) => token.Replace("~", "~0", StringComparison.Ordinal).Replace("/", "~1", StringComparison.Ordinal);
+    public static string Escape(string token) => token.Replace("~", "~0", StringComparison.Ordinal).Replace("/", "~1", StringComparison.Ordinal);
 
     private static string Unescape(string token) => token.Replace("~1", "/", StringComparison.Ordinal).Replace("~0", "~", StringComparison.Ordinal);
 }
 
 /// <summary>Where a value first failed its schema, and which keyword it failed.</summary>
-internal sealed record SchemaFailure(string Location, string Keyword, string Message);
+public sealed record SchemaFailure(string Location, string Keyword, string Message);

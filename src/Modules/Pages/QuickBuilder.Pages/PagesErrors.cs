@@ -76,6 +76,10 @@ internal static class PagesErrors
         "pages.duplicate_component_name",
         "This site already has a component with that name.");
 
+    internal static Error InvalidTokenId { get; } = Error.Validation(
+        "pages.invalid_token_id",
+        "A design token id is 1 to 40 lowercase letters, digits and hyphens.");
+
     internal static Error DocumentTooLarge { get; } = Error.Validation(
         "pages.document_too_large",
         $"A document may be at most {PageSchema.MaxDocumentBytes} bytes.");

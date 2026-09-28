@@ -15,8 +15,10 @@ import { useAuthStore } from './authStore'
 
 declare module 'vue-router' {
   interface RouteMeta {
-    /** Shown without the navigation frame: the screens before anyone is signed in. */
+    /** Shown without the navigation frame, in a narrow column: the screens before anyone is signed in. */
     bare?: boolean
+    /** Shown without the navigation frame, across the whole window: the editor (011). */
+    fullscreen?: boolean
     /** Reachable without a session. */
     public?: boolean
     /** Offered only to administrators. A courtesy: the server enforces access (FR-024). */
@@ -48,6 +50,24 @@ export function createAppRouter(history: RouterHistory = createWebHistory('/admi
       { path: '/sites/:siteId/media', name: 'site-media', component: MediaLibraryView },
       { path: '/sites/:siteId/pages', name: 'site-pages', component: PageTreeView },
       { path: '/sites/:siteId/components', name: 'site-components', component: ComponentsView },
+      // 011 US6: the site's design tokens. Loaded on demand, like the editor.
+      { path: '/sites/:siteId/design', name: 'site-design', component: () => import('../features/design/DesignTokensView.vue') },
+      // 011 ED-22: the editor loads on demand, so TipTap and the canvas stay out of the shell's
+      // main chunk. It uses the whole window, without the navigation frame.
+      {
+        path: '/sites/:siteId/pages/:pageId/edit',
+        name: 'page-editor',
+        component: () => import('../editor/EditorView.vue'),
+        props: (route) => ({ siteId: route.params.siteId, kind: 'page', documentId: route.params.pageId }),
+        meta: { fullscreen: true },
+      },
+      {
+        path: '/sites/:siteId/components/:componentId/edit',
+        name: 'component-editor',
+        component: () => import('../editor/EditorView.vue'),
+        props: (route) => ({ siteId: route.params.siteId, kind: 'component', documentId: route.params.componentId }),
+        meta: { fullscreen: true },
+      },
       { path: '/settings', name: 'settings', component: SettingsView },
       { path: '/account', name: 'account', component: AccountView },
       { path: '/users', name: 'users', component: UsersView, meta: { administrators: true } },

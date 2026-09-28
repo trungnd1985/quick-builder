@@ -1,0 +1,396 @@
+/*
+  The editor's own chrome: palette, property panel, layer view, top bar. Everything is under
+  .editor, so nothing here reaches other admin screens; and none of it is inside .qb-canvas,
+  so none of it reaches the page being edited (research ED-01).
+*/
+
+.editor .editor-panel-title {
+  font-size: 0.8125rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  margin: 0 0 0.5rem;
+}
+
+.editor-top-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+  padding: 0.5rem 1rem;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+}
+
+.editor-top-bar__title {
+  flex: 1 1 10rem;
+  min-width: 10rem;
+  font-size: 1.0625rem;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.editor-top-bar__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+}
+
+.editor-top-bar__actions > button {
+  white-space: nowrap;
+}
+
+.editor-save-status {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--text-muted);
+}
+
+.editor-save-status--retrying,
+.editor-save-status--conflict,
+.editor-save-status--forbidden,
+.editor-save-status--gone,
+.editor-save-status--invalid {
+  color: var(--danger);
+  font-weight: 600;
+}
+
+/* Palette */
+.editor-palette__list {
+  list-style: none;
+  margin: 0.75rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.25rem;
+}
+
+.editor-palette__item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.625rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  cursor: grab;
+  user-select: none;
+}
+
+.editor-palette__item:hover,
+.editor-palette__item[aria-selected='true'] {
+  border-color: var(--accent);
+}
+
+.editor-palette__icon {
+  width: 1.5rem;
+  text-align: center;
+  color: var(--accent);
+}
+
+/* Property panel */
+.editor-panel__type {
+  font-weight: 650;
+  margin: 0 0 0.75rem;
+}
+
+.editor-panel__group {
+  border: 0;
+  border-top: 1px solid var(--border);
+  margin: 0;
+  padding: 0.75rem 0;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.editor-panel__group > legend {
+  font-weight: 600;
+  font-size: 0.875rem;
+  padding: 0 0.25rem 0 0;
+}
+
+.editor-field {
+  display: grid;
+  gap: 0.25rem;
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+
+.editor-field__label,
+.editor-field > legend {
+  font-size: 0.875rem;
+  font-weight: 600;
+  padding: 0;
+}
+
+.editor-field input[type='text'],
+.editor-field textarea,
+.editor-field select {
+  width: 100%;
+}
+
+.editor-field textarea {
+  font: inherit;
+  padding: 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.editor-field__count {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  text-align: end;
+}
+
+.editor-field__count--over,
+.field-error {
+  color: var(--danger);
+}
+
+.field-error {
+  margin: 0;
+  font-size: 0.8125rem;
+}
+
+.editor-field--invalid :is(input, textarea, select) {
+  border-color: var(--danger);
+}
+
+.editor-token {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.editor-token__swatch {
+  flex: none;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+}
+
+.editor-link__kinds {
+  display: grid;
+  gap: 0.125rem;
+}
+
+.editor-media__preview {
+  max-width: 100%;
+  max-height: 8rem;
+  border-radius: 4px;
+}
+
+.editor-media__actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.editor-media__grid {
+  list-style: none;
+  padding: 0;
+  margin: 0.5rem 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.editor-media__grid button {
+  display: grid;
+  gap: 0.25rem;
+  width: 100%;
+  padding: 0.25rem;
+  font-size: 0.75rem;
+  text-align: start;
+}
+
+.editor-media__grid button[aria-pressed='true'] {
+  outline: 2px solid var(--accent);
+}
+
+.editor-media__grid img {
+  width: 100%;
+  height: 4.5rem;
+  object-fit: cover;
+}
+
+/* The rich-text toolbar sits on the canvas, but it is the editor's, not the page's. */
+.qb-canvas .qb-rt-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-bottom: 0.5rem;
+  padding: 0.25rem;
+  background: #ffffff;
+  border: 1px solid #c3c8d0;
+  border-radius: 6px;
+  font: 0.8125rem/1.2 system-ui, sans-serif;
+  color: #16191d;
+}
+
+.qb-canvas .qb-rt-toolbar button {
+  font: inherit;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid #c3c8d0;
+  border-radius: 4px;
+  background: #ffffff;
+  color: inherit;
+  cursor: pointer;
+}
+
+.qb-canvas .qb-rt-toolbar button[aria-pressed='true'] {
+  background: #10489c;
+  border-color: #10489c;
+  color: #ffffff;
+}
+
+.qb-canvas .qb-rt-toolbar__link {
+  flex-basis: 100%;
+  padding: 0.5rem;
+}
+
+.qb-canvas .qb-rich-text__editor .ProseMirror {
+  outline: 2px dotted #0a5ad6;
+  outline-offset: 2px;
+  min-height: 2em;
+}
+
+.editor-recovery {
+  margin: 0;
+  padding: 1rem;
+  background: #eef4ff;
+  border-bottom: 1px solid var(--accent);
+}
+
+.editor-recovery h2 {
+  font-size: 1rem;
+  margin: 0 0 0.25rem;
+}
+
+.editor-recovery p {
+  margin: 0 0 0.75rem;
+}
+
+.editor-recovery__actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+/* Layer view */
+.editor-layers {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+
+.editor-layers__tree {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.editor-layer {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  min-height: 2rem;
+  padding-block: 0.125rem;
+  padding-inline-end: 0.25rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.875rem;
+}
+
+.editor-layer:hover {
+  background: var(--surface);
+}
+
+.editor-layer[aria-selected='true'] {
+  background: var(--accent);
+  color: var(--accent-text);
+}
+
+.editor-layer__twisty {
+  flex: none;
+  width: 1rem;
+  text-align: center;
+}
+
+.editor-layer__twisty--open::before {
+  content: '\25BE';
+}
+
+.editor-layer__twisty--closed::before {
+  content: '\25B8';
+}
+
+.editor-layer__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.editor-layer__type {
+  margin-inline-start: auto;
+  font-size: 0.75rem;
+  opacity: 0.75;
+}
+
+.editor-layer__rename {
+  flex: 1;
+  min-width: 0;
+}
+
+.editor-layer--drop-before {
+  box-shadow: inset 0 3px 0 #0a5ad6;
+}
+
+.editor-layer--drop-after {
+  box-shadow: inset 0 -3px 0 #0a5ad6;
+}
+
+.editor-layer--drop-inside {
+  outline: 2px solid #0a5ad6;
+}
+
+.editor-layer--drop-refused {
+  outline-color: #a4232f;
+  box-shadow: none;
+}
+
+/* Preview width */
+.editor-preview-switch {
+  display: inline-flex;
+  flex: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.editor-preview-switch button {
+  white-space: nowrap;
+  border: 0;
+  border-radius: 0;
+  padding: 0.375rem 0.75rem;
+}
+
+.editor-preview-switch button + button {
+  border-inline-start: 1px solid var(--border);
+}
+
+.editor-preview-switch button[aria-pressed='true'] {
+  background: var(--accent);
+  color: var(--accent-text);
+}
+
+.qb-canvas-stage {
+  margin-inline: auto;
+}

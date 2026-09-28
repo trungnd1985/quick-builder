@@ -72,7 +72,8 @@
       "sections": "Work on this site",
       "pages": "Pages",
       "components": "Shared components",
-      "media": "Media library"
+      "media": "Media library",
+      "design": "Design"
     },
     "settings": {
       "heading": "Settings",
@@ -246,7 +247,8 @@
       "moveDown": "Move down",
       "moveTo": "Move to…",
       "makeHome": "Make home page",
-      "delete": "Delete"
+      "delete": "Delete",
+      "editContent": "Edit content"
     },
     "details": {
       "heading": "Draft",
@@ -370,7 +372,9 @@
       "created": "{name} created.",
       "renamed": "{name} saved.",
       "deleted": "{name} deleted."
-    }
+    },
+    "edit": "Edit the content of {name}",
+    "editContent": "Edit content"
   },
   "settings": {
     "title": "Settings",
@@ -514,6 +518,409 @@
       "sessionsHelp": "Signed in somewhere you no longer use? End every session except this one.",
       "signOutOthers": "Sign out my other sessions",
       "othersSignedOut": "Your other sessions were signed out."
+    }
+  },
+  "editor": {
+    "loading": "Opening the editor…",
+    "untitledPage": "Untitled page",
+    "untitledComponent": "Untitled component",
+    "backToPages": "← Pages",
+    "backToComponents": "← Components",
+    "dismiss": "Dismiss",
+    "sidebar": "Properties and layers",
+    "notFound": {
+      "title": "This page does not exist",
+      "body": "It may have been deleted, or it belongs to a site you cannot see."
+    },
+    "loadError": {
+      "title": "The editor could not open this page",
+      "retry": "Try again"
+    },
+    "leave": {
+      "confirm": "Some changes are not saved yet. Leave anyway and lose them?"
+    },
+    "palette": {
+      "title": "Blocks",
+      "help": "Drag a block onto the page, or choose one and press Enter to add it after the selected block.",
+      "components": "Shared components"
+    },
+    "blocks": {
+      "section": "Section",
+      "container": "Container",
+      "heading": "Heading",
+      "text": "Text",
+      "richText": "Rich text",
+      "image": "Image",
+      "button": "Button",
+      "spacer": "Spacer",
+      "divider": "Divider",
+      "embed": "Video embed",
+      "buttonInitialLabel": "Button",
+      "placeholder": {
+        "heading": "Type a heading",
+        "text": "Type some text",
+        "richText": "Select this block and edit it to add formatted text",
+        "image": "Choose an image in the properties panel",
+        "imageMissing": "This image is missing from the media library. Choose another one.",
+        "embed": "Choose a video: paste a YouTube or Vimeo address in the properties panel"
+      },
+      "embedProvider": {
+        "youtube": "YouTube video",
+        "vimeo": "Vimeo video"
+      },
+      "componentRef": "Shared component"
+    },
+    "canvas": {
+      "label": "Page canvas",
+      "region": "Page",
+      "keysHelp": "Use the arrow keys to move between blocks, Enter to edit a block's text, Alt with the arrow keys to move a block, Control D to duplicate, Delete to remove, Control Z to undo and Control S to save.",
+      "emptySlot": "Drop blocks here",
+      "dragHandle": "Drag to move",
+      "unknownBlock": "This block ({type}) cannot be shown in the editor.",
+      "notAllowedHere": "Not allowed here",
+      "brokenLink": "Broken link: the page no longer exists",
+      "emptyPage": {
+        "title": "This page is empty.",
+        "body": "Drag a Section from the blocks on the left, or choose Section and press Enter. Put headings, text and images inside it.",
+        "componentBody": "Drag a Section from the blocks on the left, or choose Section and press Enter, then add the component's content inside it."
+      }
+    },
+    "save": {
+      "saveNow": "Save now",
+      "retryNow": "Retry now",
+      "state": {
+        "saved": "All changes saved",
+        "dirty": "Unsaved changes",
+        "saving": "Saving…",
+        "retrying": "Not saved — trying again",
+        "conflict": "Not saved — changed elsewhere",
+        "forbidden": "Not saved — no permission",
+        "gone": "Not saved — the page is gone",
+        "invalid": "Not saved — the page could not be checked"
+      }
+    },
+    "readOnly": {
+      "conflict": "Someone else saved this page after you opened it, so your changes were not saved. Your version is shown read-only: copy the blocks you want to keep, then reload the latest version and paste them back.",
+      "forbidden": "You no longer have permission to edit this page. Your changes were not saved.",
+      "gone": "This page no longer exists. Your changes were not saved.",
+      "invalid": "This page cannot be edited here because its stored content does not pass the page schema check.",
+      "invalidRule": "This page cannot be edited here: {reason}",
+      "recovery": "You are viewing unsaved changes from an earlier visit, read-only. Copy the blocks you want to keep."
+    },
+    "announce": {
+      "inserted": "{name} added",
+      "copied": "{name} copied",
+      "pasted": "Pasted",
+      "duplicated": "{name} duplicated",
+      "removed": "{name} removed",
+      "moved": "{name} moved into {parent}, position {position}",
+      "page": "the page"
+    },
+    "errors": {
+      "ops": {
+        "nesting_not_allowed": "That block cannot go there. Sections sit on the page itself; everything else goes inside a Section or a Container.",
+        "too_many_nodes": "A page can hold at most 5,000 blocks.",
+        "too_deep": "Blocks can be nested at most 32 levels deep.",
+        "too_large": "The page would be larger than 1 MB, which is the most a page can hold.",
+        "not_found": "That block no longer exists.",
+        "invalid_value": "That value is not allowed here.",
+        "required": "This property is required and cannot be removed.",
+        "rich_text_too_long": "A rich text block can hold at most 20,000 characters.",
+        "cannot_change_root": "The page itself cannot be moved or removed.",
+        "into_itself": "A block cannot be moved inside itself.",
+        "read_only": "This page is read-only right now.",
+        "needs_section": "Add a Section first: headings, text and images go inside one.",
+        "clipboard_empty": "Nothing has been copied from this site yet."
+      },
+      "rules": {
+        "malformed_json": "The page content is not well-formed.",
+        "duplicate_property": "The page content repeats a property.",
+        "schema_violation": "The page content does not follow the page schema.",
+        "unknown_type": "The page contains a block type this installation does not know.",
+        "props_invalid": "A block has a property value that is not allowed.",
+        "children_not_allowed": "A block that cannot hold other blocks holds some.",
+        "root_misplaced": "The page's root appears inside the page.",
+        "nesting_not_allowed": "A block is somewhere it is not allowed.",
+        "duplicate_node_id": "Two blocks have the same identifier.",
+        "too_many_nodes": "The page holds more than 5,000 blocks.",
+        "too_deep": "Blocks are nested more than 32 levels deep.",
+        "too_large": "The page is larger than 1 MB.",
+        "component_ref_not_allowed": "A shared component cannot contain another shared component.",
+        "unknown_component": "The page uses a shared component that no longer exists.",
+        "unsupported_schema_version": "The page was written by a newer version of QuickBuilder.",
+        "rich_text_too_long": "A rich text block holds more than 20,000 characters."
+      },
+      "server": {
+        "unexpected": "Something went wrong. Try again in a moment.",
+        "pages_out_of_date": "Someone else changed this since you opened it.",
+        "pages_not_found": "This page no longer exists.",
+        "pages_component_not_found": "This component no longer exists.",
+        "pages_invalid_document": "The page content was refused.",
+        "pages_unsupported_schema_version": "The page was written by a newer version of QuickBuilder.",
+        "pages_document_too_large": "The page is larger than 1 MB.",
+        "pages_unknown_component": "The page uses a shared component that no longer exists.",
+        "pages_invalid_token_id": "That is not a valid token id.",
+        "sites_not_found": "This site does not exist.",
+        "identity_forbidden": "You do not have permission to do that.",
+        "editor_out_of_date": "Someone else changed the design tokens since you opened them. Reload to see their changes.",
+        "editor_invalid_tokens": "The design tokens are not valid.",
+        "editor_duplicate_token_id": "Two tokens have the same id.",
+        "editor_duplicate_token_name": "Two tokens of the same kind have the same name.",
+        "editor_content_widths_order": "The content widths must go from narrowest to widest: Narrow, then Normal, then Wide.",
+        "editor_token_required": "Keep at least one colour, one text size and one spacing step.",
+        "editor_tokens_too_large": "The design tokens are larger than 64 KB.",
+        "editor_unsupported_schema_version": "These design tokens were written by a newer version of QuickBuilder."
+      }
+    },
+    "richText": {
+      "toolbar": "Text formatting",
+      "bold": "Bold",
+      "italic": "Italic",
+      "bulletList": "Bulleted list",
+      "orderedList": "Numbered list",
+      "link": "Link"
+    },
+    "panel": {
+      "title": "Properties",
+      "nothingSelected": "Select a block on the page or in the layers to see its properties.",
+      "readOnly": "This page is read-only right now, so its properties cannot be changed.",
+      "count": "{length} / {max} characters",
+      "defaultMark": "(default)",
+      "embedHelp": "Paste the address of a YouTube or Vimeo video. The video is not played in the editor.",
+      "groups": {
+        "content": "Content",
+        "layout": "Layout",
+        "style": "Style",
+        "layer": "Layer"
+      },
+      "props": {
+        "text": "Text",
+        "level": "Heading level",
+        "align": "Alignment",
+        "color": "Colour",
+        "background": "Background",
+        "paddingY": "Space above and below",
+        "width": "Width",
+        "direction": "Direction",
+        "gap": "Space between blocks",
+        "padding": "Inner space",
+        "stackOnMobile": "Stack on mobile",
+        "columns": "Column widths",
+        "maxWidth": "Maximum width",
+        "size": "Text size",
+        "content": "Text",
+        "media": "Image",
+        "alt": "Alternative text",
+        "decorative": "Decorative image (no alternative text)",
+        "link": "Link",
+        "label": "Label",
+        "style": "Style",
+        "newTab": "Open in a new tab",
+        "height": "Height",
+        "thickness": "Thickness",
+        "spacing": "Space above and below",
+        "url": "Video address",
+        "title": "Accessible title",
+        "aspectRatio": "Shape",
+        "layerLabel": "Layer name"
+      },
+      "values": {
+        "align": {
+          "start": "Start",
+          "center": "Centre",
+          "end": "End"
+        },
+        "width": {
+          "narrow": "Narrow",
+          "contained": "Normal",
+          "wide": "Wide",
+          "full": "Full width",
+          "natural": "Natural size"
+        },
+        "maxWidth": {
+          "narrow": "Narrow",
+          "normal": "Normal",
+          "wide": "Wide",
+          "full": "Full width"
+        },
+        "columns": {
+          "equal": "Equal",
+          "2-1": "2/3 + 1/3",
+          "1-2": "1/3 + 2/3",
+          "3-1": "3/4 + 1/4",
+          "1-3": "1/4 + 3/4",
+          "2-1-1": "1/2 + 1/4 + 1/4"
+        },
+        "direction": {
+          "vertical": "Stacked",
+          "horizontal": "Side by side"
+        },
+        "style": {
+          "primary": "Primary",
+          "secondary": "Secondary",
+          "outline": "Outline"
+        },
+        "thickness": {
+          "thin": "Thin",
+          "thick": "Thick"
+        }
+      },
+      "token": {
+        "default": "Default ({name})",
+        "none": "none",
+        "deleted": "This block used a token that has been deleted, so it shows the default. Choose another one."
+      },
+      "link": {
+        "none": "No link",
+        "page": "A page of this site",
+        "address": "An address",
+        "pageField": "Page",
+        "choosePage": "Choose a page",
+        "addressField": "Address",
+        "addressHelp": "Starts with https://, http://, mailto: or tel:",
+        "broken": "This link goes to a page that no longer exists."
+      },
+      "media": {
+        "none": "No image chosen",
+        "choose": "Choose image",
+        "change": "Change image",
+        "remove": "Remove image",
+        "missing": "The chosen image is no longer in the media library.",
+        "loading": "Loading images…",
+        "loadFailed": "The media library could not be loaded.",
+        "empty": "The media library has no images yet. Upload one below.",
+        "upload": "Upload a new image",
+        "uploading": "Uploading… {percent}%",
+        "uploadFailed": "The image could not be uploaded."
+      },
+      "richText": {
+        "help": "Rich text is edited on the page itself, where you see it as visitors will.",
+        "edit": "Edit text on the page"
+      },
+      "errors": {
+        "invalid": "That value is not allowed here.",
+        "maxLength": "At most {max} characters.",
+        "minLength": "At least {min} character(s).",
+        "range": "Choose a value from {min} to {max}.",
+        "link": "An address must start with https://, http://, mailto: or tel:.",
+        "url": "Only YouTube and Vimeo videos can be embedded, with an https:// address.",
+        "text": "A heading is a single line."
+      }
+    },
+    "history": {
+      "undo": "Undo",
+      "redo": "Redo"
+    },
+    "forbidden": {
+      "title": "You cannot edit this",
+      "body": "You do not have permission to edit this page on this site."
+    },
+    "conflict": {
+      "reload": "Reload latest",
+      "reloading": "Reloading…",
+      "reloaded": "The latest saved version is now open.",
+      "confirmReload": "Reload the latest saved version? Changes you have not copied will be lost. Blocks you copied stay on the clipboard, ready to paste."
+    },
+    "recovery": {
+      "title": "Unsaved changes found",
+      "restoreBody": "This browser kept changes to this page that were never saved ({when}). Restore them?",
+      "readOnlyBody": "This browser kept changes to this page that were never saved ({when}), but someone has saved the page since. You can open your changes read-only and copy blocks from them.",
+      "restore": "Restore changes",
+      "openReadOnly": "Open read-only to copy blocks",
+      "discard": "Discard them",
+      "restored": "Your unsaved changes are back and will be saved."
+    },
+    "layers": {
+      "title": "Layers",
+      "empty": "The page has no blocks yet.",
+      "rename": "Layer name"
+    },
+    "preview": {
+      "label": "Preview width",
+      "desktop": "Desktop",
+      "tablet": "Tablet",
+      "mobile": "Mobile",
+      "width": "{width} pixels wide"
+    },
+    "components": {
+      "shared": "Shared",
+      "open": "Open the component to edit it",
+      "loading": "Loading the shared component…",
+      "missing": "This shared component could not be shown.",
+      "nested": "A shared component cannot contain another one, so this one is not shown."
+    }
+  },
+  "design": {
+    "title": "Design",
+    "subtitle": "The site's colours, fonts and spacing. Every block that uses one of these follows it when it changes.",
+    "backToSite": "← Site",
+    "loading": "Loading the design…",
+    "loadFailed": "The design could not be loaded.",
+    "reload": "Reload",
+    "readOnly": "You can see the design, but only Designers and Administrators can change it.",
+    "save": "Save design",
+    "saving": "Saving…",
+    "saved": "Design saved. Pages show it the next time they are opened in the editor.",
+    "remove": "Remove",
+    "sample": "Aa",
+    "sampleSentence": "The quick brown fox jumps over the lazy dog.",
+    "stepName": "Name of step {position}",
+    "stepSize": "Size of step {position}, in multiples of the base text size",
+    "confirmRemoveUnknown": "Remove {name}? It could not be checked how many blocks use it. Blocks that use it will show their default instead.",
+    "confirmRemove": {
+      "colors": "Remove the colour {name}? No block uses it. | Remove the colour {name}? One block uses it and will show its default colour instead. | Remove the colour {name}? {count} blocks use it and will show their default colour instead.",
+      "sizes": "Remove the text size {name}? No block uses it. | Remove the text size {name}? One block uses it and will show its default size instead. | Remove the text size {name}? {count} blocks use it and will show their default size instead.",
+      "spacing": "Remove the spacing step {name}? No block uses it. | Remove the spacing step {name}? One block uses it and will show its default spacing instead. | Remove the spacing step {name}? {count} blocks use it and will show their default spacing instead."
+    },
+    "colors": {
+      "title": "Colours",
+      "help": "Values are hex colours such as #2563eb. Up to 24 colours.",
+      "name": "Name of colour {position}",
+      "value": "Value of colour {position}",
+      "add": "Add colour",
+      "newName": "Colour {n}"
+    },
+    "typography": {
+      "title": "Typography",
+      "headingFont": "Heading font",
+      "bodyFont": "Body font",
+      "baseSize": "Base text size, in pixels (12 to 24)"
+    },
+    "sizes": {
+      "title": "Text sizes",
+      "help": "Sizes in multiples of the base text size, from 0.5 to 6.",
+      "add": "Add text size",
+      "newName": "Size {n}"
+    },
+    "spacing": {
+      "title": "Spacing",
+      "help": "Steps in multiples of the base text size, from 0 to 16.",
+      "add": "Add spacing step",
+      "newName": "Step {n}"
+    },
+    "widths": {
+      "title": "Content widths",
+      "help": "How wide Sections and Containers set to Narrow, Normal or Wide may grow, in pixels from 320 to 2560. Narrow is at most Normal, and Normal at most Wide.",
+      "narrow": "Narrow width, in pixels",
+      "normal": "Normal width, in pixels",
+      "wide": "Wide width, in pixels"
+    },
+    "fonts": {
+      "system-ui": "System",
+      "transitional": "Transitional serif",
+      "old-style": "Old-style serif",
+      "humanist": "Humanist sans",
+      "geometric-humanist": "Geometric humanist sans",
+      "classical-humanist": "Classical humanist sans",
+      "neo-grotesque": "Neo-grotesque sans",
+      "monospace-slab": "Monospace slab",
+      "monospace-code": "Monospace code",
+      "industrial": "Industrial",
+      "rounded-sans": "Rounded sans",
+      "slab-serif": "Slab serif",
+      "antique": "Antique",
+      "didone": "Didone",
+      "handwritten": "Handwritten"
     }
   }
 }

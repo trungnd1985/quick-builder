@@ -26,6 +26,12 @@ public static class PageSchema
     /// <summary>The longest node id, in characters.</summary>
     public const int MaxNodeIdLength = 64;
 
+    /// <summary>
+    /// The most characters of text, in code points, one Rich Text block may hold across all
+    /// its text nodes (contract §3 rule 9, 011 FR-013).
+    /// </summary>
+    public const int MaxRichTextChars = 20_000;
+
     private const string ResourcePrefix = "QuickBuilder.Pages.Contracts.PageSchema.v";
 
     /// <summary>Every version the product can validate and store.</summary>

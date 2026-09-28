@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "root": {
+    "id": "root",
+    "type": "root",
+    "props": {},
+    "children": [
+      {
+        "id": "a",
+        "type": "section",
+        "props": {
+          "background": {
+            "token": "color-deleted"
+          }
+        },
+        "children": [
+          {
+            "id": "b",
+            "type": "heading",
+            "props": {
+              "text": "Still valid",
+              "color": {
+                "token": "color-gone"
+              }
+            },
+            "children": []
+          },
+          {
+            "id": "c",
+            "type": "spacer",
+            "props": {
+              "height": {
+                "token": "space-deleted"
+              }
+            },
+            "children": []
+          },
+          {
+            "id": "d",
+            "type": "text",
+            "props": {
+              "text": "",
+              "size": {
+                "token": "text-deleted"
+              }
+            },
+            "children": []
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -13,6 +13,7 @@ public static class IsolationProbes
         new SitesIsolationProbe(),
         new MediaIsolationProbe(),
         new PagesIsolationProbe(),
+        new EditorIsolationProbe(),
     ];
 
     public static TheoryData<string> Names

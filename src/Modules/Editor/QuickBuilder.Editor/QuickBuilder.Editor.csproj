@@ -1,0 +1,41 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The Editor module: a site's design tokens (specs/011-editor-core, research ED-14). The
+    visual editor itself lives in the admin app; this module stores what the editor and,
+    later, the renderer share. Everything is internal apart from the registration entry
+    point and the controllers, mirroring QuickBuilder.Pages.
+
+    It names sites through Sites.Contracts and users through Identity.Contracts — never
+    through another module's implementation.
+  -->
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <Using Include="Microsoft.AspNetCore.Http" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\Shared\QuickBuilder.Shared.Kernel\QuickBuilder.Shared.Kernel.csproj" />
+    <ProjectReference Include="..\..\..\Shared\QuickBuilder.Shared.Infrastructure\QuickBuilder.Shared.Infrastructure.csproj" />
+    <ProjectReference Include="..\QuickBuilder.Editor.Contracts\QuickBuilder.Editor.Contracts.csproj" />
+    <!-- For the shared subset validator of content contracts (Pages.Contracts.Schema). -->
+    <ProjectReference Include="..\..\Pages\QuickBuilder.Pages.Contracts\QuickBuilder.Pages.Contracts.csproj" />
+    <ProjectReference Include="..\..\Sites\QuickBuilder.Sites.Contracts\QuickBuilder.Sites.Contracts.csproj" />
+    <ProjectReference Include="..\..\Identity\QuickBuilder.Identity.Contracts\QuickBuilder.Identity.Contracts.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="QuickBuilder.IntegrationTests" />
+    <InternalsVisibleTo Include="QuickBuilder.UnitTests" />
+    <InternalsVisibleTo Include="QuickBuilder.ArchitectureTests" />
+  </ItemGroup>
+
+</Project>

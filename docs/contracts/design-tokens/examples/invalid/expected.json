@@ -1,0 +1,15 @@
+{
+  "$comment": "What each invalid example must fail with: the error code (also the start of its file name) and the JSON Pointer of the first failure. Shared by every validator of the token set (docs/contracts/design-tokens.md §5).",
+  "editor.invalid_tokens--bad-colour.json": { "code": "editor.invalid_tokens", "pointer": "/colors/0/value" },
+  "editor.invalid_tokens--uppercase-colour.json": { "code": "editor.invalid_tokens", "pointer": "/colors/0/value" },
+  "editor.invalid_tokens--25-colours.json": { "code": "editor.invalid_tokens", "pointer": "/colors" },
+  "editor.invalid_tokens--unknown-font.json": { "code": "editor.invalid_tokens", "pointer": "/typography/bodyFont" },
+  "editor.invalid_tokens--base-size-30.json": { "code": "editor.invalid_tokens", "pointer": "/typography/baseSizePx" },
+  "editor.invalid_tokens--bad-id.json": { "code": "editor.invalid_tokens", "pointer": "/spacing/0/id" },
+  "editor.duplicate_token_id--across-lists.json": { "code": "editor.duplicate_token_id", "pointer": "/spacing/3/id" },
+  "editor.duplicate_token_name--case.json": { "code": "editor.duplicate_token_name", "pointer": "/colors/1/name" },
+  "editor.token_required--empty-spacing.json": { "code": "editor.token_required", "pointer": "/spacing" },
+  "editor.unsupported_schema_version--version-2.json": { "code": "editor.unsupported_schema_version", "pointer": "/schemaVersion" },
+  "editor.invalid_tokens--wide-3000.json": { "code": "editor.invalid_tokens", "pointer": "/contentWidths/wide" },
+  "editor.content_widths_order--narrow-over-normal.json": { "code": "editor.content_widths_order", "pointer": "/contentWidths" }
+}

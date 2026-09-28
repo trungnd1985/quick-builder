@@ -1,0 +1,14 @@
+# QuickBuilder — development override.
+#
+# Layered over docker-compose.yml when the backend runs on the host (`dotnet run`) instead
+# of in the app container:
+#
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d db
+#
+# Publishes PostgreSQL on 127.0.0.1:5432 so the host can reach it. Loopback only, and for
+# development only: the reference deployment never publishes the database.
+
+services:
+  db:
+    ports:
+      - "127.0.0.1:5432:5432"

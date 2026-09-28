@@ -1,0 +1,202 @@
+/*
+  Editing aids on the canvas: selection, placeholders, drop indicators, the empty page.
+  None of this is page content — the renderer (#12) never sees these classes. Kept apart from
+  blocks.css for exactly that reason.
+*/
+
+@layer qb-editor {
+  .qb-canvas {
+    position: relative;
+    container-type: inline-size;
+    container-name: page;
+    min-height: 60vh;
+    box-shadow: 0 1px 4px rgb(0 0 0 / 0.15);
+  }
+
+  .qb-node {
+    position: relative;
+    outline: 1px dashed transparent;
+    outline-offset: 0;
+  }
+
+  .qb-node:hover {
+    outline-color: rgb(16 72 156 / 0.35);
+  }
+
+  .qb-node--selected,
+  .qb-node--selected:hover {
+    outline: 2px solid #10489c;
+    outline-offset: 1px;
+    z-index: 1;
+  }
+
+  .qb-node__bar {
+    position: absolute;
+    top: -1.5rem;
+    left: -2px;
+    display: flex;
+    gap: 0.25rem;
+    align-items: center;
+    height: 1.5rem;
+    padding: 0 0.375rem;
+    background: #10489c;
+    color: #ffffff;
+    font: 600 0.75rem/1 system-ui, sans-serif;
+    border-radius: 4px 4px 0 0;
+    white-space: nowrap;
+    z-index: 2;
+  }
+
+  .qb-node__handle {
+    cursor: grab;
+    padding: 0 0.125rem;
+  }
+
+  /* A grip glyph, drawn here rather than written as text: it is decoration, not a word. */
+  .qb-node__handle::before {
+    content: '\2807';
+  }
+
+  .qb-canvas [contenteditable='plaintext-only']:focus,
+  .qb-canvas [contenteditable='true']:focus {
+    outline: 2px dotted #0a5ad6;
+    outline-offset: 2px;
+  }
+
+  .qb-canvas [data-placeholder]:empty::before {
+    content: attr(data-placeholder);
+    color: #6b7280;
+    font-style: italic;
+  }
+
+  .qb-rich-text[data-placeholder] .qb-rich-text__body:empty::before {
+    content: attr(data-placeholder);
+    color: #6b7280;
+    font-style: italic;
+  }
+
+  .qb-editor-placeholder {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    align-items: center;
+    justify-content: center;
+    min-height: 6rem;
+    padding: 1rem;
+    border: 2px dashed #c3c8d0;
+    border-radius: 6px;
+    background: #f6f7f9;
+    color: #53595f;
+    font: 0.875rem/1.4 system-ui, sans-serif;
+    text-align: center;
+  }
+
+  /* A link to a page that no longer exists (spec Edge Cases). Never part of the page. */
+  .qb-editor-broken-link {
+    display: inline-block;
+    margin-inline-start: 0.5rem;
+    padding: 0.125rem 0.375rem;
+    border-radius: 4px;
+    background: #fdecea;
+    color: #9b1c1c;
+    font: 600 0.75rem/1.4 system-ui, sans-serif;
+    font-style: normal;
+    vertical-align: middle;
+  }
+
+  .qb-editor-broken-link-text {
+    text-decoration: underline wavy #c81e1e;
+  }
+
+  .qb-embed__url {
+    overflow-wrap: anywhere;
+  }
+
+  .qb-spacer {
+    background: repeating-linear-gradient(45deg, transparent 0 6px, rgb(16 72 156 / 0.08) 6px 12px);
+    min-height: 4px;
+  }
+
+  .qb-editor-empty-slot {
+    padding: 1rem;
+    border: 2px dashed #c3c8d0;
+    border-radius: 6px;
+    color: #53595f;
+    font: 0.875rem/1.4 system-ui, sans-serif;
+    text-align: center;
+  }
+
+  .qb-editor-empty-page {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: center;
+    justify-content: center;
+    min-height: 40vh;
+    padding: 2rem;
+    color: #53595f;
+    font: 1rem/1.5 system-ui, sans-serif;
+    text-align: center;
+  }
+
+  .qb-drop-indicator {
+    position: absolute;
+    pointer-events: none;
+    z-index: 5;
+  }
+
+  .qb-drop-indicator--line {
+    height: 4px;
+    background: #0a5ad6;
+    border-radius: 2px;
+  }
+
+  .qb-drop-indicator--box {
+    outline: 3px solid #0a5ad6;
+    background: rgb(10 90 214 / 0.06);
+  }
+
+  .qb-drop-indicator--refused.qb-drop-indicator--line {
+    background: #a4232f;
+  }
+
+  .qb-drop-indicator--refused.qb-drop-indicator--box {
+    outline-color: #a4232f;
+    background: rgb(164 35 47 / 0.06);
+  }
+
+  .qb-drop-indicator__label {
+    position: absolute;
+    top: 0.25rem;
+    left: 0.25rem;
+    padding: 0.125rem 0.375rem;
+    background: #a4232f;
+    color: #ffffff;
+    font: 600 0.75rem/1.2 system-ui, sans-serif;
+    border-radius: 3px;
+  }
+}
+
+@layer qb-editor {
+  .qb-component-ref {
+    position: relative;
+    outline: 2px dashed #7c3aed;
+    outline-offset: -2px;
+  }
+
+  .qb-component-ref__badge {
+    position: absolute;
+    top: 0.25rem;
+    right: 0.25rem;
+    z-index: 1;
+    padding: 0.125rem 0.5rem;
+    background: #7c3aed;
+    color: #ffffff;
+    font: 600 0.75rem/1.2 system-ui, sans-serif;
+    border-radius: 3px;
+  }
+
+  .qb-component-ref__content {
+    pointer-events: none;
+  }
+}

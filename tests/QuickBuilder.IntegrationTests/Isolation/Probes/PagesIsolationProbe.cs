@@ -36,6 +36,7 @@ internal sealed class PagesIsolationProbe : ISiteIsolationProbe
         "GET api/v1/pages/sites/{siteId:guid}/components/{componentId:guid}/usages",
         "GET api/v1/pages/sites/{siteId:guid}/components/{componentId:guid}/draft",
         "PUT api/v1/pages/sites/{siteId:guid}/components/{componentId:guid}/draft",
+        "GET api/v1/pages/sites/{siteId:guid}/token-usages/{tokenId}",
     ];
 
     public string? NeverIssuedPublicPath => null;
@@ -81,6 +82,10 @@ internal sealed class PagesIsolationProbe : ISiteIsolationProbe
 
         yield return new ProbeRequest(HttpMethod.Get, $"/api/v1/pages/sites/{siteId}/pages", ProbeKind.Listing);
         yield return new ProbeRequest(HttpMethod.Get, $"/api/v1/pages/sites/{siteId}/components", ProbeKind.Listing);
+
+        // 011: the token usage count reads every draft of the site, so it must not see the
+        // other site's (TokenUsageSiteFilterTests has the counting half).
+        yield return new ProbeRequest(HttpMethod.Get, $"/api/v1/pages/sites/{siteId}/token-usages/color-brand", ProbeKind.Listing);
     }
 
     public async Task<bool> StillIntactAsync(HttpClient admin, Guid siteId, SeededRecords seeded)

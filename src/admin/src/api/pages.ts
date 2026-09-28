@@ -79,6 +79,25 @@ export interface ComponentList {
   permissions: PagePermissions
 }
 
+/** A content document (docs/contracts/page-schema.md). Its shape is the editor's business. */
+export type ContentDocumentJson = Record<string, unknown>
+
+/** A draft with its document (010 pages-api.yaml, Draft). */
+export interface Draft extends DraftSummary {
+  document: ContentDocumentJson
+}
+
+export interface SaveDraftRequest {
+  document: unknown
+  version: number
+}
+
+export interface TokenUsage {
+  tokenId: string
+  blockCount: number
+  documentCount: number
+}
+
 export interface PageReference {
   id: string
   title: string
@@ -126,4 +145,25 @@ export const pagesApi = {
 
   usages: (siteId: string, componentId: string): Promise<PageReference[]> =>
     request<PageReference[]>(`${component(siteId, componentId)}/usages`),
+
+  // --- Drafts (010 pages-api.yaml; the editor, 011) -------------------------------------
+
+  pageDraft: (siteId: string, pageId: string): Promise<Draft> =>
+    request<Draft>(`${page(siteId, pageId)}/draft`),
+
+  savePageDraft: (siteId: string, pageId: string, body: SaveDraftRequest): Promise<Draft> =>
+    request<Draft>(`${page(siteId, pageId)}/draft`, { method: 'PUT', body: JSON.stringify(body) }),
+
+  componentDraft: (siteId: string, componentId: string): Promise<Draft> =>
+    request<Draft>(`${component(siteId, componentId)}/draft`),
+
+  saveComponentDraft: (siteId: string, componentId: string, body: SaveDraftRequest): Promise<Draft> =>
+    request<Draft>(`${component(siteId, componentId)}/draft`, { method: 'PUT', body: JSON.stringify(body) }),
+
+  getComponent: (siteId: string, componentId: string): Promise<Component> =>
+    request<Component>(component(siteId, componentId)),
+
+  /** How many blocks in the site's drafts use a design token, counted now (011 ED-16). */
+  tokenUsage: (siteId: string, tokenId: string): Promise<TokenUsage> =>
+    request<TokenUsage>(`${root(siteId)}/token-usages/${encodeURIComponent(tokenId)}`),
 }

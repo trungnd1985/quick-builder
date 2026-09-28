@@ -494,6 +494,8 @@ components:
                       `unknown_type`, `props_invalid`, `children_not_allowed`,
                       `root_misplaced`, `duplicate_node_id`, `too_many_nodes`,
                       `too_deep`, `component_ref_not_allowed` or `unknown_component`.
+                      Added by 011: `nesting_not_allowed` and `rich_text_too_long`
+                      (docs/contracts/page-schema.md §3).
                   pointer:
                     type: string
                     description: A JSON Pointer into the submitted document, e.g. `/root/children/3/props/componentId`.

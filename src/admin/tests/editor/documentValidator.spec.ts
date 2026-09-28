@@ -1,0 +1,85 @@
+import { describe, expect, it } from 'vitest'
+import { join } from 'node:path'
+import { readFileSync } from 'node:fs'
+import { validateDocument } from '../../src/editor/schema/documentValidator'
+import { SchemaSubsetValidator } from '../../src/editor/schema/subsetValidator'
+import { expectedFailures, jsonFiles, pageExamples, readJson } from './contractFiles'
+
+// 011 research ED-08, SC-009: the editor's validator gives exactly the server's answer for
+// every golden file of the page schema — same rule, same pointer. The files are the shared
+// oracle; PageDocumentValidatorTests runs them on the server side.
+
+// Files that are not JSON, or whose defect JSON.parse erases, are the server's alone to
+// judge: the editor only ever validates objects (see documentValidator.ts).
+const SERVER_ONLY = new Set(['malformed_json--truncated.json', 'duplicate_property--props.json'])
+
+describe('document validator against the golden files', () => {
+  it.each(jsonFiles(join(pageExamples, 'valid')))('accepts valid/%s', (file) => {
+    const result = validateDocument(readJson(join(pageExamples, 'valid', file)), 'page')
+
+    expect(result).toEqual({ valid: true })
+  })
+
+  const expected = expectedFailures(join(pageExamples, 'invalid'))
+  const cases = Object.entries(expected).filter(([file]) => !SERVER_ONLY.has(file))
+
+  it.each(cases)('refuses invalid/%s with its rule and pointer', (file, { rule, pointer }) => {
+    const result = validateDocument(readJson(join(pageExamples, 'invalid', file)), 'page')
+
+    expect(result.valid).toBe(false)
+    if (!result.valid) expect({ rule: result.rule, pointer: result.pointer }).toEqual({ rule, pointer })
+    expect(file.startsWith(rule!)).toBe(true)
+  })
+
+  it('lists every invalid example in the manifest', () => {
+    for (const file of jsonFiles(join(pageExamples, 'invalid'))) expect(expected).toHaveProperty([file])
+  })
+
+  it('accepts the component example as a component document', () => {
+    expect(validateDocument(readJson(join(pageExamples, 'valid', 'component-page.json')), 'component')).toEqual({ valid: true })
+  })
+
+  it('refuses a component reference inside a component document', () => {
+    const result = validateDocument(readJson(join(pageExamples, 'valid', 'header-and-footer.json')), 'component')
+
+    expect(result).toMatchObject({ valid: false, rule: 'component_ref_not_allowed', pointer: '/root/children/0' })
+  })
+
+  it('refuses a document nested deeper than the limit before the schema', () => {
+    let node: Record<string, unknown> = { id: 'n33', type: 'section', props: {}, children: [] }
+    for (let depth = 32; depth >= 2; depth--) node = { id: `n${depth}`, type: 'section', props: {}, children: [node] }
+    const document = { schemaVersion: 1, root: { id: 'root', type: 'root', props: {}, children: [node] } }
+
+    expect(validateDocument(document, 'page')).toMatchObject({ valid: false, rule: 'too_deep' })
+  })
+})
+
+describe('subset validator', () => {
+  it('refuses a pattern that is not portable, as the server does', () => {
+    expect(() => SchemaSubsetValidator.load({ pattern: '(?<=a)b' })).toThrow(/pattern/)
+    expect(() => SchemaSubsetValidator.load({ properties: { a: { anyOf: [] } } })).toThrow(/anyOf/)
+  })
+
+  it('treats \\w as ASCII, like .NET in ECMAScript mode', () => {
+    const validator = SchemaSubsetValidator.load({ pattern: '^\\w+$' })
+
+    expect(validator.validate('abc_1')).toBeNull()
+    expect(validator.validate('đồng')).toMatchObject({ keyword: 'pattern' })
+  })
+
+  it('never validates a default, even beside a $ref', () => {
+    const validator = SchemaSubsetValidator.load({
+      $defs: { n: { type: 'integer', default: 'x' } },
+      properties: { a: { $ref: '#/$defs/n', default: 3 } },
+    })
+
+    expect(validator.validate({ a: 1 })).toBeNull()
+    expect(validator.validate({ a: 'x' })).toMatchObject({ location: '/a', keyword: 'type' })
+  })
+
+  it('loads the shipped schema file itself', () => {
+    const text = readFileSync(join(pageExamples, '..', 'v1.schema.json'), 'utf8')
+
+    expect(() => SchemaSubsetValidator.load(JSON.parse(text))).not.toThrow()
+  })
+})

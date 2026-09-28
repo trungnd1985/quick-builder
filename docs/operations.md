@@ -296,6 +296,50 @@ cannot be deleted — the admin shell says why.
 - Sites have no pages after the upgrade. Start each with its home page.
 - No configuration changes are needed.
 
+## Editor and design
+
+Pages and shared components are built in the visual editor: **Pages → a page → Edit
+content**, and **Shared components → Edit content**. Each site's colours, fonts and spacing
+are under **Sites → a site → Design**. Designers edit components and the design; editors
+build page content.
+
+### Nothing is public yet
+
+The editor saves drafts only. Visitors see nothing of it — nor of design changes — until
+publishing arrives (#12).
+
+### Nothing leaves the installation
+
+The editor makes no request to any other host. Video embeds show a placeholder naming
+YouTube or Vimeo rather than loading the player, and fonts are system font stacks, so no
+font is downloaded. It works on an installation with no internet access.
+
+### What the browser keeps
+
+- **Unsaved changes.** While changes wait to be saved, a copy is kept in the browser's
+  IndexedDB, per user and per page, so a crash or a closed tab loses nothing: the next visit
+  offers them back. The copy goes as soon as the changes are saved, when the offer is
+  declined, and when the user signs out.
+- **Copied blocks** are kept in the browser's local storage, so they survive a reload and
+  paste into other pages of the same site. Signing out clears them.
+- **The preview width** each user last chose.
+
+On a shared computer, users should sign out rather than close the window: a session that
+simply expires keeps that user's copies (only that user is ever offered them).
+
+### Two people on one page
+
+A save made after someone else's is refused, never overwritten. The editor shows the
+refused version read-only so blocks can be copied, and **Reload latest** brings in the
+saved one.
+
+### Upgrading from feature 010
+
+- The upgrade adds an `editor` schema with its own migration history. It writes no data:
+  every existing site starts with the default design tokens.
+- Stored drafts are unchanged and stay valid; they open in the editor as they are.
+- No configuration changes are needed.
+
 ## Upgrading from the foundation release (feature 001)
 
 Feature 001 had no authentication. After the upgrade:

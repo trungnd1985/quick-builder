@@ -26,17 +26,88 @@ public sealed partial class PageSchemaContractTests
     {
         var documented = Table(Document, "## 2. Node types").Select(row => Unquote(row[0])).ToHashSet(StringComparer.Ordinal);
 
-        using var schema = JsonDocument.Parse(File.ReadAllText(Path.Combine(Contracts, "page-schema", "v1.schema.json")));
-        var defined = schema.RootElement.GetProperty("$defs").EnumerateObject()
-            .Where(d => d.Value.TryGetProperty("properties", out var p)
-                && p.TryGetProperty("type", out var t)
-                && t.TryGetProperty("const", out _))
-            .Select(d => d.Value.GetProperty("properties").GetProperty("type").GetProperty("const").GetString()!)
-            .ToHashSet(StringComparer.Ordinal);
+        // The node types are the root plus whatever the placement lists admit. Other $defs
+        // carry a `type` const too — rich text's `doc`, `paragraph`, `text` — but they are not
+        // nodes (011 research ED-05).
+        var defined = NodeTypes().Keys.Append("root").ToHashSet(StringComparer.Ordinal);
 
         Assert.True(
             documented.SetEquals(defined),
             $"page-schema.md §2 lists [{string.Join(", ", documented.Order())}] but the schema defines [{string.Join(", ", defined.Order())}].");
+    }
+
+    [Fact]
+    public void The_node_type_table_lists_exactly_each_types_props()
+    {
+        var documented = Table(Document, "## 2. Node types")
+            .Where(row => Unquote(row[0]) != "root")
+            .ToDictionary(
+                row => Unquote(row[0]),
+                row => Backticked().Matches(row[1]).Select(m => m.Groups[1].Value).ToHashSet(StringComparer.Ordinal),
+                StringComparer.Ordinal);
+
+        foreach (var (type, props) in NodeTypes())
+        {
+            Assert.True(documented.TryGetValue(type, out var listed), $"page-schema.md §2 has no row for `{type}`.");
+            Assert.True(
+                listed.SetEquals(props),
+                $"page-schema.md §2 lists `{type}` props [{string.Join(", ", listed.Order())}] but the schema has [{string.Join(", ", props.Order())}].");
+        }
+    }
+
+    [Fact]
+    public void Every_block_type_has_a_valid_and_an_invalid_example()
+    {
+        // 011 SC-009: a golden file per block type on each side, so no type is added without
+        // one. A type counts as covered by any example that uses it.
+        var examples = Path.Combine(Contracts, "page-schema", "examples");
+        var valid = TypesUsed(Directory.GetFiles(Path.Combine(examples, "valid"), "*.json"));
+        var invalid = TypesUsed(Directory.GetFiles(Path.Combine(examples, "invalid"), "*--*.json"));
+
+        Assert.All(NodeTypes().Keys, type =>
+        {
+            Assert.True(valid.Contains(type), $"No valid example uses `{type}`.");
+            Assert.True(invalid.Contains(type), $"No invalid example uses `{type}`.");
+        });
+    }
+
+    /// <summary>Each node type the placement lists admit, with its schema props.</summary>
+    private static Dictionary<string, HashSet<string>> NodeTypes()
+    {
+        using var schema = JsonDocument.Parse(File.ReadAllText(Path.Combine(Contracts, "page-schema", "v1.schema.json")));
+        var defs = schema.RootElement.GetProperty("$defs");
+
+        var types = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
+        foreach (var list in new[] { "rootChild", "contentChild" })
+        {
+            foreach (var branch in defs.GetProperty(list).GetProperty("oneOf").EnumerateArray())
+            {
+                var definition = defs.GetProperty(branch.GetProperty("$ref").GetString()!["#/$defs/".Length..]);
+                var properties = definition.GetProperty("properties");
+                types[properties.GetProperty("type").GetProperty("const").GetString()!] = properties
+                    .GetProperty("props").GetProperty("properties").EnumerateObject()
+                    .Select(p => p.Name)
+                    .ToHashSet(StringComparer.Ordinal);
+            }
+        }
+
+        return types;
+    }
+
+    /// <summary>Every node type any of <paramref name="files"/> uses, parsed or not.</summary>
+    private static HashSet<string> TypesUsed(IEnumerable<string> files)
+    {
+        var used = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var file in files)
+        {
+            // Some invalid examples are not JSON at all; a textual scan still finds their types.
+            foreach (Match match in NodeTypeValue().Matches(File.ReadAllText(file)))
+            {
+                used.Add(match.Groups[1].Value);
+            }
+        }
+
+        return used;
     }
 
     [Fact]
@@ -142,4 +213,10 @@ public sealed partial class PageSchemaContractTests
 
     [GeneratedRegex("[0-9][0-9,]*")]
     private static partial Regex Digits();
+
+    [GeneratedRegex("`([A-Za-z]+)`")]
+    private static partial Regex Backticked();
+
+    [GeneratedRegex("\"type\"\\s*:\\s*\"([a-z-]+)\"")]
+    private static partial Regex NodeTypeValue();
 }

@@ -1,0 +1,204 @@
+{
+  "schemaVersion": 1,
+  "colors": [
+    {
+      "id": "color-0",
+      "name": "C0",
+      "value": "#000000"
+    },
+    {
+      "id": "color-1",
+      "name": "C1",
+      "value": "#000000"
+    },
+    {
+      "id": "color-2",
+      "name": "C2",
+      "value": "#000000"
+    },
+    {
+      "id": "color-3",
+      "name": "C3",
+      "value": "#000000"
+    },
+    {
+      "id": "color-4",
+      "name": "C4",
+      "value": "#000000"
+    },
+    {
+      "id": "color-5",
+      "name": "C5",
+      "value": "#000000"
+    },
+    {
+      "id": "color-6",
+      "name": "C6",
+      "value": "#000000"
+    },
+    {
+      "id": "color-7",
+      "name": "C7",
+      "value": "#000000"
+    },
+    {
+      "id": "color-8",
+      "name": "C8",
+      "value": "#000000"
+    },
+    {
+      "id": "color-9",
+      "name": "C9",
+      "value": "#000000"
+    },
+    {
+      "id": "color-10",
+      "name": "C10",
+      "value": "#000000"
+    },
+    {
+      "id": "color-11",
+      "name": "C11",
+      "value": "#000000"
+    },
+    {
+      "id": "color-12",
+      "name": "C12",
+      "value": "#000000"
+    },
+    {
+      "id": "color-13",
+      "name": "C13",
+      "value": "#000000"
+    },
+    {
+      "id": "color-14",
+      "name": "C14",
+      "value": "#000000"
+    },
+    {
+      "id": "color-15",
+      "name": "C15",
+      "value": "#000000"
+    },
+    {
+      "id": "color-16",
+      "name": "C16",
+      "value": "#000000"
+    },
+    {
+      "id": "color-17",
+      "name": "C17",
+      "value": "#000000"
+    },
+    {
+      "id": "color-18",
+      "name": "C18",
+      "value": "#000000"
+    },
+    {
+      "id": "color-19",
+      "name": "C19",
+      "value": "#000000"
+    },
+    {
+      "id": "color-20",
+      "name": "C20",
+      "value": "#000000"
+    },
+    {
+      "id": "color-21",
+      "name": "C21",
+      "value": "#000000"
+    },
+    {
+      "id": "color-22",
+      "name": "C22",
+      "value": "#000000"
+    },
+    {
+      "id": "color-23",
+      "name": "C23",
+      "value": "#000000"
+    },
+    {
+      "id": "color-24",
+      "name": "C24",
+      "value": "#000000"
+    }
+  ],
+  "typography": {
+    "headingFont": "system-ui",
+    "bodyFont": "system-ui",
+    "baseSizePx": 16,
+    "sizes": [
+      {
+        "id": "text-sm",
+        "name": "Small",
+        "rem": 0.875
+      },
+      {
+        "id": "text-md",
+        "name": "Normal",
+        "rem": 1
+      },
+      {
+        "id": "text-lg",
+        "name": "Large",
+        "rem": 1.25
+      },
+      {
+        "id": "text-xl",
+        "name": "Extra large",
+        "rem": 1.5
+      },
+      {
+        "id": "text-2xl",
+        "name": "2x large",
+        "rem": 2
+      },
+      {
+        "id": "text-3xl",
+        "name": "3x large",
+        "rem": 2.5
+      }
+    ]
+  },
+  "spacing": [
+    {
+      "id": "space-none",
+      "name": "None",
+      "rem": 0
+    },
+    {
+      "id": "space-xs",
+      "name": "Extra small",
+      "rem": 0.25
+    },
+    {
+      "id": "space-sm",
+      "name": "Small",
+      "rem": 0.5
+    },
+    {
+      "id": "space-md",
+      "name": "Medium",
+      "rem": 1
+    },
+    {
+      "id": "space-lg",
+      "name": "Large",
+      "rem": 2
+    },
+    {
+      "id": "space-xl",
+      "name": "Extra large",
+      "rem": 4
+    },
+    {
+      "id": "space-2xl",
+      "name": "2x large",
+      "rem": 6
+    }
+  ]
+}

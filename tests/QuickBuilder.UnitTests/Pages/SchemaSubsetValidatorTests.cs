@@ -1,6 +1,6 @@
 using System.Text;
 using System.Text.Json;
-using QuickBuilder.Pages.Infrastructure.Schema;
+using QuickBuilder.Pages.Contracts.Schema;
 
 namespace QuickBuilder.UnitTests.Pages;
 
@@ -31,6 +31,7 @@ public sealed class SchemaSubsetValidatorTests
     [InlineData("""{"minimum":2}""", "2", "1.9")]
     [InlineData("""{"maximum":2}""", "2", "2.1")]
     [InlineData("""{"maxItems":1}""", "[1]", "[1,2]")]
+    [InlineData("""{"minItems":1}""", "[1]", "[]")]
     [InlineData("""{"format":"uuid"}""", "\"0192f5a0-1b2c-7d3e-8f40-5a6b7c8d9e0f\"", "\"{0192f5a0-1b2c-7d3e-8f40-5a6b7c8d9e0f}\"")]
     [InlineData("""{"required":["a"]}""", """{"a":1}""", """{"b":1}""")]
     [InlineData("""{"additionalProperties":false,"properties":{"a":{}}}""", """{"a":1}""", """{"a":1,"b":2}""")]
@@ -44,6 +45,59 @@ public sealed class SchemaSubsetValidatorTests
 
         Assert.Null(validator.Validate(Parse(good)));
         Assert.NotNull(validator.Validate(Parse(bad)));
+    }
+
+    [Fact]
+    public void A_default_is_an_annotation_and_never_validated()
+    {
+        // 011 research ED-07: `default` carries a property's value when it is missing. The
+        // editor and the renderer read it; nothing checks it, including beside a $ref.
+        var validator = Load("""
+            {
+              "$defs": { "n": { "type": "integer", "default": "not an integer" } },
+              "properties": { "a": { "$ref": "#/$defs/n", "default": 3 } }
+            }
+            """);
+
+        Assert.Null(validator.Validate(Parse("""{"a":1}""")));
+        Assert.Null(validator.Validate(Parse("{}")));
+        Assert.Equal(("/a", "type"), Describe(validator.Validate(Parse("""{"a":"x"}"""))));
+    }
+
+    [Fact]
+    public void Min_items_reports_the_array()
+    {
+        var validator = Load("""{"properties":{"list":{"minItems":2}}}""");
+
+        Assert.Equal(("/list", "minItems"), Describe(validator.Validate(Parse("""{"list":[1]}"""))));
+    }
+
+    [Theory]
+    [InlineData(@"^\w+$", "abc_1", "đồng")]
+    [InlineData(@"^\d+$", "123", "١٢٣")]
+    [InlineData(@"^\S+$", "a-b", "a b")]
+    public void Patterns_have_ecmascript_semantics(string pattern, string good, string bad)
+    {
+        // 011 research ED-06: the editor checks the same patterns in JavaScript, where \w and
+        // \d are ASCII only. .NET's default classes also match other scripts' letters and
+        // digits, so without ECMAScript mode the two sides would disagree.
+        var validator = Load($$"""{"pattern":{{JsonSerializer.Serialize(pattern)}}}""");
+
+        Assert.Null(validator.Validate(Parse(JsonSerializer.Serialize(good))));
+        Assert.Equal(("", "pattern"), Describe(validator.Validate(Parse(JsonSerializer.Serialize(bad)))));
+    }
+
+    [Theory]
+    [InlineData("(?<=a)b")]
+    [InlineData("(?<!a)b")]
+    [InlineData("(?<name>a)")]
+    [InlineData(@"\p{L}+")]
+    public void A_pattern_outside_the_portable_subset_is_refused_when_loaded(string pattern)
+    {
+        var refused = Assert.Throws<InvalidOperationException>(
+            () => Load($$"""{"pattern":{{JsonSerializer.Serialize(pattern)}}}"""));
+
+        Assert.Contains("pattern", refused.Message, StringComparison.Ordinal);
     }
 
     [Fact]

@@ -209,6 +209,42 @@ public sealed class LoggingTests(DatabaseFixture database) : IAsyncLifetime
     }
 
     /// <summary>
+    /// 011 FR-045: block text saved in a draft, and design token names and values, never reach
+    /// the logs; the token set is logged by site id and version only.
+    /// </summary>
+    [Fact]
+    public async Task Editor_journeys_never_log_block_text_or_token_names_and_values()
+    {
+        var admin = await _app.CreateAdminClientAsync().ConfigureAwait(true);
+        var siteId = await Media.MediaApi.CreateSiteAsync(admin, "Logged", "logged-editor.test").ConfigureAwait(true);
+        const string Canary = "zz-editor-canary";
+
+        var page = (await Pages.PagesApi.CreateOkAsync(admin, siteId, "home", isHome: true).ConfigureAwait(true)).GetProperty("id").GetGuid();
+        var path = Pages.PagesApi.PagePath(siteId, page);
+        var document = $$$"""
+            {"schemaVersion":1,"root":{"id":"root","type":"root","props":{},"children":[
+              {"id":"s","type":"section","props":{},"children":[
+                {"id":"h","type":"heading","props":{"text":"{{{Canary}}} heading"},"children":[]},
+                {"id":"r","type":"rich-text","props":{"content":{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"{{{Canary}}} rich"}]}]}},"children":[]}]}]}}
+            """;
+        await Pages.PagesApi.OkAsync(await Pages.PagesApi.SaveCurrentDraftAsync(admin, path, document).ConfigureAwait(true)).ConfigureAwait(true);
+        // A refused one too: the refusal must not quote it either.
+        await Pages.PagesApi.SaveCurrentDraftAsync(admin, path, document.Replace("\"heading\",\"props\":{", "\"heading\",\"props\":{\"level\":9,", StringComparison.Ordinal)).ConfigureAwait(true);
+
+        var tokens = Editor.EditorApi.DefaultWithColor("color-canary", $"{Canary} name", "#123abc");
+        await Pages.PagesApi.OkAsync(await Editor.EditorApi.SaveAsync(admin, siteId, tokens, 0).ConfigureAwait(true)).ConfigureAwait(true);
+        await Editor.EditorApi.SaveAsync(admin, siteId, tokens.Replace("#123abc", "not-a-colour", StringComparison.Ordinal), 1).ConfigureAwait(true);
+        await Editor.EditorApi.TokenUsageAsync(admin, siteId, "color-canary").ConfigureAwait(true);
+
+        var events = _app.Logs.Events.Select(LogCapture.Render).ToList();
+        var leak = events.FirstOrDefault(e =>
+            e.Contains(Canary, StringComparison.OrdinalIgnoreCase) || e.Contains("#123abc", StringComparison.OrdinalIgnoreCase));
+        Assert.True(leak is null, $"A log event contains editor content: {leak}");
+
+        Assert.Contains(events, e => e.Contains("Design tokens", StringComparison.Ordinal) && e.Contains(siteId.ToString(), StringComparison.OrdinalIgnoreCase));
+    }
+
+    /// <summary>
     /// 009 FR-032: requested host names never reach the logs — not for unknown hosts, not
     /// for disabled sites, not for admin paths turned away from a client domain, not for
     /// forwarded headers. A probe's host name is exactly what someone mapping an

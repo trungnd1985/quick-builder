@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "root": {
+    "id": "root",
+    "type": "root",
+    "props": {},
+    "children": [
+      {
+        "id": "s",
+        "type": "section",
+        "props": {},
+        "children": [
+          {
+            "id": "c",
+            "type": "container",
+            "props": {
+              "direction": "diagonal"
+            },
+            "children": []
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,106 @@
+import { afterEach, describe, expect, it } from 'vitest'
+import { Editor } from '@tiptap/core'
+import { richTextExtensions } from '../../src/editor/richtext/tiptap'
+import { fromContractRichText, toContractRichText } from '../../src/editor/richtext/toContractRichText'
+import { validateDocument } from '../../src/editor/schema/documentValidator'
+
+// 011 research ED-03, ED-06, FR-013, FR-014: whatever TipTap produces — including pasted web
+// content — is normalised to the contract's narrowed rich text, and always validates.
+
+const asDocument = (content: unknown) => ({
+  schemaVersion: 1,
+  root: { id: 'root', type: 'root', props: {}, children: [{ id: 's', type: 'section', props: {}, children: [{ id: 'r', type: 'rich-text', props: { content }, children: [] }] }] },
+})
+
+let editor: Editor | null = null
+
+describe('toContractRichText', () => {
+  afterEach(() => {
+    editor?.destroy()
+    editor = null
+  })
+
+  it('drops null attributes, empty marks and unknown nodes and marks', () => {
+    const tiptap = {
+      type: 'doc',
+      content: [
+        { type: 'paragraph', attrs: { textAlign: null }, content: [{ type: 'text', text: 'Hi', marks: [] }] },
+        { type: 'heading', attrs: { level: 1 }, content: [{ type: 'text', text: 'Lost heading' }] },
+        { type: 'paragraph', content: [{ type: 'text', text: 'u', marks: [{ type: 'underline' }, { type: 'bold' }] }, { type: 'image', attrs: { src: 'x' } }] },
+        { type: 'orderedList', attrs: { start: 1, type: null }, content: [{ type: 'listItem', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'one' }] }] }] },
+        { type: 'paragraph' },
+      ],
+    }
+
+    const contract = toContractRichText(tiptap)
+
+    expect(contract).toEqual({
+      type: 'doc',
+      content: [
+        { type: 'paragraph', content: [{ type: 'text', text: 'Hi' }] },
+        { type: 'paragraph', content: [{ type: 'text', text: 'Lost heading' }] },
+        { type: 'paragraph', content: [{ type: 'text', text: 'u', marks: [{ type: 'bold' }] }] },
+        { type: 'orderedList', content: [{ type: 'listItem', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'one' }] }] }] },
+        { type: 'paragraph' },
+      ],
+    })
+    expect(validateDocument(asDocument(contract), 'page')).toEqual({ valid: true })
+  })
+
+  it('keeps a numbered list start other than 1', () => {
+    const contract = toContractRichText({ type: 'doc', content: [{ type: 'orderedList', attrs: { start: 4 }, content: [{ type: 'listItem', content: [{ type: 'paragraph' }] }] }] })
+
+    expect(contract.content[0]).toMatchObject({ type: 'orderedList', attrs: { start: 4 } })
+  })
+
+  it('maps links to the contract link, and drops a link without one', () => {
+    const contract = toContractRichText({
+      type: 'doc',
+      content: [{
+        type: 'paragraph',
+        content: [
+          { type: 'text', text: 'page', marks: [{ type: 'link', attrs: { to: { type: 'page', pageId: '0192f5a0-1b2c-7d3e-8f40-5a6b7c8d9e20' }, href: null, target: null } }] },
+          { type: 'text', text: 'site', marks: [{ type: 'link', attrs: { to: { type: 'url', href: 'https://example.com' } } }] },
+          { type: 'text', text: 'raw', marks: [{ type: 'link', attrs: { href: 'javascript:alert(1)' } }] },
+        ],
+      }],
+    })
+
+    const texts = (contract.content[0] as { content: { marks?: unknown[] }[] }).content
+    expect(texts[0].marks).toEqual([{ type: 'link', attrs: { to: { type: 'page', pageId: '0192f5a0-1b2c-7d3e-8f40-5a6b7c8d9e20' } } }])
+    expect(texts[1].marks).toEqual([{ type: 'link', attrs: { to: { type: 'url', href: 'https://example.com' } } }])
+    expect(texts[2].marks).toBeUndefined()
+    expect(validateDocument(asDocument(contract), 'page')).toEqual({ valid: true })
+  })
+
+  it('round-trips the contract through TipTap unchanged', () => {
+    const contract = {
+      type: 'doc',
+      content: [
+        { type: 'paragraph', content: [{ type: 'text', text: 'Bold', marks: [{ type: 'bold' }] }, { type: 'hardBreak' }, { type: 'text', text: 'next' }] },
+        { type: 'bulletList', content: [{ type: 'listItem', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'a', marks: [{ type: 'link', attrs: { to: { type: 'url', href: 'https://example.com' } } }] }] }] }] },
+      ],
+    }
+
+    editor = new Editor({ extensions: richTextExtensions(), content: fromContractRichText(contract) })
+
+    expect(toContractRichText(editor.getJSON())).toEqual(contract)
+  })
+
+  it('keeps only the allowed formats of pasted web content (FR-013 US2 #4)', () => {
+    editor = new Editor({
+      extensions: richTextExtensions(),
+      content: '<h1>Title</h1><script>alert(1)</script><style>p{}</style><p><u>under</u> <strong>strong</strong> <img src="https://example.com/x.png"> <a href="https://example.com">link</a></p><table><tr><td>cell</td></tr></table>',
+    })
+
+    const contract = toContractRichText(editor.getJSON())
+    const text = JSON.stringify(contract)
+
+    expect(text).not.toContain('script')
+    expect(text).not.toContain('alert')
+    expect(text).not.toContain('img')
+    expect(text).not.toContain('underline')
+    expect(text).toContain('strong')
+    expect(validateDocument(asDocument(contract), 'page')).toEqual({ valid: true })
+  })
+})

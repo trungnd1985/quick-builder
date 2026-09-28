@@ -44,6 +44,7 @@ const toolbarHeading = ref<HTMLElement | null>(null)
 
 const pages = computed(() => tree.value?.pages ?? [])
 const canManage = computed(() => tree.value?.permissions.canManageStructure === true)
+const canEditDrafts = computed(() => tree.value?.permissions.canEditPageDrafts === true)
 const hasHome = computed(() => pages.value.some((p) => p.isHome))
 const selected = computed(() => pages.value.find((p) => p.id === selectedId.value) ?? null)
 
@@ -360,6 +361,19 @@ function whoSaved(value: PageDetail): string {
           >
             {{ selected ? t('pages.actions.heading', { title: selected.title }) : t('pages.actions.none') }}
           </h2>
+
+          <!-- 011 FR-001, FR-039: anyone who may save page drafts may open the editor. -->
+          <p
+            v-if="selected && canEditDrafts"
+            class="page-edit-link"
+          >
+            <RouterLink
+              class="button-link primary"
+              :to="{ name: 'page-editor', params: { siteId, pageId: selected.id } }"
+            >
+              {{ t('pages.actions.editContent') }}
+            </RouterLink>
+          </p>
 
           <div
             v-if="selected && canManage"
