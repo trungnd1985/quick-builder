@@ -59,15 +59,57 @@ whitespace. "Read back unchanged" means **equal as a JSON value**.
 
 | Type | Props | Children | Allowed in |
 |---|---|---|---|
-| `root` | none (`{}`) | any node except `root` | page and component documents, only as the envelope's `root` |
-| `component-ref` | `componentId`: UUID of a shared component of the **same site** | none | page documents only |
+| `root` | none (`{}`) | `rootChild` | the envelope's `root` only |
+| `component-ref` | `componentId`: UUID of a shared component of the **same site** | none | page documents, under `root` only |
+| `section` | `background`, `paddingY`, `width`, `layerLabel` | `contentChild` | under `root` |
+| `container` | `direction`, `gap`, `padding`, `align`, `background`, `stackOnMobile`, `layerLabel` | `contentChild` | in `section` or `container` |
+| `heading` | `text`\*, `level`, `align`, `color`, `layerLabel` | none | in `section` or `container` |
+| `text` | `text`\*, `align`, `color`, `size`, `layerLabel` | none | in `section` or `container` |
+| `rich-text` | `content`\*, `align`, `color`, `layerLabel` | none | in `section` or `container` |
+| `image` | `media`, `alt`, `decorative`, `width`, `link`, `layerLabel` | none | in `section` or `container` |
+| `button` | `label`\*, `link`, `style`, `align`, `newTab`, `layerLabel` | none | in `section` or `container` |
+| `spacer` | `height`, `layerLabel` | none | in `section` or `container` |
+| `divider` | `color`, `thickness`, `spacing`, `layerLabel` | none | in `section` or `container` |
+| `embed` | `url`, `title`, `aspectRatio`, `layerLabel` | none | in `section` or `container` |
 
-In version 1 a component document can therefore only be an empty `root`. Components get
-content once the editor adds block types.
+\* required. Values, limits and defaults are in the schema file, which is the single
+definition; this table is its index. `layerLabel` is an editor aid and is never rendered.
 
-Content block types (text, image, section and so on) arrive with the editor (#11). Each
-one is added to this table, and to the schema's `$defs` and `childNode.oneOf`, without
-touching the others (constitution Principle VI).
+The placement lists are two `$defs` in the schema:
+- `rootChild` holds `section` and `component-ref`;
+- `contentChild` holds every other block type.
+
+So every piece of content sits in a Section. A component document's root holds Sections
+only, because rule 7 refuses `component-ref` there.
+
+**Adding a block type** (added by 011):
+1. a `$defs` entry;
+2. a place in `rootChild` or `contentChild`;
+3. golden examples (§8);
+4. the editor's `definition.ts` and canvas component (docs/contributing.md);
+5. from #12, its renderer.
+
+No other type changes (constitution Principle VI).
+
+## 2a. Shared values
+
+- **Token reference** `{ "token": id }`, for colours (`colorRef`), spacing (`spaceRef`)
+  and text sizes (`textSizeRef`). The id names an entry of the site's design token set
+  ([design-tokens.md](design-tokens.md)). It **may name a token that no longer exists**:
+  consumers then use the property's `default`.
+- **Link**: `{ "type": "page", "pageId": uuid }` or `{ "type": "url", "href": … }`.
+  - The schemes are `https`, `http`, `mailto` and `tel` only.
+  - A `pageId` may name a page that no longer exists. The renderer (#12) decides how that
+    is shown.
+- **Media**: `{ "mediaId": uuid }`, a file of the site's media library. It may no longer
+  exist.
+- **Rich text**: a ProseMirror `doc` limited to:
+  - paragraphs, bulleted and ordered lists, and hard breaks;
+  - the marks bold, italic and link (`{ "type": "link", "attrs": { "to": <link> } }`).
+
+  There is never HTML.
+- **Defaults**: a property's `default` in the schema is its value when it is missing. A
+  newly inserted block holds only its required properties.
 
 ## 3. Rules beyond the schema
 
@@ -87,6 +129,8 @@ binding.
 8. **No raw HTML, anywhere.** No property may carry markup. Rich text, when a block type
    needs it, is structured JSON, and the renderer produces HTML from an allow-list
    (Principle IX). A block type whose props include an HTML string is refused in review.
+9. A Rich Text block holds at most **20,000** characters of text, counted in code points
+   over all its `text` nodes (`rich_text_too_long`, at `…/props/content`).
 
 Validation stops at the first failure and reports a `rule` and a JSON `pointer` (RFC 6901)
 into the submitted document. The checks run in this order, so a given document always
@@ -97,9 +141,15 @@ fails the same way:
 3. `schemaVersion` supported (`unsupported_schema_version`). A missing or non-integer
    version is left to the schema;
 4. a structural walk: depth, node count and unique ids (rules 1–3);
-5. the schema: `schema_violation`, or more specifically `unknown_type`, `root_misplaced`,
-   `props_invalid` or `children_not_allowed`;
-6. the component rules (rules 6–7).
+5. the schema: `schema_violation`, or more specifically:
+   - `props_invalid` for any failure under a node's `props`. A failed `oneOf` there, such
+     as an unknown rich-text mark, is reported at that object's `/type`;
+   - `root_misplaced` for a `root` anywhere but the envelope;
+   - `nesting_not_allowed` for a node type (a member of `rootChild` or `contentChild`) in
+     a children list that doesn't admit it, at its `/type`;
+   - `unknown_type` for any other `type`, at its `/type`;
+   - `children_not_allowed` for children under a type that takes none;
+6. the code rules: the component rules (rules 6–7), then rich text length (rule 9).
 
 Depth and count come before the schema on purpose. They bound the work the schema check
 does, and they give an oversized document its own reason rather than a generic one.
@@ -163,11 +213,16 @@ only this subset of the vocabulary, which the Pages validator interprets and
 `PageSchemaSubsetTests` enforces:
 
 - **Validation**: `type`, `properties`, `required`, `additionalProperties`, `const`, `enum`,
-  `pattern`, `minLength`, `maxLength`, `minimum`, `maximum`, `items`, `maxItems`,
-  `format: uuid`.
+  `pattern`, `minLength`, `maxLength`, `minimum`, `maximum`, `items`, `minItems`,
+  `maxItems`, `format: uuid`.
 - **Composition**: `$ref` to `#/$defs/…`, and `oneOf` whose branches are told apart by a
   `type` property's `const`.
-- **Annotations**: `$schema`, `$id`, `$defs`, `title`, `description`.
+- **Annotations**: `$schema`, `$id`, `$defs`, `title`, `description`, `default`. A
+  `default` is never validated; consumers use it as the value of a missing property.
+
+**Patterns** mean the same in ECMAScript and .NET only within a common subset. They may
+not use lookbehind, named groups or Unicode property classes (`\p{…}`). The server compiles
+them with `RegexOptions.ECMAScript`, and the editor with `new RegExp(p, 'u')`.
 
 A block type that needs more than this is a planning decision for its feature. The
 recorded fallback is a complete JSON Schema implementation (010 research P-09).
@@ -195,5 +250,42 @@ Every validator of this schema runs the same files:
 | `invalid/root_misplaced--nested-root.json` | `root_misplaced` |
 | `invalid/duplicate_node_id--twice.json` | `duplicate_node_id` at the second occurrence |
 | `invalid/duplicate_property--props.json` | `duplicate_property` |
+| `valid/every-block.json` | passes: one of each type, nested Section › Container › Container › leaves |
+| `valid/tokens-missing.json` | passes: token references to ids no token set holds |
+| `valid/rich-text-lists.json` | passes: nested lists, every mark, both link kinds |
+| `valid/component-page.json` | passes as a component document: Sections only |
+| `invalid/nesting_not_allowed--section-in-section.json` | at `/root/children/0/children/0/type` |
+| `invalid/nesting_not_allowed--heading-at-root.json` | at `/root/children/0/type` |
+| `invalid/children_not_allowed--child-in-heading.json` | at `…/children` of the heading |
+| `invalid/props_invalid--javascript-link.json` | at `…/props/link/href` |
+| `invalid/props_invalid--embed-other-provider.json` | at `…/props/url` |
+| `invalid/props_invalid--rich-text-unknown-mark.json` | at `…/marks/0/type` |
+| `invalid/props_invalid--heading-level-7.json` | at `…/props/level` |
+| `invalid/props_invalid--token-bad-id.json` | at `…/props/background/token` |
+| `invalid/props_invalid--missing-required-text.json` | at `…/props` |
+| `invalid/props_invalid--container-direction.json` | at `…/props/direction` |
+| `invalid/props_invalid--text-size-not-ref.json` | at `…/props/size` |
+| `invalid/props_invalid--image-media-not-uuid.json` | at `…/props/media/mediaId` |
+| `invalid/props_invalid--spacer-extra-prop.json` | at `…/props/color` |
+| `invalid/props_invalid--divider-thickness.json` | at `…/props/thickness` |
+| `invalid/props_invalid--section-width.json` | at `…/props/width` |
+| `invalid/rich_text_too_long--20001.json` | at `…/props/content` |
 
 Documents too deep or with too many nodes are generated by the tests rather than stored.
+Every block type has at least one valid and one invalid example (011 SC-009);
+`PageSchemaContractTests` checks this.
+
+## 9. Styling hand-off to rendering (informative)
+
+Added by 011 for #12. The editor's canvas already works this way, and a published page must
+match it so that one block stylesheet serves both:
+
+- **Container**: the page is wrapped in an element with `container-type: inline-size;
+  container-name: page`. Block CSS uses `@container page (max-width: 767px)` for tablet and
+  `@container page (max-width: 480px)` for mobile.
+- **Tokens**: they become CSS custom properties on that wrapper:
+  - `--qb-color-<id>`, `--qb-space-<id>` and `--qb-text-<id>`;
+  - `--qb-font-heading`, `--qb-font-body` and `--qb-base-size`.
+- **Fallbacks**: a missing token uses the property default's custom property. Every id of
+  the built-in default set (design-tokens.md) is always emitted, with its built-in value
+  when the site's set lacks it, so a fallback always resolves.

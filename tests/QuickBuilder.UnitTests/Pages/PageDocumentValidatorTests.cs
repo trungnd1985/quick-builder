@@ -180,6 +180,97 @@ public sealed class PageDocumentValidatorTests
     }
 
     [Fact]
+    public void A_section_inside_a_section_is_not_allowed_there()
+    {
+        var result = Validate(Envelope(new JsonArray(Section("outer", Section("inner")))), DocumentKind.Page);
+
+        Assert.Equal(("nesting_not_allowed", "/root/children/0/children/0/type"), (result.Rule, result.Location));
+    }
+
+    [Fact]
+    public void A_heading_directly_under_the_root_is_not_allowed_there()
+    {
+        var result = Validate(Envelope(new JsonArray(Heading("h", "Loose"))), DocumentKind.Page);
+
+        Assert.Equal(("nesting_not_allowed", "/root/children/0/type"), (result.Rule, result.Location));
+    }
+
+    [Fact]
+    public void A_rich_text_node_name_is_an_unknown_type_not_a_misplaced_one()
+    {
+        // 011 research ED-05 (analysis I2): `paragraph` appears in the schema as a rich-text
+        // node, but it is not a node type, so 010's golden file keeps its result.
+        var node = new JsonObject { ["id"] = "p", ["type"] = "paragraph", ["props"] = new JsonObject(), ["children"] = new JsonArray() };
+
+        var result = Validate(Envelope(new JsonArray(node)), DocumentKind.Page);
+
+        Assert.Equal(("unknown_type", "/root/children/0/type"), (result.Rule, result.Location));
+    }
+
+    [Fact]
+    public void An_unknown_rich_text_mark_is_a_props_failure_at_its_type()
+    {
+        var content = RichText(new JsonObject { ["type"] = "text", ["text"] = "u", ["marks"] = new JsonArray(new JsonObject { ["type"] = "underline" }) });
+
+        var result = Validate(Envelope(new JsonArray(Section("s", content))), DocumentKind.Page);
+
+        Assert.Equal(
+            ("props_invalid", "/root/children/0/children/0/props/content/content/0/content/0/marks/0/type"),
+            (result.Rule, result.Location));
+    }
+
+    [Fact]
+    public void Rich_text_over_the_limit_is_refused_across_text_nodes()
+    {
+        // 20,001 characters, no single text node over its own 20,000 limit.
+        var content = RichText(
+            new JsonObject { ["type"] = "text", ["text"] = new string('a', 10_000) },
+            new JsonObject { ["type"] = "text", ["text"] = new string('b', 10_001) });
+
+        var result = Validate(Envelope(new JsonArray(Section("s", content))), DocumentKind.Page);
+
+        Assert.Equal(("rich_text_too_long", "/root/children/0/children/0/props/content"), (result.Rule, result.Location));
+    }
+
+    [Fact]
+    public void Rich_text_at_the_limit_is_accepted_and_counts_code_points()
+    {
+        // 20,000 code points; the emoji are two UTF-16 units each, so a count in units would
+        // wrongly refuse this.
+        var content = RichText(
+            new JsonObject { ["type"] = "text", ["text"] = string.Concat(Enumerable.Repeat("😀", 5_000)) },
+            new JsonObject { ["type"] = "text", ["text"] = new string('a', 15_000) });
+
+        Assert.True(Validate(Envelope(new JsonArray(Section("s", content))), DocumentKind.Page).IsValid);
+    }
+
+    [Fact]
+    public void Every_010_example_keeps_its_result()
+    {
+        // 011 is additive within version 1 (contract §6): what passed still passes, and what
+        // failed still fails the same way.
+        string[] valid = ["empty.json", "header-and-footer.json"];
+        Assert.All(valid, file => Assert.True(
+            Validator.Validate(File.ReadAllBytes(Path.Combine(ContractFiles.ExamplesDirectory, "valid", file)), DocumentKind.Page).IsValid,
+            file));
+
+        var result = Validator.Validate(
+            File.ReadAllBytes(Path.Combine(ContractFiles.ExamplesDirectory, "invalid", "unknown_type--paragraph.json")),
+            DocumentKind.Page);
+        Assert.Equal(("unknown_type", "/root/children/0/type"), (result.Rule, result.Location));
+    }
+
+    [Fact]
+    public void The_component_example_is_a_valid_component_document()
+    {
+        var result = Validator.Validate(
+            File.ReadAllBytes(Path.Combine(ContractFiles.ExamplesDirectory, "valid", "component-page.json")),
+            DocumentKind.Component);
+
+        Assert.True(result.IsValid, $"{result.Rule} at {result.Location}");
+    }
+
+    [Fact]
     public void Messages_never_quote_the_document()
     {
         const string Canary = "zz-canary-content";
@@ -211,6 +302,38 @@ public sealed class PageDocumentValidatorTests
         ["id"] = id,
         ["type"] = "component-ref",
         ["props"] = new JsonObject { ["componentId"] = (componentId ?? Guid.CreateVersion7()).ToString() },
+        ["children"] = new JsonArray(),
+    };
+
+    private static JsonObject Section(string id, params JsonNode[] children) => new()
+    {
+        ["id"] = id,
+        ["type"] = "section",
+        ["props"] = new JsonObject(),
+        ["children"] = new JsonArray(children),
+    };
+
+    private static JsonObject Heading(string id, string text) => new()
+    {
+        ["id"] = id,
+        ["type"] = "heading",
+        ["props"] = new JsonObject { ["text"] = text },
+        ["children"] = new JsonArray(),
+    };
+
+    /// <summary>A Rich Text block holding one paragraph of <paramref name="inline"/>.</summary>
+    private static JsonObject RichText(params JsonNode[] inline) => new()
+    {
+        ["id"] = "rt",
+        ["type"] = "rich-text",
+        ["props"] = new JsonObject
+        {
+            ["content"] = new JsonObject
+            {
+                ["type"] = "doc",
+                ["content"] = new JsonArray(new JsonObject { ["type"] = "paragraph", ["content"] = new JsonArray(inline) }),
+            },
+        },
         ["children"] = new JsonArray(),
     };
 

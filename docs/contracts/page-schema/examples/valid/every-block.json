@@ -1,0 +1,222 @@
+{
+  "schemaVersion": 1,
+  "root": {
+    "id": "root",
+    "type": "root",
+    "props": {},
+    "children": [
+      {
+        "id": "header",
+        "type": "component-ref",
+        "props": {
+          "componentId": "0192f5a0-1b2c-7d3e-8f40-5a6b7c8d9e0f"
+        },
+        "children": []
+      },
+      {
+        "id": "hero",
+        "type": "section",
+        "props": {
+          "background": {
+            "token": "color-brand-light"
+          },
+          "paddingY": {
+            "token": "space-2xl"
+          },
+          "width": "full",
+          "layerLabel": "Hero"
+        },
+        "children": [
+          {
+            "id": "columns",
+            "type": "container",
+            "props": {
+              "direction": "horizontal",
+              "gap": {
+                "token": "space-lg"
+              },
+              "padding": {
+                "token": "space-sm"
+              },
+              "align": "center",
+              "background": {
+                "token": "color-background"
+              },
+              "stackOnMobile": false,
+              "layerLabel": "Columns"
+            },
+            "children": [
+              {
+                "id": "left",
+                "type": "container",
+                "props": {},
+                "children": [
+                  {
+                    "id": "title",
+                    "type": "heading",
+                    "props": {
+                      "text": "Welcome",
+                      "level": 1,
+                      "align": "center",
+                      "color": {
+                        "token": "color-brand"
+                      }
+                    },
+                    "children": []
+                  },
+                  {
+                    "id": "intro",
+                    "type": "text",
+                    "props": {
+                      "text": "Two lines\nof text.",
+                      "align": "start",
+                      "color": {
+                        "token": "color-muted"
+                      },
+                      "size": {
+                        "token": "text-lg"
+                      }
+                    },
+                    "children": []
+                  },
+                  {
+                    "id": "body",
+                    "type": "rich-text",
+                    "props": {
+                      "content": {
+                        "type": "doc",
+                        "content": [
+                          {
+                            "type": "paragraph",
+                            "content": [
+                              {
+                                "type": "text",
+                                "text": "Rich "
+                              },
+                              {
+                                "type": "text",
+                                "text": "text",
+                                "marks": [
+                                  {
+                                    "type": "bold"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      "align": "end",
+                      "color": {
+                        "token": "color-text"
+                      }
+                    },
+                    "children": []
+                  },
+                  {
+                    "id": "cta",
+                    "type": "button",
+                    "props": {
+                      "label": "Contact us",
+                      "link": {
+                        "type": "page",
+                        "pageId": "0192f5a0-1b2c-7d3e-8f40-5a6b7c8d9e20"
+                      },
+                      "style": "outline",
+                      "align": "center",
+                      "newTab": false
+                    },
+                    "children": []
+                  }
+                ]
+              },
+              {
+                "id": "photo",
+                "type": "image",
+                "props": {
+                  "media": {
+                    "mediaId": "0192f5a0-1b2c-7d3e-8f40-5a6b7c8d9e30"
+                  },
+                  "alt": "A photo",
+                  "decorative": false,
+                  "width": "natural",
+                  "link": {
+                    "type": "url",
+                    "href": "https://example.com"
+                  }
+                },
+                "children": []
+              }
+            ]
+          },
+          {
+            "id": "gap",
+            "type": "spacer",
+            "props": {
+              "height": {
+                "token": "space-xl"
+              }
+            },
+            "children": []
+          },
+          {
+            "id": "rule",
+            "type": "divider",
+            "props": {
+              "color": {
+                "token": "color-border"
+              },
+              "thickness": "thick",
+              "spacing": {
+                "token": "space-sm"
+              }
+            },
+            "children": []
+          },
+          {
+            "id": "video",
+            "type": "embed",
+            "props": {
+              "url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+              "title": "Our story",
+              "aspectRatio": "16:9"
+            },
+            "children": []
+          },
+          {
+            "id": "video2",
+            "type": "embed",
+            "props": {
+              "url": "https://vimeo.com/76979871",
+              "title": "Behind the scenes",
+              "aspectRatio": "4:3"
+            },
+            "children": []
+          },
+          {
+            "id": "video3",
+            "type": "embed",
+            "props": {
+              "url": "https://youtu.be/dQw4w9WgXcQ?t=42"
+            },
+            "children": []
+          },
+          {
+            "id": "empty-embed",
+            "type": "embed",
+            "props": {},
+            "children": []
+          },
+          {
+            "id": "empty-image",
+            "type": "image",
+            "props": {
+              "decorative": true
+            },
+            "children": []
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -99,42 +99,42 @@ build wiring, and the constitution amendment. Nothing here has behaviour.
 
 ### Page schema: contract, schema file and golden files
 
-- [ ] T011 Add the ten block types to `CONTRACTS/page-schema/v1.schema.json`, exactly as [contracts/page-schema-blocks.md](./contracts/page-schema-blocks.md) "Schema fragment" gives them, with every `NODE(...)` expanded and no comments:
+- [X] T011 Add the ten block types to `CONTRACTS/page-schema/v1.schema.json`, exactly as [contracts/page-schema-blocks.md](./contracts/page-schema-blocks.md) "Schema fragment" gives them, with every `NODE(...)` expanded and no comments:
   - the shared defs: `rootChild`, `contentChild`, `noChildren`, `contentChildren`, `layerLabel`, `tokenId`, `colorRef`, `spaceRef`, `textSizeRef`, `align` and `link`;
   - the rich text defs: `rtDoc`, `rtBlock`, `rtParagraph`, `rtBulletList`, `rtOrderedList`, `rtListItem`, `rtInline`, `rtText`, `rtHardBreak` and `rtMark`;
   - the ten block defs.
 
   Change `root.children.items` to `rootChild` and remove `childNode`. Keep `schemaVersion` `const: 1`.
-- [ ] T012 [P] Update `CONTRACTS/page-schema.md` per [contracts/page-schema-blocks.md](./contracts/page-schema-blocks.md): the §2 table, the new §2a, the §3 rule 9 and validation-order additions, the §7 keywords and pattern portability, the §8 golden-file rows, and the new §9 styling hand-off.
-- [ ] T013 [P] Add the valid golden files `valid/every-block.json`, `valid/tokens-missing.json`, `valid/rich-text-lists.json` and `valid/component-page.json` under `CONTRACTS/page-schema/examples/`, per page-schema-blocks.md §8.
-- [ ] T014 [P] Add the ten invalid golden files named in page-schema-blocks.md §8 under `CONTRACTS/page-schema/examples/invalid/`, and add their expected rule and pointer to `CONTRACTS/page-schema/examples/invalid/expected.json`. Also add one `props_invalid` file for each block type not yet covered (`section`, `container`, `text`, `image`, `spacer`, `divider`), each with one bad enum or token value, so that every block type has at least one invalid example (SC-009).
+- [X] T012 [P] Update `CONTRACTS/page-schema.md` per [contracts/page-schema-blocks.md](./contracts/page-schema-blocks.md): the §2 table, the new §2a, the §3 rule 9 and validation-order additions, the §7 keywords and pattern portability, the §8 golden-file rows, and the new §9 styling hand-off.
+- [X] T013 [P] Add the valid golden files `valid/every-block.json`, `valid/tokens-missing.json`, `valid/rich-text-lists.json` and `valid/component-page.json` under `CONTRACTS/page-schema/examples/`, per page-schema-blocks.md §8.
+- [X] T014 [P] Add the ten invalid golden files named in page-schema-blocks.md §8 under `CONTRACTS/page-schema/examples/invalid/`, and add their expected rule and pointer to `CONTRACTS/page-schema/examples/invalid/expected.json`. Also add one `props_invalid` file for each block type not yet covered (`section`, `container`, `text`, `image`, `spacer`, `divider`), each with one bad enum or token value, so that every block type has at least one invalid example (SC-009).
 
 ### Page schema: C# validator (tests first)
 
-- [ ] T015 [P] Extend `UTESTS/Pages/SchemaSubsetValidatorTests.cs`. Tests must fail first:
+- [X] T015 [P] Extend `UTESTS/Pages/SchemaSubsetValidatorTests.cs`. Tests must fail first:
   - `default` is accepted and ignored, including next to `$ref`;
   - `minItems` is enforced with a pointer to the array;
   - a pattern is matched with ECMAScript semantics;
   - loading a schema whose pattern uses lookbehind or a named group throws.
-- [ ] T016 [P] Extend `UTESTS/Pages/PageDocumentValidatorTests.cs` so that it runs every file in `CONTRACTS/page-schema/examples/{valid,invalid}` and asserts the rule and pointer from `expected.json`. Add cases:
+- [X] T016 [P] Extend `UTESTS/Pages/PageDocumentValidatorTests.cs` so that it runs every file in `CONTRACTS/page-schema/examples/{valid,invalid}` and asserts the rule and pointer from `expected.json`. Add cases:
   - `nesting_not_allowed` for a Section in a Section and for a Heading at the root;
   - `unknown_type` for `paragraph`: 010's `unknown_type--paragraph.json` keeps its result, although `paragraph` is a rich-text node name;
   - `props_invalid` for an unknown rich-text mark, at `…/marks/0/type`;
   - `rich_text_too_long` at exactly 20,001 characters, split over several text nodes;
   - every 010 golden file still gives its old result.
-- [ ] T017 [P] Extend `ITESTS/Pages/PageSchemaContractTests.cs` and `ITESTS/Pages/PageSchemaSubsetTests.cs`:
+- [X] T017 [P] Extend `ITESTS/Pages/PageSchemaContractTests.cs` and `ITESTS/Pages/PageSchemaSubsetTests.cs`:
   - the §2 table's types and props equal the schema's block defs;
   - each block type has at least one valid and one invalid golden file;
   - every `pattern` in the schema compiles with `RegexOptions.ECMAScript`;
   - the subset list in the §7 text equals `SupportedKeywords`.
-- [ ] T018 Add `default` (annotation) and `minItems` to `SupportedKeywords` and their handling in `PAGES/Infrastructure/Schema/SchemaSubsetValidator.cs`. Compile patterns with `RegexOptions.ECMAScript | RegexOptions.CultureInvariant`, and refuse at load any pattern containing `(?<`, `(?<=` or `(?<!`, or `\p{` (ED-06, ED-07). Update its remarks.
-- [ ] T019 Extend `PAGES/Infrastructure/Schema/PageDocumentValidator.cs` (ED-05, ED-06; data-model §1.4):
+- [X] T018 Add `default` (annotation) and `minItems` to `SupportedKeywords` and their handling in `PAGES/Infrastructure/Schema/SchemaSubsetValidator.cs`. Compile patterns with `RegexOptions.ECMAScript | RegexOptions.CultureInvariant`, and refuse at load any pattern containing `(?<`, `(?<=` or `(?<!`, or `\p{` (ED-06, ED-07). Update its remarks.
+- [X] T019 Extend `PAGES/Infrastructure/Schema/PageDocumentValidator.cs` (ED-05, ED-06; data-model §1.4):
   - In `FromSchema`, any failure whose location contains a `/props` segment becomes `props_invalid`, **checked before** the discriminator branch. A discriminator failure under `/props` is reported at the failing object's `…/type`.
   - A discriminator failure on a node whose `type` is `root` is still `root_misplaced`. One whose `type` is a member of `rootChild` or `contentChild` (read from the loaded schema) becomes `nesting_not_allowed` at `…/type`. Anything else, including rich-text node names such as `paragraph`, is `unknown_type` (ED-05).
   - After the component rules, sum the `text` lengths of every `rtText` under each `rich-text` node's `props.content`. Over `PageSchema.MaxRichTextChars`, fail with `rich_text_too_long` at `…/props/content`.
 
   Add `public const int MaxRichTextChars = 20_000;` to `PAGESC/PageSchema.cs`.
-- [ ] T020 Update the `DocumentProblem.rule` description in `specs/010-page-tree-components/contracts/pages-api.yaml` to include `nesting_not_allowed` and `rich_text_too_long`, noting "added by 011".
+- [X] T020 Update the `DocumentProblem.rule` description in `specs/010-page-tree-components/contracts/pages-api.yaml` to include `nesting_not_allowed` and `rich_text_too_long`, noting "added by 011".
 - [ ] T021 Create `ITESTS/Pages/UpgradeFrom010Tests.cs` following `UpgradeFrom009Tests.cs`'s snapshot pattern. Take a 010 snapshot with a page draft holding two `component-ref`s and an empty component draft, and upgrade it. Assert that:
   - every stored draft is byte-for-byte unchanged and still validates;
   - `GET /api/v1/editor/sites/{id}/design-tokens` returns the default set with `version: 0` for every existing site (FR-043).

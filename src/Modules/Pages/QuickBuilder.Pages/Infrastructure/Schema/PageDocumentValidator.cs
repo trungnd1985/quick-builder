@@ -21,6 +21,8 @@ namespace QuickBuilder.Pages.Infrastructure.Schema;
 /// <item><b>The component rules</b> the schema cannot say: a component document references no
 /// component. Whether a referenced component exists is the caller's to check, against its
 /// site; this collects the ids.</item>
+/// <item><b>Rich text length</b> (§3 rule 9, added by 011): the sum over a Rich Text block's
+/// text nodes, which the schema can only bound one node at a time.</item>
 /// </list>
 /// Messages never quote document content (FR-037).
 /// </remarks>
@@ -37,7 +39,17 @@ internal sealed class PageDocumentValidator : IPageDocumentValidator
         MaxDepth = 256,
     };
 
+    private const string RichTextType = "rich-text";
+
     private readonly Dictionary<int, SchemaSubsetValidator> _schemas;
+
+    /// <summary>
+    /// Per version, the node types: every type the placement lists admit. A known node type in
+    /// the wrong list is <c>nesting_not_allowed</c>; anything else is <c>unknown_type</c>, even
+    /// when the schema uses that name elsewhere, as rich text does with <c>paragraph</c>
+    /// (011 research ED-05).
+    /// </summary>
+    private readonly Dictionary<int, IReadOnlySet<string>> _nodeTypes;
 
     public PageDocumentValidator()
     {
@@ -48,6 +60,10 @@ internal sealed class PageDocumentValidator : IPageDocumentValidator
                 using var stream = PageSchema.OpenSchema(v);
                 return SchemaSubsetValidator.Load(stream);
             });
+
+        _nodeTypes = _schemas.ToDictionary(
+            s => s.Key,
+            s => (IReadOnlySet<string>)s.Value.BranchTypes("rootChild").Union(s.Value.BranchTypes("contentChild")).ToHashSet(StringComparer.Ordinal));
     }
 
     public DocumentValidationResult Validate(ReadOnlySpan<byte> utf8Json, DocumentKind kind)
@@ -114,7 +130,7 @@ internal sealed class PageDocumentValidator : IPageDocumentValidator
 
         if (_schemas[version].Validate(root) is { } failure)
         {
-            return FromSchema(failure, root);
+            return FromSchema(failure, root, _nodeTypes[version]);
         }
 
         var referenced = new HashSet<Guid>();
@@ -123,12 +139,27 @@ internal sealed class PageDocumentValidator : IPageDocumentValidator
             return componentFailure;
         }
 
+        if (CheckRichTextLength(root.GetProperty("root"), "/root") is { } richTextFailure)
+        {
+            return richTextFailure;
+        }
+
         return DocumentValidationResult.Valid(version, referenced);
     }
 
     /// <summary>Turns a schema failure into the contract's rule names (pages-api.yaml, DocumentProblem).</summary>
-    private static DocumentValidationResult FromSchema(SchemaFailure failure, JsonElement root)
+    private static DocumentValidationResult FromSchema(SchemaFailure failure, JsonElement root, IReadOnlySet<string> nodeTypes)
     {
+        // Anything under a node's props is a props failure, whatever the keyword — a rich-text
+        // mark of an unknown kind included. Checked before the discriminator, which would
+        // otherwise call it an unknown node type (011 research ED-05, data-model §1.4).
+        var segments = failure.Location.Split('/');
+        if (segments.Contains("props", StringComparer.Ordinal))
+        {
+            var location = failure.Keyword == "discriminator" ? $"{failure.Location}/type" : failure.Location;
+            return Invalid("props_invalid", location, $"The node's properties are not valid: {failure.Message}");
+        }
+
         if (failure.Keyword == "discriminator")
         {
             var type = At(root, failure.Location) is { ValueKind: JsonValueKind.Object } node
@@ -136,15 +167,14 @@ internal sealed class PageDocumentValidator : IPageDocumentValidator
                 ? value.GetString()
                 : null;
 
-            return type == "root"
-                ? Invalid("root_misplaced", failure.Location, "A root node may only be the document's root.")
-                : Invalid("unknown_type", $"{failure.Location}/type", "This is not a known node type.");
-        }
+            if (type == "root")
+            {
+                return Invalid("root_misplaced", failure.Location, "A root node may only be the document's root.");
+            }
 
-        var segments = failure.Location.Split('/');
-        if (segments.Contains("props", StringComparer.Ordinal))
-        {
-            return Invalid("props_invalid", failure.Location, $"The node's properties are not valid: {failure.Message}");
+            return type is not null && nodeTypes.Contains(type)
+                ? Invalid("nesting_not_allowed", $"{failure.Location}/type", "This kind of node is not allowed here.")
+                : Invalid("unknown_type", $"{failure.Location}/type", "This is not a known node type.");
         }
 
         if (failure.Keyword == "maxItems" && failure.Location.EndsWith("/children", StringComparison.Ordinal))
@@ -183,6 +213,60 @@ internal sealed class PageDocumentValidator : IPageDocumentValidator
         }
 
         return null;
+    }
+
+    /// <summary>
+    /// Contract §3 rule 9: a Rich Text block holds at most <see cref="PageSchema.MaxRichTextChars"/>
+    /// characters of text across all its text nodes, counted in code points as <c>maxLength</c>
+    /// is. The schema bounds each text node; only code can bound their sum.
+    /// </summary>
+    private static DocumentValidationResult? CheckRichTextLength(JsonElement node, string pointer)
+    {
+        if (node.GetProperty("type").GetString() == RichTextType)
+        {
+            var length = 0L;
+            CountText(node.GetProperty("props").GetProperty("content"), ref length);
+            if (length > PageSchema.MaxRichTextChars)
+            {
+                return Invalid(
+                    "rich_text_too_long",
+                    $"{pointer}/props/content",
+                    $"A Rich Text block may hold at most {PageSchema.MaxRichTextChars} characters of text.");
+            }
+        }
+
+        var index = 0;
+        foreach (var child in node.GetProperty("children").EnumerateArray())
+        {
+            if (CheckRichTextLength(child, $"{pointer}/children/{index}") is { } failure)
+            {
+                return failure;
+            }
+
+            index++;
+        }
+
+        return null;
+    }
+
+    /// <summary>Adds the code points of every <c>text</c> node under a validated rich-text value.</summary>
+    private static void CountText(JsonElement richText, ref long length)
+    {
+        if (richText.TryGetProperty("text", out var text) && text.ValueKind == JsonValueKind.String)
+        {
+            foreach (var _ in text.GetString()!.EnumerateRunes())
+            {
+                length++;
+            }
+        }
+
+        if (richText.TryGetProperty("content", out var content) && content.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var child in content.EnumerateArray())
+            {
+                CountText(child, ref length);
+            }
+        }
     }
 
     private static string? FindDuplicateProperty(JsonElement element, string pointer)
