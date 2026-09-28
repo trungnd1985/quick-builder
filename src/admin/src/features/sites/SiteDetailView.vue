@@ -165,6 +165,9 @@ watch(siteId, load)
         <RouterLink :to="{ name: 'site-media', params: { siteId: site.id } }">
           {{ t('sites.detail.media') }}
         </RouterLink>
+        <RouterLink :to="{ name: 'site-design', params: { siteId: site.id } }">
+          {{ t('sites.detail.design') }}
+        </RouterLink>
       </nav>
 
       <!-- The spec's edge case: a disabled site stays open here, clearly marked. -->

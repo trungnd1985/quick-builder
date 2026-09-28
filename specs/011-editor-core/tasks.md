@@ -564,7 +564,7 @@ see the tokens read-only.
   - the capability is `pages.content.view`.
 
   Update `ITESTS/Isolation/Probes/PagesIsolationProbe.cs` for the new endpoint.
-- [ ] T100 [P] [US6] Create `ADMINTESTS/design/DesignTokensView.spec.ts` and `ADMINTESTS/design/designTokens.spec.ts`:
+- [X] T100 [P] [US6] Create `ADMINTESTS/design/DesignTokensView.spec.ts` and `ADMINTESTS/design/designTokens.spec.ts`:
   - the view lists colours, fonts, sizes and spacing;
   - add, rename and change value, then save;
   - deleting a colour first calls `tokenUsage` and shows the count in the confirmation;
@@ -592,13 +592,13 @@ see the tokens read-only.
 
   Add `pages.invalid_token_id` to `PAGES/PagesErrors.cs` and `PAGES/PagesErrorResults.cs`.
 - [X] T105 [US6] Add the two Editor capabilities to §2 of `specs/002-identity-setup/contracts/authorization.md`, and add `GetTokenUsage` to the Pages list there, as that document requires.
-- [ ] T106 [US6] Create `ADMIN/features/design/DesignTokensView.vue`, `ColorList.vue`, `ScaleList.vue` (used for both text sizes and spacing) and `FontSelect.vue`:
+- [X] T106 [US6] Create `ADMIN/features/design/DesignTokensView.vue`, `ColorList.vue`, `ScaleList.vue` (used for both text sizes and spacing) and `FontSelect.vue`:
   - edit colours (a name, plus a colour input with a hex field), fonts (the stack names, previewed in their own family), the base size, text sizes and spacing steps;
   - new entries get an id of `<kind>-` plus 8 random `[a-z0-9]` characters, and ids are never shown for editing;
   - Save with the version, and 409 shows a reload prompt;
   - delete asks `pagesApi.tokenUsage` and confirms with the block count (clarification Q4); deleting the last entry of a kind is disabled;
   - read-only when `permissions.canManage` is false.
-- [ ] T107 [US6] Add the route `/sites/:siteId/design` (lazy) in `ADMIN/app/router.ts` and a **Design** link in `ADMIN/features/sites/SiteDetailView.vue`. Make the editor refresh its tokens when the editor route is entered (`editorStore.load` already fetches them). Add the `design.*` keys to `ADMIN/i18n/en.json`. T096–T100 now pass.
+- [X] T107 [US6] Add the route `/sites/:siteId/design` (lazy) in `ADMIN/app/router.ts` and a **Design** link in `ADMIN/features/sites/SiteDetailView.vue`. Make the editor refresh its tokens when the editor route is entered (`editorStore.load` already fetches them). Add the `design.*` keys to `ADMIN/i18n/en.json`. T096–T100 now pass.
 
 **Checkpoint**: quickstart §6 passes.
 

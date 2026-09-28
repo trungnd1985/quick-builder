@@ -14,5 +14,5 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.vue", "../../docs/contracts/page-schema/v1.schema.json", "../../docs/contracts/design-tokens/examples/valid/default.json"]
+  "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.vue", "../../docs/contracts/page-schema/v1.schema.json", "../../docs/contracts/design-tokens/examples/valid/default.json", "../../docs/contracts/design-tokens/v1.schema.json"]
 }

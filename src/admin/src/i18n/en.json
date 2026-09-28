@@ -72,7 +72,8 @@
       "sections": "Work on this site",
       "pages": "Pages",
       "components": "Shared components",
-      "media": "Media library"
+      "media": "Media library",
+      "design": "Design"
     },
     "settings": {
       "heading": "Settings",
@@ -816,6 +817,72 @@
       "tablet": "Tablet",
       "mobile": "Mobile",
       "width": "{width} pixels wide"
+    }
+  },
+  "design": {
+    "title": "Design",
+    "subtitle": "The site's colours, fonts and spacing. Every block that uses one of these follows it when it changes.",
+    "backToSite": "← Site",
+    "loading": "Loading the design…",
+    "loadFailed": "The design could not be loaded.",
+    "reload": "Reload",
+    "readOnly": "You can see the design, but only Designers and Administrators can change it.",
+    "save": "Save design",
+    "saving": "Saving…",
+    "saved": "Design saved. Pages show it the next time they are opened in the editor.",
+    "remove": "Remove",
+    "sample": "Aa",
+    "sampleSentence": "The quick brown fox jumps over the lazy dog.",
+    "stepName": "Name of step {position}",
+    "stepSize": "Size of step {position}, in multiples of the base text size",
+    "confirmRemoveUnknown": "Remove {name}? It could not be checked how many blocks use it. Blocks that use it will show their default instead.",
+    "confirmRemove": {
+      "colors": "Remove the colour {name}? No block uses it. | Remove the colour {name}? One block uses it and will show its default colour instead. | Remove the colour {name}? {count} blocks use it and will show their default colour instead.",
+      "sizes": "Remove the text size {name}? No block uses it. | Remove the text size {name}? One block uses it and will show its default size instead. | Remove the text size {name}? {count} blocks use it and will show their default size instead.",
+      "spacing": "Remove the spacing step {name}? No block uses it. | Remove the spacing step {name}? One block uses it and will show its default spacing instead. | Remove the spacing step {name}? {count} blocks use it and will show their default spacing instead."
+    },
+    "colors": {
+      "title": "Colours",
+      "help": "Values are hex colours such as #2563eb. Up to 24 colours.",
+      "name": "Name of colour {position}",
+      "value": "Value of colour {position}",
+      "add": "Add colour",
+      "newName": "Colour {n}"
+    },
+    "typography": {
+      "title": "Typography",
+      "headingFont": "Heading font",
+      "bodyFont": "Body font",
+      "baseSize": "Base text size, in pixels (12 to 24)"
+    },
+    "sizes": {
+      "title": "Text sizes",
+      "help": "Sizes in multiples of the base text size, from 0.5 to 6.",
+      "add": "Add text size",
+      "newName": "Size {n}"
+    },
+    "spacing": {
+      "title": "Spacing",
+      "help": "Steps in multiples of the base text size, from 0 to 16.",
+      "add": "Add spacing step",
+      "newName": "Step {n}"
+    },
+    "fonts": {
+      "system-ui": "System",
+      "transitional": "Transitional serif",
+      "old-style": "Old-style serif",
+      "humanist": "Humanist sans",
+      "geometric-humanist": "Geometric humanist sans",
+      "classical-humanist": "Classical humanist sans",
+      "neo-grotesque": "Neo-grotesque sans",
+      "monospace-slab": "Monospace slab",
+      "monospace-code": "Monospace code",
+      "industrial": "Industrial",
+      "rounded-sans": "Rounded sans",
+      "slab-serif": "Slab serif",
+      "antique": "Antique",
+      "didone": "Didone",
+      "handwritten": "Handwritten"
     }
   }
 }
