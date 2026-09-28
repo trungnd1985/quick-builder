@@ -47,16 +47,14 @@ export function jsonEquals(a: unknown, b: unknown): boolean {
 }
 
 /** Length in code points, as the specification counts it, not UTF-16 units. */
-export const codePointLength = (text: string): number => {
-  let n = 0
-  for (const _ of text) n++
-  return n
-}
+export const codePointLength = (text: string): number => Array.from(text).length
 
 export class SchemaSubsetValidator {
   private readonly patterns = new Map<string, RegExp>()
+  private readonly root: JsonObject
 
-  private constructor(private readonly root: JsonObject) {
+  private constructor(root: JsonObject) {
+    this.root = root
     this.compilePatterns(root)
   }
 

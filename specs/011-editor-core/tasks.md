@@ -207,30 +207,30 @@ build wiring, and the constitution amendment. Nothing here has behaviour.
 ### Admin foundations: tokens, API clients, operations and store
 
 - [X] T040 [P] Create `ED/tokens/defaultTokens.ts`, with the default set as `export const defaultTokens = {...} as const`, byte-equal as JSON to `valid/default.json`, and `ED/tokens/fontStacks.ts`, mirroring §3.
-- [ ] T041 [P] Create `ED/tokens/tokenCss.ts`. `tokenCss(set)` returns CSS custom properties, per page-schema-blocks.md §9:
+- [X] T041 [P] Create `ED/tokens/tokenCss.ts`. `tokenCss(set)` returns CSS custom properties, per page-schema-blocks.md §9:
   - `--qb-color-<id>`, `--qb-space-<id>` (`rem`) and `--qb-text-<id>` (`rem`);
   - `--qb-font-heading` and `--qb-font-body`;
   - `--qb-base-size` (px).
 
   `tokenCss(set)` first emits a variable for every id of `defaultTokens` with its built-in value, then overrides them with the site's set, so every default id always resolves (data-model §2, "Fallbacks always resolve"). `tokenValue(ref, kind, set, fallbackRef)` returns `var(--qb-…-<id>)`, or the fallback's variable when the id is missing from the set (clarification Q4). Unit-test it in `ADMINTESTS/editor/tokenCss.spec.ts`, including a set without `color-text` and `text-3xl`, where the variables are still defined.
-- [ ] T042 [P] Extend `ADMIN/api/pages.ts` with:
+- [X] T042 [P] Extend `ADMIN/api/pages.ts` with:
   - `Draft` and `ContentDocument` types;
   - `getPageDraft`, `savePageDraft(siteId, pageId, { document, version })`, `getComponentDraft` and `saveComponentDraft`;
   - `tokenUsage(siteId, tokenId)`.
 
   Create `ADMIN/api/editor.ts` with `DesignTokens` types, `getDesignTokens` and `saveDesignTokens`. Both follow `api/media.ts`'s style.
-- [ ] T043 [P] Create `ADMINTESTS/editor/ops.spec.ts`, which must fail first. For each op in T045:
+- [X] T043 [P] Create `ADMINTESTS/editor/ops.spec.ts`, which must fail first. For each op in T045:
   - it returns a new root and leaves the old root untouched;
   - unchanged subtrees keep identity;
   - it refuses with a reason on nesting, depth, node-count and estimated-size limits (ED-10);
   - `duplicate` and `paste` re-id every node, and ids stay unique and match the contract grammar.
-- [ ] T044 [P] Create:
+- [X] T044 [P] Create:
   - `ED/ops/ids.ts`: `newNodeId()`, 22 base64url characters from `crypto.randomUUID()`;
   - `ED/schema/limits.ts`: `MAX_DOCUMENT_BYTES = 1_048_576`, `MAX_NODES = 5000`, `MAX_NODE_DEPTH = 32` and `MAX_RICH_TEXT_CHARS = 20_000`, mirroring `PAGESC/PageSchema.cs`;
   - `ED/ops/limits.ts`: node count, depth and UTF-8 byte size of a subtree, checked against `ED/schema/limits.ts`.
 
   Add `ITESTS/Pages/PageSchemaLimitsParityTests.cs`, which reads `src/admin/src/editor/schema/limits.ts` as text and asserts that each constant equals its `PageSchema` counterpart.
-- [ ] T045 Create the pure operations in `ED/ops/`, each returning `{ ok: true, root, selection } | { ok: false, reason }`, and re-export them from `ED/ops/index.ts` (ED-10):
+- [X] T045 Create the pure operations in `ED/ops/`, each returning `{ ok: true, root, selection } | { ok: false, reason }`, and re-export them from `ED/ops/index.ts` (ED-10):
   - `insert.ts`: `insert(root, parentId, index, type, kind, initialProps)`;
   - `move.ts`: `move(root, nodeId, parentId, index, kind)`;
   - `remove.ts`: `remove(root, nodeId)`;
@@ -239,7 +239,7 @@ build wiring, and the constitution amendment. Nothing here has behaviour.
   - `setProp.ts`: `setProp(root, nodeId, prop, value)` (value `undefined` removes the prop), `setLabel(root, nodeId, label)`.
 
   Each op uses `canDrop` from T023 and the limits from T044. `setProp` validates the new value against `propSchema(type)` using `subsetValidator.ts`. This makes T043 pass.
-- [ ] T046 Create `ED/state/editorStore.ts`, a Pinia store holding one `EditingSession` (data-model §5):
+- [X] T046 Create `ED/state/editorStore.ts`, a Pinia store holding one `EditingSession` (data-model §5):
   - `document` in a `shallowRef`, plus `baseVersion`, `kind`, `siteId`, `documentId`, `selection`, `tokens` and `readOnlyReason`;
   - `load(siteId, kind, id)`, which fetches the draft and `getDesignTokens` in parallel, then runs `documentValidator` on the draft. On failure, including an unsupported `schemaVersion`, it sets `readOnlyReason = 'invalid'` with the rule and pointer, and autosave never starts (spec Edge Cases, "a draft that no longer passes validation");
   - `apply(opResult)`, which commits a successful op and returns the reason for a refused one;

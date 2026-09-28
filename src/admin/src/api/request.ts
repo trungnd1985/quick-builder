@@ -14,6 +14,10 @@ export interface ProblemDetails {
   errorCode: string
   traceId?: string
   errors?: Record<string, string[]>
+  /** A document refusal's failed rule (010 DocumentProblem). */
+  rule?: string
+  /** A JSON Pointer to where a document or token set failed. */
+  pointer?: string
 }
 
 /** An error carrying the server's problem details, so screens can show the real reason. */

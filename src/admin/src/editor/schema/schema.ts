@@ -73,7 +73,7 @@ export const resolvedPropSchema = (type: string, prop: string): JsonObject => {
   const written = propSchema(type, prop)
   if (!isObject(written)) return {}
   const target = pageSchema.resolve(written)
-  const { $ref: _ref, ...beside } = written
+  const beside = Object.fromEntries(Object.entries(written).filter(([key]) => key !== '$ref'))
   return { ...(isObject(target) ? target : {}), ...beside }
 }
 
