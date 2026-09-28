@@ -1,0 +1,400 @@
+{
+  "schemaVersion": 1,
+  "root": {
+    "id": "root",
+    "type": "root",
+    "props": {},
+    "children": [
+      {
+        "id": "section-20",
+        "type": "section",
+        "props": {
+          "layerLabel": "Hero"
+        },
+        "children": [
+          {
+            "id": "container-19",
+            "type": "container",
+            "props": {
+              "direction": "horizontal"
+            },
+            "children": [
+              {
+                "id": "container-9",
+                "type": "container",
+                "props": {},
+                "children": [
+                  {
+                    "id": "heading-1",
+                    "type": "heading",
+                    "props": {
+                      "text": "Heading 1",
+                      "level": 2
+                    },
+                    "children": []
+                  },
+                  {
+                    "id": "text-2",
+                    "type": "text",
+                    "props": {
+                      "text": "Paragraph 1\nwith a second line.",
+                      "size": {
+                        "token": "text-md"
+                      }
+                    },
+                    "children": []
+                  },
+                  {
+                    "id": "richtext-3",
+                    "type": "rich-text",
+                    "props": {
+                      "content": {
+                        "type": "doc",
+                        "content": [
+                          {
+                            "type": "paragraph",
+                            "content": [
+                              {
+                                "type": "text",
+                                "text": "Rich 1 ",
+                                "marks": [
+                                  {
+                                    "type": "bold"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    },
+                    "children": []
+                  },
+                  {
+                    "id": "image-4",
+                    "type": "image",
+                    "props": {
+                      "alt": "Image 1",
+                      "width": "natural"
+                    },
+                    "children": []
+                  },
+                  {
+                    "id": "button-5",
+                    "type": "button",
+                    "props": {
+                      "label": "Button 1",
+                      "link": {
+                        "type": "url",
+                        "href": "https://example.com"
+                      }
+                    },
+                    "children": []
+                  },
+                  {
+                    "id": "spacer-6",
+                    "type": "spacer",
+                    "props": {
+                      "height": {
+                        "token": "space-sm"
+                      }
+                    },
+                    "children": []
+                  },
+                  {
+                    "id": "divider-7",
+                    "type": "divider",
+                    "props": {
+                      "thickness": "thin"
+                    },
+                    "children": []
+                  },
+                  {
+                    "id": "embed-8",
+                    "type": "embed",
+                    "props": {
+                      "url": "https://vimeo.com/76979871",
+                      "title": "Video 1"
+                    },
+                    "children": []
+                  }
+                ]
+              },
+              {
+                "id": "container-18",
+                "type": "container",
+                "props": {},
+                "children": [
+                  {
+                    "id": "heading-10",
+                    "type": "heading",
+                    "props": {
+                      "text": "Heading 2",
+                      "level": 3
+                    },
+                    "children": []
+                  },
+                  {
+                    "id": "text-11",
+                    "type": "text",
+                    "props": {
+                      "text": "Paragraph 2\nwith a second line.",
+                      "size": {
+                        "token": "text-md"
+                      }
+                    },
+                    "children": []
+                  },
+                  {
+                    "id": "richtext-12",
+                    "type": "rich-text",
+                    "props": {
+                      "content": {
+                        "type": "doc",
+                        "content": [
+                          {
+                            "type": "paragraph",
+                            "content": [
+                              {
+                                "type": "text",
+                                "text": "Rich 2 ",
+                                "marks": [
+                                  {
+                                    "type": "bold"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    },
+                    "children": []
+                  },
+                  {
+                    "id": "image-13",
+                    "type": "image",
+                    "props": {
+                      "alt": "Image 2",
+                      "width": "natural"
+                    },
+                    "children": []
+                  },
+                  {
+                    "id": "button-14",
+                    "type": "button",
+                    "props": {
+                      "label": "Button 2",
+                      "link": {
+                        "type": "url",
+                        "href": "https://example.com"
+                      }
+                    },
+                    "children": []
+                  },
+                  {
+                    "id": "spacer-15",
+                    "type": "spacer",
+                    "props": {
+                      "height": {
+                        "token": "space-sm"
+                      }
+                    },
+                    "children": []
+                  },
+                  {
+                    "id": "divider-16",
+                    "type": "divider",
+                    "props": {
+                      "thickness": "thin"
+                    },
+                    "children": []
+                  },
+                  {
+                    "id": "embed-17",
+                    "type": "embed",
+                    "props": {
+                      "url": "https://vimeo.com/76979871",
+                      "title": "Video 2"
+                    },
+                    "children": []
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "section-39",
+        "type": "section",
+        "props": {},
+        "children": [
+          {
+            "id": "container-30",
+            "type": "container",
+            "props": {},
+            "children": [
+              {
+                "id": "container-29",
+                "type": "container",
+                "props": {},
+                "children": [
+                  {
+                    "id": "heading-21",
+                    "type": "heading",
+                    "props": {
+                      "text": "Heading 3",
+                      "level": 4
+                    },
+                    "children": []
+                  },
+                  {
+                    "id": "text-22",
+                    "type": "text",
+                    "props": {
+                      "text": "Paragraph 3\nwith a second line.",
+                      "size": {
+                        "token": "text-md"
+                      }
+                    },
+                    "children": []
+                  },
+                  {
+                    "id": "richtext-23",
+                    "type": "rich-text",
+                    "props": {
+                      "content": {
+                        "type": "doc",
+                        "content": [
+                          {
+                            "type": "paragraph",
+                            "content": [
+                              {
+                                "type": "text",
+                                "text": "Rich 3 ",
+                                "marks": [
+                                  {
+                                    "type": "bold"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    },
+                    "children": []
+                  },
+                  {
+                    "id": "image-24",
+                    "type": "image",
+                    "props": {
+                      "alt": "Image 3",
+                      "width": "natural"
+                    },
+                    "children": []
+                  },
+                  {
+                    "id": "button-25",
+                    "type": "button",
+                    "props": {
+                      "label": "Button 3",
+                      "link": {
+                        "type": "url",
+                        "href": "https://example.com"
+                      }
+                    },
+                    "children": []
+                  },
+                  {
+                    "id": "spacer-26",
+                    "type": "spacer",
+                    "props": {
+                      "height": {
+                        "token": "space-sm"
+                      }
+                    },
+                    "children": []
+                  },
+                  {
+                    "id": "divider-27",
+                    "type": "divider",
+                    "props": {
+                      "thickness": "thin"
+                    },
+                    "children": []
+                  },
+                  {
+                    "id": "embed-28",
+                    "type": "embed",
+                    "props": {
+                      "url": "https://vimeo.com/76979871",
+                      "title": "Video 3"
+                    },
+                    "children": []
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "heading-31",
+            "type": "heading",
+            "props": {
+              "text": "Heading 4",
+              "level": 5
+            },
+            "children": []
+          },
+          {
+            "id": "text-32",
+            "type": "text",
+            "props": {
+              "text": "Paragraph 4\nwith a second line.",
+              "size": {
+                "token": "text-md"
+              }
+            },
+            "children": []
+          },
+          {
+            "id": "richtext-33",
+            "type": "rich-text",
+            "props": {
+              "content": {
+                "type": "doc",
+                "content": [
+                  {
+                    "type": "paragraph",
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": "Rich 4 ",
+                        "marks": [
+                          {
+                            "type": "bold"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            },
+            "children": []
+          },
+          {
+            "id": "image-34",
+            "type": "image",
+            "props": {
+              "alt": "Image 4",
+              "width": "natural"
+            },
+            "children": []
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -2,7 +2,7 @@
 // The page as visitors will see it (FR-002): the site's tokens as custom properties on a
 // frame that is the `page` container for the block styles' container queries (research
 // ED-09). Drops from the palette and moves of blocks land here.
-import { computed, ref } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { dragState, dropResult, endDrag, resolveTarget, setTarget, sourceOf, type DropPosition } from '../dnd/useDragDrop'
 import { useEditorStore } from '../state/editorStore'
@@ -71,6 +71,13 @@ function onDrop(event: DragEvent): void {
   const refused = store.apply(dropResult(store.root, source, target, store.kind, t))
   if (refused) emit('refused', refused.code)
 }
+
+// Whatever selects a block — the layer view, the keyboard — brings it into view (FR-022).
+watch(() => store.selection, async (id) => {
+  if (!id) return
+  await nextTick()
+  frame.value?.querySelector<HTMLElement>(`[data-node-id="${id}"]`)?.scrollIntoView?.({ block: 'nearest' })
+})
 
 function onDragLeave(event: DragEvent): void {
   if (!frame.value?.contains(event.relatedTarget as Node | null)) setTarget(null)

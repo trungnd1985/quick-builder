@@ -476,7 +476,7 @@ keyboard re-ordering and re-parenting, collapse, and layer labels.
 
 ### Tests for User Story 4 ⚠️
 
-- [ ] T088 [P] [US4] Create `ADMINTESTS/editor/LayerView.spec.ts`, which must fail first:
+- [X] T088 [P] [US4] Create `ADMINTESTS/editor/LayerView.spec.ts`, which must fail first:
   - it renders an ARIA `tree` with `treeitem`s nested as the document, labelled with `layerLabel` or the translated type;
   - selecting in the tree selects on the canvas, and the reverse;
   - `Alt+↑/↓/→/←` moves blocks under the nesting rules, and the live region announces each move;
@@ -485,16 +485,16 @@ keyboard re-ordering and re-parenting, collapse, and layer labels.
 
 ### Implementation for User Story 4
 
-- [ ] T089 [US4] Create `ED/layers/LayerView.vue` and `ED/layers/LayerRow.vue`:
+- [X] T089 [US4] Create `ED/layers/LayerView.vue` and `ED/layers/LayerRow.vue`:
   - a `role="tree"` with roving `tabindex`, `aria-expanded` for Sections and Containers, and `aria-selected`;
   - the arrow-key tree navigation from the WAI-ARIA tree pattern, plus the ED-11 move keys;
   - rows draggable through `useDragDrop` with the same `canDrop`;
   - collapse state held locally.
 
   Mount it in `ED/EditorView.vue`.
-- [ ] T090 [US4] Keep the canvas and the layer view scrolled to the selection: on a selection change, `scrollIntoView({ block: 'nearest' })` the `[data-node-id]` element in the view that did not originate the change (FR-022).
-- [ ] T091 [US4] Allow renaming a layer by double click or `F2` on a row, using `setLabel`. An empty value removes `layerLabel`. Add the `editor.layers.*` keys to `ADMIN/i18n/en.json`. T088 now passes.
-- [ ] T092 [P] [US4] Create `tests/fixtures/editor/deep-page.json`: a valid page document with at least 30 blocks nested 4 levels deep, using every block type, and validated by the golden-file runner in `PageDocumentValidatorTests`.
+- [X] T090 [US4] Keep the canvas and the layer view scrolled to the selection: on a selection change, `scrollIntoView({ block: 'nearest' })` the `[data-node-id]` element in the view that did not originate the change (FR-022).
+- [X] T091 [US4] Allow renaming a layer by double click or `F2` on a row, using `setLabel`. An empty value removes `layerLabel`. Add the `editor.layers.*` keys to `ADMIN/i18n/en.json`. T088 now passes.
+- [X] T092 [P] [US4] Create `tests/fixtures/editor/deep-page.json`: a valid page document with at least 30 blocks nested 4 levels deep, using every block type, and validated by the golden-file runner in `PageDocumentValidatorTests`.
 
 **Checkpoint**: quickstart §4 passes.
 
@@ -637,7 +637,7 @@ validation run.
 
 - [ ] T112 [P] Create `ADMINTESTS/editor/NoThirdPartyRequests.spec.ts`. Render every block type (including an Embed with a YouTube URL and every font stack) in `Canvas.vue`, and assert that no element in the canvas has a `src`, `href`, `srcset` or CSS `url()` outside the installation's origin, and that no `iframe`, `script` or `link[rel=stylesheet]` exists (SC-008, FR-035).
 - [ ] T113 [P] Extend `ITESTS/Observability/LoggingTests.cs`: saving a draft with block text and saving tokens writes no document content, token names or values to the logs (FR-045).
-- [ ] T114 [P] Create `tests/fixtures/editor/page-500.json`, a valid 500-block page document using every block type, checked by the golden runner.
+- [X] T114 [P] Create `tests/fixtures/editor/page-500.json`, a valid 500-block page document using every block type, checked by the golden runner.
 - [ ] T115 [P] Extend `STESTS/ReferenceDeploymentSmokeTests.cs` after step 9c (FR-044, E-5):
   - GET `/admin/sites/{id}/pages/{pageId}/edit` returns 200 with the app shell;
   - PUT the page draft with a Section holding a Heading, read it back, and assert the two node types;

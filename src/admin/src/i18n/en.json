@@ -804,6 +804,11 @@
       "openReadOnly": "Open read-only to copy blocks",
       "discard": "Discard them",
       "restored": "Your unsaved changes are back and will be saved."
+    },
+    "layers": {
+      "title": "Layers",
+      "empty": "The page has no blocks yet.",
+      "rename": "Layer name"
     }
   }
 }

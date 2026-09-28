@@ -13,6 +13,7 @@ import { useAuthStore } from '../app/authStore'
 import PageCanvas from './canvas/PageCanvas.vue'
 import BlockPalette from './palette/BlockPalette.vue'
 import PropertyPanel from './panel/PropertyPanel.vue'
+import LayerView from './layers/LayerView.vue'
 import ConflictBanner from './ConflictBanner.vue'
 import RecoveryDialog from './RecoveryDialog.vue'
 import EditorTopBar from './EditorTopBar.vue'
@@ -361,11 +362,12 @@ defineExpose({ autosave: () => autosave, history })
         :aria-label="t('editor.sidebar')"
       >
         <PropertyPanel />
+        <LayerView @refused="refused" />
       </aside>
     </div>
 
     <p
-      class="visually-hidden"
+      class="visually-hidden editor-announcer"
       aria-live="polite"
     >
       {{ announcement }}

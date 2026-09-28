@@ -261,6 +261,22 @@ public sealed class PageDocumentValidatorTests
         Assert.Equal(("unknown_type", "/root/children/0/type"), (result.Rule, result.Location));
     }
 
+    [Theory]
+    [InlineData("deep-page.json", 30)]
+    [InlineData("page-500.json", 500)]
+    public void The_editor_fixture_pages_are_valid(string file, int atLeastNodes)
+    {
+        // 011 T092, T114: the pages the quickstart and the performance tests load must be
+        // valid documents, and as large as they claim.
+        var path = Path.Combine(ContractFiles.Root, "tests", "fixtures", "editor", file);
+        var bytes = File.ReadAllBytes(path);
+
+        var result = Validator.Validate(bytes, DocumentKind.Page);
+
+        Assert.True(result.IsValid, $"{file}: {result.Rule} at '{result.Location}'");
+        Assert.True(Encoding.UTF8.GetString(bytes).Split("\"type\":").Length - 1 >= atLeastNodes, $"{file} has fewer than {atLeastNodes} nodes.");
+    }
+
     [Fact]
     public void The_component_example_is_a_valid_component_document()
     {

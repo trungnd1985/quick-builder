@@ -276,3 +276,85 @@
   display: flex;
   gap: 0.5rem;
 }
+
+/* Layer view */
+.editor-layers {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+
+.editor-layers__tree {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.editor-layer {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  min-height: 2rem;
+  padding-block: 0.125rem;
+  padding-inline-end: 0.25rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.875rem;
+}
+
+.editor-layer:hover {
+  background: var(--surface);
+}
+
+.editor-layer[aria-selected='true'] {
+  background: var(--accent);
+  color: var(--accent-text);
+}
+
+.editor-layer__twisty {
+  flex: none;
+  width: 1rem;
+  text-align: center;
+}
+
+.editor-layer__twisty--open::before {
+  content: '\25BE';
+}
+
+.editor-layer__twisty--closed::before {
+  content: '\25B8';
+}
+
+.editor-layer__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.editor-layer__type {
+  margin-inline-start: auto;
+  font-size: 0.75rem;
+  opacity: 0.75;
+}
+
+.editor-layer__rename {
+  flex: 1;
+  min-width: 0;
+}
+
+.editor-layer--drop-before {
+  box-shadow: inset 0 3px 0 #0a5ad6;
+}
+
+.editor-layer--drop-after {
+  box-shadow: inset 0 -3px 0 #0a5ad6;
+}
+
+.editor-layer--drop-inside {
+  outline: 2px solid #0a5ad6;
+}
+
+.editor-layer--drop-refused {
+  outline-color: #a4232f;
+  box-shadow: none;
+}
