@@ -33,9 +33,9 @@ async function signOut(): Promise<void> {
     without the navigation frame: there is nothing to navigate to yet.
   -->
   <main
-    v-if="route.meta.bare"
+    v-if="route.meta.bare || route.meta.fullscreen"
     id="main"
-    class="bare"
+    :class="route.meta.fullscreen ? 'fullscreen' : 'bare'"
     tabindex="-1"
   >
     <RouterView />

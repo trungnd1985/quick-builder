@@ -15,8 +15,10 @@ import { useAuthStore } from './authStore'
 
 declare module 'vue-router' {
   interface RouteMeta {
-    /** Shown without the navigation frame: the screens before anyone is signed in, and the editor. */
+    /** Shown without the navigation frame, in a narrow column: the screens before anyone is signed in. */
     bare?: boolean
+    /** Shown without the navigation frame, across the whole window: the editor (011). */
+    fullscreen?: boolean
     /** Reachable without a session. */
     public?: boolean
     /** Offered only to administrators. A courtesy: the server enforces access (FR-024). */
@@ -57,14 +59,14 @@ export function createAppRouter(history: RouterHistory = createWebHistory('/admi
         name: 'page-editor',
         component: () => import('../editor/EditorView.vue'),
         props: (route) => ({ siteId: route.params.siteId, kind: 'page', documentId: route.params.pageId }),
-        meta: { bare: true },
+        meta: { fullscreen: true },
       },
       {
         path: '/sites/:siteId/components/:componentId/edit',
         name: 'component-editor',
         component: () => import('../editor/EditorView.vue'),
         props: (route) => ({ siteId: route.params.siteId, kind: 'component', documentId: route.params.componentId }),
-        meta: { bare: true },
+        meta: { fullscreen: true },
       },
       { path: '/settings', name: 'settings', component: SettingsView },
       { path: '/account', name: 'account', component: AccountView },

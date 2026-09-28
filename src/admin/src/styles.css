@@ -255,6 +255,12 @@ button:disabled:where(:not(.qb-canvas *)) {
   padding: 0 1rem;
 }
 
+/* 011: the editor takes the whole window, with no navigation frame and no width cap. */
+.fullscreen {
+  margin: 0;
+  padding: 0;
+}
+
 .user-menu {
   display: flex;
   align-items: center;
