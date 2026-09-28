@@ -399,10 +399,74 @@ defineExpose({ autosave: () => autosave, history })
   background: var(--surface);
 }
 
+/*
+  Three columns on a wide screen; the canvas always keeps most of the room. Narrower, the
+  blocks list moves above the properties on the right; on a phone-sized window everything
+  stacks and the page scrolls. The editor is meant for desktop-class screens (spec
+  Assumptions), but it must stay usable on a small window rather than crush the canvas.
+*/
 .editor-body {
   display: grid;
   grid-template-columns: 240px minmax(0, 1fr) 320px;
+  grid-template-areas: 'left center right';
   min-height: 0;
+}
+
+.editor-left {
+  grid-area: left;
+}
+
+.editor-center {
+  grid-area: center;
+}
+
+.editor-right {
+  grid-area: right;
+}
+
+@media (max-width: 1100px) {
+  .editor-body {
+    grid-template-columns: minmax(0, 1fr) 300px;
+    grid-template-rows: auto minmax(0, 1fr);
+    grid-template-areas:
+      'center left'
+      'center right';
+  }
+
+  .editor-left {
+    max-height: 40vh;
+    border-right: 0;
+    border-left: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+}
+
+@media (max-width: 760px) {
+  .editor {
+    height: auto;
+    min-height: 100vh;
+  }
+
+  .editor-body {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto auto;
+    grid-template-areas: 'left' 'center' 'right';
+  }
+
+  .editor-left,
+  .editor-right {
+    max-height: none;
+    border: 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .editor-center {
+    min-height: 70vh;
+  }
+
+  .editor-canvas-scroll {
+    padding: 1rem 0.5rem;
+  }
 }
 
 .editor-left,

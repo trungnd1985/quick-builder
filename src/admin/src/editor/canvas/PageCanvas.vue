@@ -23,15 +23,23 @@ const frame = ref<HTMLElement | null>(null)
 
 // When the editor area is narrower than the chosen width, the frame is scaled to fit. Only its
 // look is scaled: its layout width, which the block styles' container queries read, stays the
-// chosen width (research ED-09).
+// chosen width (research ED-09). Never below half size — smaller is unreadable; past that the
+// area scrolls sideways instead.
 const stage = ref<HTMLElement | null>(null)
 const scale = ref(1)
 const frameHeight = ref(0)
 let observer: ResizeObserver | null = null
 
+const MIN_SCALE = 0.5
+
 function measure(): void {
-  const available = stage.value?.parentElement?.clientWidth ?? 0
-  scale.value = available > 0 ? Math.min(1, (available - 32) / props.width) : 1
+  const area = stage.value?.parentElement
+  let available = 0
+  if (area) {
+    const padding = getComputedStyle(area)
+    available = area.clientWidth - parseFloat(padding.paddingLeft || '0') - parseFloat(padding.paddingRight || '0')
+  }
+  scale.value = available > 0 ? Math.max(MIN_SCALE, Math.min(1, available / props.width)) : 1
   frameHeight.value = frame.value?.offsetHeight ?? 0
 }
 
@@ -47,9 +55,14 @@ watch(() => props.width, () => nextTick(measure))
 const style = computed(() => ({
   ...tokenCss(store.tokens),
   width: `${props.width}px`,
-  ...(scale.value < 1 ? { transform: `scale(${scale.value})`, transformOrigin: 'top center' } : {}),
+  ...(scale.value < 1 ? { transform: `scale(${scale.value})`, transformOrigin: 'top left' } : {}),
 }))
-const stageStyle = computed(() => (scale.value < 1 && frameHeight.value > 0 ? { height: `${frameHeight.value * scale.value}px` } : {}))
+// The stage takes the frame's scaled size, so the scroll area scrolls exactly as far as needed.
+const stageStyle = computed(() =>
+  scale.value < 1
+    ? { width: `${props.width * scale.value}px`, ...(frameHeight.value > 0 ? { height: `${frameHeight.value * scale.value}px` } : {}) }
+    : { width: `${props.width}px` },
+)
 const empty = computed(() => (store.root?.children.length ?? 0) === 0)
 
 /** Where over which node the pointer is, from the geometry of the node under it. */
@@ -141,7 +154,10 @@ defineExpose({ frame })
         <p>{{ t('editor.canvas.emptyPage.title') }}</p>
         <p>{{ t(store.kind === 'page' ? 'editor.canvas.emptyPage.body' : 'editor.canvas.emptyPage.componentBody') }}</p>
       </div>
-      <DropIndicator :frame="frame" />
+      <DropIndicator
+        :frame="frame"
+        :scale="scale"
+      />
     </div>
   </div>
 </template>

@@ -5,7 +5,7 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { dragState } from '../dnd/useDragDrop'
 
-const props = defineProps<{ frame: HTMLElement | null }>()
+const props = withDefaults(defineProps<{ frame: HTMLElement | null; scale?: number }>(), { scale: 1 })
 const { t } = useI18n()
 
 const geometry = computed(() => {
@@ -14,10 +14,14 @@ const geometry = computed(() => {
 
   // Node ids are [A-Za-z0-9_-] (page-schema.md §1), so they need no escaping in a selector.
   const anchor = props.frame.querySelector<HTMLElement>(`[data-node-id="${target.anchorId}"]`)
+  // Screen rectangles are scaled with the frame; the indicator is placed inside the frame,
+  // in its own unscaled pixels.
+  const s = props.scale || 1
   const frameRect = props.frame.getBoundingClientRect()
-  const rect = anchor?.getBoundingClientRect() ?? frameRect
-  const top = rect.top - frameRect.top
-  const left = rect.left - frameRect.left
+  const box = anchor?.getBoundingClientRect() ?? frameRect
+  const rect = { width: box.width / s, height: box.height / s }
+  const top = (box.top - frameRect.top) / s
+  const left = (box.left - frameRect.left) / s
 
   if (target.position === 'inside' || !anchor) {
     return { kind: 'box', style: { top: `${top}px`, left: `${left}px`, width: `${rect.width}px`, height: `${rect.height}px` } }
