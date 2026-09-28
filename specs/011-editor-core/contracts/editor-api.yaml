@@ -1,0 +1,186 @@
+openapi: 3.1.0
+info:
+  title: QuickBuilder Editor API
+  version: v1
+  description: |
+    HTTP contract for feature 011 (issue #11): a site's design tokens (Editor module), and
+    one read-only addition to the Pages API for counting token usage. All of it is on the
+    **administrative surface**. The site is named in the route and never inferred from the
+    host. Nothing here changes what visitors see (Principle VII).
+
+    Error bodies, authentication, setup, CSRF and site visibility (401, 403 `identity.*`,
+    404 `sites.not_found`, 428) behave exactly as 002 contracts/authorization.md §3
+    describes and as 010's pages-api.yaml repeats. A caller who may see the site but lacks
+    the capability gets `403 identity.forbidden`.
+
+    State-changing requests need `X-QuickBuilder-Request: 1` and a same-origin `Origin`.
+
+    Capabilities (research ED-20):
+    - `editor.design_tokens.view`: Designer and Editor.
+    - `editor.design_tokens.manage`: Designer.
+    - `pages.content.view` (010), for token usage.
+
+    Administrator holds all of them.
+
+    Page and component drafts are read and saved through 010's unchanged endpoints
+    (`/api/v1/pages/sites/{siteId}/pages/{pageId}/draft` and
+    `/components/{componentId}/draft`). This feature extends only the document format
+    they accept (contracts/page-schema-blocks.md) and adds two `rule` values to
+    `DocumentProblem`: `nesting_not_allowed` and `rich_text_too_long`.
+
+servers:
+  - url: /
+
+tags:
+  - name: Design tokens
+  - name: Token usage
+
+paths:
+  /api/v1/editor/sites/{siteId}/design-tokens:
+    parameters:
+      - $ref: '#/components/parameters/SiteId'
+    get:
+      tags: [Design tokens]
+      operationId: getDesignTokens
+      summary: The site's design token set
+      description: |
+        Requires `editor.design_tokens.view`. A site that has never saved tokens gets the
+        built-in default set with `version: 0` (research ED-14).
+      responses:
+        '200':
+          description: The token set.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DesignTokens' }
+    put:
+      tags: [Design tokens]
+      operationId: saveDesignTokens
+      summary: Replace the site's design token set
+      description: |
+        Requires `editor.design_tokens.manage`. A whole-document save against `version`.
+        `version: 0` is accepted only while the site has never saved tokens. Deleting a
+        token is simply leaving it out; blocks that refer to it fall back to their
+        property default (clarification Q4). The admin shell asks
+        `getTokenUsage` first, to warn with the count.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SaveDesignTokensRequest' }
+      responses:
+        '200':
+          description: Saved. Returns the token set with its new `version`.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DesignTokens' }
+        '400':
+          $ref: '#/components/responses/TokensProblem'
+          description: |
+            `editor.invalid_tokens` (with `pointer`), `editor.unsupported_schema_version`,
+            `editor.duplicate_token_id`, `editor.duplicate_token_name` or
+            `editor.token_required`.
+        '409':
+          $ref: '#/components/responses/Problem'
+          description: '`editor.out_of_date`.'
+        '413':
+          $ref: '#/components/responses/Problem'
+          description: '`editor.tokens_too_large` (more than 64 KiB).'
+
+  /api/v1/pages/sites/{siteId}/token-usages/{tokenId}:
+    parameters:
+      - $ref: '#/components/parameters/SiteId'
+      - name: tokenId
+        in: path
+        required: true
+        schema: { type: string, pattern: '^[a-z0-9-]{1,40}$' }
+    get:
+      tags: [Token usage]
+      operationId: getTokenUsage
+      summary: How many blocks in this site's drafts refer to a design token
+      description: |
+        Pages module. Requires `pages.content.view`. Counts over every page draft and
+        component draft of the site, at the time of the request. Nothing is stored
+        (research ED-16). A token that no block uses, or that doesn't exist, gives zeros.
+      responses:
+        '200':
+          description: The counts.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [tokenId, blockCount, documentCount]
+                properties:
+                  tokenId: { type: string }
+                  blockCount: { type: integer, minimum: 0, description: Nodes whose props refer to the token, summed over documents. }
+                  documentCount: { type: integer, minimum: 0, description: Page and component drafts with at least one such node. }
+        '400':
+          $ref: '#/components/responses/Problem'
+          description: '`pages.invalid_token_id`.'
+
+components:
+  parameters:
+    SiteId:
+      name: siteId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+
+  responses:
+    Problem:
+      description: A refusal in 001's problem shape.
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    TokensProblem:
+      description: A token set refusal. `pointer` locates the first failure where there is one.
+      content:
+        application/problem+json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/Problem'
+              - type: object
+                properties:
+                  pointer:
+                    type: string
+                    description: A JSON Pointer into the submitted document, e.g. `/colors/3/value`.
+
+  schemas:
+    Problem:
+      type: object
+      required: [type, title, status, errorCode]
+      properties:
+        type: { type: string }
+        title: { type: string }
+        status: { type: integer }
+        detail: { type: string }
+        errorCode: { type: string }
+        traceId: { type: [string, 'null'] }
+
+    DesignTokens:
+      type: object
+      required: [siteId, version, document, isDefault, permissions]
+      properties:
+        siteId: { type: string, format: uuid }
+        version: { type: integer, minimum: 0, description: '0 until the first save.' }
+        isDefault: { type: boolean, description: True while the site has never saved tokens. }
+        document:
+          description: A token set document. The shape is docs/contracts/design-tokens/v1.schema.json (contracts/design-tokens.md).
+          type: object
+        updatedAtUtc: { type: [string, 'null'], format: date-time }
+        updatedBy:
+          type: [object, 'null']
+          properties:
+            id: { type: string, format: uuid }
+            displayName: { type: [string, 'null'] }
+        permissions:
+          type: object
+          required: [canManage]
+          properties:
+            canManage: { type: boolean, description: A courtesy for the UI. The server checks every save. }
+
+    SaveDesignTokensRequest:
+      type: object
+      required: [document, version]
+      properties:
+        document: { type: object }
+        version: { type: integer, minimum: 0 }
