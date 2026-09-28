@@ -41,6 +41,8 @@ COPY src/Modules/Media/QuickBuilder.Media.Contracts/*.csproj          src/Module
 COPY src/Modules/Media/QuickBuilder.Media/*.csproj                    src/Modules/Media/QuickBuilder.Media/
 COPY src/Modules/Pages/QuickBuilder.Pages.Contracts/*.csproj          src/Modules/Pages/QuickBuilder.Pages.Contracts/
 COPY src/Modules/Pages/QuickBuilder.Pages/*.csproj                    src/Modules/Pages/QuickBuilder.Pages/
+COPY src/Modules/Editor/QuickBuilder.Editor.Contracts/*.csproj        src/Modules/Editor/QuickBuilder.Editor.Contracts/
+COPY src/Modules/Editor/QuickBuilder.Editor/*.csproj                  src/Modules/Editor/QuickBuilder.Editor/
 RUN dotnet restore src/QuickBuilder.Host/QuickBuilder.Host.csproj
 
 # The .NET folders only. src/admin/ is built by the Node stage above; copying it here
@@ -51,6 +53,7 @@ COPY src/Modules/           src/Modules/
 
 # 010 research P-09: Pages.Contracts embeds the page schema from where the contract
 # document keeps it, so the published image carries exactly the file docs/ describes.
+# 011: Editor.Contracts embeds the design token schema and its default set the same way.
 COPY docs/contracts/        docs/contracts/
 
 # The admin build output goes into wwwroot before publish, so it ships inside the image.

@@ -826,7 +826,8 @@
       "shared": "Shared",
       "open": "Open the component to edit it",
       "loading": "Loading the shared component…",
-      "missing": "This shared component could not be shown."
+      "missing": "This shared component could not be shown.",
+      "nested": "A shared component cannot contain another one, so this one is not shown."
     }
   },
   "design": {

@@ -5,7 +5,7 @@
 //
 // The content renders in the canvas's static mode: no node ids, no selection, no editing. A
 // component's ids are unique only within the component, so they must not mix with the page's.
-import { computed, provide } from 'vue'
+import { computed, inject, provide } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { ContentNode } from '../schema/schema'
 import { useEditorStore } from '../state/editorStore'
@@ -17,17 +17,29 @@ const props = defineProps<{ node: ContentNode }>()
 const { t } = useI18n()
 const store = useEditorStore()
 
+/**
+ * A reference inside a component's own content cannot happen — the server refuses it
+ * (contract rule 7) — but if one ever did, drawing it would recurse without end. It is shown
+ * as a placeholder instead.
+ */
+const nested = inject(STATIC_CANVAS, false)
 provide(STATIC_CANVAS, true)
 
 const componentId = computed(() => (typeof props.node.props.componentId === 'string' ? props.node.props.componentId : ''))
-const shared = computed(() => useSharedComponent(store.siteId, componentId.value))
+const shared = computed(() => (nested ? { state: 'missing' as const, name: '', root: null } : useSharedComponent(store.siteId, componentId.value)))
 </script>
 
 <template>
   <div class="qb-component-ref">
     <span class="qb-component-ref__badge">{{ t('editor.components.shared') }}<template v-if="shared.name">: {{ shared.name }}</template></span>
     <div
-      v-if="shared.state === 'ready' && shared.root"
+      v-if="nested"
+      class="qb-editor-placeholder"
+    >
+      {{ t('editor.components.nested') }}
+    </div>
+    <div
+      v-else-if="shared.state === 'ready' && shared.root"
       class="qb-component-ref__content"
       inert
     >

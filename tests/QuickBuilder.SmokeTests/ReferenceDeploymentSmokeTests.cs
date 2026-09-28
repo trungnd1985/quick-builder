@@ -241,6 +241,36 @@ public sealed class ReferenceDeploymentSmokeTests(ITestOutputHelper output) : IA
         Assert.True(JsonElement.DeepEquals(expected.RootElement, readBack.GetProperty("document")));
         output.WriteLine("page and child page created; draft saved and read back");
 
+        // 9d. 011 FR-044 (plan exception E-5): the editor's route is served by the image, a
+        //     draft holding a Section with a Heading — what the editor saves when a member adds
+        //     them — is accepted and read back, and the site starts with the default design
+        //     tokens. Driving the editor itself in a browser waits for the harness in #25.
+        var editorPage = await client
+            .GetAsync(new Uri($"/admin/sites/{siteId}/pages/{homeId}/edit", UriKind.Relative))
+            .ConfigureAwait(true);
+        Assert.Equal(HttpStatusCode.OK, editorPage.StatusCode);
+        Assert.Contains("<div id=\"app\"", await editorPage.Content.ReadAsStringAsync().ConfigureAwait(true), StringComparison.Ordinal);
+
+        var homeDraft = new Uri($"{pages}/{homeId}/draft", UriKind.Relative);
+        var homeVersion = (await client.GetFromJsonAsync<JsonElement>(homeDraft).ConfigureAwait(true)).GetProperty("version").GetUInt32();
+        const string Blocks = """
+            {"schemaVersion":1,"root":{"id":"root","type":"root","props":{},"children":[
+              {"id":"s1","type":"section","props":{},"children":[
+                {"id":"h1","type":"heading","props":{"text":"Welcome","level":1},"children":[]}]}]}}
+            """;
+        using var saveBlocks = new StringContent($$"""{"version":{{homeVersion}},"document":{{Blocks}}}""", System.Text.Encoding.UTF8, "application/json");
+        Assert.Equal(HttpStatusCode.OK, (await client.PutAsync(homeDraft, saveBlocks).ConfigureAwait(true)).StatusCode);
+
+        var blocks = (await client.GetFromJsonAsync<JsonElement>(homeDraft).ConfigureAwait(true)).GetProperty("document").GetProperty("root").GetProperty("children");
+        Assert.Equal("section", blocks[0].GetProperty("type").GetString());
+        Assert.Equal("heading", blocks[0].GetProperty("children")[0].GetProperty("type").GetString());
+
+        var tokens = await client
+            .GetFromJsonAsync<JsonElement>(new Uri($"/api/v1/editor/sites/{siteId}/design-tokens", UriKind.Relative))
+            .ConfigureAwait(true);
+        Assert.True(tokens.GetProperty("isDefault").GetBoolean());
+        output.WriteLine("editor route served; a Section with a Heading saved and read back; default design tokens");
+
         // 10. Operator recovery (002 US5): with command-line access to the container, the
         //     operator issues a set-password link for the administrator, sets a new password
         //     through it, and signs in with that password.

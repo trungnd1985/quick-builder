@@ -228,19 +228,34 @@ checks that you did it (009 FR-024, FR-025). Four obligations, detailed in
 ## Adding a block type
 
 Page and component content follows the page schema contract,
-[docs/contracts/page-schema.md](contracts/page-schema.md). A new kind of block is an
-**additive** change to version 1, so no stored document needs migrating:
+[docs/contracts/page-schema.md](contracts/page-schema.md). A block type is defined once
+(constitution Principle VI): the schema says what it is, and one folder in the admin app
+says how the editor draws and edits it. A new kind of block is an **additive** change to
+version 1, so no stored document needs migrating:
 
-1. Add a `$defs` entry for it in `docs/contracts/page-schema/v1.schema.json`, and a branch
-   for it in `childNode.oneOf`. Its `properties.type` must be a `const` — that is how the
-   validator tells branches apart — and it must use only the keywords listed in §7.
-   *Guard*: `PageSchemaSubsetTests`.
-2. Add its row to the node-type table in `page-schema.md` §2. *Guard*:
-   `PageSchemaContractTests` fails while the table and the schema disagree.
-3. Add golden examples under `docs/contracts/page-schema/examples/`: at least one valid
+1. Add a `$defs` entry for it in `docs/contracts/page-schema/v1.schema.json`, with its
+   props, their limits and a `default` for every optional prop. Its `properties.type` must
+   be a `const`, and it must use only the keywords listed in §7; patterns must stay within
+   what .NET and JavaScript read alike. *Guard*: `PageSchemaSubsetTests`.
+2. Add it to the placement list it belongs in: `rootChild` (beside Sections, under the
+   page) or `contentChild` (inside Sections and Containers). That is also how the editor
+   learns where it may be dropped.
+3. Add its row to the node-type table in `page-schema.md` §2. *Guard*:
+   `PageSchemaContractTests` fails while the table and the schema disagree, or while the
+   type has no valid and no invalid golden example.
+4. Add golden examples under `docs/contracts/page-schema/examples/`: at least one valid
    document using it, and an invalid one for each rule its props can break, listed in
-   `invalid/expected.json`.
-4. Never give it a property that holds HTML. Rich text is structured JSON (§3 rule 8).
+   `invalid/expected.json`. Both validators — C# and the editor's TypeScript — run them.
+5. Add its editor folder, `src/admin/src/editor/blocks/<type>/`: a `definition.ts` (palette
+   label and icon, the panel's groups and a control for every prop, and the values a new
+   block starts with) and a `<Type>Block.vue` canvas component; register it in
+   `blocks/registry.ts`; put its styles in `blocks/blocks.css` under `@layer qb-blocks`,
+   using token custom properties and `@container page` queries, never media queries.
+   *Guard*: `BlockRegistryCoverage.spec.ts` fails while the schema and the registry
+   disagree about types or props.
+6. Never give it a property that holds HTML, and never draw one with `v-html` (lint
+   refuses it). Rich text is structured JSON (§3 rule 8).
+7. From #12, add its renderer.
 
 Anything that would make a stored document invalid — removing or renaming a type or a prop,
 making a prop required — is a **breaking** change: it needs `v2.schema.json`, a forward

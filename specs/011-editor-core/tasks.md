@@ -635,23 +635,23 @@ component's content, read-only in place; the palette inserts components into pag
 **Purpose**: no outbound requests, logging, smoke and performance, docs, CI, and the manual
 validation run.
 
-- [ ] T112 [P] Create `ADMINTESTS/editor/NoThirdPartyRequests.spec.ts`. Render every block type (including an Embed with a YouTube URL and every font stack) in `Canvas.vue`, and assert that no element in the canvas has a `src`, `href`, `srcset` or CSS `url()` outside the installation's origin, and that no `iframe`, `script` or `link[rel=stylesheet]` exists (SC-008, FR-035).
-- [ ] T113 [P] Extend `ITESTS/Observability/LoggingTests.cs`: saving a draft with block text and saving tokens writes no document content, token names or values to the logs (FR-045).
+- [X] T112 [P] Create `ADMINTESTS/editor/NoThirdPartyRequests.spec.ts`. Render every block type (including an Embed with a YouTube URL and every font stack) in `Canvas.vue`, and assert that no element in the canvas has a `src`, `href`, `srcset` or CSS `url()` outside the installation's origin, and that no `iframe`, `script` or `link[rel=stylesheet]` exists (SC-008, FR-035).
+- [X] T113 [P] Extend `ITESTS/Observability/LoggingTests.cs`: saving a draft with block text and saving tokens writes no document content, token names or values to the logs (FR-045).
 - [X] T114 [P] Create `tests/fixtures/editor/page-500.json`, a valid 500-block page document using every block type, checked by the golden runner.
-- [ ] T115 [P] Extend `STESTS/ReferenceDeploymentSmokeTests.cs` after step 9c (FR-044, E-5):
+- [X] T115 [P] Extend `STESTS/ReferenceDeploymentSmokeTests.cs` after step 9c (FR-044, E-5):
   - GET `/admin/sites/{id}/pages/{pageId}/edit` returns 200 with the app shell;
   - PUT the page draft with a Section holding a Heading, read it back, and assert the two node types;
   - GET `/api/v1/editor/sites/{id}/design-tokens` returns the defaults.
 
   Update the class remarks to name E-5.
-- [ ] T116 [P] Create `STESTS/EditorOpenPerformanceTests.cs`: with `page-500.json` saved, the draft, tokens and component list are fetched in parallel in under 1 s at p95 over 20 runs. Create `STESTS/TokenUsagePerformanceTests.cs`: a site with 2,000 pages, each with a 20-block draft, and one token-usage count takes under 1 s. Follow `PageTreePerformanceTests.cs`'s pattern.
-- [ ] T117 [P] Add `QuickBuilder.Editor` to the per-package coverage loop in `.github/workflows/ci.yml` (Principle X, plan).
-- [ ] T118 [P] Update the documentation:
+- [X] T116 [P] (Done as one test, `STESTS/EditorPerformanceTests.cs`, so the 2,000-page site is seeded once.) Create `STESTS/EditorOpenPerformanceTests.cs`: with `page-500.json` saved, the draft, tokens and component list are fetched in parallel in under 1 s at p95 over 20 runs. Create `STESTS/TokenUsagePerformanceTests.cs`: a site with 2,000 pages, each with a 20-block draft, and one token-usage count takes under 1 s. Follow `PageTreePerformanceTests.cs`'s pattern.
+- [X] T117 [P] Add `QuickBuilder.Editor` to the per-package coverage loop in `.github/workflows/ci.yml` (Principle X, plan).
+- [X] T118 [P] Update the documentation:
   - `docs/contributing.md` "Adding a block type": the `$defs` entry, the placement list, golden files, `ED/blocks/<type>/definition.ts` and component, and `blocks.css`;
   - `docs/operations.md` "Editor": browser storage (recovery copies, clipboard), clearing on sign-out, no outbound requests, embeds as placeholders, fonts as system stacks;
   - the upgrade notes from plan.md in the release notes draft.
 - [ ] T119 Run [quickstart.md](./quickstart.md) §1–§10 by hand on the reference compose setup, in Chrome or Edge and in Firefox. Record the results, the SC-001 time, SC-005's `qb:select`, `qb:set-prop` and `qb:drop` timings (add these `performance.measure` marks, development builds only, in `ED/state/editorStore.ts` and `ED/dnd/useDragDrop.ts`) and the browser versions in `specs/011-editor-core/quickstart-results.md`.
-- [ ] T120 Run `dotnet format --verify-no-changes`, `dotnet test`, and `npm run lint && npm run type-check && npm test && npm run build` in `src/admin`. Fix any failures. Confirm the admin main chunk does not include TipTap: check the Vite build output and note the chunk sizes in `quickstart-results.md`.
+- [X] T120 Run `dotnet format --verify-no-changes`, `dotnet test`, and `npm run lint && npm run type-check && npm test && npm run build` in `src/admin`. Fix any failures. Confirm the admin main chunk does not include TipTap: check the Vite build output and note the chunk sizes in `quickstart-results.md`.
 
 ---
 
