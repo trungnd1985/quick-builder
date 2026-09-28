@@ -74,7 +74,9 @@ export function createAutosave(
   }
 
   function schedule(): void {
-    if (stopped()) return
+    // Read-only means nothing on screen may reach the server: a recovery copy opened for
+    // copying, say, is based on an older version and must never overwrite the newer one.
+    if (stopped() || store.readOnly) return
     if (store.root === store.savedRoot) {
       if (!inFlight && state.value !== 'retrying') state.value = 'saved'
       return
@@ -98,7 +100,7 @@ export function createAutosave(
   }
 
   async function saveNow(): Promise<void> {
-    if (stopped() || !store.root) return
+    if (stopped() || store.readOnly || !store.root) return
     if (inFlight) {
       changedWhileSaving = true
       return

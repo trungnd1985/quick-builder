@@ -108,8 +108,8 @@ export interface Mounted {
 }
 
 /** Mounts the editor on the page (or component) and waits until it has opened. */
-export async function mountEditor(kind: 'page' | 'component' = 'page'): Promise<Mounted> {
-  const pinia = createPinia()
+export async function mountEditor(kind: 'page' | 'component' = 'page', existing?: Pinia): Promise<Mounted> {
+  const pinia = existing ?? createPinia()
   setActivePinia(pinia)
   const router = createRouter({
     history: createMemoryHistory(),

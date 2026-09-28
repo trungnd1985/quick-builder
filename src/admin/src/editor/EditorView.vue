@@ -2,9 +2,10 @@
 // The visual editor for one page's or one shared component's draft (011 FR-001).
 //
 // Palette on the left, the canvas in the middle, the property panel and layer view on the
-// right. Every change goes through the editor store as an operation; autosave, undo and the
-// recovery copy follow from there. Keyboard commands are bound here, on the editor's root.
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+// right. Every change goes through the editor store as an operation; history, autosave and
+// the recovery copy all follow from there. Keyboard commands are bound here, on the editor's
+// root.
+import { computed, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { onBeforeRouteLeave } from 'vue-router'
 import { pagesApi } from '../api/pages'
@@ -12,13 +13,19 @@ import { useAuthStore } from '../app/authStore'
 import PageCanvas from './canvas/PageCanvas.vue'
 import BlockPalette from './palette/BlockPalette.vue'
 import PropertyPanel from './panel/PropertyPanel.vue'
+import ConflictBanner from './ConflictBanner.vue'
+import RecoveryDialog from './RecoveryDialog.vue'
 import EditorTopBar from './EditorTopBar.vue'
-import { refusalKey, ruleKey } from './editorErrors'
+import { refusalKey } from './editorErrors'
 import { definitionOf } from './blocks/registry'
-import type { DocumentKind } from './schema/schema'
+import type { ContentDocument, ContentNode, DocumentKind } from './schema/schema'
+import { CURRENT_SCHEMA_VERSION } from './schema/limits'
 import { createAutosave, type Autosave } from './state/autosave'
 import { useEditorStore } from './state/editorStore'
+import { createHistory, type History } from './state/history'
 import { handleEditorKey } from './state/keyboard'
+import { recoveryOffer, removeRecovery, writeRecovery, type RecoveryKey, type RecoveryOffer } from './state/recovery'
+import { resetSitePages } from './state/useSitePages'
 import './editor.css'
 
 const props = defineProps<{ siteId: string; kind: DocumentKind; documentId: string }>()
@@ -30,14 +37,19 @@ const auth = useAuthStore()
 const title = ref('')
 const announcement = ref('')
 const notice = ref('')
-let autosave: Autosave | null = null
-let stopStateWatch: (() => void) | null = null
 const saveState = ref<Autosave['state']['value']>('saved')
+const history = shallowRef<History | null>(null)
+const offer = shallowRef<RecoveryOffer | null>(null)
+const reloading = ref(false)
+let autosave: Autosave | null = null
+const cleanups: (() => void)[] = []
 
 const backTo = computed(() => ({
   name: props.kind === 'page' ? 'site-pages' : 'site-components',
   params: { siteId: props.siteId },
 }))
+
+const recoveryKey = (): RecoveryKey => ({ userId: auth.user?.id ?? '', siteId: props.siteId, kind: props.kind, documentId: props.documentId })
 
 function announce(message: string): void {
   // Cleared first so the same message twice is still read out.
@@ -50,26 +62,61 @@ function refused(code: string): void {
   announce(notice.value)
 }
 
-const readOnlyMessage = computed(() => {
-  const state = store.readOnly
-  if (!state) return ''
-  if (state.reason === 'invalid' && state.rule) return t('editor.readOnly.invalidRule', { reason: t(ruleKey(state.rule)) })
-  return t(`editor.readOnly.${state.reason}`)
-})
+const fetchDraft = () => (props.kind === 'page' ? pagesApi.pageDraft(props.siteId, props.documentId) : pagesApi.componentDraft(props.siteId, props.documentId))
+
+/** Keeps a copy of unsaved changes in the browser, half a second after the last one (ED-19). */
+function keepRecoveryCopies(): void {
+  let timer: ReturnType<typeof setTimeout> | null = null
+  const write = () => {
+    if (timer) clearTimeout(timer)
+    timer = null
+    if (!store.root || store.root === store.savedRoot || store.readOnly || !auth.user) return
+    const document: ContentDocument = { schemaVersion: CURRENT_SCHEMA_VERSION, root: store.root }
+    void writeRecovery({ ...recoveryKey(), document, baseVersion: store.baseVersion })
+  }
+  const stop = watch(() => store.root, () => {
+    if (timer) clearTimeout(timer)
+    timer = setTimeout(write, 500)
+  })
+  window.addEventListener('pagehide', write)
+  cleanups.push(() => {
+    stop()
+    if (timer) clearTimeout(timer)
+    window.removeEventListener('pagehide', write)
+  })
+}
 
 async function open(): Promise<void> {
-  autosave?.dispose()
-  stopStateWatch?.()
+  close()
   notice.value = ''
+  offer.value = null
+  resetSitePages()
   await store.load(props.siteId, props.kind, props.documentId)
+
+  if (store.loadState === 'not-found' || store.loadState === 'forbidden') {
+    // Nothing to offer for a document that is gone or no longer this member's to edit.
+    void removeRecovery(recoveryKey())
+    return
+  }
   if (store.loadState !== 'ready') return
 
-  autosave = createAutosave(store, (document, version) =>
-    props.kind === 'page'
-      ? pagesApi.savePageDraft(props.siteId, props.documentId, { document, version })
-      : pagesApi.saveComponentDraft(props.siteId, props.documentId, { document, version }),
+  history.value = createHistory(store)
+  autosave = createAutosave(
+    store,
+    (document, version) =>
+      props.kind === 'page'
+        ? pagesApi.savePageDraft(props.siteId, props.documentId, { document, version })
+        : pagesApi.saveComponentDraft(props.siteId, props.documentId, { document, version }),
+    { onSaved: (saved: ContentNode) => {
+      if (store.root === saved) void removeRecovery(recoveryKey())
+    } },
   )
-  stopStateWatch = watch(autosave.state, (state) => (saveState.value = state), { immediate: true })
+  cleanups.push(watch(autosave.state, (state) => (saveState.value = state), { immediate: true }))
+  keepRecoveryCopies()
+
+  if (auth.user && store.root && !store.readOnly) {
+    offer.value = await recoveryOffer(recoveryKey(), { version: store.baseVersion, root: store.root })
+  }
 
   try {
     title.value = props.kind === 'page'
@@ -77,6 +124,53 @@ async function open(): Promise<void> {
       : (await pagesApi.getComponent(props.siteId, props.documentId)).name
   } catch {
     title.value = ''
+  }
+}
+
+function close(): void {
+  autosave?.dispose()
+  autosave = null
+  history.value?.dispose()
+  history.value = null
+  while (cleanups.length > 0) cleanups.pop()!()
+}
+
+/** Restore: the unsaved changes come back and are saved (US3 #8). */
+function restoreRecovery(): void {
+  if (!offer.value) return
+  store.restore({ root: offer.value.record.document.root, selection: null })
+  offer.value = null
+  announce(t('editor.recovery.restored'))
+}
+
+/** Someone saved since: show the old changes read-only, for copying only. */
+function openRecoveryReadOnly(): void {
+  if (!offer.value) return
+  const record = offer.value.record
+  store.setReadOnly({ reason: 'recovery' })
+  store.restore({ root: record.document.root, selection: null })
+  offer.value = null
+}
+
+function discardRecovery(): void {
+  offer.value = null
+  void removeRecovery(recoveryKey())
+}
+
+/** Reload latest: the saved draft replaces what is on screen; the clipboard is kept (ED-15). */
+async function reloadLatest(): Promise<void> {
+  reloading.value = true
+  try {
+    const draft = await fetchDraft()
+    store.replaceWithDraft((draft.document as unknown as ContentDocument).root, draft.version)
+    history.value?.clear()
+    autosave?.reset()
+    void removeRecovery(recoveryKey())
+    announce(t('editor.conflict.reloaded'))
+  } catch {
+    notice.value = t('editor.errors.server.unexpected')
+  } finally {
+    reloading.value = false
   }
 }
 
@@ -88,6 +182,14 @@ function retryNow(): void {
   void autosave?.retryNow()
 }
 
+function undo(): void {
+  history.value?.undo()
+}
+
+function redo(): void {
+  history.value?.redo()
+}
+
 function onKeydown(event: KeyboardEvent): void {
   handleEditorKey(event, {
     store,
@@ -95,12 +197,14 @@ function onKeydown(event: KeyboardEvent): void {
     announce,
     refused,
     saveNow,
+    undo,
+    redo,
     t,
   })
 }
 
 /** Leaving with anything unsaved asks first (FR-030). */
-const unsaved = () => saveState.value !== 'saved' || store.dirty
+const unsaved = () => (saveState.value !== 'saved' || store.dirty) && store.readOnly?.reason !== 'recovery'
 
 function onBeforeUnload(event: BeforeUnloadEvent): void {
   if (!unsaved()) return
@@ -117,12 +221,12 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   window.removeEventListener('beforeunload', onBeforeUnload)
-  autosave?.dispose()
+  close()
 })
 
 watch(() => [props.siteId, props.kind, props.documentId], () => void open())
 
-defineExpose({ autosave: () => autosave })
+defineExpose({ autosave: () => autosave, history })
 </script>
 
 <template>
@@ -138,7 +242,24 @@ defineExpose({ autosave: () => autosave })
       :can-save="store.loadState === 'ready' && !store.readOnly"
       @save="saveNow"
       @retry="retryNow"
-    />
+    >
+      <button
+        type="button"
+        :disabled="!history?.canUndo.value || !!store.readOnly"
+        aria-keyshortcuts="Control+Z"
+        @click="undo"
+      >
+        {{ t('editor.history.undo') }}
+      </button>
+      <button
+        type="button"
+        :disabled="!history?.canRedo.value || !!store.readOnly"
+        aria-keyshortcuts="Control+Shift+Z"
+        @click="redo"
+      >
+        {{ t('editor.history.redo') }}
+      </button>
+    </EditorTopBar>
 
     <p
       v-if="store.loadState === 'loading'"
@@ -154,6 +275,14 @@ defineExpose({ autosave: () => autosave })
     >
       <h2>{{ t('editor.notFound.title') }}</h2>
       <p>{{ t('editor.notFound.body') }}</p>
+    </div>
+    <div
+      v-else-if="store.loadState === 'forbidden'"
+      class="editor-message"
+      role="alert"
+    >
+      <h2>{{ t('editor.forbidden.title') }}</h2>
+      <p>{{ t('editor.forbidden.body') }}</p>
     </div>
     <div
       v-else-if="store.loadState === 'error'"
@@ -184,13 +313,19 @@ defineExpose({ autosave: () => autosave })
         class="editor-center"
         :aria-label="t('editor.canvas.region')"
       >
-        <div
+        <RecoveryDialog
+          v-if="offer"
+          :offer="offer"
+          @restore="restoreRecovery"
+          @read-only="openRecoveryReadOnly"
+          @discard="discardRecovery"
+        />
+        <ConflictBanner
           v-if="store.readOnly"
-          class="editor-banner"
-          role="alert"
-        >
-          {{ readOnlyMessage }}
-        </div>
+          :state="store.readOnly"
+          :reloading="reloading"
+          @reload="reloadLatest"
+        />
         <p
           v-if="notice"
           class="editor-notice"

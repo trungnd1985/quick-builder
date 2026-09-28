@@ -3,6 +3,8 @@ import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { identityApi } from './api/identity'
 import { useAuthStore } from './app/authStore'
+import { clearClipboard } from './editor/state/clipboard'
+import { clearRecoveryForUser } from './editor/state/recovery'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -10,9 +12,14 @@ const router = useRouter()
 const auth = useAuthStore()
 
 async function signOut(): Promise<void> {
+  // 011 FR-030 (spec Edge Cases, "shared computer"): the editor's unsaved-change copies and
+  // clipboard are this user's; the next person to sign in on this browser must not see them.
+  const userId = auth.user?.id
   try {
     await identityApi.signOut()
   } finally {
+    clearClipboard()
+    if (userId) await clearRecoveryForUser(userId).catch(() => undefined)
     // Signed out locally whatever the server said: the session is gone either way.
     auth.signedOut()
     await router.push({ name: 'sign-in' })

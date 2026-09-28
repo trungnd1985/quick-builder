@@ -419,12 +419,12 @@ the leave warning; sign-out clearing).
 
 ### Tests for User Story 3 ⚠️
 
-- [ ] T078 [P] [US3] Create `ADMINTESTS/editor/ops.property.spec.ts`, which must fail first. Seeded random sequences of 50–200 ops (insert, move, remove, duplicate, paste, setProp, typing) through the store with history must show:
+- [X] T078 [P] [US3] Create `ADMINTESTS/editor/ops.property.spec.ts`, which must fail first. Seeded random sequences of 50–200 ops (insert, move, remove, duplicate, paste, setProp, typing) through the store with history must show:
   - after each step the document validates;
   - undoing all equals the start, and redoing all equals the end, deep-equal (SC-003);
   - ids stay unique;
   - a new change after undo clears redo.
-- [ ] T079 [P] [US3] Create `ADMINTESTS/editor/autosave.spec.ts` with fake timers and a fake API:
+- [X] T079 [P] [US3] Create `ADMINTESTS/editor/autosave.spec.ts` with fake timers and a fake API:
   - the debounce;
   - one request in flight;
   - a network error or 503 leads to `retrying` with a backoff of 2, 4, 8, 16 then 30 s, and "Retry now";
@@ -433,7 +433,7 @@ the leave warning; sign-out clearing).
   - 400 `invalid_document` leads to `invalid` with the node at `pointer` selected;
   - a failed pre-check sends nothing;
   - the `beforeunload` handler and router guard are active in every state except `saved`.
-- [ ] T080 [P] [US3] Create `ADMINTESTS/editor/recovery.spec.ts` with `fake-indexeddb/auto`:
+- [X] T080 [P] [US3] Create `ADMINTESTS/editor/recovery.spec.ts` with `fake-indexeddb/auto`:
   - records are written in `dirty` and removed after a covering save;
   - reopening with an equal `baseVersion` offers Restore;
   - reopening after the server version changed offers read-only copy only;
@@ -443,15 +443,15 @@ the leave warning; sign-out clearing).
 
 ### Implementation for User Story 3
 
-- [ ] T081 [US3] Create `ED/state/history.ts` (ED-12): undo and redo stacks of `{ document, selection }`, capped at 200; `record(before, coalesceKey?)`; typing coalescing on the same `nodeId:prop` key until 1 s idle, a word boundary, or another action; and `undo()` and `redo()`. Wire it into `editorStore.apply` and `load` (which clears it). Bind `Ctrl/⌘+Z`, `Ctrl/⌘+Shift+Z` and `Ctrl/⌘+Y` in `ED/state/keyboard.ts`, and add undo and redo buttons to `ED/EditorTopBar.vue`.
-- [ ] T082 [US3] Extend `ED/state/autosave.ts` (ED-13):
+- [X] T081 [US3] Create `ED/state/history.ts` (ED-12): undo and redo stacks of `{ document, selection }`, capped at 200; `record(before, coalesceKey?)`; typing coalescing on the same `nodeId:prop` key until 1 s idle, a word boundary, or another action; and `undo()` and `redo()`. Wire it into `editorStore.apply` and `load` (which clears it). Bind `Ctrl/⌘+Z`, `Ctrl/⌘+Shift+Z` and `Ctrl/⌘+Y` in `ED/state/keyboard.ts`, and add undo and redo buttons to `ED/EditorTopBar.vue`.
+- [X] T082 [US3] Extend `ED/state/autosave.ts` (ED-13):
   - the `retrying` state with backoff and `retryNow()`;
   - the stopped states `conflict`, `forbidden`, `gone` and `invalid`, which set `editorStore.readOnlyReason` and stop timers;
   - pointer-to-node selection for `invalid`;
   - a `window` `beforeunload` handler and an `onBeforeRouteLeave` guard in `ED/EditorView.vue` whenever the state is not `saved` (FR-030).
-- [ ] T083 [US3] Make read-only mode real: every op path in `editorStore.apply`, the palette, drag and drop, the panel controls, in-place editing and the keyboard refuse changes when `readOnlyReason` is set, while selection, the layer view and `Ctrl/⌘+C` still work. Show it in `ED/SaveStatus.vue`.
-- [ ] T084 [US3] Create `ED/ConflictBanner.vue` (ED-15). For `conflict` it explains, offers **Reload latest** with a confirmation that uncopied changes will be lost, and offers no overwrite. **Reload latest** calls `editorStore.load`, clearing history and keeping the clipboard. It shows matching messages for `forbidden`, `gone` and `invalid`.
-- [ ] T085 [US3] Create `ED/state/recovery.ts` (ED-19):
+- [X] T083 [US3] Make read-only mode real: every op path in `editorStore.apply`, the palette, drag and drop, the panel controls, in-place editing and the keyboard refuse changes when `readOnlyReason` is set, while selection, the layer view and `Ctrl/⌘+C` still work. Show it in `ED/SaveStatus.vue`.
+- [X] T084 [US3] Create `ED/ConflictBanner.vue` (ED-15). For `conflict` it explains, offers **Reload latest** with a confirmation that uncopied changes will be lost, and offers no overwrite. **Reload latest** calls `editorStore.load`, clearing history and keeping the clipboard. It shows matching messages for `forbidden`, `gone` and `invalid`.
+- [X] T085 [US3] Create `ED/state/recovery.ts` (ED-19):
   - IndexedDB `qb-editor-recovery`, keyed `userId/siteId/kind/documentId`;
   - `write` debounced to 500 ms in `dirty` or `retrying`, and on `pagehide`;
   - `remove` after a covering save;
@@ -460,8 +460,8 @@ the leave warning; sign-out clearing).
   - every call wrapped so that an unavailable IndexedDB silently disables recovery.
 
   Create `ED/RecoveryDialog.vue`, which offers Restore or Discard when the versions are equal, and Open read-only or Discard otherwise. Wire it into `editorStore.load`. Remove the record without offering it when the load returns 404 or 403.
-- [ ] T086 [US3] Clear editor browser state on sign-out in `ADMIN/App.vue`'s `signOut()`: `await recovery.clearForUser(user.id)` and `clipboard.clear()`, before the redirect, with failures ignored (FR-030; spec Edge Cases, "shared computer").
-- [ ] T087 [US3] Add the `editor.save.*`, `editor.conflict.*` and `editor.recovery.*` keys to `ADMIN/i18n/en.json`. T078–T080 now pass.
+- [X] T086 [US3] Clear editor browser state on sign-out in `ADMIN/App.vue`'s `signOut()`: `await recovery.clearForUser(user.id)` and `clipboard.clear()`, before the redirect, with failures ignored (FR-030; spec Edge Cases, "shared computer").
+- [X] T087 [US3] Add the `editor.save.*`, `editor.conflict.*` and `editor.recovery.*` keys to `ADMIN/i18n/en.json`. T078–T080 now pass.
 
 **Checkpoint**: all three P1 stories work, and quickstart §1–§3 pass.
 

@@ -32,7 +32,7 @@ export interface Snapshot {
   selection: string | null
 }
 
-export type LoadState = 'idle' | 'loading' | 'ready' | 'not-found' | 'error'
+export type LoadState = 'idle' | 'loading' | 'ready' | 'not-found' | 'forbidden' | 'error'
 
 /** Listeners the store tells about committed changes: history and autosave. */
 export interface ChangeListener {
@@ -150,7 +150,7 @@ export const useEditorStore = defineStore('editor', () => {
     } catch (error) {
       root.value = null
       savedRoot.value = null
-      loadState.value = error instanceof ApiError && error.status === 404 ? 'not-found' : 'error'
+      loadState.value = !(error instanceof ApiError) ? 'error' : error.status === 404 ? 'not-found' : error.status === 403 ? 'forbidden' : 'error'
     }
   }
 

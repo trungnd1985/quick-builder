@@ -1,3 +1,4 @@
+import 'fake-indexeddb/auto'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { fireEvent, screen, waitFor, within } from '@testing-library/vue'
 import axe from 'axe-core'
@@ -168,6 +169,81 @@ describe('EditorView — building a page (US1)', () => {
     await fireEvent.keyDown(option(container, 'section'), { key: 'Enter' })
     expect(store.root!.children).toHaveLength(0)
     expect(server.calls.some((c) => c.method === 'PUT')).toBe(false)
+  })
+
+  it('undoes and redoes from the keyboard and the top bar (FR-024)', async () => {
+    stubServer(documentWith({ id: 's', type: 'section', props: {}, children: [{ id: 'h', type: 'heading', props: { text: 'Hi' }, children: [] }] }))
+    const { editorRoot } = await mountEditor()
+    const store = useEditorStore()
+
+    store.select('h')
+    press(editorRoot(), 'Delete')
+    expect(locate(store.root!, 'h')).toBeNull()
+
+    press(editorRoot(), 'z', { ctrl: true })
+    expect(locate(store.root!, 'h')).not.toBeNull()
+    expect(store.selection).toBe('h')
+
+    await fireEvent.click(screen.getByRole('button', { name: en.editor.history.redo }))
+    expect(locate(store.root!, 'h')).toBeNull()
+  })
+
+  it('on a conflict: read-only, no overwrite, copy, Reload latest, paste back (FR-028)', async () => {
+    const server = stubServer(documentWith({ id: 's', type: 'section', props: {}, children: [{ id: 'h', type: 'heading', props: { text: 'Mine' }, children: [] }] }))
+    const { container, editorRoot } = await mountEditor()
+    const store = useEditorStore()
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    vi.spyOn(window, 'confirm').mockReturnValue(true)
+    server.script('PUT /api/v1/pages/sites/33333333-3333-3333-3333-333333333333/pages/44444444-4444-4444-4444-444444444444/draft',
+      { status: 409, body: { title: 'Conflict', status: 409, errorCode: 'pages.out_of_date' } })
+
+    await fireEvent.keyDown(option(container, 'text'), { key: 'Enter' })
+    await vi.advanceTimersByTimeAsync(2100)
+
+    await waitFor(() => expect(screen.getByText(en.editor.readOnly.conflict)).toBeTruthy())
+    expect(screen.queryByRole('button', { name: /overwrite/i })).toBeNull()
+
+    // Still read-only: nothing changes, but copying works.
+    const text = store.root!.children[0].children.find((c) => c.type === 'text')!
+    store.select(text.id)
+    press(editorRoot(), 'Delete')
+    expect(locate(store.root!, text.id)).not.toBeNull()
+    press(editorRoot(), 'c', { ctrl: true })
+
+    await fireEvent.click(screen.getByRole('button', { name: en.editor.conflict.reload }))
+    await waitFor(() => expect(store.readOnly).toBeNull())
+    expect(store.root!.children[0].children.map((c) => c.type)).toEqual(['heading'])
+
+    store.select('h')
+    press(editorRoot(), 'v', { ctrl: true })
+    expect(store.root!.children[0].children.map((c) => c.type)).toEqual(['heading', 'text'])
+  })
+
+  it('offers unsaved changes from an earlier visit, and restores them only when asked (US3 #8)', async () => {
+    const { writeRecovery, clearRecoveryForUser } = await import('../../src/editor/state/recovery')
+    const { useAuthStore } = await import('../../src/app/authStore')
+    stubServer(emptyDocument(), { version: 7 })
+
+    // The member is signed in; their copy is based on the version the server still has.
+    const { setActivePinia, createPinia } = await import('pinia')
+    const pinia = createPinia()
+    setActivePinia(pinia)
+    useAuthStore().signedIn({ id: 'u1', displayName: 'Dana', email: 'd@example.test', isAdministrator: true, siteRoles: [] })
+    await clearRecoveryForUser('u1')
+    await writeRecovery({
+      userId: 'u1', siteId: '33333333-3333-3333-3333-333333333333', kind: 'page', documentId: '44444444-4444-4444-4444-444444444444',
+      document: documentWith({ id: 'r', type: 'section', props: {}, children: [] }) as never, baseVersion: 7,
+    })
+
+    await mountEditor('page', pinia)
+    const store = useEditorStore()
+
+    await waitFor(() => expect(screen.getByRole('alertdialog')).toBeTruthy())
+    expect(store.root!.children).toHaveLength(0)
+
+    await fireEvent.click(screen.getByRole('button', { name: en.editor.recovery.restore }))
+    expect(store.root!.children.map((c) => c.id)).toEqual(['r'])
+    await clearRecoveryForUser('u1')
   })
 
   it('re-renders only the blocks on the path of an edit (research ED-10, SC-005)', async () => {

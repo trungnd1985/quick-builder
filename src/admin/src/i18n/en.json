@@ -781,6 +781,29 @@
         "url": "Only YouTube and Vimeo videos can be embedded, with an https:// address.",
         "text": "A heading is a single line."
       }
+    },
+    "history": {
+      "undo": "Undo",
+      "redo": "Redo"
+    },
+    "forbidden": {
+      "title": "You cannot edit this",
+      "body": "You do not have permission to edit this page on this site."
+    },
+    "conflict": {
+      "reload": "Reload latest",
+      "reloading": "Reloading…",
+      "reloaded": "The latest saved version is now open.",
+      "confirmReload": "Reload the latest saved version? Changes you have not copied will be lost. Blocks you copied stay on the clipboard, ready to paste."
+    },
+    "recovery": {
+      "title": "Unsaved changes found",
+      "restoreBody": "This browser kept changes to this page that were never saved ({when}). Restore them?",
+      "readOnlyBody": "This browser kept changes to this page that were never saved ({when}), but someone has saved the page since. You can open your changes read-only and copy blocks from them.",
+      "restore": "Restore changes",
+      "openReadOnly": "Open read-only to copy blocks",
+      "discard": "Discard them",
+      "restored": "Your unsaved changes are back and will be saved."
     }
   }
 }

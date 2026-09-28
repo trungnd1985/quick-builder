@@ -255,3 +255,24 @@
   outline-offset: 2px;
   min-height: 2em;
 }
+
+.editor-recovery {
+  margin: 0;
+  padding: 1rem;
+  background: #eef4ff;
+  border-bottom: 1px solid var(--accent);
+}
+
+.editor-recovery h2 {
+  font-size: 1rem;
+  margin: 0 0 0.25rem;
+}
+
+.editor-recovery p {
+  margin: 0 0 0.75rem;
+}
+
+.editor-recovery__actions {
+  display: flex;
+  gap: 0.5rem;
+}
