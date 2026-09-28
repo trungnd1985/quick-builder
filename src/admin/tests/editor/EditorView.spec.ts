@@ -246,6 +246,56 @@ describe('EditorView — building a page (US1)', () => {
     await clearRecoveryForUser('u1')
   })
 
+  it('previews at desktop, tablet and mobile widths, and remembers the choice per member (US5, FR-036)', async () => {
+    const { useAuthStore } = await import('../../src/app/authStore')
+    const { createPinia, setActivePinia } = await import('pinia')
+    stubServer(documentWith({ id: 's', type: 'section', props: {}, children: [{ id: 'h', type: 'heading', props: { text: 'Hi' }, children: [] }] }))
+    const pinia = createPinia()
+    setActivePinia(pinia)
+    useAuthStore().signedIn({ id: 'u-preview', displayName: 'Dana', email: 'd@example.test', isAdministrator: true, siteRoles: [] })
+    localStorage.removeItem('qb.editor.previewWidth.u-preview')
+    const { container } = await mountEditor('page', pinia)
+    const frame = () => container.querySelector<HTMLElement>('.qb-canvas')!
+    const widths = screen.getByRole('group', { name: en.editor.preview.label })
+
+    expect(frame().style.width).toBe('1280px')
+    await fireEvent.click(within(widths).getByRole('button', { name: en.editor.preview.tablet }))
+    expect(frame().style.width).toBe('768px')
+    await fireEvent.click(within(widths).getByRole('button', { name: en.editor.preview.mobile }))
+    expect(frame().style.width).toBe('375px')
+    expect(within(widths).getByRole('button', { name: en.editor.preview.mobile }).getAttribute('aria-pressed')).toBe('true')
+    expect(localStorage.getItem('qb.editor.previewWidth.u-preview')).toBe('mobile')
+
+    // Editing still works at this width.
+    const heading = container.querySelector<HTMLElement>('[data-node-id="h"] h2')!
+    heading.textContent = 'Small screen'
+    await fireEvent.input(heading)
+    expect(locate(useEditorStore().root!, 'h')!.node.props.text).toBe('Small screen')
+  })
+
+  it('opens at the width the member chose last time, and at desktop when storage fails', async () => {
+    const { useAuthStore } = await import('../../src/app/authStore')
+    const { createPinia, setActivePinia } = await import('pinia')
+    stubServer()
+    const pinia = createPinia()
+    setActivePinia(pinia)
+    useAuthStore().signedIn({ id: 'u-remembered', displayName: 'Dana', email: 'd@example.test', isAdministrator: true, siteRoles: [] })
+    localStorage.setItem('qb.editor.previewWidth.u-remembered', 'tablet')
+
+    const first = await mountEditor('page', pinia)
+    expect(first.container.querySelector<HTMLElement>('.qb-canvas')!.style.width).toBe('768px')
+
+    const getItem = vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+      throw new Error('storage disabled')
+    })
+    const other = createPinia()
+    setActivePinia(other)
+    useAuthStore().signedIn({ id: 'u-remembered', displayName: 'Dana', email: 'd@example.test', isAdministrator: true, siteRoles: [] })
+    const second = await mountEditor('page', other)
+    expect(second.container.querySelector<HTMLElement>('.qb-canvas')!.style.width).toBe('1280px')
+    getItem.mockRestore()
+  })
+
   it('re-renders only the blocks on the path of an edit (research ED-10, SC-005)', async () => {
     stubServer(documentWith(
       { id: 's1', type: 'section', props: {}, children: [{ id: 'a', type: 'heading', props: { text: 'A' }, children: [] }] },

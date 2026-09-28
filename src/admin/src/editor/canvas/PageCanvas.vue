@@ -2,7 +2,7 @@
 // The page as visitors will see it (FR-002): the site's tokens as custom properties on a
 // frame that is the `page` container for the block styles' container queries (research
 // ED-09). Drops from the palette and moves of blocks land here.
-import { computed, nextTick, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { dragState, dropResult, endDrag, resolveTarget, setTarget, sourceOf, type DropPosition } from '../dnd/useDragDrop'
 import { useEditorStore } from '../state/editorStore'
@@ -21,7 +21,35 @@ const { t } = useI18n()
 const store = useEditorStore()
 const frame = ref<HTMLElement | null>(null)
 
-const style = computed(() => ({ ...tokenCss(store.tokens), width: `${props.width}px` }))
+// When the editor area is narrower than the chosen width, the frame is scaled to fit. Only its
+// look is scaled: its layout width, which the block styles' container queries read, stays the
+// chosen width (research ED-09).
+const stage = ref<HTMLElement | null>(null)
+const scale = ref(1)
+const frameHeight = ref(0)
+let observer: ResizeObserver | null = null
+
+function measure(): void {
+  const available = stage.value?.parentElement?.clientWidth ?? 0
+  scale.value = available > 0 ? Math.min(1, (available - 32) / props.width) : 1
+  frameHeight.value = frame.value?.offsetHeight ?? 0
+}
+
+onMounted(() => {
+  if (typeof ResizeObserver === 'undefined') return
+  observer = new ResizeObserver(measure)
+  if (stage.value?.parentElement) observer.observe(stage.value.parentElement)
+  if (frame.value) observer.observe(frame.value)
+})
+onBeforeUnmount(() => observer?.disconnect())
+watch(() => props.width, () => nextTick(measure))
+
+const style = computed(() => ({
+  ...tokenCss(store.tokens),
+  width: `${props.width}px`,
+  ...(scale.value < 1 ? { transform: `scale(${scale.value})`, transformOrigin: 'top center' } : {}),
+}))
+const stageStyle = computed(() => (scale.value < 1 && frameHeight.value > 0 ? { height: `${frameHeight.value * scale.value}px` } : {}))
 const empty = computed(() => (store.root?.children.length ?? 0) === 0)
 
 /** Where over which node the pointer is, from the geometry of the node under it. */
@@ -88,26 +116,32 @@ defineExpose({ frame })
 
 <template>
   <div
-    ref="frame"
-    class="qb-canvas"
-    :class="{ 'qb-canvas--dragging': dragState.dragging !== null }"
-    :style="style"
-    @click="store.select(null)"
-    @dragover="onDragOver"
-    @dragleave="onDragLeave"
-    @drop="onDrop"
+    ref="stage"
+    class="qb-canvas-stage"
+    :style="stageStyle"
   >
-    <CanvasChildren
-      v-if="store.root"
-      :node="store.root"
-    />
     <div
-      v-if="empty"
-      class="qb-editor-empty-page"
+      ref="frame"
+      class="qb-canvas"
+      :class="{ 'qb-canvas--dragging': dragState.dragging !== null }"
+      :style="style"
+      @click="store.select(null)"
+      @dragover="onDragOver"
+      @dragleave="onDragLeave"
+      @drop="onDrop"
     >
-      <p>{{ t('editor.canvas.emptyPage.title') }}</p>
-      <p>{{ t(store.kind === 'page' ? 'editor.canvas.emptyPage.body' : 'editor.canvas.emptyPage.componentBody') }}</p>
+      <CanvasChildren
+        v-if="store.root"
+        :node="store.root"
+      />
+      <div
+        v-if="empty"
+        class="qb-editor-empty-page"
+      >
+        <p>{{ t('editor.canvas.emptyPage.title') }}</p>
+        <p>{{ t(store.kind === 'page' ? 'editor.canvas.emptyPage.body' : 'editor.canvas.emptyPage.componentBody') }}</p>
+      </div>
+      <DropIndicator :frame="frame" />
     </div>
-    <DropIndicator :frame="frame" />
   </div>
 </template>

@@ -809,6 +809,13 @@
       "title": "Layers",
       "empty": "The page has no blocks yet.",
       "rename": "Layer name"
+    },
+    "preview": {
+      "label": "Preview width",
+      "desktop": "Desktop",
+      "tablet": "Tablet",
+      "mobile": "Mobile",
+      "width": "{width} pixels wide"
     }
   }
 }

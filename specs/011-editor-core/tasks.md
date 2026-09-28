@@ -509,7 +509,7 @@ queries, editing works at every width, and the choice is remembered.
 
 ### Tests for User Story 5 ⚠️
 
-- [ ] T093 [P] [US5] Extend `ADMINTESTS/editor/EditorView.spec.ts`, which must fail first:
+- [X] T093 [P] [US5] Extend `ADMINTESTS/editor/EditorView.spec.ts`, which must fail first:
   - the width switcher sets the frame's width to 1280, 768 or 375 px;
   - the choice is stored in `localStorage['qb.editor.previewWidth.<userId>']` and restored for that user only;
   - editing still works after switching;
@@ -517,8 +517,8 @@ queries, editing works at every width, and the choice is remembered.
 
 ### Implementation for User Story 5
 
-- [ ] T094 [US5] Add the width switcher (a segmented control, keyboard operable, `aria-pressed`) to `ED/EditorTopBar.vue`. In `ED/canvas/Canvas.vue`, set the frame's width from the store, and `transform: scale()` the frame to fit when the editor area is narrower, with a `ResizeObserver` (ED-09). Persist the choice through `try`/`catch` `localStorage` under `qb.editor.previewWidth.<userId>` (FR-036, per member).
-- [ ] T095 [US5] Add tablet rules (`@container page (max-width: 767px)`) and mobile rules (`(max-width: 480px)`) to `ED/blocks/blocks.css`: Section padding scales down, Headings step down one size, images are max-width 100%, and horizontal Containers wrap at tablet width and stack at mobile width when `stackOnMobile` is set. Add the `editor.preview.*` keys to `ADMIN/i18n/en.json`. T093 now passes.
+- [X] T094 [US5] Add the width switcher (a segmented control, keyboard operable, `aria-pressed`) to `ED/EditorTopBar.vue`. In `ED/canvas/Canvas.vue`, set the frame's width from the store, and `transform: scale()` the frame to fit when the editor area is narrower, with a `ResizeObserver` (ED-09). Persist the choice through `try`/`catch` `localStorage` under `qb.editor.previewWidth.<userId>` (FR-036, per member).
+- [X] T095 [US5] Add tablet rules (`@container page (max-width: 767px)`) and mobile rules (`(max-width: 480px)`) to `ED/blocks/blocks.css`: Section padding scales down, Headings step down one size, images are max-width 100%, and horizontal Containers wrap at tablet width and stack at mobile width when `stackOnMobile` is set. Add the `editor.preview.*` keys to `ADMIN/i18n/en.json`. T093 now passes.
 
 **Checkpoint**: quickstart §5 passes.
 

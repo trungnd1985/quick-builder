@@ -25,6 +25,8 @@ import { createAutosave, type Autosave } from './state/autosave'
 import { useEditorStore } from './state/editorStore'
 import { createHistory, type History } from './state/history'
 import { handleEditorKey } from './state/keyboard'
+import { PREVIEW_WIDTHS, usePreviewWidth } from './state/usePreviewWidth'
+import PreviewWidthSwitch from './PreviewWidthSwitch.vue'
 import { recoveryOffer, removeRecovery, writeRecovery, type RecoveryKey, type RecoveryOffer } from './state/recovery'
 import { resetSitePages } from './state/useSitePages'
 import './editor.css'
@@ -44,6 +46,7 @@ const offer = shallowRef<RecoveryOffer | null>(null)
 const reloading = ref(false)
 let autosave: Autosave | null = null
 const cleanups: (() => void)[] = []
+const previewWidth = usePreviewWidth(auth.user?.id ?? 'anonymous')
 
 const backTo = computed(() => ({
   name: props.kind === 'page' ? 'site-pages' : 'site-components',
@@ -244,6 +247,7 @@ defineExpose({ autosave: () => autosave, history })
       @save="saveNow"
       @retry="retryNow"
     >
+      <PreviewWidthSwitch v-model="previewWidth" />
       <button
         type="button"
         :disabled="!history?.canUndo.value || !!store.readOnly"
@@ -347,7 +351,10 @@ defineExpose({ autosave: () => autosave, history })
           :aria-label="t('editor.canvas.label')"
           :aria-describedby="'editor-keys-help'"
         >
-          <PageCanvas @refused="refused" />
+          <PageCanvas
+            :width="PREVIEW_WIDTHS[previewWidth]"
+            @refused="refused"
+          />
         </div>
         <p
           id="editor-keys-help"

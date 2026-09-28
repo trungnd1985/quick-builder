@@ -358,3 +358,31 @@
   outline-color: #a4232f;
   box-shadow: none;
 }
+
+/* Preview width */
+.editor-preview-switch {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.editor-preview-switch button {
+  border: 0;
+  border-radius: 0;
+  padding: 0.375rem 0.75rem;
+}
+
+.editor-preview-switch button + button {
+  border-inline-start: 1px solid var(--border);
+}
+
+.editor-preview-switch button[aria-pressed='true'] {
+  background: var(--accent);
+  color: var(--accent-text);
+}
+
+.qb-canvas-stage {
+  display: flex;
+  justify-content: center;
+}
