@@ -1,5 +1,7 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using QuickBuilder.Rendering.Contracts;
+using QuickBuilder.Rendering.Features.NotFound;
 
 namespace QuickBuilder.Rendering;
 
@@ -18,6 +20,8 @@ public static class RenderingModule
     {
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(configuration);
+
+        services.AddScoped<IPublicNotFoundPage, NotFoundPage>();
 
         return services;
     }

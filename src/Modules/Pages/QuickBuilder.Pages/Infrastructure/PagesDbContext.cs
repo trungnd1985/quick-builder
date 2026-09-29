@@ -34,6 +34,16 @@ internal sealed class PagesDbContext(DbContextOptions<PagesDbContext> options, I
 
     internal DbSet<ComponentUsage> ComponentUsages => Set<ComponentUsage>();
 
+    internal DbSet<Publication> Publications => Set<Publication>();
+
+    internal DbSet<PublishedVersion> PublishedVersions => Set<PublishedVersion>();
+
+    internal DbSet<LiveDependency> LiveDependencies => Set<LiveDependency>();
+
+    internal DbSet<PublishSchedule> PublishSchedules => Set<PublishSchedule>();
+
+    internal DbSet<PublishLogEntry> PublishLog => Set<PublishLogEntry>();
+
     internal DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
 
     internal DbSet<ProcessedEvent> ProcessedEvents => Set<ProcessedEvent>();
@@ -238,12 +248,157 @@ internal sealed class PagesDbContext(DbContextOptions<PagesDbContext> options, I
             entity.HasQueryFilter(e => e.SiteId == CurrentSiteId);
         });
 
+        ConfigurePublishing(modelBuilder);
+
         // Every module context carries the outbox (003 analysis U1).
         modelBuilder.AddOutbox(Schema);
 
         modelBuilder.UseSnakeCaseColumns();
 
         base.OnModelCreating(modelBuilder);
+    }
+
+    /// <summary>Publishing (012 data-model §1).</summary>
+    /// <remarks>
+    /// A publication's subject is a page or a component, so it has no single foreign key to
+    /// it; the page and component deletes remove publications, versions and schedules
+    /// explicitly, in their own transaction (research PR-15). The log has no foreign key at
+    /// all: it outlives its subjects (FR-017).
+    /// </remarks>
+    private void ConfigurePublishing(ModelBuilder modelBuilder)
+    {
+        const string subjectKinds = "subject_kind IN ('page', 'component')";
+
+        modelBuilder.Entity<Publication>(entity =>
+        {
+            entity.ToTable("publications", Schema, t =>
+            {
+                t.HasCheckConstraint("ck_publications_subject_kind", subjectKinds);
+                t.HasCheckConstraint("ck_publications_live", "(live_version_id IS NULL) = (live_number IS NULL)");
+            });
+
+            entity.HasKey(e => new { e.SubjectKind, e.SubjectId });
+            entity.Property(e => e.SubjectKind).HasMaxLength(16);
+            entity.Property(e => e.Version).IsRowVersion().HasColumnName("xmin").HasColumnType("xid");
+            entity.Ignore(e => e.DomainEvents);
+            entity.Ignore(e => e.IsLive);
+
+            entity
+                .HasIndex(e => e.SiteId)
+                .HasFilter("live_version_id IS NOT NULL")
+                .HasDatabaseName("ix_publications_site_live");
+
+            entity.HasQueryFilter(e => e.SiteId == CurrentSiteId);
+        });
+
+        modelBuilder.Entity<PublishedVersion>(entity =>
+        {
+            entity.ToTable("published_versions", Schema, t =>
+            {
+                t.HasCheckConstraint("ck_published_versions_subject_kind", subjectKinds);
+                t.HasCheckConstraint("ck_published_versions_kind", "kind IN ('publish', 'scheduled', 'rollback')");
+                t.HasCheckConstraint("ck_published_versions_number", "number >= 1");
+            });
+
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).ValueGeneratedNever();
+            entity.Property(e => e.SubjectKind).HasMaxLength(16);
+            entity.Property(e => e.Kind).HasMaxLength(16);
+            entity.Property(e => e.SchemaVersion).HasColumnType("smallint");
+            entity.Property(e => e.Document).HasColumnType("jsonb").IsRequired();
+            entity.Property(e => e.Title).HasMaxLength(Page.MaxTitleLength);
+
+            entity
+                .HasOne<Publication>()
+                .WithMany()
+                .HasForeignKey(e => new { e.SubjectKind, e.SubjectId })
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // PR-03: a repeated number is impossible even if the retry logic were wrong.
+            entity
+                .HasIndex(e => new { e.SubjectKind, e.SubjectId, e.Number })
+                .IsUnique()
+                .HasDatabaseName("ux_published_versions_subject_number");
+
+            entity.HasQueryFilter(e => e.SiteId == CurrentSiteId);
+        });
+
+        modelBuilder.Entity<LiveDependency>(entity =>
+        {
+            entity.ToTable("live_dependencies", Schema, t =>
+            {
+                t.HasCheckConstraint("ck_live_dependencies_subject_kind", subjectKinds);
+                t.HasCheckConstraint("ck_live_dependencies_target_kind", "target_kind IN ('component', 'page', 'media')");
+            });
+
+            entity.HasKey(e => new { e.SiteId, e.SubjectKind, e.SubjectId, e.TargetKind, e.TargetId });
+            entity.Property(e => e.SubjectKind).HasMaxLength(16);
+            entity.Property(e => e.TargetKind).HasMaxLength(16);
+
+            // PR-04: "who depends on this?" is the question every refresh asks.
+            entity
+                .HasIndex(e => new { e.SiteId, e.TargetKind, e.TargetId })
+                .HasDatabaseName("ix_live_dependencies_target");
+
+            entity.HasQueryFilter(e => e.SiteId == CurrentSiteId);
+        });
+
+        modelBuilder.Entity<PublishSchedule>(entity =>
+        {
+            entity.ToTable("publish_schedules", Schema, t =>
+            {
+                t.HasCheckConstraint("ck_publish_schedules_subject_kind", subjectKinds);
+                t.HasCheckConstraint("ck_publish_schedules_action", "action IN ('publish', 'unpublish')");
+                t.HasCheckConstraint("ck_publish_schedules_state", "state IN ('pending', 'done', 'cancelled', 'failed')");
+                t.HasCheckConstraint("ck_publish_schedules_unpublish_page", "action = 'publish' OR subject_kind = 'page'");
+            });
+
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).ValueGeneratedNever();
+            entity.Property(e => e.SubjectKind).HasMaxLength(16);
+            entity.Property(e => e.Action).HasMaxLength(16);
+            entity.Property(e => e.State).HasMaxLength(16);
+            entity.Property(e => e.CapturedDocument).HasColumnType("jsonb");
+            entity.Property(e => e.CapturedSchemaVersion).HasColumnType("smallint");
+            entity.Property(e => e.CapturedTitle).HasMaxLength(Page.MaxTitleLength);
+            entity.Property(e => e.FailureCode).HasMaxLength(100);
+            entity.Ignore(e => e.IsPending);
+
+            // FR-018: at most one pending schedule per subject and action.
+            entity
+                .HasIndex(e => new { e.SubjectKind, e.SubjectId, e.Action })
+                .IsUnique()
+                .HasFilter("state = 'pending'")
+                .HasDatabaseName("ux_publish_schedules_pending");
+
+            entity.HasQueryFilter(e => e.SiteId == CurrentSiteId);
+        });
+
+        modelBuilder.Entity<PublishLogEntry>(entity =>
+        {
+            entity.ToTable("publish_log", Schema, t =>
+                t.HasCheckConstraint("ck_publish_log_subject_kind", "subject_kind IN ('page', 'component', 'design')"));
+
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).ValueGeneratedNever();
+            entity.Property(e => e.SubjectKind).HasMaxLength(16);
+            entity.Property(e => e.SubjectLabel).HasMaxLength(Page.MaxTitleLength).IsRequired();
+            entity.Property(e => e.SubjectPath).HasMaxLength(PageAddresses.MaxPathLength);
+            entity.Property(e => e.Action).HasMaxLength(32);
+            entity.Property(e => e.ReasonCode).HasMaxLength(100);
+
+            entity
+                .HasIndex(e => new { e.SiteId, e.OccurredAtUtc, e.Id })
+                .IsDescending(false, true, true)
+                .HasDatabaseName("ix_publish_log_site_time");
+
+            entity
+                .HasIndex(e => new { e.SiteId, e.SubjectKind, e.SubjectId, e.OccurredAtUtc })
+                .IsDescending(false, false, false, true)
+                .HasDatabaseName("ix_publish_log_subject");
+
+            entity.HasQueryFilter(e => e.SiteId == CurrentSiteId);
+        });
     }
 
     private static void ConfigureDraft<T>(Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<T> entity)

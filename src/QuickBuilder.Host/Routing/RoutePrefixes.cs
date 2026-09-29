@@ -35,7 +35,10 @@ public static class RoutePrefixes
 
     private static readonly string[] Reserved = [Api, Admin, Health];
 
-    private static readonly string[] PublicReserved = [PublicMedia];
+    /// <summary>Where the block stylesheet is served (012 research PR-08).</summary>
+    public const string PublicAssets = QuickBuilder.Rendering.Contracts.RenderingRoutes.AssetsPrefix;
+
+    private static readonly string[] PublicReserved = [PublicMedia, PublicAssets];
 
     /// <summary>True when the path belongs to the administrative surface.</summary>
     public static bool IsReserved(PathString path) =>

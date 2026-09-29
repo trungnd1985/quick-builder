@@ -5,6 +5,7 @@ using QuickBuilder.Editor.Contracts;
 using QuickBuilder.Editor.Features.GetDesignTokens;
 using QuickBuilder.Editor.Features.SaveDesignTokens;
 using QuickBuilder.Editor.Infrastructure;
+using QuickBuilder.Shared.Infrastructure.Data;
 using QuickBuilder.Shared.Infrastructure.Modules;
 using QuickBuilder.Shared.Infrastructure.MultiSite;
 using QuickBuilder.Shared.Kernel.Dispatch;
@@ -39,6 +40,13 @@ public static class EditorModule
         });
 
         services.AddSingleton<IModuleDatabaseProvider, EditorDatabaseProvider>();
+
+        // 012 research PR-06: the public path reads the published design on a connection
+        // PostgreSQL keeps read-only. Never migrated; EditorDbContext owns the tables.
+        services.AddDbContext<PublishedDesignReadDbContext>(options => options
+            .UseNpgsql(ReadOnlyConnection.From(connectionString))
+            .UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking));
+        services.AddScoped<IPublishedDesignReader, PublishedDesignReader>();
 
         // What this module lets people do. Identity enforces them; this module only declares them.
         foreach (var capability in EditorCapabilities.All)

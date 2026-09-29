@@ -112,6 +112,46 @@ internal static class PagesErrors
             $"This component is used by {usageCount} page(s). Remove it from them first."),
         ("usageCount", usageCount));
 
+    // --- Publishing (012 data-model §6) ---------------------------------------------------
+
+    internal static Error PagePublished { get; } = Error.Conflict(
+        "pages.page_published",
+        "This page is published. Unpublish it before deleting it.");
+
+    internal static Error NotPublished { get; } = Error.Conflict(
+        "pages.not_published",
+        "This is not published.");
+
+    internal static Error VersionNotFound { get; } = Error.NotFound(
+        "pages.version_not_found",
+        "No such version is kept for this page or component.");
+
+    internal static Error ScheduleInPast { get; } = Error.Validation(
+        "pages.schedule_in_past",
+        "Choose a time in the future.");
+
+    internal static Error ScheduleNotFound { get; } = Error.NotFound(
+        "pages.schedule_not_found",
+        "Nothing is scheduled.");
+
+    internal static Error UnpublishedComponents(IReadOnlyCollection<Guid> componentIds) => With(
+        Error.Conflict(
+            "pages.unpublished_components",
+            $"{componentIds.Count} component(s) this uses are not published. Publish them first."),
+        ("componentIds", componentIds.ToArray()));
+
+    internal static Error ComponentInUseByPublishedPages(int pageCount) => With(
+        Error.Conflict(
+            "pages.component_in_use_by_published_pages",
+            $"This component is used by {pageCount} published page(s). Unpublish them or remove it from them first."),
+        ("pageCount", pageCount));
+
+    internal static Error VersionMissingComponents(IReadOnlyCollection<Guid> componentIds) => With(
+        Error.Conflict(
+            "pages.version_missing_components",
+            $"This version uses {componentIds.Count} component(s) that no longer exist."),
+        ("componentIds", componentIds.ToArray()));
+
     /// <summary>A document refusal, carrying the failed rule and where it failed.</summary>
     internal static Error InvalidDocument(DocumentValidationResult result)
     {

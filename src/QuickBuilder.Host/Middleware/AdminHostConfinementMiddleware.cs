@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Options;
 using QuickBuilder.Host.Configuration;
 using QuickBuilder.Host.Routing;
+using QuickBuilder.Shared.Infrastructure.MultiSite;
 using QuickBuilder.Shared.Kernel.MultiSite;
 using QuickBuilder.Sites.Contracts;
 
@@ -54,9 +55,16 @@ internal sealed class AdminHostConfinementMiddleware(RequestDelegate next, IOpti
             .FindByHostNameAsync(context.Request.Host.Host, context.RequestAborted)
             .ConfigureAwait(false);
 
-        await (site is null
-            ? PublicResponses.WriteSiteNotResolvedAsync(context)
-            : PublicResponses.WritePublicNotFoundAsync(context)).ConfigureAwait(false);
+        if (site is null)
+        {
+            await PublicResponses.WriteSiteNotResolvedAsync(context).ConfigureAwait(false);
+            return;
+        }
+
+        // The not-found page reads the site's published design and home page, which are
+        // filtered by the resolved site, so resolve it here as the public surface would.
+        context.RequestServices.GetRequiredService<ISiteContextSetter>().SetSite(site.Id);
+        await PublicResponses.WritePublicNotFoundAsync(context, site).ConfigureAwait(false);
     }
 
     private static bool IsAdministrativePath(PathString path) =>

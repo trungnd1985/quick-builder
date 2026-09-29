@@ -51,9 +51,10 @@ public sealed class UpgradeFrom009Tests(DatabaseFixture database)
             connectionString,
             "SELECT count(*) FROM information_schema.tables WHERE table_schema = 'pages'").ConfigureAwait(true);
         Assert.True(tables >= 8, $"Expected the pages tables, found {tables}.");
+        // Later releases add their own migrations (012: publishing); 010's must be applied.
         Assert.Equal(1, await CountAsync(
             connectionString,
-            "SELECT count(*) FROM pages.\"__EFMigrationsHistory\"").ConfigureAwait(true));
+            "SELECT count(*) FROM pages.\"__EFMigrationsHistory\" WHERE \"MigrationId\" LIKE '%_InitialPages'").ConfigureAwait(true));
 
         Assert.Empty(await PagesApi.PathsAsync(admin, siteId).ConfigureAwait(true));
         await PagesApi.CreateOkAsync(admin, siteId, "home", isHome: true).ConfigureAwait(true);

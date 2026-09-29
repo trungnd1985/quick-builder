@@ -129,7 +129,7 @@ wiring. Nothing here has behaviour.
 
 ### Tables, migrations, capabilities and errors
 
-- [ ] T012 Add the Pages publishing entities with their fields, no behaviour yet, following [data-model.md §1](./data-model.md):
+- [X] T012 Add the Pages publishing entities with their fields, no behaviour yet, following [data-model.md §1](./data-model.md):
   - `PAGES/Domain/Publication.cs`, `PublishedVersion.cs`, `PublishSchedule.cs`, `PublishLogEntry.cs` and `LiveDependency.cs`, all `ISiteOwned`.
 
   Configure them in `PAGES/Infrastructure/PagesDbContext.cs`:
@@ -139,26 +139,26 @@ wiring. Nothing here has behaviour.
   - site query filters.
 
   Generate `PAGES/Infrastructure/Migrations/<ts>_AddPublishing.cs` with `dotnet ef migrations add AddPublishing`.
-- [ ] T013 [P] Add `EDITOR/Domain/DesignPublication.cs` and `EDITOR/Domain/DesignVersion.cs` ([data-model.md §2](./data-model.md)). Configure them in `EDITOR/Infrastructure/EditorDbContext.cs`, and generate `EDITOR/Infrastructure/Migrations/<ts>_AddDesignPublishing.cs`.
-- [ ] T014 [P] Add `PAGESC/Publishing/PublishingCapabilities.cs` with `Manage = "pages.publishing.manage"` and `LogView = "pages.publish_log.view"`. Register both in `PAGES/PagesCapabilities.cs`: `Manage` is granted to `[Designer]`, and `LogView` to `[]` (Administrator only) (PR-18). Update `specs/002-identity-setup/contracts/authorization.md` §2 with both.
-- [ ] T015 [P] Add the refusal codes of [data-model.md §6](./data-model.md) to `PAGES/PagesErrors.cs` and `PAGES/PagesErrorResults.cs`, including the `componentIds` and `pageCount` extension members, and `editor.out_of_date` and `editor.design_version_not_found` to `EDITOR/EditorErrors.cs` and `EDITOR/EditorErrorResults.cs`.
+- [X] T013 [P] Add `EDITOR/Domain/DesignPublication.cs` and `EDITOR/Domain/DesignVersion.cs` ([data-model.md §2](./data-model.md)). Configure them in `EDITOR/Infrastructure/EditorDbContext.cs`, and generate `EDITOR/Infrastructure/Migrations/<ts>_AddDesignPublishing.cs`.
+- [X] T014 [P] Add `PAGESC/Publishing/PublishingCapabilities.cs` with `Manage = "pages.publishing.manage"` and `LogView = "pages.publish_log.view"`. Register both in `PAGES/PagesCapabilities.cs`: `Manage` is granted to `[Designer]`, and `LogView` to `[]` (Administrator only) (PR-18). Update `specs/002-identity-setup/contracts/authorization.md` §2 with both.
+- [X] T015 [P] Add the refusal codes of [data-model.md §6](./data-model.md) to `PAGES/PagesErrors.cs` and `PAGES/PagesErrorResults.cs`, including the `componentIds` and `pageCount` extension members, and `editor.out_of_date` and `editor.design_version_not_found` to `EDITOR/EditorErrors.cs` and `EDITOR/EditorErrorResults.cs`.
 
 ### Read-only readers (PR-06)
 
-- [ ] T016 [P] Add `PAGESC/Publishing/IPublishedContentReader.cs` and its records (contracts/readers.md §1.1).
+- [X] T016 [P] Add `PAGESC/Publishing/IPublishedContentReader.cs` and its records (contracts/readers.md §1.1).
   - Implement `PAGES/Infrastructure/PublishedReadDbContext.cs`: maps `pages`, `publications`, `published_versions` and `components` read-only; the connection comes from `ReadOnlyConnection.From`; `QueryTrackingBehavior.NoTracking`; `SaveChanges` and `SaveChangesAsync` throw.
   - Implement `PAGES/Infrastructure/PublishedContentReader.cs`, with `FindLiveByPathAsync` as an EF compiled query on `(site_id, path)`.
   - Register both in `PAGES/PagesModule.cs`.
-- [ ] T017 [P] Add `EDITORC/IPublishedDesignReader.cs` and `PublishedDesign` (contracts/readers.md §1.2). Implement `EDITOR/Infrastructure/PublishedDesignReadDbContext.cs` and `PublishedDesignReader.cs`, returning `DefaultDesignTokens` with number 0 when no `design_publications` row exists. Register them in `EDITOR/EditorModule.cs`.
-- [ ] T018 [P] Add `MEDIAC/IPublicMediaReader.cs` and `PublicMediaFile` (contracts/readers.md §1.3). Implement `MEDIA/Infrastructure/PublicMediaReader.cs` over a read-only context, building paths with `MediaFileMapper.PublicPath` and returning only available files. Register it in `MEDIA/MediaModule.cs`.
-- [ ] T019 Create `ITESTS/Rendering/PublicPathReadOnlyTests.cs` (Principle VII):
+- [X] T017 [P] Add `EDITORC/IPublishedDesignReader.cs` and `PublishedDesign` (contracts/readers.md §1.2). Implement `EDITOR/Infrastructure/PublishedDesignReadDbContext.cs` and `PublishedDesignReader.cs`, returning `DefaultDesignTokens` with number 0 when no `design_publications` row exists. Register them in `EDITOR/EditorModule.cs`.
+- [X] T018 [P] Add `MEDIAC/IPublicMediaReader.cs` and `PublicMediaFile` (contracts/readers.md §1.3). Implement `MEDIA/Infrastructure/PublicMediaReader.cs` over a read-only context, building paths with `MediaFileMapper.PublicPath` and returning only available files. Register it in `MEDIA/MediaModule.cs`.
+- [X] T019 Create `ITESTS/Rendering/PublicPathReadOnlyTests.cs` (Principle VII):
   - each of the three readers' contexts refuses a write in PostgreSQL (`25006`), and `SaveChanges` throws;
   - each reader returns nothing for another site's ids.
 
 ### Rendering core
 
-- [ ] T020 [P] Add `RENDC/IPublicNotFoundPage.cs`, `RENDC/PublicResponse.cs` and `RENDC/RenderingRoutes.cs` (`AssetsPrefix = "/_assets"`) (contracts/readers.md §1.4). In `HOST/Routing/RoutePrefixes.cs`, add `RenderingRoutes.AssetsPrefix` to `PublicReserved`. Extend `ITESTS/Pages/ReservedAddressCoverageTests.cs` so that `/_assets` is accepted as a prefix the slug grammar can't produce.
-- [ ] T021 Route the public not-found answer through `IPublicNotFoundPage` (PR-08):
+- [X] T020 [P] Add `RENDC/IPublicNotFoundPage.cs`, `RENDC/PublicResponse.cs` and `RENDC/RenderingRoutes.cs` (`AssetsPrefix = "/_assets"`) (contracts/readers.md §1.4). In `HOST/Routing/RoutePrefixes.cs`, add `RenderingRoutes.AssetsPrefix` to `PublicReserved`. Extend `ITESTS/Pages/ReservedAddressCoverageTests.cs` so that `/_assets` is accepted as a prefix the slug grammar can't produce.
+- [X] T021 Route the public not-found answer through `IPublicNotFoundPage` (PR-08):
   - `HOST/Middleware/PublicResponses.cs` gains `WritePublicNotFoundAsync(HttpContext, SiteDto)`, which writes the `PublicResponse`;
   - `HOST/Middleware/SiteResolutionMiddleware.cs` and `AdminHostConfinementMiddleware.cs` pass the resolved site;
   - `REND/Features/NotFound/NotFoundPage.cs` initially returns the existing JSON `public.not_found` bytes unchanged, and US7 replaces it.

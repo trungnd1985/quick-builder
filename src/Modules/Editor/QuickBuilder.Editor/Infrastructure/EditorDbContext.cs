@@ -24,6 +24,12 @@ internal sealed class EditorDbContext(DbContextOptions<EditorDbContext> options,
 
     internal DbSet<DesignTokenSet> DesignTokenSets => Set<DesignTokenSet>();
 
+    internal DbSet<DesignPublication> DesignPublications => Set<DesignPublication>();
+
+    internal DbSet<DesignVersion> DesignVersions => Set<DesignVersion>();
+
+    internal DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
+
     /// <summary>
     /// The site the query filter compares against, referenced through <c>this</c> for the
     /// reason <c>SiteQueryFilterGuidance</c> documents. <see cref="Guid.Empty"/> when no site is
@@ -67,8 +73,37 @@ internal sealed class EditorDbContext(DbContextOptions<EditorDbContext> options,
             entity.HasQueryFilter(e => e.SiteId == CurrentSiteId);
         });
 
-        // Every module context carries the outbox (003 analysis U1), though this module
-        // publishes no events yet.
+        // 012 research PR-17: the published design, beside the draft token set.
+        modelBuilder.Entity<DesignPublication>(entity =>
+        {
+            entity.ToTable("design_publications", Schema, t =>
+                t.HasCheckConstraint("ck_design_publications_numbers", "live_number >= 1 AND next_number > live_number"));
+
+            entity.HasKey(e => e.SiteId);
+            entity.Property(e => e.SiteId).ValueGeneratedNever();
+            entity.Property(e => e.Version).IsRowVersion().HasColumnName("xmin").HasColumnType("xid");
+
+            entity.HasQueryFilter(e => e.SiteId == CurrentSiteId);
+        });
+
+        modelBuilder.Entity<DesignVersion>(entity =>
+        {
+            entity.ToTable("design_versions", Schema, t =>
+            {
+                t.HasCheckConstraint("ck_design_versions_kind", "kind IN ('publish', 'rollback')");
+                t.HasCheckConstraint("ck_design_versions_number", "number >= 1");
+            });
+
+            entity.HasKey(e => new { e.SiteId, e.Number });
+            entity.Property(e => e.SchemaVersion).HasColumnType("smallint");
+            entity.Property(e => e.Document).HasColumnType("jsonb").IsRequired();
+            entity.Property(e => e.Kind).HasMaxLength(16);
+
+            entity.HasQueryFilter(e => e.SiteId == CurrentSiteId);
+        });
+
+        // Every module context carries the outbox (003 analysis U1). Since 012 it carries
+        // Editor.DesignPublished.
         modelBuilder.AddOutbox(Schema);
 
         modelBuilder.UseSnakeCaseColumns();

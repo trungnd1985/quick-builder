@@ -9,6 +9,7 @@ using QuickBuilder.Media.Features.ListFiles;
 using QuickBuilder.Media.Features.ServePublicFile;
 using QuickBuilder.Media.Features.UploadFile;
 using QuickBuilder.Media.Infrastructure;
+using QuickBuilder.Shared.Infrastructure.Data;
 using QuickBuilder.Shared.Infrastructure.Modules;
 using QuickBuilder.Shared.Infrastructure.MultiSite;
 using QuickBuilder.Shared.Kernel.Dispatch;
@@ -43,6 +44,13 @@ public static class MediaModule
         });
 
         services.AddSingleton<IModuleDatabaseProvider, MediaDatabaseProvider>();
+
+        // 012 research PR-06: the public path resolves images on a connection PostgreSQL keeps
+        // read-only. Never migrated; MediaDbContext owns the table.
+        services.AddDbContext<PublicMediaReadDbContext>(options => options
+            .UseNpgsql(ReadOnlyConnection.From(connectionString))
+            .UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking));
+        services.AddScoped<IPublicMediaReader, PublicMediaReader>();
 
         services
             .AddOptions<MediaOptions>()

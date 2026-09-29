@@ -87,6 +87,20 @@ The Editor module (011) registers two, for a site's design tokens. They are expl
 | `editor.design_tokens.view` | Site | ✓ | ✓ | ✓ |
 | `editor.design_tokens.manage` | Site | ✓ | ✓ | — |
 
+Publishing (012) adds two, registered by Pages. Designers publish and Editors prepare drafts
+(012 clarification Q3); the site publish log is for Administrators only. The Editor module
+requires `pages.publishing.manage` too, for publishing the design. They are explained in
+[012 research PR-18](../../012-publishing-rendering/research.md#pr-18-authorization).
+
+| Capability | Scope | Administrator | Designer | Editor |
+|---|---|---|---|---|
+| `pages.publishing.manage` | Site | ✓ | ✓ | — |
+| `pages.publish_log.view` | Site | ✓ | — | — |
+
+Reads of publishing history and versions use `pages.content.view` (pages, components) and
+`editor.design_tokens.view` (the design). Copying a version to the draft uses
+`pages.page_drafts.edit` or `pages.components.manage`.
+
 ## 3. What a caller sees
 
 | Situation | Status | `errorCode` |

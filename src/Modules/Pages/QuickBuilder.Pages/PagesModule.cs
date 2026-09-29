@@ -3,6 +3,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using QuickBuilder.Pages.Contracts;
 using QuickBuilder.Pages.Contracts.Events;
+using QuickBuilder.Pages.Contracts.Publishing;
 using QuickBuilder.Pages.Features;
 using QuickBuilder.Pages.Features.CreateComponent;
 using QuickBuilder.Pages.Features.CreatePage;
@@ -24,6 +25,7 @@ using QuickBuilder.Pages.Features.SavePageDraft;
 using QuickBuilder.Pages.Features.UpdatePage;
 using QuickBuilder.Pages.Infrastructure;
 using QuickBuilder.Pages.Infrastructure.Schema;
+using QuickBuilder.Shared.Infrastructure.Data;
 using QuickBuilder.Shared.Infrastructure.Modules;
 using QuickBuilder.Shared.Infrastructure.MultiSite;
 using QuickBuilder.Shared.Infrastructure.Outbox;
@@ -59,6 +61,13 @@ public static class PagesModule
         });
 
         services.AddSingleton<IModuleDatabaseProvider, PagesDatabaseProvider>();
+
+        // 012 research PR-06: the public path reads published content through its own context,
+        // on a connection PostgreSQL keeps read-only. Never migrated; PagesDbContext owns the tables.
+        services.AddDbContext<PublishedReadDbContext>(options => options
+            .UseNpgsql(ReadOnlyConnection.From(connectionString))
+            .UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking));
+        services.AddScoped<IPublishedContentReader, PublishedContentReader>();
 
         // What this module lets people do. Identity enforces them; this module only declares them.
         foreach (var capability in PagesCapabilities.All)

@@ -23,6 +23,47 @@ namespace QuickBuilder.Editor.Infrastructure.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("QuickBuilder.Editor.Domain.DesignPublication", b =>
+                {
+                    b.Property<Guid>("SiteId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("site_id");
+
+                    b.Property<Guid>("LiveBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("live_by");
+
+                    b.Property<int>("LiveNumber")
+                        .HasColumnType("integer")
+                        .HasColumnName("live_number");
+
+                    b.Property<DateTimeOffset>("LiveSinceUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("live_since_utc");
+
+                    b.Property<int>("NextNumber")
+                        .HasColumnType("integer")
+                        .HasColumnName("next_number");
+
+                    b.Property<long?>("PublishedFromTokenVersion")
+                        .HasColumnType("bigint")
+                        .HasColumnName("published_from_token_version");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("SiteId")
+                        .HasName("pk_design_publications");
+
+                    b.ToTable("design_publications", "editor", t =>
+                        {
+                            t.HasCheckConstraint("ck_design_publications_numbers", "live_number >= 1 AND next_number > live_number");
+                        });
+                });
+
             modelBuilder.Entity("QuickBuilder.Editor.Domain.DesignTokenSet", b =>
                 {
                     b.Property<Guid>("SiteId")
@@ -58,6 +99,54 @@ namespace QuickBuilder.Editor.Infrastructure.Migrations
                     b.ToTable("design_token_sets", "editor", t =>
                         {
                             t.HasCheckConstraint("ck_design_token_sets_schema_version", "schema_version = 1");
+                        });
+                });
+
+            modelBuilder.Entity("QuickBuilder.Editor.Domain.DesignVersion", b =>
+                {
+                    b.Property<Guid>("SiteId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("site_id");
+
+                    b.Property<int>("Number")
+                        .HasColumnType("integer")
+                        .HasColumnName("number");
+
+                    b.Property<string>("Document")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("document");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("kind");
+
+                    b.Property<DateTimeOffset>("PublishedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("published_at_utc");
+
+                    b.Property<Guid>("PublishedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("published_by");
+
+                    b.Property<int?>("RestoredFromNumber")
+                        .HasColumnType("integer")
+                        .HasColumnName("restored_from_number");
+
+                    b.Property<short>("SchemaVersion")
+                        .HasColumnType("smallint")
+                        .HasColumnName("schema_version");
+
+                    b.HasKey("SiteId", "Number")
+                        .HasName("pk_design_versions");
+
+                    b.ToTable("design_versions", "editor", t =>
+                        {
+                            t.HasCheckConstraint("ck_design_versions_kind", "kind IN ('publish', 'rollback')");
+
+                            t.HasCheckConstraint("ck_design_versions_number", "number >= 1");
                         });
                 });
 

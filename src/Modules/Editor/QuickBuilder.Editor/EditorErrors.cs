@@ -22,6 +22,11 @@ internal static class EditorErrors
         "editor.out_of_date",
         "The design tokens were changed by someone else since you opened them. Reload and try again.");
 
+    /// <summary>012 data-model §6: a rollback or read of a design version that is not kept.</summary>
+    internal static Error DesignVersionNotFound { get; } = Error.NotFound(
+        "editor.design_version_not_found",
+        "No such design version is kept for this site.");
+
     internal static Error TooLarge { get; } = Error.Validation(
         "editor.tokens_too_large",
         $"A token set may be at most {DesignTokens.MaxDocumentBytes} bytes.");
