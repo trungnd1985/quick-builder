@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { fireEvent, render, screen, waitFor } from '@testing-library/vue'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/vue'
 import axe from 'axe-core'
 import PublishMenu from '../../src/features/publishing/PublishMenu.vue'
 import type { Publication } from '../../src/api/publishing'
@@ -100,6 +100,29 @@ describe('PublishMenu', () => {
     await fireEvent.click(screen.getByRole('button', { name: 'Publish' }))
 
     expect(await screen.findByRole('alert')).toHaveProperty('textContent', '3 published page(s) use this component. Unpublish them or remove it from them first.')
+  })
+
+  it('unpublishes only after confirmation', async () => {
+    const calls = stubFetch({ status: 200, body: draft })
+    const { emitted } = mount({ publication: published(2) })
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Unpublish' }))
+    const dialog = await screen.findByRole('alertdialog')
+    expect(dialog.textContent).toContain('Unpublish About? Visitors get the not-found page from the next request.')
+    expect(calls.some((c) => c.method === 'POST')).toBe(false)
+
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Unpublish' }))
+
+    await waitFor(() => expect(emitted().changed).toBeTruthy())
+    expect(calls.find((c) => c.method === 'POST')!.url).toBe(`/api/v1/pages/sites/${SITE}/pages/${PAGE}/unpublish`)
+    expect(screen.queryByRole('alertdialog')).toBeNull()
+    expect(screen.getByRole('status').textContent).toContain('Unpublished.')
+  })
+
+  it('offers unpublishing only for what is live, and only to publishers', () => {
+    stubFetch({ status: 200, body: {} })
+    mount({ publication: draft })
+    expect(screen.queryByRole('button', { name: 'Unpublish' })).toBeNull()
   })
 
   it('shows a refusal in words, from the translation lookup', async () => {

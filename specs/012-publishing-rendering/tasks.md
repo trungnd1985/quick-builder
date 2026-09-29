@@ -388,7 +388,7 @@ a live page is refused.
 
 ### Tests for User Story 4 ⚠️
 
-- [ ] T075 [P] [US4] Create `ITESTS/Publishing/UnpublishApiTests.cs`:
+- [X] T075 [P] [US4] Create `ITESTS/Publishing/UnpublishApiTests.cs`:
   - unpublish, then the next `GET` gets the not-found answer;
   - `409 pages.not_published` when it is not live;
   - the history records `unpublish`;
@@ -397,13 +397,13 @@ a live page is refused.
   - republishing serves the page at its current address;
   - after a slug change of a live page, the new address serves it and the old one gets not found (FR-011);
   - `Pages.PageUnpublished` is written.
-- [ ] T076 [P] [US4] Create `ADMINTESTS/publishing/addressWarning.spec.ts`: the count of live pages in a moved or renamed subtree comes from tree data, the warning appears only when the count is above zero, and **Delete** is disabled with a reason for live pages in `PageTreeView`.
+- [X] T076 [P] [US4] Create `ADMINTESTS/publishing/addressWarning.spec.ts`: the count of live pages in a moved or renamed subtree comes from tree data, the warning appears only when the count is above zero, and **Delete** is disabled with a reason for live pages in `PageTreeView`.
 
 ### Implementation for User Story 4
 
-- [ ] T077 [US4] Implement `Publication.Unpublish()` (the live pointer cleared, dependencies deleted, the log entry, the domain event). Add `PAGESC/Events/PageUnpublished.cs` with its mapping and registration, and create the `PAGES/Features/UnpublishPage/` slice.
-- [ ] T078 [US4] Extend `PAGES/Features/DeletePage/` to refuse a live page (`pages.page_published`, FR-006) and to cascade versions, the publication and schedules otherwise. Make T075 pass.
-- [ ] T079 [US4] Add **Unpublish**, with confirmation, to `PUBUI/PublishMenu.vue`. Disable **Delete** for live pages in `ADMIN/features/pages/PageTreeView.vue` with a reason. Create `PUBUI/addressWarning.ts` and use it in `ADMIN/features/pages/MoveDialog.vue` and `PageFormDialog.vue` before a slug change or move (FR-011). Add the i18n keys, and make T076 pass.
+- [X] T077 [US4] Implement `Publication.Unpublish()` (the live pointer cleared, dependencies deleted, the log entry, the domain event). Add `PAGESC/Events/PageUnpublished.cs` with its mapping and registration, and create the `PAGES/Features/UnpublishPage/` slice.
+- [X] T078 [US4] Extend `PAGES/Features/DeletePage/` to refuse a live page (`pages.page_published`, FR-006) and to cascade versions, the publication and schedules otherwise. Make T075 pass.
+- [X] T079 [US4] Add **Unpublish**, with confirmation, to `PUBUI/PublishMenu.vue`. Disable **Delete** for live pages in `ADMIN/features/pages/PageTreeView.vue` with a reason. Create `PUBUI/addressWarning.ts` and use it in `ADMIN/features/pages/MoveDialog.vue` and `PageFormDialog.vue` before a slug change or move (FR-011). Add the i18n keys, and make T076 pass.
 
 **Checkpoint**: quickstart §4.
 

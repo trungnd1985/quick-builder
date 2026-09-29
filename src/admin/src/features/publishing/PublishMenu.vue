@@ -7,6 +7,7 @@ import { useI18n } from 'vue-i18n'
 import { routerKey } from 'vue-router'
 import { pagesApi } from '../../api/pages'
 import { publishingApi, type Publication, type SubjectKind } from '../../api/publishing'
+import ConfirmDialog from '../sites/ConfirmDialog.vue'
 import PublicationBadge from './PublicationBadge.vue'
 import { publishingErrorMessage } from './errorMessages'
 
@@ -31,6 +32,7 @@ const { t, te } = useI18n()
 const busy = ref(false)
 const error = ref<string | null>(null)
 const status = ref('')
+const confirmingUnpublish = ref(false)
 
 const isPublished = computed(() => props.publication?.state === 'published')
 
@@ -74,6 +76,15 @@ async function publish(): Promise<void> {
     return publishingApi.publish(props.siteId, props.kind, props.subjectId, version)
   }, (p) => t('publishing.menu.published', { number: p.liveNumber ?? 0 }))
 }
+
+/** Taking something down asks first: visitors lose it from the next request (FR-005). */
+async function unpublish(): Promise<void> {
+  await run(
+    () => publishingApi.unpublish(props.siteId, props.kind, props.subjectId),
+    () => t('publishing.menu.unpublished'),
+  )
+  confirmingUnpublish.value = false
+}
 </script>
 
 <template>
@@ -92,6 +103,15 @@ async function publish(): Promise<void> {
       @click="publish"
     >
       {{ busy ? t('publishing.menu.publishing') : t('publishing.menu.publish') }}
+    </button>
+
+    <button
+      v-if="canPublish && isPublished"
+      type="button"
+      :disabled="busy"
+      @click="confirmingUnpublish = true"
+    >
+      {{ t('publishing.menu.unpublish') }}
     </button>
 
     <a
@@ -130,6 +150,20 @@ async function publish(): Promise<void> {
     >
       {{ error }}
     </p>
+
+    <ConfirmDialog
+      v-if="confirmingUnpublish"
+      :dialog-id="`unpublish-${subjectId}`"
+      :title="t('publishing.menu.unpublish')"
+      :body="t('publishing.confirm.unpublish', { title })"
+      :confirm-label="t('publishing.menu.unpublish')"
+      :cancel-label="t('publishing.confirm.cancel')"
+      :busy-label="t('publishing.menu.publishing')"
+      :busy="busy"
+      danger
+      @confirm="unpublish"
+      @cancel="confirmingUnpublish = false"
+    />
   </div>
 </template>
 

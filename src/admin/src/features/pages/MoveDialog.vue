@@ -14,6 +14,8 @@ const props = defineProps<{
   pages: PageNode[]
   busy: boolean
   error: string | null
+  /** 012 FR-011: published pages whose address a move to another parent changes. */
+  liveAddressCount?: number
 }>()
 
 const emit = defineEmits<{
@@ -64,6 +66,7 @@ function currentAnchor(): string {
 }
 
 const afterPageId = ref<string>(currentAnchor())
+const movesLivePages = computed(() => (props.liveAddressCount ?? 0) > 0 && (props.page.parentId ?? TOP) !== parentId.value)
 const parentSelect = ref<HTMLSelectElement | null>(null)
 
 function onParentChange(): void {
@@ -151,6 +154,14 @@ function onKeydown(event: KeyboardEvent): void {
           </option>
         </select>
       </div>
+
+      <p
+        v-if="movesLivePages"
+        class="warning"
+        role="note"
+      >
+        {{ t('publishing.address.warning', { count: liveAddressCount ?? 0 }) }}
+      </p>
 
       <p
         v-if="error"

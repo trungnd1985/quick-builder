@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using QuickBuilder.Pages.Domain;
 using QuickBuilder.Pages.Infrastructure;
@@ -16,7 +17,8 @@ internal sealed record DeletePageCommand(Guid SiteId, Guid PageId, int Version) 
 /// </summary>
 /// <remarks>
 /// Its draft and usage rows go with it through their foreign keys. There is no trash in
-/// this feature (#21); the address is free for reuse at once.
+/// this feature (#21); the address is free for reuse at once. A live page is refused until it
+/// is unpublished (012 FR-006).
 /// </remarks>
 internal sealed class DeletePageHandler(
     PageTreeWrites writes,
@@ -33,6 +35,15 @@ internal sealed class DeletePageHandler(
         if (!await access.SiteExistsAsync(command.SiteId, cancellationToken).ConfigureAwait(false))
         {
             return Result.Failure(PagesErrors.SiteNotFound);
+        }
+
+        // 012 FR-006: visitors can reach a live page, so it is taken down first, on purpose.
+        var live = await database.ForSite<Publication>(command.SiteId)
+            .AnyAsync(p => p.SubjectKind == SubjectKinds.Page && p.SubjectId == command.PageId && p.LiveVersionId != null, cancellationToken)
+            .ConfigureAwait(false);
+        if (live)
+        {
+            return Result.Failure(PagesErrors.PagePublished);
         }
 
         var deleted = await writes.ChangeAsync(

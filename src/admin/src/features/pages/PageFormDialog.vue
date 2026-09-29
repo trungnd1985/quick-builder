@@ -17,6 +17,8 @@ const props = defineProps<{
   initialSlug?: string
   /** Offer "this is the home page" — only when adding a top-level page to a site without one. */
   offerHome?: boolean
+  /** 012 FR-011: published pages whose address a slug change moves; 0 hides the warning. */
+  liveAddressCount?: number
   busy: boolean
   error: string | null
 }>()
@@ -36,6 +38,8 @@ const titleInput = ref<HTMLInputElement | null>(null)
 
 const address = computed(() => (isHome.value ? '/' : `${props.addressPrefix}/${slug.value}`))
 const slugLooksWrong = computed(() => slug.value.length > 0 && !isValidSlug(slug.value))
+const movesLivePages = computed(() =>
+  (props.liveAddressCount ?? 0) > 0 && props.initialSlug !== undefined && slug.value !== props.initialSlug)
 
 watch(title, (next) => {
   if (!slugEdited.value) {
@@ -111,6 +115,14 @@ function onKeydown(event: KeyboardEvent): void {
           {{ slugLooksWrong ? t('pages.form.slugInvalid') : t('pages.form.slugHelp', { address }) }}
         </p>
       </div>
+
+      <p
+        v-if="movesLivePages"
+        class="warning"
+        role="note"
+      >
+        {{ t('publishing.address.warning', { count: liveAddressCount ?? 0 }) }}
+      </p>
 
       <div
         v-if="offerHome"

@@ -6,6 +6,7 @@ import { pagesApi, type PageDetail, type PageNode, type PageTree } from '../../a
 import { useSitesStore } from '../../app/sitesStore'
 import PublicationBadge from '../publishing/PublicationBadge.vue'
 import PublishMenu from '../publishing/PublishMenu.vue'
+import { liveAddressCount } from '../publishing/addressWarning'
 import ConfirmDialog from '../sites/ConfirmDialog.vue'
 import MoveDialog from './MoveDialog.vue'
 import PageFormDialog from './PageFormDialog.vue'
@@ -50,6 +51,8 @@ const canEditDrafts = computed(() => tree.value?.permissions.canEditPageDrafts =
 const canPublish = computed(() => tree.value?.permissions.canPublish === true)
 const hasHome = computed(() => pages.value.some((p) => p.isHome))
 const selected = computed(() => pages.value.find((p) => p.id === selectedId.value) ?? null)
+/** 012 FR-006: a live page is taken down before it can be deleted. */
+const selectedIsLive = computed(() => selected.value?.publication?.state === 'published')
 
 const siblings = computed(() =>
   selected.value
@@ -438,10 +441,17 @@ function whoSaved(value: PageDetail): string {
             <button
               type="button"
               class="danger"
+              :disabled="selectedIsLive"
+              :aria-describedby="selectedIsLive ? 'page-delete-reason' : undefined"
               @click="open({ kind: 'delete', page: selected })"
             >
               {{ t('pages.actions.delete') }}
             </button>
+            <span
+              v-if="selectedIsLive"
+              id="page-delete-reason"
+              class="help"
+            >{{ t('publishing.errors.pages.page_published') }}</span>
           </div>
 
           <p
@@ -525,6 +535,7 @@ function whoSaved(value: PageDetail): string {
       :initial-title="dialog.kind === 'rename' ? dialog.page.title : undefined"
       :initial-slug="dialog.kind === 'rename' ? dialog.page.slug : undefined"
       :offer-home="dialog.kind === 'create' && dialog.parent === null && !hasHome"
+      :live-address-count="dialog.kind === 'rename' ? liveAddressCount(pages, dialog.page.id) : 0"
       :busy="busy"
       :error="dialogError"
       @submit="submitForm"
@@ -536,6 +547,7 @@ function whoSaved(value: PageDetail): string {
       dialog-id="page-move"
       :page="dialog.page"
       :pages="pages"
+      :live-address-count="liveAddressCount(pages, dialog.page.id)"
       :busy="busy"
       :error="dialogError"
       @submit="submitMove"
