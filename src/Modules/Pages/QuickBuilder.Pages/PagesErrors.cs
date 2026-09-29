@@ -134,6 +134,10 @@ internal static class PagesErrors
         "pages.schedule_not_found",
         "Nothing is scheduled.");
 
+    internal static Error DraftVersionRequired { get; } = Error.Validation(
+        "pages.draft_version_required",
+        "A scheduled publish needs the draft version that was reviewed.");
+
     internal static Error InvalidCursor { get; } = Error.Validation(
         "pages.invalid_cursor",
         "The cursor is not one this server issued.");

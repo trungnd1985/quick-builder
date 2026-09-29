@@ -18,7 +18,7 @@ namespace QuickBuilder.Pages.Infrastructure;
 /// (FR-001). Two publishes of one subject at once serialise on the publication's <c>xmin</c>:
 /// the loser runs again against what the winner committed, so both succeed with consecutive
 /// numbers (PR-03). Scheduled runs call <see cref="PublishContentAsync"/> and
-/// <see cref="UnpublishLiveAsync"/> inside the transaction the outbox dispatcher holds.
+/// <see cref="UnpublishLiveAsync"/> inside the transaction <see cref="ScheduleWrites"/> holds.
 /// </remarks>
 internal sealed class PublishingWrites(
     PagesDbContext database,

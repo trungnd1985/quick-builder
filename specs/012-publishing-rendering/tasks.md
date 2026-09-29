@@ -420,8 +420,8 @@ each schedule still runs once.
 
 ### Tests for User Story 5 ⚠️
 
-- [ ] T080 [P] [US5] Create `UTESTS/Pages/Publishing/PublishScheduleTests.cs`: the states and transitions of data-model §4.2, `revision` incremented by a time change, run skipped when not pending or on a revision mismatch, and past times refused.
-- [ ] T081 [P] [US5] Create `ITESTS/Publishing/ScheduleApiTests.cs`:
+- [X] T080 [P] [US5] Create `UTESTS/Pages/Publishing/PublishScheduleTests.cs`: the states and transitions of data-model §4.2, `revision` incremented by a time change, run skipped when not pending or on a revision mismatch, and past times refused.
+- [X] T081 [P] [US5] Create `ITESTS/Publishing/ScheduleApiTests.cs`:
   - `PUT …/schedules/publish` captures the draft and validates it (`400 pages.invalid_document`) and refuses past times (`400 pages.schedule_in_past`);
   - a second `PUT` replaces the time and increments the revision;
   - `DELETE` cancels, and gives `404 pages.schedule_not_found` when there is none;
@@ -429,7 +429,7 @@ each schedule still runs once.
   - a manual publish, unpublish or rollback cancels the pending publish schedule with `superseded_by_manual_action`, and a manual unpublish also cancels a pending unpublish;
   - the tree shows `pendingSchedules` and `failedSchedule`;
   - the same for components.
-- [ ] T082 [P] [US5] Create `ITESTS/Publishing/ScheduledPublishExactlyOnceTests.cs` (SC-007), driving `OutboxDispatcher.RunOnceAsync` and setting `available_at_utc` directly:
+- [X] T082 [P] [US5] Create `ITESTS/Publishing/ScheduledPublishExactlyOnceTests.cs` (SC-007), driving `OutboxDispatcher.RunOnceAsync` and setting `available_at_utc` directly:
   - a due publish runs once with the captured content, not the later draft, and is logged `scheduled_publish` with the schedule owner;
   - two dispatchers running concurrently produce one version;
   - redelivering after `done` is a no-op;
@@ -437,7 +437,7 @@ each schedule still runs once.
   - a due publish whose component was unpublished becomes `failed` with `pages.unpublished_components`, and the page is unchanged;
   - a message due while no dispatcher ran is handled on the next pass;
   - a scheduled unpublish runs and logs `scheduled_unpublish`.
-- [ ] T083 [P] [US5] Create `ADMINTESTS/publishing/ScheduleDialog.spec.ts`:
+- [X] T083 [P] [US5] Create `ADMINTESTS/publishing/ScheduleDialog.spec.ts`:
   - the local date and time with the time-zone name is converted to UTC;
   - the past is refused in the dialog;
   - an existing schedule is shown with Change and Cancel;
@@ -447,15 +447,15 @@ each schedule still runs once.
 
 ### Implementation for User Story 5
 
-- [ ] T084 [US5] Implement the `PublishSchedule` behaviour in `PAGES/Domain/PublishSchedule.cs` (set, change, cancel, run, fail), and schedule cancellation inside `Publication.Publish`, `Unpublish` and `Rollback`, with log entries. Make T080 pass.
-- [ ] T085 [US5] Add the module-internal `PAGES/Features/RunDueSchedule/PublishScheduleDue.cs` (`EventType` `Pages.PublishScheduleDue`), registered in `PAGES/PagesModule.cs`. Create the `PAGES/Features/SetPageSchedule/`, `CancelPageSchedule/`, `SetComponentSchedule/` and `CancelComponentSchedule/` slices. Setting writes the schedule and the due message with `AvailableAtUtc = due` in one transaction (T011). Make T081 pass.
-- [ ] T086 [US5] Create `PAGES/Features/RunDueSchedule/RunDueScheduleHandler.cs`:
+- [X] T084 [US5] Implement the `PublishSchedule` behaviour in `PAGES/Domain/PublishSchedule.cs` (set, change, cancel, run, fail), and schedule cancellation inside `Publication.Publish`, `Unpublish` and `Rollback`, with log entries. Make T080 pass.
+- [X] T085 [US5] Add the module-internal `PAGES/Features/RunDueSchedule/PublishScheduleDue.cs` (`EventType` `Pages.PublishScheduleDue`), registered in `PAGES/PagesModule.cs`. Create the `PAGES/Features/SetPageSchedule/`, `CancelPageSchedule/`, `SetComponentSchedule/` and `CancelComponentSchedule/` slices. Setting writes the schedule and the due message with `AvailableAtUtc = due` in one transaction (T011). Make T081 pass.
+- [X] T086 [US5] Create `PAGES/Features/RunDueSchedule/RunDueScheduleHandler.cs`:
   - it loads the schedule and returns if it is not pending or the revision differs;
   - otherwise it runs publish with the captured content and `kind = scheduled`, skipping the draft-version check, or it runs unpublish;
   - on a domain refusal it marks the schedule `failed` with the code, logs `schedule_failed`, and returns normally (PR-14).
 
   Make T082 pass.
-- [ ] T087 [US5] Create `PUBUI/ScheduleDialog.vue`. Add **Schedule**, and **Change** and **Cancel** schedule, to `PublishMenu.vue` for pages and components. Show pending, overdue and failed states in `PublicationBadge.vue`. Add the i18n keys, and make T083 pass.
+- [X] T087 [US5] Create `PUBUI/ScheduleDialog.vue`. Add **Schedule**, and **Change** and **Cancel** schedule, to `PublishMenu.vue` for pages and components. Show pending, overdue and failed states in `PublicationBadge.vue`. Add the i18n keys, and make T083 pass.
 
 **Checkpoint**: quickstart §5.
 

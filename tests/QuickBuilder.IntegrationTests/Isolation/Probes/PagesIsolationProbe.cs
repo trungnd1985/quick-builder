@@ -52,6 +52,12 @@ internal sealed class PagesIsolationProbe : ISiteIsolationProbe
         "GET api/v1/pages/sites/{siteId:guid}/components/{componentId:guid}/history",
         "GET api/v1/pages/sites/{siteId:guid}/components/{componentId:guid}/versions/{number:int}",
         "POST api/v1/pages/sites/{siteId:guid}/components/{componentId:guid}/versions/{number:int}/copy-to-draft",
+        "PUT api/v1/pages/sites/{siteId:guid}/pages/{pageId:guid}/schedules/publish",
+        "PUT api/v1/pages/sites/{siteId:guid}/pages/{pageId:guid}/schedules/unpublish",
+        "DELETE api/v1/pages/sites/{siteId:guid}/pages/{pageId:guid}/schedules/publish",
+        "DELETE api/v1/pages/sites/{siteId:guid}/pages/{pageId:guid}/schedules/unpublish",
+        "PUT api/v1/pages/sites/{siteId:guid}/components/{componentId:guid}/schedules/publish",
+        "DELETE api/v1/pages/sites/{siteId:guid}/components/{componentId:guid}/schedules/publish",
     ];
 
     /// <summary>012: an address shaped like each site's own published page, never issued.</summary>
@@ -105,6 +111,10 @@ internal sealed class PagesIsolationProbe : ISiteIsolationProbe
             yield return new ProbeRequest(HttpMethod.Get, $"{page}/history", ProbeKind.Addressed);
             yield return new ProbeRequest(HttpMethod.Get, $"{page}/versions/1", ProbeKind.Addressed);
             yield return new ProbeRequest(HttpMethod.Post, $"{page}/versions/1/copy-to-draft", ProbeKind.Addressed, new { draftVersion = 0 });
+            yield return new ProbeRequest(HttpMethod.Put, $"{page}/schedules/publish", ProbeKind.Addressed, new { dueAtUtc = DateTimeOffset.UtcNow.AddDays(1), draftVersion = 0 });
+            yield return new ProbeRequest(HttpMethod.Put, $"{page}/schedules/unpublish", ProbeKind.Addressed, new { dueAtUtc = DateTimeOffset.UtcNow.AddDays(1) });
+            yield return new ProbeRequest(HttpMethod.Delete, $"{page}/schedules/publish", ProbeKind.Addressed);
+            yield return new ProbeRequest(HttpMethod.Delete, $"{page}/schedules/unpublish", ProbeKind.Addressed);
         }
 
         var component = $"/api/v1/pages/sites/{siteId}/components/{other.Ids[2]}";
@@ -120,6 +130,8 @@ internal sealed class PagesIsolationProbe : ISiteIsolationProbe
         yield return new ProbeRequest(HttpMethod.Get, $"{component}/history", ProbeKind.Addressed);
         yield return new ProbeRequest(HttpMethod.Get, $"{component}/versions/1", ProbeKind.Addressed);
         yield return new ProbeRequest(HttpMethod.Post, $"{component}/versions/1/copy-to-draft", ProbeKind.Addressed, new { draftVersion = 0 });
+        yield return new ProbeRequest(HttpMethod.Put, $"{component}/schedules/publish", ProbeKind.Addressed, new { dueAtUtc = DateTimeOffset.UtcNow.AddDays(1), draftVersion = 0 });
+        yield return new ProbeRequest(HttpMethod.Delete, $"{component}/schedules/publish", ProbeKind.Addressed);
 
         yield return new ProbeRequest(HttpMethod.Get, $"/api/v1/pages/sites/{siteId}/pages", ProbeKind.Listing);
         yield return new ProbeRequest(HttpMethod.Get, $"/api/v1/pages/sites/{siteId}/components", ProbeKind.Listing);

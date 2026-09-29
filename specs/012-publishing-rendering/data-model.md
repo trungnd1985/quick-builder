@@ -285,6 +285,7 @@ Pages (`pages.*`, HTTP `409` unless noted):
 | `pages.version_missing_components` | Rollback to a version that references deleted components. `componentIds` lists them. |
 | `pages.schedule_in_past` (`400`) | Schedule time not in the future. |
 | `pages.schedule_not_found` (`404`) | Cancel with no pending schedule. |
+| `pages.draft_version_required` (`400`) | A publish schedule set without the reviewed draft version. |
 | `pages.invalid_cursor`, `pages.invalid_limit` (`400`) | A publish log cursor this server did not issue, or a page size outside 1 to 100. |
 | `pages.out_of_date`, `pages.invalid_document` | Reused from 010 for publish, schedule and copy. |
 

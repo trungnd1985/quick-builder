@@ -930,6 +930,12 @@
       "published": "Published",
       "changed": "Published — changes",
       "failed": "Schedule failed",
+      "failures": {
+        "unpublished_components": "A shared component it uses was not published by then.",
+        "not_published": "It was no longer published.",
+        "invalid_document": "Its content no longer passes the page checks.",
+        "unknown": "The schedule could not run."
+      },
       "scheduled": {
         "publish": "Publishes {when}",
         "unpublish": "Unpublishes {when}"
@@ -973,7 +979,8 @@
       "save": "Schedule",
       "saved": "Scheduled for {when}.",
       "inPast": "Choose a time in the future.",
-      "existing": "Currently scheduled for {when}."
+      "existing": "Currently scheduled for {when}.",
+      "updated": "Schedule updated."
     },
     "history": {
       "title": "History of {title}",
@@ -1059,6 +1066,7 @@
         "version_not_found": "That version is no longer kept.",
         "version_missing_components": "That version uses {count} component(s) that no longer exist.",
         "schedule_in_past": "Choose a time in the future.",
+        "draft_version_required": "Save the draft, then schedule it again.",
         "schedule_not_found": "Nothing is scheduled.",
         "not_found": "This page no longer exists.",
         "component_not_found": "This component no longer exists.",

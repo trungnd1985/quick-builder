@@ -7,7 +7,13 @@ import type { Publication } from '../../api/publishing'
 
 const props = defineProps<{ publication: Publication | null | undefined }>()
 
-const { t, d } = useI18n()
+const { t, te, d } = useI18n()
+
+/** Why a schedule could not run, without the counts a live refusal has. */
+function failureReason(code: string | null): string {
+  const key = `publishing.badge.failures.${(code ?? '').replace(/^pages\./, '')}`
+  return te(key) ? t(key) : t('publishing.badge.failures.unknown')
+}
 
 type Tone = 'draft' | 'live' | 'changed' | 'scheduled' | 'failed'
 
@@ -38,7 +44,7 @@ const badges = computed((): { tone: Tone; label: string; title?: string }[] => {
     result.push({
       tone: 'failed',
       label: t('publishing.badge.failed'),
-      title: t(`publishing.errors.pages.${(publication.failedSchedule.failureCode ?? 'pages.unknown').replace(/^pages\./, '')}`, { count: 0 }),
+      title: failureReason(publication.failedSchedule.failureCode),
     })
   }
 

@@ -9,6 +9,7 @@ import { pagesApi } from '../../api/pages'
 import { publishingApi, type Publication, type SubjectKind } from '../../api/publishing'
 import ConfirmDialog from '../sites/ConfirmDialog.vue'
 import PublicationBadge from './PublicationBadge.vue'
+import ScheduleDialog from './ScheduleDialog.vue'
 import { publishingErrorMessage } from './errorMessages'
 
 const props = defineProps<{
@@ -27,12 +28,18 @@ const props = defineProps<{
 
 const emit = defineEmits<{ changed: [publication: Publication] }>()
 
-const { t, te } = useI18n()
+const { t, te, d } = useI18n()
 
 const busy = ref(false)
 const error = ref<string | null>(null)
 const status = ref('')
 const confirmingUnpublish = ref(false)
+const confirmingPublish = ref(false)
+const scheduling = ref(false)
+
+/** FR-019: a manual publish cancels the pending scheduled one, so it says so first. */
+const pendingPublish = computed(() => props.publication?.pendingSchedules.find((s) => s.action === 'publish') ?? null)
+const hasPending = computed(() => (props.publication?.pendingSchedules.length ?? 0) > 0)
 
 const isPublished = computed(() => props.publication?.state === 'published')
 
@@ -68,7 +75,13 @@ async function run(action: () => Promise<Publication>, message: (p: Publication)
   }
 }
 
+function askPublish(): void {
+  if (pendingPublish.value) confirmingPublish.value = true
+  else void publish()
+}
+
 async function publish(): Promise<void> {
+  confirmingPublish.value = false
   await run(async () => {
     status.value = props.beforePublish ? t('publishing.menu.savingFirst') : ''
     const version = await draftVersion()
@@ -85,6 +98,17 @@ async function unpublish(): Promise<void> {
   )
   confirmingUnpublish.value = false
 }
+
+/** After a schedule is set, changed or cancelled: the fresh publication, schedules and all. */
+async function scheduled(): Promise<void> {
+  scheduling.value = false
+  await run(async () => {
+    const subject = props.kind === 'page'
+      ? await pagesApi.get(props.siteId, props.subjectId)
+      : await pagesApi.getComponent(props.siteId, props.subjectId)
+    return subject.publication
+  }, () => t('publishing.schedule.updated'))
+}
 </script>
 
 <template>
@@ -100,7 +124,7 @@ async function unpublish(): Promise<void> {
       type="button"
       class="primary"
       :disabled="busy"
-      @click="publish"
+      @click="askPublish"
     >
       {{ busy ? t('publishing.menu.publishing') : t('publishing.menu.publish') }}
     </button>
@@ -112,6 +136,15 @@ async function unpublish(): Promise<void> {
       @click="confirmingUnpublish = true"
     >
       {{ t('publishing.menu.unpublish') }}
+    </button>
+
+    <button
+      v-if="canPublish"
+      type="button"
+      :disabled="busy"
+      @click="scheduling = true"
+    >
+      {{ hasPending ? t('publishing.menu.changeSchedule') : t('publishing.menu.schedule') }}
     </button>
 
     <a
@@ -163,6 +196,32 @@ async function unpublish(): Promise<void> {
       danger
       @confirm="unpublish"
       @cancel="confirmingUnpublish = false"
+    />
+
+    <ConfirmDialog
+      v-if="confirmingPublish && pendingPublish"
+      :dialog-id="`publish-`"
+      :title="t('publishing.menu.publish')"
+      :body="t('publishing.confirm.supersedes', { when: d(new Date(pendingPublish.dueAtUtc), 'short') })"
+      :confirm-label="t('publishing.menu.publish')"
+      :cancel-label="t('publishing.confirm.cancel')"
+      :busy-label="t('publishing.menu.publishing')"
+      :busy="busy"
+      @confirm="publish"
+      @cancel="confirmingPublish = false"
+    />
+
+    <ScheduleDialog
+      v-if="scheduling"
+      :dialog-id="`schedule-`"
+      :site-id="siteId"
+      :kind="kind"
+      :subject-id="subjectId"
+      :title="title"
+      :publication="publication"
+      :draft-version="draftVersion"
+      @changed="scheduled"
+      @close="scheduling = false"
     />
   </div>
 </template>

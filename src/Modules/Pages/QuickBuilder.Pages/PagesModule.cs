@@ -24,6 +24,8 @@ using QuickBuilder.Pages.Features.Rollback;
 using QuickBuilder.Pages.Features.PublishingHistory;
 using QuickBuilder.Pages.Features.GetPublishLog;
 using QuickBuilder.Pages.Features.RecordDesignPublish;
+using QuickBuilder.Pages.Features.RunDueSchedule;
+using QuickBuilder.Pages.Features.Schedules;
 using QuickBuilder.Editor.Contracts.Events;
 using QuickBuilder.Shared.Kernel.Events;
 using QuickBuilder.Pages.Features.Unpublish;
@@ -148,6 +150,13 @@ public static class PagesModule
         services.AddScoped<IQueryHandler<GetVersionQuery, Result<VersionContentResponse>>, GetVersionHandler>();
         services.AddScoped<ICommandHandler<CopyVersionToDraftCommand, Result<DraftResponse>>, CopyVersionToDraftHandler>();
         services.AddScoped<IQueryHandler<GetPublishLogQuery, Result<PublishLogResponse>>, GetPublishLogHandler>();
+
+        // 012 research PR-14: schedules, run through delayed messages in the Pages outbox.
+        services.AddScoped<ScheduleWrites>();
+        services.AddScoped<ICommandHandler<SetScheduleCommand, Result<ScheduleResponse>>, SetScheduleHandler>();
+        services.AddScoped<ICommandHandler<CancelScheduleCommand, Result>, CancelScheduleHandler>();
+        services.AddScoped<IIntegrationEventHandler<PublishScheduleDue>, RunDueScheduleHandler>();
+        services.AddSingleton<IEventTypeRegistration>(new EventTypeRegistration<PublishScheduleDue>());
 
         // 012 research PR-16: design publishes, recorded in the site's publish log.
         services.AddScoped<IIntegrationEventHandler<DesignPublished>, RecordDesignPublishHandler>();
