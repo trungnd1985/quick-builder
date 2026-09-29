@@ -1,4 +1,3 @@
-using System.Text.Json;
 using QuickBuilder.Pages.Contracts.Events;
 using QuickBuilder.Pages.Domain;
 using QuickBuilder.Pages.Domain.Events;
@@ -55,17 +54,9 @@ internal static class PagesOutbox
         aggregate.ClearDomainEvents();
     }
 
-    private static void Add<TEvent>(PagesDbContext database, TEvent integrationEvent)
+    internal static void Add<TEvent>(PagesDbContext database, TEvent integrationEvent, DateTimeOffset? availableAtUtc = null)
         where TEvent : IIntegrationEvent
     {
-        database.OutboxMessages.Add(new OutboxMessage
-        {
-            Id = Guid.CreateVersion7(),
-            EventType = TEvent.EventType,
-            Payload = JsonSerializer.Serialize(integrationEvent),
-            OccurredAtUtc = integrationEvent.OccurredAtUtc,
-            AvailableAtUtc = integrationEvent.OccurredAtUtc,
-            TraceId = System.Diagnostics.Activity.Current?.TraceId.ToString(),
-        });
+        database.OutboxMessages.Add(OutboxMessage.From(integrationEvent, availableAtUtc));
     }
 }

@@ -26,7 +26,9 @@ public static class SharedInfrastructureRegistration
         services.AddSingleton<StartupState>();
         services.AddSingleton<ModuleMigrationRunner>();
 
-        services.AddMemoryCache();
+        // 012 research PR-07. The host binds and validates CacheOptions; without it the
+        // defaults apply, which keeps tests and tools that skip the host working.
+        services.AddOptions<CacheOptions>();
         services.AddSingleton<ICacheProvider, MemoryCacheProvider>();
 
         // Scoped: the site is a property of one request, not of the process.

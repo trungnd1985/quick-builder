@@ -9,7 +9,9 @@ using QuickBuilder.Host.Routing;
 using QuickBuilder.Identity;
 using QuickBuilder.Media;
 using QuickBuilder.Pages;
+using QuickBuilder.Rendering;
 using QuickBuilder.Shared.Infrastructure;
+using QuickBuilder.Shared.Infrastructure.Caching;
 using QuickBuilder.Shared.Infrastructure.Commands;
 using QuickBuilder.Shared.Infrastructure.Migrations;
 using QuickBuilder.Shared.Infrastructure.Outbox;
@@ -61,6 +63,13 @@ builder.Services
     .ValidateDataAnnotations()
     .ValidateOnStart();
 
+// 012 research PR-07: the in-memory cache's size bound.
+builder.Services
+    .AddOptions<CacheOptions>()
+    .Bind(builder.Configuration.GetSection(CacheOptions.SectionName))
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
+
 builder.Services
     .AddOptions<TelemetryOptions>()
     .Bind(builder.Configuration.GetSection(TelemetryOptions.SectionName))
@@ -88,6 +97,7 @@ builder.Services.AddIdentityModule(builder.Configuration);
 builder.Services.AddMediaModule(builder.Configuration);
 builder.Services.AddPagesModule(builder.Configuration);
 builder.Services.AddEditorModule(builder.Configuration);
+builder.Services.AddRenderingModule(builder.Configuration);
 
 // Controllers live in their modules and are discovered through application parts
 // (constitution Principle I). Minimal APIs are not used anywhere.
@@ -97,7 +107,8 @@ builder.Services
     .AddApplicationPart(typeof(IdentityModule).Assembly)
     .AddApplicationPart(typeof(MediaModule).Assembly)
     .AddApplicationPart(typeof(PagesModule).Assembly)
-    .AddApplicationPart(typeof(EditorModule).Assembly);
+    .AddApplicationPart(typeof(EditorModule).Assembly)
+    .AddApplicationPart(typeof(RenderingModule).Assembly);
 
 var app = builder.Build();
 

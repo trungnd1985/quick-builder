@@ -92,7 +92,8 @@ jobs:
           # 010: the page tree, the document validator and draft storage are the start of
           # the publish and render path (research P-19).
           # 011: design tokens feed rendering (#12) the same way, so the Editor module joins.
-          for package in QuickBuilder.Media QuickBuilder.Shared.Infrastructure QuickBuilder.Sites QuickBuilder.Shared.Kernel QuickBuilder.Host QuickBuilder.Pages QuickBuilder.Editor; do
+          # 012: the renderer and the public page path are critical paths (publish, render).
+          for package in QuickBuilder.Media QuickBuilder.Shared.Infrastructure QuickBuilder.Sites QuickBuilder.Shared.Kernel QuickBuilder.Host QuickBuilder.Pages QuickBuilder.Editor QuickBuilder.Rendering; do
             package_rate=$(grep -o "<package name=\"${package}\"[^>]*" ./TestResults/merged/Cobertura.xml | grep -o 'line-rate="[0-9.]*"' | grep -o '[0-9.]*' || true)
             if [ -z "${package_rate}" ]; then
               echo "::error::No coverage recorded for ${package}."

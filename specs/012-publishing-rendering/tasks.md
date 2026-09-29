@@ -80,19 +80,19 @@ Shorthand used below:
 **Purpose**: the feature's documents, the new Rendering module's projects, and build and CI
 wiring. Nothing here has behaviour.
 
-- [ ] T001 Commit `specs/012-publishing-rendering/` (spec, plan, research, data model, contracts, quickstart, checklist, tasks) as the first commit on branch `012-publishing-rendering`, referencing #12 (plan.md "Development Workflow").
-- [ ] T002 Create the two Rendering projects and add both to `QuickBuilder.slnx`:
+- [X] T001 Commit `specs/012-publishing-rendering/` (spec, plan, research, data model, contracts, quickstart, checklist, tasks) as the first commit on branch `012-publishing-rendering`, referencing #12 (plan.md "Development Workflow").
+- [X] T002 Create the two Rendering projects and add both to `QuickBuilder.slnx`:
   - `RENDC/QuickBuilder.Rendering.Contracts.csproj`, referencing only `src/Shared/QuickBuilder.Shared.Kernel` and `src/Modules/Sites/QuickBuilder.Sites.Contracts` (for `SiteDto`);
   - `REND/QuickBuilder.Rendering.csproj`, referencing `RENDC`, `Shared.Kernel`, `Shared.Infrastructure`, and the Contracts projects of Sites, Identity, Pages, Editor and Media. Copy the property groups and `InternalsVisibleTo` entries from `EDITOR/QuickBuilder.Editor.csproj`. Add an `EmbeddedResource` for `../../../admin/src/editor/blocks/blocks.css` with `LogicalName` `QuickBuilder.Rendering.blocks.css` (PR-10).
-- [ ] T003 [P] Add `ProjectReference`s to both Rendering projects in `ITESTS/QuickBuilder.IntegrationTests.csproj`, `UTESTS/QuickBuilder.UnitTests.csproj` and `ATESTS/QuickBuilder.ArchitectureTests.csproj`. Add `REND` to `HOST/QuickBuilder.Host.csproj`.
-- [ ] T004 [P] Add the Rendering module and contracts assemblies to the lists in `ATESTS/ModuleBoundaryTests.cs`. Add two rules:
+- [X] T003 [P] Add `ProjectReference`s to both Rendering projects in `ITESTS/QuickBuilder.IntegrationTests.csproj`, `UTESTS/QuickBuilder.UnitTests.csproj` and `ATESTS/QuickBuilder.ArchitectureTests.csproj`. Add `REND` to `HOST/QuickBuilder.Host.csproj`.
+- [X] T004 [P] Add the Rendering module and contracts assemblies to the lists in `ATESTS/ModuleBoundaryTests.cs`. Add two rules:
   - `QuickBuilder.Rendering` references no module implementation project and declares no `DbContext` subclass;
   - `QuickBuilder.Rendering.Contracts` references only `Shared.Kernel`, `Sites.Contracts` and the BCL.
-- [ ] T005 [P] Update `Dockerfile`:
+- [X] T005 [P] Update `Dockerfile`:
   - in the restore layer, add `COPY` lines for `src/Modules/Rendering/QuickBuilder.Rendering.Contracts/*.csproj` and `src/Modules/Rendering/QuickBuilder.Rendering/*.csproj`;
   - in the build stage, before `dotnet publish`, add `COPY src/admin/src/editor/blocks/blocks.css src/admin/src/editor/blocks/blocks.css`, with a comment citing PR-10.
-- [ ] T006 [P] Register the module in `HOST/Program.cs`: `builder.Services.AddRenderingModule(builder.Configuration)` after `AddEditorModule`, and `.AddApplicationPart(typeof(RenderingModule).Assembly)`. Create `REND/RenderingModule.cs` with an empty `AddRenderingModule` so that it compiles.
-- [ ] T007 [P] Add `QuickBuilder.Rendering` to the per-package coverage loop in `.github/workflows/ci.yml`, with a comment "012: the renderer and the public page path are critical paths" (Principle X).
+- [X] T006 [P] Register the module in `HOST/Program.cs`: `builder.Services.AddRenderingModule(builder.Configuration)` after `AddEditorModule`, and `.AddApplicationPart(typeof(RenderingModule).Assembly)`. Create `REND/RenderingModule.cs` with an empty `AddRenderingModule` so that it compiles.
+- [X] T007 [P] Add `QuickBuilder.Rendering` to the per-package coverage loop in `.github/workflows/ci.yml`, with a comment "012: the renderer and the public page path are critical paths" (Principle X).
 
 ---
 
@@ -111,19 +111,19 @@ wiring. Nothing here has behaviour.
 
 ### Shared infrastructure (tests first)
 
-- [ ] T008 [P] Create `UTESTS/Caching/MemoryCacheProviderTests.cs`:
+- [X] T008 [P] Create `UTESTS/Caching/MemoryCacheProviderTests.cs`:
   - an entry larger than the remaining size limit evicts the least recently used entries;
   - ten concurrent `GetOrCreateAsync` calls for one missing key run the factory once (single-flight);
   - sliding expiry renews on read;
   - keys from `CacheKey.ForSite` of two sites never collide.
-- [ ] T009 Reshape `SHARED/Caching/ICacheProvider.cs` as contracts/readers.md §2 describes:
+- [X] T009 Reshape `SHARED/Caching/ICacheProvider.cs` as contracts/readers.md §2 describes:
   - add `CacheEntrySettings(long Size, TimeSpan? Sliding, TimeSpan? Absolute)`;
   - the `MemoryCacheProvider` owns a `MemoryCache` with `SizeLimit` from `Cache:MemoryLimitMegabytes`;
   - add per-key single-flight through a `ConcurrentDictionary<string, Lazy<Task<object?>>>` that is removed on completion.
 
   Add `SHARED/Caching/CacheOptions.cs` (`[Range(16, 16384)]`, default 256), bind it with `ValidateOnStart` in `HOST/Program.cs`, and add `"Cache": { "MemoryLimitMegabytes": 256 }` to `HOST/appsettings.json` and the key to `docs/configuration.md`. Rewrite the remarks, which name E-4 as open, to cite PR-05 and PR-07. Make T008 pass.
-- [ ] T010 [P] Create `SHARED/Data/ReadOnlyConnection.cs` with `static string From(string connectionString)`. It uses `NpgsqlConnectionStringBuilder` to append `-c default_transaction_read_only=on` to `Options`, keeping any existing options (PR-06). Add `ITESTS/Infrastructure/ReadOnlyConnectionTests.cs`: an `INSERT` through a connection built from it fails with SQLSTATE `25006`, and a `SELECT` succeeds.
-- [ ] T011 [P] Let an outbox message be added with a future `AvailableAtUtc` (PR-14):
+- [X] T010 [P] Create `SHARED/Data/ReadOnlyConnection.cs` with `static string From(string connectionString)`. It uses `NpgsqlConnectionStringBuilder` to append `-c default_transaction_read_only=on` to `Options`, keeping any existing options (PR-06). Add `ITESTS/Infrastructure/ReadOnlyConnectionTests.cs`: an `INSERT` through a connection built from it fails with SQLSTATE `25006`, and a `SELECT` succeeds.
+- [X] T011 [P] Let an outbox message be added with a future `AvailableAtUtc` (PR-14):
   - add an optional `availableAtUtc` parameter to the message factory in `SHARED/Outbox/OutboxMessage.cs`;
   - add `ITESTS/Outbox/DelayedMessageTests.cs`: a message available in the future is not claimed by `OutboxDispatcher.RunOnceAsync`, and it is claimed once its time has passed. Set `available_at_utc` directly in the test to move time.
 

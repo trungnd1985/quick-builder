@@ -47,6 +47,31 @@ public sealed class OutboxMessage
     /// the operation that caused it (D-10).
     /// </summary>
     public string? TraceId { get; set; }
+
+    /// <summary>
+    /// The stored form of <paramref name="integrationEvent"/>, available at once or, for a
+    /// delayed message, not before <paramref name="availableAtUtc"/>.
+    /// </summary>
+    /// <remarks>
+    /// A delayed message is how a scheduled publish waits for its time (012 research PR-14):
+    /// the dispatcher does not claim a row before <see cref="AvailableAtUtc"/>, so the outbox's
+    /// claiming, retries and restart safety carry the schedule with no second scheduler.
+    /// </remarks>
+    public static OutboxMessage From<TEvent>(TEvent integrationEvent, DateTimeOffset? availableAtUtc = null)
+        where TEvent : Kernel.Events.IIntegrationEvent
+    {
+        ArgumentNullException.ThrowIfNull(integrationEvent);
+
+        return new OutboxMessage
+        {
+            Id = Guid.CreateVersion7(),
+            EventType = TEvent.EventType,
+            Payload = System.Text.Json.JsonSerializer.Serialize(integrationEvent),
+            OccurredAtUtc = integrationEvent.OccurredAtUtc,
+            AvailableAtUtc = availableAtUtc ?? integrationEvent.OccurredAtUtc,
+            TraceId = System.Diagnostics.Activity.Current?.TraceId.ToString(),
+        };
+    }
 }
 
 /// <summary>
