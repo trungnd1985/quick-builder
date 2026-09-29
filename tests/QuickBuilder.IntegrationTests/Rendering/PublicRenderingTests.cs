@@ -234,7 +234,7 @@ public sealed class PublicRouteBoundaryTests(DatabaseFixture database) : IAsyncL
         var body = await response.Content.ReadAsStringAsync().ConfigureAwait(true);
 
         // Never the page route's answer, whether or not the admin app was built.
-        Assert.DoesNotContain("public.not_found", body, StringComparison.Ordinal);
+        Assert.DoesNotContain("Page not found</h1>", body, StringComparison.Ordinal);
         Assert.NotEqual(HttpStatusCode.MethodNotAllowed, response.StatusCode);
         Assert.False(
             response.Headers.TryGetValues("Content-Security-Policy", out var csp) && csp.Single().StartsWith("default-src 'none'", StringComparison.Ordinal),

@@ -1,0 +1,7 @@
+{
+  "notFound": {
+    "title": "Sayfa bulunamadı",
+    "message": "Aradığınız sayfayı bulamadık.",
+    "home": "Ana sayfaya git"
+  }
+}

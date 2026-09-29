@@ -1,0 +1,7 @@
+{
+  "notFound": {
+    "title": "Seite nicht gefunden",
+    "message": "Die gesuchte Seite konnte nicht gefunden werden.",
+    "home": "Zur Startseite"
+  }
+}

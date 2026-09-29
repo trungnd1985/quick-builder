@@ -1,0 +1,7 @@
+{
+  "notFound": {
+    "title": "Az oldal nem található",
+    "message": "Nem találtuk a keresett oldalt.",
+    "home": "Ugrás a kezdőlapra"
+  }
+}

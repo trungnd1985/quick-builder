@@ -515,18 +515,18 @@ still gets 009's JSON.
 
 ### Tests for User Story 7 ⚠️
 
-- [ ] T095 [P] [US7] Create `ITESTS/Rendering/NotFoundParityTests.cs` (PR-08, 009 S-13):
+- [X] T095 [P] [US7] Create `ITESTS/Rendering/NotFoundParityTests.cs` (PR-08, 009 S-13):
   - with `Hosting:AdminHostNames` set, `/admin` and `/api/x` on a site host give bytes identical to `/no-such-page`;
   - an unpublished page's address, a draft-only page's address and a never-used address give identical bytes;
   - the body has no path, query or host from the request;
   - `404`, `Cache-Control: no-store`, the §3 security headers, and no `ETag`;
   - the home link is present only while the home page is live;
   - an unknown host and a disabled site keep 009's JSON byte for byte.
-- [ ] T096 [P] [US7] Create `UTESTS/Rendering/PublicTextCatalogueTests.cs`: every tag in the Sites module's `SupportedLanguages` has a file `REND/Resources/public-texts/{tag}.json`, and every file has exactly the keys of `en.json`, each non-empty (FR-030, SC-009). Also test that a tag without a file (a language added to Sites later) falls back to English rather than failing. Read the tag list through a small `Sites.Contracts` constant or by reflection in the test; never hard-code it.
+- [X] T096 [P] [US7] Create `UTESTS/Rendering/PublicTextCatalogueTests.cs`: every tag in the Sites module's `SupportedLanguages` has a file `REND/Resources/public-texts/{tag}.json`, and every file has exactly the keys of `en.json`, each non-empty (FR-030, SC-009). Also test that a tag without a file (a language added to Sites later) falls back to English rather than failing. Read the tag list through a small `Sites.Contracts` constant or by reflection in the test; never hard-code it.
 
 ### Implementation for User Story 7
 
-- [ ] T097 [US7] Create `REND/Resources/public-texts/en.json` (`notFound.title`, `notFound.message`, `notFound.home`) and one file per remaining supported language (`ar` … `zh-Hant`, 40 files in all), embedded as resources, with a loader that falls back to `en.json` for a tag without a file. Name any translation that still needs a native speaker's review in `specs/012-publishing-rendering/quickstart-results.md`. Replace T021's placeholder in `REND/Features/NotFound/NotFoundPage.cs` with the HTML page of public-rendering.md §4: `PageShell` with the live design, no components, the texts, and the home link when `IsHomePageLiveAsync`. Cache the bytes under the `notfound` key of PR-13. Make T095 and T096 pass, and keep T032's not-found cases green.
+- [X] T097 [US7] Create `REND/Resources/public-texts/en.json` (`notFound.title`, `notFound.message`, `notFound.home`) and one file per remaining supported language (`ar` … `zh-Hant`, 40 files in all), embedded as resources, with a loader that falls back to `en.json` for a tag without a file. Name any translation that still needs a native speaker's review in `specs/012-publishing-rendering/quickstart-results.md`. Replace T021's placeholder in `REND/Features/NotFound/NotFoundPage.cs` with the HTML page of public-rendering.md §4: `PageShell` with the live design, no components, the texts, and the home link when `IsHomePageLiveAsync`. Cache the bytes under the `notfound` key of PR-13. Make T095 and T096 pass, and keep T032's not-found cases green.
 
 **Checkpoint**: quickstart §7.
 
