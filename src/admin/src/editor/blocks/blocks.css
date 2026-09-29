@@ -30,6 +30,19 @@
   .qb-canvas :is(h1, h2, h3, h4, h5, h6, p, ul, ol, figure, hr) {
     margin: 0;
   }
+
+  /*
+    A published page's body (012, page-schema.md §9): the same named container the editor's
+    canvas frame is, so the container queries below lay blocks out the same way.
+  */
+  .qb-page {
+    container-type: inline-size;
+    container-name: page;
+  }
+
+  body.qb-published {
+    margin: 0;
+  }
 }
 
 @layer qb-blocks {
@@ -202,6 +215,19 @@
 
   .qb-embed {
     width: 100%;
+  }
+
+  /* A published embed's player fills the box its aspect ratio sets (012 research PR-11). */
+  .qb-embed > iframe {
+    display: block;
+    width: 100%;
+    height: 100%;
+    border: 0;
+  }
+
+  /* Published links look like their canvas blocks: a Button stays a button. */
+  a.qb-button {
+    text-decoration: none;
   }
 
   /* Tablet: sections breathe less, horizontal containers may wrap. */

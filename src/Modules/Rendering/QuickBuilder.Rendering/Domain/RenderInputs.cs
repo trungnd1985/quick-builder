@@ -1,0 +1,31 @@
+using System.Text.Json;
+using QuickBuilder.Media.Contracts;
+using QuickBuilder.Pages.Contracts.Publishing;
+
+namespace QuickBuilder.Rendering.Domain;
+
+/// <summary>
+/// Everything one render reads, gathered before it starts (012 data-model §5).
+/// </summary>
+/// <remarks>
+/// Read after the page's cache key, never before (research PR-05): anything published after
+/// the key was read gets a newer key, so a render that saw older content is stored where no
+/// one will look for it again.
+/// </remarks>
+/// <param name="Title">The live version's title, the document title visitors see.</param>
+/// <param name="Document">The live page document.</param>
+/// <param name="Design">The live design document (or the defaults).</param>
+/// <param name="Components">Live component documents by id; a component without one is absent.</param>
+/// <param name="LinkTargets">Link targets by page id; a page that does not exist is absent.</param>
+/// <param name="Media">Media files by id; a deleted file is absent.</param>
+/// <param name="Language">The site's default language, for <c>lang</c>.</param>
+/// <param name="BasePath">The installation's base path, prefixed to every address on the site.</param>
+internal sealed record RenderInputs(
+    string Title,
+    JsonElement Document,
+    JsonElement Design,
+    IReadOnlyDictionary<Guid, LiveDocument> Components,
+    IReadOnlyDictionary<Guid, PageLinkTarget> LinkTargets,
+    IReadOnlyDictionary<Guid, PublicMediaFile> Media,
+    string Language,
+    string BasePath);

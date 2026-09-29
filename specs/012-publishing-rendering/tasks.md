@@ -164,28 +164,28 @@ wiring. Nothing here has behaviour.
   - `REND/Features/NotFound/NotFoundPage.cs` initially returns the existing JSON `public.not_found` bytes unchanged, and US7 replaces it.
 
   Existing 009 tests must stay green.
-- [ ] T022 [P] Create `REND/Rendering/HtmlWriter.cs` over `ArrayBufferWriter<byte>`:
+- [X] T022 [P] Create `REND/Rendering/HtmlWriter.cs` over `ArrayBufferWriter<byte>`:
   - `Raw(ReadOnlySpan<char>)` is internal and used for constant markup only;
   - `Text` uses `HtmlEncoder`, `Attribute` uses attribute encoding, and `UrlAttribute` validates the scheme before encoding.
 
   Add `UTESTS/Rendering/HtmlWriterTests.cs`: `<script>`, quotes, `&`, astral characters, and a refused `javascript:` URL.
-- [ ] T023 [P] Create `REND/Domain/BlockDefaults.cs`, which reads every `$defs` block's property `default` from the embedded `v1.schema.json` of `QuickBuilder.Pages.Contracts` once at startup (PR-09). Add `UTESTS/Rendering/BlockDefaultsTests.cs`: it asserts the Section `width` default `normal` and one token-ref default per block type.
-- [ ] T024 [P] Create `FIX/token-css/*.json` (the default set, a custom set, and a set without content widths), each with `{ tokens, expected }` where `expected` is the custom-property map `tokenCss.ts` produces today.
+- [X] T023 [P] Create `REND/Domain/BlockDefaults.cs`, which reads every `$defs` block's property `default` from the embedded `v1.schema.json` of `QuickBuilder.Pages.Contracts` once at startup (PR-09). Add `UTESTS/Rendering/BlockDefaultsTests.cs`: it asserts the Section `width` default `normal` and one token-ref default per block type.
+- [X] T024 [P] Create `FIX/token-css/*.json` (the default set, a custom set, and a set without content widths), each with `{ tokens, expected }` where `expected` is the custom-property map `tokenCss.ts` produces today.
   - Port the logic to `REND/Domain/TokenCss.cs`.
   - Add `UTESTS/Rendering/TokenCssParityTests.cs` and `ADMINTESTS/editor/tokenCss.parity.spec.ts`, both running every fixture (PR-10).
-- [ ] T025 [P] Create the renderer core:
+- [X] T025 [P] Create the renderer core:
   - `REND/Rendering/Blocks/IBlockRenderer.cs`;
   - `REND/Domain/NodeContext.cs` (the node, resolved defaults, token lookup with fallback, and a per-node style collector keyed by node id);
   - `REND/Domain/RenderInputs.cs`;
   - `REND/Rendering/PageRenderer.cs`, which walks the document, dispatches by `type` through the registered renderers, skips unknown types, and dispatches on `schemaVersion` with `SupportedSchemaVersions = [1]`;
   - `REND/Rendering/PageShell.cs`, which writes public-rendering.md §3's shell: the `lang`, the title, the stylesheet link, one `<style>` holding the token map on `.qb-page` and the collected `[data-qb]` rules, and the `qb-canvas qb-page` wrapper. It returns the SHA-256 of the style block.
-- [ ] T026 [P] Create `UTESTS/Rendering/BlockRendererCoverageTests.cs`: every node type in `v1.schema.json` has exactly one registered `IBlockRenderer`, and no renderer names an unknown type. Create `UTESTS/Rendering/RendererSchemaVersionsTests.cs`: every `CONTRACTS/page-schema/v*.schema.json` is in `PageRenderer.SupportedSchemaVersions` (FR-029). Both fail until US1 and US2 add the renderers.
-- [ ] T027 [P] In `ADMIN/editor/blocks/blocks.css`, add `.qb-page { container-type: inline-size; container-name: page; }` inside the `qb-reset` layer, with a comment citing page-schema.md §9 (PR-10).
+- [X] T026 [P] Create `UTESTS/Rendering/BlockRendererCoverageTests.cs`: every node type in `v1.schema.json` has exactly one registered `IBlockRenderer`, and no renderer names an unknown type. Create `UTESTS/Rendering/RendererSchemaVersionsTests.cs`: every `CONTRACTS/page-schema/v*.schema.json` is in `PageRenderer.SupportedSchemaVersions` (FR-029). Both fail until US1 and US2 add the renderers.
+- [X] T027 [P] In `ADMIN/editor/blocks/blocks.css`, add `.qb-page { container-type: inline-size; container-name: page; }` inside the `qb-reset` layer, with a comment citing page-schema.md §9 (PR-10).
 
 ### Admin foundations
 
-- [ ] T028 [P] Create `ADMIN/api/publishing.ts`: typed functions and types for every operation in contracts/publishing-api.yaml (`Publication`, `Schedule`, `SubjectHistory`, `VersionContent`, `LogEntry`, `DesignPublication`). Add the `publication` field to the page tree and component types in `ADMIN/api/pages.ts`, and to the design token type in `ADMIN/api/editor.ts`.
-- [ ] T029 [P] Create `PUBUI/errorMessages.ts` (every `pages.*` and `editor.*` code of data-model §6 → an i18n key, with `componentIds` and `pageCount` interpolated) and `PUBUI/PublicationBadge.vue` (Draft only, Published, Published — changes, Scheduled, Schedule failed), with keys in `ADMIN/i18n/en.json`.
+- [X] T028 [P] Create `ADMIN/api/publishing.ts`: typed functions and types for every operation in contracts/publishing-api.yaml (`Publication`, `Schedule`, `SubjectHistory`, `VersionContent`, `LogEntry`, `DesignPublication`). Add the `publication` field to the page tree and component types in `ADMIN/api/pages.ts`, and to the design token type in `ADMIN/api/editor.ts`.
+- [X] T029 [P] Create `PUBUI/errorMessages.ts` (every `pages.*` and `editor.*` code of data-model §6 → an i18n key, with `componentIds` and `pageCount` interpolated) and `PUBUI/PublicationBadge.vue` (Draft only, Published, Published — changes, Scheduled, Schedule failed), with keys in `ADMIN/i18n/en.json`.
 
 **Checkpoint**: migrations apply, readers work and are read-only, and the renderer core compiles. The coverage tests of T026 are expected to fail until the renderers exist.
 

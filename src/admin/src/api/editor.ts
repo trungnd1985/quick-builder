@@ -2,6 +2,7 @@
 
 import { request } from './request'
 import type { UserReference } from './pages'
+import type { DesignPublication } from './publishing'
 import type { TokenSet } from '../editor/tokens/defaultTokens'
 
 export { ApiError } from './request'
@@ -15,7 +16,9 @@ export interface DesignTokens {
   updatedAtUtc: string | null
   updatedBy: UserReference | null
   /** A courtesy for the UI; the server checks every save. */
-  permissions: { canManage: boolean }
+  permissions: { canManage: boolean; canPublish: boolean }
+  /** What visitors get (012 research PR-17). */
+  publication: DesignPublication
 }
 
 const tokens = (siteId: string) => `/editor/sites/${encodeURIComponent(siteId)}/design-tokens`

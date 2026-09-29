@@ -1,5 +1,6 @@
 // Typed client for the Pages module (010 contracts/pages-api.yaml).
 
+import type { Publication } from './publishing'
 import { request } from './request'
 
 export { ApiError, type ProblemDetails } from './request'
@@ -12,7 +13,14 @@ export interface PagePermissions {
   canManageStructure: boolean
   canEditPageDrafts: boolean
   canManageComponents: boolean
+  /** Publish, unpublish, roll back and schedule (012 `pages.publishing.manage`). */
+  canPublish: boolean
+  /** Read the site's publish log (012 `pages.publish_log.view`, Administrator only). */
+  canViewPublishLog: boolean
 }
+
+/** A page's or component's publication state (012; see publishing.ts). */
+export type { Publication }
 
 /** One page in the flat, depth-first tree: parents before children, siblings by position. */
 export interface PageNode {
@@ -29,6 +37,8 @@ export interface PageNode {
   childCount: number
   /** Opaque. Send it back with a change to this page. */
   version: number
+  /** Whether and what visitors see (012). */
+  publication: Publication
 }
 
 export interface PageTree {
@@ -72,6 +82,8 @@ export interface Component {
   draft: DraftSummary
   createdAtUtc: string
   updatedAtUtc: string
+  /** Whether and what visitors see (012). */
+  publication: Publication
 }
 
 export interface ComponentList {
