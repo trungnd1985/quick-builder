@@ -128,8 +128,9 @@ can see it is told honestly that they may not do this particular thing.
 | `POST /api/v1/identity/set-password-links/check` | Validating a link before asking for a password |
 | `POST /api/v1/identity/set-password` | Using a link |
 | `GET /health/live`, `GET /health/ready` | Orchestrator probes |
-| `GET /` (public surface, 001 `ResolveCurrentSite`) | Site visitors never authenticate |
 | `GET\|HEAD /_media/{file}` (public surface, 003 `ServePublicFile`) | Site visitors never authenticate; justified by 003 FR-026 |
+| `GET\|HEAD /{path}` and any other method on it (public surface, 012 `RenderPage`) | Published pages for site visitors, and `405` for other methods; justified by 012 FR-022 |
+| `GET\|HEAD /_assets/blocks.{hash}.css` (public surface, 012 `ServeBlockStylesheet`) | The published pages' stylesheet; justified by 012 research PR-10 |
 | `/admin/**` static assets and the SPA fallback | The shell has to load in order to show the sign-in screen |
 
 Adding to this list means changing this document, the list in the architecture test,

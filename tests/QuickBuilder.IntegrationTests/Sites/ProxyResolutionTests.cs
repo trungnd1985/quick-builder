@@ -47,6 +47,10 @@ public sealed class ProxyResolutionTests(DatabaseFixture database) : IAsyncLifet
         var admin = await _app.CreateAdminClientAsync().ConfigureAwait(false);
         _siteA = (await SitesApi.CreateOkAsync(admin, "A", ["a.test"]).ConfigureAwait(false)).GetProperty("id").GetGuid();
         _siteB = (await SitesApi.CreateOkAsync(admin, "B", ["b.test"]).ConfigureAwait(false)).GetProperty("id").GetGuid();
+
+        // Each site serves its own id at /, so a response shows which site it came from.
+        await PublicSite.MarkAsync(admin, _siteA).ConfigureAwait(false);
+        await PublicSite.MarkAsync(admin, _siteB).ConfigureAwait(false);
     }
 
     public Task DisposeAsync()
@@ -125,7 +129,7 @@ public sealed class ProxyResolutionTests(DatabaseFixture database) : IAsyncLifet
     {
         var response = await SendAsync(from, host, forwardedHost, forwardedFor, forwardedProto).ConfigureAwait(false);
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        return (await SitesApi.BodyAsync(response).ConfigureAwait(false)).GetProperty("siteId").GetGuid();
+        return (await PublicSite.ResolvedSiteAsync(response).ConfigureAwait(false))!.Value;
     }
 
     private Task<HttpResponseMessage> SendAsync(

@@ -31,7 +31,6 @@ public sealed class AuthorizationDeclarationTests
     {
         "HealthController.Live",
         "HealthController.ReadyAsync",
-        "ResolveCurrentSiteController.GetAsync",
         "GetStatusController.GetAsync",
         "CompleteSetupController.SetUpAsync",
         "SignInController.SignInAsync",
@@ -39,6 +38,10 @@ public sealed class AuthorizationDeclarationTests
         "SetPasswordController.SetAsync",
         // 003 FR-026: media files on each site's public surface.
         "ServePublicFileController.GetAsync",
+        // 012 FR-022: published pages, their stylesheet, and the 405 for other methods.
+        "RenderPageController.GetAsync",
+        "RenderPageController.OtherMethod",
+        "ServeBlockStylesheetController.GetAsync",
     };
 
     private static readonly Assembly[] ControllerAssemblies =

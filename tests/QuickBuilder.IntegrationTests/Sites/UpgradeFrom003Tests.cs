@@ -59,7 +59,7 @@ public sealed class UpgradeFrom003Tests(DatabaseFixture database)
         foreach (var host in new[] { "first.test", "www.first.test", "second-a.test", "second-b.test", "second-c.test" })
         {
             var response = await app.CreateClientForHost(host).GetAsync(new Uri("/", UriKind.Relative)).ConfigureAwait(true);
-            Assert.True(response.StatusCode == HttpStatusCode.OK, $"{host} no longer resolves after the upgrade");
+            Assert.True(await PublicSite.IsResolvedAsync(response).ConfigureAwait(true), $"{host} no longer resolves after the upgrade");
         }
 
         // Grants survive and still scope: the Editor sees exactly the site they held.

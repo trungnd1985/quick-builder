@@ -203,20 +203,20 @@ Change the draft: the public page is unchanged. Publish again: the change appear
 
 ### Tests for User Story 1 ⚠️
 
-- [ ] T030 [P] [US1] Create `UTESTS/Pages/Publishing/PublicationTests.cs` for the aggregate's publish:
+- [X] T030 [P] [US1] Create `UTESTS/Pages/Publishing/PublicationTests.cs` for the aggregate's publish:
   - the first publish creates number 1, the next number 2;
   - the live pointer moves;
   - `published_from_draft_version` is set;
   - `HasUnpublishedChanges` is false after publish and true after a draft or title change;
   - a stale draft version is refused (`pages.out_of_date`).
-- [ ] T031 [P] [US1] Create `ITESTS/Publishing/PublishApiTests.cs`:
+- [X] T031 [P] [US1] Create `ITESTS/Publishing/PublishApiTests.cs`:
   - publish returns `Publication`;
   - an invalid draft gives `400 pages.invalid_document`, and nothing changes;
   - a stale `draftVersion` gives `409 pages.out_of_date`;
   - two concurrent publishes both succeed with consecutive numbers (PR-03);
   - the page tree shows `publication.state = published` and `hasUnpublishedChanges`;
   - a `publish` log entry and a `Pages.PagePublished` outbox row are written in the same transaction.
-- [ ] T032 [P] [US1] Create `ITESTS/Rendering/PublicRenderingTests.cs` (public-rendering.md §1–§3):
+- [X] T032 [P] [US1] Create `ITESTS/Rendering/PublicRenderingTests.cs` (public-rendering.md §1–§3):
   - a published page on its host gives `200` `text/html` with every header in §3;
   - `/About/` and `/about?x=1` serve `/about`;
   - `HEAD` returns the headers with no body;
@@ -232,31 +232,31 @@ Change the draft: the public page is unchanged. Publish again: the change appear
   - `GET /api/v1/unknown` keeps the 404 it gives today;
   - `/health/live` still answers;
   - on a site host, `/about` reaches the page endpoint.
-- [ ] T033 [P] [US1] Create per-block renderer tests in `UTESTS/Rendering/Blocks/`:
+- [X] T033 [P] [US1] Create per-block renderer tests in `UTESTS/Rendering/Blocks/`:
   - `SectionRendererTests.cs`, `ContainerRendererTests.cs`, `SpacerRendererTests.cs` and `DividerRendererTests.cs`: classes, `data-qb` and collected custom properties per width, alignment and column pattern, and the defaults applied;
   - `HeadingRendererTests.cs` and `TextRendererTests.cs`: the level, encoding and line breaks;
   - `RichTextRendererTests.cs`: every allowed node and mark, nested lists, a page link to a live page, a page link to an unpublished page (text only), and an unknown node skipped.
-- [ ] T034 [P] [US1] Create `UTESTS/Rendering/Blocks/ImageRendererTests.cs`, `ButtonRendererTests.cs` and `EmbedRendererTests.cs`:
+- [X] T034 [P] [US1] Create `UTESTS/Rendering/Blocks/ImageRendererTests.cs`, `ButtonRendererTests.cs` and `EmbedRendererTests.cs`:
   - an available image, a decorative image (`alt=""`) and a missing image (left out);
   - a button with an external link, a new tab (`rel="noopener noreferrer"`), and a page link to a non-live page (a `span` with the same classes);
   - YouTube and Vimeo iframes with `loading="lazy"` and the privacy domains (PR-11).
-- [ ] T035 [P] [US1] Create `FIX/context.json`, a fixed design (the defaults), link targets and media for the golden run. Create `UTESTS/Rendering/RendererGoldenTests.cs`: for every file in `CONTRACTS/page-schema/examples/valid/`, render with `context.json` and compare byte for byte with `FIX/golden/<name>.html`. Set an environment variable `QB_UPDATE_GOLDEN=1` to rewrite the files; review every golden file by hand before committing.
-- [ ] T036 [P] [US1] Create `ADMINTESTS/editor/CanvasMarkupParity.spec.ts` (SC-008, PR-10): for each valid example document, mount the canvas with `@vue/test-utils` and parse `FIX/golden/<name>.html`. Normalise both: element names, `qb-*` classes, allow-listed attributes, and each node's custom properties (from `style` in the canvas, from the `[data-qb]` rules in the golden). Drop editor-only attributes. Assert equality, except for the documented differences in page-schema.md §9.
-- [ ] T037 [P] [US1] Create `UTESTS/Rendering/PathNormaliserTests.cs` (public-rendering.md §2) and `UTESTS/Rendering/PublishedPageJavaScriptBudgetTests.cs` (0 bytes of script in every golden page, failing above 100 KB; FR-028).
-- [ ] T038 [P] [US1] Create `ITESTS/Publishing/PublishingAuthorizationTests.cs` for page publish:
+- [X] T035 [P] [US1] Create `FIX/context.json`, a fixed design (the defaults), link targets and media for the golden run. Create `UTESTS/Rendering/RendererGoldenTests.cs`: for every file in `CONTRACTS/page-schema/examples/valid/`, render with `context.json` and compare byte for byte with `FIX/golden/<name>.html`. Set an environment variable `QB_UPDATE_GOLDEN=1` to rewrite the files; review every golden file by hand before committing.
+- [X] T036 [P] [US1] Create `ADMINTESTS/editor/CanvasMarkupParity.spec.ts` (SC-008, PR-10): for each valid example document, mount the canvas with `@vue/test-utils` and parse `FIX/golden/<name>.html`. Normalise both: element names, `qb-*` classes, allow-listed attributes, and each node's custom properties (from `style` in the canvas, from the `[data-qb]` rules in the golden). Drop editor-only attributes. Assert equality, except for the documented differences in page-schema.md §9.
+- [X] T037 [P] [US1] Create `UTESTS/Rendering/PathNormaliserTests.cs` (public-rendering.md §2) and `UTESTS/Rendering/PublishedPageJavaScriptBudgetTests.cs` (0 bytes of script in every golden page, failing above 100 KB; FR-028).
+- [X] T038 [P] [US1] Create `ITESTS/Publishing/PublishingAuthorizationTests.cs` for page publish:
   - Designer gets `200`;
   - Editor gets `403 identity.forbidden`;
   - a member of another site gets `404 sites.not_found`;
   - Administrator gets `200`.
 
   Extend `ATESTS/AuthorizationDeclarationTests.cs` to cover the new controllers.
-- [ ] T039 [P] [US1] Create `ADMINTESTS/publishing/PublishMenu.spec.ts`: Publish is shown only with `pages.publishing.manage`, publishes with the current draft version, and shows the badge change and the **View live page** link. Axe passes, keyboard operation works, and all text resolves through i18n.
+- [X] T039 [P] [US1] Create `ADMINTESTS/publishing/PublishMenu.spec.ts`: Publish is shown only with `pages.publishing.manage`, publishes with the current draft version, and shows the badge change and the **View live page** link. Axe passes, keyboard operation works, and all text resolves through i18n.
 
 ### Implementation for User Story 1
 
-- [ ] T040 [US1] Implement `Publication.Publish(...)` in `PAGES/Domain/Publication.cs`, following data-model §3.1 (the version insert, numbering, the live pointer, the log entry, a `PagePublishedDomainEvent`) and without dependencies or schedules, which US2 and US5 add. Make T030 pass.
-- [ ] T041 [US1] Add `PAGESC/Events/PagePublished.cs` (contracts/readers.md §3). Map the domain event in `PAGES/Infrastructure/PagesOutbox.cs`, and register the event type in `PAGES/PagesModule.cs`.
-- [ ] T042 [US1] Create the `PAGES/Features/PublishPage/` slice: `PublishPageController` (`POST …/pages/{pageId}/publish`, `[RequireCapability(PublishingCapabilities.Manage)]`), the request, and the handler. The handler:
+- [X] T040 [US1] Implement `Publication.Publish(...)` in `PAGES/Domain/Publication.cs`, following data-model §3.1 (the version insert, numbering, the live pointer, the log entry, a `PagePublishedDomainEvent`) and without dependencies or schedules, which US2 and US5 add. Make T030 pass.
+- [X] T041 [US1] Add `PAGESC/Events/PagePublished.cs` (contracts/readers.md §3). Map the domain event in `PAGES/Infrastructure/PagesOutbox.cs`, and register the event type in `PAGES/PagesModule.cs`.
+- [X] T042 [US1] Create the `PAGES/Features/PublishPage/` slice: `PublishPageController` (`POST …/pages/{pageId}/publish`, `[RequireCapability(PublishingCapabilities.Manage)]`), the request, and the handler. The handler:
   - loads the draft;
   - validates it with `IPageDocumentValidator`;
   - calls `Publication.Publish`;
@@ -264,19 +264,19 @@ Change the draft: the public page is unchanged. Publish again: the change appear
   - returns `Publication`.
 
   Make T031 and T038 pass.
-- [ ] T043 [US1] Add the `publication` summary (data-model §1.6) to `PAGES/Features/GetPageTree/` and `PAGES/Features/GetPage/` through a projection in `PAGES/Infrastructure/PageReads.cs`, computing `hasUnpublishedChanges` as research PR-02 describes, and `liveUrl` from `SiteDto.BaseUrl`.
-- [ ] T044 [P] [US1] Create `REND/Rendering/Blocks/SectionRenderer.cs`, `ContainerRenderer.cs`, `SpacerRenderer.cs` and `DividerRenderer.cs`, matching the markup and classes of `ADMIN/editor/blocks/<type>/<Type>Block.vue`. Make their T033 tests pass.
-- [ ] T045 [P] [US1] Create `REND/Rendering/Blocks/HeadingRenderer.cs`, `TextRenderer.cs`, `RichTextBlockRenderer.cs` and `REND/Rendering/RichTextRenderer.cs` (the allow-list of PR-11). Make their T033 tests pass.
-- [ ] T046 [P] [US1] Create `REND/Rendering/LinkResolver.cs` (page targets from `RenderInputs`, `Hosting:BasePath` prefix, the plain-text fallback, and an external scheme re-check) and `REND/Rendering/Blocks/ImageRenderer.cs`, `ButtonRenderer.cs` and `EmbedRenderer.cs`. Make T034 pass.
-- [ ] T047 [US1] Create the `REND/Features/RenderPage/` slice:
+- [X] T043 [US1] Add the `publication` summary (data-model §1.6) to `PAGES/Features/GetPageTree/` and `PAGES/Features/GetPage/` through a projection in `PAGES/Infrastructure/PageReads.cs`, computing `hasUnpublishedChanges` as research PR-02 describes, and `liveUrl` from `SiteDto.BaseUrl`.
+- [X] T044 [P] [US1] Create `REND/Rendering/Blocks/SectionRenderer.cs`, `ContainerRenderer.cs`, `SpacerRenderer.cs` and `DividerRenderer.cs`, matching the markup and classes of `ADMIN/editor/blocks/<type>/<Type>Block.vue`. Make their T033 tests pass.
+- [X] T045 [P] [US1] Create `REND/Rendering/Blocks/HeadingRenderer.cs`, `TextRenderer.cs`, `RichTextBlockRenderer.cs` and `REND/Rendering/RichTextRenderer.cs` (the allow-list of PR-11). Make their T033 tests pass.
+- [X] T046 [P] [US1] Create `REND/Rendering/LinkResolver.cs` (page targets from `RenderInputs`, `Hosting:BasePath` prefix, the plain-text fallback, and an external scheme re-check) and `REND/Rendering/Blocks/ImageRenderer.cs`, `ButtonRenderer.cs` and `EmbedRenderer.cs`. Make T034 pass.
+- [X] T047 [US1] Create the `REND/Features/RenderPage/` slice:
   - `PathNormaliser.cs`;
   - `RenderPageController.cs`: `GET`/`HEAD {**path:publicPath}` with `Order = int.MaxValue`, and `405` for other methods. `publicPath` is a route constraint registered in `RenderingModule` that rejects paths under `/api`, `/admin` and `/health` (`RoutePrefixes.ReservedPrefixes`), so the admin SPA fallback and unknown API paths behave as before (PR-08). The action also requires `ISiteContext.HasSite`;
   - `RenderPageHandler.cs`: `FindLiveByPathAsync`, then build `RenderInputs` (the live page, the design from `IPublishedDesignReader.GetLiveAsync`, link targets and media collected in one pass over the document), then render with `PageRenderer` and `PageShell`, then write the headers of public-rendering.md §3 including the CSP with the style hash. Not found goes to `IPublicNotFoundPage`. No cache yet (US6).
 
   Register the renderers, the `publicPath` constraint and the services in `REND/RenderingModule.cs`. Make T032 (including `PublicRouteBoundaryTests`) and T037 pass.
-- [ ] T048 [P] [US1] Create the `REND/Features/ServeBlockStylesheet/` slice: load the embedded `blocks.css` once, compute the 12-character base64url SHA-256, and serve `GET`/`HEAD /_assets/blocks.{hash}.css` with the immutable caching headers. A wrong name gets `IPublicNotFoundPage` (public-rendering.md §5). Add a case to `PublicRenderingTests.cs`.
-- [ ] T049 [US1] Generate and review `FIX/golden/*.html` through T035's update mode. Make T035, T036 and T037 pass.
-- [ ] T050 [US1] Create `PUBUI/PublishMenu.vue`. Use it in `ADMIN/features/pages/PageTreeView.vue` with `PublicationBadge` per page. Mount `PublishMenu.vue` in `ADMIN/editor/EditorTopBar.vue` too, with the publication state and **Publish** as the primary button: it saves pending changes first, then publishes with the saved draft version, and refusals go through `errorMessages.ts`. Later stories add their actions (unpublish, schedule, history) to `PublishMenu.vue` once, so the page tree, the component list and the editor all offer them (FR-039). Add the i18n keys, and make T039 pass.
+- [X] T048 [P] [US1] Create the `REND/Features/ServeBlockStylesheet/` slice: load the embedded `blocks.css` once, compute the 12-character base64url SHA-256, and serve `GET`/`HEAD /_assets/blocks.{hash}.css` with the immutable caching headers. A wrong name gets `IPublicNotFoundPage` (public-rendering.md §5). Add a case to `PublicRenderingTests.cs`.
+- [X] T049 [US1] Generate and review `FIX/golden/*.html` through T035's update mode. Make T035, T036 and T037 pass.
+- [X] T050 [US1] Create `PUBUI/PublishMenu.vue`. Use it in `ADMIN/features/pages/PageTreeView.vue` with `PublicationBadge` per page. Mount `PublishMenu.vue` in `ADMIN/editor/EditorTopBar.vue` too, with the publication state and **Publish** as the primary button: it saves pending changes first, then publishes with the saved draft version, and refusals go through `errorMessages.ts`. Later stories add their actions (unpublish, schedule, history) to `PublishMenu.vue` once, so the page tree, the component list and the editor all offer them (FR-039). Add the i18n keys, and make T039 pass.
 
 **Checkpoint**: quickstart §1 works, except component use (US2). This is the MVP: sites have visible pages.
 

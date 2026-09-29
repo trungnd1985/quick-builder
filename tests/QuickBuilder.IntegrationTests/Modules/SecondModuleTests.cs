@@ -119,7 +119,7 @@ public sealed class SecondModuleTests(DatabaseFixture database) : IAsyncLifetime
             .GetAsync(new Uri("/", UriKind.Relative))
             .ConfigureAwait(true);
 
-        Assert.Equal(HttpStatusCode.OK, resolved.StatusCode);
+        Assert.True(await PublicSite.IsResolvedAsync(resolved).ConfigureAwait(true));
     }
 
     /// <summary>

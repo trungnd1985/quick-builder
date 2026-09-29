@@ -52,7 +52,9 @@ affected.
 >   - editor-only attributes and elements (selection, drop indicators, `contenteditable`,
 >     `draggable`, empty-state hints);
 >   - the Embed body (a placeholder in the canvas, a lazy provider iframe when published);
->   - a missing image (a placeholder in the canvas, left out when published);
+>   - a missing image, or an Embed with no video address (a placeholder in the canvas, left
+>     out when published);
+>   - a linked image (wrapped in its link only when published);
 >   - a link to a page that is not live (a link in the canvas, plain text when published).
 > - **Rich text**: rendered through an allow-list:
 >   - `paragraph` → `p`, `bulletList` → `ul`, `orderedList` → `ol`, `listItem` → `li`;

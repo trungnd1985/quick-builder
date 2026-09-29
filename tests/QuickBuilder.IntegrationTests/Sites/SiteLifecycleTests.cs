@@ -83,16 +83,19 @@ public sealed class SiteLifecycleTests(DatabaseFixture database) : IAsyncLifetim
         Assert.Equal(HttpStatusCode.Created, create.StatusCode);
 
         var created = await create.Content.ReadFromJsonAsync<JsonElement>().ConfigureAwait(true);
-        var siteId = created.GetProperty("id").GetString();
+        var siteId = created.GetProperty("id").GetGuid();
 
+        // Reachable before anything is published: the site answers with its own not-found page.
         var publicClient = _app.CreateClientForHost("created-site.test");
+        Assert.True(await PublicSite.IsResolvedAsync(
+            await publicClient.GetAsync(new Uri("/", UriKind.Relative)).ConfigureAwait(true)).ConfigureAwait(true));
+
+        // And once its home page is published, that is what the host name serves (012).
+        await PublicSite.MarkAsync(client, siteId).ConfigureAwait(true);
         var resolved = await publicClient.GetAsync(new Uri("/", UriKind.Relative)).ConfigureAwait(true);
 
         Assert.Equal(HttpStatusCode.OK, resolved.StatusCode);
-
-        var payload = await resolved.Content.ReadFromJsonAsync<JsonElement>().ConfigureAwait(true);
-        Assert.Equal(siteId, payload.GetProperty("siteId").GetString());
-        Assert.Equal("Example", payload.GetProperty("siteName").GetString());
+        Assert.Equal(siteId, await PublicSite.ResolvedSiteAsync(resolved).ConfigureAwait(true));
     }
 
     /// <summary>

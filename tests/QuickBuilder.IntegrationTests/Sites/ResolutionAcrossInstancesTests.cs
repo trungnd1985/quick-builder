@@ -40,6 +40,7 @@ public sealed class ResolutionAcrossInstancesTests(DatabaseFixture database) : I
     public async Task Adding_and_removing_a_host_name_on_one_instance_is_seen_by_the_other_at_the_next_request()
     {
         var site = (await SitesApi.CreateOkAsync(_admin, "Moving", ["moving.test"]).ConfigureAwait(true)).GetProperty("id").GetGuid();
+        await PublicSite.MarkAsync(_admin, site).ConfigureAwait(true);
 
         // Warm the second instance with a miss for the name about to be added.
         Assert.Equal(HttpStatusCode.NotFound, await StatusOnSecondAsync("new.moving.test").ConfigureAwait(true));
@@ -69,6 +70,7 @@ public sealed class ResolutionAcrossInstancesTests(DatabaseFixture database) : I
     public async Task Disabling_and_enabling_on_one_instance_is_seen_by_the_other_at_the_next_request()
     {
         var site = (await SitesApi.CreateOkAsync(_admin, "Toggled", ["toggled.test"]).ConfigureAwait(true)).GetProperty("id").GetGuid();
+        await PublicSite.MarkAsync(_admin, site).ConfigureAwait(true);
         Assert.Equal(HttpStatusCode.OK, await StatusOnSecondAsync("toggled.test").ConfigureAwait(true));
 
         Assert.Equal(HttpStatusCode.OK, (await SitesApi.DisableAsync(_admin, site).ConfigureAwait(true)).StatusCode);

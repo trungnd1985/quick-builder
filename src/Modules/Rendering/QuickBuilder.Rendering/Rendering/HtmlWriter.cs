@@ -31,11 +31,28 @@ internal sealed partial class HtmlWriter
     }
 
     /// <summary>Writes text content, HTML-encoded.</summary>
+    /// <remarks>
+    /// Line breaks are written as they are, not as <c>&amp;#xA;</c>: a Text block keeps its
+    /// lines through <c>white-space: pre-wrap</c>, and the markup then reads the same as the
+    /// canvas's. A newline can end nothing in HTML, so leaving it unencoded is safe.
+    /// </remarks>
     public HtmlWriter Text(string? text)
     {
-        if (!string.IsNullOrEmpty(text))
+        if (string.IsNullOrEmpty(text))
         {
-            Encoder.Encode(new StringWriter(_output, System.Globalization.CultureInfo.InvariantCulture), text);
+            return this;
+        }
+
+        using var sink = new StringWriter(_output, System.Globalization.CultureInfo.InvariantCulture);
+        var lines = text.Split('\n');
+        for (var i = 0; i < lines.Length; i++)
+        {
+            if (i > 0)
+            {
+                _output.Append('\n');
+            }
+
+            Encoder.Encode(sink, lines[i]);
         }
 
         return this;

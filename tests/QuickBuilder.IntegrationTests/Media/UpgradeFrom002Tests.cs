@@ -38,7 +38,8 @@ public sealed class UpgradeFrom002Tests(DatabaseFixture database)
         var sites = await admin.GetFromJsonAsync<JsonElement>(new Uri("/api/v1/sites", UriKind.Relative)).ConfigureAwait(true);
         var site = Assert.Single(sites.EnumerateArray());
         Assert.Equal("Upgraded", site.GetProperty("name").GetString());
-        Assert.Equal(HttpStatusCode.OK, (await app.CreateClientForHost("upgraded.test").GetAsync(new Uri("/", UriKind.Relative)).ConfigureAwait(true)).StatusCode);
+        Assert.True(await PublicSite.IsResolvedAsync(
+            await app.CreateClientForHost("upgraded.test").GetAsync(new Uri("/", UriKind.Relative)).ConfigureAwait(true)).ConfigureAwait(true));
 
         // Accounts and grants survive: the Editor still sees exactly their site.
         var editor = await IdentitySeed.CreateSignedInClientAsync(app, editorId).ConfigureAwait(true);

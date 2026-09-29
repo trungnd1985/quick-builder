@@ -1,0 +1,120 @@
+{
+  "description": "The fixed world golden pages render in (docs/contracts/page-schema.md §8): the default design, one live page to link to, one image, and both components the examples reference, live with the component example document.",
+  "basePath": "",
+  "language": "en",
+  "title": "Golden page",
+  "linkTargets": {
+    "0192f5a0-1b2c-7d3e-8f40-5a6b7c8d9e20": {
+      "path": "/contact",
+      "isLive": true
+    }
+  },
+  "media": {
+    "0192f5a0-1b2c-7d3e-8f40-5a6b7c8d9e30": {
+      "publicPath": "/_media/0192f5a01b2c7d3e8f405a6b7c8d9e30.jpg",
+      "contentType": "image/jpeg"
+    }
+  },
+  "components": {
+    "0192f5a0-1b2c-7d3e-8f40-5a6b7c8d9e0f": {
+      "schemaVersion": 1,
+      "root": {
+        "id": "root",
+        "type": "root",
+        "props": {},
+        "children": [
+          {
+            "id": "logo-row",
+            "type": "section",
+            "props": {},
+            "children": [
+              {
+                "id": "row",
+                "type": "container",
+                "props": {
+                  "direction": "horizontal"
+                },
+                "children": [
+                  {
+                    "id": "logo",
+                    "type": "image",
+                    "props": {
+                      "media": {
+                        "mediaId": "0192f5a0-1b2c-7d3e-8f40-5a6b7c8d9e30"
+                      },
+                      "alt": "Company logo"
+                    },
+                    "children": []
+                  },
+                  {
+                    "id": "home",
+                    "type": "button",
+                    "props": {
+                      "label": "Home",
+                      "link": {
+                        "type": "page",
+                        "pageId": "0192f5a0-1b2c-7d3e-8f40-5a6b7c8d9e20"
+                      },
+                      "style": "secondary"
+                    },
+                    "children": []
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "0192f5a0-1b2c-7d3e-8f40-5a6b7c8d9e10": {
+      "schemaVersion": 1,
+      "root": {
+        "id": "root",
+        "type": "root",
+        "props": {},
+        "children": [
+          {
+            "id": "logo-row",
+            "type": "section",
+            "props": {},
+            "children": [
+              {
+                "id": "row",
+                "type": "container",
+                "props": {
+                  "direction": "horizontal"
+                },
+                "children": [
+                  {
+                    "id": "logo",
+                    "type": "image",
+                    "props": {
+                      "media": {
+                        "mediaId": "0192f5a0-1b2c-7d3e-8f40-5a6b7c8d9e30"
+                      },
+                      "alt": "Company logo"
+                    },
+                    "children": []
+                  },
+                  {
+                    "id": "home",
+                    "type": "button",
+                    "props": {
+                      "label": "Home",
+                      "link": {
+                        "type": "page",
+                        "pageId": "0192f5a0-1b2c-7d3e-8f40-5a6b7c8d9e20"
+                      },
+                      "style": "secondary"
+                    },
+                    "children": []
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    }
+  }
+}

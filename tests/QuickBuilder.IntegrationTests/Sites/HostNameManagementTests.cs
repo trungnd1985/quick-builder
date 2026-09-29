@@ -54,7 +54,7 @@ public sealed class HostNameManagementTests(DatabaseFixture database) : IAsyncLi
         Assert.False(added.GetProperty("isPrimary").GetBoolean());
         Assert.Equal(site, added.GetProperty("siteId").GetGuid());
 
-        Assert.Equal(HttpStatusCode.OK, (await SitesApi.PublicGetAsync(_app, "xn--bcher-kva.test").ConfigureAwait(true)).StatusCode);
+        Assert.Equal(site, await PublicSite.ResolvedSiteAsync(await SitesApi.PublicGetAsync(_app, "xn--bcher-kva.test").ConfigureAwait(true)).ConfigureAwait(true));
     }
 
     /// <summary>
@@ -184,14 +184,19 @@ public sealed class HostNameManagementTests(DatabaseFixture database) : IAsyncLi
         }
     }
 
-    private async Task<Guid> CreateAsync(string name, params string[] hostNames) =>
-        (await SitesApi.CreateOkAsync(_admin, name, hostNames).ConfigureAwait(false)).GetProperty("id").GetGuid();
+    /// <summary>A site that serves its own id at <c>/</c>, so resolution shows which site answered.</summary>
+    private async Task<Guid> CreateAsync(string name, params string[] hostNames)
+    {
+        var site = (await SitesApi.CreateOkAsync(_admin, name, hostNames).ConfigureAwait(false)).GetProperty("id").GetGuid();
+        await PublicSite.MarkAsync(_admin, site).ConfigureAwait(false);
+        return site;
+    }
 
     private async Task<Guid> ResolvedSiteAsync(string hostName)
     {
         var response = await SitesApi.PublicGetAsync(_app, hostName).ConfigureAwait(false);
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        return (await SitesApi.BodyAsync(response).ConfigureAwait(false)).GetProperty("siteId").GetGuid();
+        return (await PublicSite.ResolvedSiteAsync(response).ConfigureAwait(false))!.Value;
     }
 
     /// <summary>

@@ -9,7 +9,9 @@ import { computed, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vu
 import { useI18n } from 'vue-i18n'
 import { onBeforeRouteLeave } from 'vue-router'
 import { pagesApi } from '../api/pages'
+import type { Publication } from '../api/publishing'
 import { useAuthStore } from '../app/authStore'
+import PublishMenu from '../features/publishing/PublishMenu.vue'
 import PageCanvas from './canvas/PageCanvas.vue'
 import BlockPalette from './palette/BlockPalette.vue'
 import PropertyPanel from './panel/PropertyPanel.vue'
@@ -39,6 +41,8 @@ const store = useEditorStore()
 const auth = useAuthStore()
 
 const title = ref('')
+const publication = ref<Publication | null>(null)
+const canPublish = ref(false)
 const announcement = ref('')
 const notice = ref('')
 const saveState = ref<Autosave['state']['value']>('saved')
@@ -124,13 +128,33 @@ async function open(): Promise<void> {
     offer.value = await recoveryOffer(recoveryKey(), { version: store.baseVersion, root: store.root })
   }
 
+  await loadHeader()
+}
+
+/** The title, publication and publish permission shown in the top bar (012 FR-039). */
+async function loadHeader(): Promise<void> {
   try {
-    title.value = props.kind === 'page'
-      ? (await pagesApi.get(props.siteId, props.documentId)).title
-      : (await pagesApi.getComponent(props.siteId, props.documentId)).name
+    if (props.kind === 'page') {
+      const page = await pagesApi.get(props.siteId, props.documentId)
+      title.value = page.title
+      publication.value = page.publication ?? null
+      canPublish.value = page.permissions?.canPublish === true
+    } else {
+      const component = await pagesApi.getComponent(props.siteId, props.documentId)
+      title.value = component.name
+      publication.value = component.publication ?? null
+      // Whether this member may publish is a site permission, sent with the component list.
+      canPublish.value = (await pagesApi.components(props.siteId).catch(() => null))?.permissions?.canPublish === true
+    }
   } catch {
     title.value = ''
   }
+}
+
+/** Publishing from the editor saves first, then publishes exactly what was saved. */
+async function saveBeforePublish(): Promise<number | null> {
+  await autosave?.saveNow()
+  return saveState.value === 'saved' && !store.dirty ? store.baseVersion : null
 }
 
 function close(): void {
@@ -249,6 +273,17 @@ defineExpose({ autosave: () => autosave, history })
       @save="saveNow"
       @retry="retryNow"
     >
+      <PublishMenu
+        v-if="store.loadState === 'ready'"
+        :site-id="siteId"
+        :kind="kind"
+        :subject-id="documentId"
+        :title="title"
+        :publication="publication"
+        :can-publish="canPublish && !store.readOnly"
+        :before-publish="saveBeforePublish"
+        @changed="(next) => (publication = next)"
+      />
       <PreviewWidthSwitch v-model="previewWidth" />
       <button
         type="button"

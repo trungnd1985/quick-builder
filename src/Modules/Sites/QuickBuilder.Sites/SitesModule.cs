@@ -17,7 +17,6 @@ using QuickBuilder.Sites.Features.GetSite;
 using QuickBuilder.Sites.Features.ListLanguages;
 using QuickBuilder.Sites.Features.ListSites;
 using QuickBuilder.Sites.Features.RemoveHostName;
-using QuickBuilder.Sites.Features.ResolveCurrentSite;
 using QuickBuilder.Sites.Features.UpdateSettings;
 using QuickBuilder.Sites.Infrastructure;
 
@@ -96,7 +95,8 @@ public static class SitesModule
 
         services.AddScoped<IQueryHandler<ListLanguagesQuery, ListLanguagesResponse>, ListLanguagesHandler>();
 
-        services.AddScoped<IQueryHandler<CurrentSiteQuery, Result<CurrentSiteResponse>>, CurrentSiteHandler>();
+        // The public placeholder that reported the resolved site (001) is gone: since 012 the
+        // Rendering module answers the public surface with published pages.
 
         // Integration event handlers, plus the type registration that lets the dispatcher
         // read a stored payload back into a CLR type.

@@ -4,6 +4,8 @@ import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
 import { pagesApi, type PageDetail, type PageNode, type PageTree } from '../../api/pages'
 import { useSitesStore } from '../../app/sitesStore'
+import PublicationBadge from '../publishing/PublicationBadge.vue'
+import PublishMenu from '../publishing/PublishMenu.vue'
 import ConfirmDialog from '../sites/ConfirmDialog.vue'
 import MoveDialog from './MoveDialog.vue'
 import PageFormDialog from './PageFormDialog.vue'
@@ -45,6 +47,7 @@ const toolbarHeading = ref<HTMLElement | null>(null)
 const pages = computed(() => tree.value?.pages ?? [])
 const canManage = computed(() => tree.value?.permissions.canManageStructure === true)
 const canEditDrafts = computed(() => tree.value?.permissions.canEditPageDrafts === true)
+const canPublish = computed(() => tree.value?.permissions.canPublish === true)
 const hasHome = computed(() => pages.value.some((p) => p.isHome))
 const selected = computed(() => pages.value.find((p) => p.id === selectedId.value) ?? null)
 
@@ -375,6 +378,20 @@ function whoSaved(value: PageDetail): string {
             </RouterLink>
           </p>
 
+          <!-- 012 FR-039: publishing, for the selected page. -->
+          <PublishMenu
+            v-if="selected"
+            :key="selected.id"
+            class="page-publishing"
+            :site-id="siteId"
+            kind="page"
+            :subject-id="selected.id"
+            :title="selected.title"
+            :publication="selected.publication"
+            :can-publish="canPublish"
+            @changed="load()"
+          />
+
           <div
             v-if="selected && canManage"
             class="page-toolbar"
@@ -487,6 +504,7 @@ function whoSaved(value: PageDetail): string {
                     v-if="page.isHome"
                     class="badge"
                   >{{ t('pages.table.home') }}</span>
+                  <PublicationBadge :publication="page.publication" />
                 </span>
               </th>
               <td class="page-address">

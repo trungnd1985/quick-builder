@@ -45,6 +45,24 @@ internal sealed class RenderContext(RenderInputs inputs, BlockDefaults defaults)
     public string String(JsonElement node, string name, string fallback = "") =>
         Prop(node, name) is { ValueKind: JsonValueKind.String } value ? value.GetString()! : fallback;
 
+    /// <summary>
+    /// A property that is one of <paramref name="allowed"/>, or else its default, or else the first
+    /// allowed value. Enum values become class names, so nothing else may through.
+    /// </summary>
+    public string Choice(JsonElement node, string name, params string[] allowed)
+    {
+        ArgumentNullException.ThrowIfNull(allowed);
+
+        var value = String(node, name);
+        if (Array.IndexOf(allowed, value) >= 0)
+        {
+            return value;
+        }
+
+        var fallback = Defaults.Of(TypeOf(node), name) is { ValueKind: JsonValueKind.String } d ? d.GetString()! : null;
+        return fallback is not null && Array.IndexOf(allowed, fallback) >= 0 ? fallback : allowed[0];
+    }
+
     /// <summary>A boolean property or its default.</summary>
     public bool Bool(JsonElement node, string name) =>
         Prop(node, name) is { ValueKind: JsonValueKind.True };

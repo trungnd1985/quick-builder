@@ -39,7 +39,8 @@ public sealed class UpgradeFrom009Tests(DatabaseFixture database)
         // The site, its host name and its settings are untouched.
         var site = await admin.GetFromJsonAsync<JsonElement>(new Uri($"/api/v1/sites/{siteId}", UriKind.Relative)).ConfigureAwait(true);
         Assert.Equal(("enabled", "client.test"), (site.GetProperty("status").GetString(), site.GetProperty("primaryHostName").GetString()));
-        Assert.Equal(HttpStatusCode.OK, (await app.CreateClientForHost("client.test").GetAsync(new Uri("/", UriKind.Relative)).ConfigureAwait(true)).StatusCode);
+        Assert.True(await PublicSite.IsResolvedAsync(
+            await app.CreateClientForHost("client.test").GetAsync(new Uri("/", UriKind.Relative)).ConfigureAwait(true)).ConfigureAwait(true));
 
         // The grant still applies, and media still serves.
         var editor = await IdentitySeed.CreateSignedInClientAsync(app, editorId).ConfigureAwait(true);

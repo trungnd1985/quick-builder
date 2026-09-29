@@ -157,11 +157,11 @@ public sealed class ReferenceDeploymentSmokeTests(ITestOutputHelper output) : IA
         using var request = new HttpRequestMessage(HttpMethod.Get, new Uri("/", UriKind.Relative));
         request.Headers.Host = "smoke.test";
 
+        // Nothing is published yet, so the site answers with its own not-found page — not
+        // 009's "no such site" — which is what resolving means until a page is live (012).
         var resolved = await publicClient.SendAsync(request).ConfigureAwait(true);
-        var payload = await resolved.Content.ReadFromJsonAsync<JsonElement>().ConfigureAwait(true);
 
-        Assert.Equal(HttpStatusCode.OK, resolved.StatusCode);
-        Assert.Equal("Smoke", payload.GetProperty("siteName").GetString());
+        Assert.True(await ResolvesAsync(resolved).ConfigureAwait(true), "smoke.test did not resolve to a site");
         output.WriteLine("public host resolved to the created site");
 
         // 9-bis. 009 FR-031: a second site; each host name reaches its own site; disabling one
@@ -174,17 +174,17 @@ public sealed class ReferenceDeploymentSmokeTests(ITestOutputHelper output) : IA
         Assert.Equal(HttpStatusCode.Created, second.StatusCode);
         var secondId = (await second.Content.ReadFromJsonAsync<JsonElement>().ConfigureAwait(true)).GetProperty("id").GetGuid();
 
-        Assert.Equal("Smoke", await PublicSiteNameAsync(publicClient, "smoke.test").ConfigureAwait(true));
-        Assert.Equal("Second", await PublicSiteNameAsync(publicClient, "second.smoke.test").ConfigureAwait(true));
+        Assert.True(await PublicResolvesAsync(publicClient, "smoke.test").ConfigureAwait(true));
+        Assert.True(await PublicResolvesAsync(publicClient, "second.smoke.test").ConfigureAwait(true));
 
         var disabled = await client.PostAsync(new Uri($"/api/v1/sites/{secondId}/disable", UriKind.Relative), null).ConfigureAwait(true);
         Assert.Equal(HttpStatusCode.OK, disabled.StatusCode);
-        Assert.Null(await PublicSiteNameAsync(publicClient, "second.smoke.test").ConfigureAwait(true));
-        Assert.Equal("Smoke", await PublicSiteNameAsync(publicClient, "smoke.test").ConfigureAwait(true));
+        Assert.False(await PublicResolvesAsync(publicClient, "second.smoke.test").ConfigureAwait(true));
+        Assert.True(await PublicResolvesAsync(publicClient, "smoke.test").ConfigureAwait(true));
 
         var enabled = await client.PostAsync(new Uri($"/api/v1/sites/{secondId}/enable", UriKind.Relative), null).ConfigureAwait(true);
         Assert.Equal(HttpStatusCode.OK, enabled.StatusCode);
-        Assert.Equal("Second", await PublicSiteNameAsync(publicClient, "second.smoke.test").ConfigureAwait(true));
+        Assert.True(await PublicResolvesAsync(publicClient, "second.smoke.test").ConfigureAwait(true));
         output.WriteLine("two sites resolve separately; disable and enable take effect at once");
 
         // 9a. 003 FR-032: upload an image to the site and fetch it from the site's own public
@@ -303,21 +303,24 @@ public sealed class ReferenceDeploymentSmokeTests(ITestOutputHelper output) : IA
     private static readonly byte[] Png = Convert.FromBase64String(
         "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==");
 
-    /// <summary>The name of the site a host resolves to, or null when it resolves to none.</summary>
-    private static async Task<string?> PublicSiteNameAsync(HttpClient client, string hostName)
+    /// <summary>Whether a host name reaches a site at all, whatever the site serves at <c>/</c>.</summary>
+    private static async Task<bool> PublicResolvesAsync(HttpClient client, string hostName)
     {
         using var request = new HttpRequestMessage(HttpMethod.Get, new Uri("/", UriKind.Relative));
         request.Headers.Host = hostName;
 
         using var response = await client.SendAsync(request).ConfigureAwait(false);
-        if (response.StatusCode == HttpStatusCode.NotFound)
-        {
-            return null;
-        }
-
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        return (await response.Content.ReadFromJsonAsync<JsonElement>().ConfigureAwait(false)).GetProperty("siteName").GetString();
+        return await ResolvesAsync(response).ConfigureAwait(false);
     }
+
+    /// <summary>
+    /// Reached a site: a page (200) or the site's own not-found page — anything but 009's
+    /// <c>sites.not_resolved</c>, which unknown and disabled hosts get.
+    /// </summary>
+    private static async Task<bool> ResolvesAsync(HttpResponseMessage response) =>
+        response.StatusCode == HttpStatusCode.OK
+        || (response.StatusCode == HttpStatusCode.NotFound
+            && !(await response.Content.ReadAsStringAsync().ConfigureAwait(false)).Contains("sites.not_resolved", StringComparison.Ordinal));
 
     private static async Task<byte[]> FetchPublicAsync(HttpClient client, string publicPath)
     {

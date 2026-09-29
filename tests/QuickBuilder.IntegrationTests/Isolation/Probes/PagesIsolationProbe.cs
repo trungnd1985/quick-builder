@@ -2,6 +2,7 @@ using System.Net;
 using System.Text.Json;
 using QuickBuilder.IntegrationTests.Infrastructure;
 using QuickBuilder.IntegrationTests.Pages;
+using QuickBuilder.IntegrationTests.Publishing;
 
 namespace QuickBuilder.IntegrationTests.Isolation.Probes;
 
@@ -37,9 +38,18 @@ internal sealed class PagesIsolationProbe : ISiteIsolationProbe
         "GET api/v1/pages/sites/{siteId:guid}/components/{componentId:guid}/draft",
         "PUT api/v1/pages/sites/{siteId:guid}/components/{componentId:guid}/draft",
         "GET api/v1/pages/sites/{siteId:guid}/token-usages/{tokenId}",
+
+        // 012: publishing (FR-037).
+        "POST api/v1/pages/sites/{siteId:guid}/pages/{pageId:guid}/publish",
+        "POST api/v1/pages/sites/{siteId:guid}/pages/{pageId:guid}/unpublish",
+        "POST api/v1/pages/sites/{siteId:guid}/pages/{pageId:guid}/rollback",
+        "POST api/v1/pages/sites/{siteId:guid}/components/{componentId:guid}/publish",
+        "POST api/v1/pages/sites/{siteId:guid}/components/{componentId:guid}/unpublish",
+        "POST api/v1/pages/sites/{siteId:guid}/components/{componentId:guid}/rollback",
     ];
 
-    public string? NeverIssuedPublicPath => null;
+    /// <summary>012: an address shaped like each site's own published page, never issued.</summary>
+    public string? NeverIssuedPublicPath => "/only-neverissued";
 
     public async Task<SeededRecords> SeedAsync(QuickBuilderApp app, HttpClient admin, Guid siteId, string hostName)
     {
@@ -50,7 +60,18 @@ internal sealed class PagesIsolationProbe : ISiteIsolationProbe
         await PagesApi.OkAsync(await PagesApi.SaveCurrentDraftAsync(
             admin, PagesApi.PagePath(siteId, child), PagesApi.DocumentReferencing(component)).ConfigureAwait(false)).ConfigureAwait(false);
 
-        return new SeededRecords([home.ToString(), child.ToString(), component.ToString()], []);
+        // 012: the component and the page that shows it are published, and one page has an
+        // address only this site has, so another site's host can be asked for it.
+        await PublishingApi.PublishCurrentAsync(admin, PagesApi.ComponentPath(siteId, component)).ConfigureAwait(false);
+        await PublishingApi.PublishCurrentAsync(admin, PagesApi.PagePath(siteId, child)).ConfigureAwait(false);
+
+        // The end of the id, not the start: a v7 id starts with its creation time, which two
+        // sites created together share.
+        var only = $"only-{siteId.ToString("N")[^10..]}";
+        var onlyPage = (await PagesApi.CreateOkAsync(admin, siteId, only).ConfigureAwait(false)).GetProperty("id").GetGuid();
+        await PublishingApi.PublishCurrentAsync(admin, PagesApi.PagePath(siteId, onlyPage)).ConfigureAwait(false);
+
+        return new SeededRecords([home.ToString(), child.ToString(), component.ToString()], [$"/{only}"]);
     }
 
     public IEnumerable<ProbeRequest> AdminRequests(Guid siteId, SeededRecords other)
@@ -70,6 +91,11 @@ internal sealed class PagesIsolationProbe : ISiteIsolationProbe
             yield return new ProbeRequest(HttpMethod.Post, $"{page}/make-home", ProbeKind.Addressed, new { version = 1 });
             yield return new ProbeRequest(HttpMethod.Get, $"{page}/draft", ProbeKind.Addressed);
             yield return new ProbeRequest(HttpMethod.Put, $"{page}/draft", ProbeKind.Addressed, new { version = 0, document });
+
+            // 012: another site's page can be neither published, taken down nor rolled back.
+            yield return new ProbeRequest(HttpMethod.Post, $"{page}/publish", ProbeKind.Addressed, new { draftVersion = 0 });
+            yield return new ProbeRequest(HttpMethod.Post, $"{page}/unpublish", ProbeKind.Addressed);
+            yield return new ProbeRequest(HttpMethod.Post, $"{page}/rollback", ProbeKind.Addressed, new { versionNumber = 1 });
         }
 
         var component = $"/api/v1/pages/sites/{siteId}/components/{other.Ids[2]}";
@@ -79,6 +105,9 @@ internal sealed class PagesIsolationProbe : ISiteIsolationProbe
         yield return new ProbeRequest(HttpMethod.Get, $"{component}/usages", ProbeKind.Addressed);
         yield return new ProbeRequest(HttpMethod.Get, $"{component}/draft", ProbeKind.Addressed);
         yield return new ProbeRequest(HttpMethod.Put, $"{component}/draft", ProbeKind.Addressed, new { version = 0, document });
+        yield return new ProbeRequest(HttpMethod.Post, $"{component}/publish", ProbeKind.Addressed, new { draftVersion = 0 });
+        yield return new ProbeRequest(HttpMethod.Post, $"{component}/unpublish", ProbeKind.Addressed);
+        yield return new ProbeRequest(HttpMethod.Post, $"{component}/rollback", ProbeKind.Addressed, new { versionNumber = 1 });
 
         yield return new ProbeRequest(HttpMethod.Get, $"/api/v1/pages/sites/{siteId}/pages", ProbeKind.Listing);
         yield return new ProbeRequest(HttpMethod.Get, $"/api/v1/pages/sites/{siteId}/components", ProbeKind.Listing);
@@ -100,8 +129,12 @@ internal sealed class PagesIsolationProbe : ISiteIsolationProbe
         }
 
         var body = await PagesApi.OkAsync(component).ConfigureAwait(false);
-        return paths.SequenceEqual(["/", "/news"])
+        var news = await PagesApi.NodeAsync(admin, siteId, "/news").ConfigureAwait(false);
+
+        return paths.SequenceEqual(["/", "/news", seeded.PublicPaths[0]])
             && body.GetProperty("name").GetString() == "Header"
-            && body.GetProperty("usageCount").GetInt32() == 1;
+            && body.GetProperty("usageCount").GetInt32() == 1
+            && body.GetProperty("publication").GetProperty("liveNumber").GetInt32() == 1
+            && news.GetProperty("publication").GetProperty("liveNumber").GetInt32() == 1;
     }
 }

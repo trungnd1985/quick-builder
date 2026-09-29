@@ -71,10 +71,12 @@ public sealed class SetupGateTests(DatabaseFixture database) : IAsyncLifetime
         Assert.Equal(HttpStatusCode.OK, (await anonymous.GetAsync(new Uri("/health/live", UriKind.Relative)).ConfigureAwait(true)).StatusCode);
         Assert.Equal(HttpStatusCode.OK, (await anonymous.GetAsync(new Uri("/health/ready", UriKind.Relative)).ConfigureAwait(true)).StatusCode);
 
+        // Reaches the site (its not-found page: nothing is published), never the setup gate.
         var publicSite = await unclaimed.CreateClientForHost("existing.test")
             .GetAsync(new Uri("/", UriKind.Relative))
             .ConfigureAwait(true);
-        Assert.Equal(HttpStatusCode.OK, publicSite.StatusCode);
+        Assert.True(await PublicSite.IsResolvedAsync(publicSite).ConfigureAwait(true));
+        Assert.NotEqual((HttpStatusCode)428, publicSite.StatusCode);
 
         // The shell itself is static and anonymous; whether its assets exist depends on the
         // admin build, so only "not refused" is asserted.
