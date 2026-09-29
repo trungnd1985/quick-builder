@@ -32,7 +32,7 @@ public sealed class RenderPageController(IDispatcher dispatcher, ICurrentSite cu
         }
 
         var response = await dispatcher
-            .QueryAsync(new RenderPageQuery(site, Request.Path.Value, Request.PathBase.Value ?? string.Empty), cancellationToken)
+            .QueryAsync(new RenderPageQuery(site, Request.Path.Value, Request.PathBase.Value ?? string.Empty, Request.Headers.IfNoneMatch.ToString()), cancellationToken)
             .ConfigureAwait(false);
 
         return new PublicResponseResult(response);

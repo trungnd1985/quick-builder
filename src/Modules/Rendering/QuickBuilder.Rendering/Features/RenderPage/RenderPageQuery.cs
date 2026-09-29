@@ -8,7 +8,8 @@ namespace QuickBuilder.Rendering.Features.RenderPage;
 /// <param name="Site">The site the host name resolved to.</param>
 /// <param name="Path">The request path, base path removed, as the server decoded it.</param>
 /// <param name="BasePath">The installation's base path, prefixed to every address written.</param>
-internal sealed record RenderPageQuery(SiteDto Site, string? Path, string BasePath) : IQuery<PublicResponse>;
+/// <param name="IfNoneMatch">The visitor's <c>If-None-Match</c> header, if any.</param>
+internal sealed record RenderPageQuery(SiteDto Site, string? Path, string BasePath, string? IfNoneMatch = null) : IQuery<PublicResponse>;
 
 /// <summary>The page at the address, or the site's not-found page (public-rendering.md §1–§4).</summary>
 internal sealed class RenderPageHandler(PageResponder responder, IPublicNotFoundPage notFound)
@@ -19,7 +20,7 @@ internal sealed class RenderPageHandler(PageResponder responder, IPublicNotFound
         ArgumentNullException.ThrowIfNull(query);
 
         return PathNormaliser.Normalise(query.Path) is { } path
-            ? await responder.RespondAsync(query.Site, path, query.BasePath, cancellationToken).ConfigureAwait(false)
+            ? await responder.RespondAsync(query.Site, path, query.BasePath, query.IfNoneMatch, cancellationToken).ConfigureAwait(false)
             : await notFound.RenderAsync(query.Site, cancellationToken).ConfigureAwait(false);
     }
 }

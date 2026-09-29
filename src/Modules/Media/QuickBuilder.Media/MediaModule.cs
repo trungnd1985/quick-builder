@@ -3,6 +3,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using QuickBuilder.Media.Contracts;
+using QuickBuilder.Media.Contracts.Events;
 using QuickBuilder.Media.Features.DeleteFile;
 using QuickBuilder.Media.Features.GetFileContent;
 using QuickBuilder.Media.Features.ListFiles;
@@ -12,6 +13,7 @@ using QuickBuilder.Media.Infrastructure;
 using QuickBuilder.Shared.Infrastructure.Data;
 using QuickBuilder.Shared.Infrastructure.Modules;
 using QuickBuilder.Shared.Infrastructure.MultiSite;
+using QuickBuilder.Shared.Infrastructure.Outbox;
 using QuickBuilder.Shared.Kernel.Dispatch;
 using QuickBuilder.Shared.Kernel.Results;
 
@@ -78,6 +80,8 @@ public static class MediaModule
         services.AddScoped<IQueryHandler<GetFileContentQuery, Result<MediaContent>>, GetFileContentHandler>();
         services.AddScoped<IQueryHandler<ServePublicFileQuery, Result<MediaContent>>, ServePublicFileHandler>();
         services.AddScoped<ICommandHandler<DeleteFileCommand, Result>, DeleteFileHandler>();
+        // 012: pages that show a deleted file refresh (data-model §3.2).
+        services.AddSingleton<IEventTypeRegistration>(new EventTypeRegistration<FileDeleted>());
 
         return services;
     }

@@ -24,6 +24,8 @@ using QuickBuilder.Pages.Features.Rollback;
 using QuickBuilder.Pages.Features.PublishingHistory;
 using QuickBuilder.Pages.Features.GetPublishLog;
 using QuickBuilder.Pages.Features.RecordDesignPublish;
+using QuickBuilder.Pages.Features.RefreshPagesShowingMedia;
+using QuickBuilder.Media.Contracts.Events;
 using QuickBuilder.Pages.Features.RunDueSchedule;
 using QuickBuilder.Pages.Features.Schedules;
 using QuickBuilder.Editor.Contracts.Events;
@@ -160,6 +162,9 @@ public static class PagesModule
 
         // 012 research PR-16: design publishes, recorded in the site's publish log.
         services.AddScoped<IIntegrationEventHandler<DesignPublished>, RecordDesignPublishHandler>();
+
+        // 012 data-model §3.2: pages that showed a deleted media file refresh.
+        services.AddScoped<IIntegrationEventHandler<FileDeleted>, RefreshPagesShowingMediaHandler>();
 
         // 011 research ED-16: the token usage count the admin asks before deleting a token.
         services.AddScoped<IQueryHandler<GetTokenUsageQuery, Result<TokenUsageResponse>>, GetTokenUsageHandler>();

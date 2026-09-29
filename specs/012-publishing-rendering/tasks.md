@@ -471,7 +471,7 @@ exactly its 10 users. Two instances both serve new content on the next request.
 
 ### Tests for User Story 6 ⚠️
 
-- [ ] T088 [P] [US6] Create `ITESTS/Rendering/CacheInvalidationTests.cs` (SC-006, FR-032), counting renders through the internal `RenderMetrics` counter. Warm 50 pages, 10 of which use component C. Then:
+- [X] T088 [P] [US6] Create `ITESTS/Rendering/CacheInvalidationTests.cs` (SC-006, FR-032), counting renders through the internal `RenderMetrics` counter. Warm 50 pages, 10 of which use component C. Then:
   - publish C: exactly 10 re-render;
   - publish one page: exactly it and the pages linking to it re-render;
   - rollback and unpublish: likewise;
@@ -479,20 +479,20 @@ exactly its 10 users. Two instances both serve new content on the next request.
   - a design publish: all pages re-render;
   - a change in `SiteDto.Version`: all pages re-render;
   - a component publish on a 2,000-page site where every page uses it completes in under 500 ms (plan Risks).
-- [ ] T089 [P] [US6] Create `ITESTS/Rendering/RenderingAcrossInstancesTests.cs` (SC-002, PR-05): two `WebApplicationFactory<Program>` hosts share one PostgreSQL database, each with its own in-memory cache. Warm on both, publish through host 1, and host 2's next response has the new content.
-- [ ] T090 [P] [US6] Extend `ITESTS/Rendering/PublicRenderingTests.cs`:
+- [X] T089 [P] [US6] Create `ITESTS/Rendering/RenderingAcrossInstancesTests.cs` (SC-002, PR-05): two `WebApplicationFactory<Program>` hosts share one PostgreSQL database, each with its own in-memory cache. Warm on both, publish through host 1, and host 2's next response has the new content.
+- [X] T090 [P] [US6] Extend `ITESTS/Rendering/PublicRenderingTests.cs`:
   - a `GET` with the returned `ETag` in `If-None-Match` gives `304` with no body;
   - after a publish, the old ETag gives `200`;
   - with a failing `ICacheProvider` test double, pages are still served correctly (FR-034).
-- [ ] T091 [P] [US6] Create `ITESTS/Publishing/GenerationBumpSiteFilterTests.cs` (Principle V): a bump caused on site A never changes a generation on site B, even when B has pages that depend on ids equal in value. Create `ITESTS/Rendering/MediaDeletionRefreshTests.cs`: deleting a media file shown by a live page and by a component used by another page bumps both. After the outbox pass, their HTML omits the image, and a duplicate `Media.FileDeleted` bumps once.
+- [X] T091 [P] [US6] Create `ITESTS/Publishing/GenerationBumpSiteFilterTests.cs` (Principle V): a bump caused on site A never changes a generation on site B, even when B has pages that depend on ids equal in value. Create `ITESTS/Rendering/MediaDeletionRefreshTests.cs`: deleting a media file shown by a live page and by a component used by another page bumps both. After the outbox pass, their HTML omits the image, and a duplicate `Media.FileDeleted` bumps once.
 
 ### Implementation for User Story 6
 
-- [ ] T092 [US6] Create `PAGES/Infrastructure/GenerationBump.cs`: `BumpForTargetsAsync(siteId, targets)` expands two levels through `ix_live_dependencies_target` (data-model §3.2) and runs one `ExecuteUpdateAsync` with an explicit site filter. Call it:
+- [X] T092 [US6] Create `PAGES/Infrastructure/GenerationBump.cs`: `BumpForTargetsAsync(siteId, targets)` expands two levels through `ix_live_dependencies_target` (data-model §3.2) and runs one `ExecuteUpdateAsync` with an explicit site filter. Call it:
   - from `Publication` publish, unpublish and rollback of pages (the page itself and its linkers) and of components (their users);
   - from `PAGES/Infrastructure/PageTreeWrites.cs` for pages whose address changed, in the tree operation's transaction.
-- [ ] T093 [US6] Add `MEDIAC/Events/FileDeleted.cs`. Write it in `MEDIA/Features/DeleteFile/` in the delete's transaction, and register it. Create `PAGES/Features/RefreshPagesShowingMedia/RefreshPagesShowingMediaHandler.cs`, with its own processed-event row in the Pages schema, like `RecordSiteSecurityEventsHandler` in Identity. Make T091 pass.
-- [ ] T094 [US6] Create `REND/Domain/RenderKey.cs` (research PR-05: generation, design number, `SiteDto.Version`, and a renderer stamp from the stylesheet hash and assembly version, built with `CacheKey.ForSite`) and `REND/Domain/RenderedPage.cs`. In `RenderPageHandler`:
+- [X] T093 [US6] Add `MEDIAC/Events/FileDeleted.cs`. Write it in `MEDIA/Features/DeleteFile/` in the delete's transaction, and register it. Create `PAGES/Features/RefreshPagesShowingMedia/RefreshPagesShowingMediaHandler.cs`, with its own processed-event row in the Pages schema, like `RecordSiteSecurityEventsHandler` in Identity. Make T091 pass.
+- [X] T094 [US6] Create `REND/Features/RenderPage/RenderKey.cs` (outside `Domain`, which the architecture tests reserve for site-owned entities once a type has a `SiteId`; research PR-05: generation, design number, `SiteDto.Version`, and a renderer stamp from the stylesheet hash and assembly version, built with `CacheKey.ForSite`) and `REND/Domain/RenderedPage.cs`. In `RenderPageHandler`:
   - read `FindLiveByPathAsync` and `GetLiveNumberAsync` first;
   - answer `304` when `If-None-Match` equals the key's ETag;
   - otherwise `GetOrCreateAsync` the page with `CacheEntrySettings(size: byte length, sliding: 1 h)`, falling back to a direct render if the cache throws;

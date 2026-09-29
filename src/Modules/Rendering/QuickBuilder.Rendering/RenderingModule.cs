@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using QuickBuilder.Rendering.Contracts;
+using QuickBuilder.Rendering.Domain;
 using QuickBuilder.Rendering.Features.NotFound;
 using QuickBuilder.Rendering.Features.RenderPage;
 using QuickBuilder.Rendering.Rendering;
@@ -41,6 +42,7 @@ public static class RenderingModule
         services.AddSingleton<IBlockRenderer, ComponentRefRenderer>();
         services.AddSingleton<PageRenderer>();
 
+        services.AddSingleton<RenderMetrics>();
         services.AddScoped<PageResponder>();
         services.AddScoped<IQueryHandler<RenderPageQuery, PublicResponse>, RenderPageHandler>();
         services.AddScoped<IPublicNotFoundPage, NotFoundPage>();

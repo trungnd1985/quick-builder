@@ -1,5 +1,8 @@
 using System.Net;
+using Microsoft.Extensions.DependencyInjection;
+using QuickBuilder.Shared.Infrastructure.Caching;
 using QuickBuilder.IntegrationTests.Infrastructure;
+using QuickBuilder.IntegrationTests.Media;
 using QuickBuilder.IntegrationTests.Pages;
 using QuickBuilder.IntegrationTests.Publishing;
 using Xunit;
@@ -146,6 +149,63 @@ public sealed class PublicRenderingTests(DatabaseFixture database) : IAsyncLifet
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
         Assert.Contains("sites.not_resolved", await response.Content.ReadAsStringAsync().ConfigureAwait(true), StringComparison.Ordinal);
     }
+    [Fact]
+    public async Task A_current_copy_is_answered_with_304_until_the_page_changes()
+    {
+        var first = await Visitor().GetAsync(new Uri("/about", UriKind.Relative)).ConfigureAwait(true);
+        var etag = first.Headers.ETag;
+        Assert.NotNull(etag);
+        Assert.False(etag.IsWeak);
+        Assert.Equal("public, no-cache", first.Headers.CacheControl?.ToString());
+
+        using var again = new HttpRequestMessage(HttpMethod.Get, new Uri("/about", UriKind.Relative));
+        again.Headers.IfNoneMatch.Add(etag);
+        var notModified = await Visitor().SendAsync(again).ConfigureAwait(true);
+
+        Assert.Equal(HttpStatusCode.NotModified, notModified.StatusCode);
+        Assert.Empty(await notModified.Content.ReadAsByteArrayAsync().ConfigureAwait(true));
+        Assert.Equal(etag, notModified.Headers.ETag);
+
+        await PublishingApi.SaveAsync(_scenario.Admin, _aboutPath, PublishingApi.HeadingDocument("Changed")).ConfigureAwait(true);
+        await PublishingApi.PublishCurrentAsync(_scenario.Admin, _aboutPath).ConfigureAwait(true);
+
+        using var stale = new HttpRequestMessage(HttpMethod.Get, new Uri("/about", UriKind.Relative));
+        stale.Headers.IfNoneMatch.Add(etag);
+        var changed = await Visitor().SendAsync(stale).ConfigureAwait(true);
+
+        Assert.Equal(HttpStatusCode.OK, changed.StatusCode);
+        Assert.NotEqual(etag, changed.Headers.ETag);
+        Assert.Contains(">Changed<", await changed.Content.ReadAsStringAsync().ConfigureAwait(true), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Pages_are_still_served_when_the_cache_fails()
+    {
+        using var app = new QuickBuilderApp(
+            await database.CreateDatabaseAsync("public-no-cache").ConfigureAwait(true),
+            configureTestServices: services => services.AddSingleton<ICacheProvider, FailingCache>());
+        var admin = await app.CreateAdminClientAsync().ConfigureAwait(true);
+        var site = await MediaApi.CreateSiteAsync(admin, "No cache", "no-cache.test").ConfigureAwait(true);
+        var page = (await PagesApi.CreateOkAsync(admin, site, "about").ConfigureAwait(true)).GetProperty("id").GetGuid();
+        var path = PagesApi.PagePath(site, page);
+        await PublishingApi.SaveAsync(admin, path, PublishingApi.HeadingDocument("Still here")).ConfigureAwait(true);
+        await PublishingApi.PublishCurrentAsync(admin, path).ConfigureAwait(true);
+
+        var response = await app.CreateClientForHost("no-cache.test").GetAsync(new Uri("/about", UriKind.Relative)).ConfigureAwait(true);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Contains(">Still here<", await response.Content.ReadAsStringAsync().ConfigureAwait(true), StringComparison.Ordinal);
+    }
+
+    /// <summary>A cache whose every call fails, as a broken shared cache would (FR-034).</summary>
+    private sealed class FailingCache : ICacheProvider
+    {
+        public Task<T> GetOrCreateAsync<T>(string key, Func<CancellationToken, Task<T>> factory, Func<T, CacheEntrySettings> settings, CancellationToken cancellationToken = default) =>
+            throw new InvalidOperationException("The cache is down.");
+
+        public void Remove(string key) => throw new InvalidOperationException("The cache is down.");
+    }
+
 }
 
 /// <summary>
