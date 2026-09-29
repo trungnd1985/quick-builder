@@ -97,7 +97,34 @@ public sealed class PublicationTests
 
         Assert.Equal(2, rollback.Number);
         Assert.Equal(1, rollback.RestoredFromNumber);
+        Assert.Equal(VersionKinds.Rollback, rollback.Kind);
+        Assert.Null(publication.PublishedFromDraftVersion);
+        Assert.Equal(rollback.Id, publication.LiveVersionId);
         Assert.True(publication.HasUnpublishedChanges(7, "About", "About"));
+
+        Publish(publication, draftVersion: 7);
+        Assert.False(publication.HasUnpublishedChanges(7, "About", "About"));
+    }
+
+    [Fact]
+    public void A_rollback_takes_the_next_number_even_when_it_restores_an_old_one()
+    {
+        var publication = NewPage();
+        Publish(publication);
+        Publish(publication);
+        Publish(publication);
+
+        var rollback = publication.Publish(Document, 1, "About", null, VersionKinds.Rollback, 1, Actor, "/about", Now);
+
+        Assert.Equal(4, rollback.Number);
+        Assert.Equal(4, publication.LiveNumber);
+        Assert.Equal(5, publication.NextNumber);
+    }
+
+    [Fact]
+    public void Retention_keeps_fifty_versions()
+    {
+        Assert.Equal(50, Publication.RetainedVersions);
     }
 
     [Fact]

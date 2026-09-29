@@ -21,6 +21,11 @@ using QuickBuilder.Pages.Features.MakeHomePage;
 using QuickBuilder.Pages.Features.MovePage;
 using QuickBuilder.Pages.Features.Publish;
 using QuickBuilder.Pages.Features.Rollback;
+using QuickBuilder.Pages.Features.PublishingHistory;
+using QuickBuilder.Pages.Features.GetPublishLog;
+using QuickBuilder.Pages.Features.RecordDesignPublish;
+using QuickBuilder.Editor.Contracts.Events;
+using QuickBuilder.Shared.Kernel.Events;
 using QuickBuilder.Pages.Features.Unpublish;
 using QuickBuilder.Pages.Features.RenameComponent;
 using QuickBuilder.Pages.Features.SaveComponentDraft;
@@ -138,6 +143,14 @@ public static class PagesModule
         services.AddScoped<ICommandHandler<PublishCommand, Result<PublicationResponse>>, PublishHandler>();
         services.AddScoped<ICommandHandler<UnpublishCommand, Result<PublicationResponse>>, UnpublishHandler>();
         services.AddScoped<ICommandHandler<RollbackCommand, Result<PublicationResponse>>, RollbackHandler>();
+        services.AddScoped<LogEntryReads>();
+        services.AddScoped<IQueryHandler<GetHistoryQuery, Result<SubjectHistoryResponse>>, GetHistoryHandler>();
+        services.AddScoped<IQueryHandler<GetVersionQuery, Result<VersionContentResponse>>, GetVersionHandler>();
+        services.AddScoped<ICommandHandler<CopyVersionToDraftCommand, Result<DraftResponse>>, CopyVersionToDraftHandler>();
+        services.AddScoped<IQueryHandler<GetPublishLogQuery, Result<PublishLogResponse>>, GetPublishLogHandler>();
+
+        // 012 research PR-16: design publishes, recorded in the site's publish log.
+        services.AddScoped<IIntegrationEventHandler<DesignPublished>, RecordDesignPublishHandler>();
 
         // 011 research ED-16: the token usage count the admin asks before deleting a token.
         services.AddScoped<IQueryHandler<GetTokenUsageQuery, Result<TokenUsageResponse>>, GetTokenUsageHandler>();

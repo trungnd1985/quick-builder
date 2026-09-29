@@ -2,8 +2,9 @@
 // A page's or component's publishing actions (012 FR-039, research PR-20), used by the page
 // tree, the component list and the editor's top bar, so every place offers the same actions.
 // The server checks every action; `canPublish` only decides what is offered.
-import { computed, ref } from 'vue'
+import { computed, inject, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { routerKey } from 'vue-router'
 import { pagesApi } from '../../api/pages'
 import { publishingApi, type Publication, type SubjectKind } from '../../api/publishing'
 import PublicationBadge from './PublicationBadge.vue'
@@ -32,6 +33,15 @@ const error = ref<string | null>(null)
 const status = ref('')
 
 const isPublished = computed(() => props.publication?.state === 'published')
+
+// Offered where the app routes to it; the shell always does.
+const router = inject(routerKey, null)
+const hasHistory = computed(() => router?.hasRoute(props.kind === 'page' ? 'page-history' : 'component-history') === true)
+
+const historyRoute = computed(() =>
+  props.kind === 'page'
+    ? { name: 'page-history', params: { siteId: props.siteId, pageId: props.subjectId } }
+    : { name: 'component-history', params: { siteId: props.siteId, componentId: props.subjectId } })
 
 async function draftVersion(): Promise<number | null> {
   if (props.beforePublish) return props.beforePublish()
@@ -91,6 +101,15 @@ async function publish(): Promise<void> {
       target="_blank"
       rel="noopener noreferrer"
     >{{ t('publishing.menu.viewLive') }}</a>
+
+    <RouterLink
+      v-if="hasHistory"
+      class="button-link"
+      :to="historyRoute"
+      :aria-label="`${t('publishing.menu.history')}: ${title}`"
+    >
+      {{ t('publishing.menu.history') }}
+    </RouterLink>
 
     <slot
       :busy="busy"

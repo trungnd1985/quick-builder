@@ -4,19 +4,25 @@
 // After a conflict — or while looking at an old recovery copy — the member's version stays on
 // screen so blocks can be copied. "Reload latest" brings in the saved draft after saying that
 // anything not copied is lost; copied blocks stay on the clipboard to paste back. There is no
-// way to overwrite the other save.
+// way to overwrite the other save. A published version (012) is read-only for good.
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ruleKey } from './editorErrors'
 import type { ReadOnlyState } from './state/editorStore'
 
-const props = defineProps<{ state: ReadOnlyState; reloading: boolean }>()
+const props = defineProps<{ state: ReadOnlyState; reloading: boolean; title?: string }>()
 const emit = defineEmits<{ reload: [] }>()
-const { t } = useI18n()
+const { t, d } = useI18n()
 
 const canReload = computed(() => props.state.reason === 'conflict' || props.state.reason === 'recovery')
 const message = computed(() =>
-  props.state.reason === 'invalid' && props.state.rule
+  props.state.reason === 'version'
+    ? t('publishing.version.readOnly', {
+      number: props.state.versionNumber ?? 0,
+      title: props.title ?? '',
+      when: props.state.publishedAtUtc ? d(new Date(props.state.publishedAtUtc), 'short') : '',
+    })
+    : props.state.reason === 'invalid' && props.state.rule
     ? t('editor.readOnly.invalidRule', { reason: t(ruleKey(props.state.rule)) })
     : t(`editor.readOnly.${props.state.reason}`),
 )

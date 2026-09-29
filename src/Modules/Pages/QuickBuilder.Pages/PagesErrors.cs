@@ -134,6 +134,14 @@ internal static class PagesErrors
         "pages.schedule_not_found",
         "Nothing is scheduled.");
 
+    internal static Error InvalidCursor { get; } = Error.Validation(
+        "pages.invalid_cursor",
+        "The cursor is not one this server issued.");
+
+    internal static Error InvalidLimit(int maximum) => Error.Validation(
+        "pages.invalid_limit",
+        $"The page size must be between 1 and {maximum}.");
+
     internal static Error UnpublishedComponents(IReadOnlyCollection<Guid> componentIds) => With(
         Error.Conflict(
             "pages.unpublished_components",

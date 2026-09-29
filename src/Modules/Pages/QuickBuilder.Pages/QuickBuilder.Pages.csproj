@@ -19,6 +19,7 @@
     <ProjectReference Include="..\QuickBuilder.Pages.Contracts\QuickBuilder.Pages.Contracts.csproj" />
     <ProjectReference Include="..\..\Sites\QuickBuilder.Sites.Contracts\QuickBuilder.Sites.Contracts.csproj" />
     <ProjectReference Include="..\..\Identity\QuickBuilder.Identity.Contracts\QuickBuilder.Identity.Contracts.csproj" />
+    <ProjectReference Include="..\..\Editor\QuickBuilder.Editor.Contracts\QuickBuilder.Editor.Contracts.csproj" />
   </ItemGroup>
 
   <ItemGroup>

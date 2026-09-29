@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
 import { sitesApi, type Site, type SiteScheme } from '../../api/sites'
 import { useSitesStore } from '../../app/sitesStore'
+import { useAuthStore } from '../../app/authStore'
 import AvailabilityPanel from './AvailabilityPanel.vue'
 import HostNameList from './HostNameList.vue'
 import LanguageSelect from './LanguageSelect.vue'
@@ -16,6 +17,7 @@ import { isOutOfDate, siteErrorMessage } from './siteErrors'
 const { t, te } = useI18n()
 const route = useRoute()
 const sites = useSitesStore()
+const auth = useAuthStore()
 
 const siteId = computed(() => String(route.params.siteId))
 const site = ref<Site | null>(null)
@@ -167,6 +169,13 @@ watch(siteId, load)
         </RouterLink>
         <RouterLink :to="{ name: 'site-design', params: { siteId: site.id } }">
           {{ t('sites.detail.design') }}
+        </RouterLink>
+        <!-- 012 FR-017: the publish log is for Administrators; the server checks regardless. -->
+        <RouterLink
+          v-if="auth.isAdministrator"
+          :to="{ name: 'site-publish-log', params: { siteId: site.id } }"
+        >
+          {{ t('publishing.log.title') }}
         </RouterLink>
       </nav>
 

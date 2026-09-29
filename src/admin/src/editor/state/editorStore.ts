@@ -8,6 +8,7 @@ import { defineStore } from 'pinia'
 import { computed, ref, shallowRef } from 'vue'
 import { editorApi } from '../../api/editor'
 import { pagesApi } from '../../api/pages'
+import { publishingApi } from '../../api/publishing'
 import { ApiError } from '../../api/request'
 import { validateDocument } from '../schema/documentValidator'
 import { CURRENT_SCHEMA_VERSION } from '../schema/limits'
@@ -17,13 +18,17 @@ import type { OpRefusal, OpResult } from '../ops'
 import { locate } from '../ops/tree'
 
 /** Why the document cannot be changed right now (FR-028, FR-029, ED-19). */
-export type ReadOnlyReason = 'conflict' | 'forbidden' | 'gone' | 'invalid' | 'recovery'
+/** `version`: a published version, opened from the history (012 FR-013). */
+export type ReadOnlyReason = 'conflict' | 'forbidden' | 'gone' | 'invalid' | 'recovery' | 'version'
 
 export interface ReadOnlyState {
   reason: ReadOnlyReason
   /** For `invalid`: the failed rule and where. */
   rule?: string
   pointer?: string
+  /** For `version`: which one, and when it was published. */
+  versionNumber?: number
+  publishedAtUtc?: string
 }
 
 /** A moment of the session: what undo restores (ED-12). */
@@ -154,6 +159,39 @@ export const useEditorStore = defineStore('editor', () => {
     }
   }
 
+  /**
+   * Opens a retained published version read-only (012 FR-013). Nothing is saved from here: a
+   * version comes back through Roll back or Copy to draft in the history.
+   */
+  async function loadVersion(site: string, documentKind: DocumentKind, id: string, number: number): Promise<void> {
+    siteId.value = site
+    kind.value = documentKind
+    documentId.value = id
+    loadState.value = 'loading'
+    selection.value = null
+    lastRefusal.value = null
+
+    try {
+      const [version, designTokens] = await Promise.all([
+        publishingApi.version(site, documentKind, id, number),
+        editorApi.designTokens(site),
+      ])
+
+      const loaded = version.document as unknown as ContentDocument
+      root.value = loaded.root
+      savedRoot.value = loaded.root
+      baseVersion.value = 0
+      tokens.value = designTokens.document
+      readOnly.value = { reason: 'version', versionNumber: version.number, publishedAtUtc: version.publishedAtUtc }
+      loadState.value = 'ready'
+    } catch (error) {
+      root.value = null
+      savedRoot.value = null
+      readOnly.value = null
+      loadState.value = !(error instanceof ApiError) ? 'error' : error.status === 404 ? 'not-found' : error.status === 403 ? 'forbidden' : 'error'
+    }
+  }
+
   /** Replaces the whole document with a fresh draft from the server (Reload latest, ED-15). */
   function replaceWithDraft(loaded: ContentNode, version: number): void {
     root.value = loaded
@@ -188,6 +226,7 @@ export const useEditorStore = defineStore('editor', () => {
     select,
     markSaved,
     setReadOnly,
+    loadVersion,
     load,
     replaceWithDraft,
     setTokens,

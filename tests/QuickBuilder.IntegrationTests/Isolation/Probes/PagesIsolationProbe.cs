@@ -46,6 +46,12 @@ internal sealed class PagesIsolationProbe : ISiteIsolationProbe
         "POST api/v1/pages/sites/{siteId:guid}/components/{componentId:guid}/publish",
         "POST api/v1/pages/sites/{siteId:guid}/components/{componentId:guid}/unpublish",
         "POST api/v1/pages/sites/{siteId:guid}/components/{componentId:guid}/rollback",
+        "GET api/v1/pages/sites/{siteId:guid}/pages/{pageId:guid}/history",
+        "GET api/v1/pages/sites/{siteId:guid}/pages/{pageId:guid}/versions/{number:int}",
+        "POST api/v1/pages/sites/{siteId:guid}/pages/{pageId:guid}/versions/{number:int}/copy-to-draft",
+        "GET api/v1/pages/sites/{siteId:guid}/components/{componentId:guid}/history",
+        "GET api/v1/pages/sites/{siteId:guid}/components/{componentId:guid}/versions/{number:int}",
+        "POST api/v1/pages/sites/{siteId:guid}/components/{componentId:guid}/versions/{number:int}/copy-to-draft",
     ];
 
     /// <summary>012: an address shaped like each site's own published page, never issued.</summary>
@@ -96,6 +102,9 @@ internal sealed class PagesIsolationProbe : ISiteIsolationProbe
             yield return new ProbeRequest(HttpMethod.Post, $"{page}/publish", ProbeKind.Addressed, new { draftVersion = 0 });
             yield return new ProbeRequest(HttpMethod.Post, $"{page}/unpublish", ProbeKind.Addressed);
             yield return new ProbeRequest(HttpMethod.Post, $"{page}/rollback", ProbeKind.Addressed, new { versionNumber = 1 });
+            yield return new ProbeRequest(HttpMethod.Get, $"{page}/history", ProbeKind.Addressed);
+            yield return new ProbeRequest(HttpMethod.Get, $"{page}/versions/1", ProbeKind.Addressed);
+            yield return new ProbeRequest(HttpMethod.Post, $"{page}/versions/1/copy-to-draft", ProbeKind.Addressed, new { draftVersion = 0 });
         }
 
         var component = $"/api/v1/pages/sites/{siteId}/components/{other.Ids[2]}";
@@ -108,9 +117,13 @@ internal sealed class PagesIsolationProbe : ISiteIsolationProbe
         yield return new ProbeRequest(HttpMethod.Post, $"{component}/publish", ProbeKind.Addressed, new { draftVersion = 0 });
         yield return new ProbeRequest(HttpMethod.Post, $"{component}/unpublish", ProbeKind.Addressed);
         yield return new ProbeRequest(HttpMethod.Post, $"{component}/rollback", ProbeKind.Addressed, new { versionNumber = 1 });
+        yield return new ProbeRequest(HttpMethod.Get, $"{component}/history", ProbeKind.Addressed);
+        yield return new ProbeRequest(HttpMethod.Get, $"{component}/versions/1", ProbeKind.Addressed);
+        yield return new ProbeRequest(HttpMethod.Post, $"{component}/versions/1/copy-to-draft", ProbeKind.Addressed, new { draftVersion = 0 });
 
         yield return new ProbeRequest(HttpMethod.Get, $"/api/v1/pages/sites/{siteId}/pages", ProbeKind.Listing);
         yield return new ProbeRequest(HttpMethod.Get, $"/api/v1/pages/sites/{siteId}/components", ProbeKind.Listing);
+        yield return new ProbeRequest(HttpMethod.Get, $"/api/v1/pages/sites/{siteId}/publish-log", ProbeKind.Listing);
 
         // 011: the token usage count reads every draft of the site, so it must not see the
         // other site's (TokenUsageSiteFilterTests has the counting half).

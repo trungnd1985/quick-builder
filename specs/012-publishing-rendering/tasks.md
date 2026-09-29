@@ -341,11 +341,11 @@ unpublished page: its entries remain in the publish log.
 
 ### Tests for User Story 3 ⚠️
 
-- [ ] T063 [P] [US3] Extend `UTESTS/Pages/Publishing/PublicationTests.cs`:
+- [X] T063 [P] [US3] Extend `UTESTS/Pages/Publishing/PublicationTests.cs`:
   - a rollback creates a new version with `restored_from_number`, sets `published_from_draft_version` to null, and leaves the draft alone;
   - rolling back to a pruned number is refused;
   - retention keeps the 50 highest numbers plus the live version.
-- [ ] T064 [P] [US3] Create `ITESTS/Publishing/RollbackApiTests.cs`:
+- [X] T064 [P] [US3] Create `ITESTS/Publishing/RollbackApiTests.cs`:
   - rollback for a page and for a component;
   - `pages.version_not_found`;
   - `pages.version_missing_components`, and `pages.unpublished_components` for a component that exists but is not live;
@@ -355,23 +355,23 @@ unpublished page: its entries remain in the publish log.
   - `POST …/copy-to-draft` replaces the draft through 010's rules, gives `409 pages.out_of_date` with a stale version, and changes nothing public;
   - 55 publishes leave 50 versions;
   - the history, version and copy-to-draft cases are repeated for components through `GetComponentHistory`, `GetComponentVersion` and `CopyComponentVersionToDraft`. The copy requires `pages.components.manage`, so Editor gets `403` (constitution Principle X).
-- [ ] T065 [P] [US3] Create `ITESTS/Publishing/PublishLogApiTests.cs`:
+- [X] T065 [P] [US3] Create `ITESTS/Publishing/PublishLogApiTests.cs`:
   - the log needs `pages.publish_log.view` (Administrator `200`, Designer `403`);
   - the filters by subject and user work, and the cursor paginates without gaps;
   - deleting an unpublished page keeps its entries with the last label and path, adds `deleted`, and sets `subjectExists = false`;
   - an `Editor.DesignPublished` event delivered twice creates one `design` entry.
-- [ ] T066 [P] [US3] Create `ADMINTESTS/publishing/HistoryView.spec.ts` (the list, **View** opening the read-only editor route, **Roll back** and **Copy to draft** with confirmations, and the error messages) and `ADMINTESTS/publishing/PublishLogView.spec.ts` (filters, paging, deleted subjects marked, shown only to Administrators). Axe, keyboard operation and i18n are checked.
+- [X] T066 [P] [US3] Create `ADMINTESTS/publishing/HistoryView.spec.ts` (the list, **View** opening the read-only editor route, **Roll back** and **Copy to draft** with confirmations, and the error messages) and `ADMINTESTS/publishing/PublishLogView.spec.ts` (filters, paging, deleted subjects marked, shown only to Administrators). Axe, keyboard operation and i18n are checked.
 
 ### Implementation for User Story 3
 
-- [ ] T067 [US3] Implement `Publication.Rollback(...)` and version retention in `PAGES/Domain/Publication.cs` and `PAGES/Infrastructure/` (prune with `ExecuteDeleteAsync` in the same transaction; PR-15). Retention also applies to publish. Make T063 pass.
-- [ ] T068 [US3] Create the `PAGES/Features/RollbackPage/` and `RollbackComponent/` slices (`kind = rollback` on `PagePublished` and `ComponentPublished`), with the missing-component and unpublished-component checks.
-- [ ] T069 [P] [US3] Create the `PAGES/Features/GetPageHistory/`, `GetComponentHistory/`, `GetPageVersion/` and `GetComponentVersion/` slices, using `[RequireCapability(PagesCapabilities.ContentView)]`.
-- [ ] T070 [P] [US3] Create the `PAGES/Features/CopyPageVersionToDraft/` (`pages.page_drafts.edit`) and `CopyComponentVersionToDraft/` (`pages.components.manage`) slices, reusing `PAGES/Infrastructure/DraftWrites.cs` so that validation, `component_usages` and the out-of-date check stay 010's. Write the `copied_to_draft` log entry. Make T064 pass.
-- [ ] T071 [US3] Extend `PAGES/Features/DeletePage/` and `DeleteComponent/` to append a `deleted` log entry when the subject has history. Create the `PAGES/Features/GetPublishLog/` slice (`PublishingCapabilities.LogView`, a keyset cursor on `(occurred_at_utc, id)`, `subjectExists` through a left join).
-- [ ] T072 [US3] Create `PAGES/Features/RecordDesignPublish/RecordDesignPublishHandler.cs`, handling `Editor.DesignPublished` by inserting a `design` log entry whose id is the event id, and ignoring a duplicate key (PR-16). Register it in `PAGES/PagesModule.cs`. Make T065 pass.
-- [ ] T073 [US3] Create `PUBUI/HistoryView.vue` with routes `/sites/:siteId/pages/:pageId/history` and `/sites/:siteId/components/:componentId/history`. Add routes `/sites/:siteId/pages/:pageId/versions/:number` and `/sites/:siteId/components/:componentId/versions/:number`, which open `ADMIN/editor/EditorView.vue` in its existing read-only mode (011 ED-15) with the version document. Register everything in `ADMIN/app/router.ts`, and link **History** from `PublishMenu.vue`.
-- [ ] T074 [US3] Create `PUBUI/PublishLogView.vue` at `/sites/:siteId/publish-log`, linked from the site detail view for Administrators only. Add the i18n keys, and make T066 pass.
+- [X] T067 [US3] Implement `Publication.Rollback(...)` and version retention in `PAGES/Domain/Publication.cs` and `PAGES/Infrastructure/` (prune with `ExecuteDeleteAsync` in the same transaction; PR-15). Retention also applies to publish. Make T063 pass.
+- [X] T068 [US3] Create the `PAGES/Features/RollbackPage/` and `RollbackComponent/` slices (`kind = rollback` on `PagePublished` and `ComponentPublished`), with the missing-component and unpublished-component checks.
+- [X] T069 [P] [US3] Create the `PAGES/Features/GetPageHistory/`, `GetComponentHistory/`, `GetPageVersion/` and `GetComponentVersion/` slices, using `[RequireCapability(PagesCapabilities.ContentView)]`.
+- [X] T070 [P] [US3] Create the `PAGES/Features/CopyPageVersionToDraft/` (`pages.page_drafts.edit`) and `CopyComponentVersionToDraft/` (`pages.components.manage`) slices, reusing `PAGES/Infrastructure/DraftWrites.cs` so that validation, `component_usages` and the out-of-date check stay 010's. Write the `copied_to_draft` log entry. Make T064 pass.
+- [X] T071 [US3] Extend `PAGES/Features/DeletePage/` and `DeleteComponent/` to append a `deleted` log entry when the subject has history. Create the `PAGES/Features/GetPublishLog/` slice (`PublishingCapabilities.LogView`, a keyset cursor on `(occurred_at_utc, id)`, `subjectExists` through a left join).
+- [X] T072 [US3] Create `PAGES/Features/RecordDesignPublish/RecordDesignPublishHandler.cs`, handling `Editor.DesignPublished` by inserting a `design` log entry whose id is the event id, and ignoring a duplicate key (PR-16). Register it in `PAGES/PagesModule.cs`. Make T065 pass.
+- [X] T073 [US3] Create `PUBUI/HistoryView.vue` with routes `/sites/:siteId/pages/:pageId/history` and `/sites/:siteId/components/:componentId/history`. Add routes `/sites/:siteId/pages/:pageId/versions/:number` and `/sites/:siteId/components/:componentId/versions/:number`, which open `ADMIN/editor/EditorView.vue` in its existing read-only mode (011 ED-15) with the version document. Register everything in `ADMIN/app/router.ts`, and link **History** from `PublishMenu.vue`.
+- [X] T074 [US3] Create `PUBUI/PublishLogView.vue` at `/sites/:siteId/publish-log`, linked from the site detail view for Administrators only. Add the i18n keys, and make T066 pass.
 
 **Checkpoint**: quickstart §3. All P1 stories are complete: a site can be published, maintained and restored.
 
