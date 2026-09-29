@@ -546,14 +546,14 @@ validation run.
   - both migrations apply, and drafts and token sets are byte-identical;
   - no publication exists;
   - a public request gets the not-found page (FR-042).
-- [ ] T101 [P] Create `FIX/page-200-blocks.json`, a valid 200-block page using every block type plus a header and footer `component-ref`, checked by the golden runner. Create `STESTS/RenderPerformanceTests.cs`, following `STESTS/PageTreePerformanceTests.cs` (SC-003, SC-004, FR-041):
+- [X] T101 [P] Create `FIX/page-200-blocks.json`, a valid 200-block page using every block type plus a header and footer `component-ref`, checked by the golden runner. Create `STESTS/RenderPerformanceTests.cs`, following `STESTS/PageTreePerformanceTests.cs` (SC-003, SC-004, FR-041):
   - publish the header, footer and page;
   - 200 miss renders, each after a republish bumps the generation, at p95 under 200 ms;
   - 1,000 hits at p95 under 20 ms;
   - 0 bytes of `<script>` in the body.
 
   Record the numbers in the test output.
-- [ ] T102 [P] Extend `STESTS/ReferenceDeploymentSmokeTests.cs` (FR-043, E-3 closed):
+- [X] T102 [P] Extend `STESTS/ReferenceDeploymentSmokeTests.cs` (FR-043, E-3 closed):
   - create a Header component, save a draft with a Section and Heading, and publish it;
   - create a page referencing it and publish it;
   - `GET` the page from the site's host name and assert its heading and the header text;

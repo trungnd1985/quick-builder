@@ -20,7 +20,9 @@ namespace QuickBuilder.SmokeTests;
 /// view. Feature 002 added the first step: the journey now begins with the setup wizard,
 /// reading the setup code from the container logs as an operator would, and runs every
 /// later step as the administrator it created. Feature 010 added "create page": a page, a
-/// child page and a saved draft. Publish and view arrive with Rendering (#12, issue #4).
+/// child page and a saved draft. 012 added publish and view: a component and a page are
+/// published and read back from the site's host name, which closes plan exception E-3.
+/// Driving the editor in a browser still waits for #25 (exception E-5, unchanged).
 /// </para>
 /// <para>
 /// Excluded from the normal test run — CI filters on <c>FullyQualifiedName!~SmokeTests</c>
@@ -214,7 +216,7 @@ public sealed class ReferenceDeploymentSmokeTests(ITestOutputHelper output) : IA
         output.WriteLine("image still served after the app container was replaced");
 
         // 9c. 010 FR-036: create a page and a child page, save a draft and read it back — the
-        //     "create page" step of the constitution's journey. Publish and view wait for #12.
+        //     "create page" step of the constitution's journey. Publish and view follow in 9e.
         var pages = $"/api/v1/pages/sites/{siteId}/pages";
         var home = await client
             .PostAsJsonAsync(new Uri(pages, UriKind.Relative), new { title = "Home", slug = "home", isHome = true })
@@ -271,6 +273,53 @@ public sealed class ReferenceDeploymentSmokeTests(ITestOutputHelper output) : IA
         Assert.True(tokens.GetProperty("isDefault").GetBoolean());
         output.WriteLine("editor route served; a Section with a Heading saved and read back; default design tokens");
 
+        // 9e. 012 FR-043 (plan exception E-3 closed): publish and view. A Header component and
+        //     the home page that shows it are published, and a visitor gets both from the
+        //     site's host name, with the stylesheet the page links to. Unpublished, the page
+        //     is gone at the next request.
+        var components = $"/api/v1/pages/sites/{siteId}/components";
+        var header = await client.PostAsJsonAsync(new Uri(components, UriKind.Relative), new { name = "Header" }).ConfigureAwait(true);
+        Assert.Equal(HttpStatusCode.Created, header.StatusCode);
+        var headerId = (await header.Content.ReadFromJsonAsync<JsonElement>().ConfigureAwait(true)).GetProperty("id").GetGuid();
+        var headerPath = $"{components}/{headerId}";
+        var headerVersion = await SaveDraftAsync(client, headerPath, """
+            {"schemaVersion":1,"root":{"id":"root","type":"root","props":{},"children":[
+              {"id":"hs","type":"section","props":{},"children":[
+                {"id":"hh","type":"heading","props":{"text":"Smoke header","level":2},"children":[]}]}]}}
+            """).ConfigureAwait(true);
+        await PublishAsync(client, headerPath, headerVersion).ConfigureAwait(true);
+
+        var homePath = $"{pages}/{homeId}";
+        var homeWithHeader = await SaveDraftAsync(client, homePath, $$$"""
+            {"schemaVersion":1,"root":{"id":"root","type":"root","props":{},"children":[
+              {"id":"ref","type":"component-ref","props":{"componentId":"{{{headerId}}}"},"children":[]},
+              {"id":"s1","type":"section","props":{},"children":[
+                {"id":"h1","type":"heading","props":{"text":"Welcome","level":1},"children":[]}]}]}}
+            """).ConfigureAwait(true);
+        await PublishAsync(client, homePath, homeWithHeader).ConfigureAwait(true);
+
+        using var view = new HttpRequestMessage(HttpMethod.Get, new Uri("/", UriKind.Relative));
+        view.Headers.Host = "smoke.test";
+        using var viewed = await publicClient.SendAsync(view).ConfigureAwait(true);
+        var html = await viewed.Content.ReadAsStringAsync().ConfigureAwait(true);
+        Assert.Equal(HttpStatusCode.OK, viewed.StatusCode);
+        Assert.Contains(">Welcome</h1>", html, StringComparison.Ordinal);
+        Assert.Contains(">Smoke header</h2>", html, StringComparison.Ordinal);
+
+        var stylesheet = System.Text.RegularExpressions.Regex.Match(html, "<link rel=\"stylesheet\" href=\"(?<href>[^\"]+)\"").Groups["href"].Value;
+        using var css = new HttpRequestMessage(HttpMethod.Get, new Uri(stylesheet, UriKind.Relative));
+        css.Headers.Host = "smoke.test";
+        Assert.Equal(HttpStatusCode.OK, (await publicClient.SendAsync(css).ConfigureAwait(true)).StatusCode);
+
+        var unpublished = await client.PostAsync(new Uri($"{homePath}/unpublish", UriKind.Relative), null).ConfigureAwait(true);
+        Assert.Equal(HttpStatusCode.OK, unpublished.StatusCode);
+        using var gone = new HttpRequestMessage(HttpMethod.Get, new Uri("/", UriKind.Relative));
+        gone.Headers.Host = "smoke.test";
+        using var goneResponse = await publicClient.SendAsync(gone).ConfigureAwait(true);
+        Assert.Equal(HttpStatusCode.NotFound, goneResponse.StatusCode);
+        Assert.Equal("text/html", goneResponse.Content.Headers.ContentType?.MediaType);
+        output.WriteLine($"component and page published and viewed with {stylesheet}; unpublished page answers 404");
+
         // 10. Operator recovery (002 US5): with command-line access to the container, the
         //     operator issues a set-password link for the administrator, sets a new password
         //     through it, and signs in with that password.
@@ -304,6 +353,25 @@ public sealed class ReferenceDeploymentSmokeTests(ITestOutputHelper output) : IA
         "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==");
 
     /// <summary>Whether a host name reaches a site at all, whatever the site serves at <c>/</c>.</summary>
+    /// <summary>Saves over the current draft of a page or component and returns the new draft version.</summary>
+    private static async Task<uint> SaveDraftAsync(HttpClient client, string subject, string document)
+    {
+        var draft = new Uri($"{subject}/draft", UriKind.Relative);
+        var version = (await client.GetFromJsonAsync<JsonElement>(draft).ConfigureAwait(false)).GetProperty("version").GetUInt32();
+        using var body = new StringContent($$"""{"version":{{version}},"document":{{document}}}""", System.Text.Encoding.UTF8, "application/json");
+        using var saved = await client.PutAsync(draft, body).ConfigureAwait(false);
+        Assert.Equal(HttpStatusCode.OK, saved.StatusCode);
+        return (await saved.Content.ReadFromJsonAsync<JsonElement>().ConfigureAwait(false)).GetProperty("version").GetUInt32();
+    }
+
+    private static async Task PublishAsync(HttpClient client, string subject, uint draftVersion)
+    {
+        using var published = await client
+            .PostAsJsonAsync(new Uri($"{subject}/publish", UriKind.Relative), new { draftVersion })
+            .ConfigureAwait(false);
+        Assert.True(published.StatusCode == HttpStatusCode.OK, $"Publishing failed: {await published.Content.ReadAsStringAsync().ConfigureAwait(false)}");
+    }
+
     private static async Task<bool> PublicResolvesAsync(HttpClient client, string hostName)
     {
         using var request = new HttpRequestMessage(HttpMethod.Get, new Uri("/", UriKind.Relative));

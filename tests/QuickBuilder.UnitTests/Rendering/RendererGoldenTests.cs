@@ -48,11 +48,43 @@ public sealed class RendererGoldenTests
         Assert.DoesNotContain(" style=", html, StringComparison.Ordinal);
     }
 
+    /// <summary>
+    /// 012 SC-003: the page the render budget is measured on — 200 blocks of every type, with a
+    /// header and a footer component — is valid and renders to its checked-in HTML.
+    /// </summary>
+    [Fact]
+    public void The_two_hundred_block_page_is_valid_and_renders_to_its_golden_file()
+    {
+        var file = RepositoryFiles.Fixtures("page-200-blocks.json");
+        Assert.True(new QuickBuilder.Pages.Infrastructure.Schema.PageDocumentValidator()
+            .Validate(File.ReadAllBytes(file), QuickBuilder.Pages.Contracts.DocumentKind.Page).IsValid);
+
+        using var parsed = JsonDocument.Parse(File.ReadAllText(file));
+        Assert.Equal(200, Count(parsed.RootElement.GetProperty("root")));
+
+        var html = RenderFile(file);
+        var golden = RepositoryFiles.Fixtures("golden", "page-200-blocks.html");
+        if (RepositoryFiles.UpdateGolden)
+        {
+            File.WriteAllText(golden, html);
+            return;
+        }
+
+        Assert.Equal(File.ReadAllText(golden).ReplaceLineEndings("\n"), html);
+        Assert.DoesNotContain("<script", html, StringComparison.OrdinalIgnoreCase);
+
+        static int Count(JsonElement node) => node.GetProperty("children").EnumerateArray().Sum(c => 1 + Count(c));
+    }
+
     /// <summary>Renders an example in the fixed context of <c>tests/fixtures/rendering/context.json</c>.</summary>
-    internal static string Render(string example)
+    internal static string Render(string example) =>
+        RenderFile(Path.Combine(RepositoryFiles.ValidExamples, $"{example}.json"));
+
+    /// <summary>Renders a document file in the fixed context.</summary>
+    internal static string RenderFile(string path)
     {
         using var context = JsonDocument.Parse(File.ReadAllText(RepositoryFiles.Fixtures("context.json")));
-        using var document = JsonDocument.Parse(File.ReadAllText(Path.Combine(RepositoryFiles.ValidExamples, $"{example}.json")));
+        using var document = JsonDocument.Parse(File.ReadAllText(path));
         var root = context.RootElement;
 
         var harness = new RenderHarness { BasePath = root.GetProperty("basePath").GetString()! };
