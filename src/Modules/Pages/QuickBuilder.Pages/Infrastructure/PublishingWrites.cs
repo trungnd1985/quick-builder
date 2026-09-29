@@ -1,0 +1,492 @@
+using System.Text;
+using Microsoft.EntityFrameworkCore;
+using Npgsql;
+using QuickBuilder.Pages.Contracts;
+using QuickBuilder.Pages.Domain;
+using QuickBuilder.Pages.Features;
+using QuickBuilder.Shared.Kernel.Results;
+
+namespace QuickBuilder.Pages.Infrastructure;
+
+/// <summary>
+/// Publishing a page or component, taking it down, and rolling it back (012 FR-001 to FR-014,
+/// research PR-02 to PR-05, PR-15; data-model §3.1).
+/// </summary>
+/// <remarks>
+/// Each operation is one transaction, so a publish either lands completely — version, live
+/// pointer, dependency rows, generations, log entry, integration event — or not at all
+/// (FR-001). Two publishes of one subject at once serialise on the publication's <c>xmin</c>:
+/// the loser runs again against what the winner committed, so both succeed with consecutive
+/// numbers (PR-03). Scheduled runs call <see cref="PublishContentAsync"/> and
+/// <see cref="UnpublishLiveAsync"/> inside the transaction the outbox dispatcher holds.
+/// </remarks>
+internal sealed class PublishingWrites(
+    PagesDbContext database,
+    IPageDocumentValidator validator,
+    PagesAccess access,
+    PublicationReads reads,
+    GenerationBump bump,
+    TimeProvider clock)
+{
+    // Every racer but one loses each round, so n concurrent publishes of one subject need up to
+    // n attempts; eight covers far more than people publish at once (PR-03). A short random
+    // pause between attempts keeps the racers from colliding again in lockstep.
+    private const int Attempts = 8;
+
+    /// <summary>The page or component a publishing action concerns.</summary>
+    /// <param name="Kind">One of <see cref="SubjectKinds"/>.</param>
+    /// <param name="Id">Its id.</param>
+    /// <param name="SiteId">Its site.</param>
+    /// <param name="Label">The page title or component name now, for the log.</param>
+    /// <param name="Path">The page's address now; null for components.</param>
+    internal sealed record Subject(string Kind, Guid Id, Guid SiteId, string Label, string? Path)
+    {
+        public bool IsPage => Kind == SubjectKinds.Page;
+    }
+
+    // --- Manual actions ---------------------------------------------------------------------
+
+    /// <summary>Publishes the draft the caller saw (FR-001, FR-002; PR-03).</summary>
+    public Task<Result<PublicationResponse>> PublishAsync(
+        Guid siteId, string kind, Guid subjectId, uint draftVersion, CancellationToken cancellationToken) =>
+        RunAsync(siteId, kind, subjectId, async (subject, now) =>
+        {
+            var draft = await DraftAsync(siteId, subject, cancellationToken).ConfigureAwait(false);
+            if (draft.Version != draftVersion)
+            {
+                return Result.Failure(PagesErrors.OutOfDate);
+            }
+
+            return await PublishContentAsync(
+                    subject,
+                    draft,
+                    subject.IsPage ? subject.Label : null,
+                    draft.Version,
+                    VersionKinds.Publish,
+                    restoredFromNumber: null,
+                    access.Actor,
+                    scheduleOwner: null,
+                    now,
+                    cancellationToken)
+                .ConfigureAwait(false);
+        }, cancellationToken);
+
+    /// <summary>Takes a page or component off the public site (FR-004, FR-005).</summary>
+    public Task<Result<PublicationResponse>> UnpublishAsync(Guid siteId, string kind, Guid subjectId, CancellationToken cancellationToken) =>
+        RunAsync(siteId, kind, subjectId, (subject, now) =>
+            UnpublishLiveAsync(subject, access.Actor, scheduleOwner: null, now, cancellationToken), cancellationToken);
+
+    /// <summary>Publishes a retained version again as a new one; the draft is untouched (FR-014).</summary>
+    public Task<Result<PublicationResponse>> RollbackAsync(
+        Guid siteId, string kind, Guid subjectId, int versionNumber, CancellationToken cancellationToken) =>
+        RunAsync(siteId, kind, subjectId, async (subject, now) =>
+        {
+            var source = await database.ForSite<PublishedVersion>(siteId)
+                .AsNoTracking()
+                .FirstOrDefaultAsync(
+                    v => v.SubjectKind == subject.Kind && v.SubjectId == subject.Id && v.Number == versionNumber,
+                    cancellationToken)
+                .ConfigureAwait(false);
+
+            if (source is null)
+            {
+                return Result.Failure(PagesErrors.VersionNotFound);
+            }
+
+            var referenced = DependencyExtractor.Components(source.Document);
+            if (referenced.Count > 0)
+            {
+                var existing = await database.ForSite<Component>(siteId)
+                    .Where(c => referenced.Contains(c.Id))
+                    .Select(c => c.Id)
+                    .ToListAsync(cancellationToken)
+                    .ConfigureAwait(false);
+
+                var missing = referenced.Except(existing).ToList();
+                if (missing.Count > 0)
+                {
+                    return Result.Failure(PagesErrors.VersionMissingComponents(missing));
+                }
+            }
+
+            return await PublishContentAsync(
+                    subject,
+                    new DraftContent(source.Document, source.SchemaVersion, Version: 0),
+                    source.Title,
+                    fromDraftVersion: null,
+                    VersionKinds.Rollback,
+                    source.Number,
+                    access.Actor,
+                    scheduleOwner: null,
+                    now,
+                    cancellationToken)
+                .ConfigureAwait(false);
+        }, cancellationToken);
+
+    // --- Shared steps, also used by scheduled runs -------------------------------------------
+
+    /// <summary>The document a publish starts from.</summary>
+    internal sealed record DraftContent(string Document, int SchemaVersion, long Version);
+
+    /// <summary>
+    /// Makes <paramref name="content"/> live as the subject's next version. Runs inside the
+    /// caller's transaction; saves, but does not commit.
+    /// </summary>
+    /// <param name="scheduleOwner">For a scheduled publish, who set the schedule; null for a manual action.</param>
+    internal async Task<Result> PublishContentAsync(
+        Subject subject,
+        DraftContent content,
+        string? title,
+        long? fromDraftVersion,
+        string versionKind,
+        int? restoredFromNumber,
+        Guid actor,
+        Guid? scheduleOwner,
+        DateTimeOffset now,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(subject);
+        ArgumentNullException.ThrowIfNull(content);
+
+        var siteId = subject.SiteId;
+
+        // The document was valid when saved, but the contract may have moved since; nothing
+        // invalid is ever made live (FR-001).
+        var checkedDocument = validator.Validate(
+            Encoding.UTF8.GetBytes(content.Document),
+            subject.IsPage ? DocumentKind.Page : DocumentKind.Component);
+        if (!checkedDocument.IsValid)
+        {
+            return Result.Failure(PagesErrors.InvalidDocument(checkedDocument));
+        }
+
+        // FR-003: a page may show only components visitors can already get.
+        var components = DependencyExtractor.Components(content.Document);
+        if (components.Count > 0)
+        {
+            var live = await database.ForSite<Publication>(siteId)
+                .Where(p => p.SubjectKind == SubjectKinds.Component && components.Contains(p.SubjectId) && p.LiveVersionId != null)
+                .Select(p => p.SubjectId)
+                .ToListAsync(cancellationToken)
+                .ConfigureAwait(false);
+
+            var unpublished = components.Except(live).ToList();
+            if (unpublished.Count > 0)
+            {
+                return Result.Failure(PagesErrors.UnpublishedComponents(unpublished));
+            }
+        }
+
+        var publication = await PublicationAsync(siteId, subject, create: true, cancellationToken).ConfigureAwait(false);
+        var version = publication!.Publish(
+            content.Document, content.SchemaVersion, title, fromDraftVersion, versionKind, restoredFromNumber, actor, subject.Path, now);
+        database.PublishedVersions.Add(version);
+
+        await ReplaceDependenciesAsync(siteId, subject, content.Document, cancellationToken).ConfigureAwait(false);
+
+        if (scheduleOwner is null)
+        {
+            // FR-019: a manual publish or rollback supersedes a pending scheduled publish.
+            await CancelSchedulesAsync(siteId, subject, [ScheduleActions.Publish], actor, now, cancellationToken).ConfigureAwait(false);
+        }
+
+        Log(siteId, subject, LogActionFor(versionKind), now, actor, scheduleOwner, version.Number, restoredFromNumber);
+
+        PagesOutbox.AddFrom(database, publication, scheduleOwner is null ? actor : null);
+        await database.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+
+        await AfterLiveChangeAsync(siteId, subject, publication, cancellationToken).ConfigureAwait(false);
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// Takes the subject off the public site. Runs inside the caller's transaction; saves, but
+    /// does not commit.
+    /// </summary>
+    internal async Task<Result> UnpublishLiveAsync(
+        Subject subject, Guid actor, Guid? scheduleOwner, DateTimeOffset now, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(subject);
+
+        var siteId = subject.SiteId;
+        var publication = await PublicationAsync(siteId, subject, create: false, cancellationToken).ConfigureAwait(false);
+
+        if (publication is not { IsLive: true })
+        {
+            return Result.Failure(PagesErrors.NotPublished);
+        }
+
+        if (!subject.IsPage)
+        {
+            // FR-004: never take away a component that published pages still show.
+            var users = await LivePagesUsingAsync(siteId, subject.Id, cancellationToken).ConfigureAwait(false);
+            if (users > 0)
+            {
+                return Result.Failure(PagesErrors.ComponentInUseByPublishedPages(users));
+            }
+        }
+
+        publication.Unpublish(scheduled: scheduleOwner is not null, subject.Path, now);
+
+        await database.ForSite<LiveDependency>(siteId)
+            .Where(d => d.SubjectKind == subject.Kind && d.SubjectId == subject.Id)
+            .ExecuteDeleteAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        if (scheduleOwner is null)
+        {
+            // A manual unpublish supersedes a pending scheduled publish (FR-019), and leaves a
+            // pending scheduled unpublish nothing to do.
+            await CancelSchedulesAsync(
+                    siteId, subject, [ScheduleActions.Publish, ScheduleActions.Unpublish], actor, now, cancellationToken)
+                .ConfigureAwait(false);
+        }
+
+        Log(siteId, subject, scheduleOwner is null ? LogActions.Unpublish : LogActions.ScheduledUnpublish, now, actor, scheduleOwner);
+
+        PagesOutbox.AddFrom(database, publication, scheduleOwner is null ? actor : null);
+        await database.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+
+        await AfterLiveChangeAsync(siteId, subject, publication, cancellationToken).ConfigureAwait(false);
+        return Result.Success();
+    }
+
+    /// <summary>How many live pages show the component.</summary>
+    internal Task<int> LivePagesUsingAsync(Guid siteId, Guid componentId, CancellationToken cancellationToken) =>
+        database.ForSite<LiveDependency>(siteId)
+            .Where(d => d.SubjectKind == SubjectKinds.Page && d.TargetKind == DependencyKinds.Component && d.TargetId == componentId)
+            .Select(d => d.SubjectId)
+            .Distinct()
+            .CountAsync(cancellationToken);
+
+    /// <summary>The page or component, as a publishing action sees it; null when the site has none.</summary>
+    internal async Task<Subject?> SubjectAsync(Guid siteId, string kind, Guid subjectId, CancellationToken cancellationToken)
+    {
+        if (kind == SubjectKinds.Page)
+        {
+            var page = await database.ForSite<Page>(siteId)
+                .AsNoTracking()
+                .Where(p => p.Id == subjectId)
+                .Select(p => new { p.Title, p.Path })
+                .FirstOrDefaultAsync(cancellationToken)
+                .ConfigureAwait(false);
+
+            return page is null ? null : new Subject(kind, subjectId, siteId, page.Title, page.Path);
+        }
+
+        var name = await database.ForSite<Component>(siteId)
+            .AsNoTracking()
+            .Where(c => c.Id == subjectId)
+            .Select(c => c.Name)
+            .FirstOrDefaultAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        return name is null ? null : new Subject(kind, subjectId, siteId, name, Path: null);
+    }
+
+    /// <summary>The subject's draft document and version.</summary>
+    internal async Task<DraftContent> DraftAsync(Guid siteId, Subject subject, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(subject);
+
+        // xmin is read as it is and widened after: PostgreSQL has no cast from xid to bigint.
+        if (subject.IsPage)
+        {
+            var page = await database.ForSite<PageDraft>(siteId)
+                .AsNoTracking()
+                .Where(d => d.PageId == subject.Id)
+                .Select(d => new { d.Document, d.SchemaVersion, d.Version })
+                .FirstAsync(cancellationToken)
+                .ConfigureAwait(false);
+
+            return new DraftContent(page.Document, page.SchemaVersion, page.Version);
+        }
+
+        var component = await database.ForSite<ComponentDraft>(siteId)
+            .AsNoTracking()
+            .Where(d => d.ComponentId == subject.Id)
+            .Select(d => new { d.Document, d.SchemaVersion, d.Version })
+            .FirstAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        return new DraftContent(component.Document, component.SchemaVersion, component.Version);
+    }
+
+    /// <summary>Appends a publish log entry, to be saved with the change (FR-012).</summary>
+    internal void Log(
+        Guid siteId,
+        Subject subject,
+        string action,
+        DateTimeOffset now,
+        Guid actor,
+        Guid? scheduleOwner = null,
+        int? versionNumber = null,
+        int? restoredFromNumber = null,
+        string? reasonCode = null)
+    {
+        ArgumentNullException.ThrowIfNull(subject);
+
+        database.PublishLog.Add(new PublishLogEntry(
+            Guid.CreateVersion7(), siteId, subject.Kind, subject.Id, subject.Label, subject.Path, action, now)
+        {
+            VersionNumber = versionNumber,
+            RestoredFromNumber = restoredFromNumber,
+            ActorUserId = scheduleOwner is null ? actor : null,
+            ScheduleOwnerId = scheduleOwner,
+            ReasonCode = reasonCode,
+        });
+    }
+
+    /// <summary>
+    /// Cancels the subject's pending schedules for <paramref name="actions"/> and clears any
+    /// failed one, because a person has now acted on the subject themselves (FR-019).
+    /// </summary>
+    internal async Task CancelSchedulesAsync(
+        Guid siteId, Subject subject, string[] actions, Guid actor, DateTimeOffset now, CancellationToken cancellationToken)
+    {
+        var pending = await database.ForSite<PublishSchedule>(siteId)
+            .Where(s => s.SubjectKind == subject.Kind && s.SubjectId == subject.Id
+                        && s.State == ScheduleStates.Pending && actions.Contains(s.Action))
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        foreach (var schedule in pending)
+        {
+            schedule.Cancel(now);
+            Log(siteId, subject, LogActions.ScheduleCancelled, now, actor, reasonCode: LogReasons.SupersededByManualAction);
+        }
+
+        // A failure is shown until someone acts on the subject; the log keeps it.
+        await database.ForSite<PublishSchedule>(siteId)
+            .Where(s => s.SubjectKind == subject.Kind && s.SubjectId == subject.Id && s.State == ScheduleStates.Failed)
+            .ExecuteDeleteAsync(cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Runs <paramref name="attempt"/> in its own transaction, again on a lost race, and
+    /// returns the subject's publication afterwards.
+    /// </summary>
+    private async Task<Result<PublicationResponse>> RunAsync(
+        Guid siteId,
+        string kind,
+        Guid subjectId,
+        Func<Subject, DateTimeOffset, Task<Result>> attempt,
+        CancellationToken cancellationToken)
+    {
+        if (!await access.SiteExistsAsync(siteId, cancellationToken).ConfigureAwait(false))
+        {
+            return Result.Failure<PublicationResponse>(PagesErrors.SiteNotFound);
+        }
+
+        for (var i = 1; ; i++)
+        {
+            var subject = await SubjectAsync(siteId, kind, subjectId, cancellationToken).ConfigureAwait(false);
+            if (subject is null)
+            {
+                return Result.Failure<PublicationResponse>(kind == SubjectKinds.Page ? PagesErrors.NotFound : PagesErrors.ComponentNotFound);
+            }
+
+            await using var transaction = await database.Database.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
+
+            try
+            {
+                var result = await attempt(subject, clock.GetUtcNow()).ConfigureAwait(false);
+                if (result.IsFailure)
+                {
+                    await transaction.RollbackAsync(cancellationToken).ConfigureAwait(false);
+                    database.ChangeTracker.Clear();
+                    return Result.Failure<PublicationResponse>(result.Error);
+                }
+
+                await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
+            }
+            catch (DbUpdateException ex) when (IsLostRace(ex))
+            {
+                await transaction.RollbackAsync(cancellationToken).ConfigureAwait(false);
+                database.ChangeTracker.Clear();
+
+                if (i >= Attempts)
+                {
+                    return Result.Failure<PublicationResponse>(PagesErrors.OutOfDate);
+                }
+
+#pragma warning disable CA5394 // Jitter, not security.
+                await Task.Delay(Random.Shared.Next(5, 25 * i), cancellationToken).ConfigureAwait(false);
+#pragma warning restore CA5394
+                continue;
+            }
+
+            database.ChangeTracker.Clear();
+            return Result.Success(await reads.SummaryAsync(siteId, kind, subjectId, cancellationToken).ConfigureAwait(false));
+        }
+    }
+
+    /// <summary>
+    /// Another publish of the same subject committed first: its publication's version moved, or
+    /// its first publication or a version number was taken between our read and our write.
+    /// </summary>
+    internal static bool IsLostRace(DbUpdateException exception) =>
+        exception is DbUpdateConcurrencyException
+        || exception.InnerException is PostgresException
+        {
+            SqlState: PostgresErrorCodes.UniqueViolation,
+            ConstraintName: "pk_publications" or "ux_published_versions_subject_number",
+        };
+
+    private async Task<Publication?> PublicationAsync(Guid siteId, Subject subject, bool create, CancellationToken cancellationToken)
+    {
+        var publication = await database.ForSite<Publication>(siteId)
+            .FirstOrDefaultAsync(p => p.SubjectKind == subject.Kind && p.SubjectId == subject.Id, cancellationToken)
+            .ConfigureAwait(false);
+
+        if (publication is null && create)
+        {
+            publication = Publication.Start(siteId, subject.Kind, subject.Id);
+            database.Publications.Add(publication);
+        }
+
+        return publication;
+    }
+
+    private async Task ReplaceDependenciesAsync(Guid siteId, Subject subject, string document, CancellationToken cancellationToken)
+    {
+        await database.ForSite<LiveDependency>(siteId)
+            .Where(d => d.SubjectKind == subject.Kind && d.SubjectId == subject.Id)
+            .ExecuteDeleteAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        database.LiveDependencies.AddRange(DependencyExtractor.Extract(document)
+            .Select(t => new LiveDependency(siteId, subject.Kind, subject.Id, t.Kind, t.Id)));
+    }
+
+    /// <summary>
+    /// After the subject's own rows are saved: the pages that show it refresh (PR-05), and
+    /// versions beyond the retained ones go (PR-15). Both are set-based statements in the same
+    /// transaction.
+    /// </summary>
+    private async Task AfterLiveChangeAsync(Guid siteId, Subject subject, Publication publication, CancellationToken cancellationToken)
+    {
+        var target = subject.IsPage ? (DependencyKinds.Page, subject.Id) : (DependencyKinds.Component, subject.Id);
+        await bump.BumpForTargetsAsync(siteId, [target], exceptPageId: subject.IsPage ? subject.Id : null, cancellationToken)
+            .ConfigureAwait(false);
+
+        if (publication.LiveNumber is { } live && live > Publication.RetainedVersions)
+        {
+            var oldest = live - Publication.RetainedVersions;
+            var liveId = publication.LiveVersionId;
+
+            await database.ForSite<PublishedVersion>(siteId)
+                .Where(v => v.SubjectKind == subject.Kind && v.SubjectId == subject.Id && v.Number <= oldest && v.Id != liveId)
+                .ExecuteDeleteAsync(cancellationToken)
+                .ConfigureAwait(false);
+        }
+    }
+
+    private static string LogActionFor(string versionKind) => versionKind switch
+    {
+        VersionKinds.Scheduled => LogActions.ScheduledPublish,
+        VersionKinds.Rollback => LogActions.Rollback,
+        _ => LogActions.Publish,
+    };
+}

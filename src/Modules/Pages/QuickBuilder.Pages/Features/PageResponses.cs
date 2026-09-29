@@ -7,9 +7,16 @@ namespace QuickBuilder.Pages.Features;
 
 /// <summary>What the caller may do on this site, decided per request (research P-13).</summary>
 /// <remarks>The admin shell hides controls from this. The server checks every action regardless.</remarks>
-public sealed record PermissionsResponse(bool CanManageStructure, bool CanEditPageDrafts, bool CanManageComponents);
+/// <remarks>012 adds <see cref="CanPublish"/> and <see cref="CanViewPublishLog"/> (research PR-18).</remarks>
+public sealed record PermissionsResponse(
+    bool CanManageStructure,
+    bool CanEditPageDrafts,
+    bool CanManageComponents,
+    bool CanPublish,
+    bool CanViewPublishLog);
 
 /// <summary>One page in the flat, depth-first tree (research P-16).</summary>
+/// <remarks>012 adds <see cref="Publication"/>.</remarks>
 public sealed record PageNodeResponse(
     Guid Id,
     Guid? ParentId,
@@ -20,7 +27,8 @@ public sealed record PageNodeResponse(
     string Path,
     bool IsHome,
     int ChildCount,
-    int Version);
+    int Version,
+    PublicationResponse Publication);
 
 /// <summary>A site's whole page tree: parents before children, siblings by position.</summary>
 public sealed record PageTreeResponse(IReadOnlyList<PageNodeResponse> Pages, PermissionsResponse Permissions);
@@ -46,7 +54,8 @@ public sealed record PageDetailResponse(
     DraftSummaryResponse Draft,
     DateTimeOffset CreatedAtUtc,
     DateTimeOffset UpdatedAtUtc,
-    PermissionsResponse Permissions);
+    PermissionsResponse Permissions,
+    PublicationResponse Publication);
 
 /// <summary>A draft and its document, equal as JSON to what was saved (FR-020).</summary>
 public sealed record DraftResponse(
@@ -64,7 +73,8 @@ public sealed record ComponentResponse(
     uint Version,
     DraftSummaryResponse Draft,
     DateTimeOffset CreatedAtUtc,
-    DateTimeOffset UpdatedAtUtc);
+    DateTimeOffset UpdatedAtUtc,
+    PublicationResponse Publication);
 
 /// <summary>A site's components, by name.</summary>
 public sealed record ComponentListResponse(IReadOnlyList<ComponentResponse> Components, PermissionsResponse Permissions);

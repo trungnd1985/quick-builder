@@ -1,4 +1,5 @@
 using QuickBuilder.Identity.Contracts;
+using QuickBuilder.Pages.Contracts.Publishing;
 using QuickBuilder.Pages.Features;
 using QuickBuilder.Shared.Kernel.Authorization;
 using QuickBuilder.Sites.Contracts;
@@ -19,6 +20,10 @@ internal sealed class PagesAccess(ISiteDirectory sites, IAccessEvaluator access,
     public async Task<bool> SiteExistsAsync(Guid siteId, CancellationToken cancellationToken) =>
         await sites.FindByIdAsync(siteId, cancellationToken).ConfigureAwait(false) is not null;
 
+    /// <summary>The site's base URL, for "view live page" links (012 FR-039), or null.</summary>
+    public async Task<string?> BaseUrlAsync(Guid siteId, CancellationToken cancellationToken) =>
+        (await sites.FindByIdAsync(siteId, cancellationToken).ConfigureAwait(false))?.BaseUrl;
+
     /// <summary>The signed-in user. Every Pages endpoint requires one.</summary>
     public Guid Actor =>
         access.UserId ?? throw new InvalidOperationException("A Pages operation reached a handler without a signed-in user.");
@@ -27,7 +32,9 @@ internal sealed class PagesAccess(ISiteDirectory sites, IAccessEvaluator access,
         new(
             await access.HasCapabilityAsync(PagesCapabilities.StructureManage, siteId, cancellationToken).ConfigureAwait(false),
             await access.HasCapabilityAsync(PagesCapabilities.PageDraftsEdit, siteId, cancellationToken).ConfigureAwait(false),
-            await access.HasCapabilityAsync(PagesCapabilities.ComponentsManage, siteId, cancellationToken).ConfigureAwait(false));
+            await access.HasCapabilityAsync(PagesCapabilities.ComponentsManage, siteId, cancellationToken).ConfigureAwait(false),
+            await access.HasCapabilityAsync(PublishingCapabilities.Manage, siteId, cancellationToken).ConfigureAwait(false),
+            await access.HasCapabilityAsync(PublishingCapabilities.LogView, siteId, cancellationToken).ConfigureAwait(false));
 
     public async Task<IReadOnlyDictionary<Guid, string>> NamesAsync(IEnumerable<Guid> userIds, CancellationToken cancellationToken)
     {

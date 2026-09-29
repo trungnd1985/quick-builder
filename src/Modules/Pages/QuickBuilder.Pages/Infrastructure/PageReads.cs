@@ -8,7 +8,7 @@ namespace QuickBuilder.Pages.Infrastructure;
 /// The read side of the page tree: one projection per shape, shared by every slice that
 /// returns it (research P-16, P-20).
 /// </summary>
-internal sealed class PageReads(PagesDbContext database, PagesAccess access)
+internal sealed class PageReads(PagesDbContext database, PagesAccess access, PublicationReads publications)
 {
     /// <summary>
     /// The whole tree in one query, assembled depth-first in memory: parents before
@@ -25,11 +25,16 @@ internal sealed class PageReads(PagesDbContext database, PagesAccess access)
         var children = rows.ToLookup(r => r.ParentId);
         var ordered = new List<PageNodeResponse>(rows.Count);
 
+        // 012 FR-007: every page's publication state, in a handful of queries for the whole tree.
+        var publication = await publications
+            .SummariesAsync(siteId, SubjectKinds.Page, [.. rows.Select(r => r.Id)], cancellationToken)
+            .ConfigureAwait(false);
+
         void Walk(Guid? parentId)
         {
             foreach (var row in children[parentId].OrderBy(r => r.Position))
             {
-                ordered.Add(row.ToNode(children[row.Id].Count()));
+                ordered.Add(row.ToNode(children[row.Id].Count(), publication[row.Id]));
                 Walk(row.Id);
             }
         }
@@ -66,7 +71,9 @@ internal sealed class PageReads(PagesDbContext database, PagesAccess access)
         var draft = await DraftSummaryAsync(database.ForSite<PageDraft>(siteId).Where(d => d.PageId == pageId), cancellationToken)
             .ConfigureAwait(false);
 
-        var node = page.Row.ToNode(childCount);
+        var node = page.Row.ToNode(
+            childCount,
+            await publications.SummaryAsync(siteId, SubjectKinds.Page, pageId, cancellationToken).ConfigureAwait(false));
         return new PageDetailResponse(
             node.Id,
             node.ParentId,
@@ -81,7 +88,8 @@ internal sealed class PageReads(PagesDbContext database, PagesAccess access)
             draft,
             page.CreatedAtUtc,
             page.UpdatedAtUtc,
-            await access.PermissionsAsync(siteId, cancellationToken).ConfigureAwait(false));
+            await access.PermissionsAsync(siteId, cancellationToken).ConfigureAwait(false),
+            node.Publication);
     }
 
     /// <summary>The summary of the one draft <paramref name="query"/> selects.</summary>
@@ -124,7 +132,7 @@ internal sealed class PageReads(PagesDbContext database, PagesAccess access)
         bool IsHome,
         int Version)
     {
-        public PageNodeResponse ToNode(int childCount) =>
-            new(Id, ParentId, Position, Depth, Title, Slug, Path, IsHome, childCount, Version);
+        public PageNodeResponse ToNode(int childCount, PublicationResponse publication) =>
+            new(Id, ParentId, Position, Depth, Title, Slug, Path, IsHome, childCount, Version, publication);
     }
 }

@@ -19,6 +19,9 @@ using QuickBuilder.Pages.Features.ListComponents;
 using QuickBuilder.Pages.Features.ListComponentUsages;
 using QuickBuilder.Pages.Features.MakeHomePage;
 using QuickBuilder.Pages.Features.MovePage;
+using QuickBuilder.Pages.Features.Publish;
+using QuickBuilder.Pages.Features.Rollback;
+using QuickBuilder.Pages.Features.Unpublish;
 using QuickBuilder.Pages.Features.RenameComponent;
 using QuickBuilder.Pages.Features.SaveComponentDraft;
 using QuickBuilder.Pages.Features.SavePageDraft;
@@ -84,6 +87,12 @@ public static class PagesModule
         services.AddSingleton<IEventTypeRegistration>(new EventTypeRegistration<ComponentCreated>());
         services.AddSingleton<IEventTypeRegistration>(new EventTypeRegistration<ComponentDeleted>());
 
+        // 012 research PR-19: publishing, for later features (#17) to react to.
+        services.AddSingleton<IEventTypeRegistration>(new EventTypeRegistration<PagePublished>());
+        services.AddSingleton<IEventTypeRegistration>(new EventTypeRegistration<PageUnpublished>());
+        services.AddSingleton<IEventTypeRegistration>(new EventTypeRegistration<ComponentPublished>());
+        services.AddSingleton<IEventTypeRegistration>(new EventTypeRegistration<ComponentUnpublished>());
+
         // Shared by the slices: the document validator (stateless, loads the schema once),
         // and the read and write paths every slice goes through.
         services.AddSingleton<IPageDocumentValidator, PageDocumentValidator>();
@@ -92,6 +101,11 @@ public static class PagesModule
         services.AddScoped<PageTreeWrites>();
         services.AddScoped<DraftWrites>();
         services.AddScoped<ComponentReads>();
+
+        // 012: publishing — the reads every response shares, the dependency bump and the writes.
+        services.AddScoped<PublicationReads>();
+        services.AddScoped<GenerationBump>();
+        services.AddScoped<PublishingWrites>();
 
         // Feature slices. Each is registered here and nowhere else.
         services.AddScoped<IQueryHandler<GetPageTreeQuery, Result<PageTreeResponse>>, GetPageTreeHandler>();
@@ -119,6 +133,11 @@ public static class PagesModule
         services.AddScoped<IQueryHandler<GetComponentDraftQuery, Result<DraftResponse>>, GetComponentDraftHandler>();
         services.AddScoped<ICommandHandler<SaveComponentDraftCommand, Result<DraftResponse>>, SaveComponentDraftHandler>();
         services.AddScoped<IValidator<SaveComponentDraftCommand>, SaveComponentDraftValidator>();
+
+        // 012: publishing slices.
+        services.AddScoped<ICommandHandler<PublishCommand, Result<PublicationResponse>>, PublishHandler>();
+        services.AddScoped<ICommandHandler<UnpublishCommand, Result<PublicationResponse>>, UnpublishHandler>();
+        services.AddScoped<ICommandHandler<RollbackCommand, Result<PublicationResponse>>, RollbackHandler>();
 
         // 011 research ED-16: the token usage count the admin asks before deleting a token.
         services.AddScoped<IQueryHandler<GetTokenUsageQuery, Result<TokenUsageResponse>>, GetTokenUsageHandler>();

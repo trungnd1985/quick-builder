@@ -30,3 +30,22 @@ internal sealed record HomePageChangedEvent(Guid SiteId, Guid PageId, Guid? Prev
 internal sealed record ComponentCreatedEvent(Guid SiteId, Guid ComponentId, DateTimeOffset OccurredAtUtc) : IDomainEvent;
 
 internal sealed record ComponentDeletedEvent(Guid SiteId, Guid ComponentId, DateTimeOffset OccurredAtUtc) : IDomainEvent;
+
+/// <summary>A page or component version became live (012 research PR-19).</summary>
+internal sealed record SubjectPublishedEvent(
+    Guid SiteId,
+    string SubjectKind,
+    Guid SubjectId,
+    int VersionNumber,
+    string Kind,
+    string? Path,
+    DateTimeOffset OccurredAtUtc) : IDomainEvent;
+
+/// <summary>A page or component stopped being live (012 research PR-19).</summary>
+internal sealed record SubjectUnpublishedEvent(
+    Guid SiteId,
+    string SubjectKind,
+    Guid SubjectId,
+    bool Scheduled,
+    string? Path,
+    DateTimeOffset OccurredAtUtc) : IDomainEvent;

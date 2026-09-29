@@ -1,3 +1,4 @@
+using QuickBuilder.Pages.Domain.Events;
 using QuickBuilder.Shared.Kernel.MultiSite;
 
 namespace QuickBuilder.Pages.Domain;
@@ -67,4 +68,75 @@ internal sealed partial class Publication : AggregateRoot, ISiteOwned
     /// <summary>A publication for a subject that has never been published.</summary>
     public static Publication Start(Guid siteId, string subjectKind, Guid subjectId) =>
         new(siteId, subjectKind, subjectId);
+
+    /// <summary>Versions kept per subject, never counting out the live one (research PR-15).</summary>
+    public const int RetainedVersions = 50;
+
+    /// <summary>
+    /// Makes a new version live (data-model §3.1): a publish, a scheduled publish, or a rollback
+    /// (<paramref name="restoredFromNumber"/> set, and no draft it was copied from).
+    /// </summary>
+    /// <param name="document">The document, already validated.</param>
+    /// <param name="schemaVersion">Its page schema version.</param>
+    /// <param name="title">For pages, the title visitors will see; null for components.</param>
+    /// <param name="fromDraftVersion">The draft version copied, or null for a rollback.</param>
+    /// <param name="kind">One of <see cref="VersionKinds"/>.</param>
+    /// <param name="restoredFromNumber">For a rollback, the version restored.</param>
+    /// <param name="actor">Who published; for a schedule, who set it.</param>
+    /// <param name="path">For pages, the address, carried by the integration event.</param>
+    /// <param name="now">When it takes effect.</param>
+    public PublishedVersion Publish(
+        string document,
+        int schemaVersion,
+        string? title,
+        long? fromDraftVersion,
+        string kind,
+        int? restoredFromNumber,
+        Guid actor,
+        string? path,
+        DateTimeOffset now)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(document);
+
+        var version = new PublishedVersion(
+            SiteId, SubjectKind, SubjectId, NextNumber, schemaVersion, document, title, kind, restoredFromNumber, actor, now);
+
+        LiveVersionId = version.Id;
+        LiveNumber = version.Number;
+        NextNumber = version.Number + 1;
+        PublishedFromDraftVersion = fromDraftVersion;
+        LiveSinceUtc = now;
+        LiveBy = actor;
+        Generation++;
+
+        Raise(new SubjectPublishedEvent(SiteId, SubjectKind, SubjectId, version.Number, kind, path, now));
+        return version;
+    }
+
+    /// <summary>Takes the subject off the public site. Its versions and numbering stay.</summary>
+    public void Unpublish(bool scheduled, string? path, DateTimeOffset now)
+    {
+        if (!IsLive)
+        {
+            throw new InvalidOperationException("Only a live subject can be unpublished; the caller checks first.");
+        }
+
+        LiveVersionId = null;
+        LiveNumber = null;
+        PublishedFromDraftVersion = null;
+        LiveSinceUtc = null;
+        LiveBy = null;
+        Generation++;
+
+        Raise(new SubjectUnpublishedEvent(SiteId, SubjectKind, SubjectId, scheduled, path, now));
+    }
+
+    /// <summary>
+    /// Whether the draft differs from what visitors get (FR-007, research PR-02). A page's
+    /// title is part of its version, so a renamed page has changes too.
+    /// </summary>
+    public bool HasUnpublishedChanges(long draftVersion, string? currentTitle, string? liveTitle) =>
+        IsLive
+        && (PublishedFromDraftVersion != draftVersion
+            || (SubjectKind == SubjectKinds.Page && !string.Equals(currentTitle, liveTitle, StringComparison.Ordinal)));
 }

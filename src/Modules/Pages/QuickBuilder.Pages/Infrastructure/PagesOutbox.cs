@@ -45,6 +45,18 @@ internal static class PagesOutbox
                 case ComponentDeletedEvent e:
                     Add(database, new ComponentDeleted(Guid.CreateVersion7(), e.OccurredAtUtc, e.SiteId, e.ComponentId, actorUserId));
                     break;
+                case SubjectPublishedEvent { SubjectKind: SubjectKinds.Page } e:
+                    Add(database, new PagePublished(Guid.CreateVersion7(), e.OccurredAtUtc, e.SiteId, e.SubjectId, e.VersionNumber, e.Kind, e.Path ?? string.Empty, actorUserId));
+                    break;
+                case SubjectPublishedEvent e:
+                    Add(database, new ComponentPublished(Guid.CreateVersion7(), e.OccurredAtUtc, e.SiteId, e.SubjectId, e.VersionNumber, e.Kind, actorUserId));
+                    break;
+                case SubjectUnpublishedEvent { SubjectKind: SubjectKinds.Page } e:
+                    Add(database, new PageUnpublished(Guid.CreateVersion7(), e.OccurredAtUtc, e.SiteId, e.SubjectId, e.Path ?? string.Empty, e.Scheduled, actorUserId));
+                    break;
+                case SubjectUnpublishedEvent e:
+                    Add(database, new ComponentUnpublished(Guid.CreateVersion7(), e.OccurredAtUtc, e.SiteId, e.SubjectId, actorUserId));
+                    break;
                 default:
                     throw new InvalidOperationException(
                         $"No integration event is defined for {domainEvent.GetType().Name}. Add one to Pages.Contracts.Events.");
