@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Npgsql;
 using QuickBuilder.Editor.Contracts;
 using QuickBuilder.Editor.Contracts.Events;
@@ -18,7 +19,12 @@ namespace QuickBuilder.Editor.Infrastructure;
 /// page takes the new design at its next request, because its cache key carries the live design
 /// number (PR-05).
 /// </remarks>
-internal sealed class DesignPublishing(EditorDbContext database, IDesignTokenReader tokens, EditorAccess access, TimeProvider clock)
+internal sealed class DesignPublishing(
+    EditorDbContext database,
+    IDesignTokenReader tokens,
+    EditorAccess access,
+    TimeProvider clock,
+    ILogger<DesignPublishing> logger)
 {
     private const int Attempts = 8;
 
@@ -110,6 +116,11 @@ internal sealed class DesignPublishing(EditorDbContext database, IDesignTokenRea
 
                 await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
                 database.ChangeTracker.Clear();
+
+                // Numbers only: token names and values are content (FR-044).
+                logger.LogInformation(
+                    "The design of site {SiteId} is live as version {VersionNumber} ({VersionKind}).",
+                    siteId, version.Value.Number, version.Value.Kind);
                 return Result.Success(publication);
             }
             catch (DbUpdateException ex) when (IsLostRace(ex))

@@ -1,5 +1,6 @@
 using System.Text;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Npgsql;
 using QuickBuilder.Pages.Contracts;
 using QuickBuilder.Pages.Domain;
@@ -26,7 +27,8 @@ internal sealed class PublishingWrites(
     PagesAccess access,
     PublicationReads reads,
     GenerationBump bump,
-    TimeProvider clock)
+    TimeProvider clock,
+    ILogger<PublishingWrites> logger)
 {
     // Every racer but one loses each round, so n concurrent publishes of one subject need up to
     // n attempts; eight covers far more than people publish at once (PR-03). A short random
@@ -196,6 +198,11 @@ internal sealed class PublishingWrites(
         await database.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
         await AfterLiveChangeAsync(siteId, subject, publication, cancellationToken).ConfigureAwait(false);
+
+        // Ids and numbers only: a title or a path can itself be content (FR-044).
+        logger.LogInformation(
+            "{SubjectKind} {SubjectId} of site {SiteId} is live as version {VersionNumber} ({VersionKind}).",
+            subject.Kind, subject.Id, siteId, version.Number, versionKind);
         return Result.Success();
     }
 
@@ -248,6 +255,10 @@ internal sealed class PublishingWrites(
         await database.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
         await AfterLiveChangeAsync(siteId, subject, publication, cancellationToken).ConfigureAwait(false);
+
+        logger.LogInformation(
+            "{SubjectKind} {SubjectId} of site {SiteId} was unpublished (scheduled: {Scheduled}).",
+            subject.Kind, subject.Id, siteId, scheduleOwner is not null);
         return Result.Success();
     }
 

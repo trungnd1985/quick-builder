@@ -537,11 +537,11 @@ still gets 009's JSON.
 **Purpose**: isolation, logs, upgrade, smoke and performance, docs, and the manual
 validation run.
 
-- [ ] T098 [P] Create `ITESTS/Isolation/Probes/PublishingIsolationProbe.cs` and register it in `ITESTS/Isolation/IsolationProbes.cs`. It covers:
+- [X] T098 [P] Create `ITESTS/Isolation/Probes/PublishingIsolationProbe.cs` and register it in `ITESTS/Isolation/IsolationProbes.cs`. It covers:
   - publications, versions, dependencies, schedules, log entries and design versions through every new admin endpoint with another site's ids (answered as not found);
   - the public probe: site A's published page and its stylesheet-linked page are never served on site B's host (FR-037, SC-005).
-- [ ] T099 [P] Extend `ITESTS/Observability/LoggingTests.cs`: publish, rollback, schedule, run a due schedule and render a page with distinctive title and text. The logs contain ids and numbers only: no titles, paths or content (FR-044).
-- [ ] T100 [P] Create `ITESTS/Publishing/UpgradeFrom011Tests.cs`, modelled on `ITESTS/Editor/UpgradeFrom010Tests.cs`:
+- [X] T099 [P] Extend `ITESTS/Observability/LoggingTests.cs`: publish, rollback, schedule, run a due schedule and render a page with distinctive title and text. The logs contain ids and numbers only: no titles, paths or content (FR-044).
+- [X] T100 [P] Create `ITESTS/Publishing/UpgradeFrom011Tests.cs`, modelled on `ITESTS/Editor/UpgradeFrom010Tests.cs`:
   - restore a 011 snapshot and start the host;
   - both migrations apply, and drafts and token sets are byte-identical;
   - no publication exists;

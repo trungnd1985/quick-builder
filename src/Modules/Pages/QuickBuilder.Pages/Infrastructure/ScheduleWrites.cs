@@ -1,5 +1,6 @@
 using System.Text;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Npgsql;
 using QuickBuilder.Pages.Contracts;
 using QuickBuilder.Pages.Domain;
@@ -25,7 +26,8 @@ internal sealed class ScheduleWrites(
     IPageDocumentValidator validator,
     PagesAccess access,
     PublishingWrites publishing,
-    TimeProvider clock)
+    TimeProvider clock,
+    ILogger<ScheduleWrites> logger)
 {
     // A lost race is another member setting a schedule for the same subject and action at the
     // same moment; the next attempt finds theirs and changes it.
@@ -65,6 +67,10 @@ internal sealed class ScheduleWrites(
                     database.ChangeTracker.Clear();
                     return Result.Failure<ScheduleResponse>(result.Error);
                 }
+
+                logger.LogInformation(
+                    "A scheduled {Action} of {SubjectKind} {SubjectId} on site {SiteId} is due at {DueAtUtc} (revision {Revision}).",
+                    action, kind, subjectId, siteId, dueAtUtc, result.Value.Revision);
 
                 await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
                 database.ChangeTracker.Clear();
@@ -288,6 +294,9 @@ internal sealed class ScheduleWrites(
 
         var now = clock.GetUtcNow();
         schedule.Fail(code, now);
+        logger.LogWarning(
+            "Schedule {ScheduleId} of {SubjectKind} {SubjectId} on site {SiteId} failed: {FailureCode}.",
+            scheduleId, subject.Kind, subject.Id, siteId, code);
         publishing.Log(siteId, subject, LogActions.ScheduleFailed, now, schedule.CreatedBy, scheduleOwner: schedule.CreatedBy, reasonCode: code);
         await database.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         database.ChangeTracker.Clear();
