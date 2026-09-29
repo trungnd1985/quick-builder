@@ -341,6 +341,7 @@
       "name": "Name",
       "usedBy": "Used by",
       "usage": "{count} page | {count} pages",
+      "publishing": "Publishing",
       "actions": "Actions"
     },
     "create": {

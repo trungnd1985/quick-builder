@@ -13,7 +13,7 @@ namespace QuickBuilder.Editor.Features.GetDesignTokens;
 public sealed record UserReferenceResponse(Guid Id, string? DisplayName);
 
 /// <summary>What the caller may do with the token set. A courtesy for the UI; the server checks every save.</summary>
-public sealed record TokenPermissionsResponse(bool CanManage);
+public sealed record TokenPermissionsResponse(bool CanManage, bool CanPublish);
 
 /// <summary>A site's token set (contracts/editor-api.yaml, <c>DesignTokens</c>).</summary>
 public sealed record DesignTokensResponse(
@@ -23,14 +23,15 @@ public sealed record DesignTokensResponse(
     JsonElement Document,
     DateTimeOffset? UpdatedAtUtc,
     UserReferenceResponse? UpdatedBy,
-    TokenPermissionsResponse Permissions);
+    TokenPermissionsResponse Permissions,
+    DesignPublishing.DesignPublicationResponse Publication);
 
 internal sealed record GetDesignTokensQuery(Guid SiteId) : IQuery<Result<DesignTokensResponse>>;
 
 /// <summary>
 /// A site's design tokens: what it saved, or the defaults with version 0 (research ED-14).
 /// </summary>
-internal sealed class GetDesignTokensHandler(IDesignTokenReader tokens, EditorAccess access)
+internal sealed class GetDesignTokensHandler(IDesignTokenReader tokens, EditorAccess access, DesignPublishing.DesignPublicationReads publication)
     : IQueryHandler<GetDesignTokensQuery, Result<DesignTokensResponse>>
 {
     public async Task<Result<DesignTokensResponse>> HandleAsync(GetDesignTokensQuery query, CancellationToken cancellationToken)
@@ -43,14 +44,18 @@ internal sealed class GetDesignTokensHandler(IDesignTokenReader tokens, EditorAc
         }
 
         var set = await tokens.ReadAsync(query.SiteId, cancellationToken).ConfigureAwait(false);
-        return Result.Success(await DesignTokensResponses.FromAsync(set, access, cancellationToken).ConfigureAwait(false));
+        return Result.Success(await DesignTokensResponses.FromAsync(set, access, publication, cancellationToken).ConfigureAwait(false));
     }
 }
 
 /// <summary>Builds the response both the read and the save return.</summary>
 internal static class DesignTokensResponses
 {
-    public static async Task<DesignTokensResponse> FromAsync(DesignTokenSetDto set, EditorAccess access, CancellationToken cancellationToken)
+    public static async Task<DesignTokensResponse> FromAsync(
+        DesignTokenSetDto set,
+        EditorAccess access,
+        DesignPublishing.DesignPublicationReads publication,
+        CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(set);
         ArgumentNullException.ThrowIfNull(access);
@@ -66,7 +71,10 @@ internal static class DesignTokensResponses
             set.Document,
             set.UpdatedAtUtc,
             updatedBy,
-            new TokenPermissionsResponse(await access.CanManageAsync(set.SiteId, cancellationToken).ConfigureAwait(false)));
+            new TokenPermissionsResponse(
+                await access.CanManageAsync(set.SiteId, cancellationToken).ConfigureAwait(false),
+                await access.CanPublishAsync(set.SiteId, cancellationToken).ConfigureAwait(false)),
+            await publication.SummaryAsync(set.SiteId, cancellationToken).ConfigureAwait(false));
     }
 }
 

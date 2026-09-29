@@ -293,16 +293,16 @@ design: every page takes it.
 
 ### Tests for User Story 2 ⚠️
 
-- [ ] T051 [P] [US2] Create `UTESTS/Pages/Publishing/DependencyExtractorTests.cs`: a `component-ref`, a Button page link, rich-text page links in nested lists, Image media, duplicates collapsed, and external links ignored (data-model §1.3).
-- [ ] T052 [P] [US2] Create `ITESTS/Publishing/ComponentPublishApiTests.cs`:
+- [X] T051 [P] [US2] Create `UTESTS/Pages/Publishing/DependencyExtractorTests.cs`: a `component-ref`, a Button page link, rich-text page links in nested lists, Image media, duplicates collapsed, and external links ignored (data-model §1.3).
+- [X] T052 [P] [US2] Create `ITESTS/Publishing/ComponentPublishApiTests.cs`:
   - publishing a component writes version 1;
   - publishing a page whose draft references unpublished components gives `409 pages.unpublished_components` with their ids;
   - unpublishing a component used by a live page gives `409 pages.component_in_use_by_published_pages` with `pageCount`;
   - deleting such a component is refused the same way;
   - after publishing a new component version, the page's public HTML shows it without the page being republished;
   - `live_dependencies` rows are replaced on each publish.
-- [ ] T053 [P] [US2] Create `UTESTS/Rendering/Blocks/ComponentRefRendererTests.cs`: the live component's blocks are rendered in place with no wrapper, and a component with no live version renders nothing.
-- [ ] T054 [P] [US2] Create `ITESTS/Publishing/DesignPublishApiTests.cs`:
+- [X] T053 [P] [US2] Create `UTESTS/Rendering/Blocks/ComponentRefRendererTests.cs`: the live component's blocks are rendered in place with no wrapper, and a component with no live version renders nothing.
+- [X] T054 [P] [US2] Create `ITESTS/Publishing/DesignPublishApiTests.cs`:
   - before any publish, public pages use the default tokens and `GetLiveNumberAsync` returns 0;
   - publishing the design with a stale `version` gives `409 editor.out_of_date`;
   - after publishing, a public page's style block holds the new colour, without republishing the page;
@@ -313,17 +313,17 @@ design: every page takes it.
   - `GET …/design-tokens/versions` lists versions newest first with the live number, and `GET …/design-tokens/versions/{n}` returns the document;
   - 55 design publishes leave 50 versions, never removing the live one;
   - Editor can read the versions (`editor.design_tokens.view`) but gets `403` on rollback (constitution Principle X: every endpoint has integration tests).
-- [ ] T055 [P] [US2] Create `ADMINTESTS/publishing/DesignPublish.spec.ts` (**Publish design** in `DesignTokensView`, the unpublished-changes state, the version list, and rollback confirmation) and extend `PublishMenu.spec.ts` for the component list. Axe, keyboard operation and i18n are checked.
+- [X] T055 [P] [US2] Create `ADMINTESTS/publishing/DesignPublish.spec.ts` (**Publish design** in `DesignTokensView`, the unpublished-changes state, the version list, and rollback confirmation) and extend `PublishMenu.spec.ts` for the component list. Axe, keyboard operation and i18n are checked.
 
 ### Implementation for User Story 2
 
-- [ ] T056 [US2] Create `PAGES/Domain/DependencyExtractor.cs`. Extend `Publication.Publish` to replace the subject's `LiveDependency` rows, and `PublishPage` to refuse `pages.unpublished_components` (FR-003). Make T051 pass.
-- [ ] T057 [US2] Add `PAGESC/Events/ComponentPublished.cs` and `ComponentUnpublished.cs`, the outbox mapping, and the registration. Create the `PAGES/Features/PublishComponent/` and `PAGES/Features/UnpublishComponent/` slices. Unpublish checks for live dependents (`pages.component_in_use_by_published_pages`) and deletes the component's dependency rows.
-- [ ] T058 [US2] Extend `PAGES/Features/DeleteComponent/` to refuse a live component or one used by live pages (FR-004). Add the `publication` summary to `PAGES/Features/ListComponents/`.
-- [ ] T059 [US2] Create `REND/Rendering/Blocks/ComponentRefRenderer.cs`. Extend `RenderPageHandler` to load the live components with `GetLiveComponentsAsync`, and to collect their link targets and media into the same `RenderInputs`. Make T053 and T052's rendering case pass, and T026 pass completely.
-- [ ] T060 [US2] Add `EDITORC/Events/DesignPublished.cs` and `EDITOR/Domain/DesignPublication.Publish(...)`, with numbering, retention of 50 (PR-15) and the event. Create the `EDITOR/Features/PublishDesign/` slice (`POST …/design-tokens/publish`, `[RequireCapability(PublishingCapabilities.Manage)]`). Add the `publication` summary to `EDITOR/Features/GetDesignTokens/`.
-- [ ] T061 [US2] Create the `EDITOR/Features/RollbackDesign/`, `ListDesignVersions/` and `GetDesignVersion/` slices (publishing-api.yaml, Design publishing). Make T054 pass.
-- [ ] T062 [US2] Add the publishing menu and `PublicationBadge` to `ADMIN/features/pages/ComponentsView.vue`. Add **Publish design**, the design version list and **Roll back** with confirmation to `ADMIN/features/design/DesignTokensView.vue`. Add the i18n keys, and make T055 pass.
+- [X] T056 [US2] Create `PAGES/Domain/DependencyExtractor.cs`. Extend `Publication.Publish` to replace the subject's `LiveDependency` rows, and `PublishPage` to refuse `pages.unpublished_components` (FR-003). Make T051 pass.
+- [X] T057 [US2] Add `PAGESC/Events/ComponentPublished.cs` and `ComponentUnpublished.cs`, the outbox mapping, and the registration. Create the `PAGES/Features/PublishComponent/` and `PAGES/Features/UnpublishComponent/` slices. Unpublish checks for live dependents (`pages.component_in_use_by_published_pages`) and deletes the component's dependency rows.
+- [X] T058 [US2] Extend `PAGES/Features/DeleteComponent/` to refuse a live component or one used by live pages (FR-004). Add the `publication` summary to `PAGES/Features/ListComponents/`.
+- [X] T059 [US2] Create `REND/Rendering/Blocks/ComponentRefRenderer.cs`. Extend `RenderPageHandler` to load the live components with `GetLiveComponentsAsync`, and to collect their link targets and media into the same `RenderInputs`. Make T053 and T052's rendering case pass, and T026 pass completely.
+- [X] T060 [US2] Add `EDITORC/Events/DesignPublished.cs` and `EDITOR/Domain/DesignPublication.Publish(...)`, with numbering, retention of 50 (PR-15) and the event. Create the `EDITOR/Features/PublishDesign/` slice (`POST …/design-tokens/publish`, `[RequireCapability(PublishingCapabilities.Manage)]`). Add the `publication` summary to `EDITOR/Features/GetDesignTokens/`.
+- [X] T061 [US2] Create the `EDITOR/Features/RollbackDesign/`, `ListDesignVersions/` and `GetDesignVersion/` slices (publishing-api.yaml, Design publishing). Make T054 pass.
+- [X] T062 [US2] Add the publishing menu and `PublicationBadge` to `ADMIN/features/pages/ComponentsView.vue`. Add **Publish design**, the design version list and **Roll back** with confirmation to `ADMIN/features/design/DesignTokensView.vue`. Add the i18n keys, and make T055 pass.
 
 **Checkpoint**: quickstart §2, steps 1–3. All P1 publishing of pages, components and the design works.
 

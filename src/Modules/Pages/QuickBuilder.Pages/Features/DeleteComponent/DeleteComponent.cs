@@ -25,6 +25,7 @@ internal sealed record DeleteComponentCommand(Guid SiteId, Guid ComponentId, uin
 internal sealed class DeleteComponentHandler(
     PagesDbContext database,
     PagesAccess access,
+    PublishingWrites publishing,
     TimeProvider clock,
     ILogger<DeleteComponentHandler> logger)
     : ICommandHandler<DeleteComponentCommand, Result>
@@ -58,6 +59,22 @@ internal sealed class DeleteComponentHandler(
             return Result.Failure(PagesErrors.ComponentInUse(usages));
         }
 
+        // 012 FR-004: never take away a component published pages still show.
+        var livePages = await publishing.LivePagesUsingAsync(command.SiteId, command.ComponentId, cancellationToken).ConfigureAwait(false);
+        if (livePages > 0)
+        {
+            return Result.Failure(PagesErrors.ComponentInUseByPublishedPages(livePages));
+        }
+
+        // Its publishing records and the component go together, or not at all.
+        await using var transaction = await database.Database.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
+
+        await publishing.ForgetAsync(
+                new PublishingWrites.Subject(SubjectKinds.Component, component.Id, command.SiteId, component.Name, Path: null),
+                access.Actor,
+                cancellationToken)
+            .ConfigureAwait(false);
+
         component.MarkDeleted(clock);
         PagesOutbox.AddFrom(database, component, access.Actor);
         database.Components.Remove(component);
@@ -65,6 +82,7 @@ internal sealed class DeleteComponentHandler(
         try
         {
             await database.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+            await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
         }
         catch (DbUpdateConcurrencyException)
         {

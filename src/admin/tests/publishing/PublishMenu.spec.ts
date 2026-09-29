@@ -82,6 +82,26 @@ describe('PublishMenu', () => {
     expect(calls.some((c) => c.url.endsWith('/draft'))).toBe(false)
   })
 
+  it('publishes a component from its own draft and address', async () => {
+    const calls = stubFetch({ status: 200, body: published(1) })
+    mount({ kind: 'component', subjectId: 'component-1', title: 'Header' })
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Publish' }))
+
+    await waitFor(() => expect(calls.some((c) => c.method === 'POST')).toBe(true))
+    expect(calls[0]!.url).toBe(`/api/v1/pages/sites/${SITE}/components/component-1/draft`)
+    expect(calls.find((c) => c.method === 'POST')!.url).toBe(`/api/v1/pages/sites/${SITE}/components/component-1/publish`)
+  })
+
+  it('says how many published pages still use a component', async () => {
+    stubFetch({ status: 409, body: { title: 'Conflict', status: 409, errorCode: 'pages.component_in_use_by_published_pages', pageCount: 3 } })
+    mount({ kind: 'component', subjectId: 'component-1', title: 'Header' })
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Publish' }))
+
+    expect(await screen.findByRole('alert')).toHaveProperty('textContent', '3 published page(s) use this component. Unpublish them or remove it from them first.')
+  })
+
   it('shows a refusal in words, from the translation lookup', async () => {
     stubFetch({ status: 409, body: { title: 'Conflict', status: 409, errorCode: 'pages.unpublished_components', componentIds: ['a', 'b'] } })
     mount()

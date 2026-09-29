@@ -1,4 +1,5 @@
 using QuickBuilder.Identity.Contracts;
+using QuickBuilder.Pages.Contracts.Publishing;
 using QuickBuilder.Shared.Kernel.Authorization;
 using QuickBuilder.Sites.Contracts;
 
@@ -24,6 +25,10 @@ internal sealed class EditorAccess(ISiteDirectory sites, IAccessEvaluator access
 
     public Task<bool> CanManageAsync(Guid siteId, CancellationToken cancellationToken) =>
         access.HasCapabilityAsync(EditorCapabilities.DesignTokensManage, siteId, cancellationToken);
+
+    /// <summary>012 research PR-18: publishing the design needs the one publish capability.</summary>
+    public Task<bool> CanPublishAsync(Guid siteId, CancellationToken cancellationToken) =>
+        access.HasCapabilityAsync(PublishingCapabilities.Manage, siteId, cancellationToken);
 
     public async Task<string?> NameOfAsync(Guid userId, CancellationToken cancellationToken)
     {

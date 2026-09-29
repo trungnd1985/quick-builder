@@ -251,6 +251,43 @@ internal sealed class PublishingWrites(
         return Result.Success();
     }
 
+    /// <summary>
+    /// Removes a subject's publishing records before the subject itself is deleted: its
+    /// publication (and with it every version), dependencies and schedules. The log keeps its
+    /// entries, and gains a <c>deleted</c> one when there were any (FR-006, FR-017, PR-15). Runs
+    /// in the caller's transaction; the caller saves.
+    /// </summary>
+    internal async Task ForgetAsync(Subject subject, Guid actor, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(subject);
+        var siteId = subject.SiteId;
+
+        await database.ForSite<LiveDependency>(siteId)
+            .Where(d => d.SubjectKind == subject.Kind && d.SubjectId == subject.Id)
+            .ExecuteDeleteAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        await database.ForSite<PublishSchedule>(siteId)
+            .Where(s => s.SubjectKind == subject.Kind && s.SubjectId == subject.Id)
+            .ExecuteDeleteAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        // Versions go with their publication (foreign key, cascade).
+        await database.ForSite<Publication>(siteId)
+            .Where(p => p.SubjectKind == subject.Kind && p.SubjectId == subject.Id)
+            .ExecuteDeleteAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        var hasHistory = await database.ForSite<PublishLogEntry>(siteId)
+            .AnyAsync(e => e.SubjectKind == subject.Kind && e.SubjectId == subject.Id, cancellationToken)
+            .ConfigureAwait(false);
+
+        if (hasHistory)
+        {
+            Log(siteId, subject, LogActions.Deleted, clock.GetUtcNow(), actor);
+        }
+    }
+
     /// <summary>How many live pages show the component.</summary>
     internal Task<int> LivePagesUsingAsync(Guid siteId, Guid componentId, CancellationToken cancellationToken) =>
         database.ForSite<LiveDependency>(siteId)

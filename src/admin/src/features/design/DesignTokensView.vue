@@ -11,6 +11,7 @@ import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
 import { ApiError } from '../../api/request'
 import { editorApi, type DesignTokens } from '../../api/editor'
+import type { DesignPublication } from '../../api/publishing'
 import { pagesApi } from '../../api/pages'
 import { serverKey } from '../../editor/editorErrors'
 import { defaultTokens, type TokenSet } from '../../editor/tokens/defaultTokens'
@@ -18,6 +19,7 @@ import { validateTokenSet } from '../../editor/tokens/tokenValidator'
 import ColorList from './ColorList.vue'
 import FontSelect from './FontSelect.vue'
 import ScaleList from './ScaleList.vue'
+import DesignPublishPanel from '../publishing/DesignPublishPanel.vue'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -33,6 +35,7 @@ const error = ref('')
 const outOfDate = ref(false)
 
 const readOnly = computed(() => !loaded.value?.permissions.canManage)
+const canPublish = computed(() => loaded.value?.permissions.canPublish === true)
 
 async function load(): Promise<void> {
   loading.value = true
@@ -126,6 +129,24 @@ async function save(): Promise<void> {
     saving.value = false
   }
 }
+
+/**
+ * Publishing publishes the saved set (012 research PR-17), so unsaved edits are saved first.
+ * Returns the version to publish, or null when the save was refused.
+ */
+async function saveBeforePublish(): Promise<number | null> {
+  if (!loaded.value || !draft.value) return null
+  const unsaved = !readOnly.value && JSON.stringify(draft.value) !== JSON.stringify(editable(loaded.value.document))
+  if (unsaved) {
+    await save()
+    if (error.value) return null
+  }
+  return loaded.value.version
+}
+
+function published(publication: DesignPublication): void {
+  if (loaded.value) loaded.value = { ...loaded.value, publication }
+}
 </script>
 
 <template>
@@ -200,6 +221,16 @@ async function save(): Promise<void> {
           {{ t('design.reload') }}
         </button>
       </div>
+
+      <DesignPublishPanel
+        v-if="loaded?.publication"
+        :site-id="siteId"
+        :publication="loaded.publication"
+        :can-publish="canPublish"
+        :before-publish="saveBeforePublish"
+        @changed="published"
+        @out-of-date="outOfDate = true"
+      />
 
       <ColorList
         :colors="draft.colors"
