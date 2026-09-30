@@ -23,7 +23,7 @@ internal sealed class RenderHarness
 
     public Dictionary<Guid, PublicMediaFile> Media { get; } = new()
     {
-        [Photo] = new PublicMediaFile($"/_media/{Photo:N}.jpg", "image/jpeg"),
+        [Photo] = new PublicMediaFile($"/_media/{Photo:N}.jpg", "image/jpeg", null, null, []),
     };
 
     public Dictionary<Guid, LiveDocument> Components { get; } = [];

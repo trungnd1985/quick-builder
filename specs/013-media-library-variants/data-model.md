@@ -235,21 +235,21 @@ Ids only. No names, alternative text or content (FR-041).
 
 | Code | HTTP | When |
 |---|---|---|
-| `media.dimensions_too_large` | 422 | Upload or replace above `Media:MaxImagePixels` |
-| `media.kind_mismatch` | 422 | Replacement of another kind (image ↔ document) |
+| `media.dimensions_too_large` | 400 | Upload or replace above `Media:MaxImagePixels` |
+| `media.kind_mismatch` | 400 | Replacement of another kind (image ↔ document) |
 | `media.in_use` | 409 | Delete without `confirmInUse` of a file with any place. The body carries the usage summary. |
 | `media.in_live_use` | 403 | Delete or replace of a live-used file without `pages.publishing.manage` |
 | `media.conflict` | 409 | The row changed under a replace, move, alternative-text edit or delete |
-| `media.alt_text_not_allowed` | 422 | Alternative text on a document |
-| `media.invalid_alt_text` | 422 | Longer than 300 characters after cleaning |
+| `media.alt_text_not_allowed` | 400 | Alternative text on a document |
+| `media.invalid_alt_text` | 400 | Longer than 300 characters after cleaning |
 | `media.folder_not_found` | 404 | A folder id that is not the site's |
 | `media.folder_name_taken` | 409 | |
-| `media.invalid_folder_name` | 422 | Empty or longer than 100 characters after cleaning |
-| `media.folder_too_deep` | 422 | |
-| `media.folder_cycle` | 422 | |
-| `media.folder_limit` | 422 | 1,000 folders per site |
+| `media.invalid_folder_name` | 400 | Empty or longer than 100 characters after cleaning |
+| `media.folder_too_deep` | 400 | |
+| `media.folder_cycle` | 400 | |
+| `media.folder_limit` | 400 | 1,000 folders per site |
 | `media.folder_not_empty` | 409 | |
 | `media.folder_conflict` | 409 | A concurrent structural change |
-| `media.too_many_files` | 422 | A bulk move of more than 100 files |
+| `media.too_many_files` | 400 | A bulk move of more than 100 files |
 | `media.invalid_query` | 400 | An unknown `sort`, `kind` or `scope`, `scope=subtree` without `folderId`, or `q` longer than 100 characters |
 | `media.storage_check_running` | 409 | A check is already running |

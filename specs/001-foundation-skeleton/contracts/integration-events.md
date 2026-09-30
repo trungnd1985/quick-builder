@@ -72,6 +72,7 @@ subscriber refreshing a page by address needs it.
 | `Pages.ComponentUnpublished` | Pages | `siteId`, `componentId`, `actorUserId` | A component was taken down |
 | `Editor.DesignPublished` | Editor | `siteId`, `versionNumber`, `kind` (`publish`, `rollback`), `restoredFromNumber`, `actorUserId` | A design version became live. Pages records it in the publish log. |
 | `Media.FileDeleted` | Media | `siteId`, `fileId`, `actorUserId` | A media file was deleted. Pages refreshes the live pages that showed it. |
+| `Media.FileChanged` (013) | Media | `siteId`, `fileId`, `reason` (`replaced`, `dimensions`, `variants`) | Something published pages show about a file changed: new contents at a new address, dimensions recorded after the upgrade, or resized copies withdrawn. Pages refreshes the live pages that show it, directly or through a component, with the same idempotency as `Media.FileDeleted`. Unknown reasons are treated like `replaced`. See 013 research MV-17. |
 
 `actorUserId` is null when a schedule acted.
 

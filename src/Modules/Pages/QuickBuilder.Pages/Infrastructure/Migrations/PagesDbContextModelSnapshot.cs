@@ -143,6 +143,37 @@ namespace QuickBuilder.Pages.Infrastructure.Migrations
                     b.ToTable("component_usages", "pages");
                 });
 
+            modelBuilder.Entity("QuickBuilder.Pages.Domain.DraftMediaReference", b =>
+                {
+                    b.Property<string>("SubjectKind")
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("subject_kind");
+
+                    b.Property<Guid>("SubjectId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("subject_id");
+
+                    b.Property<Guid>("MediaId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("media_id");
+
+                    b.Property<Guid>("SiteId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("site_id");
+
+                    b.HasKey("SubjectKind", "SubjectId", "MediaId")
+                        .HasName("pk_draft_media_references");
+
+                    b.HasIndex("SiteId", "MediaId")
+                        .HasDatabaseName("ix_draft_media_references_media");
+
+                    b.ToTable("draft_media_references", "pages", t =>
+                        {
+                            t.HasCheckConstraint("ck_draft_media_references_subject_kind", "subject_kind IN ('page', 'component')");
+                        });
+                });
+
             modelBuilder.Entity("QuickBuilder.Pages.Domain.LiveDependency", b =>
                 {
                     b.Property<Guid>("SiteId")
@@ -661,6 +692,29 @@ namespace QuickBuilder.Pages.Infrastructure.Migrations
                         });
                 });
 
+            modelBuilder.Entity("QuickBuilder.Pages.Domain.VersionMediaReference", b =>
+                {
+                    b.Property<Guid>("VersionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("version_id");
+
+                    b.Property<Guid>("MediaId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("media_id");
+
+                    b.Property<Guid>("SiteId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("site_id");
+
+                    b.HasKey("VersionId", "MediaId")
+                        .HasName("pk_version_media_references");
+
+                    b.HasIndex("SiteId", "MediaId")
+                        .HasDatabaseName("ix_version_media_references_media");
+
+                    b.ToTable("version_media_references", "pages");
+                });
+
             modelBuilder.Entity("QuickBuilder.Shared.Infrastructure.Outbox.OutboxMessage", b =>
                 {
                     b.Property<Guid>("Id")
@@ -807,6 +861,16 @@ namespace QuickBuilder.Pages.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_published_versions_publications_subject_kind_subject_id");
+                });
+
+            modelBuilder.Entity("QuickBuilder.Pages.Domain.VersionMediaReference", b =>
+                {
+                    b.HasOne("QuickBuilder.Pages.Domain.PublishedVersion", null)
+                        .WithMany()
+                        .HasForeignKey("VersionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_version_media_references_published_versions_version_id");
                 });
 
             modelBuilder.Entity("QuickBuilder.Pages.Domain.PageTree", b =>

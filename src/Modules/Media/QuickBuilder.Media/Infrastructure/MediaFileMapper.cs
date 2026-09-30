@@ -1,25 +1,31 @@
+using System.Globalization;
 using Microsoft.Extensions.Logging;
 using QuickBuilder.Identity.Contracts;
 using QuickBuilder.Media.Contracts;
 using QuickBuilder.Media.Domain;
+using QuickBuilder.Pages.Contracts.Media;
+using QuickBuilder.Pages.Contracts.Publishing;
 using QuickBuilder.Shared.Infrastructure.Storage;
 using QuickBuilder.Shared.Kernel.Authorization;
 
 namespace QuickBuilder.Media.Infrastructure;
 
 /// <summary>
-/// Turns library rows into what the admin API returns (003 contracts/media-api.yaml, research M-16, M-18).
+/// Turns library rows into what the admin API returns (003 contracts/media-api.yaml, research
+/// M-16, M-18; 013 contracts/media-api.yaml, research MV-05, MV-06, MV-16).
 /// </summary>
 /// <remarks>
-/// Resolves uploader names in one call to Identity's directory, works out <c>canDelete</c>
-/// with the same rule the delete handler enforces, and — for listings — checks that each
-/// file's bytes are still there, so a file removed from disk by hand shows as unavailable
-/// instead of failing the page (spec edge case).
+/// Resolves uploader and replacer names in one call to Identity's directory, asks Pages once
+/// for the page's usage, and works out <c>canDelete</c> and <c>canReplace</c> with the same
+/// rules the handlers enforce (<see cref="MediaFileRules"/>). For listings it also checks that
+/// each file's bytes are still there, so a file removed from storage by hand shows as
+/// unavailable instead of failing the page (003 spec edge case).
 /// </remarks>
 internal sealed class MediaFileMapper(
     IUserDirectory users,
     IAccessEvaluator access,
     IFileStorage storage,
+    IMediaUsageReader usage,
     ILogger<MediaFileMapper> logger)
 {
     private const int AvailabilityChecksAtOnce = 8;
@@ -38,14 +44,16 @@ internal sealed class MediaFileMapper(
             return [];
         }
 
-        var uploaders = (await users
-                .FindManyAsync([.. files.Select(f => f.UploadedBy).Distinct()], cancellationToken)
-                .ConfigureAwait(false))
-            .ToDictionary(u => u.Id);
+        var people = files.Select(f => f.UploadedBy)
+            .Concat(files.Where(f => f.ReplacedBy is not null).Select(f => f.ReplacedBy!.Value))
+            .Distinct()
+            .ToList();
+        var directory = (await users.FindManyAsync(people, cancellationToken).ConfigureAwait(false)).ToDictionary(u => u.Id);
+
+        var usages = await usage.SummariseAsync(siteId, [.. files.Select(f => f.Id)], cancellationToken).ConfigureAwait(false);
 
         // Evaluated once per request, not per file: grants are read per request anyway.
-        var canDeleteAny = await access.HasCapabilityAsync(MediaCapabilities.Delete, siteId, cancellationToken).ConfigureAwait(false);
-        var canDeleteOwn = await access.HasCapabilityAsync(MediaCapabilities.DeleteOwn, siteId, cancellationToken).ConfigureAwait(false);
+        var rights = await MediaFileRules.RightsAsync(access, siteId, cancellationToken).ConfigureAwait(false);
 
         var missing = checkAvailability
             ? await FindMissingAsync(files, cancellationToken).ConfigureAwait(false)
@@ -60,26 +68,76 @@ internal sealed class MediaFileMapper(
 
         return
         [
-            .. files.Select(f => new MediaFileDto(
-                f.Id,
-                f.SiteId,
-                f.FileName,
-                f.ContentType,
-                f.SizeBytes,
-                f.UploadedAtUtc,
-                uploaders.GetValueOrDefault(f.UploadedBy) ?? new UserSummaryDto(f.UploadedBy, string.Empty),
-                PublicPath(pathBase, f),
-                Available: !missing.Contains(f.Id),
-                CanDelete: canDeleteAny || (canDeleteOwn && f.UploadedBy == access.UserId))),
+            .. files.Select(f =>
+            {
+                var used = usages.GetValueOrDefault(f.Id) ?? MediaUsageSummary.None;
+                var mayChange = rights.MayChange(f, used, access.UserId);
+                return new MediaFileDto(
+                    f.Id,
+                    f.SiteId,
+                    f.FileName,
+                    f.ContentType,
+                    f.SizeBytes,
+                    f.UploadedAtUtc,
+                    Person(directory, f.UploadedBy),
+                    PublicPath(pathBase, f),
+                    Available: !missing.Contains(f.Id),
+                    CanDelete: mayChange,
+                    f.FolderId,
+                    f.AltText,
+                    f.Width,
+                    f.Height,
+                    f.ContentVersion,
+                    MetadataStateName(f.MetadataState),
+                    f.ReplacedAtUtc,
+                    f.ReplacedBy is { } replacer ? Person(directory, replacer) : null,
+                    AdminVariants(pathBase, f),
+                    ThumbnailPath(pathBase, f),
+                    ToDto(used),
+                    CanReplace: mayChange);
+            }),
         ];
     }
 
-    /// <summary>The file's public address under <paramref name="pathBase"/> (FR-013, research M-11).</summary>
+    /// <summary>The file's public address under <paramref name="pathBase"/> (FR-013, research M-11, MV-08).</summary>
     public static string PublicPath(string pathBase, MediaFile file)
     {
         ArgumentNullException.ThrowIfNull(file);
-        return $"{pathBase.TrimEnd('/')}/_media/{file.Id:N}.{file.Extension}";
+        return pathBase.TrimEnd('/') + MediaAddress.Original(file).ToPath();
     }
+
+    /// <summary>003's authenticated preview of the original, which also works for sites with no host name.</summary>
+    public static string PreviewPath(string pathBase, MediaFile file)
+    {
+        ArgumentNullException.ThrowIfNull(file);
+        return $"{pathBase.TrimEnd('/')}/api/v1/media/sites/{file.SiteId}/files/{file.Id}/content";
+    }
+
+    /// <summary>The usage summary as the API returns it.</summary>
+    public static MediaUsageSummaryDto ToDto(MediaUsageSummary summary)
+    {
+        ArgumentNullException.ThrowIfNull(summary);
+        return new MediaUsageSummaryDto(summary.Places, summary.DraftPlaces, summary.LivePlaces, summary.HistoryOnlyPlaces, summary.InLiveUse);
+    }
+
+    /// <summary>Resized admin previews of <paramref name="file"/> (013 MV-16). Filled from US2 on.</summary>
+    private static IReadOnlyList<MediaVariantDto> AdminVariants(string pathBase, MediaFile file) => [];
+
+    /// <summary>What the admin shell shows as the file's thumbnail (013 FR-028).</summary>
+    private static string ThumbnailPath(string pathBase, MediaFile file) => PreviewPath(pathBase, file);
+
+    private static string MetadataStateName(MediaMetadataState state) => state switch
+    {
+        MediaMetadataState.Pending => "pending",
+        MediaMetadataState.Recorded => "recorded",
+        MediaMetadataState.NotApplicable => "not_applicable",
+        MediaMetadataState.OverLimit => "over_limit",
+        MediaMetadataState.Unreadable => "unreadable",
+        _ => ((short)state).ToString(CultureInfo.InvariantCulture),
+    };
+
+    private static UserSummaryDto Person(Dictionary<Guid, UserSummaryDto> directory, Guid id) =>
+        directory.GetValueOrDefault(id) ?? new UserSummaryDto(id, string.Empty);
 
     private async Task<HashSet<Guid>> FindMissingAsync(IReadOnlyList<MediaFile> files, CancellationToken cancellationToken)
     {
@@ -97,5 +155,41 @@ internal sealed class MediaFileMapper(
             }).ConfigureAwait(false);
 
         return [.. missing];
+    }
+}
+
+/// <summary>
+/// Who may delete or replace a file (003 research M-18, 013 research MV-06, MV-24): the one
+/// rule the handlers enforce and the mapper reports.
+/// </summary>
+internal static class MediaFileRules
+{
+    /// <summary>What the caller holds on the site, looked up once.</summary>
+    public static async Task<Rights> RightsAsync(IAccessEvaluator access, Guid siteId, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(access);
+
+        var deleteAny = await access.HasCapabilityAsync(MediaCapabilities.Delete, siteId, cancellationToken).ConfigureAwait(false);
+        var deleteOwn = await access.HasCapabilityAsync(MediaCapabilities.DeleteOwn, siteId, cancellationToken).ConfigureAwait(false);
+        var publish = await access.HasCapabilityAsync(PublishingCapabilities.Manage, siteId, cancellationToken).ConfigureAwait(false);
+        return new Rights(deleteAny, deleteOwn, publish);
+    }
+
+    /// <summary>The caller's capabilities that decide delete and replace.</summary>
+    public sealed record Rights(bool DeleteAny, bool DeleteOwn, bool Publish)
+    {
+        /// <summary>
+        /// Another person's file needs delete-any (003); a file visitors can see needs the
+        /// publishing capability as well, whoever uploaded it (013 clarifications). The
+        /// uploader is the original one, even after a replacement.
+        /// </summary>
+        public bool MayChange(MediaFile file, MediaUsageSummary usage, Guid? userId)
+        {
+            ArgumentNullException.ThrowIfNull(file);
+            ArgumentNullException.ThrowIfNull(usage);
+
+            var ownership = DeleteAny || (DeleteOwn && userId is { } id && file.UploadedBy == id);
+            return ownership && (!usage.InLiveUse || Publish);
+        }
     }
 }

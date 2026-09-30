@@ -131,30 +131,30 @@ test wiring. Nothing here has behaviour.
 
 ### Domain primitives (tests first)
 
-- [ ] T008 [P] Create `UTESTS/Media/MediaAddressTests.cs` from contracts/public-media.md §1:
+- [X] T008 [P] Create `UTESTS/Media/MediaAddressTests.cs` from contracts/public-media.md §1:
   - it formats the three canonical forms;
   - it parses each one back;
   - it refuses non-canonical forms: `-v1` on an original, a leading zero in a version, upper case, an extra segment, `..`, an empty extension, and a width not in the configured list;
   - version bounds are 1 … 99,999.
-- [ ] T009 Create `MEDIA/Domain/MediaAddress.cs` (MV-08):
+- [X] T009 Create `MEDIA/Domain/MediaAddress.cs` (MV-08):
   - `readonly record struct MediaAddress(Guid FileId, int Version, int? Width, string Extension)`;
   - `static MediaAddress? TryParse(string file, IReadOnlySet<int> widths)`, with a `GeneratedRegex` and the canonical-form checks;
   - `string ToPath()`, which returns `/_media/...` without the base path;
   - factories `Original(MediaFile)` and `Variant(MediaFile, int width)`.
 
   Make T008 pass.
-- [ ] T010 [P] Create `UTESTS/Media/SearchTextTests.cs` and `MEDIA/Domain/SearchText.cs` (MV-03):
+- [X] T010 [P] Create `UTESTS/Media/SearchTextTests.cs` and `MEDIA/Domain/SearchText.cs` (MV-03):
   - `Normalise(string)`: `ToLowerInvariant`, NFD, drop non-spacing marks, collapse whitespace;
   - `For(fileName, altText)`;
   - `LikePattern(term)`: escapes `%`, `_` and `\`, and wraps in `%…%`.
 
   Cases: `Été` → `ete`; `BROCHURE-été.pdf` contains `ete`; `%`, `_` and `\` are literal; a null alternative text; a 100-character term.
-- [ ] T011 Extend `MEDIA/Domain/MediaFile.cs` with the columns and operations of data-model §1.1 and §3.1. Add:
+- [X] T011 Extend `MEDIA/Domain/MediaFile.cs` with the columns and operations of data-model §1.1 and §3.1. Add:
   - the properties `FolderId`, `AltText`, `Width`, `Height`, `IsAnimated`, `MetadataState` (an enum), `ContentVersion`, `ReplacedAtUtc`, `ReplacedBy`, `VariantsState` (an enum), `SearchText`, `SortName`, `SearchTextState` (an enum: `provisional`, `normalised`);
   - the methods `MoveTo`, `SetAltText`, `RecordImageMetadata`, `MarkMetadata`, `Replace` and `MarkVariantsUnavailable`, each enforcing its rule and returning a `Result` or throwing for programmer errors. `Create` sets `SearchText` and `SortName` and takes optional metadata.
 
   Update the class remarks: the file is no longer immutable, and the invariants from data-model §3.1 remain. Add `UTESTS/Media/MediaFileTests.cs` covering every rule in data-model §3.1, including the kind check on `Replace`, the reset of `VariantsState`, and `UploadedBy` never changing.
-- [ ] T012 [P] Create the new Media entities, with fields and constructors only (behaviour comes in US1, US2 and US3):
+- [X] T012 [P] Create the new Media entities, with fields and constructors only (behaviour comes in US1, US2 and US3):
   - `MEDIA/Domain/MediaFolder.cs` (data-model §1.2);
   - `MEDIA/Domain/FolderTree.cs` (§1.3, with `Revision`);
   - `MEDIA/Domain/VariantClaim.cs` (§1.4);
@@ -164,7 +164,7 @@ test wiring. Nothing here has behaviour.
 
 ### Media tables, migration, options, capabilities, errors
 
-- [ ] T013 Configure the new columns and tables in `MEDIA/Infrastructure/MediaDbContext.cs` exactly as data-model §1 describes:
+- [X] T013 Configure the new columns and tables in `MEDIA/Infrastructure/MediaDbContext.cs` exactly as data-model §1 describes:
   - `xmin` row versions on `media_files` and `folder_trees`;
   - check constraints;
   - the alternate key `(site_id, id)` on `folders`, with `RESTRICT` foreign keys from `media_files.folder_id` and `folders.parent_id`;
@@ -184,27 +184,27 @@ test wiring. Nothing here has behaviour.
   - log counts per site only.
 
   Register it in `MEDIA/MediaModule.cs`. Create `ITESTS/Media/SearchTextBackfillTests.cs`: rows inserted as provisional (`Été.pdf`) are found by `ete` after one pass, and a second concurrent pass changes nothing.
-- [ ] T014 [P] Extend `MEDIA/Infrastructure/MediaStorageKeys.cs` (MV-14):
+- [X] T014 [P] Extend `MEDIA/Infrastructure/MediaStorageKeys.cs` (MV-14):
   - `For(siteId, fileId, version)`, which returns the version-1 key unchanged;
   - `Variant(siteId, fileId, version, width)` under `media-variants`;
   - `SiteOf` accepts the `-v{n}` suffix;
   - a new `VariantKeys.TryParse(StorageKey)` returns `(siteId, fileId, version, width)`.
 
   Extend `UTESTS/Storage/StorageKeyTests.cs` or add `UTESTS/Media/MediaStorageKeysTests.cs`: every key satisfies the `StorageKey` grammar at the maximum version and width, and round-trips.
-- [ ] T015 [P] Extend `MEDIA/MediaOptions.cs` with `MaxImagePixels` (default 100,000,000; range 1,000,000 – 1,000,000,000) and a nested `Variants` with:
+- [X] T015 [P] Extend `MEDIA/MediaOptions.cs` with `MaxImagePixels` (default 100,000,000; range 1,000,000 – 1,000,000,000) and a nested `Variants` with:
   - `Widths` (default `[320, 640, 960, 1280, 1920, 2560]`; 1–10 ascending values, 64–4,096; empty means the default, filled by `MediaOptionsDefaults` like `AllowedTypes`);
   - `MaxConcurrent` (default `Math.Max(1, Environment.ProcessorCount / 2)`, 1–64);
   - `Timeout` (default 10 s, 1–60 s).
 
   Validate them in `MediaOptionsValidator`, naming the key. Extend `UTESTS/Media/MediaOptionsValidationTests.cs`. Add the keys with their defaults to `HOST/appsettings.json` and `docs/configuration.md`.
-- [ ] T016 [P] Add `StorageCheck = "media.storage.check"` (installation scope, granted to no site role) to `MEDIA/MediaCapabilities.cs`. Add it to `specs/002-identity-setup/contracts/authorization.md` §2.
-- [ ] T017 [P] Add every error code in data-model §5 to `MEDIA/Infrastructure/MediaErrors` (wherever `MediaErrors` is declared today) and map each to its HTTP status in `MEDIA/Infrastructure/MediaErrorResults.cs`. `media.in_use` carries an extension member `usage` (a `UsageSummary`), written as a problem-details extension.
+- [X] T016 [P] Add `StorageCheck = "media.storage.check"` (installation scope, granted to no site role) to `MEDIA/MediaCapabilities.cs`. Add it to `specs/002-identity-setup/contracts/authorization.md` §2.
+- [X] T017 [P] Add every error code in data-model §5 to `MEDIA/Infrastructure/MediaErrors` (wherever `MediaErrors` is declared today) and map each to its HTTP status in `MEDIA/Infrastructure/MediaErrorResults.cs`. `media.in_use` carries an extension member `usage` (a `UsageSummary`), written as a problem-details extension.
 
 ### Change event and usage (Pages)
 
-- [ ] T018 [P] Create `MEDIAC/Events/FileChanged.cs` (readers.md §1.2) and register it in `MEDIA/MediaModule.cs` with `EventTypeRegistration<FileChanged>`. Add `Media.FileChanged` to `specs/001-foundation-skeleton/contracts/integration-events.md`.
-- [ ] T019 [P] Create `PAGESC/PageContentCapabilities.cs` with `View = "pages.content.view"`, and change `PAGES/PagesCapabilities.cs` so that `ContentView` refers to it (readers.md §2.2; the name is unchanged).
-- [ ] T020 Create `PAGES/Domain/DraftMediaReference.cs` and `VersionMediaReference.cs` (data-model §2.1, §2.2), both `ISiteOwned`, and configure them in `PAGES/Infrastructure/PagesDbContext.cs`:
+- [X] T018 [P] Create `MEDIAC/Events/FileChanged.cs` (readers.md §1.2) and register it in `MEDIA/MediaModule.cs` with `EventTypeRegistration<FileChanged>`. Add `Media.FileChanged` to `specs/001-foundation-skeleton/contracts/integration-events.md`.
+- [X] T019 [P] Create `PAGESC/PageContentCapabilities.cs` with `View = "pages.content.view"`, and change `PAGES/PagesCapabilities.cs` so that `ContentView` refers to it (readers.md §2.2; the name is unchanged).
+- [X] T020 Create `PAGES/Domain/DraftMediaReference.cs` and `VersionMediaReference.cs` (data-model §2.1, §2.2), both `ISiteOwned`, and configure them in `PAGES/Infrastructure/PagesDbContext.cs`:
   - keys, indexes and the subject-kind check;
   - the cascade foreign key from `version_media_references` to `published_versions`;
   - query filters.
@@ -215,21 +215,21 @@ test wiring. Nothing here has behaviour.
   - with `ON CONFLICT DO NOTHING`.
 
   Comment it with MV-05.
-- [ ] T021 [P] Create `ITESTS/Pages/MediaReferenceBackfillTests.cs`:
+- [X] T021 [P] Create `ITESTS/Pages/MediaReferenceBackfillTests.cs`:
   - seed drafts and published versions from the rendering golden fixtures (`tests/fixtures/rendering/golden`), each with image nodes, rich text and component references;
   - roll the Pages migration back to the one before `AddMediaReferences` and forward again;
   - the reference rows equal what `DependencyExtractor.Extract(...)` returns for the media kind, for every document.
-- [ ] T022 Maintain references on writes (MV-05):
+- [X] T022 Maintain references on writes (MV-05):
   - **Drafts**: in `PAGES/Infrastructure/DraftWrites.cs`, replace the draft's `draft_media_references` set with the media ids from `DependencyExtractor.Extract(document)`, beside the existing `component_usages` upkeep, for page and component drafts.
   - **Versions**: in `PAGES/Features/Publish/Publish.cs`, `PAGES/Features/Rollback/` and `PAGES/Features/RunDueSchedule/`, add `version_media_references` for each new `PublishedVersion`, from the dependencies already extracted there.
   - **Deletes**: in `PAGES/Features/DeletePage/DeletePage.cs` and `PAGES/Features/DeleteComponent/DeleteComponent.cs`, remove the subject's draft references in the same transaction.
-- [ ] T023 Create `PAGESC/Media/IMediaUsageReader.cs` and `PAGESC/Media/MediaUsage.cs` (readers.md §2.1).
+- [X] T023 Create `PAGESC/Media/IMediaUsageReader.cs` and `PAGESC/Media/MediaUsage.cs` (readers.md §2.1).
   - Implement `PAGES/Infrastructure/MediaUsageReader.cs` with no tracking and an explicit site filter:
     - `SummariseAsync`: one grouped query over both reference tables, joined to `publications` for liveness;
     - `ListAsync`: page titles and component names, plus `livePagesThroughComponent` from `live_dependencies`.
   - Register it as scoped in `PAGES/PagesModule.cs`.
   - Create `ITESTS/Pages/MediaUsageReaderTests.cs`: draft-only, live, history-only, live through a component on 3 pages, a page deleted, a draft changed (the counts update in the same request, SC-008), and another site's references are never counted.
-- [ ] T024 Handle `FileChanged` in `PAGES/Features/RefreshPagesShowingMedia/RefreshPagesShowingMediaHandler.cs`:
+- [X] T024 Handle `FileChanged` in `PAGES/Features/RefreshPagesShowingMedia/RefreshPagesShowingMediaHandler.cs`:
   - implement `IIntegrationEventHandler<FileChanged>` in the same class, sharing the bump and deduplication code with `FileDeleted`, with separate `HandlerName` values per event type;
   - register it in `PAGES/PagesModule.cs`.
 
@@ -237,14 +237,14 @@ test wiring. Nothing here has behaviour.
 
 ### Serving, mapping and client foundations
 
-- [ ] T025 Switch serving and addresses to `MediaAddress` (MV-08). In each case variants stay `not_found` until US2, and versions ≥ 2 only occur after US6.
+- [X] T025 Switch serving and addresses to `MediaAddress` (MV-08). In each case variants stay `not_found` until US2, and versions ≥ 2 only occur after US6.
   - **Serving**: `MEDIA/Features/ServePublicFile/ServePublicFile.cs` parses with `MediaAddress.TryParse` (widths from `IOptions<MediaOptions>`), matches the id, version and extension against the row, and answers `not_found` for any variant for now.
   - **Headers**: in `MEDIA/Infrastructure/MediaResponseHeaders.cs`, the `ETag` is `"{id}"`, `"{id}-v{n}"` or `"{id}-v{n}-w{w}"`, and `Last-Modified` is `ReplacedAtUtc ?? UploadedAtUtc`. Add `MediaResponseKind.VariantFallback` (the same headers with `Cache-Control: no-store`).
   - **Addresses**: `MEDIA/Infrastructure/MediaFileMapper.cs` `PublicPath` and `MEDIA/Infrastructure/PublicMediaReader.cs` build paths with `MediaAddress`. `PublicMediaReader` selects `content_version`.
   - **Contract**: `MEDIAC/IPublicMediaReader.cs` gains `Width`, `Height` and `Variants` (empty for now) and `PublicMediaVariant` (readers.md §1.1). Fix the compile in `REND/Rendering/Blocks/MediaRenderers.cs`, with no behaviour change yet.
 
   Extend `ITESTS/Media/PublicServingTests.cs` and `MediaServingHeadersTests.cs`: 003 addresses still serve byte-identical content; non-canonical forms are `not_found`; the versioned `ETag`.
-- [ ] T026 Extend `MEDIAC/MediaFileDto.cs` with the fields of contracts/media-api.yaml `MediaFile`:
+- [X] T026 Extend `MEDIAC/MediaFileDto.cs` with the fields of contracts/media-api.yaml `MediaFile`:
   - `FolderId`, `AltText`, `Width`, `Height`, `ContentVersion`, `MetadataState`, `ReplacedAtUtc`, `ReplacedBy`, `Variants`, `ThumbnailPath`, `Usage` (a `MediaUsageSummaryDto`) and `CanReplace`;
   - `CanDelete` gains the live-use rule.
 
@@ -253,7 +253,7 @@ test wiring. Nothing here has behaviour.
   - `PublishingCapabilities.Manage` evaluated once per request;
   - `CanDelete` and `CanReplace` as in MV-24 (another person's file needs `media.files.delete`; live use needs publishing);
   - `Variants` and `ThumbnailPath` from admin addresses: until US2, `ThumbnailPath` is 003's preview address and `Variants` is empty.
-- [ ] T027 [P] Extend `ADMIN/api/media.ts` with the types and functions for every operation in contracts/media-api.yaml:
+- [X] T027 [P] Extend `ADMIN/api/media.ts` with the types and functions for every operation in contracts/media-api.yaml:
   - `list(siteId, query)`, `get`, `updateAltText`, `move`, `replace(siteId, fileId, file, expectedContentVersion, onProgress)`, `usage`, `remove(siteId, fileId, { confirmInUse })`;
   - `folders.list/create/update/remove`;
   - `storageCheck.get/start`.
@@ -276,15 +276,15 @@ pages within 1 s at 10,000 files (SC-001).
 
 ### Tests for User Story 1 ⚠️
 
-- [ ] T028 [P] [US1] Create `UTESTS/Media/MediaFolderTreeTests.cs` for `FolderTree`: create at depth 8 succeeds and depth 9 fails; moving into self or a descendant fails; a move making the deepest descendant exceed 8 fails; sibling names clash ignoring case and accents; 1,000 folders is the limit; `Descendants(folderId)` includes the folder itself.
-- [ ] T029 [P] [US1] Create `UTESTS/Media/ListingCursorTests.cs`: cursors for each sort round-trip; a cursor from another sort or query is refused; malformed input gives null.
-- [ ] T030 [P] [US1] Create `ITESTS/Media/MediaFolderApiTests.cs` covering every folder operation in contracts/media-api.yaml:
+- [X] T028 [P] [US1] Create `UTESTS/Media/MediaFolderTreeTests.cs` for `FolderTree`: create at depth 8 succeeds and depth 9 fails; moving into self or a descendant fails; a move making the deepest descendant exceed 8 fails; sibling names clash ignoring case and accents; 1,000 folders is the limit; `Descendants(folderId)` includes the folder itself.
+- [X] T029 [P] [US1] Create `UTESTS/Media/ListingCursorTests.cs`: cursors for each sort round-trip; a cursor from another sort or query is refused; malformed input gives null.
+- [X] T030 [P] [US1] Create `ITESTS/Media/MediaFolderApiTests.cs` covering every folder operation in contracts/media-api.yaml:
   - create nested folders, rename, move, and delete an empty folder;
   - `media.folder_not_empty` when a file or child exists, including a file moved in concurrently (a `RESTRICT` violation mapped);
   - `media.folder_conflict` for two concurrent moves that would form a cycle: exactly one succeeds;
   - an Editor can rename a folder a Designer created (clarification);
   - a user with no role gets not-found, and a viewer-only role gets forbidden.
-- [ ] T031 [P] [US1] Create `ITESTS/Media/MediaListingApiTests.cs`:
+- [X] T031 [P] [US1] Create `ITESTS/Media/MediaListingApiTests.cs`:
   - folder browsing and the top level;
   - `q` across the whole library, and `scope=subtree`;
   - `kind`; each `sort` and `direction`;
@@ -295,15 +295,15 @@ pages within 1 s at 10,000 files (SC-001).
   - `%` is literal;
   - the `usage` summary is present;
   - moving files keeps `publicPath` identical (FR-003).
-- [ ] T032 [P] [US1] Create `ITESTS/Media/AltTextApiTests.cs`: set, clear and change; 300 characters is accepted and 301 refused; control characters are stripped; a PDF gives `media.alt_text_not_allowed`; the text appears in search; `media.conflict` on a stale row version; the text is never in logs (assert via the test log sink).
+- [X] T032 [P] [US1] Create `ITESTS/Media/AltTextApiTests.cs`: set, clear and change; 300 characters is accepted and 301 refused; control characters are stripped; a PDF gives `media.alt_text_not_allowed`; the text appears in search; `media.conflict` on a stale row version; the text is never in logs (assert via the test log sink).
 
   Also create `ITESTS/Media/GetFileApiTests.cs` for `GET …/files/{fileId}` (Principle X: every endpoint has integration tests):
   - it returns every field of contracts/media-api.yaml `MediaFile`, including `usage`;
   - `canDelete` and `canReplace` for the uploader, another Editor and a Designer, with and without live use;
   - another site's file id gives `media.not_found`;
   - a user with no role gets not-found, and a role without `media.files.view` gets forbidden.
-- [ ] T033 [P] [US1] Create `ITESTS/Media/MoveFilesTests.cs`: moving 100 files succeeds and 101 gives `media.too_many_files`; an unknown folder gives `media.folder_not_found`; another site's file ids are ignored; `null` moves to the top level.
-- [ ] T034 [P] [US1] Create `ADMINTESTS/media/FolderTree.spec.ts` and `ADMINTESTS/media/MediaBrowser.spec.ts` against a fake API:
+- [X] T033 [P] [US1] Create `ITESTS/Media/MoveFilesTests.cs`: moving 100 files succeeds and 101 gives `media.too_many_files`; an unknown folder gives `media.folder_not_found`; another site's file ids are ignored; `null` moves to the top level.
+- [X] T034 [P] [US1] Create `ADMINTESTS/media/FolderTree.spec.ts` and `ADMINTESTS/media/MediaBrowser.spec.ts` against a fake API:
   - keyboard navigation of the tree (the `aria` treeview pattern: arrows, Home/End, Enter);
   - create, rename and delete folders;
   - the search box debounced at 250 ms;
@@ -314,16 +314,16 @@ pages within 1 s at 10,000 files (SC-001).
 
 ### Implementation for User Story 1
 
-- [ ] T035 [US1] Implement `FolderTree` behaviour in `MEDIA/Domain/FolderTree.cs` and `MediaFolder.cs` (data-model §3.2): `Create`, `Rename`, `Move` and `Descendants`, over the site's loaded folders; name cleaning reuses `MediaFileName`'s cleaning rules, with the 100-character limit. Make T028 pass.
-- [ ] T036 [US1] Create the folder slices, each one file with its controller, command or query, and handler. Each structural change loads the site's `FolderTree` row (created if missing), applies the rule, bumps `Revision`, and saves. A `DbUpdateConcurrencyException` maps to `media.folder_conflict`, and a Postgres `23503` on delete maps to `media.folder_not_empty`.
+- [X] T035 [US1] Implement `FolderTree` behaviour in `MEDIA/Domain/FolderTree.cs` and `MediaFolder.cs` (data-model §3.2): `Create`, `Rename`, `Move` and `Descendants`, over the site's loaded folders; name cleaning reuses `MediaFileName`'s cleaning rules, with the 100-character limit. Make T028 pass.
+- [X] T036 [US1] Create the folder slices, each one file with its controller, command or query, and handler. Each structural change loads the site's `FolderTree` row (created if missing), applies the rule, bumps `Revision`, and saves. A `DbUpdateConcurrencyException` maps to `media.folder_conflict`, and a Postgres `23503` on delete maps to `media.folder_not_empty`.
   - `MEDIA/Features/Folders/ListFolders/ListFolders.cs`: the tree with direct file counts via one grouped query, and `revision`;
   - `MEDIA/Features/Folders/CreateFolder/CreateFolder.cs`;
   - `MEDIA/Features/Folders/UpdateFolder/UpdateFolder.cs` (rename and/or move);
   - `MEDIA/Features/Folders/DeleteFolder/DeleteFolder.cs`.
 
   Register the handlers in `MEDIA/MediaModule.cs`. Make T030 pass.
-- [ ] T037 [US1] Create `MEDIA/Features/MoveFiles/MoveFiles.cs`: `POST …/files/move`; validate the folder; one `ExecuteUpdate` of `folder_id` for ids of the route's site (explicit site filter). Make T033 pass.
-- [ ] T038 [US1] Rework `MEDIA/Features/ListFiles/ListFiles.cs` (MV-03):
+- [X] T037 [US1] Create `MEDIA/Features/MoveFiles/MoveFiles.cs`: `POST …/files/move`; validate the folder; one `ExecuteUpdate` of `folder_id` for ids of the route's site (explicit site filter). Make T033 pass.
+- [X] T038 [US1] Rework `MEDIA/Features/ListFiles/ListFiles.cs` (MV-03):
   - parse and validate `folderId`, `scope`, `q`, `kind`, `sort`, `direction` and `limit`;
   - resolve subtree ids from the loaded `FolderTree`;
   - apply `SearchText.LikePattern` with `EF.Functions.Like(f.SearchText, pattern, "\\")`;
@@ -332,10 +332,10 @@ pages within 1 s at 10,000 files (SC-001).
   - map through `MediaFileMapper`.
 
   Make T029 and T031 pass.
-- [ ] T039 [P] [US1] Create `MEDIA/Features/GetFile/GetFile.cs` (`GET …/files/{fileId}`, `media.files.view`) and `MEDIA/Features/UpdateFile/UpdateFile.cs` (`PATCH`, `media.files.upload`: `SetAltText` with the row version, re-deriving `SearchText`). Make T032 pass.
-- [ ] T040 [US1] Extend `MEDIA/Features/UploadFile/UploadFile.cs` with an optional `folderId` form field: validate it belongs to the site, or give `media.folder_not_found` before any bytes are stored, and pass it to `MediaFile.Create`. Extend `ITESTS/Media/UploadFileTests.cs` for it.
-- [ ] T041 [P] [US1] Create `MEDIAUI/FolderTree.vue`: an accessible tree with inline create, rename, move (a "Move to…" dialog listing the tree) and delete with confirmation. It shows `media.folder_not_empty` and `folder_conflict` messages; on conflict it reloads the tree. Add the i18n keys.
-- [ ] T042 [US1] Create `MEDIAUI/MediaBrowser.vue` with props `siteId`, `mode: 'library' | 'picker'` and `initialFolderId`, and emits `choose(file)` and `folderChange(id)`:
+- [X] T039 [P] [US1] Create `MEDIA/Features/GetFile/GetFile.cs` (`GET …/files/{fileId}`, `media.files.view`) and `MEDIA/Features/UpdateFile/UpdateFile.cs` (`PATCH`, `media.files.upload`: `SetAltText` with the row version, re-deriving `SearchText`). Make T032 pass.
+- [X] T040 [US1] Extend `MEDIA/Features/UploadFile/UploadFile.cs` with an optional `folderId` query parameter (uploads are a raw body named by `X-QuickBuilder-File-Name`, 003 M-10): validate it belongs to the site, or give `media.folder_not_found` before any bytes are stored, and pass it to `MediaFile.Create`. Extend `ITESTS/Media/UploadFileTests.cs` for it.
+- [X] T041 [P] [US1] Create `MEDIAUI/FolderTree.vue`: an accessible tree with inline create, rename, move (a "Move to…" dialog listing the tree) and delete with confirmation. It shows `media.folder_not_empty` and `folder_conflict` messages; on conflict it reloads the tree. Add the i18n keys.
+- [X] T042 [US1] Create `MEDIAUI/MediaBrowser.vue` with props `siteId`, `mode: 'library' | 'picker'` and `initialFolderId`, and emits `choose(file)` and `folderChange(id)`:
   - search, the kind filter, sort and direction;
   - the grid of files, using 003's preview until US2 (thumbnails come from `thumbnailPath`);
   - "Load more" paging;
@@ -345,12 +345,12 @@ pages within 1 s at 10,000 files (SC-001).
   - In picker mode, only images are shown and a click chooses.
 
   Add the i18n keys. Make T034 pass.
-- [ ] T043 [US1] Create `MEDIAUI/MediaDetailsPanel.vue` and `MEDIAUI/AltTextEditor.vue`:
+- [X] T043 [US1] Create `MEDIAUI/MediaDetailsPanel.vue` and `MEDIAUI/AltTextEditor.vue`:
   - the panel shows the preview, details (type, size, dimensions, uploaded by and at, folder), copy address and the alternative-text editor (images only, with a 300-character counter; saving shows `media.conflict` as a reload prompt);
   - it has slots for usage (US5) and replace (US6).
 
   Rebuild `MEDIAUI/MediaLibraryView.vue` as `FolderTree` + `MediaBrowser` + `MediaDetailsPanel`, keeping 003's upload notice and the no-host-name explanation. Retire the parts of `MediaList.vue` that `MediaBrowser` replaces. Update `ADMINTESTS/mediaLibraryView.spec.ts`.
-- [ ] T044 [US1] Extend `STESTS/MediaPerformanceTests.cs` (SC-001): with 10,000 seeded rows (with names and alternative text), the last page of the top level sorted by name, a whole-library search and a subtree search each load in ≤ 1 s at p95 over 20 runs. Record the numbers in the output.
+- [X] T044 [US1] Extend `STESTS/MediaPerformanceTests.cs` (SC-001): with 10,000 seeded rows (with names and alternative text), the last page of the top level sorted by name, a whole-library search and a subtree search each load in ≤ 1 s at p95 over 20 runs. Record the numbers in the output.
 
 **Checkpoint**: US1 is demoable. Quickstart §1 passes.
 
@@ -420,7 +420,7 @@ production happens exactly once across two instances (SC-003 … SC-006).
 - [ ] T058 [US2] Create `MEDIA/Imaging/VariantEncoder.cs` behind `internal interface IVariantEncoder`: `Task<byte[]> EncodeAsync(Stream original, MediaFileType type, int width, CancellationToken)`, using `Image.ThumbnailStream` with auto-rotate, sRGB import and export, then the per-format save of MV-11 (JPEG Q80 progressive and optimised coding; PNG compression 6; WebP Q80 effort 4; AVIF Q55 effort 2) and `keep: none`. Make T048 pass.
 - [ ] T059 [US2] Record metadata at upload (MV-10). Refactor `MEDIA/Features/UploadFile/UploadFile.cs` so that, after the bytes are stored and before the row is committed, images are opened through `IFileStorage.OpenReadAsync` and read with `ImageMetadataReader`:
   - `over_limit` deletes the stored key and refuses with `media.dimensions_too_large`;
-  - `unreadable` deletes and refuses with `media.unsupported_type`;
+  - `unreadable` keeps the file with `metadata_state = unreadable` (no variants; research MV-10, revised);
   - otherwise it passes the metadata to `MediaFile.Create`.
 
   Extract the validate-store-read-metadata sequence into `MEDIA/Features/UploadFile/UploadPipeline.cs`, so that US6 reuses it. Make T051's validation part pass.
@@ -683,7 +683,7 @@ only for the variant parts of the tests: skip those assertions when US2 is absen
 
 ### Implementation for User Story 6
 
-- [ ] T101 [US6] Create `MEDIA/Features/ReplaceFile/ReplaceFile.cs` (`PUT …/files/{fileId}/content`, declaring `media.own_files.delete`; MV-06, MV-07):
+- [ ] T101 [US6] Create `MEDIA/Features/ReplaceFile/ReplaceFile.cs` (`PUT …/files/{fileId}/content`, declaring `media.own_files.delete`; MV-06, MV-07; a raw body named by `X-QuickBuilder-File-Name`, like upload, with `expectedContentVersion` as a query parameter):
   1. Load the row, check its version against `expectedContentVersion`, and apply the ownership, live-use (`SummariseAsync` + `PublishingCapabilities.Manage`) and kind rules.
   2. Run `UploadPipeline` to store under `MediaStorageKeys.For(site, id, version + 1)` and read the metadata.
   3. Call `MediaFile.Replace` and add `FileChanged(replaced)` in one save with the row version, mapping a concurrency failure to `media.conflict` and deleting the new key on any failure before commit.

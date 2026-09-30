@@ -33,6 +33,10 @@ internal static class DependencyExtractor
     public static IReadOnlyList<Guid> Components(string document) =>
         [.. Extract(document).Where(t => t.Kind == DependencyKinds.Component).Select(t => t.Id)];
 
+    /// <summary>The media files a document shows (013 research MV-05).</summary>
+    public static IReadOnlyList<Guid> Media(string document) =>
+        [.. Extract(document).Where(t => t.Kind == DependencyKinds.Media).Select(t => t.Id)];
+
     private static void Walk(JsonElement node, HashSet<(string, Guid)> found)
     {
         if (node.TryGetProperty("props", out var props) && props.ValueKind == JsonValueKind.Object)

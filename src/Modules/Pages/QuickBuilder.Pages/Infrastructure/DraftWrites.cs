@@ -86,6 +86,8 @@ internal sealed class DraftWrites(
             .Where(id => !existing.Exists(u => u.ComponentId == id))
             .Select(id => new ComponentUsage(siteId, pageId, id)));
 
+        await ReplaceMediaReferencesAsync(siteId, SubjectKinds.Page, pageId, text, cancellationToken).ConfigureAwait(false);
+
         return await SaveAsync(draft, cancellationToken).ConfigureAwait(false);
     }
 
@@ -118,7 +120,29 @@ internal sealed class DraftWrites(
         }
 
         draft.Replace(text, checkedDocument.SchemaVersion, access.Actor, clock);
+        await ReplaceMediaReferencesAsync(siteId, SubjectKinds.Component, componentId, text, cancellationToken).ConfigureAwait(false);
         return await SaveAsync(draft, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Makes the draft's media references exactly the files <paramref name="document"/> shows
+    /// (013 research MV-05). Tracked changes, saved with the draft, so usage and draft commit
+    /// together or not at all.
+    /// </summary>
+    private async Task ReplaceMediaReferencesAsync(
+        Guid siteId, string subjectKind, Guid subjectId, string document, CancellationToken cancellationToken)
+    {
+        var wanted = DependencyExtractor.Media(document);
+
+        var existing = await database.ForSite<DraftMediaReference>(siteId)
+            .Where(r => r.SubjectKind == subjectKind && r.SubjectId == subjectId)
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        database.DraftMediaReferences.RemoveRange(existing.Where(r => !wanted.Contains(r.MediaId)));
+        database.DraftMediaReferences.AddRange(wanted
+            .Where(id => !existing.Exists(r => r.MediaId == id))
+            .Select(id => new DraftMediaReference(siteId, subjectKind, subjectId, id)));
     }
 
     private async Task<Result<DraftResponse>> SaveAsync(Draft draft, CancellationToken cancellationToken)

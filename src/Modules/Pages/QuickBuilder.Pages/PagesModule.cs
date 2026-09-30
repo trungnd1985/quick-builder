@@ -81,6 +81,9 @@ public static class PagesModule
             .UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking));
         services.AddScoped<IPublishedContentReader, PublishedContentReader>();
 
+        // 013 research MV-05: where media files are used, for the Media module.
+        services.AddScoped<QuickBuilder.Pages.Contracts.Media.IMediaUsageReader, MediaUsageReader>();
+
         // What this module lets people do. Identity enforces them; this module only declares them.
         foreach (var capability in PagesCapabilities.All)
         {
@@ -165,6 +168,8 @@ public static class PagesModule
 
         // 012 data-model §3.2: pages that showed a deleted media file refresh.
         services.AddScoped<IIntegrationEventHandler<FileDeleted>, RefreshPagesShowingMediaHandler>();
+        // 013 MV-17: a replaced file, recorded dimensions or withdrawn variants refresh them too.
+        services.AddScoped<IIntegrationEventHandler<FileChanged>, RefreshPagesShowingMediaHandler>();
 
         // 011 research ED-16: the token usage count the admin asks before deleting a token.
         services.AddScoped<IQueryHandler<GetTokenUsageQuery, Result<TokenUsageResponse>>, GetTokenUsageHandler>();

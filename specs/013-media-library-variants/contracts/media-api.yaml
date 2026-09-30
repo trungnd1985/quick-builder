@@ -88,30 +88,36 @@ paths:
 
     post:
       tags: [Media (admin)]
-      operationId: uploadMediaFiles
-      summary: Upload files (changed)
+      operationId: uploadMediaFile
+      summary: Upload one file (changed)
       description: |
-        As in 003, plus an optional `folderId` form field placing every file of the request
-        in that folder, and the new per-file refusal `media.dimensions_too_large` (MV-10).
-        Each accepted image has `width`, `height` and `metadataState: recorded`; its
-        thumbnail is produced in the background (MV-13).
+        As in 003: the body is the file's raw bytes, named by `X-QuickBuilder-File-Name`.
+        New: an optional `folderId` query parameter files it in that folder, checked before
+        any byte is stored, and the refusal `media.dimensions_too_large` (MV-10). An
+        accepted image has `width`, `height` and `metadataState: recorded`; its thumbnail
+        is produced in the background (MV-13).
+      parameters:
+        - name: folderId
+          in: query
+          required: false
+          schema: { type: string, format: uuid }
+        - name: X-QuickBuilder-File-Name
+          in: header
+          required: true
+          schema: { type: string, maxLength: 2048 }
       requestBody:
         required: true
         content:
-          multipart/form-data:
-            schema:
-              type: object
-              required: [files]
-              properties:
-                files:
-                  type: array
-                  items: { type: string, format: binary }
-                folderId:
-                  type: string
-                  format: uuid
+          '*/*':
+            schema: { type: string, format: binary }
       responses:
-        '200':
-          description: Per-file results, as in 003; accepted items use the extended `MediaFile`.
+        '201':
+          description: Stored and public; the extended `MediaFile`.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MediaFile' }
+        '400':
+          description: 003's codes, plus `media.dimensions_too_large`.
         '404':
           description: '`media.folder_not_found`.'
 
@@ -143,7 +149,7 @@ paths:
       responses:
         '204': { description: Moved. Ids that are not the site's files are ignored. }
         '404': { description: '`media.folder_not_found`.' }
-        '422': { description: '`media.too_many_files`.' }
+        '400': { description: '`media.too_many_files`.' }
 
   /api/v1/media/sites/{siteId}/files/{fileId}:
     parameters:
@@ -186,7 +192,7 @@ paths:
               schema: { $ref: '#/components/schemas/MediaFile' }
         '404': { description: '`media.not_found`.' }
         '409': { description: '`media.conflict`.' }
-        '422': { description: '`media.alt_text_not_allowed`, `media.invalid_alt_text`.' }
+        '400': { description: '`media.alt_text_not_allowed`, `media.invalid_alt_text`.' }
 
     delete:
       tags: [Media (admin)]
@@ -206,7 +212,7 @@ paths:
       responses:
         '204': { description: Deleted. Live pages stop showing it at their next request. }
         '403':
-          description: '`identity.forbidden` (another user''s file; 003's existing code) or `media.in_live_use`.'
+          description: '`identity.forbidden` (another user''s file; 003''s existing code) or `media.in_live_use`.'
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
@@ -235,20 +241,23 @@ paths:
         in-use confirmation (MV-06, MV-07). The replacement goes through 003's validation
         and must be of the same kind. On success the file has a new `contentVersion` and
         `publicPath`; the previous address is not found from now on, and live pages show
-        the new contents at their next request (FR-019).
+        the new contents at their next request (FR-019). Like upload, the body is the new
+        file's raw bytes named by `X-QuickBuilder-File-Name`; the display name is kept.
+      parameters:
+        - name: expectedContentVersion
+          in: query
+          required: true
+          description: The version the member saw; a mismatch is `media.conflict`.
+          schema: { type: integer, minimum: 1 }
+        - name: X-QuickBuilder-File-Name
+          in: header
+          required: true
+          schema: { type: string, maxLength: 2048 }
       requestBody:
         required: true
         content:
-          multipart/form-data:
-            schema:
-              type: object
-              required: [file, expectedContentVersion]
-              properties:
-                file: { type: string, format: binary }
-                expectedContentVersion:
-                  type: integer
-                  minimum: 1
-                  description: The version the member saw; a mismatch is `media.conflict`.
+          '*/*':
+            schema: { type: string, format: binary }
       responses:
         '200':
           content:
@@ -258,7 +267,7 @@ paths:
         '404': { description: '`media.not_found`.' }
         '409': { description: '`media.conflict`.' }
         '413': { description: '`media.too_large`.' }
-        '422':
+        '400':
           description: |
             `media.kind_mismatch`, `media.dimensions_too_large`, and 003's
             `media.empty`, `media.unsupported_type`, `media.type_mismatch`.
@@ -305,7 +314,7 @@ paths:
           schema: { type: integer, minimum: 1 }
       responses:
         '200':
-          description: The variant, with 003's safe-serving headers and `Cache-Control: private, max-age=31536000, immutable`.
+          description: "The variant, with 003's safe-serving headers and Cache-Control private, max-age=31536000, immutable."
           content:
             image/*:
               schema: { type: string, format: binary }
@@ -346,7 +355,7 @@ paths:
               schema: { $ref: '#/components/schemas/Folder' }
         '404': { description: '`media.folder_not_found` (parent).' }
         '409': { description: '`media.folder_name_taken`, `media.folder_conflict`.' }
-        '422': { description: '`media.invalid_folder_name`, `media.folder_too_deep`, `media.folder_limit`.' }
+        '400': { description: '`media.invalid_folder_name`, `media.folder_too_deep`, `media.folder_limit`.' }
 
   /api/v1/media/sites/{siteId}/folders/{folderId}:
     parameters:
@@ -380,7 +389,7 @@ paths:
               schema: { $ref: '#/components/schemas/Folder' }
         '404': { description: '`media.folder_not_found`.' }
         '409': { description: '`media.folder_name_taken`, `media.folder_conflict`.' }
-        '422': { description: '`media.invalid_folder_name`, `media.folder_cycle`, `media.folder_too_deep`.' }
+        '400': { description: '`media.invalid_folder_name`, `media.folder_cycle`, `media.folder_too_deep`.' }
     delete:
       tags: [Media folders (admin)]
       operationId: deleteMediaFolder

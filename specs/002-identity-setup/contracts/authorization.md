@@ -101,6 +101,23 @@ Reads of publishing history and versions use `pages.content.view` (pages, compon
 `editor.design_tokens.view` (the design). Copying a version to the draft uses
 `pages.page_drafts.edit` or `pages.components.manage`.
 
+The media library, variants and remote storage (013) add one, registered by Media, for the
+storage consistency check. It reports on every site's files, so it is installation-scoped
+and Administrator-only. It is explained in
+[013 research MV-21](../../013-media-library-variants/research.md#mv-21-the-storage-consistency-check).
+
+| Capability | Scope | Administrator | Designer | Editor |
+|---|---|---|---|---|
+| `media.storage.check` | Installation | ✓ | — | — |
+
+Everything else 013 adds reuses existing capabilities (013 research MV-24):
+- **Folders, moving files and alternative text** use `media.files.upload`.
+- **Replace** declares `media.own_files.delete`, with the same row checks as delete:
+  another person's file needs `media.files.delete`.
+- **Live use**: deleting or replacing a file that a currently published page or component
+  uses also needs `pages.publishing.manage` on the site (013 clarifications).
+- **Usage places** are named only to holders of `pages.content.view`.
+
 ## 3. What a caller sees
 
 | Situation | Status | `errorCode` |

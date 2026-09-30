@@ -1,15 +1,21 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 using QuickBuilder.Media.Contracts;
 using QuickBuilder.Media.Contracts.Events;
 using QuickBuilder.Media.Features.DeleteFile;
+using QuickBuilder.Media.Features.Folders;
+using QuickBuilder.Media.Features.GetFile;
 using QuickBuilder.Media.Features.GetFileContent;
 using QuickBuilder.Media.Features.ListFiles;
+using QuickBuilder.Media.Features.MoveFiles;
 using QuickBuilder.Media.Features.ServePublicFile;
+using QuickBuilder.Media.Features.UpdateFile;
 using QuickBuilder.Media.Features.UploadFile;
 using QuickBuilder.Media.Infrastructure;
+using QuickBuilder.Media.Variants;
 using QuickBuilder.Shared.Infrastructure.Data;
 using QuickBuilder.Shared.Infrastructure.Modules;
 using QuickBuilder.Shared.Infrastructure.MultiSite;
@@ -70,18 +76,39 @@ public static class MediaModule
         services.AddScoped<MediaFileMapper>();
         services.AddSingleton<UploadGate>();
 
+        // 013: the shared upload and replace pipeline, folders, and eager thumbnails (MV-13).
+        services.AddScoped<UploadPipeline>();
+        services.AddScoped<FolderWrites>();
+        services.AddSingleton<ThumbnailQueue>();
+        services.TryAddSingleton<IImageMetadataProbe, PendingImageMetadataProbe>();
+
         // FR-012: bytes left without a library entry are removed after the grace period.
         services.AddSingleton<MediaOrphanSweepService>();
         services.AddHostedService(sp => sp.GetRequiredService<MediaOrphanSweepService>());
+
+        // 013 MV-26: accent-folded search text for files uploaded before 013.
+        services.AddSingleton<SearchTextBackfillService>();
+        services.AddHostedService(sp => sp.GetRequiredService<SearchTextBackfillService>());
 
         // Feature slices. Each is registered here and nowhere else.
         services.AddScoped<ICommandHandler<UploadFileCommand, Result<MediaFileDto>>, UploadFileHandler>();
         services.AddScoped<IQueryHandler<ListFilesQuery, Result<MediaFilePageDto>>, ListFilesHandler>();
         services.AddScoped<IQueryHandler<GetFileContentQuery, Result<MediaContent>>, GetFileContentHandler>();
-        services.AddScoped<IQueryHandler<ServePublicFileQuery, Result<MediaContent>>, ServePublicFileHandler>();
+        services.AddScoped<IQueryHandler<ServePublicFileQuery, Result<PublicMediaContent>>, ServePublicFileHandler>();
         services.AddScoped<ICommandHandler<DeleteFileCommand, Result>, DeleteFileHandler>();
+
+        // 013 (contracts/media-api.yaml).
+        services.AddScoped<IQueryHandler<GetFileQuery, Result<MediaFileDto>>, GetFileHandler>();
+        services.AddScoped<ICommandHandler<UpdateFileCommand, Result<MediaFileDto>>, UpdateFileHandler>();
+        services.AddScoped<ICommandHandler<MoveFilesCommand, Result>, MoveFilesHandler>();
+        services.AddScoped<IQueryHandler<ListFoldersQuery, Result<MediaFolderTreeDto>>, ListFoldersHandler>();
+        services.AddScoped<ICommandHandler<CreateFolderCommand, Result<MediaFolderDto>>, CreateFolderHandler>();
+        services.AddScoped<ICommandHandler<UpdateFolderCommand, Result<MediaFolderDto>>, UpdateFolderHandler>();
+        services.AddScoped<ICommandHandler<DeleteFolderCommand, Result>, DeleteFolderHandler>();
         // 012: pages that show a deleted file refresh (data-model §3.2).
         services.AddSingleton<IEventTypeRegistration>(new EventTypeRegistration<FileDeleted>());
+        // 013 MV-17: replaced files, recorded dimensions and failed variants refresh them too.
+        services.AddSingleton<IEventTypeRegistration>(new EventTypeRegistration<FileChanged>());
 
         return services;
     }

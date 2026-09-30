@@ -100,7 +100,7 @@ public sealed class RendererGoldenTests
         foreach (var file in root.GetProperty("media").EnumerateObject())
         {
             harness.Media[Guid.Parse(file.Name)] = new PublicMediaFile(
-                file.Value.GetProperty("publicPath").GetString()!, file.Value.GetProperty("contentType").GetString()!);
+                file.Value.GetProperty("publicPath").GetString()!, file.Value.GetProperty("contentType").GetString()!, null, null, []);
         }
 
         foreach (var component in root.GetProperty("components").EnumerateObject())

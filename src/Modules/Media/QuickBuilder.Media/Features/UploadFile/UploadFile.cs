@@ -1,11 +1,13 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
+using Npgsql;
 using QuickBuilder.Media.Contracts;
 using QuickBuilder.Media.Domain;
 using QuickBuilder.Media.Infrastructure;
+using QuickBuilder.Media.Variants;
 using QuickBuilder.Shared.Infrastructure.Dispatch;
-using QuickBuilder.Shared.Infrastructure.Storage;
+using QuickBuilder.Shared.Infrastructure.MultiSite;
 using QuickBuilder.Shared.Kernel.Authorization;
 using QuickBuilder.Shared.Kernel.Dispatch;
 using QuickBuilder.Shared.Kernel.Results;
@@ -19,107 +21,68 @@ internal sealed record UploadFileCommand(
     string? RawFileName,
     string? DeclaredType,
     Stream Body,
-    string PathBase) : ICommand<Result<MediaFileDto>>;
+    string PathBase,
+    Guid? FolderId = null) : ICommand<Result<MediaFileDto>>;
 
 /// <summary>
-/// Stores one uploaded file in a site's library (003 US1, FR-006 to FR-011).
+/// Stores one uploaded file in a site's library (003 US1, FR-006 to FR-011; 013 FR-010, FR-027).
 /// </summary>
 /// <remarks>
-/// The order matters and is the whole design:
-/// <list type="number">
-/// <item>The name must survive cleaning — it is what the library shows.</item>
-/// <item>The type is decided by the first bytes, never by the name or the declared type
-/// (M-07). Only then are those two checked for agreement with it (M-08).</item>
-/// <item>The bytes are written — all or nothing, counted against the limit as they arrive
-/// (M-04, M-09).</item>
-/// <item>Only then is the row inserted. A file appears in the library, and is served, only
-/// once its bytes are durably stored (FR-011). If the insert fails, the bytes are removed
-/// straight away; if even that fails, the orphan sweep removes them later (FR-012).</item>
-/// </list>
+/// <see cref="UploadPipeline"/> validates and stores the bytes; this records them. A file
+/// appears in the library, and is served, only once its bytes are durably stored (FR-011). If
+/// the insert fails, the bytes are removed straight away; if even that fails, the orphan sweep
+/// removes them later (FR-012). The folder, when given, is checked before any byte is stored.
 /// </remarks>
 internal sealed class UploadFileHandler(
     MediaDbContext database,
-    IFileStorage storage,
     ISiteDirectory sites,
-    IOptions<MediaOptions> options,
+    UploadPipeline pipeline,
     MediaFileMapper mapper,
-    UploadGate gate,
+    ThumbnailQueue thumbnails,
     TimeProvider clock,
     ILogger<UploadFileHandler> logger) : ICommandHandler<UploadFileCommand, Result<MediaFileDto>>
 {
     public async Task<Result<MediaFileDto>> HandleAsync(UploadFileCommand command, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(command);
-        var settings = options.Value;
 
         if (await sites.FindByIdAsync(command.SiteId, cancellationToken).ConfigureAwait(false) is null)
         {
             return Result.Failure<MediaFileDto>(MediaErrors.SiteNotFound);
         }
 
-        var fileName = MediaFileName.Clean(command.RawFileName);
-        if (fileName is null)
+        if (command.FolderId is { } folderId
+            && !await database.Folders
+                .AcrossAllSites("Admin upload to a site named explicitly in the route (001 FR-011b).")
+                .AnyAsync(f => f.Id == folderId && f.SiteId == command.SiteId, cancellationToken)
+                .ConfigureAwait(false))
         {
-            return Result.Failure<MediaFileDto>(MediaErrors.FileNameRequired);
-        }
-
-        var head = new byte[FileTypeDetector.HeadLength];
-        int headLength;
-        try
-        {
-            headLength = await command.Body
-                .ReadAtLeastAsync(head, head.Length, throwOnEndOfStream: false, cancellationToken)
-                .ConfigureAwait(false);
-        }
-        catch (BadHttpRequestException ex) when (ex.StatusCode == StatusCodes.Status413PayloadTooLarge)
-        {
-            return Result.Failure<MediaFileDto>(MediaErrors.TooLarge(settings.MaxFileSizeBytes));
-        }
-
-        if (headLength == 0)
-        {
-            return Result.Failure<MediaFileDto>(MediaErrors.Empty);
-        }
-
-        var type = FileTypeDetector.Detect(head.AsSpan(0, headLength));
-        if (type is null || !settings.AllowedFileTypes.Contains(type))
-        {
-            return Result.Failure<MediaFileDto>(MediaErrors.UnsupportedType);
-        }
-
-        var extension = MediaFileName.Extension(fileName);
-        if (!type.Accepts(extension, command.DeclaredType))
-        {
-            return Result.Failure<MediaFileDto>(MediaErrors.TypeMismatch);
+            return Result.Failure<MediaFileDto>(MediaErrors.FolderNotFound);
         }
 
         var fileId = Guid.NewGuid();
         var key = MediaStorageKeys.For(command.SiteId, fileId);
-        var upload = new UploadStream(head.AsMemory(0, headLength), command.Body, settings.MaxFileSizeBytes);
 
-        // At most ProcessorCount - 1 uploads write at once, so a burst never takes every core
-        // from the rest of the admin surface (SC-008, research M-23).
-        Error? stored;
-        using (await gate.EnterAsync(cancellationToken).ConfigureAwait(false))
+        var stored = await pipeline.StoreAsync(key, command.RawFileName, command.DeclaredType, command.Body, cancellationToken)
+            .ConfigureAwait(false);
+        if (stored.IsFailure)
         {
-            stored = await StoreAsync(key, upload, settings.MaxFileSizeBytes, cancellationToken).ConfigureAwait(false);
+            return Result.Failure<MediaFileDto>(stored.Error);
         }
 
-        if (stored is not null)
-        {
-            return Result.Failure<MediaFileDto>(stored);
-        }
-
+        var upload = stored.Value;
         var file = MediaFile.Create(
             fileId,
             command.SiteId,
-            fileName,
-            type,
-            extension,
-            upload.BytesRead,
+            upload.FileName,
+            upload.Type,
+            upload.Extension,
+            upload.SizeBytes,
             clock.GetUtcNow(),
             command.UserId,
-            key.Value);
+            key.Value,
+            command.FolderId,
+            upload.Metadata);
 
         database.MediaFiles.Add(file);
 
@@ -127,77 +90,33 @@ internal sealed class UploadFileHandler(
         {
             await database.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         }
+        catch (DbUpdateException ex) when (ex.InnerException is PostgresException
+        {
+            SqlState: PostgresErrorCodes.ForeignKeyViolation,
+            ConstraintName: "fk_media_files_folder",
+        })
+        {
+            // The folder was deleted while the bytes were arriving.
+            await pipeline.RemoveAsync(key, CancellationToken.None).ConfigureAwait(false);
+            return Result.Failure<MediaFileDto>(MediaErrors.FolderNotFound);
+        }
         catch
         {
-            await RemoveBytesAsync(key, command.SiteId, fileId).ConfigureAwait(false);
+            await pipeline.RemoveAsync(key, CancellationToken.None).ConfigureAwait(false);
             throw;
         }
 
         // Identifiers only: a file's name can itself be personal data (FR-030).
         logger.LogInformation(
             "Media file {MediaFileId} ({ContentType}, {SizeBytes} bytes) added to site {SiteId}.",
-            fileId, type.Mime, upload.BytesRead, command.SiteId);
+            fileId, upload.Type.Mime, upload.SizeBytes, command.SiteId);
+
+        // 013 MV-13: the thumbnail is produced right after, without holding up this answer.
+        thumbnails.Enqueue(file);
 
         var dto = await mapper.MapAsync([file], command.SiteId, command.PathBase, checkAvailability: false, cancellationToken)
             .ConfigureAwait(false);
         return Result.Success(dto[0]);
-    }
-
-    /// <summary>Writes the bytes. Null on success, otherwise the error to report.</summary>
-    private async Task<Error?> StoreAsync(StorageKey key, UploadStream upload, long limit, CancellationToken cancellationToken)
-    {
-        try
-        {
-            await storage.WriteAsync(key, upload, cancellationToken).ConfigureAwait(false);
-            return null;
-        }
-        catch (UploadTooLargeException)
-        {
-            return MediaErrors.TooLarge(limit);
-        }
-        catch (UploadInterruptedException)
-        {
-            // The client went away; nothing was stored and nobody is listening for an answer.
-            throw;
-        }
-        catch (IOException ex) when (IsDiskFull(ex))
-        {
-            logger.LogError(ex, "Storage is out of space; an upload to key prefix {KeyPrefix} was refused.", key.FirstSegment);
-            return MediaErrors.StorageFull;
-        }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException && !cancellationToken.IsCancellationRequested)
-        {
-            logger.LogError(ex, "Storage failed while writing an upload for site {SiteId}.", key.FirstSegment);
-            return MediaErrors.StorageUnavailable;
-        }
-    }
-
-    private async Task RemoveBytesAsync(StorageKey key, Guid siteId, Guid fileId)
-    {
-        try
-        {
-            await storage.DeleteAsync(key, CancellationToken.None).ConfigureAwait(false);
-        }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-        {
-            logger.LogWarning(ex,
-                "Could not remove the bytes of media file {MediaFileId} on site {SiteId} after its record failed to save; " +
-                "the orphan sweep will remove them.",
-                fileId, siteId);
-        }
-    }
-
-    /// <summary>ERROR_DISK_FULL / ERROR_HANDLE_DISK_FULL on Windows; ENOSPC / EDQUOT elsewhere.</summary>
-    internal static bool IsDiskFull(IOException ex)
-    {
-        ArgumentNullException.ThrowIfNull(ex);
-
-        const int win32Prefix = unchecked((int)0x80070000);
-        var hresult = ex.HResult;
-
-        return (hresult & unchecked((int)0xFFFF0000)) == win32Prefix
-            ? (hresult & 0xFFFF) is 0x70 or 0x27
-            : hresult is 28 or 122;
     }
 }
 
@@ -209,7 +128,7 @@ public sealed class UploadFileController(IDispatcher dispatcher, IAccessEvaluato
     /// <summary>The header carrying the original file name, percent-encoded UTF-8.</summary>
     public const string FileNameHeader = "X-QuickBuilder-File-Name";
 
-    /// <summary>Stores the request body as a new file in the site's library.</summary>
+    /// <summary>Stores the request body as a new file in the site's library, optionally in a folder (013).</summary>
     [HttpPost]
     [RequireCapability(MediaCapabilities.Upload)]
     [UploadSizeLimit]
@@ -218,7 +137,7 @@ public sealed class UploadFileController(IDispatcher dispatcher, IAccessEvaluato
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status413PayloadTooLarge)]
     [ProducesResponseType(StatusCodes.Status415UnsupportedMediaType)]
-    public async Task<IActionResult> UploadAsync(Guid siteId, CancellationToken cancellationToken)
+    public async Task<IActionResult> UploadAsync(Guid siteId, [FromQuery] Guid? folderId, CancellationToken cancellationToken)
     {
         var command = new UploadFileCommand(
             siteId,
@@ -226,7 +145,8 @@ public sealed class UploadFileController(IDispatcher dispatcher, IAccessEvaluato
             Request.Headers[FileNameHeader].FirstOrDefault(),
             Request.ContentType,
             Request.Body,
-            Request.PathBase.Value ?? string.Empty);
+            Request.PathBase.Value ?? string.Empty,
+            folderId);
 
         var result = await dispatcher.SendAsync(command, cancellationToken).ConfigureAwait(false);
 

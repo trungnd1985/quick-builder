@@ -18,6 +18,14 @@ export interface ProblemDetails {
   rule?: string
   /** A JSON Pointer to where a document or token set failed. */
   pointer?: string
+  /** A `media.in_use` refusal's usage summary (013 contracts/media-api.yaml). */
+  usage?: {
+    places: number
+    draftPlaces: number
+    livePlaces: number
+    historyOnlyPlaces: number
+    inLiveUse: boolean
+  }
 }
 
 /** An error carrying the server's problem details, so screens can show the real reason. */

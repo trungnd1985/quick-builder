@@ -83,7 +83,7 @@ public sealed class GetFileContentController(IDispatcher dispatcher) : Controlle
         }
 
         var (file, stored) = result.Value;
-        var (etag, lastModified) = MediaResponseHeaders.Apply(Response, file, MediaResponseKind.Preview);
+        var (etag, lastModified) = MediaResponseHeaders.Apply(Response, file, MediaAddress.Original(file), MediaResponseKind.Preview);
 
         // FileStreamResult disposes the stream once the response is written.
         return File(stored.Content, file.ContentType, lastModified, etag, enableRangeProcessing: true);

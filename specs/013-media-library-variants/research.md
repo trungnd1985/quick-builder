@@ -346,9 +346,12 @@ model and the contracts. Each one gives the decision, why, and what else was con
   - `is_animated`: more than one page or frame (GIF, WebP, AVIF sequences).
 - **Pixel limit** (FR-027): if `width × height` exceeds `Media:MaxImagePixels` (default
   100,000,000), the upload is refused with `media.dimensions_too_large`, and the stored
-  bytes are deleted straight away. The orphan sweep covers a crash. The same happens when
-  the header cannot be read (`media.unsupported_type`): the content type said "image" but
-  the codec disagrees.
+  bytes are deleted straight away. The orphan sweep covers a crash.
+- **Unreadable header** (revised during implementation): when libvips cannot read the header
+  although 003's content detection accepted the file, the upload is **kept** with
+  `metadata_state = unreadable`. It is served as its original and gets no variants. Refusing
+  it would have turned files 003 accepts, such as a photo with a damaged EXIF block, into
+  new upload failures. Nothing is decoded either way, so this weakens no safety property.
 - PDFs get no dimensions.
 - **Existing images** (FR-027): `ImageMetadataBackfillService` lists the sites that have
   rows with `metadata_state = pending`, then works **one site at a time** (Principle V:

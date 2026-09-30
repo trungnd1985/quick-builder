@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using QuickBuilder.Media.Contracts;
+using QuickBuilder.Media.Domain;
 using QuickBuilder.Shared.Infrastructure.Data;
 using QuickBuilder.Shared.Infrastructure.MultiSite;
 using QuickBuilder.Shared.Kernel.MultiSite;
@@ -28,12 +29,19 @@ internal sealed class PublicMediaReader(PublicMediaReadDbContext database) : IPu
 
         var files = await database.Files
             .Where(f => f.SiteId == siteId && mediaIds.Contains(f.Id))
-            .Select(f => new { f.Id, f.Extension, f.ContentType })
+            .Select(f => new { f.Id, f.Extension, f.ContentType, f.ContentVersion, f.Width, f.Height })
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
 
         // The same address MediaFileMapper.PublicPath builds, without the base path.
-        return files.ToDictionary(f => f.Id, f => new PublicMediaFile($"/_media/{f.Id:N}.{f.Extension}", f.ContentType));
+        return files.ToDictionary(
+            f => f.Id,
+            f => new PublicMediaFile(
+                new MediaAddress(f.Id, f.ContentVersion, null, f.Extension).ToPath(),
+                f.ContentType,
+                f.Width,
+                f.Height,
+                []));
     }
 }
 
@@ -70,6 +78,8 @@ internal sealed class PublicMediaReadDbContext(DbContextOptions<PublicMediaReadD
         {
             entity.ToTable("media_files");
             entity.HasKey(e => e.Id);
+            entity.Property(e => e.MetadataState).HasConversion<short>();
+            entity.Property(e => e.VariantsState).HasConversion<short>();
             entity.HasQueryFilter(e => e.SiteId == CurrentSiteId);
         });
 
@@ -92,4 +102,16 @@ internal sealed class PublicMediaRow : ISiteOwned
     public string Extension { get; set; } = string.Empty;
 
     public string ContentType { get; set; } = string.Empty;
+
+    public int ContentVersion { get; set; }
+
+    public int? Width { get; set; }
+
+    public int? Height { get; set; }
+
+    public bool IsAnimated { get; set; }
+
+    public MediaMetadataState MetadataState { get; set; }
+
+    public MediaVariantsState VariantsState { get; set; }
 }

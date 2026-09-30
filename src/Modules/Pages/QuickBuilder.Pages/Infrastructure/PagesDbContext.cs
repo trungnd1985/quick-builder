@@ -40,6 +40,10 @@ internal sealed class PagesDbContext(DbContextOptions<PagesDbContext> options, I
 
     internal DbSet<LiveDependency> LiveDependencies => Set<LiveDependency>();
 
+    internal DbSet<DraftMediaReference> DraftMediaReferences => Set<DraftMediaReference>();
+
+    internal DbSet<VersionMediaReference> VersionMediaReferences => Set<VersionMediaReference>();
+
     internal DbSet<PublishSchedule> PublishSchedules => Set<PublishSchedule>();
 
     internal DbSet<PublishLogEntry> PublishLog => Set<PublishLogEntry>();
@@ -339,6 +343,38 @@ internal sealed class PagesDbContext(DbContextOptions<PagesDbContext> options, I
             entity
                 .HasIndex(e => new { e.SiteId, e.TargetKind, e.TargetId })
                 .HasDatabaseName("ix_live_dependencies_target");
+
+            entity.HasQueryFilter(e => e.SiteId == CurrentSiteId);
+        });
+
+        // 013 data-model.md §2.1, §2.2 (research MV-05): where media files are used.
+        modelBuilder.Entity<DraftMediaReference>(entity =>
+        {
+            entity.ToTable("draft_media_references", Schema, t =>
+                t.HasCheckConstraint("ck_draft_media_references_subject_kind", subjectKinds));
+
+            entity.HasKey(e => new { e.SubjectKind, e.SubjectId, e.MediaId });
+            entity.Property(e => e.SubjectKind).HasMaxLength(16);
+
+            // "Where is this file used?" is the question Media asks.
+            entity.HasIndex(e => new { e.SiteId, e.MediaId }).HasDatabaseName("ix_draft_media_references_media");
+
+            entity.HasQueryFilter(e => e.SiteId == CurrentSiteId);
+        });
+
+        modelBuilder.Entity<VersionMediaReference>(entity =>
+        {
+            entity.ToTable("version_media_references", Schema);
+
+            entity.HasKey(e => new { e.VersionId, e.MediaId });
+
+            entity
+                .HasOne<PublishedVersion>()
+                .WithMany()
+                .HasForeignKey(e => e.VersionId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(e => new { e.SiteId, e.MediaId }).HasDatabaseName("ix_version_media_references_media");
 
             entity.HasQueryFilter(e => e.SiteId == CurrentSiteId);
         });

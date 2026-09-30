@@ -389,6 +389,142 @@ button.danger:where(:not(.qb-canvas *)) {
   box-shadow: 0 0.5rem 2rem rgb(22 25 29 / 30%);
 }
 
+/* --- Media library: folders, search, details (013) -------------------------------- */
+
+.media-library {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+.media-library:has(.media-details) {
+  grid-template-columns: minmax(0, 1fr) minmax(16rem, 22rem);
+}
+
+.media-browser {
+  display: grid;
+  grid-template-columns: minmax(12rem, 16rem) minmax(0, 1fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+.media-browser__main {
+  min-width: 0;
+}
+
+.folder-tree ul[role="tree"] {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.folder-tree [role="treeitem"] {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding-block: 0.25rem;
+  padding-inline-end: 0.5rem;
+  border-radius: var(--radius);
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+
+.folder-tree [role="treeitem"].selected {
+  background: var(--surface);
+  font-weight: 600;
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+.folder-tree .toggle {
+  padding: 0 0.25rem;
+  border: 0;
+  background: none;
+}
+
+.folder-actions,
+.folder-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.folder-form {
+  flex-direction: column;
+}
+
+.media-toolbar,
+.move-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.media-toolbar .field,
+.move-bar .field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.media-details {
+  position: sticky;
+  top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.media-details__header {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.media-details__header h2 {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.media-details__preview {
+  max-width: 100%;
+  max-height: 16rem;
+  object-fit: contain;
+  background: var(--surface);
+  border-radius: var(--radius);
+}
+
+.media-details__facts {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.25rem 0.75rem;
+  margin: 0;
+}
+
+.media-details__facts dt {
+  color: var(--text-muted);
+}
+
+.media-details__facts dd {
+  margin: 0;
+}
+
+.alt-text-editor textarea {
+  width: 100%;
+  font: inherit;
+}
+
+@media (max-width: 48rem) {
+  .media-browser,
+  .media-library:has(.media-details) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 /* 009: site management. */
 .badge-warning {
   border-color: var(--danger);

@@ -1,20 +1,34 @@
 <script setup lang="ts">
 import { nextTick, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { mediaApi, publicUrl, type MediaFile } from '../../api/media'
+import { publicUrl, type MediaFile } from '../../api/media'
 
-// 003 US1/US3: the library as a table — previews, details, the public address and
-// deletion. Names are always rendered as text (contracts/media-api.yaml). Buttons appear
-// only where they would work; the server enforces the same rules regardless (FR-024).
+// 003 US1/US3, 013 US1/US4: the library as a table — thumbnails, details, usage, the public
+// address, selection for moving, and deletion; in the picker, a Choose action instead.
+// Names are always rendered as text (contracts/media-api.yaml). Buttons appear only where
+// they would work; the server enforces the same rules regardless.
 
-const props = defineProps<{
-  siteId: string
-  files: MediaFile[]
-  /** The site's host names; the first builds copyable addresses. */
-  hostNames: string[]
+const props = withDefaults(
+  defineProps<{
+    siteId: string
+    files: MediaFile[]
+    /** The site's host names; the first builds copyable addresses. */
+    hostNames: string[]
+    mode?: 'library' | 'picker'
+    /** Library mode: rows ticked for "Move to…". */
+    selectedIds?: string[]
+    /** Library mode: whether files can be moved (the upload capability). */
+    canMove?: boolean
+  }>(),
+  { mode: 'library', selectedIds: () => [], canMove: false },
+)
+
+const emit = defineEmits<{
+  delete: [file: MediaFile, trigger: HTMLElement]
+  details: [file: MediaFile, trigger: HTMLElement]
+  choose: [file: MediaFile]
+  toggle: [fileId: string, selected: boolean]
 }>()
-
-const emit = defineEmits<{ delete: [file: MediaFile, trigger: HTMLElement] }>()
 
 const { t, d, n } = useI18n()
 const root = ref<HTMLElement | null>(null)
@@ -34,6 +48,12 @@ function size(bytes: number): string {
 
 function isImage(file: MediaFile): boolean {
   return file.contentType.startsWith('image/')
+}
+
+/** A 2× source for sharp thumbnails on high-density screens (013 MV-16). */
+function thumbnailSrcset(file: MediaFile): string | undefined {
+  const [first, second] = file.variants
+  return first && second ? `${first.path} 1x, ${second.path} 2x` : undefined
 }
 
 async function copy(file: MediaFile): Promise<void> {
@@ -70,10 +90,16 @@ defineExpose({ focusRow, announce: (text: string) => (announcement.value = text)
 
     <table class="sites-table media-table">
       <caption class="visually-hidden">
-        {{ t('media.table.caption') }}
+        {{ mode === 'picker' ? t('media.table.pickerCaption') : t('media.table.caption') }}
       </caption>
       <thead>
         <tr>
+          <th
+            v-if="mode === 'library' && canMove"
+            scope="col"
+          >
+            <span class="visually-hidden">{{ t('media.table.select') }}</span>
+          </th>
           <th scope="col">
             {{ t('media.table.preview') }}
           </th>
@@ -89,8 +115,17 @@ defineExpose({ focusRow, announce: (text: string) => (announcement.value = text)
           <th scope="col">
             {{ t('media.table.uploaded') }}
           </th>
-          <th scope="col">
+          <th
+            v-if="mode === 'library'"
+            scope="col"
+          >
             {{ t('media.table.uploadedBy') }}
+          </th>
+          <th
+            v-if="mode === 'library'"
+            scope="col"
+          >
+            {{ t('media.table.usedIn') }}
           </th>
           <th scope="col">
             {{ t('media.table.actions') }}
@@ -104,6 +139,14 @@ defineExpose({ focusRow, announce: (text: string) => (announcement.value = text)
           tabindex="-1"
           :data-file-id="file.id"
         >
+          <td v-if="mode === 'library' && canMove">
+            <input
+              type="checkbox"
+              :checked="selectedIds.includes(file.id)"
+              :aria-label="t('media.table.selectFile', { name: file.fileName })"
+              @change="emit('toggle', file.id, ($event.target as HTMLInputElement).checked)"
+            >
+          </td>
           <td class="preview">
             <span
               v-if="!file.available"
@@ -111,7 +154,8 @@ defineExpose({ focusRow, announce: (text: string) => (announcement.value = text)
             >{{ t('media.table.unavailable') }}</span>
             <img
               v-else-if="isImage(file)"
-              :src="mediaApi.previewUrl(siteId, file.id)"
+              :src="file.thumbnailPath"
+              :srcset="thumbnailSrcset(file)"
               alt=""
               loading="lazy"
             >
@@ -128,25 +172,49 @@ defineExpose({ focusRow, announce: (text: string) => (announcement.value = text)
           <td>
             <time :datetime="file.uploadedAtUtc">{{ d(new Date(file.uploadedAtUtc), 'short') }}</time>
           </td>
-          <td>{{ file.uploadedBy.displayName || t('media.table.unknownUser') }}</td>
+          <td v-if="mode === 'library'">
+            {{ file.uploadedBy.displayName || t('media.table.unknownUser') }}
+          </td>
+          <td v-if="mode === 'library'">
+            {{ file.usage.places === 0 ? t('media.table.unused') : t('media.table.places', { n: file.usage.places }, file.usage.places) }}
+          </td>
           <td class="row-actions">
-            <button
-              v-if="hostNames.length > 0 && file.available"
-              type="button"
-              :aria-label="t('media.copy.label', { name: file.fileName })"
-              @click="copy(file)"
-            >
-              {{ t('media.copy.button') }}
-            </button>
-            <button
-              v-if="file.canDelete"
-              type="button"
-              class="danger"
-              :aria-label="t('media.delete.label', { name: file.fileName })"
-              @click="emit('delete', file, $event.currentTarget as HTMLElement)"
-            >
-              {{ t('media.delete.button') }}
-            </button>
+            <template v-if="mode === 'picker'">
+              <button
+                type="button"
+                class="primary"
+                :aria-label="t('media.picker.chooseFile', { name: file.fileName })"
+                @click="emit('choose', file)"
+              >
+                {{ t('media.picker.choose') }}
+              </button>
+            </template>
+            <template v-else>
+              <button
+                type="button"
+                :aria-label="t('media.details.label', { name: file.fileName })"
+                @click="emit('details', file, $event.currentTarget as HTMLElement)"
+              >
+                {{ t('media.details.button') }}
+              </button>
+              <button
+                v-if="hostNames.length > 0 && file.available"
+                type="button"
+                :aria-label="t('media.copy.label', { name: file.fileName })"
+                @click="copy(file)"
+              >
+                {{ t('media.copy.button') }}
+              </button>
+              <button
+                v-if="file.canDelete"
+                type="button"
+                class="danger"
+                :aria-label="t('media.delete.label', { name: file.fileName })"
+                @click="emit('delete', file, $event.currentTarget as HTMLElement)"
+              >
+                {{ t('media.delete.button') }}
+              </button>
+            </template>
           </td>
         </tr>
       </tbody>

@@ -146,22 +146,63 @@ public sealed class MediaPerformanceTests(ITestOutputHelper output) : IAsyncLife
     /// </summary>
     private async Task<List<string>> MeasurePagingAsync(HttpClient client, string session, Guid siteId)
     {
+        // 013: distinct, already-normalised names, so sorting by name and searching have real
+        // work to do. Marked as not images (metadata not applicable) so the metadata backfill
+        // leaves them alone while the measurements run.
         var seed = await _deployment.ComposeAsync(
             "exec -T db psql -U quickbuilder -d quickbuilder -v ON_ERROR_STOP=1 -c \"" +
-            "INSERT INTO media.media_files (id, site_id, file_name, content_type, extension, size_bytes, uploaded_at_utc, uploaded_by, storage_key) " +
-            "SELECT g.id, s.site, 'seed.png', 'image/png', 'png', 1024, now() - (g.n || ' seconds')::interval, gen_random_uuid(), " +
-            "replace(s.site::text, '-', '') || '/media/' || replace(g.id::text, '-', '') " +
+            "INSERT INTO media.media_files (id, site_id, file_name, content_type, extension, size_bytes, uploaded_at_utc, uploaded_by, storage_key, " +
+            "search_text, sort_name, search_text_state, metadata_state) " +
+            "SELECT g.id, s.site, 'seed-' || g.n || '.png', 'image/png', 'png', 1024, now() - (g.n || ' seconds')::interval, gen_random_uuid(), " +
+            "replace(s.site::text, '-', '') || '/media/' || replace(g.id::text, '-', ''), " +
+            "'seed-' || g.n || '.png', 'seed-' || g.n || '.png', 1, 2 " +
             // gen_random_uuid() in the select list runs per row; in an uncorrelated LATERAL it
             // would run once and every row would share an id.
             "FROM (SELECT gen_random_uuid() AS id, n FROM generate_series(1, 10000) AS n) g, " +
             $"(SELECT '{siteId}'::uuid AS site) s;\"").ConfigureAwait(true);
         Assert.True(seed.ExitCode == 0, $"Seeding 10,000 rows failed:\n{seed.Output}");
 
+        var cursors = await CursorsAsync(client, session, siteId, string.Empty).ConfigureAwait(true);
+
+        var first = (await ListMediaAsync(client, session, siteId, cursors[0]).ConfigureAwait(true)).Elapsed;
+        var middle = (await ListMediaAsync(client, session, siteId, cursors[cursors.Count / 2]).ConfigureAwait(true)).Elapsed;
+        var last = (await ListMediaAsync(client, session, siteId, cursors[^1]).ConfigureAwait(true)).Elapsed;
+
+        // 013 SC-001: the last page sorted by name, and whole-library searches, 20 runs each.
+        var byName = await CursorsAsync(client, session, siteId, "&sort=name").ConfigureAwait(true);
+        var lastByName = new List<TimeSpan>();
+        var searches = new List<TimeSpan>();
+        for (var i = 0; i < 20; i++)
+        {
+            lastByName.Add((await ListMediaAsync(client, session, siteId, byName[^1], "&sort=name").ConfigureAwait(true)).Elapsed);
+            searches.Add((await ListMediaAsync(client, session, siteId, null, $"&q=seed-9{i:D2}").ConfigureAwait(true)).Elapsed);
+        }
+
+        output.WriteLine($"library of {cursors.Count} pages: first {Ms(first)}, middle {Ms(middle)}, last {Ms(last)}");
+        output.WriteLine($"last page by name p95 {Ms(P95(lastByName))}; whole-library search p95 {Ms(P95(searches))}");
+
+        var misses = new List<string>();
+        if (first > PageTarget || middle > PageTarget || last > PageTarget)
+        {
+            misses.Add($"SC-009a: a library page took longer than {Ms(PageTarget)}.");
+        }
+
+        if (P95(lastByName) > PageTarget || P95(searches) > PageTarget)
+        {
+            misses.Add($"013 SC-001: the last page by name or a search took longer than {Ms(PageTarget)} at p95.");
+        }
+
+        return misses;
+    }
+
+    /// <summary>Every page's cursor for a listing, starting with null for the first page.</summary>
+    private static async Task<List<string?>> CursorsAsync(HttpClient client, string session, Guid siteId, string query)
+    {
         var cursors = new List<string?> { null };
         string? cursor = null;
         do
         {
-            cursor = (await ListMediaAsync(client, session, siteId, cursor).ConfigureAwait(true)).Cursor;
+            cursor = (await ListMediaAsync(client, session, siteId, cursor, query).ConfigureAwait(false)).Cursor;
             if (cursor is not null)
             {
                 cursors.Add(cursor);
@@ -169,14 +210,7 @@ public sealed class MediaPerformanceTests(ITestOutputHelper output) : IAsyncLife
         }
         while (cursor is not null);
 
-        var first = (await ListMediaAsync(client, session, siteId, cursors[0]).ConfigureAwait(true)).Elapsed;
-        var middle = (await ListMediaAsync(client, session, siteId, cursors[cursors.Count / 2]).ConfigureAwait(true)).Elapsed;
-        var last = (await ListMediaAsync(client, session, siteId, cursors[^1]).ConfigureAwait(true)).Elapsed;
-
-        output.WriteLine($"library of {cursors.Count} pages: first {Ms(first)}, middle {Ms(middle)}, last {Ms(last)}");
-        return first <= PageTarget && middle <= PageTarget && last <= PageTarget
-            ? []
-            : [$"SC-009a: a library page took longer than {Ms(PageTarget)}."];
+        return cursors;
     }
 
     /// <summary>The compose network the app is on.</summary>
@@ -265,9 +299,10 @@ public sealed class MediaPerformanceTests(ITestOutputHelper output) : IAsyncLife
         return (await response.Content.ReadFromJsonAsync<JsonElement>().ConfigureAwait(false)).GetProperty("publicPath").GetString()!;
     }
 
-    private static async Task<(TimeSpan Elapsed, string? Cursor)> ListMediaAsync(HttpClient client, string session, Guid siteId, string? cursor)
+    private static async Task<(TimeSpan Elapsed, string? Cursor)> ListMediaAsync(
+        HttpClient client, string session, Guid siteId, string? cursor, string query = "")
     {
-        var path = $"/api/v1/media/sites/{siteId}/files?limit=100" + (cursor is null ? string.Empty : $"&cursor={Uri.EscapeDataString(cursor)}");
+        var path = $"/api/v1/media/sites/{siteId}/files?limit=100{query}" + (cursor is null ? string.Empty : $"&cursor={Uri.EscapeDataString(cursor)}");
         using var request = new HttpRequestMessage(HttpMethod.Get, new Uri(path, UriKind.Relative));
         request.Headers.Add("Cookie", session);
 

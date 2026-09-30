@@ -113,6 +113,10 @@ writable or readable after startup reports not ready until it recovers.
 | `Media:MaxFileSizeBytes` | `20971520` (20 MiB) | 1,024 – 1,073,741,824 | The largest file an upload may be. The server stops receiving an upload the moment it passes this. |
 | `Media:AllowedTypes` | all six: `image/jpeg`, `image/png`, `image/gif`, `image/webp`, `image/avif`, `application/pdf` | a subset of those six | Which types uploads may have, decided from each file's contents. Set `Media__AllowedTypes__0`, `__1`, … to narrow the list; any other type (SVG, for example) stops startup. |
 | `Media:OrphanGracePeriod` | `1.00:00:00` (24 h) | 1 hour – 30 days | Stored bytes with no library entry — left by a crash or a failed clean-up — are removed by an hourly sweep once they are this old. |
+| `Media:MaxImagePixels` | `100000000` (100 megapixels) | 1,000,000 – 1,000,000,000 | Images with more pixels (width × height) are refused at upload with `media.dimensions_too_large`. Only the image header is read to decide, so an oversized image is never decoded. |
+| `Media:Variants:Widths` | `320, 640, 960, 1280, 1920, 2560` | 1–10 widths, ascending, 64 – 4,096 | The widths published pages and the admin offer resized copies at. The smallest is the thumbnail width, produced right after upload; the others are produced the first time they are requested. Set `Media__Variants__Widths__0`, `__1`, … to replace the list; addresses for removed widths stop working and their stored copies are cleaned up. |
+| `Media:Variants:MaxConcurrent` | half the processor count, at least 1 | 1 – 64 | How many resized copies one instance produces at the same time. Requests beyond it wait. |
+| `Media:Variants:Timeout` | `00:00:10` | 1 – 60 seconds | How long producing one resized copy may take, waiting included. Past it, the original is sent (not cached) and the file stops offering resized copies until it is replaced. |
 
 Every site serves its media files at `/_media/{id}.{ext}` on its own host names. The
 `/_media` path is reserved on every site host: if a reverse proxy handled that path

@@ -1,14 +1,14 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ACCEPTED_EXTENSIONS, ApiError, mediaApi, type MediaFile } from '../../api/media'
+import { ACCEPTED_BY_KIND, ACCEPTED_EXTENSIONS, ApiError, mediaApi, type MediaFile, type MediaKind } from '../../api/media'
 
 // 003 US1: upload by choosing files or dropping them, with progress and a result for each
 // file (FR-010, FR-027). Every file is its own request, so one refusal never blocks the
 // others (research M-10). The privacy notice sits above the controls, before anything is
 // sent: files are public at once, embedded details included (clarifications Q1, Q3).
 
-const props = defineProps<{ siteId: string }>()
+const props = defineProps<{ siteId: string; /** Uploads land in this folder (013 FR-010); null is the top level. */ folderId?: string | null; /** Limits the picker to one kind of file. */ accept?: MediaKind }>()
 const emit = defineEmits<{ uploaded: [file: MediaFile] }>()
 
 const { t, te } = useI18n()
@@ -74,9 +74,14 @@ function pump(): void {
 
 async function send(item: Item): Promise<void> {
   try {
-    const stored = await mediaApi.upload(props.siteId, item.file, (fraction) => {
-      item.percent = Math.round(fraction * 100)
-    })
+    const stored = await mediaApi.upload(
+      props.siteId,
+      item.file,
+      (fraction) => {
+        item.percent = Math.round(fraction * 100)
+      },
+      props.folderId ?? null,
+    )
     item.status = 'done'
     emit('uploaded', stored)
   } catch (caught) {
@@ -147,7 +152,7 @@ function describe(item: Item): string {
         multiple
         tabindex="-1"
         aria-hidden="true"
-        :accept="ACCEPTED_EXTENSIONS"
+        :accept="props.accept ? ACCEPTED_BY_KIND[props.accept] : ACCEPTED_EXTENSIONS"
         @change="onChosen"
       >
     </div>
