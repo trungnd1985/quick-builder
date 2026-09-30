@@ -208,6 +208,9 @@ DocProject/Help/html
 
 # Click-Once directory
 publish/
+# ...but not feature slices named Publish: git matches case-insensitively on Windows, so the
+# rule above would silently drop them (012 Pages/Features/Publish).
+!src/**/Features/[Pp]ublish/
 
 # Publish Web Output
 *.[Pp]ublish.xml
