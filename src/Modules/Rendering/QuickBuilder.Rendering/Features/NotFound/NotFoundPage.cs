@@ -45,19 +45,20 @@ internal sealed class NotFoundPage(
     {
         ArgumentNullException.ThrowIfNull(site);
 
+        // The key from numbers only; the design document is read on a miss, as pages do (PR-05).
         var homeLive = await pages.IsHomePageLiveAsync(site.Id, cancellationToken).ConfigureAwait(false);
-        var design = await designs.GetLiveAsync(site.Id, cancellationToken).ConfigureAwait(false);
+        var designNumber = await designs.GetLiveNumberAsync(site.Id, cancellationToken).ConfigureAwait(false);
         var basePath = PageShell.TrimBase(new Uri(site.BaseUrl).AbsolutePath);
 
         var key = CacheKey.ForSite(
-            site.Id, "notfound", $"d{design.Number}:s{site.Version}:h{(homeLive ? 1 : 0)}:b{basePath}:r{RenderKey.RendererStamp}");
+            site.Id, "notfound", $"d{designNumber}:s{site.Version}:h{(homeLive ? 1 : 0)}:b{basePath}:r{RenderKey.RendererStamp}");
 
         RenderedPage page;
         try
         {
             page = await cache.GetOrCreateAsync(
                     key,
-                    _ => Task.FromResult(Render(site, design.Document, homeLive, basePath)),
+                    ct => RenderAsync(site, homeLive, basePath, ct),
                     rendered => new CacheEntrySettings(rendered.Html.Length),
                     cancellationToken)
                 .ConfigureAwait(false);
@@ -65,15 +66,17 @@ internal sealed class NotFoundPage(
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             logger.LogWarning(ex, "The page cache failed; the not-found page of site {SiteId} was rendered without it.", site.Id);
-            page = Render(site, design.Document, homeLive, basePath);
+            page = await RenderAsync(site, homeLive, basePath, cancellationToken).ConfigureAwait(false);
         }
 
         var response = PageResponder.ToResponse(page, new Dictionary<string, string> { ["Cache-Control"] = "no-store" });
         return response with { StatusCode = StatusCodes.Status404NotFound };
     }
 
-    private RenderedPage Render(SiteDto site, JsonElement design, bool homeLive, string basePath)
+    private async Task<RenderedPage> RenderAsync(SiteDto site, bool homeLive, string basePath, CancellationToken cancellationToken)
     {
+        var design = (await designs.GetLiveAsync(site.Id, cancellationToken).ConfigureAwait(false)).Document;
+
         var texts = PublicTexts.For(site.DefaultLanguage);
         using var document = JsonDocument.Parse(Document(texts, homeLive));
 
