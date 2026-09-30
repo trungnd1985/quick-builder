@@ -83,8 +83,8 @@ Shorthand used below:
 **Purpose**: the feature's documents, packages, the image-library spike, and build and
 test wiring. Nothing here has behaviour.
 
-- [ ] T001 Commit `specs/013-media-library-variants/` (spec, plan, research, data model, contracts, quickstart, checklist, tasks) as the first commit on branch `013-media-library-variants`, referencing #13 (plan.md "Development Workflow").
-- [ ] T002 Add package versions to `Directory.Packages.props` (research MV-22):
+- [X] T001 Commit `specs/013-media-library-variants/` (spec, plan, research, data model, contracts, quickstart, checklist, tasks) as the first commit on branch `013-media-library-variants`, referencing #13 (plan.md "Development Workflow").
+- [X] T002 Add package versions to `Directory.Packages.props` (research MV-22):
   - `NetVips` 3.x;
   - `NetVips.Native.linux-musl-x64`, `NetVips.Native.linux-musl-arm64`, `NetVips.Native.linux-x64` and `NetVips.Native.win-x64`, all at the same libvips version;
   - `AWSSDK.S3` 4.x, `Azure.Storage.Blobs` 12.x, `Azure.Identity` 1.x;
@@ -92,24 +92,24 @@ test wiring. Nothing here has behaviour.
   - `Testcontainers.Minio` and `Testcontainers.Azurite` at the `Testcontainers.PostgreSql` version.
 
   Add a comment block per group: why it exists, its licence, and the alternative rejected.
-- [ ] T003 Wire the packages:
+- [X] T003 Wire the packages:
   - **`MEDIA/QuickBuilder.Media.csproj`**: `NetVips`, the four `NetVips.Native.*` packages, and a `ProjectReference` to `PAGESC/QuickBuilder.Pages.Contracts.csproj` (readers.md §5). Update the csproj comment.
   - **`SHARED/QuickBuilder.Shared.Infrastructure.csproj`**: `AWSSDK.S3`, `Azure.Storage.Blobs`, `Azure.Identity`, `Microsoft.Extensions.Configuration.Binder`.
   - **`ITESTS/QuickBuilder.IntegrationTests.csproj`**: `Testcontainers.Minio` and `Testcontainers.Azurite`.
-- [ ] T004 **Spike** (plan Risks, MV-09); do this before any US2 work:
+- [X] T004 **Spike** (plan Risks, MV-09); do this before any US2 work:
   1. Build the image with `docker build` for `linux/amd64` and `linux/arm64` (`docker buildx`).
   2. In each, call a throwaway `HOST` start-up check that loads NetVips, prints `NetVips.Version`, and reports whether `heifload` and `heifsave` with AV1 are available (`NetVips.TypeFind("VipsForeignLoad", "heifload")`, `Operation` lookup).
   3. On the reference compose setup (2 vCPU, 4 GB), time a 20 MiB AVIF, a 20 MiB JPEG and a 6,000-pixel PNG resized to 1,920 px with MV-11's settings.
   4. Adjust `Dockerfile` if the natives are not copied by `dotnet publish` (they live under `runtimes/<rid>/native`).
   5. Record the results under a new "Spike result" heading at the end of research.md MV-09, and remove the throwaway check.
-- [ ] T005 [P] Create `THIRD-PARTY-NOTICES.md` at the repository root, listing libvips (LGPL-3.0-or-later, with its source location), every library bundled in `NetVips.Native` (from its package notice file), AWSSDK.S3 (Apache-2.0), and Azure.Storage.Blobs and Azure.Identity (MIT). In `Dockerfile`'s runtime stage, copy the file to `/app/THIRD-PARTY-NOTICES.md`.
-- [ ] T006 [P] Create `docker-compose.storage.yml`, a development and test overlay with:
+- [X] T005 [P] Create `THIRD-PARTY-NOTICES.md` at the repository root, listing libvips (LGPL-3.0-or-later, with its source location), every library bundled in `NetVips.Native` (from its package notice file), AWSSDK.S3 (Apache-2.0), and Azure.Storage.Blobs and Azure.Identity (MIT). In `Dockerfile`'s runtime stage, copy the file to `/app/THIRD-PARTY-NOTICES.md`.
+- [X] T006 [P] Create `docker-compose.storage.yml`, a development and test overlay with:
   - `minio` (with a one-shot `mc mb` job creating bucket `qb-media`);
   - `azurite` (with a one-shot `az storage container create` job creating container `qb-media`);
   - `app2`: a second instance of `app` sharing the database, on port 8081.
 
   Add a header comment that it is never for production (quickstart §6).
-- [ ] T007 [P] Extend `ATESTS/ModuleBoundaryTests.cs`:
+- [X] T007 [P] Extend `ATESTS/ModuleBoundaryTests.cs`:
   - `QuickBuilder.Media` may reference `QuickBuilder.Pages.Contracts`;
   - only `QuickBuilder.Media` references the `NetVips` assembly, and only types in namespace `QuickBuilder.Media.Imaging` use it;
   - only `QuickBuilder.Shared.Infrastructure` references `AWSSDK.S3`, `Azure.Storage.Blobs` and `Azure.Identity`.

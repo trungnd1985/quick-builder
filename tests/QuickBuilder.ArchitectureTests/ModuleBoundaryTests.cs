@@ -57,6 +57,30 @@ public sealed class ModuleBoundaryTests
     internal const string LocalStorageNamespace = "QuickBuilder.Shared.Infrastructure.Storage.Local";
 
     /// <summary>
+    /// The one other type allowed to touch the file system (013 research MV-18): the S3
+    /// provider's upload spool. S3 needs a content length, and an upload arrives as a stream
+    /// of unknown length, so the provider buffers it in a delete-on-close temporary file. It
+    /// never reads or writes stored media, only its own scratch file.
+    /// </summary>
+    internal const string S3UploadSpoolType = "QuickBuilder.Shared.Infrastructure.Storage.S3.S3UploadSpool";
+
+    /// <summary>The native image library (013 research MV-09).</summary>
+    internal static readonly string[] ImageLibraryNamespaces = ["NetVips"];
+
+    /// <summary>Where the Media module wraps it; nothing else may use it.</summary>
+    internal const string ImagingNamespace = "QuickBuilder.Media.Imaging";
+
+    /// <summary>The cloud storage SDKs (013 research MV-18, MV-19).</summary>
+    internal static readonly string[] CloudStorageNamespaces = ["Amazon", "Azure"];
+
+    /// <summary>The storage provider namespaces allowed to use them.</summary>
+    internal static readonly string[] RemoteStorageNamespaces =
+    [
+        "QuickBuilder.Shared.Infrastructure.Storage.S3",
+        "QuickBuilder.Shared.Infrastructure.Storage.AzureBlob",
+    ];
+
+    /// <summary>
     /// A module may reference another module's Contracts, never its implementation.
     /// </summary>
     /// <remarks>
@@ -307,12 +331,82 @@ public sealed class ModuleBoundaryTests
         var offenders = ModuleImplementations
             .Concat(ModuleContracts)
             .SelectMany(a => FileSystemUsers(a, _ => true))
-            .Concat(FileSystemUsers(SharedInfrastructure, t => t.Namespace != LocalStorageNamespace))
+            .Concat(FileSystemUsers(
+                SharedInfrastructure,
+                t => t.Namespace != LocalStorageNamespace && t.FullName != S3UploadSpoolType))
             .ToList();
 
         Assert.True(
             offenders.Count == 0,
             "These types use the file system directly; go through IFileStorage instead:\n  " +
+            string.Join("\n  ", offenders));
+    }
+
+    /// <summary>
+    /// Native image code is reached only through the Media module's <c>Imaging</c> wrappers
+    /// (013 research MV-09).
+    /// </summary>
+    /// <remarks>
+    /// libvips decodes untrusted uploads. Keeping every call behind three small classes is
+    /// what makes the hardening in <c>NetVipsSetup</c> (blocked loaders, no cache, bounded
+    /// threads) a guarantee rather than a convention: a handler that opened an image itself
+    /// could bypass the pixel limit or the loader allow-list.
+    /// </remarks>
+    [Fact]
+    public void Only_media_imaging_uses_the_native_image_library()
+    {
+        var offenders = ModuleImplementations
+            .Concat(ModuleContracts)
+            .Append(SharedInfrastructure)
+            .Append(Kernel)
+            .Append(Host)
+            .SelectMany(assembly => Types.InAssembly(assembly)
+                .That().DoNotResideInNamespace("Coverlet")
+                .ShouldNot()
+                .HaveDependencyOnAny(ImageLibraryNamespaces)
+                .GetResult()
+                .FailingTypes ?? [])
+            .Where(t => !(t.Namespace ?? string.Empty).StartsWith(ImagingNamespace, StringComparison.Ordinal))
+            .Where(t => !t.Name.Contains('<', StringComparison.Ordinal))
+            .Select(t => t.FullName!)
+            .ToList();
+
+        Assert.True(
+            offenders.Count == 0,
+            "These types use NetVips outside QuickBuilder.Media.Imaging:\n  " + string.Join("\n  ", offenders));
+    }
+
+    /// <summary>
+    /// The cloud storage SDKs are used only by the providers that wrap them (013 research
+    /// MV-18, MV-19, MV-20).
+    /// </summary>
+    /// <remarks>
+    /// Consumers reach bytes through <c>IFileStorage</c> and never know which provider is
+    /// configured. An SDK type anywhere else would be a provider assumption leaking out, and
+    /// a network call a default installation might make (FR-042).
+    /// </remarks>
+    [Fact]
+    public void Only_the_remote_storage_providers_use_cloud_sdks()
+    {
+        var offenders = ModuleImplementations
+            .Concat(ModuleContracts)
+            .Append(SharedInfrastructure)
+            .Append(Kernel)
+            .Append(Host)
+            .SelectMany(assembly => Types.InAssembly(assembly)
+                .That().DoNotResideInNamespace("Coverlet")
+                .ShouldNot()
+                .HaveDependencyOnAny(CloudStorageNamespaces)
+                .GetResult()
+                .FailingTypes ?? [])
+            .Where(t => !RemoteStorageNamespaces.Contains(t.Namespace, StringComparer.Ordinal))
+            .Where(t => !t.Name.Contains('<', StringComparison.Ordinal))
+            .Select(t => t.FullName!)
+            .ToList();
+
+        Assert.True(
+            offenders.Count == 0,
+            "These types use a cloud storage SDK outside the S3 and Azure Blob providers:\n  " +
             string.Join("\n  ", offenders));
     }
 

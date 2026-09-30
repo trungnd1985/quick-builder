@@ -1,0 +1,118 @@
+# QuickBuilder — remote storage and multi-instance override (013 quickstart §6).
+#
+# ─────────────────────────────────────────────────────────────────────────────────────
+#  FOR DEVELOPMENT AND TESTING ONLY. NEVER USE THIS FILE IN PRODUCTION.
+#  The MinIO and Azurite credentials below are well-known test values, and both
+#  emulators keep data in throwaway volumes.
+# ─────────────────────────────────────────────────────────────────────────────────────
+#
+# Layered over docker-compose.yml:
+#
+#   docker compose -f docker-compose.yml -f docker-compose.storage.yml up -d
+#
+# Adds:
+#   - minio   an S3-compatible service, with bucket `qb-media` created by minio-init;
+#   - azurite the Azure Storage emulator, with container `qb-media` created by azurite-init;
+#   - app2    a second instance of the app on the same database, on 127.0.0.1:8081.
+#
+# Both apps use whichever provider QB_STORAGE selects (default S3):
+#
+#   QB_STORAGE=S3        docker compose -f docker-compose.yml -f docker-compose.storage.yml up -d
+#   QB_STORAGE=AzureBlob docker compose -f docker-compose.yml -f docker-compose.storage.yml up -d
+#
+# With a remote provider both instances share media, which is the configuration 013
+# FR-036 supports. Consoles: MinIO on http://127.0.0.1:9001 (minioadmin / minioadmin).
+
+x-storage-env: &storage-env
+  Storage__Provider: "${QB_STORAGE:-S3}"
+  Storage__S3__ServiceUrl: "http://minio:9000"
+  Storage__S3__Region: "us-east-1"
+  Storage__S3__Bucket: "qb-media"
+  Storage__S3__ForcePathStyle: "true"
+  Storage__S3__AccessKeyId: "minioadmin"
+  Storage__S3__SecretAccessKey: "minioadmin"
+  # Azurite's published development account key (not a secret).
+  Storage__AzureBlob__ConnectionString: "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;"
+  Storage__AzureBlob__Container: "qb-media"
+
+services:
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    volumes:
+      - minio-data:/data
+    ports:
+      - "127.0.0.1:9000:9000"
+      - "127.0.0.1:9001:9001"
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  minio-init:
+    image: minio/mc:latest
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      sh -c "mc alias set local http://minio:9000 minioadmin minioadmin &&
+             mc mb --ignore-existing local/qb-media"
+
+  azurite:
+    image: mcr.microsoft.com/azure-storage/azurite:latest
+    command: azurite-blob --blobHost 0.0.0.0 --blobPort 10000 --loose
+    volumes:
+      - azurite-data:/data
+    ports:
+      - "127.0.0.1:10000:10000"
+
+  azurite-init:
+    image: mcr.microsoft.com/azure-cli:latest
+    depends_on:
+      - azurite
+    entrypoint: >
+      sh -c "for i in 1 2 3 4 5 6 7 8 9 10; do
+               az storage container create --name qb-media --connection-string
+               'DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;'
+               && exit 0; sleep 2; done; exit 1"
+
+  app:
+    depends_on:
+      minio-init:
+        condition: service_completed_successfully
+      azurite-init:
+        condition: service_completed_successfully
+    environment:
+      <<: *storage-env
+
+  app2:
+    image: quickbuilder:latest
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+      app:
+        # The first instance applies migrations; the second starts once it is ready.
+        condition: service_healthy
+    environment:
+      <<: *storage-env
+      ConnectionStrings__Default: "Host=db;Port=5432;Database=quickbuilder;Username=quickbuilder;Password=change-me-before-real-use"
+      Database__AutoMigrate: "false"
+      Telemetry__OtlpEndpoint: ""
+      Identity__AllowInsecureHttp: "true"
+    ports:
+      - "127.0.0.1:8081:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --spider http://127.0.0.1:8080/health/ready || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 40s
+
+volumes:
+  minio-data:
+  azurite-data:

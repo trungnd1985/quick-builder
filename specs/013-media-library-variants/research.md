@@ -307,6 +307,33 @@ model and the contracts. Each one gives the decision, why, and what else was con
   of decoder vulnerabilities is long. Its broad format support is a liability here.
 - **Writing decoders ourselves**: no.
 
+**Spike result** (task T004, 2026-10-01): NetVips 3.2.0 with NetVips.Native 8.18.7 (libvips
+8.18.7).
+- **Loaders and savers**: `jpegload`, `pngload`, `gifload`, `webpload` and `heifload`, plus
+  `heifsave` with AV1, `jpegsave`, `webpsave` and `pngsave`, are all present on `win-x64`, on
+  `linux-musl-x64` in `sdk:10.0-alpine`, and in the runtime image `aspnet:10.0-alpine`.
+  AVIF is therefore available, and the degraded mode of this decision is a safety net, not
+  the expected state.
+- **Also compiled in**: `svgload` is present, and `pdfload` and `magickload` are absent.
+  So blocking loaders is necessary, not theoretical.
+- **Timings**: on `linux-musl-x64` in Docker limited to `--cpus 2 --memory 4g` (the
+  reference budget), resizing a 6,000 × 4,000 photo-like original to 320 and 1,920 px with
+  MV-11's settings took:
+
+  | Format | 320 px | 1,920 px |
+  |---|---|---|
+  | JPEG (22 MiB) | 166 ms | 312 ms |
+  | PNG (65 MiB) | 224 ms | 290 ms |
+  | WebP | 582 ms | 784 ms |
+  | AVIF | 1,288 ms | 1,427 ms |
+
+  Every format is inside SC-004's 3 s, and AVIF with effort 2 is the slowest.
+- **arm64**: not run. This Docker host has no arm64 emulation. The `linux-musl-arm64`
+  package is the same libvips build, and the multi-arch image build in CI exercises it.
+- **Dockerfile**: the portable publish copied natives for all four RIDs. The build stage now
+  keeps only `runtimes/linux-musl-{x64|arm64}` according to `TARGETARCH`, which leaves
+  17.8 MB, and fails the build if `libvips` is missing.
+
 ---
 
 ## MV-10 Image metadata at upload, and the pixel limit
