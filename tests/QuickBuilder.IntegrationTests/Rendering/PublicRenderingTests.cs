@@ -1,10 +1,10 @@
 using System.Net;
 using Microsoft.Extensions.DependencyInjection;
-using QuickBuilder.Shared.Infrastructure.Caching;
 using QuickBuilder.IntegrationTests.Infrastructure;
 using QuickBuilder.IntegrationTests.Media;
 using QuickBuilder.IntegrationTests.Pages;
 using QuickBuilder.IntegrationTests.Publishing;
+using QuickBuilder.Shared.Infrastructure.Caching;
 using Xunit;
 
 namespace QuickBuilder.IntegrationTests.Rendering;

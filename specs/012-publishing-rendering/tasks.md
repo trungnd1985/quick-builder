@@ -571,7 +571,7 @@ validation run.
   - `docs/backlog.md`: the deferred items of plan.md.
 - [X] T105 [P] Record in `specs/001-foundation-skeleton/plan.md` Complexity Tracking, as a dated note, that E-3 and E-4 are closed by 012, citing plan.md.
 - [ ] T106 Run [quickstart.md](./quickstart.md) §1–§11 by hand on the reference compose setup, including §6 with two instances. Record the results, the SC-001 timings, the SC-003 numbers and the browser versions in `specs/012-publishing-rendering/quickstart-results.md`.
-- [ ] T107 Run `dotnet format --verify-no-changes`, `dotnet test`, and `npm run lint && npm run type-check && npm test && npm run build` in `src/admin`. Fix any failures, and confirm the per-package coverage gate passes for `QuickBuilder.Rendering`, `QuickBuilder.Pages` and `QuickBuilder.Editor`.
+- [X] T107 Run `dotnet format --verify-no-changes`, `dotnet test`, and `npm run lint && npm run type-check && npm test && npm run build` in `src/admin`. Fix any failures, and confirm the per-package coverage gate passes for `QuickBuilder.Rendering`, `QuickBuilder.Pages` and `QuickBuilder.Editor`.
 
 ---
 
