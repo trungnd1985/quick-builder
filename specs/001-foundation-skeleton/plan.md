@@ -203,6 +203,19 @@ that removes it.
 | **E-3**: Principle X's release smoke test is specified as setup wizard → create page → publish → view; none of those exist. | Those capabilities belong to later specs. The smoke test still boots the published image with the reference compose, which is the part of the principle that can bite today. | Skipping the smoke test entirely would leave the image and compose file untested until the first release. **Follow-up**: tracked as issue #4 — each later spec extends the smoke test with its own step; the full sequence exists once Rendering merges. |
 | **E-4**: Principle IV requires correct multi-instance operation once shared providers are configured. The in-memory cache cannot invalidate host-name lookups across instances, so a site created on one instance may stay unresolvable on another until its entry expires. | The cache abstraction has one real consumer and one real implementation today. A distributed provider has no spec yet, and Principle XI forbids building one speculatively. The reference deployment is single-instance, so the precondition the principle names — "once the operator configures shared cache and storage providers" — cannot be met yet. | Shipping a guessed Redis provider now means the cache spec either inherits a wrong shape or breaks it. **Follow-up**: tracked as issue #TBD — the Redis provider spec must solve cross-instance eviction before multi-instance is advertised to operators. Until then the documentation must not claim multi-instance support. |
 
+**2026-09-30 — E-3 and E-4 closed by 012 (publishing and rendering, #12)**, as recorded in
+[specs/012-publishing-rendering/plan.md](../012-publishing-rendering/plan.md):
+
+- **E-3**: `ReferenceDeploymentSmokeTests` now runs the full journey on the built image —
+  setup wizard, create page, publish (a shared component and a page), view from the site's
+  host name — and CI runs it in the `smoke` job.
+- **E-4**: nothing relies on invalidating a cache any more. Host-name lookups are not cached
+  (009), and rendered pages are keyed by generations read from the database on every
+  request, so every instance serves a change at its next request
+  (`RenderingAcrossInstancesTests`, `ResolutionAcrossInstancesTests`). A shared cache
+  provider would only save work. Multi-instance deployments still need shared media
+  storage, which is 003's concern, not this exception's.
+
 ## Risks
 
 - **Issue #1 must exist on GitHub.** The existing spec-ids check resolves

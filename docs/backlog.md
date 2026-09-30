@@ -14,3 +14,16 @@
 - Housekeeping jobs: prune old versions, orphaned media, old logs
 - Observability: OpenTelemetry traces and metrics, dashboards
 - Dependency updates (Renovate or Dependabot) and code scanning
+
+Deferred by 012 (publishing and rendering; see specs/012-publishing-rendering/plan.md):
+
+- Collection-driven pages, and page → collection dependencies (#16)
+- SEO metadata, sitemaps, canonical addresses and redirects (#17); it can subscribe to
+  the `Pages.PagePublished` and `Pages.PageUnpublished` events
+- CDN integrations and external cache purge
+- Draft previews through the renderer (#22)
+- A custom not-found page and other error pages
+- Bulk publish, approval workflows, side-by-side version comparison, scheduling the design
+- Cache warming, pre-compressed responses, a shared cache provider, click-to-load embeds
+- Native review of the not-found page's texts in 39 languages
+  (specs/012-publishing-rendering/quickstart-results.md)

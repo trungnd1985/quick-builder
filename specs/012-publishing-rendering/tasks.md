@@ -563,13 +563,13 @@ validation run.
   Update the class remarks: E-3 closed, E-5 unchanged.
 
   Then add a `smoke` job to `.github/workflows/ci.yml` (FR-041, analysis I1). It needs `image`, runs on `ubuntu-latest`, sets up .NET, and runs `dotnet test tests/QuickBuilder.SmokeTests`. That covers the reference journey and every performance test, including `RenderPerformanceTests` on `docker-compose.perf.yml`, so a broken budget fails the build. The job sets `QB_SMOKE_REQUIRE_DOCKER=1`; teach `STESTS/ComposeDeployment.cs` to fail, instead of skip, when that variable is set and `docker info` fails, so CI never passes by skipping. Upload `docker compose logs` as an artifact when the job fails.
-- [ ] T103 [P] Update `CONTRACTS/page-schema.md`, following contracts/page-schema-rendering.md: the §5 note, the §6 addition, the §8 addition, and §9 rewritten as normative "Rendering". Add the six events and the module-internal message to `specs/001-foundation-skeleton/contracts/integration-events.md` (the contract `docs/contributing.md` links to).
-- [ ] T104 [P] Update the documentation:
+- [X] T103 [P] Update `CONTRACTS/page-schema.md`, following contracts/page-schema-rendering.md: the §5 note, the §6 addition, the §8 addition, and §9 rewritten as normative "Rendering". Add the six events and the module-internal message to `specs/001-foundation-skeleton/contracts/integration-events.md` (the contract `docs/contributing.md` links to).
+- [X] T104 [P] Update the documentation:
   - `docs/operations.md`: publishing and schedules, `Cache:MemoryLimitMegabytes` and memory sizing, multi-instance (E-4 closed; media still needs shared storage), the HTML not-found page, `/_assets/`, the read-only connection pools per module;
   - `docs/contributing.md` "Adding a block type": the renderer class, golden files and parity;
   - the plan's upgrade notes in the release notes draft;
   - `docs/backlog.md`: the deferred items of plan.md.
-- [ ] T105 [P] Record in `specs/001-foundation-skeleton/plan.md` Complexity Tracking, as a dated note, that E-3 and E-4 are closed by 012, citing plan.md.
+- [X] T105 [P] Record in `specs/001-foundation-skeleton/plan.md` Complexity Tracking, as a dated note, that E-3 and E-4 are closed by 012, citing plan.md.
 - [ ] T106 Run [quickstart.md](./quickstart.md) §1–§11 by hand on the reference compose setup, including §6 with two instances. Record the results, the SC-001 timings, the SC-003 numbers and the browser versions in `specs/012-publishing-rendering/quickstart-results.md`.
 - [ ] T107 Run `dotnet format --verify-no-changes`, `dotnet test`, and `npm run lint && npm run type-check && npm test && npm run build` in `src/admin`. Fix any failures, and confirm the per-package coverage gate passes for `QuickBuilder.Rendering`, `QuickBuilder.Pages` and `QuickBuilder.Editor`.
 

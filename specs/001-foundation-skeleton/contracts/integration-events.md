@@ -56,6 +56,32 @@ they need to react to a new site.
 
 ---
 
+## Events added by later features
+
+Every event below follows the envelope, the payload rule and the handler contract of this
+document. Payloads carry ids and numbers; a page's `path` is the one exception, because a
+subscriber refreshing a page by address needs it.
+
+### 012 Publishing and rendering (#12)
+
+| Event | Published by | Payload | When |
+|---|---|---|---|
+| `Pages.PagePublished` | Pages | `siteId`, `pageId`, `versionNumber`, `kind` (`publish`, `scheduled`, `rollback`), `path`, `actorUserId` | A page version became live |
+| `Pages.PageUnpublished` | Pages | `siteId`, `pageId`, `path`, `scheduled`, `actorUserId` | A page was taken down |
+| `Pages.ComponentPublished` | Pages | `siteId`, `componentId`, `versionNumber`, `kind`, `actorUserId` | A component version became live |
+| `Pages.ComponentUnpublished` | Pages | `siteId`, `componentId`, `actorUserId` | A component was taken down |
+| `Editor.DesignPublished` | Editor | `siteId`, `versionNumber`, `kind` (`publish`, `rollback`), `restoredFromNumber`, `actorUserId` | A design version became live. Pages records it in the publish log. |
+| `Media.FileDeleted` | Media | `siteId`, `fileId`, `actorUserId` | A media file was deleted. Pages refreshes the live pages that showed it. |
+
+`actorUserId` is null when a schedule acted.
+
+**Module-internal message**: `Pages.PublishScheduleDue` (`siteId`, `scheduleId`, `revision`)
+is written to the Pages outbox with `available_at_utc` set to the schedule's due time, and
+only Pages handles it (012 research PR-14). It is not a contract: no other module may
+subscribe to it.
+
+---
+
 ## Delivery guarantees
 
 | Guarantee | How | Requirement |
