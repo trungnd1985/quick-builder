@@ -57,3 +57,24 @@ Still to record by hand:
 - the browser versions;
 - §6 with two instances of the reference compose setup;
 - a look at the published pages, the history and the log screens in a real browser.
+
+## Performance budgets in CI (decided on PR #31, 2026-09-30)
+
+The first CI runs of the smoke job put every performance test on a shared GitHub runner.
+The reference journey and 012's render budgets passed. Three budgets from earlier features
+were missed on the runner, though they pass on the reference setup:
+
+| Budget (feature) | Target | GitHub runner |
+|---|---|---|
+| Sign-in p95 under a burst (002) | 1,000 ms | 2,346 ms and 2,863 ms |
+| Media first byte p95 (003) | 100 ms | 503 ms (passed on the other run) |
+| Site resolution one at a time (009) | +5 ms | +6.9 ms (local: +4.5 ms) |
+
+Nothing in 012 touches sign-in or uploads; the runner is slower and noisier than the
+reference environment the budgets are set for. So CI now has two jobs:
+- **`smoke`** (required): the reference journey. A failure fails the build.
+- **`performance`** (report only): every performance test. The numbers go to the run
+  summary, and a missed budget is a warning, not a failure.
+
+The budgets themselves are asserted on the reference environment in the quickstart run.
+This refines 012 analysis I1, which had a missed budget failing the build.
