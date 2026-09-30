@@ -129,6 +129,20 @@ itself, it must stop.
 | `Outbox:MaxAttempts` | `5` | Attempts before an event is set aside as failed. |
 | `Outbox:RetentionPeriod` | `7.00:00:00` | How long completed events are kept before the sweep removes them. |
 
+Scheduled publishes and unpublishes run through the outbox (012), so `Outbox:Enabled`
+must stay `true` on at least one instance for schedules to run, and `PollInterval` bounds
+how late one can be.
+
+## Cache
+
+| Key | Default | Meaning |
+|---|---|---|
+| `Cache:MemoryLimitMegabytes` | `256` | Upper bound on the in-memory cache of each instance, from 16 to 16,384. Rendered public pages take nearly all of it. When full, the least recently used pages are dropped and rendered again on their next request. A value outside the range stops startup. |
+
+The cache never decides what visitors see: each page's cache key includes version numbers
+read from the database on every request, so a publish is visible on every instance at its
+next request without any shared cache (012 research PR-05).
+
 ## Telemetry
 
 | Key | Default | Meaning |

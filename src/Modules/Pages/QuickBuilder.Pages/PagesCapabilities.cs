@@ -1,3 +1,4 @@
+using QuickBuilder.Pages.Contracts.Publishing;
 using QuickBuilder.Shared.Kernel.Authorization;
 
 namespace QuickBuilder.Pages;
@@ -31,5 +32,10 @@ internal static class PagesCapabilities
         new(StructureManage, CapabilityScope.Site, [SystemRole.Designer]),
         new(PageDraftsEdit, CapabilityScope.Site, [SystemRole.Designer, SystemRole.Editor]),
         new(ComponentsManage, CapabilityScope.Site, [SystemRole.Designer]),
+
+        // 012: Designers publish, Editors prepare drafts (clarification Q3); the log is for
+        // Administrators only (clarification Q2 of clarify).
+        new(PublishingCapabilities.Manage, CapabilityScope.Site, [SystemRole.Designer]),
+        new(PublishingCapabilities.LogView, CapabilityScope.Site, []),
     ];
 }

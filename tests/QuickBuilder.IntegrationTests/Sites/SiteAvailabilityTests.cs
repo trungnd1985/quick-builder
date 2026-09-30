@@ -87,6 +87,7 @@ public sealed class SiteAvailabilityTests(DatabaseFixture database) : IAsyncLife
     public async Task Re_enabling_restores_the_site_unchanged()
     {
         var site = await CreateAsync("Back", "back.test", "www.back.test").ConfigureAwait(true);
+        await PublicSite.MarkAsync(_admin, site).ConfigureAwait(true);
         var file = await MediaApi.UploadOkAsync(_admin, site).ConfigureAwait(true);
         var before = await SitesApi.GetOkAsync(_admin, site).ConfigureAwait(true);
 
@@ -98,7 +99,8 @@ public sealed class SiteAvailabilityTests(DatabaseFixture database) : IAsyncLife
         Assert.Equal("enabled", after.GetProperty("status").GetString());
         Assert.Equal(before.GetProperty("hostNames").ToString(), after.GetProperty("hostNames").ToString());
         Assert.Equal(before.GetProperty("primaryHostName").GetString(), after.GetProperty("primaryHostName").GetString());
-        Assert.Equal(HttpStatusCode.OK, (await SitesApi.PublicGetAsync(_app, "www.back.test").ConfigureAwait(true)).StatusCode);
+        // 012 spec, Edge Cases: its published pages are served again, unchanged.
+        Assert.Equal(site, await PublicSite.ResolvedSiteAsync(await SitesApi.PublicGetAsync(_app, "www.back.test").ConfigureAwait(true)).ConfigureAwait(true));
         Assert.Equal(HttpStatusCode.OK, (await MediaApi.PublicAsync(_app, "back.test", file.PublicPath).ConfigureAwait(true)).StatusCode);
     }
 

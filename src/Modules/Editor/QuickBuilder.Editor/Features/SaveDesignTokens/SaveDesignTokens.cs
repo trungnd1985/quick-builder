@@ -46,6 +46,7 @@ internal sealed partial class SaveDesignTokensHandler(
     TokenSetValidator validator,
     IDesignTokenReader reader,
     EditorAccess access,
+    DesignPublishing.DesignPublicationReads publication,
     TimeProvider clock,
     ILogger<SaveDesignTokensHandler> logger)
     : ICommandHandler<SaveDesignTokensCommand, Result<DesignTokensResponse>>
@@ -107,7 +108,7 @@ internal sealed partial class SaveDesignTokensHandler(
 
         var saved = await reader.ReadAsync(command.SiteId, cancellationToken).ConfigureAwait(false);
         LogSaved(logger, command.SiteId, saved.Version);
-        return Result.Success(await DesignTokensResponses.FromAsync(saved, access, cancellationToken).ConfigureAwait(false));
+        return Result.Success(await DesignTokensResponses.FromAsync(saved, access, publication, cancellationToken).ConfigureAwait(false));
     }
 
     // Ids and versions only: never token names or values (011 FR-045).

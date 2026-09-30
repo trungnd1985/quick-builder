@@ -58,6 +58,11 @@ internal sealed class ComposeDeployment(params string[] overrideFiles)
         DockerAvailable = (await RunAsync("docker", "info").ConfigureAwait(false)).ExitCode == 0;
         if (!DockerAvailable)
         {
+            // 012 FR-041: CI sets this, so a runner without Docker fails the build instead of
+            // passing it by skipping every smoke and performance test.
+            Assert.False(
+                Environment.GetEnvironmentVariable("QB_SMOKE_REQUIRE_DOCKER") == "1",
+                "QB_SMOKE_REQUIRE_DOCKER is set, but 'docker info' failed.");
             return false;
         }
 
@@ -78,6 +83,15 @@ internal sealed class ComposeDeployment(params string[] overrideFiles)
     {
         if (DockerAvailable)
         {
+            // CI keeps each deployment's logs, since they are gone once it is torn down.
+            if (Environment.GetEnvironmentVariable("QB_SMOKE_LOG_DIR") is { Length: > 0 } directory)
+            {
+                Directory.CreateDirectory(directory);
+                var logs = await ComposeAsync("logs --no-color").ConfigureAwait(false);
+                await File.WriteAllTextAsync(
+                    Path.Combine(directory, $"compose-{DateTime.UtcNow:yyyyMMddHHmmssfff}.log"), logs.Output).ConfigureAwait(false);
+            }
+
             await ComposeAsync("down -v").ConfigureAwait(false);
         }
     }

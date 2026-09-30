@@ -41,7 +41,7 @@ public sealed class AdminHostNameTests(DatabaseFixture database) : IAsyncLifetim
         // Whether the shell's files exist depends on the admin build, so only "not the public
         // not-found" is asserted for it.
         var shell = await _adminOnAdminHost.GetAsync(new Uri("/admin/", UriKind.Relative)).ConfigureAwait(true);
-        Assert.DoesNotContain("public.not_found", await SitesApi.RawAsync(shell).ConfigureAwait(true), StringComparison.Ordinal);
+        Assert.DoesNotContain("Page not found</h1>", await SitesApi.RawAsync(shell).ConfigureAwait(true), StringComparison.Ordinal);
     }
 
     /// <summary>
@@ -66,8 +66,11 @@ public sealed class AdminHostNameTests(DatabaseFixture database) : IAsyncLifetim
         Assert.Equal(missing.Content.Headers.ContentType?.ToString(), admin.Content.Headers.ContentType?.ToString());
         Assert.Equal(await SitesApi.RawAsync(missing).ConfigureAwait(true), await SitesApi.RawAsync(admin).ConfigureAwait(true));
 
-        // No admin-only security headers either: they would give the surface away.
-        Assert.False(admin.Headers.Contains("Content-Security-Policy"));
+        // No admin-only security headers either: they would give the surface away. The
+        // not-found page's own policy (012 public-rendering.md §4) is the same on both.
+        Assert.Equal(
+            missing.Headers.GetValues("Content-Security-Policy").Single(),
+            admin.Headers.GetValues("Content-Security-Policy").Single());
     }
 
     [Fact]
@@ -109,7 +112,7 @@ public sealed class AdminHostNameTests(DatabaseFixture database) : IAsyncLifetim
         var response = await _adminOnAdminHost.GetAsync(new Uri("/api/v1/no-such-endpoint", UriKind.Relative)).ConfigureAwait(true);
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
-        Assert.DoesNotContain("public.not_found", await SitesApi.RawAsync(response).ConfigureAwait(true), StringComparison.Ordinal);
+        Assert.DoesNotContain("Page not found</h1>", await SitesApi.RawAsync(response).ConfigureAwait(true), StringComparison.Ordinal);
     }
 
     [Fact]

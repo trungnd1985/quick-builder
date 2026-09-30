@@ -41,7 +41,7 @@ public sealed class UpgradeFrom001Tests(DatabaseFixture database)
         foreach (var host in new[] { "alpha.test", "beta.test" })
         {
             var resolved = await app.CreateClientForHost(host).GetAsync(new Uri("/", UriKind.Relative)).ConfigureAwait(true);
-            Assert.Equal(HttpStatusCode.OK, resolved.StatusCode);
+            Assert.True(await PublicSite.IsResolvedAsync(resolved).ConfigureAwait(true), $"{host} no longer resolves");
         }
 
         // Complete setup through the real endpoint, then every site is still there.

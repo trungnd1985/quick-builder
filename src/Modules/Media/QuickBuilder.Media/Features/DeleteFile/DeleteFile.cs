@@ -1,9 +1,11 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using QuickBuilder.Media.Contracts.Events;
 using QuickBuilder.Media.Infrastructure;
 using QuickBuilder.Shared.Infrastructure.Dispatch;
 using QuickBuilder.Shared.Infrastructure.MultiSite;
+using QuickBuilder.Shared.Infrastructure.Outbox;
 using QuickBuilder.Shared.Infrastructure.Storage;
 using QuickBuilder.Shared.Kernel.Authorization;
 using QuickBuilder.Shared.Kernel.Dispatch;
@@ -64,6 +66,10 @@ internal sealed class DeleteFileHandler(
         }
 
         database.MediaFiles.Remove(file);
+
+        // 012: pages that showed it refresh; saved with the delete, so both happen or neither.
+        database.OutboxMessages.Add(OutboxMessage.From(
+            new FileDeleted(Guid.CreateVersion7(), DateTimeOffset.UtcNow, file.SiteId, file.Id, command.UserId)));
         await database.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
         logger.LogInformation("Media file {MediaFileId} deleted from site {SiteId}.", file.Id, file.SiteId);

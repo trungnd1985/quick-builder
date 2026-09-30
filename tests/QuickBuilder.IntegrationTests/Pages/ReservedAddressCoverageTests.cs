@@ -25,6 +25,14 @@ public sealed class ReservedAddressCoverageTests
             "and docs/contracts/page-schema.md §5: " + string.Join(", ", uncovered));
     }
 
+    /// <summary>012 research PR-08: the block stylesheet's prefix is a platform prefix no page can take.</summary>
+    [Fact]
+    public void The_assets_prefix_is_reserved_and_unproducible()
+    {
+        Assert.Contains("/_assets", RoutePrefixes.PublicReservedPrefixes);
+        Assert.Empty(Uncovered(["/_assets"]));
+    }
+
     [Fact]
     public void The_guard_fires_for_an_unreserved_prefix()
     {

@@ -26,6 +26,10 @@ public sealed class SiteResolutionTests(DatabaseFixture database) : IAsyncLifeti
         var admin = await _app.CreateAdminClientAsync().ConfigureAwait(false);
         _siteA = (await SitesApi.CreateOkAsync(admin, "Site A", ["a.test", "bücher.test"]).ConfigureAwait(false)).GetProperty("id").GetGuid();
         _siteB = (await SitesApi.CreateOkAsync(admin, "Site B", ["b.test"]).ConfigureAwait(false)).GetProperty("id").GetGuid();
+
+        // Each site serves its own id at /, so a response shows which site it came from.
+        await PublicSite.MarkAsync(admin, _siteA).ConfigureAwait(false);
+        await PublicSite.MarkAsync(admin, _siteB).ConfigureAwait(false);
     }
 
     public Task DisposeAsync()
@@ -49,8 +53,7 @@ public sealed class SiteResolutionTests(DatabaseFixture database) : IAsyncLifeti
         var response = await SitesApi.PublicGetAsync(_app, host).ConfigureAwait(true);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var resolved = (await SitesApi.BodyAsync(response).ConfigureAwait(true)).GetProperty("siteId").GetGuid();
-        Assert.Equal(expected == "A" ? _siteA : _siteB, resolved);
+        Assert.Equal(expected == "A" ? _siteA : _siteB, await PublicSite.ResolvedSiteAsync(response).ConfigureAwait(true));
     }
 
     /// <summary>US3 scenario 5: never a fallback, never a hint.</summary>

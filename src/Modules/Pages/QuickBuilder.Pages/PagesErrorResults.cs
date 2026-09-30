@@ -59,7 +59,13 @@ internal static class PagesErrorResults
             or "pages.home_page"
             or "pages.out_of_date"
             or "pages.duplicate_component_name"
-            or "pages.component_in_use" => StatusCodes.Status409Conflict,
+            or "pages.component_in_use"
+            // 012 data-model §6.
+            or "pages.page_published"
+            or "pages.not_published"
+            or "pages.unpublished_components"
+            or "pages.component_in_use_by_published_pages"
+            or "pages.version_missing_components" => StatusCodes.Status409Conflict,
         "pages.document_too_large" => StatusCodes.Status413PayloadTooLarge,
         _ when code.EndsWith("not_found", StringComparison.Ordinal) => StatusCodes.Status404NotFound,
         _ => StatusCodes.Status400BadRequest,

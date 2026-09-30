@@ -1,8 +1,11 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using QuickBuilder.Editor.Contracts.Events;
+using QuickBuilder.Media.Contracts.Events;
 using QuickBuilder.Pages.Contracts;
 using QuickBuilder.Pages.Contracts.Events;
+using QuickBuilder.Pages.Contracts.Publishing;
 using QuickBuilder.Pages.Features;
 using QuickBuilder.Pages.Features.CreateComponent;
 using QuickBuilder.Pages.Features.CreatePage;
@@ -13,21 +16,32 @@ using QuickBuilder.Pages.Features.GetComponentDraft;
 using QuickBuilder.Pages.Features.GetPage;
 using QuickBuilder.Pages.Features.GetPageDraft;
 using QuickBuilder.Pages.Features.GetPageTree;
+using QuickBuilder.Pages.Features.GetPublishLog;
 using QuickBuilder.Pages.Features.GetTokenUsage;
 using QuickBuilder.Pages.Features.ListComponents;
 using QuickBuilder.Pages.Features.ListComponentUsages;
 using QuickBuilder.Pages.Features.MakeHomePage;
 using QuickBuilder.Pages.Features.MovePage;
+using QuickBuilder.Pages.Features.Publish;
+using QuickBuilder.Pages.Features.PublishingHistory;
+using QuickBuilder.Pages.Features.RecordDesignPublish;
+using QuickBuilder.Pages.Features.RefreshPagesShowingMedia;
 using QuickBuilder.Pages.Features.RenameComponent;
+using QuickBuilder.Pages.Features.Rollback;
+using QuickBuilder.Pages.Features.RunDueSchedule;
 using QuickBuilder.Pages.Features.SaveComponentDraft;
 using QuickBuilder.Pages.Features.SavePageDraft;
+using QuickBuilder.Pages.Features.Schedules;
+using QuickBuilder.Pages.Features.Unpublish;
 using QuickBuilder.Pages.Features.UpdatePage;
 using QuickBuilder.Pages.Infrastructure;
 using QuickBuilder.Pages.Infrastructure.Schema;
+using QuickBuilder.Shared.Infrastructure.Data;
 using QuickBuilder.Shared.Infrastructure.Modules;
 using QuickBuilder.Shared.Infrastructure.MultiSite;
 using QuickBuilder.Shared.Infrastructure.Outbox;
 using QuickBuilder.Shared.Kernel.Dispatch;
+using QuickBuilder.Shared.Kernel.Events;
 using QuickBuilder.Shared.Kernel.Results;
 using QuickBuilder.Shared.Kernel.Validation;
 
@@ -60,6 +74,13 @@ public static class PagesModule
 
         services.AddSingleton<IModuleDatabaseProvider, PagesDatabaseProvider>();
 
+        // 012 research PR-06: the public path reads published content through its own context,
+        // on a connection PostgreSQL keeps read-only. Never migrated; PagesDbContext owns the tables.
+        services.AddDbContext<PublishedReadDbContext>(options => options
+            .UseNpgsql(ReadOnlyConnection.From(connectionString))
+            .UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking));
+        services.AddScoped<IPublishedContentReader, PublishedContentReader>();
+
         // What this module lets people do. Identity enforces them; this module only declares them.
         foreach (var capability in PagesCapabilities.All)
         {
@@ -75,6 +96,12 @@ public static class PagesModule
         services.AddSingleton<IEventTypeRegistration>(new EventTypeRegistration<ComponentCreated>());
         services.AddSingleton<IEventTypeRegistration>(new EventTypeRegistration<ComponentDeleted>());
 
+        // 012 research PR-19: publishing, for later features (#17) to react to.
+        services.AddSingleton<IEventTypeRegistration>(new EventTypeRegistration<PagePublished>());
+        services.AddSingleton<IEventTypeRegistration>(new EventTypeRegistration<PageUnpublished>());
+        services.AddSingleton<IEventTypeRegistration>(new EventTypeRegistration<ComponentPublished>());
+        services.AddSingleton<IEventTypeRegistration>(new EventTypeRegistration<ComponentUnpublished>());
+
         // Shared by the slices: the document validator (stateless, loads the schema once),
         // and the read and write paths every slice goes through.
         services.AddSingleton<IPageDocumentValidator, PageDocumentValidator>();
@@ -83,6 +110,11 @@ public static class PagesModule
         services.AddScoped<PageTreeWrites>();
         services.AddScoped<DraftWrites>();
         services.AddScoped<ComponentReads>();
+
+        // 012: publishing — the reads every response shares, the dependency bump and the writes.
+        services.AddScoped<PublicationReads>();
+        services.AddScoped<GenerationBump>();
+        services.AddScoped<PublishingWrites>();
 
         // Feature slices. Each is registered here and nowhere else.
         services.AddScoped<IQueryHandler<GetPageTreeQuery, Result<PageTreeResponse>>, GetPageTreeHandler>();
@@ -110,6 +142,29 @@ public static class PagesModule
         services.AddScoped<IQueryHandler<GetComponentDraftQuery, Result<DraftResponse>>, GetComponentDraftHandler>();
         services.AddScoped<ICommandHandler<SaveComponentDraftCommand, Result<DraftResponse>>, SaveComponentDraftHandler>();
         services.AddScoped<IValidator<SaveComponentDraftCommand>, SaveComponentDraftValidator>();
+
+        // 012: publishing slices.
+        services.AddScoped<ICommandHandler<PublishCommand, Result<PublicationResponse>>, PublishHandler>();
+        services.AddScoped<ICommandHandler<UnpublishCommand, Result<PublicationResponse>>, UnpublishHandler>();
+        services.AddScoped<ICommandHandler<RollbackCommand, Result<PublicationResponse>>, RollbackHandler>();
+        services.AddScoped<LogEntryReads>();
+        services.AddScoped<IQueryHandler<GetHistoryQuery, Result<SubjectHistoryResponse>>, GetHistoryHandler>();
+        services.AddScoped<IQueryHandler<GetVersionQuery, Result<VersionContentResponse>>, GetVersionHandler>();
+        services.AddScoped<ICommandHandler<CopyVersionToDraftCommand, Result<DraftResponse>>, CopyVersionToDraftHandler>();
+        services.AddScoped<IQueryHandler<GetPublishLogQuery, Result<PublishLogResponse>>, GetPublishLogHandler>();
+
+        // 012 research PR-14: schedules, run through delayed messages in the Pages outbox.
+        services.AddScoped<ScheduleWrites>();
+        services.AddScoped<ICommandHandler<SetScheduleCommand, Result<ScheduleResponse>>, SetScheduleHandler>();
+        services.AddScoped<ICommandHandler<CancelScheduleCommand, Result>, CancelScheduleHandler>();
+        services.AddScoped<IIntegrationEventHandler<PublishScheduleDue>, RunDueScheduleHandler>();
+        services.AddSingleton<IEventTypeRegistration>(new EventTypeRegistration<PublishScheduleDue>());
+
+        // 012 research PR-16: design publishes, recorded in the site's publish log.
+        services.AddScoped<IIntegrationEventHandler<DesignPublished>, RecordDesignPublishHandler>();
+
+        // 012 data-model §3.2: pages that showed a deleted media file refresh.
+        services.AddScoped<IIntegrationEventHandler<FileDeleted>, RefreshPagesShowingMediaHandler>();
 
         // 011 research ED-16: the token usage count the admin asks before deleting a token.
         services.AddScoped<IQueryHandler<GetTokenUsageQuery, Result<TokenUsageResponse>>, GetTokenUsageHandler>();

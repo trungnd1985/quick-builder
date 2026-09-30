@@ -209,6 +209,57 @@ public sealed class LoggingTests(DatabaseFixture database) : IAsyncLifetime
     }
 
     /// <summary>
+    /// 012 FR-044: publishing, rolling back, scheduling, running a due schedule, publishing the
+    /// design and rendering a page are logged by ids and numbers only — never a title, an
+    /// address or any content.
+    /// </summary>
+    [Fact]
+    public async Task Publishing_journeys_log_ids_and_numbers_only()
+    {
+        var admin = await _app.CreateAdminClientAsync().ConfigureAwait(true);
+        const string Host = "logged-publishing.test";
+        var siteId = await Media.MediaApi.CreateSiteAsync(admin, "Logged", Host).ConfigureAwait(true);
+        const string Canary = "zz-publishing-canary";
+
+        var page = (await Pages.PagesApi.CreateOkAsync(admin, siteId, $"{Canary}-address", title: $"{Canary} title").ConfigureAwait(true)).GetProperty("id").GetGuid();
+        var path = Pages.PagesApi.PagePath(siteId, page);
+        await Publishing.PublishingApi.SaveAsync(admin, path, Publishing.PublishingApi.HeadingDocument($"{Canary} heading")).ConfigureAwait(true);
+        await Publishing.PublishingApi.PublishCurrentAsync(admin, path).ConfigureAwait(true);
+        await Publishing.PublishingApi.PublishCurrentAsync(admin, path).ConfigureAwait(true);
+        await Pages.PagesApi.OkAsync(await Publishing.PublishingApi.RollbackAsync(admin, path, 1).ConfigureAwait(true)).ConfigureAwait(true);
+        await _app.CreateClientForHost(Host).GetStringAsync(new Uri($"/{Canary}-address", UriKind.Relative)).ConfigureAwait(true);
+        await _app.CreateClientForHost(Host).GetAsync(new Uri($"/{Canary}-missing?{Canary}=1", UriKind.Relative)).ConfigureAwait(true);
+
+        var draftVersion = await Publishing.PublishingApi.DraftVersionAsync(admin, path).ConfigureAwait(true);
+        await Pages.PagesApi.OkAsync(await Publishing.PublishingApi.ScheduleAsync(admin, path, "publish", DateTimeOffset.UtcNow.AddHours(1), draftVersion).ConfigureAwait(true)).ConfigureAwait(true);
+        await using (var scope = _app.Services.CreateAsyncScope())
+        {
+            await scope.ServiceProvider.GetRequiredService<QuickBuilder.Pages.Infrastructure.PagesDbContext>().Database
+                .ExecuteSqlRawAsync("UPDATE pages.outbox_messages SET available_at_utc = now() - interval '1 second' WHERE event_type = 'Pages.PublishScheduleDue'")
+                .ConfigureAwait(true);
+        }
+
+        var tokens = await Pages.PagesApi.OkAsync(await admin.GetAsync(new Uri($"/api/v1/editor/sites/{siteId}/design-tokens", UriKind.Relative)).ConfigureAwait(true)).ConfigureAwait(true);
+        await admin.PostAsJsonAsync(
+            new Uri($"/api/v1/editor/sites/{siteId}/design-tokens/publish", UriKind.Relative),
+            new { version = tokens.GetProperty("version").GetUInt32() }).ConfigureAwait(true);
+
+        var dispatcher = ActivatorUtilities.CreateInstance<QuickBuilder.Shared.Infrastructure.Outbox.OutboxDispatcher>(_app.Services);
+        var settings = _app.Services.GetRequiredService<QuickBuilder.Shared.Infrastructure.Outbox.IOutboxSettingsProvider>().Get() with { Enabled = true };
+        while (await dispatcher.RunOnceAsync(settings, CancellationToken.None).ConfigureAwait(true) > 0)
+        {
+        }
+
+        var events = _app.Logs.Events.Select(LogCapture.Render).ToList();
+        var leak = events.FirstOrDefault(e => e.Contains(Canary, StringComparison.OrdinalIgnoreCase));
+        Assert.True(leak is null, $"A log event contains publishing content: {leak}");
+
+        Assert.Contains(events, e => e.Contains(page.ToString(), StringComparison.OrdinalIgnoreCase) && e.Contains("is live as version 3", StringComparison.Ordinal));
+        Assert.Contains(events, e => e.Contains(page.ToString(), StringComparison.OrdinalIgnoreCase) && e.Contains("is live as version 4", StringComparison.Ordinal) && e.Contains("scheduled", StringComparison.Ordinal));
+        Assert.Contains(events, e => e.Contains("The design of site", StringComparison.Ordinal) && e.Contains(siteId.ToString(), StringComparison.OrdinalIgnoreCase));
+    }
+
+    /// <summary>
     /// 011 FR-045: block text saved in a draft, and design token names and values, never reach
     /// the logs; the token set is logged by site id and version only.
     /// </summary>

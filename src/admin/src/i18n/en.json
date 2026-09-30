@@ -341,6 +341,7 @@
       "name": "Name",
       "usedBy": "Used by",
       "usage": "{count} page | {count} pages",
+      "publishing": "Publishing",
       "actions": "Actions"
     },
     "create": {
@@ -921,6 +922,160 @@
       "antique": "Antique",
       "didone": "Didone",
       "handwritten": "Handwritten"
+    }
+  },
+  "publishing": {
+    "badge": {
+      "draft": "Draft only",
+      "published": "Published",
+      "changed": "Published — changes",
+      "failed": "Schedule failed",
+      "failures": {
+        "unpublished_components": "A shared component it uses was not published by then.",
+        "not_published": "It was no longer published.",
+        "invalid_document": "Its content no longer passes the page checks.",
+        "unknown": "The schedule could not run."
+      },
+      "scheduled": {
+        "publish": "Publishes {when}",
+        "unpublish": "Unpublishes {when}"
+      },
+      "overdue": {
+        "publish": "Publish overdue since {when}",
+        "unpublish": "Unpublish overdue since {when}"
+      }
+    },
+    "menu": {
+      "label": "Publishing",
+      "publish": "Publish",
+      "publishing": "Publishing…",
+      "unpublish": "Unpublish",
+      "schedule": "Schedule…",
+      "changeSchedule": "Change schedule…",
+      "cancelSchedule": "Cancel schedule",
+      "history": "History",
+      "viewLive": "View live page",
+      "published": "Published version {number}.",
+      "unpublished": "Unpublished. Visitors now get the not-found page.",
+      "scheduleCancelled": "Schedule cancelled.",
+      "savingFirst": "Saving your changes first…"
+    },
+    "confirm": {
+      "unpublish": "Unpublish {title}? Visitors get the not-found page from the next request.",
+      "rollback": "Publish version {number} again? Visitors see it at once. The draft is not changed.",
+      "copyToDraft": "Replace the draft with version {number}? Unsaved changes are lost. Visitors see nothing until you publish.",
+      "supersedes": "This cancels the publish scheduled for {when}.",
+      "confirm": "Confirm",
+      "cancel": "Cancel"
+    },
+    "schedule": {
+      "title": "Schedule",
+      "publish": "Publish at",
+      "unpublish": "Unpublish at",
+      "action": "What",
+      "date": "Date",
+      "time": "Time",
+      "timeZone": "Times are in your time zone: {zone}.",
+      "save": "Schedule",
+      "saved": "Scheduled for {when}.",
+      "inPast": "Choose a time in the future.",
+      "existing": "Currently scheduled for {when}.",
+      "updated": "Schedule updated."
+    },
+    "history": {
+      "title": "History of {title}",
+      "back": "Back",
+      "empty": "Nothing has been published yet.",
+      "live": "Live",
+      "version": "Version {number}",
+      "view": "View",
+      "rollback": "Roll back",
+      "copyToDraft": "Copy to draft",
+      "notKept": "Content no longer kept",
+      "rolledBack": "Version {number} is live again as version {newNumber}.",
+      "copied": "Version {number} copied to the draft.",
+      "columns": {
+        "version": "Version",
+        "action": "What",
+        "who": "Who",
+        "when": "When",
+        "actions": "Actions"
+      }
+    },
+    "actions": {
+      "publish": "Published",
+      "scheduled_publish": "Published by schedule",
+      "rollback": "Rolled back to {number}",
+      "unpublish": "Unpublished",
+      "scheduled_unpublish": "Unpublished by schedule",
+      "schedule_set": "Scheduled",
+      "schedule_changed": "Schedule changed",
+      "schedule_cancelled": "Schedule cancelled",
+      "schedule_failed": "Schedule failed",
+      "copied_to_draft": "Copied to draft",
+      "deleted": "Deleted"
+    },
+    "log": {
+      "title": "Publish log",
+      "intro": "Every publishing action on {site}, including pages and components that no longer exist.",
+      "empty": "Nothing has been published on this site yet.",
+      "more": "Show more",
+      "deleted": "(deleted)",
+      "design": "Design",
+      "schedule": "by schedule, set by {who}",
+      "filters": {
+        "kind": "Kind",
+        "all": "All",
+        "page": "Pages",
+        "component": "Components",
+        "design": "Design"
+      },
+      "columns": {
+        "when": "When",
+        "what": "What",
+        "subject": "Page or component",
+        "who": "Who"
+      }
+    },
+    "design": {
+      "publish": "Publish design",
+      "published": "Design version {number} is live.",
+      "defaults": "Visitors see the default design until you publish.",
+      "live": "Live: version {number}",
+      "changes": "The design has changes visitors do not see yet.",
+      "versions": "Published versions",
+      "rollback": "Roll back",
+      "rolledBack": "Design version {number} is live again."
+    },
+    "address": {
+      "warning": "This changes the address of {count} published page(s). Links and bookmarks to the old addresses stop working."
+    },
+    "version": {
+      "readOnly": "Version {number} of {title}, published {when}. Read-only."
+    },
+    "errors": {
+      "forbidden": "You are not allowed to publish on this site.",
+      "unknown": "Something went wrong. Try again.",
+      "pages": {
+        "out_of_date": "Someone changed this since you opened it. Reload and try again.",
+        "invalid_document": "The draft has a problem and cannot be published. Open it in the editor to fix it.",
+        "unpublished_components": "{count} shared component(s) this uses are not published. Publish them first.",
+        "component_in_use_by_published_pages": "{count} published page(s) use this component. Unpublish them or remove it from them first.",
+        "page_published": "This page is published. Unpublish it before deleting it.",
+        "not_published": "This is not published.",
+        "version_not_found": "That version is no longer kept.",
+        "version_missing_components": "That version uses {count} component(s) that no longer exist.",
+        "schedule_in_past": "Choose a time in the future.",
+        "draft_version_required": "Save the draft, then schedule it again.",
+        "schedule_not_found": "Nothing is scheduled.",
+        "not_found": "This page no longer exists.",
+        "component_not_found": "This component no longer exists.",
+        "unknown": "The schedule could not run."
+      },
+      "editor": {
+        "out_of_date": "Someone changed the design since you opened it. Reload and try again.",
+        "design_version_not_found": "That design version is no longer kept."
+      }
     }
   }
 }

@@ -212,7 +212,11 @@ public sealed class SiteScopingTests(DatabaseFixture database) : IAsyncLifetime
         response.EnsureSuccessStatusCode();
 
         var created = await response.Content.ReadFromJsonAsync<JsonElement>().ConfigureAwait(true);
-        return created.GetProperty("id").GetGuid();
+        var siteId = created.GetProperty("id").GetGuid();
+
+        // The site serves its own id at /, so a public response shows which site answered.
+        await PublicSite.MarkAsync(client, siteId).ConfigureAwait(true);
+        return siteId;
     }
 
     private async Task<Guid> ResolvePublicSiteAsync(string hostName)
@@ -222,8 +226,7 @@ public sealed class SiteScopingTests(DatabaseFixture database) : IAsyncLifetime
 
         response.EnsureSuccessStatusCode();
 
-        var payload = await response.Content.ReadFromJsonAsync<JsonElement>().ConfigureAwait(true);
-        return payload.GetProperty("siteId").GetGuid();
+        return (await PublicSite.ResolvedSiteAsync(response).ConfigureAwait(true))!.Value;
     }
 
     private static string FindRepositoryRoot()

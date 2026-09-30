@@ -61,7 +61,7 @@ internal sealed class SiteResolutionMiddleware(RequestDelegate next, ILogger<Sit
         // Media, which answers its own misses.
         if (context.GetEndpoint() is null && !IsPublicReserved(context.Request.Path))
         {
-            await PublicResponses.WritePublicNotFoundAsync(context).ConfigureAwait(false);
+            await PublicResponses.WritePublicNotFoundAsync(context, site).ConfigureAwait(false);
             return;
         }
 

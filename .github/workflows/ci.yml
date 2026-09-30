@@ -92,7 +92,8 @@ jobs:
           # 010: the page tree, the document validator and draft storage are the start of
           # the publish and render path (research P-19).
           # 011: design tokens feed rendering (#12) the same way, so the Editor module joins.
-          for package in QuickBuilder.Media QuickBuilder.Shared.Infrastructure QuickBuilder.Sites QuickBuilder.Shared.Kernel QuickBuilder.Host QuickBuilder.Pages QuickBuilder.Editor; do
+          # 012: the renderer and the public page path are critical paths (publish, render).
+          for package in QuickBuilder.Media QuickBuilder.Shared.Infrastructure QuickBuilder.Sites QuickBuilder.Shared.Kernel QuickBuilder.Host QuickBuilder.Pages QuickBuilder.Editor QuickBuilder.Rendering; do
             package_rate=$(grep -o "<package name=\"${package}\"[^>]*" ./TestResults/merged/Cobertura.xml | grep -o 'line-rate="[0-9.]*"' | grep -o '[0-9.]*' || true)
             if [ -z "${package_rate}" ]; then
               echo "::error::No coverage recorded for ${package}."
@@ -146,3 +147,81 @@ jobs:
       # the release spec, which is out of scope for this feature.
       - name: Build image
         run: docker build -t quickbuilder:ci .
+
+  # 012 FR-041: the reference deployment journey, on the built image with the reference
+  # compose file. A required check: if the image, the compose file or the journey
+  # (setup → create page → publish → view) breaks, the build fails. QB_SMOKE_REQUIRE_DOCKER
+  # makes a runner without Docker fail instead of skipping the test and passing.
+  smoke:
+    name: Smoke (reference deployment)
+    runs-on: ubuntu-latest
+    needs: [image]
+    env:
+      QB_SMOKE_REQUIRE_DOCKER: '1'
+      QB_SMOKE_LOG_DIR: ${{ github.workspace }}/compose-logs
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Run the reference journey
+        run: dotnet test tests/QuickBuilder.SmokeTests --configuration Release --filter "Category=Smoke" --logger "console;verbosity=normal"
+
+      - name: Upload compose logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: compose-logs-smoke
+          path: compose-logs/
+
+  # The performance budgets (002 sign-in, 003 media, 009 resolution, 010 page tree, 011
+  # editor, 012 rendering) are set for the reference environment: 2 dedicated CPUs, 4 GB.
+  # Shared GitHub runners are slower and noisier than that — the same run has missed the
+  # sign-in and media budgets by 2–5x while nothing had changed — so a missed budget here
+  # is reported, not fatal: the numbers go to the run summary and a miss is a warning.
+  # The budgets are asserted on the reference environment in each feature's quickstart
+  # run. Decided on PR #31 (2026-09-30), refining analysis I1 of 012.
+  performance:
+    name: Performance (report only)
+    runs-on: ubuntu-latest
+    needs: [image]
+    env:
+      QB_SMOKE_REQUIRE_DOCKER: '1'
+      QB_SMOKE_LOG_DIR: ${{ github.workspace }}/compose-logs
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Run the performance tests
+        id: perf
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          dotnet test tests/QuickBuilder.SmokeTests --configuration Release --filter "Category=Performance" \
+            --logger "console;verbosity=detailed" | tee perf.log
+
+      - name: Report the numbers
+        if: always()
+        run: |
+          {
+            echo "## Performance (report only; budgets are for the reference environment)"
+            echo
+            echo '```'
+            grep -E "p95|p50|Passed|Failed|SC-0[0-9]+|took|above|below" perf.log | sed -E 's/^\[xUnit.net [0-9:.]+\] +//' | sort -u || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [ "${{ steps.perf.outcome }}" != "success" ]; then
+            echo "::warning title=Performance budgets::One or more budgets were missed on this runner. See the run summary; the budgets are asserted on the reference environment."
+          fi
+
+      - name: Upload compose logs
+        if: steps.perf.outcome != 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: compose-logs-performance
+          path: compose-logs/

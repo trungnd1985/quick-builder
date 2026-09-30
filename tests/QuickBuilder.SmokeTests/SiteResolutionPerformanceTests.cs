@@ -17,7 +17,9 @@ namespace QuickBuilder.SmokeTests;
 /// check that the price of correctness across instances stays small. It compares two
 /// requests the same app serves under the same load: <c>GET /</c> on a site's host, which
 /// resolves a site, and <c>GET /health/live</c>, which does not. The difference is the cost
-/// of resolution. Load comes from a curl container on the compose network, as for Media,
+/// of resolution. Since 012 a resolved site with nothing published answers <c>/</c> with its
+/// not-found page, served from the cache after the first request, so the difference also
+/// holds the two small reads that page's key needs; it is still held to the same budget. Load comes from a curl container on the compose network, as for Media,
 /// so the host machine's networking is not what gets measured.
 /// </remarks>
 [Trait("Category", "Performance")]
@@ -70,7 +72,7 @@ public sealed class SiteResolutionPerformanceTests(ITestOutputHelper output) : I
         // no single name gets an advantage.
         var results = await InNetworkAsync(await NetworkAsync().ConfigureAwait(true), $$"""
             for i in $(seq 100); do curl -s -o /dev/null http://app:8080/health/live; curl -s -o /dev/null -H "Host: h0.s0.perf.test" http://app:8080/; done
-            seq 0 {{Requests - 1}} | xargs -P {{Concurrency}} -I{} sh -c 'curl -s -o /dev/null -w "site %{http_code} %{time_total}\n" -H "Host: h$(( {} % {{HostNamesPerSite}} )).s$(( {} / {{HostNamesPerSite}} % {{Sites}} )).perf.test" http://app:8080/'
+            seq 0 {{Requests - 1}} | xargs -P {{Concurrency}} -I{} sh -c 'curl -s -o /dev/null -w "site %{http_code} %{time_total} %{content_type}\n" -H "Host: h$(( {} % {{HostNamesPerSite}} )).s$(( {} / {{HostNamesPerSite}} % {{Sites}} )).perf.test" http://app:8080/'
             seq {{Requests}} | xargs -P {{Concurrency}} -I{} sh -c 'curl -s -o /dev/null -w "health %{http_code} %{time_total}\n" http://app:8080/health/live'
             seq {{Requests}} | xargs -P {{Concurrency}} -I{} sh -c 'curl -s -o /dev/null -w "unknown %{http_code} %{time_total}\n" -H "Host: nobody{}.perf.test" http://app:8080/'
             for i in $(seq 300); do curl -s -o /dev/null -w "seqsite %{http_code} %{time_total}\n" -H "Host: h1.s$(( i % {{Sites}} )).perf.test" http://app:8080/; done
@@ -79,7 +81,14 @@ public sealed class SiteResolutionPerformanceTests(ITestOutputHelper output) : I
 
         var sites = results.Where(r => r[0] == "site").ToList();
         var health = results.Where(r => r[0] == "health").ToList();
-        Assert.All(sites, r => Assert.Equal("200", r[1]));
+        // Nothing is published on these sites, so a resolved site answers `/` with its own HTML
+        // not-found page (012). An unknown host gets 009's JSON instead, so this still proves
+        // every request reached its site.
+        Assert.All(sites, r =>
+        {
+            Assert.Equal("404", r[1]);
+            Assert.StartsWith("text/html", r[3], StringComparison.Ordinal);
+        });
         Assert.All(health, r => Assert.Equal("200", r[1]));
 
         var siteP95 = P95(sites.Select(r => Seconds(r[2])));

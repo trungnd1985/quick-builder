@@ -43,6 +43,8 @@ COPY src/Modules/Pages/QuickBuilder.Pages.Contracts/*.csproj          src/Module
 COPY src/Modules/Pages/QuickBuilder.Pages/*.csproj                    src/Modules/Pages/QuickBuilder.Pages/
 COPY src/Modules/Editor/QuickBuilder.Editor.Contracts/*.csproj        src/Modules/Editor/QuickBuilder.Editor.Contracts/
 COPY src/Modules/Editor/QuickBuilder.Editor/*.csproj                  src/Modules/Editor/QuickBuilder.Editor/
+COPY src/Modules/Rendering/QuickBuilder.Rendering.Contracts/*.csproj  src/Modules/Rendering/QuickBuilder.Rendering.Contracts/
+COPY src/Modules/Rendering/QuickBuilder.Rendering/*.csproj            src/Modules/Rendering/QuickBuilder.Rendering/
 RUN dotnet restore src/QuickBuilder.Host/QuickBuilder.Host.csproj
 
 # The .NET folders only. src/admin/ is built by the Node stage above; copying it here
@@ -55,6 +57,11 @@ COPY src/Modules/           src/Modules/
 # document keeps it, so the published image carries exactly the file docs/ describes.
 # 011: Editor.Contracts embeds the design token schema and its default set the same way.
 COPY docs/contracts/        docs/contracts/
+
+# 012 research PR-10: Rendering embeds the editor's block stylesheet, the one stylesheet for
+# the canvas and published pages. Only that file is copied, so other admin changes still
+# leave this layer cached.
+COPY src/admin/src/editor/blocks/blocks.css src/admin/src/editor/blocks/blocks.css
 
 # The admin build output goes into wwwroot before publish, so it ships inside the image.
 COPY --from=admin /admin/dist/ src/QuickBuilder.Host/wwwroot/admin/

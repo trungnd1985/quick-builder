@@ -1,0 +1,531 @@
+openapi: 3.1.0
+info:
+  title: QuickBuilder Publishing API
+  version: v1
+  description: |
+    HTTP contract for feature 012 (issue #12): publishing, versions, rollback, schedules and
+    the publish log for pages and components (Pages module), and design publishing (Editor
+    module). All of it is on the **administrative surface**. The site is named in the route
+    and never inferred from the host. What visitors get is in contracts/public-rendering.md.
+
+    Error bodies, authentication, setup, CSRF and site visibility (401, 403 `identity.*`,
+    404 `sites.not_found`, 428) behave exactly as 002 contracts/authorization.md §3
+    describes. A caller who may see the site but lacks the capability gets
+    `403 identity.forbidden`. State-changing requests need `X-QuickBuilder-Request: 1` and a
+    same-origin `Origin`.
+
+    Capabilities (research PR-18):
+    - `pages.publishing.manage` (new; held by Designer): publish, unpublish, rollback and
+      schedules for pages and components; design publish and rollback.
+    - `pages.publish_log.view` (new; held by Administrator only): the site publish log.
+    - `pages.content.view` (010): history and version reads.
+    - `pages.page_drafts.edit` (010): copying a page version to its draft.
+    - `pages.components.manage` (010): copying a component version to its draft.
+    - `editor.design_tokens.view` (011): design history and version reads.
+
+    Administrator holds all of them. Refusal codes are listed in data-model.md §6.
+
+    **Component paths** mirror page paths under `/components/{componentId}` with the same
+    bodies and responses, except that components have no unpublish schedule. They are listed
+    once at the end, without their bodies repeated.
+
+servers:
+  - url: /
+
+tags:
+  - name: Page publishing
+  - name: Component publishing
+  - name: Publish log
+  - name: Design publishing
+
+paths:
+  /api/v1/pages/sites/{siteId}/pages/{pageId}/publish:
+    parameters:
+      - $ref: '#/components/parameters/SiteId'
+      - $ref: '#/components/parameters/PageId'
+    post:
+      tags: [Page publishing]
+      operationId: publishPage
+      summary: Publish the page's draft as a new live version
+      description: |
+        Requires `pages.publishing.manage`. Atomic (FR-001). Cancels a pending scheduled
+        publish (FR-019).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/DraftVersionRequest' }
+      responses:
+        '200':
+          description: Published.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Publication' }
+        '400': { $ref: '#/components/responses/InvalidDocument' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: '`pages.out_of_date` or `pages.unpublished_components` (with `componentIds`).'
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+
+  /api/v1/pages/sites/{siteId}/pages/{pageId}/unpublish:
+    parameters:
+      - $ref: '#/components/parameters/SiteId'
+      - $ref: '#/components/parameters/PageId'
+    post:
+      tags: [Page publishing]
+      operationId: unpublishPage
+      summary: Take the page off the public site
+      description: |
+        Requires `pages.publishing.manage`. Its address serves the not-found page from the
+        next request (FR-005). Cancels pending schedules for this page.
+      responses:
+        '200':
+          description: Unpublished.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Publication' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: '`pages.not_published`.'
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+
+  /api/v1/pages/sites/{siteId}/pages/{pageId}/rollback:
+    parameters:
+      - $ref: '#/components/parameters/SiteId'
+      - $ref: '#/components/parameters/PageId'
+    post:
+      tags: [Page publishing]
+      operationId: rollbackPage
+      summary: Publish a retained version again as a new version
+      description: |
+        Requires `pages.publishing.manage`. The draft is not changed (FR-014).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [versionNumber]
+              properties:
+                versionNumber: { type: integer, minimum: 1 }
+      responses:
+        '200':
+          description: Rolled back.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Publication' }
+        '404':
+          description: '`pages.not_found` or `pages.version_not_found`.'
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '409':
+          description: '`pages.version_missing_components` or `pages.unpublished_components`.'
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+
+  /api/v1/pages/sites/{siteId}/pages/{pageId}/history:
+    parameters:
+      - $ref: '#/components/parameters/SiteId'
+      - $ref: '#/components/parameters/PageId'
+    get:
+      tags: [Page publishing]
+      operationId: getPageHistory
+      summary: Publication state, retained versions and log entries of one page
+      description: Requires `pages.content.view` (FR-016).
+      responses:
+        '200':
+          description: The history, newest first.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SubjectHistory' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /api/v1/pages/sites/{siteId}/pages/{pageId}/versions/{number}:
+    parameters:
+      - $ref: '#/components/parameters/SiteId'
+      - $ref: '#/components/parameters/PageId'
+      - $ref: '#/components/parameters/Number'
+    get:
+      tags: [Page publishing]
+      operationId: getPageVersion
+      summary: The content of one retained version
+      description: Requires `pages.content.view`. The admin shell opens it in the editor's read-only mode.
+      responses:
+        '200':
+          description: The version.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/VersionContent' }
+        '404':
+          description: '`pages.not_found` or `pages.version_not_found`.'
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+
+  /api/v1/pages/sites/{siteId}/pages/{pageId}/versions/{number}/copy-to-draft:
+    parameters:
+      - $ref: '#/components/parameters/SiteId'
+      - $ref: '#/components/parameters/PageId'
+      - $ref: '#/components/parameters/Number'
+    post:
+      tags: [Page publishing]
+      operationId: copyPageVersionToDraft
+      summary: Replace the draft with a retained version's content
+      description: |
+        Requires `pages.page_drafts.edit` (FR-015). Uses 010's draft save rules. Nothing
+        public changes.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/DraftVersionRequest' }
+      responses:
+        '200':
+          description: The new draft, in 010's `Draft` shape.
+        '404':
+          description: '`pages.not_found` or `pages.version_not_found`.'
+        '409':
+          description: '`pages.out_of_date`.'
+
+  /api/v1/pages/sites/{siteId}/pages/{pageId}/schedules/{action}:
+    parameters:
+      - $ref: '#/components/parameters/SiteId'
+      - $ref: '#/components/parameters/PageId'
+      - name: action
+        in: path
+        required: true
+        schema: { type: string, enum: [publish, unpublish] }
+    put:
+      tags: [Page publishing]
+      operationId: setPageSchedule
+      summary: Set or move the pending schedule for this action
+      description: |
+        Requires `pages.publishing.manage`. For `publish`, the draft at `draftVersion` is
+        validated and captured now (FR-019). Replaces the time of an existing pending
+        schedule for the same action.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [dueAtUtc]
+              properties:
+                dueAtUtc: { type: string, format: date-time, description: UTC; the admin shell converts from the member's time zone. }
+                draftVersion: { type: integer, description: Required for `publish`. }
+      responses:
+        '200':
+          description: The schedule.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Schedule' }
+        '400':
+          description: '`pages.schedule_in_past` or `pages.invalid_document`.'
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: '`pages.out_of_date`, or for `unpublish`, `pages.not_published`.'
+    delete:
+      tags: [Page publishing]
+      operationId: cancelPageSchedule
+      summary: Cancel the pending schedule for this action
+      description: Requires `pages.publishing.manage`.
+      responses:
+        '204': { description: Cancelled. }
+        '404':
+          description: '`pages.not_found` or `pages.schedule_not_found`.'
+
+  /api/v1/pages/sites/{siteId}/publish-log:
+    parameters:
+      - $ref: '#/components/parameters/SiteId'
+    get:
+      tags: [Publish log]
+      operationId: getPublishLog
+      summary: Every publish log entry of the site, including deleted pages and components
+      description: Requires `pages.publish_log.view` (Administrator only, FR-017).
+      parameters:
+        - name: subjectKind
+          in: query
+          schema: { type: string, enum: [page, component, design] }
+        - name: subjectId
+          in: query
+          schema: { type: string, format: uuid }
+        - name: userId
+          in: query
+          schema: { type: string, format: uuid }
+        - name: cursor
+          in: query
+          schema: { type: string }
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 50 }
+      responses:
+        '200':
+          description: One page of entries, newest first.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/LogEntry' }
+                  nextCursor: { type: [string, 'null'] }
+
+  # --- Components: same bodies and responses as the page operations above -------------
+  /api/v1/pages/sites/{siteId}/components/{componentId}/publish:
+    post: { tags: [Component publishing], operationId: publishComponent, summary: 'As publishPage. Pages using the component refresh (FR-002).', responses: { '200': { description: Published. } } }
+  /api/v1/pages/sites/{siteId}/components/{componentId}/unpublish:
+    post: { tags: [Component publishing], operationId: unpublishComponent, summary: 'As unpublishPage; also refused with `pages.component_in_use_by_published_pages` (FR-004).', responses: { '200': { description: Unpublished. } } }
+  /api/v1/pages/sites/{siteId}/components/{componentId}/rollback:
+    post: { tags: [Component publishing], operationId: rollbackComponent, summary: As rollbackPage., responses: { '200': { description: Rolled back. } } }
+  /api/v1/pages/sites/{siteId}/components/{componentId}/history:
+    get: { tags: [Component publishing], operationId: getComponentHistory, summary: As getPageHistory., responses: { '200': { description: The history. } } }
+  /api/v1/pages/sites/{siteId}/components/{componentId}/versions/{number}:
+    get: { tags: [Component publishing], operationId: getComponentVersion, summary: As getPageVersion., responses: { '200': { description: The version. } } }
+  /api/v1/pages/sites/{siteId}/components/{componentId}/versions/{number}/copy-to-draft:
+    post: { tags: [Component publishing], operationId: copyComponentVersionToDraft, summary: 'As copyPageVersionToDraft; requires `pages.components.manage`.', responses: { '200': { description: The new draft. } } }
+  /api/v1/pages/sites/{siteId}/components/{componentId}/schedules/publish:
+    put: { tags: [Component publishing], operationId: setComponentSchedule, summary: As setPageSchedule with action publish., responses: { '200': { description: The schedule. } } }
+    delete: { tags: [Component publishing], operationId: cancelComponentSchedule, summary: As cancelPageSchedule., responses: { '204': { description: Cancelled. } } }
+
+  # --- Design (Editor module) ----------------------------------------------------------
+  /api/v1/editor/sites/{siteId}/design-tokens/publish:
+    parameters:
+      - $ref: '#/components/parameters/SiteId'
+    post:
+      tags: [Design publishing]
+      operationId: publishDesign
+      summary: Publish the site's draft design tokens
+      description: |
+        Requires `pages.publishing.manage`. Every published page uses the new design from its
+        next request (FR-010).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [version]
+              properties:
+                version: { type: integer, description: The token set version from getDesignTokens (011). }
+      responses:
+        '200':
+          description: Published.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DesignPublication' }
+        '409':
+          description: '`editor.out_of_date`.'
+
+  /api/v1/editor/sites/{siteId}/design-tokens/rollback:
+    parameters:
+      - $ref: '#/components/parameters/SiteId'
+    post:
+      tags: [Design publishing]
+      operationId: rollbackDesign
+      summary: Publish a retained design version again
+      description: Requires `pages.publishing.manage`. The draft token set is not changed.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [versionNumber]
+              properties:
+                versionNumber: { type: integer, minimum: 1 }
+      responses:
+        '200':
+          description: Rolled back.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DesignPublication' }
+        '404':
+          description: '`editor.design_version_not_found`.'
+
+  /api/v1/editor/sites/{siteId}/design-tokens/versions:
+    parameters:
+      - $ref: '#/components/parameters/SiteId'
+    get:
+      tags: [Design publishing]
+      operationId: listDesignVersions
+      summary: The design's publication state and retained versions, newest first
+      description: Requires `editor.design_tokens.view`.
+      responses:
+        '200':
+          description: The versions.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [publication, versions]
+                properties:
+                  publication: { $ref: '#/components/schemas/DesignPublication' }
+                  versions:
+                    type: array
+                    items:
+                      type: object
+                      required: [number, kind, publishedAtUtc, publishedBy]
+                      properties:
+                        number: { type: integer }
+                        kind: { type: string, enum: [publish, rollback] }
+                        restoredFromNumber: { type: [integer, 'null'] }
+                        publishedAtUtc: { type: string, format: date-time }
+                        publishedBy: { $ref: '#/components/schemas/UserSummary' }
+
+  /api/v1/editor/sites/{siteId}/design-tokens/versions/{number}:
+    parameters:
+      - $ref: '#/components/parameters/SiteId'
+      - $ref: '#/components/parameters/Number'
+    get:
+      tags: [Design publishing]
+      operationId: getDesignVersion
+      summary: One retained design version's token document
+      description: Requires `editor.design_tokens.view`.
+      responses:
+        '200': { description: 'The version: `{ number, schemaVersion, document }`.' }
+        '404': { description: '`editor.design_version_not_found`.' }
+
+components:
+  parameters:
+    SiteId:
+      name: siteId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    PageId:
+      name: pageId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    Number:
+      name: number
+      in: path
+      required: true
+      schema: { type: integer, minimum: 1 }
+
+  responses:
+    NotFound:
+      description: '`pages.not_found` (or `pages.component_not_found`), or the site is not visible.'
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    InvalidDocument:
+      description: '`pages.invalid_document` or `pages.unsupported_schema_version`, with 010''s `DocumentProblem`.'
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+
+  schemas:
+    DraftVersionRequest:
+      type: object
+      required: [draftVersion]
+      properties:
+        draftVersion: { type: integer, description: The draft version the member last saw (PR-03). }
+
+    Publication:
+      type: object
+      required: [state, hasUnpublishedChanges, pendingSchedules]
+      properties:
+        state: { type: string, enum: [draft, published] }
+        liveNumber: { type: [integer, 'null'] }
+        liveSinceUtc: { type: [string, 'null'], format: date-time }
+        liveBy: { oneOf: [{ $ref: '#/components/schemas/UserSummary' }, { type: 'null' }] }
+        hasUnpublishedChanges: { type: boolean }
+        liveUrl: { type: [string, 'null'], description: 'Pages only: the site base URL plus the page address.' }
+        pendingSchedules:
+          type: array
+          items: { $ref: '#/components/schemas/Schedule' }
+        failedSchedule: { oneOf: [{ $ref: '#/components/schemas/Schedule' }, { type: 'null' }] }
+
+    Schedule:
+      type: object
+      required: [action, dueAtUtc, state, setBy]
+      properties:
+        action: { type: string, enum: [publish, unpublish] }
+        dueAtUtc: { type: string, format: date-time }
+        state: { type: string, enum: [pending, done, cancelled, failed] }
+        failureCode: { type: [string, 'null'] }
+        setBy: { $ref: '#/components/schemas/UserSummary' }
+        capturedDraftVersion: { type: [integer, 'null'] }
+
+    SubjectHistory:
+      type: object
+      required: [publication, entries, retainedVersions]
+      properties:
+        publication: { $ref: '#/components/schemas/Publication' }
+        retainedVersions:
+          type: array
+          description: Version numbers that can be viewed, rolled back to or copied (FR-013).
+          items: { type: integer }
+        entries:
+          type: array
+          items: { $ref: '#/components/schemas/LogEntry' }
+
+    VersionContent:
+      type: object
+      required: [number, schemaVersion, document, kind, publishedAtUtc, publishedBy]
+      properties:
+        number: { type: integer }
+        schemaVersion: { type: integer }
+        document: { type: object, description: The page schema document (docs/contracts/page-schema.md). }
+        title: { type: [string, 'null'] }
+        kind: { type: string, enum: [publish, scheduled, rollback] }
+        restoredFromNumber: { type: [integer, 'null'] }
+        publishedAtUtc: { type: string, format: date-time }
+        publishedBy: { $ref: '#/components/schemas/UserSummary' }
+
+    LogEntry:
+      type: object
+      required: [id, subjectKind, subjectId, subjectLabel, action, occurredAtUtc, subjectExists]
+      properties:
+        id: { type: string, format: uuid }
+        subjectKind: { type: string, enum: [page, component, design] }
+        subjectId: { type: string, format: uuid }
+        subjectLabel: { type: string }
+        subjectPath: { type: [string, 'null'] }
+        subjectExists: { type: boolean, description: False once the page or component is deleted. }
+        action:
+          type: string
+          enum: [publish, scheduled_publish, rollback, unpublish, scheduled_unpublish, schedule_set, schedule_changed, schedule_cancelled, schedule_failed, copied_to_draft, deleted]
+        versionNumber: { type: [integer, 'null'] }
+        restoredFromNumber: { type: [integer, 'null'] }
+        actor: { oneOf: [{ $ref: '#/components/schemas/UserSummary' }, { type: 'null' }] }
+        scheduleOwner: { oneOf: [{ $ref: '#/components/schemas/UserSummary' }, { type: 'null' }] }
+        reasonCode: { type: [string, 'null'] }
+        occurredAtUtc: { type: string, format: date-time }
+
+    DesignPublication:
+      type: object
+      required: [liveNumber, hasUnpublishedChanges]
+      properties:
+        liveNumber: { type: integer, description: 0 while the site uses the built-in defaults. }
+        liveSinceUtc: { type: [string, 'null'], format: date-time }
+        liveBy: { oneOf: [{ $ref: '#/components/schemas/UserSummary' }, { type: 'null' }] }
+        hasUnpublishedChanges: { type: boolean }
+
+    UserSummary:
+      type: object
+      description: As 002's UserSummaryDto.
+      required: [id, displayName]
+      properties:
+        id: { type: string, format: uuid }
+        displayName: { type: string }
+
+    Problem:
+      type: object
+      required: [type, title, status, errorCode]
+      properties:
+        type: { type: string }
+        title: { type: string }
+        status: { type: integer }
+        errorCode: { type: string }
+        componentIds: { type: array, items: { type: string, format: uuid } }
+        pageCount: { type: integer }

@@ -260,7 +260,17 @@ version 1, so no stored document needs migrating:
    disagree about types or props.
 6. Never give it a property that holds HTML, and never draw one with `v-html` (lint
    refuses it). Rich text is structured JSON (§3 rule 8).
-7. From #12, add its renderer.
+7. Add its renderer (012): one class in
+   `src/Modules/Rendering/QuickBuilder.Rendering/Rendering/Blocks/` implementing
+   `IBlockRenderer`, registered in `RenderingModule`. Write through `HtmlWriter` only, so
+   every value is encoded or checked; read props through `RenderContext`, which applies
+   the schema `default`; put token-driven values in `context.Style(...)`, never in a
+   `style` attribute. It must write the same markup as the canvas component
+   (page-schema.md §9). *Guards*: `BlockRendererCoverageTests` fails while a type has no
+   renderer; `RendererGoldenTests` renders every valid example and compares it with
+   `tests/fixtures/rendering/golden/<name>.html` — run it with `QB_UPDATE_GOLDEN=1` to
+   write the files, then review each one; `CanvasMarkupParity.spec.ts` compares the canvas
+   with the same files.
 
 Anything that would make a stored document invalid — removing or renaming a type or a prop,
 making a prop required — is a **breaking** change: it needs `v2.schema.json`, a forward

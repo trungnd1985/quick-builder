@@ -28,6 +28,7 @@ public sealed class ModuleBoundaryTests
         typeof(Media.MediaModule).Assembly,
         typeof(Pages.PagesModule).Assembly,
         typeof(Editor.EditorModule).Assembly,
+        typeof(Rendering.RenderingModule).Assembly,
     ];
 
     /// <summary>Every module contracts assembly.</summary>
@@ -38,6 +39,7 @@ public sealed class ModuleBoundaryTests
         typeof(Media.Contracts.MediaFileDto).Assembly,
         typeof(Pages.Contracts.PageSchema).Assembly,
         typeof(Editor.Contracts.DesignTokens).Assembly,
+        typeof(Rendering.Contracts.RenderingRoutes).Assembly,
     ];
 
     /// <summary>The file-system types only a storage provider may use (003 FR-019).</summary>
@@ -140,6 +142,44 @@ public sealed class ModuleBoundaryTests
 
         // Nothing but the kernel; today it needs not even that.
         Assert.All(references, name => Assert.Equal(Kernel.GetName().Name, name));
+    }
+
+    /// <summary>
+    /// Rendering owns no data and reads only through other modules' Contracts (012 research
+    /// PR-01, PR-06).
+    /// </summary>
+    /// <remarks>
+    /// This is half of what makes the public path read-only (constitution Principle VII): a
+    /// module with no <c>DbContext</c> of its own can only read through the readers other
+    /// modules hand it, and those run on read-only connections. The other half is
+    /// <c>PublicPathReadOnlyTests</c>.
+    /// </remarks>
+    [Fact]
+    public void Rendering_has_no_data_access_of_its_own()
+    {
+        var rendering = typeof(Rendering.RenderingModule).Assembly;
+
+        var result = Types.InAssembly(rendering)
+            .ShouldNot()
+            .HaveDependencyOnAny("Microsoft.EntityFrameworkCore", "Npgsql")
+            .GetResult();
+
+        Assert.True(result.IsSuccessful, Describe(result, "Rendering touches EF Core or Npgsql"));
+    }
+
+    /// <summary>Rendering's contract names sites and nothing else (012 contracts/readers.md §1.4).</summary>
+    [Fact]
+    public void Rendering_contracts_reference_only_the_kernel_and_sites_contracts()
+    {
+        var references = typeof(Rendering.Contracts.RenderingRoutes).Assembly
+            .GetReferencedAssemblies()
+            .Select(a => a.Name!)
+            .Where(name => name.StartsWith("QuickBuilder.", StringComparison.Ordinal))
+            .ToList();
+
+        Assert.All(
+            references,
+            name => Assert.Contains(name, new[] { Kernel.GetName().Name!, typeof(Sites.Contracts.SiteDto).Assembly.GetName().Name! }));
     }
 
     /// <summary>The host composes; it holds no business logic or data access (FR-001).</summary>

@@ -185,11 +185,12 @@ entry:
 
 ### More than one instance
 
-Multiple instances behind a load balancer are **not supported yet**. Site resolution is
-correct with several instances since feature 009, because nothing caches it; but media
-would need every instance to mount the same storage directory, and the render cache still
-to come needs a shared provider. A shared storage provider (S3-compatible, Azure Blob) is
-the planned answer for media.
+Several instances behind a load balancer serve correct sites and up-to-date pages: site
+resolution caches nothing (009), and each instance's page cache is keyed by numbers read
+from the database on every request, so a publish reaches every instance at its next
+request without a shared cache (012; see "Publishing and rendering"). **Media is what still
+stands in the way**: every instance would need to mount the same storage directory. A
+shared storage provider (S3-compatible, Azure Blob) is the planned answer.
 
 ### Upgrading from feature 002
 
@@ -223,9 +224,11 @@ Changes take effect at the next request, on every instance: nothing caches host 
 
 - **A host name no site holds** and **a disabled site's host name** get the same `404`,
   byte for byte. Disabling a site does not reveal that it exists.
-- **A path a site does not have** gets a fixed `404` too, with a different error code.
+- **A path a site does not have** gets the site's not-found page: a `404` HTML page in the
+  site's design and language (012). An address whose page is unpublished or never
+  published gets exactly the same page.
 - **With `Hosting:AdminHostNames` set**, `/api` and `/admin` on any other host get that same
-  missing-page `404`.
+  not-found page, byte for byte.
 
 Neither response, and no log line, contains the host name that was asked for.
 
@@ -265,10 +268,12 @@ Each site has a tree of pages and a set of shared components (a header, a footer
 under **Sites → a site → Pages** and **Shared components** in the admin shell. Designers
 build the structure and the components; editors can see them and save page drafts.
 
-### Nothing is public yet
+### Drafts and what visitors see
 
-Pages have addresses, drafts and structure, but visitors see none of it until publishing
-arrives (#12). A public request for a page address answers exactly as it did before.
+Visitors see only what has been published (see "Publishing and rendering"). Saving a
+draft, renaming or adding a page changes nothing public until someone publishes. Moving or
+renaming a *published* page is the exception: it changes that page's address at once, and
+the admin shell warns first.
 
 ### Addresses the platform keeps
 
@@ -303,10 +308,11 @@ content**, and **Shared components → Edit content**. Each site's colours, font
 are under **Sites → a site → Design**. Designers edit components and the design; editors
 build page content.
 
-### Nothing is public yet
+### Drafts and the design
 
-The editor saves drafts only. Visitors see nothing of it — nor of design changes — until
-publishing arrives (#12).
+The editor saves drafts only. Visitors see a page's changes when it is published, and
+design changes when the design is published (**Design → Publish design**), not when they
+are saved.
 
 ### Nothing leaves the installation
 
@@ -339,6 +345,100 @@ saved one.
   every existing site starts with the default design tokens.
 - Stored drafts are unchanged and stay valid; they open in the editor as they are.
 - No configuration changes are needed.
+
+## Publishing and rendering
+
+Visitors get server-rendered HTML of what has been published: pages, the shared components
+they show, and the site's design. Designers and Administrators publish; Editors prepare
+drafts.
+
+### Publishing
+
+- **Pages and components** are published from their publishing menu in the page tree, the
+  component list and the editor. A page can only be published once the components it
+  shows are; a component that published pages show cannot be unpublished or deleted.
+- **The design** is published on its own, from **Design → Publish design**. Until the first
+  design publish, pages use the default design.
+- **Unpublishing** takes a page off the site from the next request. A published page
+  cannot be deleted until it is unpublished.
+- **History**: every page and component keeps its 50 most recent versions, which can be
+  viewed, rolled back to (published again as a new version) or copied into the draft. The
+  design keeps 50 versions too.
+- **The publish log** (**Sites → a site → Publish log**, Administrators only) lists every
+  publishing action on the site, including those on pages and components that have since
+  been deleted.
+
+### Schedules
+
+A publish of a page or component, or an unpublish of a page, can be scheduled. A scheduled
+publish captures the draft when it is set, so what goes live is what was reviewed. The
+schedule is a delayed message in the Pages outbox and runs within one outbox poll interval
+(`Outbox:PollInterval`, 5 s by default) of its time, exactly once, on whichever instance
+claims it. A stopped installation runs overdue schedules when it starts again. A schedule
+that cannot run, for example because a component it needs was unpublished in the meantime,
+is marked failed and logged, and the admin shell shows it until someone acts.
+
+A manual publish, unpublish or rollback cancels the matching pending schedule; the admin
+shell says so before it does.
+
+### Caching and memory
+
+Rendered pages are cached in each instance's memory, up to `Cache:MemoryLimitMegabytes`
+(default `256`, from 16 to 16,384). The least recently used pages go first when it is full,
+and a page not requested for an hour is dropped. A typical page is tens of kilobytes, so the
+default holds several thousand. Size the container's memory limit for this cache on top of
+the application's own needs.
+
+The cache never serves stale content: each page's key includes numbers that every relevant
+change moves on, in the same transaction as the change, and they are read from the database
+on every request. So a publish is visible on every instance at its next request, with no
+shared cache and nothing to purge (plan exception E-4 closed). Visitors' browsers get an
+`ETag` and `Cache-Control: public, no-cache`, so they revalidate each time and get a `304`
+while nothing has changed. A CDN in front must respect those headers.
+
+If the cache fails, pages are rendered without it: slower, never wrong.
+
+### Public paths
+
+- `/_assets/blocks.{hash}.css` is the block stylesheet, served on every site's host names
+  and cached by browsers for a year; a new release changes its name.
+- `/_media/` serves media files, as before.
+- Any other path on a site's host is a page address, or the site's not-found page. Only
+  `GET` and `HEAD` are answered; other methods get `405`.
+
+### The not-found page
+
+Missing addresses get an HTML page in the site's design, with a heading and a sentence in
+the site's default language (all 40 supported languages; English where a language has no
+text) and a link home while the home page is published. It is never cached by browsers
+(`Cache-Control: no-store`) and contains nothing from the request. Unknown and disabled host
+names still get the JSON `404` of feature 009.
+
+### Database connections
+
+The public path reads through read-only connections (`default_transaction_read_only=on`),
+so a bug there cannot write. That adds one connection pool per reading module — Pages,
+Editor and Media — to the one each module already has. With Npgsql's default of up to 100
+connections per pool, set PostgreSQL's `max_connections` for the pools you expect under
+load per instance, times the number of instances; in practice a few dozen per instance
+suffice.
+
+### Upgrading from feature 011
+
+- Two migrations run automatically: `AddPublishing` (Pages) and `AddDesignPublishing`
+  (Editor). They add tables and change no existing data; drafts and design tokens stay
+  exactly as they were.
+- Nothing is published after the upgrade, so every site keeps answering "not found" until a
+  Designer or Administrator publishes. Publish shared components (header, footer) before
+  the pages that use them, then the pages, then **Publish design** to take the site's
+  design live; until then pages use the default design.
+- Missing pages on a site's host names now get the HTML not-found page instead of a JSON
+  body. Unknown host names still get the JSON answer.
+- `/_assets/` is a new platform path on every site.
+- New setting: `Cache:MemoryLimitMegabytes` (default `256`). Allow for it in the
+  container's memory limit.
+- Several instances behind a load balancer now serve up-to-date pages without a shared
+  cache. Media still needs shared storage.
 
 ## Upgrading from the foundation release (feature 001)
 

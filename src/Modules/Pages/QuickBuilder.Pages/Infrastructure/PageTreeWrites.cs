@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using QuickBuilder.Pages.Domain;
+using QuickBuilder.Pages.Domain.Events;
 using QuickBuilder.Shared.Kernel.Results;
 
 namespace QuickBuilder.Pages.Infrastructure;
@@ -14,7 +15,7 @@ namespace QuickBuilder.Pages.Infrastructure;
 /// changed (which is what makes concurrent changes serialise) or to add the tree's events
 /// to the outbox in the same transaction.
 /// </remarks>
-internal sealed class PageTreeWrites(PagesDbContext database, PagesAccess access, TimeProvider clock)
+internal sealed class PageTreeWrites(PagesDbContext database, PagesAccess access, GenerationBump bump, TimeProvider clock)
 {
     /// <summary>
     /// Runs <paramref name="change"/> against the site's tree. <paramref name="startIfMissing"/>
@@ -25,6 +26,28 @@ internal sealed class PageTreeWrites(PagesDbContext database, PagesAccess access
         bool startIfMissing,
         Func<PageTree, Guid, TimeProvider, Result<T>> change,
         Action<PageTree, T>? beforeSave,
+        CancellationToken cancellationToken) =>
+        ChangeAsync(
+            siteId,
+            startIfMissing,
+            change,
+            beforeSave is null ? null : (tree, value, _) =>
+            {
+                beforeSave(tree, value);
+                return Task.CompletedTask;
+            },
+            cancellationToken);
+
+    /// <summary>
+    /// As the other overload, with a step that writes set-based statements of its own (012:
+    /// publishing records, render generations). It runs in the same transaction as the save,
+    /// so the tree change and those statements commit together or not at all.
+    /// </summary>
+    public Task<Result<T>> ChangeAsync<T>(
+        Guid siteId,
+        bool startIfMissing,
+        Func<PageTree, Guid, TimeProvider, Result<T>> change,
+        Func<PageTree, T, CancellationToken, Task>? beforeSave,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(change);
@@ -33,6 +56,8 @@ internal sealed class PageTreeWrites(PagesDbContext database, PagesAccess access
 
         return TreeConcurrencyRetry.ExecuteAsync(database, async ct =>
         {
+            await using var transaction = await database.Database.BeginTransactionAsync(ct).ConfigureAwait(false);
+
             var tree = await database.ForSite<PageTree>(siteId)
                 .Include(t => t.Pages)
                 .FirstOrDefaultAsync(ct)
@@ -56,7 +81,15 @@ internal sealed class PageTreeWrites(PagesDbContext database, PagesAccess access
                 return result;
             }
 
-            beforeSave?.Invoke(tree, result.Value);
+            if (beforeSave is not null)
+            {
+                await beforeSave(tree, result.Value, ct).ConfigureAwait(false);
+            }
+
+            // 012 FR-011, data-model §3.2: a page's new address reaches every live page that
+            // links to it at their next request, on every instance. Read before the events
+            // go to the outbox, which clears them.
+            await BumpLinkersAsync(siteId, tree, ct).ConfigureAwait(false);
 
             if (database.Entry(tree).State != EntityState.Added)
             {
@@ -65,7 +98,24 @@ internal sealed class PageTreeWrites(PagesDbContext database, PagesAccess access
 
             PagesOutbox.AddFrom(database, tree, actor);
             await database.SaveChangesAsync(ct).ConfigureAwait(false);
+            await transaction.CommitAsync(ct).ConfigureAwait(false);
             return result;
         }, cancellationToken);
+    }
+
+    private Task<int> BumpLinkersAsync(Guid siteId, PageTree tree, CancellationToken cancellationToken)
+    {
+        var moved = tree.DomainEvents
+            .SelectMany(e => e switch
+            {
+                PageAddressesChangedEvent changed => changed.Changes.Select(c => c.PageId),
+                HomePageChangedEvent home => home.PreviousPageId is { } previous ? [home.PageId, previous] : new[] { home.PageId },
+                _ => [],
+            })
+            .Distinct()
+            .Select(id => (DependencyKinds.Page, id))
+            .ToList();
+
+        return bump.BumpForTargetsAsync(siteId, moved, exceptPageId: null, cancellationToken);
     }
 }

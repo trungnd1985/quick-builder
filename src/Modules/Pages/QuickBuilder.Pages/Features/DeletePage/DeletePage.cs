@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using QuickBuilder.Pages.Domain;
 using QuickBuilder.Pages.Infrastructure;
 using QuickBuilder.Shared.Infrastructure.Dispatch;
 using QuickBuilder.Shared.Kernel.Authorization;
@@ -15,12 +17,14 @@ internal sealed record DeletePageCommand(Guid SiteId, Guid PageId, int Version) 
 /// </summary>
 /// <remarks>
 /// Its draft and usage rows go with it through their foreign keys. There is no trash in
-/// this feature (#21); the address is free for reuse at once.
+/// this feature (#21); the address is free for reuse at once. A live page is refused until it
+/// is unpublished (012 FR-006).
 /// </remarks>
 internal sealed class DeletePageHandler(
     PageTreeWrites writes,
     PagesAccess access,
     PagesDbContext database,
+    PublishingWrites publishing,
     ILogger<DeletePageHandler> logger)
     : ICommandHandler<DeletePageCommand, Result>
 {
@@ -33,11 +37,30 @@ internal sealed class DeletePageHandler(
             return Result.Failure(PagesErrors.SiteNotFound);
         }
 
+        // 012 FR-006: visitors can reach a live page, so it is taken down first, on purpose.
+        var live = await database.ForSite<Publication>(command.SiteId)
+            .AnyAsync(p => p.SubjectKind == SubjectKinds.Page && p.SubjectId == command.PageId && p.LiveVersionId != null, cancellationToken)
+            .ConfigureAwait(false);
+        if (live)
+        {
+            return Result.Failure(PagesErrors.PagePublished);
+        }
+
         var deleted = await writes.ChangeAsync(
             command.SiteId,
             startIfMissing: false,
             (tree, _, clock) => tree.Delete(command.PageId, command.Version, clock),
-            (_, page) => database.Pages.Remove(page),
+            async (_, page, ct) =>
+            {
+                // 012 FR-017: its publishing records go with it; the publish log keeps its
+                // entries and gains a "deleted" one.
+                await publishing.ForgetAsync(
+                        new PublishingWrites.Subject(SubjectKinds.Page, page.Id, command.SiteId, page.Title, page.Path),
+                        access.Actor,
+                        ct)
+                    .ConfigureAwait(false);
+                database.Pages.Remove(page);
+            },
             cancellationToken).ConfigureAwait(false);
 
         if (deleted.IsFailure)

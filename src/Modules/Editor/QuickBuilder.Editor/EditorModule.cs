@@ -2,11 +2,15 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using QuickBuilder.Editor.Contracts;
+using QuickBuilder.Editor.Contracts.Events;
+using QuickBuilder.Editor.Features.DesignPublishing;
 using QuickBuilder.Editor.Features.GetDesignTokens;
 using QuickBuilder.Editor.Features.SaveDesignTokens;
 using QuickBuilder.Editor.Infrastructure;
+using QuickBuilder.Shared.Infrastructure.Data;
 using QuickBuilder.Shared.Infrastructure.Modules;
 using QuickBuilder.Shared.Infrastructure.MultiSite;
+using QuickBuilder.Shared.Infrastructure.Outbox;
 using QuickBuilder.Shared.Kernel.Dispatch;
 using QuickBuilder.Shared.Kernel.Results;
 using QuickBuilder.Shared.Kernel.Validation;
@@ -40,6 +44,13 @@ public static class EditorModule
 
         services.AddSingleton<IModuleDatabaseProvider, EditorDatabaseProvider>();
 
+        // 012 research PR-06: the public path reads the published design on a connection
+        // PostgreSQL keeps read-only. Never migrated; EditorDbContext owns the tables.
+        services.AddDbContext<PublishedDesignReadDbContext>(options => options
+            .UseNpgsql(ReadOnlyConnection.From(connectionString))
+            .UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking));
+        services.AddScoped<IPublishedDesignReader, PublishedDesignReader>();
+
         // What this module lets people do. Identity enforces them; this module only declares them.
         foreach (var capability in EditorCapabilities.All)
         {
@@ -56,6 +67,15 @@ public static class EditorModule
         services.AddScoped<IQueryHandler<GetDesignTokensQuery, Result<DesignTokensResponse>>, GetDesignTokensHandler>();
         services.AddScoped<ICommandHandler<SaveDesignTokensCommand, Result<DesignTokensResponse>>, SaveDesignTokensHandler>();
         services.AddScoped<IValidator<SaveDesignTokensCommand>, SaveDesignTokensValidator>();
+
+        // 012 research PR-17: publishing the design.
+        services.AddScoped<Infrastructure.DesignPublishing>();
+        services.AddScoped<DesignPublicationReads>();
+        services.AddScoped<ICommandHandler<PublishDesignCommand, Result<DesignPublicationResponse>>, PublishDesignHandler>();
+        services.AddScoped<ICommandHandler<RollbackDesignCommand, Result<DesignPublicationResponse>>, RollbackDesignHandler>();
+        services.AddScoped<IQueryHandler<ListDesignVersionsQuery, Result<DesignVersionsResponse>>, ListDesignVersionsHandler>();
+        services.AddScoped<IQueryHandler<GetDesignVersionQuery, Result<DesignVersionResponse>>, GetDesignVersionHandler>();
+        services.AddSingleton<IEventTypeRegistration>(new EventTypeRegistration<DesignPublished>());
 
         return services;
     }

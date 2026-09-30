@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
 import { pagesApi, type Component, type ComponentList } from '../../api/pages'
 import { useSitesStore } from '../../app/sitesStore'
+import PublishMenu from '../publishing/PublishMenu.vue'
 import ConfirmDialog from '../sites/ConfirmDialog.vue'
 import ComponentUsagesPanel from './ComponentUsagesPanel.vue'
 import { isOutOfDate, pageErrorMessage } from './pageErrors'
@@ -37,6 +38,7 @@ const status = ref('')
 
 const components = computed(() => list.value?.components ?? [])
 const canManage = computed(() => list.value?.permissions.canManageComponents === true)
+const canPublish = computed(() => list.value?.permissions.canPublish === true)
 
 onMounted(async () => {
   if (sites.sites.length === 0) {
@@ -276,6 +278,9 @@ async function confirmDelete(): Promise<void> {
               {{ t('components.table.usedBy') }}
             </th>
             <th scope="col">
+              {{ t('components.table.publishing') }}
+            </th>
+            <th scope="col">
               {{ t('components.table.actions') }}
             </th>
           </tr>
@@ -338,6 +343,18 @@ async function confirmDelete(): Promise<void> {
               >
                 {{ t('components.table.usage', { count: component.usageCount }, component.usageCount) }}
               </button>
+            </td>
+            <td>
+              <!-- 012 US2: a component is published once and every page showing it follows. -->
+              <PublishMenu
+                :site-id="siteId"
+                kind="component"
+                :subject-id="component.id"
+                :title="component.name"
+                :publication="component.publication"
+                :can-publish="canPublish"
+                @changed="load()"
+              />
             </td>
             <td>
               <div

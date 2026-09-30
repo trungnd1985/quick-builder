@@ -9,7 +9,9 @@ import { computed, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vu
 import { useI18n } from 'vue-i18n'
 import { onBeforeRouteLeave } from 'vue-router'
 import { pagesApi } from '../api/pages'
+import type { Publication } from '../api/publishing'
 import { useAuthStore } from '../app/authStore'
+import PublishMenu from '../features/publishing/PublishMenu.vue'
 import PageCanvas from './canvas/PageCanvas.vue'
 import BlockPalette from './palette/BlockPalette.vue'
 import PropertyPanel from './panel/PropertyPanel.vue'
@@ -32,13 +34,16 @@ import { resetSitePages } from './state/useSitePages'
 import { resetComponentCache } from './state/componentCache'
 import './editor.css'
 
-const props = defineProps<{ siteId: string; kind: DocumentKind; documentId: string }>()
+/** `versionNumber` opens that published version read-only instead of the draft (012 FR-013). */
+const props = defineProps<{ siteId: string; kind: DocumentKind; documentId: string; versionNumber?: number }>()
 
 const { t } = useI18n()
 const store = useEditorStore()
 const auth = useAuthStore()
 
 const title = ref('')
+const publication = ref<Publication | null>(null)
+const canPublish = ref(false)
 const announcement = ref('')
 const notice = ref('')
 const saveState = ref<Autosave['state']['value']>('saved')
@@ -49,10 +54,11 @@ let autosave: Autosave | null = null
 const cleanups: (() => void)[] = []
 const previewWidth = usePreviewWidth(auth.user?.id ?? 'anonymous')
 
-const backTo = computed(() => ({
-  name: props.kind === 'page' ? 'site-pages' : 'site-components',
-  params: { siteId: props.siteId },
-}))
+const backTo = computed(() =>
+  props.versionNumber !== undefined
+    ? { name: props.kind === 'page' ? 'page-history' : 'component-history', params: { siteId: props.siteId, [props.kind === 'page' ? 'pageId' : 'componentId']: props.documentId } }
+    : { name: props.kind === 'page' ? 'site-pages' : 'site-components', params: { siteId: props.siteId } },
+)
 
 const recoveryKey = (): RecoveryKey => ({ userId: auth.user?.id ?? '', siteId: props.siteId, kind: props.kind, documentId: props.documentId })
 
@@ -97,6 +103,14 @@ async function open(): Promise<void> {
   offer.value = null
   resetSitePages()
   resetComponentCache()
+
+  if (props.versionNumber !== undefined) {
+    // A published version: read-only, so no autosave, history or recovery copies.
+    await store.loadVersion(props.siteId, props.kind, props.documentId, props.versionNumber)
+    if (store.loadState === 'ready') await loadHeader()
+    return
+  }
+
   await store.load(props.siteId, props.kind, props.documentId)
 
   if (store.loadState === 'not-found' || store.loadState === 'forbidden') {
@@ -124,13 +138,33 @@ async function open(): Promise<void> {
     offer.value = await recoveryOffer(recoveryKey(), { version: store.baseVersion, root: store.root })
   }
 
+  await loadHeader()
+}
+
+/** The title, publication and publish permission shown in the top bar (012 FR-039). */
+async function loadHeader(): Promise<void> {
   try {
-    title.value = props.kind === 'page'
-      ? (await pagesApi.get(props.siteId, props.documentId)).title
-      : (await pagesApi.getComponent(props.siteId, props.documentId)).name
+    if (props.kind === 'page') {
+      const page = await pagesApi.get(props.siteId, props.documentId)
+      title.value = page.title
+      publication.value = page.publication ?? null
+      canPublish.value = page.permissions?.canPublish === true
+    } else {
+      const component = await pagesApi.getComponent(props.siteId, props.documentId)
+      title.value = component.name
+      publication.value = component.publication ?? null
+      // Whether this member may publish is a site permission, sent with the component list.
+      canPublish.value = (await pagesApi.components(props.siteId).catch(() => null))?.permissions?.canPublish === true
+    }
   } catch {
     title.value = ''
   }
+}
+
+/** Publishing from the editor saves first, then publishes exactly what was saved. */
+async function saveBeforePublish(): Promise<number | null> {
+  await autosave?.saveNow()
+  return saveState.value === 'saved' && !store.dirty ? store.baseVersion : null
 }
 
 function close(): void {
@@ -230,7 +264,7 @@ onBeforeUnmount(() => {
   close()
 })
 
-watch(() => [props.siteId, props.kind, props.documentId], () => void open())
+watch(() => [props.siteId, props.kind, props.documentId, props.versionNumber], () => void open())
 
 defineExpose({ autosave: () => autosave, history })
 </script>
@@ -243,12 +277,23 @@ defineExpose({ autosave: () => autosave, history })
     <EditorTopBar
       :title="title || t(kind === 'page' ? 'editor.untitledPage' : 'editor.untitledComponent')"
       :back-to="backTo"
-      :back-label="t(kind === 'page' ? 'editor.backToPages' : 'editor.backToComponents')"
+      :back-label="versionNumber !== undefined ? t('publishing.history.back') : t(kind === 'page' ? 'editor.backToPages' : 'editor.backToComponents')"
       :save-state="saveState"
       :can-save="store.loadState === 'ready' && !store.readOnly"
       @save="saveNow"
       @retry="retryNow"
     >
+      <PublishMenu
+        v-if="store.loadState === 'ready' && versionNumber === undefined"
+        :site-id="siteId"
+        :kind="kind"
+        :subject-id="documentId"
+        :title="title"
+        :publication="publication"
+        :can-publish="canPublish && !store.readOnly"
+        :before-publish="saveBeforePublish"
+        @changed="(next) => (publication = next)"
+      />
       <PreviewWidthSwitch v-model="previewWidth" />
       <button
         type="button"
@@ -330,6 +375,7 @@ defineExpose({ autosave: () => autosave, history })
         <ConflictBanner
           v-if="store.readOnly"
           :state="store.readOnly"
+          :title="title"
           :reloading="reloading"
           @reload="reloadLatest"
         />

@@ -68,6 +68,40 @@ export function createAppRouter(history: RouterHistory = createWebHistory('/admi
         props: (route) => ({ siteId: route.params.siteId, kind: 'component', documentId: route.params.componentId }),
         meta: { fullscreen: true },
       },
+      // 012 US3: publishing history, and a retained version opened read-only in the editor.
+      {
+        path: '/sites/:siteId/pages/:pageId/history',
+        name: 'page-history',
+        component: () => import('../features/publishing/HistoryView.vue'),
+        props: (route) => ({ siteId: route.params.siteId, kind: 'page', subjectId: route.params.pageId }),
+      },
+      {
+        path: '/sites/:siteId/components/:componentId/history',
+        name: 'component-history',
+        component: () => import('../features/publishing/HistoryView.vue'),
+        props: (route) => ({ siteId: route.params.siteId, kind: 'component', subjectId: route.params.componentId }),
+      },
+      {
+        path: '/sites/:siteId/pages/:pageId/versions/:number(\\d+)',
+        name: 'page-version',
+        component: () => import('../editor/EditorView.vue'),
+        props: (route) => ({ siteId: route.params.siteId, kind: 'page', documentId: route.params.pageId, versionNumber: Number(route.params.number) }),
+        meta: { fullscreen: true },
+      },
+      {
+        path: '/sites/:siteId/components/:componentId/versions/:number(\\d+)',
+        name: 'component-version',
+        component: () => import('../editor/EditorView.vue'),
+        props: (route) => ({ siteId: route.params.siteId, kind: 'component', documentId: route.params.componentId, versionNumber: Number(route.params.number) }),
+        meta: { fullscreen: true },
+      },
+      // 012 FR-017: the site's publish log. Administrators only; the server checks regardless.
+      {
+        path: '/sites/:siteId/publish-log',
+        name: 'site-publish-log',
+        component: () => import('../features/publishing/PublishLogView.vue'),
+        meta: { administrators: true },
+      },
       { path: '/settings', name: 'settings', component: SettingsView },
       { path: '/account', name: 'account', component: AccountView },
       { path: '/users', name: 'users', component: UsersView, meta: { administrators: true } },

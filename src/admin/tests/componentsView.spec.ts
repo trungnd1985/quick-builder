@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { fireEvent, render, screen, waitFor } from '@testing-library/vue'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/vue'
 import { createPinia, setActivePinia } from 'pinia'
 import { createI18n } from 'vue-i18n'
 import { createMemoryHistory, createRouter } from 'vue-router'
@@ -15,8 +15,8 @@ const SITE = '44444444-4444-4444-4444-444444444444'
 
 const i18n = createI18n({ legacy: false, locale: 'en', fallbackLocale: 'en', messages: { en } })
 
-const designer: PagePermissions = { canManageStructure: true, canEditPageDrafts: true, canManageComponents: true }
-const editor: PagePermissions = { canManageStructure: false, canEditPageDrafts: true, canManageComponents: false }
+const designer: PagePermissions = { canManageStructure: true, canEditPageDrafts: true, canManageComponents: true, canPublish: true, canViewPublishLog: false }
+const editor: PagePermissions = { canManageStructure: false, canEditPageDrafts: true, canManageComponents: false, canPublish: false, canViewPublishLog: false }
 
 function component(id: string, name: string, usageCount: number): Component {
   return {
@@ -27,6 +27,7 @@ function component(id: string, name: string, usageCount: number): Component {
     draft: { schemaVersion: 1, version: 4, updatedAtUtc: '2026-09-27T08:00:00Z', updatedBy: { id: 'u', displayName: 'Dana' } },
     createdAtUtc: '2026-09-27T08:00:00Z',
     updatedAtUtc: '2026-09-27T08:00:00Z',
+    publication: { state: 'draft', liveNumber: null, liveSinceUtc: null, liveBy: null, hasUnpublishedChanges: false, liveUrl: null, pendingSchedules: [], failedSchedule: null },
   }
 }
 
@@ -156,5 +157,23 @@ describe('ComponentsView (US4)', () => {
     await waitFor(() => expect(screen.getByText(en.components.readOnly)).toBeTruthy())
     expect(screen.queryByLabelText(en.components.create.name)).toBeNull()
     expect(screen.queryByRole('button', { name: en.components.delete.replace('{name}', 'Header') })).toBeNull()
+    expect(screen.queryByRole('button', { name: en.publishing.menu.publish })).toBeNull()
+    expect(screen.getByText(en.publishing.badge.draft)).toBeTruthy()
+  })
+
+  it('shows each component’s publication and publishes it from its row (012 US2)', async () => {
+    const calls = stubFetch({ components: [component('h', 'Header', 1), component('f', 'Footer', 0)], permissions: designer }, {
+      'GET /api/v1/pages/sites/44444444-4444-4444-4444-444444444444/components/h/draft': [{ status: 200, body: { schemaVersion: 1, version: 4, document: {} } }],
+      'POST /api/v1/pages/sites/44444444-4444-4444-4444-444444444444/components/h/publish': [{ status: 200, body: {} }],
+    })
+    await renderView()
+
+    const header = screen.getByRole('row', { name: /Header/ })
+    expect(within(header).getByText(en.publishing.badge.draft)).toBeTruthy()
+
+    await fireEvent.click(within(header).getByRole('button', { name: en.publishing.menu.publish }))
+
+    await waitFor(() => expect(calls.some((c) => c.method === 'POST' && c.url.endsWith('/components/h/publish'))).toBe(true))
+    expect(calls.find((c) => c.url.endsWith('/components/h/publish'))!.body).toEqual({ draftVersion: 4 })
   })
 })

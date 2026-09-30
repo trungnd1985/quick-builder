@@ -14,6 +14,7 @@ public static class IsolationProbes
         new MediaIsolationProbe(),
         new PagesIsolationProbe(),
         new EditorIsolationProbe(),
+        new PublishingIsolationProbe(),
     ];
 
     public static TheoryData<string> Names

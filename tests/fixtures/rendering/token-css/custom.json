@@ -1,0 +1,82 @@
+{
+  "description": "A customised set: defaults still emitted, the set overriding and adding ids, other fonts, base size and widths.",
+  "tokens": {
+    "schemaVersion": 1,
+    "colors": [
+      {
+        "id": "color-brand",
+        "name": "Brand",
+        "value": "#16a34a"
+      },
+      {
+        "id": "color-accent",
+        "name": "Accent",
+        "value": "rgb(234, 88, 12)"
+      }
+    ],
+    "typography": {
+      "headingFont": "didone",
+      "bodyFont": "humanist",
+      "baseSizePx": 18,
+      "sizes": [
+        {
+          "id": "text-md",
+          "name": "Normal",
+          "rem": 1
+        },
+        {
+          "id": "text-huge",
+          "name": "Huge",
+          "rem": 3.25
+        }
+      ]
+    },
+    "spacing": [
+      {
+        "id": "space-none",
+        "name": "None",
+        "rem": 0
+      },
+      {
+        "id": "space-gap",
+        "name": "Gap",
+        "rem": 1.5
+      }
+    ],
+    "contentWidths": {
+      "narrow": 640,
+      "normal": 1100,
+      "wide": 1600
+    }
+  },
+  "expected": {
+    "--qb-color-color-brand": "#16a34a",
+    "--qb-color-color-brand-light": "#dbeafe",
+    "--qb-color-color-text": "#111827",
+    "--qb-color-color-muted": "#6b7280",
+    "--qb-color-color-background": "#ffffff",
+    "--qb-color-color-border": "#e5e7eb",
+    "--qb-text-text-sm": "calc(var(--qb-base-size) * 0.875)",
+    "--qb-text-text-md": "calc(var(--qb-base-size) * 1)",
+    "--qb-text-text-lg": "calc(var(--qb-base-size) * 1.25)",
+    "--qb-text-text-xl": "calc(var(--qb-base-size) * 1.5)",
+    "--qb-text-text-2xl": "calc(var(--qb-base-size) * 2)",
+    "--qb-text-text-3xl": "calc(var(--qb-base-size) * 2.5)",
+    "--qb-space-space-none": "calc(var(--qb-base-size) * 0)",
+    "--qb-space-space-xs": "calc(var(--qb-base-size) * 0.25)",
+    "--qb-space-space-sm": "calc(var(--qb-base-size) * 0.5)",
+    "--qb-space-space-md": "calc(var(--qb-base-size) * 1)",
+    "--qb-space-space-lg": "calc(var(--qb-base-size) * 2)",
+    "--qb-space-space-xl": "calc(var(--qb-base-size) * 4)",
+    "--qb-space-space-2xl": "calc(var(--qb-base-size) * 6)",
+    "--qb-font-heading": "Didot, 'Bodoni MT', 'Noto Serif Display', 'URW Palladio L', P052, Sylfaen, serif",
+    "--qb-font-body": "Seravek, 'Gill Sans Nova', Ubuntu, Calibri, 'DejaVu Sans', source-sans-pro, sans-serif",
+    "--qb-base-size": "18px",
+    "--qb-width-narrow": "640px",
+    "--qb-width-normal": "1100px",
+    "--qb-width-wide": "1600px",
+    "--qb-color-color-accent": "rgb(234, 88, 12)",
+    "--qb-text-text-huge": "calc(var(--qb-base-size) * 3.25)",
+    "--qb-space-space-gap": "calc(var(--qb-base-size) * 1.5)"
+  }
+}

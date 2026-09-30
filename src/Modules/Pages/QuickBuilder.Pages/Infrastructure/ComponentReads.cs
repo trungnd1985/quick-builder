@@ -5,7 +5,7 @@ using QuickBuilder.Pages.Features;
 namespace QuickBuilder.Pages.Infrastructure;
 
 /// <summary>The read side of shared components (contracts/pages-api.yaml, Components).</summary>
-internal sealed class ComponentReads(PagesDbContext database, PagesAccess access)
+internal sealed class ComponentReads(PagesDbContext database, PagesAccess access, PublicationReads publications)
 {
     /// <summary>The site's components by name, each with how many page drafts use it.</summary>
     public async Task<ComponentListResponse> ListAsync(Guid siteId, CancellationToken cancellationToken) =>
@@ -45,6 +45,11 @@ internal sealed class ComponentReads(PagesDbContext database, PagesAccess access
 
         var names = await access.NamesAsync(rows.Select(r => r.Draft.UpdatedBy), cancellationToken).ConfigureAwait(false);
 
+        // 012 FR-007: each component's publication state.
+        var publication = await publications
+            .SummariesAsync(siteId, SubjectKinds.Component, [.. rows.Select(r => r.Id)], cancellationToken)
+            .ConfigureAwait(false);
+
         return
         [
             .. rows.Select(r => new ComponentResponse(
@@ -58,7 +63,8 @@ internal sealed class ComponentReads(PagesDbContext database, PagesAccess access
                     r.Draft.UpdatedAtUtc,
                     PagesAccess.Reference(r.Draft.UpdatedBy, names)),
                 r.CreatedAtUtc,
-                r.UpdatedAtUtc)),
+                r.UpdatedAtUtc,
+                publication[r.Id])),
         ];
     }
 }

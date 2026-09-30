@@ -23,6 +23,7 @@ public sealed class BasePathTests(DatabaseFixture database) : IAsyncLifetime
             settings: new Dictionary<string, string> { ["Hosting:BasePath"] = "/cms" });
         _admin = await _app.CreateAdminClientAsync().ConfigureAwait(false);
         _site = (await SitesApi.CreateOkAsync(_admin, "Under", ["under.test"]).ConfigureAwait(false)).GetProperty("id").GetGuid();
+        await PublicSite.MarkAsync(_admin, _site).ConfigureAwait(false);
     }
 
     public Task DisposeAsync()
@@ -38,8 +39,11 @@ public sealed class BasePathTests(DatabaseFixture database) : IAsyncLifetime
         var sites = await _admin.GetAsync(new Uri("/cms/api/v1/sites", UriKind.Relative)).ConfigureAwait(true);
 
         Assert.Equal(HttpStatusCode.OK, home.StatusCode);
-        Assert.Equal(_site, (await SitesApi.BodyAsync(home).ConfigureAwait(true)).GetProperty("siteId").GetGuid());
+        Assert.Equal(_site, await PublicSite.ResolvedSiteAsync(home).ConfigureAwait(true));
         Assert.Equal(HttpStatusCode.OK, sites.StatusCode);
+
+        // 012: every address a published page writes carries the base path too.
+        Assert.Contains("href=\"/cms/_assets/blocks.", await SitesApi.RawAsync(home).ConfigureAwait(true), StringComparison.Ordinal);
     }
 
     [Fact]

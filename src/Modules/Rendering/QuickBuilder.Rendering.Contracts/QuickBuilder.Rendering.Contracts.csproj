@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The Rendering module's public surface (specs/012-publishing-rendering): the one public
+    not-found answer the host writes (research PR-08) and the platform path the block
+    stylesheet is served under. It names sites through Sites.Contracts only.
+  -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\Shared\QuickBuilder.Shared.Kernel\QuickBuilder.Shared.Kernel.csproj" />
+    <ProjectReference Include="..\..\Sites\QuickBuilder.Sites.Contracts\QuickBuilder.Sites.Contracts.csproj" />
+  </ItemGroup>
+
+</Project>

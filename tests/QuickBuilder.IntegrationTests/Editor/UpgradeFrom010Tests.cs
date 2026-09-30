@@ -46,7 +46,11 @@ public sealed class UpgradeFrom010Tests(DatabaseFixture database)
 
         // The Editor schema exists, with its own history, and holds nothing yet: defaults are
         // lazy (research ED-14), so the upgrade writes no data.
-        Assert.Equal(1, await CountAsync(connectionString, "SELECT count(*) FROM editor.\"__EFMigrationsHistory\"").ConfigureAwait(true));
+        // Later releases add their own migrations (012: design publishing); what matters here is
+        // that 011's is applied.
+        Assert.Equal(1, await CountAsync(
+            connectionString,
+            "SELECT count(*) FROM editor.\"__EFMigrationsHistory\" WHERE \"MigrationId\" LIKE '%_InitialEditor'").ConfigureAwait(true));
         Assert.Equal(0, await CountAsync(connectionString, "SELECT count(*) FROM editor.design_token_sets").ConfigureAwait(true));
 
         // Every stored draft is exactly as 010 left it.

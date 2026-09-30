@@ -143,6 +143,44 @@ namespace QuickBuilder.Pages.Infrastructure.Migrations
                     b.ToTable("component_usages", "pages");
                 });
 
+            modelBuilder.Entity("QuickBuilder.Pages.Domain.LiveDependency", b =>
+                {
+                    b.Property<Guid>("SiteId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("site_id");
+
+                    b.Property<string>("SubjectKind")
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("subject_kind");
+
+                    b.Property<Guid>("SubjectId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("subject_id");
+
+                    b.Property<string>("TargetKind")
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("target_kind");
+
+                    b.Property<Guid>("TargetId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("target_id");
+
+                    b.HasKey("SiteId", "SubjectKind", "SubjectId", "TargetKind", "TargetId")
+                        .HasName("pk_live_dependencies");
+
+                    b.HasIndex("SiteId", "TargetKind", "TargetId")
+                        .HasDatabaseName("ix_live_dependencies_target");
+
+                    b.ToTable("live_dependencies", "pages", t =>
+                        {
+                            t.HasCheckConstraint("ck_live_dependencies_subject_kind", "subject_kind IN ('page', 'component')");
+
+                            t.HasCheckConstraint("ck_live_dependencies_target_kind", "target_kind IN ('component', 'page', 'media')");
+                        });
+                });
+
             modelBuilder.Entity("QuickBuilder.Pages.Domain.Page", b =>
                 {
                     b.Property<Guid>("Id")
@@ -313,6 +351,316 @@ namespace QuickBuilder.Pages.Infrastructure.Migrations
                         });
                 });
 
+            modelBuilder.Entity("QuickBuilder.Pages.Domain.Publication", b =>
+                {
+                    b.Property<string>("SubjectKind")
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("subject_kind");
+
+                    b.Property<Guid>("SubjectId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("subject_id");
+
+                    b.Property<long>("Generation")
+                        .HasColumnType("bigint")
+                        .HasColumnName("generation");
+
+                    b.Property<Guid?>("LiveBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("live_by");
+
+                    b.Property<int?>("LiveNumber")
+                        .HasColumnType("integer")
+                        .HasColumnName("live_number");
+
+                    b.Property<DateTimeOffset?>("LiveSinceUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("live_since_utc");
+
+                    b.Property<Guid?>("LiveVersionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("live_version_id");
+
+                    b.Property<int>("NextNumber")
+                        .HasColumnType("integer")
+                        .HasColumnName("next_number");
+
+                    b.Property<long?>("PublishedFromDraftVersion")
+                        .HasColumnType("bigint")
+                        .HasColumnName("published_from_draft_version");
+
+                    b.Property<Guid>("SiteId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("site_id");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("SubjectKind", "SubjectId")
+                        .HasName("pk_publications");
+
+                    b.HasIndex("SiteId")
+                        .HasDatabaseName("ix_publications_site_live")
+                        .HasFilter("live_version_id IS NOT NULL");
+
+                    b.ToTable("publications", "pages", t =>
+                        {
+                            t.HasCheckConstraint("ck_publications_live", "(live_version_id IS NULL) = (live_number IS NULL)");
+
+                            t.HasCheckConstraint("ck_publications_subject_kind", "subject_kind IN ('page', 'component')");
+                        });
+                });
+
+            modelBuilder.Entity("QuickBuilder.Pages.Domain.PublishLogEntry", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("action");
+
+                    b.Property<Guid?>("ActorUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("actor_user_id");
+
+                    b.Property<DateTimeOffset>("OccurredAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("occurred_at_utc");
+
+                    b.Property<string>("ReasonCode")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("reason_code");
+
+                    b.Property<int?>("RestoredFromNumber")
+                        .HasColumnType("integer")
+                        .HasColumnName("restored_from_number");
+
+                    b.Property<Guid?>("ScheduleOwnerId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("schedule_owner_id");
+
+                    b.Property<Guid>("SiteId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("site_id");
+
+                    b.Property<Guid>("SubjectId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("subject_id");
+
+                    b.Property<string>("SubjectKind")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("subject_kind");
+
+                    b.Property<string>("SubjectLabel")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("subject_label");
+
+                    b.Property<string>("SubjectPath")
+                        .HasMaxLength(1024)
+                        .HasColumnType("character varying(1024)")
+                        .HasColumnName("subject_path");
+
+                    b.Property<int?>("VersionNumber")
+                        .HasColumnType("integer")
+                        .HasColumnName("version_number");
+
+                    b.HasKey("Id")
+                        .HasName("pk_publish_log");
+
+                    b.HasIndex("SiteId", "OccurredAtUtc", "Id")
+                        .IsDescending(false, true, true)
+                        .HasDatabaseName("ix_publish_log_site_time");
+
+                    b.HasIndex("SiteId", "SubjectKind", "SubjectId", "OccurredAtUtc")
+                        .IsDescending(false, false, false, true)
+                        .HasDatabaseName("ix_publish_log_subject");
+
+                    b.ToTable("publish_log", "pages", t =>
+                        {
+                            t.HasCheckConstraint("ck_publish_log_subject_kind", "subject_kind IN ('page', 'component', 'design')");
+                        });
+                });
+
+            modelBuilder.Entity("QuickBuilder.Pages.Domain.PublishSchedule", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("action");
+
+                    b.Property<string>("CapturedDocument")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("captured_document");
+
+                    b.Property<long?>("CapturedDraftVersion")
+                        .HasColumnType("bigint")
+                        .HasColumnName("captured_draft_version");
+
+                    b.Property<short?>("CapturedSchemaVersion")
+                        .HasColumnType("smallint")
+                        .HasColumnName("captured_schema_version");
+
+                    b.Property<string>("CapturedTitle")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("captured_title");
+
+                    b.Property<DateTimeOffset?>("CompletedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("completed_at_utc");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at_utc");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<DateTimeOffset>("DueAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("due_at_utc");
+
+                    b.Property<string>("FailureCode")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("failure_code");
+
+                    b.Property<int>("Revision")
+                        .HasColumnType("integer")
+                        .HasColumnName("revision");
+
+                    b.Property<Guid>("SiteId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("site_id");
+
+                    b.Property<string>("State")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("state");
+
+                    b.Property<Guid>("SubjectId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("subject_id");
+
+                    b.Property<string>("SubjectKind")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("subject_kind");
+
+                    b.HasKey("Id")
+                        .HasName("pk_publish_schedules");
+
+                    b.HasIndex("SubjectKind", "SubjectId", "Action")
+                        .IsUnique()
+                        .HasDatabaseName("ux_publish_schedules_pending")
+                        .HasFilter("state = 'pending'");
+
+                    b.ToTable("publish_schedules", "pages", t =>
+                        {
+                            t.HasCheckConstraint("ck_publish_schedules_action", "action IN ('publish', 'unpublish')");
+
+                            t.HasCheckConstraint("ck_publish_schedules_state", "state IN ('pending', 'done', 'cancelled', 'failed')");
+
+                            t.HasCheckConstraint("ck_publish_schedules_subject_kind", "subject_kind IN ('page', 'component')");
+
+                            t.HasCheckConstraint("ck_publish_schedules_unpublish_page", "action = 'publish' OR subject_kind = 'page'");
+                        });
+                });
+
+            modelBuilder.Entity("QuickBuilder.Pages.Domain.PublishedVersion", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Document")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("document");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("kind");
+
+                    b.Property<int>("Number")
+                        .HasColumnType("integer")
+                        .HasColumnName("number");
+
+                    b.Property<DateTimeOffset>("PublishedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("published_at_utc");
+
+                    b.Property<Guid>("PublishedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("published_by");
+
+                    b.Property<int?>("RestoredFromNumber")
+                        .HasColumnType("integer")
+                        .HasColumnName("restored_from_number");
+
+                    b.Property<short>("SchemaVersion")
+                        .HasColumnType("smallint")
+                        .HasColumnName("schema_version");
+
+                    b.Property<Guid>("SiteId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("site_id");
+
+                    b.Property<Guid>("SubjectId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("subject_id");
+
+                    b.Property<string>("SubjectKind")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("subject_kind");
+
+                    b.Property<string>("Title")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("title");
+
+                    b.HasKey("Id")
+                        .HasName("pk_published_versions");
+
+                    b.HasIndex("SubjectKind", "SubjectId", "Number")
+                        .IsUnique()
+                        .HasDatabaseName("ux_published_versions_subject_number");
+
+                    b.ToTable("published_versions", "pages", t =>
+                        {
+                            t.HasCheckConstraint("ck_published_versions_kind", "kind IN ('publish', 'scheduled', 'rollback')");
+
+                            t.HasCheckConstraint("ck_published_versions_number", "number >= 1");
+
+                            t.HasCheckConstraint("ck_published_versions_subject_kind", "subject_kind IN ('page', 'component')");
+                        });
+                });
+
             modelBuilder.Entity("QuickBuilder.Shared.Infrastructure.Outbox.OutboxMessage", b =>
                 {
                     b.Property<Guid>("Id")
@@ -449,6 +797,16 @@ namespace QuickBuilder.Pages.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_page_drafts_pages_page_id");
+                });
+
+            modelBuilder.Entity("QuickBuilder.Pages.Domain.PublishedVersion", b =>
+                {
+                    b.HasOne("QuickBuilder.Pages.Domain.Publication", null)
+                        .WithMany()
+                        .HasForeignKey("SubjectKind", "SubjectId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_published_versions_publications_subject_kind_subject_id");
                 });
 
             modelBuilder.Entity("QuickBuilder.Pages.Domain.PageTree", b =>

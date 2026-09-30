@@ -4,6 +4,9 @@ import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
 import { pagesApi, type PageDetail, type PageNode, type PageTree } from '../../api/pages'
 import { useSitesStore } from '../../app/sitesStore'
+import PublicationBadge from '../publishing/PublicationBadge.vue'
+import PublishMenu from '../publishing/PublishMenu.vue'
+import { liveAddressCount } from '../publishing/addressWarning'
 import ConfirmDialog from '../sites/ConfirmDialog.vue'
 import MoveDialog from './MoveDialog.vue'
 import PageFormDialog from './PageFormDialog.vue'
@@ -45,8 +48,11 @@ const toolbarHeading = ref<HTMLElement | null>(null)
 const pages = computed(() => tree.value?.pages ?? [])
 const canManage = computed(() => tree.value?.permissions.canManageStructure === true)
 const canEditDrafts = computed(() => tree.value?.permissions.canEditPageDrafts === true)
+const canPublish = computed(() => tree.value?.permissions.canPublish === true)
 const hasHome = computed(() => pages.value.some((p) => p.isHome))
 const selected = computed(() => pages.value.find((p) => p.id === selectedId.value) ?? null)
+/** 012 FR-006: a live page is taken down before it can be deleted. */
+const selectedIsLive = computed(() => selected.value?.publication?.state === 'published')
 
 const siblings = computed(() =>
   selected.value
@@ -375,6 +381,20 @@ function whoSaved(value: PageDetail): string {
             </RouterLink>
           </p>
 
+          <!-- 012 FR-039: publishing, for the selected page. -->
+          <PublishMenu
+            v-if="selected"
+            :key="selected.id"
+            class="page-publishing"
+            :site-id="siteId"
+            kind="page"
+            :subject-id="selected.id"
+            :title="selected.title"
+            :publication="selected.publication"
+            :can-publish="canPublish"
+            @changed="load()"
+          />
+
           <div
             v-if="selected && canManage"
             class="page-toolbar"
@@ -421,10 +441,17 @@ function whoSaved(value: PageDetail): string {
             <button
               type="button"
               class="danger"
+              :disabled="selectedIsLive"
+              :aria-describedby="selectedIsLive ? 'page-delete-reason' : undefined"
               @click="open({ kind: 'delete', page: selected })"
             >
               {{ t('pages.actions.delete') }}
             </button>
+            <span
+              v-if="selectedIsLive"
+              id="page-delete-reason"
+              class="help"
+            >{{ t('publishing.errors.pages.page_published') }}</span>
           </div>
 
           <p
@@ -487,6 +514,7 @@ function whoSaved(value: PageDetail): string {
                     v-if="page.isHome"
                     class="badge"
                   >{{ t('pages.table.home') }}</span>
+                  <PublicationBadge :publication="page.publication" />
                 </span>
               </th>
               <td class="page-address">
@@ -507,6 +535,7 @@ function whoSaved(value: PageDetail): string {
       :initial-title="dialog.kind === 'rename' ? dialog.page.title : undefined"
       :initial-slug="dialog.kind === 'rename' ? dialog.page.slug : undefined"
       :offer-home="dialog.kind === 'create' && dialog.parent === null && !hasHome"
+      :live-address-count="dialog.kind === 'rename' ? liveAddressCount(pages, dialog.page.id) : 0"
       :busy="busy"
       :error="dialogError"
       @submit="submitForm"
@@ -518,6 +547,7 @@ function whoSaved(value: PageDetail): string {
       dialog-id="page-move"
       :page="dialog.page"
       :pages="pages"
+      :live-address-count="liveAddressCount(pages, dialog.page.id)"
       :busy="busy"
       :error="dialogError"
       @submit="submitMove"
