@@ -37,6 +37,8 @@ x-storage-env: &storage-env
 
 services:
   minio:
+    # MinIO no longer publishes images to Docker Hub; this tag works only where it is
+    # already cached. Any S3-compatible service with conditional writes can stand in.
     image: minio/minio:latest
     command: server /data --console-address ":9001"
     environment:

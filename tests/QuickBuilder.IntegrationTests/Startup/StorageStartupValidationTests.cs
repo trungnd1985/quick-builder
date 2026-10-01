@@ -20,8 +20,7 @@ public sealed class StorageStartupValidationTests(DatabaseFixture database) : IA
 
     public static TheoryData<string, string, string> Misconfigurations => new()
     {
-        { "Storage:Provider", "S3", "Storage:Provider" },
-        { "Storage:Provider", "AzureBlob", "Storage:Provider" },
+        { "Storage:Provider", "Dropbox", "Local, S3, AzureBlob" },
         { "Storage:Local:Path", "relative/path", "Storage:Local:Path" },
         { "Storage:Local:Path", Path.Combine(AppContext.BaseDirectory, "media"), "Storage:Local:Path" },
         { "Media:AllowedTypes:0", "image/svg+xml", "Media:AllowedTypes" },

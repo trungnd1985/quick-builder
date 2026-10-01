@@ -4,6 +4,7 @@
     "nav": {
       "sites": "Sites",
       "settings": "Settings",
+      "storage": "Storage",
       "users": "Users"
     },
     "skipToContent": "Skip to main content",
@@ -485,6 +486,47 @@
   "settings": {
     "title": "Settings",
     "placeholder": "Settings arrive with a later feature."
+  },
+  "storageSettings": {
+    "title": "Storage",
+    "intro": "Where uploaded files are kept, and a check that every file in the libraries is there. Run it after copying media to another provider.",
+    "provider": "Provider",
+    "providers": {
+      "Local": "Local disk",
+      "S3": "S3-compatible object storage",
+      "AzureBlob": "Azure Blob Storage"
+    },
+    "run": "Run check",
+    "running": "Check running…",
+    "empty": "No check has run yet.",
+    "latest": "Latest check",
+    "status": "Status",
+    "statuses": {
+      "running": "Running",
+      "completed": "Completed",
+      "failed": "Failed"
+    },
+    "started": "Started",
+    "finished": "Finished",
+    "triggers": {
+      "startup": "at start-up",
+      "admin": "from this screen",
+      "cli": "from the command line"
+    },
+    "checked": "Files checked",
+    "missingCount": "Files missing",
+    "allPresent": "Every file in every library is present.",
+    "missingHeading": "Missing files",
+    "capped": "Showing {shown} of {total}. The command line lists the rest by id.",
+    "columns": {
+      "site": "Site",
+      "file": "File"
+    },
+    "errors": {
+      "load": "The storage status could not be loaded. Try again.",
+      "start": "The check could not be started. Try again.",
+      "running": "A check is already running. It is shown below."
+    }
   },
   "common": {
     "dismiss": "Dismiss"

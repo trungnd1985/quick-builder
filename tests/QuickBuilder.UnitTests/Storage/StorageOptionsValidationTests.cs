@@ -30,7 +30,7 @@ public sealed class StorageOptionsValidationTests : IDisposable
     }
 
     [Theory]
-    [InlineData("S3")]
+    [InlineData("Dropbox")]
     [InlineData("azure")]
     [InlineData("")]
     public void An_unknown_provider_fails_listing_the_supported_ones(string provider)
@@ -39,7 +39,7 @@ public sealed class StorageOptionsValidationTests : IDisposable
 
         Assert.True(result.Failed);
         Assert.Contains("Storage:Provider", result.FailureMessage, StringComparison.Ordinal);
-        Assert.Contains("Local", result.FailureMessage, StringComparison.Ordinal);
+        Assert.Contains("Local, S3, AzureBlob", result.FailureMessage, StringComparison.Ordinal);
     }
 
     [Fact]

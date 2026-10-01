@@ -482,9 +482,9 @@ SC-011, SC-014).
 
 ### Tests for User Story 3 ⚠️
 
-- [ ] T071 [P] [US3] Create `ITESTS/Storage/MinioFixture.cs` and `AzuriteFixture.cs`: xUnit collection fixtures starting one container each through Testcontainers, creating a fresh bucket or container per test class, and exposing ready-made `StorageOptions`. Skip them with `Skip.IfNot` (Xunit.SkippableFact) when Docker is unavailable locally, and fail when `QB_REQUIRE_DOCKER=1` (set in CI).
-- [ ] T072 [P] [US3] Create `ITESTS/Storage/S3FileStorageConformanceTests.cs` and `ITESTS/Storage/AzureBlobFileStorageConformanceTests.cs`, both deriving from the existing abstract `FileStorageConformanceTests` with no overrides of test cases, each with a unique `KeyPrefix` per test (FR-030, SC-010).
-- [ ] T073 [P] [US3] Create `ITESTS/Storage/S3FileStorageTests.cs` (contracts/storage-providers.md §7):
+- [X] T071 [P] [US3] Create `ITESTS/Storage/MinioFixture.cs` and `AzuriteFixture.cs`: xUnit collection fixtures starting one container each through Testcontainers, creating a fresh bucket or container per test class, and exposing ready-made `StorageOptions`. Skip them with `Skip.IfNot` (Xunit.SkippableFact) when Docker is unavailable locally, and fail when `QB_REQUIRE_DOCKER=1` (set in CI). (Revised during implementation: each container is started once per run and shared, with a fresh bucket or container per test class through `IClassFixture`; like the PostgreSQL container they need Docker and fail without it, rather than skip. MinIO is pinned to `minio/minio:latest` because MinIO no longer publishes images; see the US3 checkpoint note.)
+- [X] T072 [P] [US3] Create `ITESTS/Storage/S3FileStorageConformanceTests.cs` and `ITESTS/Storage/AzureBlobFileStorageConformanceTests.cs`, both deriving from the existing abstract `FileStorageConformanceTests` with no overrides of test cases, each with a unique `KeyPrefix` per test (FR-030, SC-010).
+- [X] T073 [P] [US3] Create `ITESTS/Storage/S3FileStorageTests.cs` (contracts/storage-providers.md §7):
   - a 70 MiB write goes multipart and reads back identically;
   - cancelling mid-multipart leaves no object and no pending upload;
   - `KeyPrefix` is applied and stripped;
@@ -492,9 +492,11 @@ SC-011, SC-014).
   - `S3AbandonedUploadCleanupService` aborts a pending upload older than 1 hour;
   - range reads through `OpenReadAsync` then `Seek`.
 
+  (Revised during implementation: MinIO lists pending multipart uploads only by exact object name, so those tests name the object, and the clean-up takes the listing prefix as a parameter.)
+
   Create `ITESTS/Storage/AzureBlobFileStorageTests.cs`: `KeyPrefix`; a missing container on read is `null`, not an exception; a large block-staged upload.
-- [ ] T074 [P] [US3] Create `UTESTS/Storage/S3RangeReadStreamTests.cs` against a fake ranged source: sequential reads cross buffer boundaries; seeking backwards and forwards issues exactly the needed ranges; `Length`; reading past the end returns 0; disposal.
-- [ ] T075 [P] [US3] Create `ITESTS/Storage/S3StartupValidationTests.cs` and `AzureStartupValidationTests.cs`: each misconfiguration in storage-providers.md §5 stops the host before it listens, with a message naming the key:
+- [X] T074 [P] [US3] Create `UTESTS/Storage/S3RangeReadStreamTests.cs` against a fake ranged source: sequential reads cross buffer boundaries; seeking backwards and forwards issues exactly the needed ranges; `Length`; reading past the end returns 0; disposal.
+- [X] T075 [P] [US3] Create `ITESTS/Storage/S3StartupValidationTests.cs` and `AzureStartupValidationTests.cs`: each misconfiguration in storage-providers.md §5 stops the host before it listens, with a message naming the key:
   - a missing `Bucket` or `Region`, or one key of the pair;
   - a wrong secret, a missing bucket or container, a bad URL;
   - a service without conditional writes (an in-process `HttpMessageHandler` proxy in front of MinIO that strips `If-None-Match`);
@@ -505,10 +507,10 @@ SC-011, SC-014).
   Create `UTESTS/Storage/CredentialSelectionTests.cs` (FR-032). This needs no cloud: it inspects the built clients through an internal factory seam.
   - With no S3 keys, `S3FileStorage` builds its client without explicit credentials (the SDK's default chain). With both keys, it uses `BasicAWSCredentials`.
   - With only `AccountUrl`, `AzureBlobFileStorage` uses `DefaultAzureCredential` with the interactive-browser, Visual Studio, Visual Studio Code and Azure Developer CLI sources excluded. With `ConnectionString`, it uses no token credential.
-- [ ] T076 [P] [US3] Create `ITESTS/Storage/SecretRedactionTests.cs` (SC-011): for every failure in T075 and a readiness failure, neither the exception message nor any captured log event contains the configured `SecretAccessKey`, the connection string, or the `AccountKey` inside it.
-- [ ] T077 [P] [US3] Create `ITESTS/Media/MediaAcrossInstancesTests.cs` (US3 scenario 3, FR-036): two hosts on one database and one MinIO bucket; upload through A, then list, preview, serve publicly, produce and serve a variant, replace (once US6 exists; mark with `Skip` until then), and delete through B, each visible or refused on the next request. Readiness is unhealthy when MinIO is paused (`docker pause`), and uploads then give `media.storage_unavailable`; both recover on unpause (US3 scenario 5).
-- [ ] T078 [P] [US3] Create `ITESTS/Media/StorageCheckTests.cs` (SC-014):
-  - copy a Local library to MinIO leaving out one site's keys, and switch to S3;
+- [X] T076 [P] [US3] Create `ITESTS/Storage/SecretRedactionTests.cs` (SC-011): for every failure in T075 and a readiness failure, neither the exception message nor any captured log event contains the configured `SecretAccessKey`, the connection string, or the `AccountKey` inside it.
+- [X] T077 [P] [US3] Create `ITESTS/Media/MediaAcrossInstancesTests.cs` (US3 scenario 3, FR-036): two hosts on one database and one MinIO bucket; upload through A, then list, preview, serve publicly, produce and serve a variant, replace (once US6 exists; mark with `Skip` until then), and delete through B, each visible or refused on the next request. Readiness is unhealthy when MinIO is paused (`docker pause`), and uploads then give `media.storage_unavailable`; both recover on unpause (US3 scenario 5). (Revised during implementation: on a container of its own, since pausing the shared one stalls other classes; a paused service makes requests hang until the SDK timeout, so `media.storage_unavailable` is asserted after stopping the container, and readiness across pause and unpause.)
+- [X] T078 [P] [US3] Create `ITESTS/Media/StorageCheckTests.cs` (SC-014):
+  - copy a Local library to a remote provider leaving out one site's keys, and switch to it (revised during implementation: Azurite, the check being provider-agnostic);
   - the start-up run (triggered after `ApplicationStarted`, and not delaying readiness) reports exactly those files with an exact count;
   - `POST` while running gives `409 media.storage_check_running`;
   - a crashed run (a lease in the past) is marked failed and a new run can start;
@@ -516,19 +518,19 @@ SC-011, SC-014).
   - the CLI `media check-storage` exits `3` with ids printed, and `0` after the full copy;
   - only `media.storage.check` holders can read or start it;
   - the missing list is capped at 1,000 while the count stays exact.
-- [ ] T079 [P] [US3] Create `ADMINTESTS/settings/StorageSettingsView.spec.ts`: shows the provider and the latest run, the missing list with library links, the Run check button disabled while running with polling every 5 s, the empty state; axe clean.
+- [X] T079 [P] [US3] Create `ADMINTESTS/settings/StorageSettingsView.spec.ts`: shows the provider and the latest run, the missing list with library links, the Run check button disabled while running with polling every 5 s, the empty state; axe clean.
 
 ### Implementation for User Story 3
 
-- [ ] T080 [US3] Extend `SHARED/Storage/StorageOptions.cs`:
+- [X] T080 [US3] Extend `SHARED/Storage/StorageOptions.cs`:
   - `SupportedProviders = ["Local", "S3", "AzureBlob"]`;
   - `S3StorageSettings` and `AzureBlobStorageSettings` classes with the keys of contracts/storage-providers.md §3.1 and §4.1;
   - `IsS3` and `IsAzureBlob`.
 
   In `SHARED/Storage/StorageRegistration.cs`, bind `Storage:S3` and `Storage:AzureBlob` with the configuration binder, and replace the unconditional Local registration with a switch on the provider. Register exactly one provider's `IFileStorage`, `IFileStorageHealthCheck`, validator and clean-up service (MV-20). Update the remarks. Extend `UTESTS/Storage/StorageOptionsValidationTests.cs` for the settings-level rules.
-- [ ] T081 [US3] Create `SHARED/Storage/RemoteProbe.cs`: `Task<ProbeResult> RunAsync(IRemoteProbeTarget target, TimeSpan budget, bool checkConditionalWrite, CancellationToken)`. It creates, re-creates and expects an exists refusal, reads and compares, then deletes. It returns a failure kind (credentials, container missing, access denied, unreachable, no conditional writes, mismatch) with no secret text. It is shared by validation (30 s, with the conditional check) and health (2 s, without).
-- [ ] T082 [US3] Create `SHARED/Storage/S3/S3UploadSpool.cs` (a temporary file under `Path.GetTempPath()/quickbuilder-s3/`, opened with `FileOptions.DeleteOnClose`, bounded by the bytes read) and `SHARED/Storage/S3/S3RangeReadStream.cs` (seekable, 1 MiB read-ahead, ranged `GetObject` per miss). Make T074 pass.
-- [ ] T083 [US3] Create `SHARED/Storage/S3/S3FileStorage.cs` implementing `IFileStorage` and `IFileStorageHealthCheck` per contracts/storage-providers.md §3.3:
+- [X] T081 [US3] Create `SHARED/Storage/RemoteProbe.cs`: `Task<ProbeResult> RunAsync(IRemoteProbeTarget target, TimeSpan budget, bool checkConditionalWrite, CancellationToken)`. It creates, re-creates and expects an exists refusal, reads and compares, then deletes. It returns a failure kind (credentials, container missing, access denied, unreachable, no conditional writes, mismatch) with no secret text. It is shared by validation (30 s, with the conditional check) and health (2 s, without).
+- [X] T082 [US3] Create `SHARED/Storage/S3/S3UploadSpool.cs` (a temporary file under `Path.GetTempPath()/quickbuilder-s3/`, opened with `FileOptions.DeleteOnClose`, bounded by the bytes read) and `SHARED/Storage/S3/S3RangeReadStream.cs` (seekable, 1 MiB read-ahead, ranged `GetObject` per miss). Make T074 pass.
+- [X] T083 [US3] Create `SHARED/Storage/S3/S3FileStorage.cs` implementing `IFileStorage` and `IFileStorageHealthCheck` per contracts/storage-providers.md §3.3:
   - an `AmazonS3Client` built from the settings (`ServiceURL`, `ForcePathStyle`, `RequestChecksumCalculation` and `ResponseChecksumValidation = WHEN_REQUIRED`, standard retries with 3 attempts; explicit `BasicAWSCredentials` or the default chain);
   - `PutObject` or multipart with `IfNoneMatch = "*"`, with `412` mapped to `StorageKeyExistsException` and an abort on failure;
   - the `HEAD` + range stream for reads;
@@ -537,8 +539,8 @@ SC-011, SC-014).
   - health through `RemoteProbe`.
 
   Leave `AWSConfigs.LoggingConfig` off. Make T072's S3 half and T073's S3 part pass.
-- [ ] T084 [US3] Create `SHARED/Storage/S3/S3StorageOptionsValidator.cs` (the settings rules, then `RemoteProbe` with a 30 s budget; failure kinds mapped to the messages in storage-providers.md §5 naming `Storage:S3:*` keys) and `SHARED/Storage/S3/S3AbandonedUploadCleanupService.cs` (hourly; `ListMultipartUploads` under the prefix; abort those older than 1 hour; log counts). Make the S3 parts of T075 and T076 pass.
-- [ ] T085 [US3] Create `SHARED/Storage/AzureBlob/AzureBlobFileStorage.cs` per contracts/storage-providers.md §4.2:
+- [X] T084 [US3] Create `SHARED/Storage/S3/S3StorageOptionsValidator.cs` (the settings rules, then `RemoteProbe` with a 30 s budget; failure kinds mapped to the messages in storage-providers.md §5 naming `Storage:S3:*` keys) and `SHARED/Storage/S3/S3AbandonedUploadCleanupService.cs` (hourly; `ListMultipartUploads` under the prefix; abort those older than 1 hour; log counts). Make the S3 parts of T075 and T076 pass.
+- [X] T085 [US3] Create `SHARED/Storage/AzureBlob/AzureBlobFileStorage.cs` per contracts/storage-providers.md §4.2:
   - a `BlobContainerClient` from `ConnectionString`, or from `AccountUrl` with `DefaultAzureCredential(new DefaultAzureCredentialOptions { ExcludeInteractiveBrowserCredential = true, ExcludeVisualStudioCredential = true, ExcludeVisualStudioCodeCredential = true, ExcludeAzureDeveloperCliCredential = true })`;
   - `UploadAsync` with `IfNoneMatch = ETag.All`, mapping `409` and `412` to `StorageKeyExistsException`;
   - seekable `OpenReadAsync` with a 1 MiB buffer;
@@ -548,7 +550,7 @@ SC-011, SC-014).
   - health through `RemoteProbe`.
 
   Create `SHARED/Storage/AzureBlob/AzureBlobStorageOptionsValidator.cs`. Make the Azure parts of T072, T073, T075 and T076 pass.
-- [ ] T086 [US3] Create `MEDIA/Infrastructure/StorageCheckRunner.cs` (MV-21):
+- [X] T086 [US3] Create `MEDIA/Infrastructure/StorageCheckRunner.cs` (MV-21):
   - claim a run: mark expired `running` rows `failed`, then insert, treating a unique violation as "already running";
   - renew the lease every 30 s;
   - per site (distinct `site_id` from `media_files` across sites, with a reason): stream `ListAsync("{site:N}/media/")` into a `HashSet<string>`, stream the rows' `storage_key`, record the missing ones (the first 1,000 as rows) and exact counts;
@@ -556,17 +558,19 @@ SC-011, SC-014).
   - log counts only.
 
   Create `MEDIA/Infrastructure/StorageConsistencyCheckService.cs`: after `ApplicationStarted`, start a `startup` run unless one started after this process's start time is running or finished.
-- [ ] T087 [US3] Create the storage-check endpoints and the CLI command:
+- [X] T087 [US3] Create the storage-check endpoints and the CLI command:
   - `MEDIA/Features/StorageCheck/GetStorageCheck/GetStorageCheck.cs` (`GET /api/v1/media/storage-check`: provider and latest run with the missing list);
   - `MEDIA/Features/StorageCheck/StartStorageCheck/StartStorageCheck.cs` (`POST`, 202; the run continues in a background task owned by a singleton `StorageCheckRunner`; `409` when running).
 
   Both declare `media.storage.check`. Create `MEDIA/Infrastructure/MediaCommands.cs`, an `IHostCommand` named `media` with the sub-command `check-storage`: it runs synchronously with trigger `cli`, prints counts and up to 100 `site/file` ids, and exits `0`, `3` or `1`. Register it and the service in `MEDIA/MediaModule.cs`. Make T078 pass.
-- [ ] T088 [US3] Create `ADMIN/features/settings/StorageSettingsView.vue`, add the Administrator-only route `/admin/settings/storage` in `ADMIN/app/router.ts` and a navigation entry beside the existing settings items, and add the i18n keys. Make T079 pass.
-- [ ] T089 [US3] Make T077 pass. Then update the documentation:
+- [X] T088 [US3] Create `ADMIN/features/settings/StorageSettingsView.vue`, add the Administrator-only route `/admin/settings/storage` in `ADMIN/app/router.ts` and a navigation entry beside the existing settings items, and add the i18n keys. Make T079 pass.
+- [X] T089 [US3] Make T077 pass. Then update the documentation:
   - `docs/configuration.md`: every `Storage:S3:*` and `Storage:AzureBlob:*` key, secrets through environment variables only, and ambient identity;
   - `docs/operations.md`: choosing a provider, the minimum permissions (storage-providers.md §3.4, §4.3), the S3 lifecycle rule, multi-instance now supported with S3 or Azure (no shared cache needed, 012 E-4), backing up bucket or container together with the database, "Moving media between providers" (MV-21 commands and exclusions), the consistency check and CLI exit codes, and the outbound traffic of each provider (MV-20).
 
 **Checkpoint**: US3 is demoable. Quickstart §6 passes. Multi-instance is documented.
+
+**Open at the US3 checkpoint (2026-10-01)**: MinIO no longer publishes images to Docker Hub or quay.io. The S3 tests and `docker-compose.storage.yml` use `minio/minio:latest`, which works only where it is already cached; the S3 test service for CI is to be decided.
 
 ---
 

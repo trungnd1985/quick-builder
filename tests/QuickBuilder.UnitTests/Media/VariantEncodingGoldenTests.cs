@@ -98,6 +98,10 @@ public sealed class VariantEncodingGoldenTests
     {
         const string Svg = """<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"><rect width="10" height="10"/></svg>""";
 
+        // Static fields initialise on first access, not with the class: without this, a run of
+        // this test alone would check a libvips nobody had restricted.
+        Assert.True(Runtime.AvifVariants);
+
         Assert.Throws<VipsException>(() =>
         {
             using var svg = Image.NewFromBuffer(Encoding.UTF8.GetBytes(Svg));

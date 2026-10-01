@@ -5,6 +5,7 @@ import MediaLibraryView from '../features/media/MediaLibraryView.vue'
 import PageTreeView from '../features/pages/PageTreeView.vue'
 import ComponentsView from '../features/pages/ComponentsView.vue'
 import SettingsView from '../features/sites/SettingsView.vue'
+import StorageSettingsView from '../features/settings/StorageSettingsView.vue'
 import SetupView from '../features/identity/SetupView.vue'
 import SignInView from '../features/identity/SignInView.vue'
 import SetPasswordView from '../features/identity/SetPasswordView.vue'
@@ -103,6 +104,8 @@ export function createAppRouter(history: RouterHistory = createWebHistory('/admi
         meta: { administrators: true },
       },
       { path: '/settings', name: 'settings', component: SettingsView },
+      // 013 MV-21: the storage provider and its consistency check. Administrators only.
+      { path: '/settings/storage', name: 'settings-storage', component: StorageSettingsView, meta: { administrators: true } },
       { path: '/account', name: 'account', component: AccountView },
       { path: '/users', name: 'users', component: UsersView, meta: { administrators: true } },
       { path: '/users/:id', name: 'user', component: UserEditView, meta: { administrators: true } },

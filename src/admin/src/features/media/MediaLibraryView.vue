@@ -27,6 +27,17 @@ onMounted(async () => {
   if (sites.sites.length === 0) {
     await sites.load()
   }
+
+  // 013 MV-21: the storage check links straight to a file's details.
+  const linked = typeof route.query.file === 'string' ? route.query.file : null
+  if (linked) {
+    try {
+      details.value = await mediaApi.get(siteId.value, linked)
+      detailsTrigger.value = heading.value
+    } catch {
+      // Gone since the check ran: the library itself is still the right place to land.
+    }
+  }
 })
 
 function openDetails(file: MediaFile, trigger: HTMLElement): void {

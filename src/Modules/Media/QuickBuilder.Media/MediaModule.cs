@@ -13,11 +13,13 @@ using QuickBuilder.Media.Features.GetFileVariant;
 using QuickBuilder.Media.Features.ListFiles;
 using QuickBuilder.Media.Features.MoveFiles;
 using QuickBuilder.Media.Features.ServePublicFile;
+using QuickBuilder.Media.Features.StorageCheck;
 using QuickBuilder.Media.Features.UpdateFile;
 using QuickBuilder.Media.Features.UploadFile;
 using QuickBuilder.Media.Imaging;
 using QuickBuilder.Media.Infrastructure;
 using QuickBuilder.Media.Variants;
+using QuickBuilder.Shared.Infrastructure.Commands;
 using QuickBuilder.Shared.Infrastructure.Data;
 using QuickBuilder.Shared.Infrastructure.Modules;
 using QuickBuilder.Shared.Infrastructure.MultiSite;
@@ -105,6 +107,12 @@ public static class MediaModule
         services.AddSingleton<SearchTextBackfillService>();
         services.AddHostedService(sp => sp.GetRequiredService<SearchTextBackfillService>());
 
+        // 013 MV-21: the storage consistency check, after start-up, from the admin and the CLI.
+        services.AddSingleton<StorageCheckRunner>();
+        services.AddSingleton<StorageConsistencyCheckService>();
+        services.AddHostedService(sp => sp.GetRequiredService<StorageConsistencyCheckService>());
+        services.AddSingleton<IHostCommand, MediaCommands>();
+
         // Feature slices. Each is registered here and nowhere else.
         services.AddScoped<ICommandHandler<UploadFileCommand, Result<MediaFileDto>>, UploadFileHandler>();
         services.AddScoped<IQueryHandler<ListFilesQuery, Result<MediaFilePageDto>>, ListFilesHandler>();
@@ -121,6 +129,8 @@ public static class MediaModule
         services.AddScoped<ICommandHandler<UpdateFolderCommand, Result<MediaFolderDto>>, UpdateFolderHandler>();
         services.AddScoped<ICommandHandler<DeleteFolderCommand, Result>, DeleteFolderHandler>();
         services.AddScoped<IQueryHandler<GetFileVariantQuery, Result<AdminVariantContent>>, GetFileVariantHandler>();
+        services.AddScoped<IQueryHandler<GetStorageCheckQuery, Result<StorageStatusDto>>, GetStorageCheckHandler>();
+        services.AddScoped<ICommandHandler<StartStorageCheckCommand, Result<StorageCheckDto>>, StartStorageCheckHandler>();
         // 012: pages that show a deleted file refresh (data-model §3.2).
         services.AddSingleton<IEventTypeRegistration>(new EventTypeRegistration<FileDeleted>());
         // 013 MV-17: replaced files, recorded dimensions and failed variants refresh them too.
