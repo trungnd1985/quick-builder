@@ -934,12 +934,8 @@
         "change": "Change image",
         "remove": "Remove image",
         "missing": "The chosen image is no longer in the media library.",
-        "loading": "Loading images…",
-        "loadFailed": "The media library could not be loaded.",
-        "empty": "The media library has no images yet. Upload one below.",
-        "upload": "Upload a new image",
-        "uploading": "Uploading… {percent}%",
-        "uploadFailed": "The image could not be uploaded."
+        "dialogTitle": "Choose an image",
+        "close": "Close"
       },
       "richText": {
         "help": "Rich text is edited on the page itself, where you see it as visitors will.",

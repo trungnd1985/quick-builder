@@ -1,68 +1,88 @@
 <script setup lang="ts">
-// An Image's file, chosen from the site's media library, where a member who may upload can
-// also add one (FR-017). Stored by id; a file that has since gone is marked.
-import { computed, ref } from 'vue'
+// An Image's file, chosen from the site's whole media library in a dialog: folders, search
+// and upload into the folder shown (013 US4, MV-23). It opens in the folder this user picked
+// from last on this site. Stored by id; a file that has since gone is marked.
+import { computed, nextTick, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { mediaApi, type MediaFile } from '../../../api/media'
+import { ApiError, mediaApi, type MediaFile } from '../../../api/media'
+import { useAuthStore } from '../../../app/authStore'
+import MediaBrowser from '../../../features/media/MediaBrowser.vue'
+import * as lastFolder from '../../../features/media/lastFolder'
 import { isObject, type Json } from '../../schema/subsetValidator'
 
 const props = defineProps<{ siteId: string; value: Json | undefined; label: string; prop: string; id: string; error?: string }>()
-const emit = defineEmits<{ change: [value: Json | undefined] }>()
+const emit = defineEmits<{
+  change: [value: Json | undefined]
+  /** A file was chosen; its library alternative text, if any, for a block without its own (FR-009). */
+  choose: [value: Json, altText: string | null]
+}>()
 const { t } = useI18n()
+const auth = useAuthStore()
 
 const open = ref(false)
-const files = ref<MediaFile[]>([])
-const loading = ref(false)
-const failed = ref(false)
-const uploading = ref<number | null>(null)
-const uploadError = ref('')
+const missing = ref(false)
+const initialFolderId = ref<string | null>(null)
+const trigger = ref<HTMLButtonElement | null>(null)
+const dialog = ref<HTMLElement | null>(null)
 
 const mediaId = computed(() => (isObject(props.value) && typeof props.value.mediaId === 'string' ? props.value.mediaId : null))
-const images = computed(() => files.value.filter((f) => f.contentType.startsWith('image/')))
-const missing = computed(() => mediaId.value !== null && open.value && !loading.value && !failed.value && !images.value.some((f) => f.id === mediaId.value))
+const userId = computed(() => auth.user?.id ?? 'anonymous')
 
-async function load(): Promise<void> {
-  loading.value = true
-  failed.value = false
+// Marked when the chosen file is gone, or its bytes are.
+watch(mediaId, async (id) => {
+  missing.value = false
+  if (!id) return
   try {
-    const collected: MediaFile[] = []
-    let cursor: string | null = null
-    do {
-      const page = await mediaApi.list(props.siteId, cursor)
-      collected.push(...page.items)
-      cursor = page.nextCursor
-    } while (cursor && collected.length < 500)
-    files.value = collected
-  } catch {
-    failed.value = true
-  } finally {
-    loading.value = false
+    missing.value = !(await mediaApi.get(props.siteId, id)).available
+  } catch (caught) {
+    missing.value = caught instanceof ApiError && caught.status === 404
   }
+}, { immediate: true })
+
+async function show(): Promise<void> {
+  initialFolderId.value = lastFolder.get(userId.value, props.siteId)
+  open.value = true
+  await nextTick()
+  dialog.value?.querySelector<HTMLElement>('input, button, select, [tabindex="0"]')?.focus()
 }
 
-async function toggle(): Promise<void> {
-  open.value = !open.value
-  if (open.value && files.value.length === 0) await load()
+async function close(): Promise<void> {
+  open.value = false
+  await nextTick()
+  trigger.value?.focus()
 }
 
 function choose(file: MediaFile): void {
-  emit('change', { mediaId: file.id })
-  open.value = false
+  emit('choose', { mediaId: file.id }, file.altText?.trim() ? file.altText : null)
+  void close()
 }
 
-async function onUpload(event: Event): Promise<void> {
-  const file = (event.target as HTMLInputElement).files?.[0]
-  if (!file) return
-  uploadError.value = ''
-  uploading.value = 0
-  try {
-    const uploaded = await mediaApi.upload(props.siteId, file, (fraction) => (uploading.value = fraction))
-    files.value = [uploaded, ...files.value]
-    choose(uploaded)
-  } catch (error) {
-    uploadError.value = error instanceof Error && error.message ? error.message : t('editor.panel.media.uploadFailed')
-  } finally {
-    uploading.value = null
+function rememberFolder(folderId: string | null): void {
+  lastFolder.set(userId.value, props.siteId, folderId)
+}
+
+/** Keeps keyboard focus inside the dialog, and Escape closes it. */
+function onKeydown(event: KeyboardEvent): void {
+  if (event.key === 'Escape') {
+    event.preventDefault()
+    void close()
+    return
+  }
+
+  if (event.key !== 'Tab' || !dialog.value) return
+  const focusable = Array.from(dialog.value.querySelectorAll<HTMLElement>(
+    'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex="0"]',
+  )).filter((el) => el.getAttribute('tabindex') !== '-1' && !el.closest('[hidden], [aria-hidden="true"]'))
+  const first = focusable[0]
+  const last = focusable.at(-1)
+  if (!first || !last) return
+
+  if (event.shiftKey && document.activeElement === first) {
+    event.preventDefault()
+    last.focus()
+  } else if (!event.shiftKey && document.activeElement === last) {
+    event.preventDefault()
+    first.focus()
   }
 }
 </script>
@@ -78,19 +98,20 @@ async function onUpload(event: Event): Promise<void> {
     >{{ label }}</span>
     <div class="editor-media__current">
       <img
-        v-if="mediaId"
+        v-if="mediaId && !missing"
         :src="mediaApi.previewUrl(siteId, mediaId)"
         alt=""
         class="editor-media__preview"
       >
-      <span v-else>{{ t('editor.panel.media.none') }}</span>
+      <span v-else-if="!mediaId">{{ t('editor.panel.media.none') }}</span>
     </div>
     <div class="editor-media__actions">
       <button
+        ref="trigger"
         type="button"
-        :aria-expanded="open"
-        :aria-controls="`${id}-list`"
-        @click="toggle"
+        aria-haspopup="dialog"
+        :aria-describedby="`${id}-label`"
+        @click="show"
       >
         {{ mediaId ? t('editor.panel.media.change') : t('editor.panel.media.choose') }}
       </button>
@@ -109,72 +130,49 @@ async function onUpload(event: Event): Promise<void> {
     >
       {{ t('editor.panel.media.missing') }}
     </p>
-
-    <div
-      v-if="open"
-      :id="`${id}-list`"
-      class="editor-media__picker"
+    <p
+      v-if="error"
+      class="field-error"
     >
-      <p
-        v-if="loading"
-        role="status"
+      {{ error }}
+    </p>
+
+    <Teleport
+      v-if="open"
+      to="body"
+    >
+      <div
+        class="dialog-backdrop"
+        @click.self="close"
       >
-        {{ t('editor.panel.media.loading') }}
-      </p>
-      <p
-        v-else-if="failed"
-        role="alert"
-      >
-        {{ t('editor.panel.media.loadFailed') }}
-      </p>
-      <p v-else-if="images.length === 0">
-        {{ t('editor.panel.media.empty') }}
-      </p>
-      <ul
-        v-else
-        class="editor-media__grid"
-      >
-        <li
-          v-for="file in images"
-          :key="file.id"
+        <div
+          ref="dialog"
+          class="card dialog dialog--wide editor-media__dialog"
+          role="dialog"
+          aria-modal="true"
+          :aria-labelledby="`${id}-dialog-title`"
+          @keydown="onKeydown"
         >
-          <button
-            type="button"
-            :aria-pressed="file.id === mediaId"
-            @click="choose(file)"
-          >
-            <img
-              :src="mediaApi.previewUrl(siteId, file.id)"
-              alt=""
+          <header class="page-header">
+            <h2 :id="`${id}-dialog-title`">
+              {{ t('editor.panel.media.dialogTitle') }}
+            </h2>
+            <button
+              type="button"
+              @click="close"
             >
-            <span>{{ file.fileName }}</span>
-          </button>
-        </li>
-      </ul>
-      <label
-        :for="`${id}-upload`"
-        class="editor-media__upload"
-      >{{ t('editor.panel.media.upload') }}</label>
-      <input
-        :id="`${id}-upload`"
-        type="file"
-        accept="image/*"
-        :disabled="uploading !== null"
-        @change="onUpload"
-      >
-      <p
-        v-if="uploading !== null"
-        role="status"
-      >
-        {{ t('editor.panel.media.uploading', { percent: Math.round(uploading * 100) }) }}
-      </p>
-      <p
-        v-if="uploadError"
-        class="field-error"
-        role="alert"
-      >
-        {{ uploadError }}
-      </p>
-    </div>
+              {{ t('editor.panel.media.close') }}
+            </button>
+          </header>
+          <MediaBrowser
+            :site-id="siteId"
+            mode="picker"
+            :initial-folder-id="initialFolderId"
+            @folder-change="rememberFolder"
+            @choose="choose"
+          />
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>

@@ -115,6 +115,13 @@ async function loadFirstPage(): Promise<void> {
     nextCursor.value = page.nextCursor
   } catch (caught) {
     if (mine !== generation) return
+
+    // A remembered folder deleted since (013 US4): the top level instead of a dead end.
+    if (caught instanceof ApiError && caught.errorCode === 'media.folder_not_found' && folderId.value !== null) {
+      openFolder(null)
+      return
+    }
+
     error.value = caught instanceof Error ? caught.message : String(caught)
   } finally {
     if (mine === generation) loading.value = false

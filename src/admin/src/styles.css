@@ -389,6 +389,13 @@ button.danger:where(:not(.qb-canvas *)) {
   box-shadow: 0 0.5rem 2rem rgb(22 25 29 / 30%);
 }
 
+/* The editor's image picker: the whole library, so as wide as the window allows (013 US4). */
+.dialog--wide {
+  width: min(64rem, calc(100vw - 2rem));
+  max-height: calc(100vh - 2rem);
+  overflow: auto;
+}
+
 /* --- Media library: folders, search, details (013) -------------------------------- */
 
 .media-library {

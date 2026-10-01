@@ -99,6 +99,27 @@ function change(field: Field, value: Json | undefined): void {
   else delete errors[field.prop]
 }
 
+/**
+ * A file chosen from the library (013 FR-009): the file, and the library's alternative
+ * text when the block has none of its own and is not decorative. One change, so one undo.
+ */
+function chooseMedia(field: Field, value: Json, altText: string | null): void {
+  const current = node.value
+  if (!current || !store.root) return
+
+  let result = setProp(store.root, current.id, field.prop, value)
+  const ownAlt = current.props.alt
+  const needsAlt = (typeof ownAlt !== 'string' || ownAlt.trim() === '') && current.props.decorative !== true
+  if (result.ok && altText && needsAlt && propNames(current.type).includes('alt')) {
+    const withAlt = setProp(result.root, current.id, 'alt', altText)
+    if (withAlt.ok) result = withAlt
+  }
+
+  const refused = store.apply(result)
+  if (refused) errors[field.prop] = reason(field.prop, refused, field.schema)
+  else delete errors[field.prop]
+}
+
 const tokenKind = (control: ControlKind) => (control === 'colorToken' ? 'color' : control === 'spaceToken' ? 'space' : 'text')
 </script>
 
@@ -199,6 +220,7 @@ const tokenKind = (control: ControlKind) => (control === 'colorToken' ? 'color' 
             :site-id="store.siteId"
             :error="errors[field.prop]"
             @change="change(field, $event)"
+            @choose="(value: Json, altText: string | null) => chooseMedia(field, value, altText)"
           />
           <RichTextControl
             v-else-if="field.control === 'richText'"

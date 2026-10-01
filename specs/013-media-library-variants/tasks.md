@@ -587,7 +587,7 @@ previews.
 
 ### Tests for User Story 4 ⚠️
 
-- [ ] T090 [P] [US4] Create `ADMINTESTS/editor/MediaControl.spec.ts`:
+- [X] T090 [P] [US4] Create `ADMINTESTS/editor/MediaControl.spec.ts`:
   - the dialog opens `MediaBrowser` in picker mode, in the last folder from `lastFolder.ts`, and falls back to the top level when that folder no longer exists;
   - choosing an image with alternative text fills an empty block `alt`, and does not overwrite a non-empty one;
   - choosing one without alternative text keeps 011's prompt;
@@ -597,8 +597,8 @@ previews.
 
 ### Implementation for User Story 4
 
-- [ ] T091 [P] [US4] Create `MEDIAUI/lastFolder.ts`: `get(userId, siteId)` and `set(userId, siteId, folderId | null)` over `localStorage` with key `qb.media.lastFolder.{userId}.{siteId}`, every access wrapped in `try/catch`, returning null on failure (MV-23).
-- [ ] T092 [US4] Rework `ADMIN/editor/panel/controls/MediaControl.vue`: replace the inline list-and-upload with a modal dialog (focus trap, `Escape` closes, focus returns to the trigger) containing `MediaBrowser` (`mode="picker"`, `initialFolderId` from `lastFolder.get`). On `folderChange`, call `lastFolder.set`. On `choose`, emit `{ mediaId }`, and when the block's `alt` is empty and not decorative, also emit the alternative-text change through the property panel's existing multi-prop change path (FR-009). Keep the missing-image marking. Add the i18n keys. Make T090 pass, and keep `ADMINTESTS/editor/PropertyPanel.spec.ts` green.
+- [X] T091 [P] [US4] Create `MEDIAUI/lastFolder.ts`: `get(userId, siteId)` and `set(userId, siteId, folderId | null)` over `localStorage` with key `qb.media.lastFolder.{userId}.{siteId}`, every access wrapped in `try/catch`, returning null on failure (MV-23).
+- [X] T092 [US4] Rework `ADMIN/editor/panel/controls/MediaControl.vue`: replace the inline list-and-upload with a modal dialog (focus trap, `Escape` closes, focus returns to the trigger) containing `MediaBrowser` (`mode="picker"`, `initialFolderId` from `lastFolder.get`). On `folderChange`, call `lastFolder.set`. On `choose`, emit `{ mediaId }`, and when the block's `alt` is empty and not decorative, also emit the alternative-text change through the property panel's existing multi-prop change path (FR-009). Keep the missing-image marking. Add the i18n keys. Make T090 pass, and keep `ADMINTESTS/editor/PropertyPanel.spec.ts` green. (Revised during implementation: there was no multi-prop path, so the panel chains the file and the alternative text as two property changes applied once, one undo step; `MediaBrowser` falls back to the top level itself when a folder is gone, which the library screen benefits from too.)
 
 **Checkpoint**: US4 is demoable. Quickstart §3 passes.
 
