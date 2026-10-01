@@ -21,9 +21,30 @@ internal sealed class RenderHarness
         [DraftOnlyPage] = new PageLinkTarget("/draft-only", IsLive: false),
     };
 
+    /// <summary>A measured 6,000 × 4,000 photo with every default variant (013 MV-15).</summary>
+    public static readonly Guid LargePhoto = Guid.Parse("44444444-4444-4444-8444-444444444444");
+
+    /// <summary>A measured 800 × 400 logo: two variants, and small enough to offer itself.</summary>
+    public static readonly Guid SmallLogo = Guid.Parse("55555555-5555-4555-8555-555555555555");
+
     public Dictionary<Guid, PublicMediaFile> Media { get; } = new()
     {
+        // Not measured yet: no dimensions, no variants (as before the 013 backfill).
         [Photo] = new PublicMediaFile($"/_media/{Photo:N}.jpg", "image/jpeg", null, null, []),
+        [LargePhoto] = new PublicMediaFile(
+            $"/_media/{LargePhoto:N}.jpg",
+            "image/jpeg",
+            6_000,
+            4_000,
+            [.. new[] { 320, 640, 960, 1280, 1920, 2560 }.Select(w => new PublicMediaVariant(w, $"/_media/{LargePhoto:N}-v1-w{w}.jpg"))],
+            OfferOriginal: false),
+        [SmallLogo] = new PublicMediaFile(
+            $"/_media/{SmallLogo:N}-v2.png",
+            "image/png",
+            800,
+            400,
+            [new PublicMediaVariant(320, $"/_media/{SmallLogo:N}-v2-w320.png"), new PublicMediaVariant(640, $"/_media/{SmallLogo:N}-v2-w640.png")],
+            OfferOriginal: true),
     };
 
     public Dictionary<Guid, LiveDocument> Components { get; } = [];

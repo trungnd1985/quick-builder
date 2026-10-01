@@ -334,7 +334,26 @@ visitors at `/_assets/blocks.{hash}.css`.
   - a missing image, or an Embed with no video address (a placeholder in the canvas, left
     out when published);
   - a linked image (wrapped in its link only when published);
-  - a link to a page that is not live (a link in the canvas, plain text when published).
+  - a link to a page that is not live (a link in the canvas, plain text when published);
+  - an image's addresses (`src`, `srcset`) and `sizes`: admin addresses in the canvas, the
+    site's `/_media` addresses when published.
+- **Images** (since 013, #13): a resolved image is drawn as
+  `<figure class="qb-image qb-image--{full|natural}">[<a …>]<img …>[</a>]</figure>`, and its
+  `img` carries, in this order:
+  - `src`: the largest resized copy no wider than 1,280 px, or the original when it has
+    none;
+  - `srcset`: every resized copy as `{address} {width}w`, then the original at its own
+    width only when it is no wider than the largest configured width, so a large original
+    is never offered. It is left out when the file has no resized copies (documents, GIFs,
+    animated images, images not measured yet);
+  - `sizes`, only with `srcset`: `(max-width: {C}px) 100vw, {C}px`, where `C` is the
+    enclosing Section's content width (`narrow`, `contained` = normal, `wide`), capped by
+    the image's own width when it is shown at its natural size; `100vw` in a `full` Section;
+  - `width` and `height`: the displayed dimensions, left out while unknown;
+  - `alt`, `loading="lazy"` and `decoding="async"`, as before.
+
+  The page tree schema is unchanged: an Image still stores only the file's id, and the
+  addresses and dimensions come from the media library when the page is rendered.
 - **Rich text**: rendered through an allow-list:
   - `paragraph` → `p`, `bulletList` → `ul`, `orderedList` → `ol`, `listItem` → `li`;
   - `hardBreak` → `br`;

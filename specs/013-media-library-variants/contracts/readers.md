@@ -20,7 +20,11 @@ public sealed record PublicMediaFile(
     string ContentType,
     int? Width,                                     // displayed width; null until recorded or for PDFs
     int? Height,
-    IReadOnlyList<PublicMediaVariant> Variants);    // ascending by width; empty when not eligible (MV-11)
+    IReadOnlyList<PublicMediaVariant> Variants,     // ascending by width; empty when not eligible (MV-11)
+    bool OfferOriginal = false);                    // srcset may add the original: only when it is no
+                                                    // wider than the largest configured width (added
+                                                    // during implementation; the renderer cannot see
+                                                    // the configuration)
 
 public sealed record PublicMediaVariant(int Width, string PublicPath);
 ```

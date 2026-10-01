@@ -27,6 +27,13 @@ internal sealed class RenderContext(RenderInputs inputs, BlockDefaults defaults)
     /// <summary>Renders a node's children; set by the page renderer.</summary>
     public Action<JsonElement, string, HtmlWriter> RenderChildren { get; set; } = (_, _, _) => { };
 
+    /// <summary>
+    /// The content width, in pixels, of the Section being rendered; null inside a full-width
+    /// Section or outside any Section with its default width. The image renderer's
+    /// <c>sizes</c> hint reads it (013 research MV-15).
+    /// </summary>
+    public double? SectionWidth { get; set; }
+
     /// <summary>The per-node rules collected so far, for the page's style element.</summary>
     public string NodeRules => _rules.ToString();
 

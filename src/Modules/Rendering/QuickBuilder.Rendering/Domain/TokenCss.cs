@@ -61,6 +61,13 @@ internal sealed partial class TokenCss
     /// <summary>The custom property name for a token id.</summary>
     public static string Variable(TokenKind kind, string id) => $"var(--qb-{Prefix(kind)}-{id})";
 
+    /// <summary>
+    /// The design's content widths in pixels, the defaults standing in for a set saved before
+    /// they existed. The image renderer's <c>sizes</c> hint uses them (013 research MV-15).
+    /// </summary>
+    public (double Narrow, double Normal, double Wide) ContentWidths =>
+        _set.ContentWidths ?? Defaults.ContentWidths ?? (720, 1_200, 1_440);
+
     private static string Prefix(TokenKind kind) => kind switch
     {
         TokenKind.Color => "color",

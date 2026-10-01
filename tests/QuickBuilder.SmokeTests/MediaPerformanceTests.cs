@@ -30,7 +30,7 @@ namespace QuickBuilder.SmokeTests;
 /// </remarks>
 [Trait("Category", "Performance")]
 [Collection(DeploymentGroup.Name)]
-public sealed class MediaPerformanceTests(ITestOutputHelper output) : IAsyncLifetime
+public sealed partial class MediaPerformanceTests(ITestOutputHelper output) : IAsyncLifetime
 {
     private const string Host = "perf-media.test";
     private const string Email = "media-perf@smoke.test";
@@ -69,6 +69,7 @@ public sealed class MediaPerformanceTests(ITestOutputHelper output) : IAsyncLife
         var misses = new List<string>();
         misses.AddRange(await MeasureUploadsAsync(network, session, siteId).ConfigureAwait(true));
         misses.AddRange(await MeasureServingAsync(client, network, session, siteId).ConfigureAwait(true));
+        misses.AddRange(await MeasureVariantsAsync(client, network, session, siteId).ConfigureAwait(true));
         misses.AddRange(await MeasurePagingAsync(client, session, siteId).ConfigureAwait(true));
 
         Assert.True(misses.Count == 0, string.Join("\n", misses));

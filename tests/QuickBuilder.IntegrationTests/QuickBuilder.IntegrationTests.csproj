@@ -40,4 +40,9 @@
     <ProjectReference Include="..\..\src\Modules\Rendering\QuickBuilder.Rendering.Contracts\QuickBuilder.Rendering.Contracts.csproj" />
   </ItemGroup>
 
+  <!-- 013 T045: images generated at test time (tests/fixtures/media/ImageFixtures.cs). -->
+  <ItemGroup>
+    <Compile Include="../fixtures/media/ImageFixtures.cs" Link="Fixtures/ImageFixtures.cs" />
+  </ItemGroup>
+
 </Project>

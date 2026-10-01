@@ -27,12 +27,18 @@ public interface IPublicMediaReader
 /// Resized copies, ascending by width, each strictly narrower than the original. Empty for
 /// documents, GIFs, animated images and files whose variants are unavailable (013 MV-11).
 /// </param>
+/// <param name="OfferOriginal">
+/// Whether a page's <c>srcset</c> may also offer the original at its own width: only when it is
+/// no wider than the largest configured variant width, so a huge original is never downloaded
+/// (013 contracts/public-media.md §2, SC-003).
+/// </param>
 public sealed record PublicMediaFile(
     string PublicPath,
     string ContentType,
     int? Width,
     int? Height,
-    IReadOnlyList<PublicMediaVariant> Variants);
+    IReadOnlyList<PublicMediaVariant> Variants,
+    bool OfferOriginal = false);
 
 /// <summary>One resized copy of a file (013 research MV-15).</summary>
 /// <param name="Width">Its width in pixels, one of the configured widths.</param>

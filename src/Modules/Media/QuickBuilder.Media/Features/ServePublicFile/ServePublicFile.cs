@@ -6,6 +6,7 @@ using Microsoft.Extensions.Options;
 using QuickBuilder.Media.Domain;
 using QuickBuilder.Media.Features.GetFileContent;
 using QuickBuilder.Media.Infrastructure;
+using QuickBuilder.Media.Variants;
 using QuickBuilder.Shared.Infrastructure.Dispatch;
 using QuickBuilder.Shared.Infrastructure.Storage;
 using QuickBuilder.Shared.Kernel.Dispatch;
@@ -40,6 +41,7 @@ internal sealed record PublicMediaContent(MediaFile File, MediaAddress Address, 
 internal sealed class ServePublicFileHandler(
     MediaDbContext database,
     IFileStorage storage,
+    VariantResponder variants,
     IOptions<MediaOptions> options,
     ILogger<ServePublicFileHandler> logger) : IQueryHandler<ServePublicFileQuery, Result<PublicMediaContent>>
 {
@@ -64,10 +66,15 @@ internal sealed class ServePublicFileHandler(
             return Result.Failure<PublicMediaContent>(MediaErrors.NotFound);
         }
 
-        if (address.IsVariant)
+        if (address.Width is { } width)
         {
-            // Variants are served from 013 User Story 2 on.
-            return Result.Failure<PublicMediaContent>(MediaErrors.NotFound);
+            // 013 MV-12: produced once, then served from storage; the original, uncached, when
+            // it cannot be produced; not found for a width this file does not have.
+            var variant = await variants.GetAsync(file, width, cancellationToken).ConfigureAwait(false);
+            return variant is null
+                ? Result.Failure<PublicMediaContent>(MediaErrors.NotFound)
+                : Result.Success(new PublicMediaContent(
+                    file, address, variant.Content, variant.IsFallback ? MediaResponseKind.VariantFallback : MediaResponseKind.Public));
         }
 
         var stored = await storage.OpenReadAsync(new StorageKey(file.StorageKey), cancellationToken).ConfigureAwait(false);

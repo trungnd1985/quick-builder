@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using QuickBuilder.Media.Domain;
+using QuickBuilder.Media.Imaging;
 using QuickBuilder.Media.Infrastructure;
 using QuickBuilder.Shared.Infrastructure.Storage;
 using QuickBuilder.Shared.Kernel.Results;
@@ -14,7 +15,8 @@ internal sealed record StoredUpload(
     string Extension,
     long SizeBytes,
     StorageKey Key,
-    ImageMetadata? Metadata);
+    ImageMetadata? Metadata,
+    MediaMetadataState MetadataState);
 
 /// <summary>
 /// Validates and stores one incoming file, for upload and replace alike (003 FR-006 to FR-011;
@@ -102,7 +104,7 @@ internal sealed class UploadPipeline(
             return Result.Failure<StoredUpload>(stored);
         }
 
-        ImageMetadata? dimensions = null;
+        var image = new ProbedImage(null, MediaMetadataState.NotApplicable);
         if (type.IsImage)
         {
             var probed = await metadata.ProbeAsync(key, settings.MaxImagePixels, cancellationToken).ConfigureAwait(false);
@@ -112,10 +114,10 @@ internal sealed class UploadPipeline(
                 return Result.Failure<StoredUpload>(probed.Error);
             }
 
-            dimensions = probed.Value;
+            image = probed.Value;
         }
 
-        return Result.Success(new StoredUpload(fileName, type, extension, upload.BytesRead, key, dimensions));
+        return Result.Success(new StoredUpload(fileName, type, extension, upload.BytesRead, key, image.Metadata, image.State));
     }
 
     /// <summary>Removes stored bytes whose record could not be saved. Best effort (FR-012).</summary>
@@ -178,22 +180,14 @@ internal sealed class UploadPipeline(
 
 /// <summary>
 /// Reads a stored image's dimensions from its header, never decoding pixels (013 research
-/// MV-10). Implemented over NetVips in <c>Imaging/</c> (US2); until then images are recorded
-/// as pending.
+/// MV-10). Implemented over NetVips by <see cref="NetVipsImageMetadataProbe"/>.
 /// </summary>
 internal interface IImageMetadataProbe
 {
     /// <summary>
-    /// The image's displayed dimensions, <c>null</c> when they cannot be known yet, or a
-    /// refusal: <c>media.dimensions_too_large</c> over <paramref name="maxPixels"/>, or
-    /// <c>media.unsupported_type</c> when the header cannot be read.
+    /// The image's displayed dimensions and metadata state (recorded, or unreadable: such a
+    /// file is kept and served as uploaded, research MV-10 revised), or the refusal
+    /// <c>media.dimensions_too_large</c> above <paramref name="maxPixels"/>.
     /// </summary>
-    Task<Result<ImageMetadata?>> ProbeAsync(StorageKey key, long maxPixels, CancellationToken cancellationToken);
-}
-
-/// <summary>The probe before image processing exists: every image is recorded as pending.</summary>
-internal sealed class PendingImageMetadataProbe : IImageMetadataProbe
-{
-    public Task<Result<ImageMetadata?>> ProbeAsync(StorageKey key, long maxPixels, CancellationToken cancellationToken) =>
-        Task.FromResult(Result.Success<ImageMetadata?>(null));
+    Task<Result<ProbedImage>> ProbeAsync(StorageKey key, long maxPixels, CancellationToken cancellationToken);
 }

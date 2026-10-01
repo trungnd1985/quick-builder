@@ -1,8 +1,10 @@
 using System.Globalization;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using QuickBuilder.Identity.Contracts;
 using QuickBuilder.Media.Contracts;
 using QuickBuilder.Media.Domain;
+using QuickBuilder.Media.Imaging;
 using QuickBuilder.Pages.Contracts.Media;
 using QuickBuilder.Pages.Contracts.Publishing;
 using QuickBuilder.Shared.Infrastructure.Storage;
@@ -26,6 +28,8 @@ internal sealed class MediaFileMapper(
     IAccessEvaluator access,
     IFileStorage storage,
     IMediaUsageReader usage,
+    IOptions<MediaOptions> options,
+    ImagingRuntime imaging,
     ILogger<MediaFileMapper> logger)
 {
     private const int AvailabilityChecksAtOnce = 8;
@@ -120,11 +124,31 @@ internal sealed class MediaFileMapper(
         return new MediaUsageSummaryDto(summary.Places, summary.DraftPlaces, summary.LivePlaces, summary.HistoryOnlyPlaces, summary.InLiveUse);
     }
 
-    /// <summary>Resized admin previews of <paramref name="file"/> (013 MV-16). Filled from US2 on.</summary>
-    private static IReadOnlyList<MediaVariantDto> AdminVariants(string pathBase, MediaFile file) => [];
+    /// <summary>The admin variant address; its query names the version, so it can be cached for good (MV-16).</summary>
+    public static string AdminVariantPath(string pathBase, MediaFile file, int width)
+    {
+        ArgumentNullException.ThrowIfNull(file);
+        return $"{pathBase.TrimEnd('/')}/api/v1/media/sites/{file.SiteId}/files/{file.Id}/variants/{width}?v={file.ContentVersion}";
+    }
 
-    /// <summary>What the admin shell shows as the file's thumbnail (013 FR-028).</summary>
-    private static string ThumbnailPath(string pathBase, MediaFile file) => PreviewPath(pathBase, file);
+    /// <summary>Resized admin previews of <paramref name="file"/>, ascending (013 MV-16).</summary>
+    private IReadOnlyList<MediaVariantDto> AdminVariants(string pathBase, MediaFile file) =>
+    [
+        .. VariantPlan.For(file, options.Value.Variants.Widths, imaging.AvifVariants)
+            .Select(width => new MediaVariantDto(width, AdminVariantPath(pathBase, file, width))),
+    ];
+
+    /// <summary>
+    /// What the admin shell shows as the file's thumbnail (013 FR-028): the thumbnail width when
+    /// the file has it, otherwise 003's preview of the original.
+    /// </summary>
+    private string ThumbnailPath(string pathBase, MediaFile file)
+    {
+        var thumbnail = options.Value.Variants.ThumbnailWidth;
+        return VariantPlan.Allows(file, thumbnail, options.Value.Variants.Widths, imaging.AvifVariants)
+            ? AdminVariantPath(pathBase, file, thumbnail)
+            : PreviewPath(pathBase, file);
+    }
 
     private static string MetadataStateName(MediaMetadataState state) => state switch
     {

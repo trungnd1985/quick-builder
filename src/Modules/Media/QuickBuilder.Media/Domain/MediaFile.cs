@@ -130,7 +130,8 @@ internal sealed partial class MediaFile : ISiteOwned
         Guid uploadedBy,
         string storageKey,
         Guid? folderId = null,
-        ImageMetadata? metadata = null)
+        ImageMetadata? metadata = null,
+        MediaMetadataState? metadataState = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(fileName);
         ArgumentNullException.ThrowIfNull(type);
@@ -159,7 +160,7 @@ internal sealed partial class MediaFile : ISiteOwned
             VariantsState = MediaVariantsState.Available,
         };
 
-        file.ApplyMetadata(type, metadata);
+        file.ApplyMetadata(type, metadata, metadataState);
         file.RefreshSearchText();
         return file;
     }
@@ -319,14 +320,20 @@ internal sealed partial class MediaFile : ISiteOwned
         return cleaned.Length == 0 ? null : cleaned;
     }
 
-    private void ApplyMetadata(MediaFileType type, ImageMetadata? metadata)
+    /// <remarks>
+    /// Without dimensions an image is pending (its header not read yet), unless the caller
+    /// already knows it is unreadable: such a file is kept and served as uploaded, with no
+    /// variants (research MV-10, revised).
+    /// </remarks>
+    private void ApplyMetadata(MediaFileType type, ImageMetadata? metadata, MediaMetadataState? state = null)
     {
+        Width = null;
+        Height = null;
+        IsAnimated = false;
+
         if (!type.IsImage)
         {
             MetadataState = MediaMetadataState.NotApplicable;
-            Width = null;
-            Height = null;
-            IsAnimated = false;
             return;
         }
 
@@ -336,14 +343,10 @@ internal sealed partial class MediaFile : ISiteOwned
             Width = m.Width;
             Height = m.Height;
             IsAnimated = m.IsAnimated;
+            return;
         }
-        else
-        {
-            MetadataState = MediaMetadataState.Pending;
-            Width = null;
-            Height = null;
-            IsAnimated = false;
-        }
+
+        MetadataState = state is MediaMetadataState.Unreadable ? MediaMetadataState.Unreadable : MediaMetadataState.Pending;
     }
 
     private static void CheckContent(MediaFileType type, string extension, long sizeBytes, ImageMetadata? metadata)

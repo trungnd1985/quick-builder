@@ -82,7 +82,8 @@ internal sealed class UploadFileHandler(
             command.UserId,
             key.Value,
             command.FolderId,
-            upload.Metadata);
+            upload.Metadata,
+            upload.MetadataState);
 
         database.MediaFiles.Add(file);
 

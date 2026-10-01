@@ -9,11 +9,13 @@ using QuickBuilder.Media.Features.DeleteFile;
 using QuickBuilder.Media.Features.Folders;
 using QuickBuilder.Media.Features.GetFile;
 using QuickBuilder.Media.Features.GetFileContent;
+using QuickBuilder.Media.Features.GetFileVariant;
 using QuickBuilder.Media.Features.ListFiles;
 using QuickBuilder.Media.Features.MoveFiles;
 using QuickBuilder.Media.Features.ServePublicFile;
 using QuickBuilder.Media.Features.UpdateFile;
 using QuickBuilder.Media.Features.UploadFile;
+using QuickBuilder.Media.Imaging;
 using QuickBuilder.Media.Infrastructure;
 using QuickBuilder.Media.Variants;
 using QuickBuilder.Shared.Infrastructure.Data;
@@ -80,7 +82,20 @@ public static class MediaModule
         services.AddScoped<UploadPipeline>();
         services.AddScoped<FolderWrites>();
         services.AddSingleton<ThumbnailQueue>();
-        services.TryAddSingleton<IImageMetadataProbe, PendingImageMetadataProbe>();
+        services.AddSingleton<ImagingRuntime>();
+        services.AddScoped<IImageMetadataProbe, NetVipsImageMetadataProbe>();
+
+        // 013 MV-12, MV-13: variants produced once, stored, and thumbnails right after upload.
+        services.AddSingleton<IVariantEncoder, VariantEncoder>();
+        services.AddSingleton<VariantClaims>();
+        services.AddSingleton<VariantService>();
+        services.AddScoped<VariantResponder>();
+        services.AddSingleton<ThumbnailWorker>();
+        services.AddHostedService(sp => sp.GetRequiredService<ThumbnailWorker>());
+
+        // 013 MV-10: dimensions of images uploaded before 013.
+        services.AddSingleton<ImageMetadataBackfillService>();
+        services.AddHostedService(sp => sp.GetRequiredService<ImageMetadataBackfillService>());
 
         // FR-012: bytes left without a library entry are removed after the grace period.
         services.AddSingleton<MediaOrphanSweepService>();
@@ -105,6 +120,7 @@ public static class MediaModule
         services.AddScoped<ICommandHandler<CreateFolderCommand, Result<MediaFolderDto>>, CreateFolderHandler>();
         services.AddScoped<ICommandHandler<UpdateFolderCommand, Result<MediaFolderDto>>, UpdateFolderHandler>();
         services.AddScoped<ICommandHandler<DeleteFolderCommand, Result>, DeleteFolderHandler>();
+        services.AddScoped<IQueryHandler<GetFileVariantQuery, Result<AdminVariantContent>>, GetFileVariantHandler>();
         // 012: pages that show a deleted file refresh (data-model §3.2).
         services.AddSingleton<IEventTypeRegistration>(new EventTypeRegistration<FileDeleted>());
         // 013 MV-17: replaced files, recorded dimensions and failed variants refresh them too.

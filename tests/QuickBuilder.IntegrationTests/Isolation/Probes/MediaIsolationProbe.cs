@@ -26,6 +26,7 @@ internal sealed class MediaIsolationProbe : ISiteIsolationProbe
         "PATCH api/v1/media/sites/{siteId:guid}/files/{fileId:guid}",
         "PATCH api/v1/media/sites/{siteId:guid}/folders/{folderId:guid}",
         "DELETE api/v1/media/sites/{siteId:guid}/folders/{folderId:guid}",
+        "GET api/v1/media/sites/{siteId:guid}/files/{fileId:guid}/variants/{width:int}",
     ];
 
     public string? NeverIssuedPublicPath => MediaApi.PublicPath(Guid.NewGuid(), "png");
@@ -46,6 +47,7 @@ internal sealed class MediaIsolationProbe : ISiteIsolationProbe
 
         yield return new ProbeRequest(HttpMethod.Get, $"{MediaApi.FilesPath(siteId)}/{file}/content", ProbeKind.Addressed);
         yield return new ProbeRequest(HttpMethod.Get, $"{MediaApi.FilesPath(siteId)}/{file}", ProbeKind.Addressed);
+        yield return new ProbeRequest(HttpMethod.Get, $"{MediaApi.FilesPath(siteId)}/{file}/variants/320?v=1", ProbeKind.Addressed);
         yield return new ProbeRequest(HttpMethod.Patch, $"{MediaApi.FilesPath(siteId)}/{file}", ProbeKind.Addressed, new { altText = "probe" });
         yield return new ProbeRequest(HttpMethod.Delete, $"{MediaApi.FilesPath(siteId)}/{file}", ProbeKind.Addressed);
         yield return new ProbeRequest(HttpMethod.Patch, $"{LibraryApi.FoldersPath(siteId)}/{folder}", ProbeKind.Addressed, new { name = "probe" });

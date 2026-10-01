@@ -18,12 +18,26 @@ internal sealed class SectionRenderer : IBlockRenderer
         ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(writer);
 
-        writer.Open("section").Attribute("class", $"qb-section qb-section--{context.Choice(node, "width", Widths)}");
+        var width = context.Choice(node, "width", Widths);
+        writer.Open("section").Attribute("class", $"qb-section qb-section--{width}");
         context.Style(writer, scope, node,
             ("--qb-section-bg", context.Token(node, "background", TokenKind.Color, "transparent")),
             ("--qb-section-pad", context.Token(node, "paddingY", TokenKind.Space)));
         writer.EndTag().Markup("<div class=\"qb-section__inner\">");
+
+        // 013 MV-15: the width images inside may take, for their sizes hint (blocks.css).
+        var outer = context.SectionWidth;
+        var content = context.Tokens.ContentWidths;
+        context.SectionWidth = width switch
+        {
+            "narrow" => content.Narrow,
+            "wide" => content.Wide,
+            "full" => null,
+            _ => content.Normal,
+        };
+
         context.RenderChildren(node, scope, writer);
+        context.SectionWidth = outer;
         writer.Markup("</div>").Close("section");
     }
 }
