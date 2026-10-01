@@ -6,6 +6,7 @@ import { mediaApi, type MediaFile } from '../../api/media'
 import { useSitesStore } from '../../app/sitesStore'
 import MediaBrowser from './MediaBrowser.vue'
 import MediaDetailsPanel from './MediaDetailsPanel.vue'
+import ReplaceDialog from './ReplaceDialog.vue'
 import UsageList from './UsageList.vue'
 
 // 003 and 013: one site's media library — folders, search, upload, browse, copy and delete
@@ -23,6 +24,8 @@ const heading = ref<HTMLElement | null>(null)
 const browser = ref<InstanceType<typeof MediaBrowser> | null>(null)
 const details = ref<MediaFile | null>(null)
 const detailsTrigger = ref<HTMLElement | null>(null)
+const replacing = ref(false)
+const replaceButton = ref<HTMLButtonElement | null>(null)
 
 onMounted(async () => {
   if (sites.sites.length === 0) {
@@ -55,6 +58,18 @@ async function closeDetails(): Promise<void> {
 function onChanged(file: MediaFile): void {
   details.value = file
   browser.value?.update(file)
+}
+
+async function closeReplace(): Promise<void> {
+  replacing.value = false
+  await nextTick()
+  replaceButton.value?.focus()
+}
+
+// 013 US6: the new version replaces the old in the panel and the list; the address changed.
+async function onReplaced(file: MediaFile): Promise<void> {
+  onChanged(file)
+  await closeReplace()
 }
 
 async function reloadDetails(): Promise<void> {
@@ -125,6 +140,27 @@ async function onDeleted(file: MediaFile): Promise<void> {
           <UsageList
             :site-id="siteId"
             :file="file"
+          />
+        </template>
+        <template #replace="{ file }">
+          <p
+            v-if="file.canReplace || file.usage.inLiveUse"
+            class="media-details__replace"
+          >
+            <button
+              ref="replaceButton"
+              type="button"
+              @click="replacing = true"
+            >
+              {{ t('media.replace.button') }}
+            </button>
+          </p>
+          <ReplaceDialog
+            v-if="replacing"
+            :site-id="siteId"
+            :file="file"
+            @replaced="onReplaced"
+            @cancel="closeReplace"
           />
         </template>
       </MediaDetailsPanel>

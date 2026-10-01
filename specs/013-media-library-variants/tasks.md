@@ -672,7 +672,7 @@ only for the variant parts of the tests: skip those assertions when US2 is absen
 
 ### Tests for User Story 6 ⚠️
 
-- [ ] T099 [P] [US6] Create `ITESTS/Media/ReplaceFileApiTests.cs`:
+- [X] T099 [P] [US6] Create `ITESTS/Media/ReplaceFileApiTests.cs`:
   - a replace keeps the id, name, folder, alternative text, uploader, upload time and usage; increments `contentVersion`; sets `replacedBy` and `replacedAtUtc`; and returns the new `publicPath` (`…-v2.png`);
   - the old original and variant addresses are `not_found` on the next request (SC-009), and zero requests to the new address ever return old bytes;
   - the old key is deleted, or swept when the delete fails (with `FaultyStorage`);
@@ -683,18 +683,18 @@ only for the variant parts of the tests: skip those assertions when US2 is absen
   - an Editor replacing their own live-used file gets `media.in_live_use`, and their own unused file succeeds (SC-015);
   - another person's file needs `media.files.delete`;
   - the new thumbnail is queued.
-- [ ] T100 [P] [US6] Create `ADMINTESTS/media/ReplaceDialog.spec.ts`: shows the usage summary and that live pages change immediately; the Editor live-use message before upload; progress; success refreshes the panel with the new version; error messages per code; axe clean.
+- [X] T100 [P] [US6] Create `ADMINTESTS/media/ReplaceDialog.spec.ts`: shows the usage summary and that live pages change immediately; the Editor live-use message before upload; progress; success refreshes the panel with the new version; error messages per code; axe clean.
 
 ### Implementation for User Story 6
 
-- [ ] T101 [US6] Create `MEDIA/Features/ReplaceFile/ReplaceFile.cs` (`PUT …/files/{fileId}/content`, declaring `media.own_files.delete`; MV-06, MV-07; a raw body named by `X-QuickBuilder-File-Name`, like upload, with `expectedContentVersion` as a query parameter):
+- [X] T101 [US6] Create `MEDIA/Features/ReplaceFile/ReplaceFile.cs` (`PUT …/files/{fileId}/content`, declaring `media.own_files.delete`; MV-06, MV-07; a raw body named by `X-QuickBuilder-File-Name`, like upload, with `expectedContentVersion` as a query parameter):
   1. Load the row, check its version against `expectedContentVersion`, and apply the ownership, live-use (`SummariseAsync` + `PublishingCapabilities.Manage`) and kind rules.
   2. Run `UploadPipeline` to store under `MediaStorageKeys.For(site, id, version + 1)` and read the metadata.
   3. Call `MediaFile.Replace` and add `FileChanged(replaced)` in one save with the row version, mapping a concurrency failure to `media.conflict` and deleting the new key on any failure before commit.
   4. Delete the old key best effort, and enqueue the thumbnail.
 
   Reuse `UploadSizeLimitAttribute` and `UploadGate` like the upload controller. Register it in `MEDIA/MediaModule.cs`. Make T099 pass. If US3 is complete, un-skip the replace step in `ITESTS/Media/MediaAcrossInstancesTests.cs`.
-- [ ] T102 [US6] Create `MEDIAUI/ReplaceDialog.vue` (a single file input with the accepted extensions for the file's kind, the usage summary, "live pages will show the new file straight away", the Editor live-use explanation when `canReplace` is false, and progress) and place a **Replace** action in `MediaDetailsPanel.vue`'s replace slot, showing *Replaced by … at …* when set. Add the i18n keys. Make T100 pass.
+- [X] T102 [US6] Create `MEDIAUI/ReplaceDialog.vue` (a single file input with the accepted extensions for the file's kind, the usage summary, "live pages will show the new file straight away", the Editor live-use explanation when `canReplace` is false, and progress) and place a **Replace** action in `MediaDetailsPanel.vue`'s replace slot, showing *Replaced by … at …* when set. Add the i18n keys. Make T100 pass.
 
 **Checkpoint**: US6 is demoable. Quickstart §5 passes.
 

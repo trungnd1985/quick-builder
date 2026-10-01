@@ -250,6 +250,18 @@
       },
       "livePages": "on {n} live page | on {n} live pages"
     },
+    "replace": {
+      "button": "Replace…",
+      "title": "Replace {name}",
+      "used": "One place uses this file. | {places} places use this file.",
+      "live": "Published pages will show the new file straight away.",
+      "unused": "Nothing uses this file yet.",
+      "keeps": "The name, folder, alternative text and every link to it stay the same. The previous version stops being served.",
+      "choose": "Choose the new file",
+      "progress": "Uploading… {percent}%",
+      "failed": "The file could not be replaced.",
+      "cancel": "Cancel"
+    },
     "folders": {
       "label": "Folders",
       "topLevel": "All files (top level)",

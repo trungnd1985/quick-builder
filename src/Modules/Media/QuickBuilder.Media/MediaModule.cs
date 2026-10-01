@@ -13,6 +13,7 @@ using QuickBuilder.Media.Features.GetFileUsage;
 using QuickBuilder.Media.Features.GetFileVariant;
 using QuickBuilder.Media.Features.ListFiles;
 using QuickBuilder.Media.Features.MoveFiles;
+using QuickBuilder.Media.Features.ReplaceFile;
 using QuickBuilder.Media.Features.ServePublicFile;
 using QuickBuilder.Media.Features.StorageCheck;
 using QuickBuilder.Media.Features.UpdateFile;
@@ -131,6 +132,7 @@ public static class MediaModule
         services.AddScoped<ICommandHandler<DeleteFolderCommand, Result>, DeleteFolderHandler>();
         services.AddScoped<IQueryHandler<GetFileVariantQuery, Result<AdminVariantContent>>, GetFileVariantHandler>();
         services.AddScoped<IQueryHandler<GetFileUsageQuery, Result<MediaUsageDto>>, GetFileUsageHandler>();
+        services.AddScoped<ICommandHandler<ReplaceFileCommand, Result<MediaFileDto>>, ReplaceFileHandler>();
         services.AddScoped<IQueryHandler<GetStorageCheckQuery, Result<StorageStatusDto>>, GetStorageCheckHandler>();
         services.AddScoped<ICommandHandler<StartStorageCheckCommand, Result<StorageCheckDto>>, StartStorageCheckHandler>();
         // 012: pages that show a deleted file refresh (data-model §3.2).

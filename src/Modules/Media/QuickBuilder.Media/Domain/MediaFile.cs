@@ -246,7 +246,8 @@ internal sealed partial class MediaFile : ISiteOwned
         string storageKey,
         ImageMetadata? metadata,
         Guid replacedBy,
-        DateTimeOffset replacedAtUtc)
+        DateTimeOffset replacedAtUtc,
+        MediaMetadataState? metadataState = null)
     {
         ArgumentNullException.ThrowIfNull(type);
         ArgumentException.ThrowIfNullOrWhiteSpace(storageKey);
@@ -271,7 +272,7 @@ internal sealed partial class MediaFile : ISiteOwned
         ReplacedBy = replacedBy;
         ReplacedAtUtc = replacedAtUtc;
         VariantsState = MediaVariantsState.Available;
-        ApplyMetadata(type, metadata);
+        ApplyMetadata(type, metadata, metadataState);
         return Result.Success();
     }
 

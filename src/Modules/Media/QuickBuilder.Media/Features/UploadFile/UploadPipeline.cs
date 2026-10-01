@@ -152,6 +152,11 @@ internal sealed class UploadPipeline(
             // The client went away; nothing was stored and nobody is listening for an answer.
             throw;
         }
+        catch (StorageKeyExistsException)
+        {
+            // Only a replace can meet this: another replace of the same version got there first.
+            return MediaErrors.Conflict;
+        }
         catch (IOException ex) when (IsDiskFull(ex))
         {
             logger.LogError(ex, "Storage is out of space; an upload to key prefix {KeyPrefix} was refused.", key.FirstSegment);

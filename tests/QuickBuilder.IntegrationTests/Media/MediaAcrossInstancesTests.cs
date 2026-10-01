@@ -1,4 +1,5 @@
 using System.Net;
+using System.Net.Http.Json;
 using QuickBuilder.IntegrationTests.Infrastructure;
 using QuickBuilder.IntegrationTests.Storage;
 using QuickBuilder.TestFixtures.Media;
@@ -64,8 +65,19 @@ public sealed class MediaAcrossInstancesTests(DatabaseFixture database, MinioFix
         Assert.DoesNotContain((await LibraryApi.ListOkAsync(_first.Admin, _first.SiteA)).Items, f => f.Id == file.Id);
     }
 
-    [Fact(Skip = "Replace arrives with User Story 6 (tasks T099 – T102).")]
-    public Task A_file_replaced_through_one_instance_is_served_new_through_the_other() => Task.CompletedTask;
+    [Fact]
+    public async Task A_file_replaced_through_one_instance_is_served_new_through_the_other()
+    {
+        var file = await LibraryApi.UploadNamedAsync(_first.Admin, _first.SiteA, "logo.png", ImageFixtures.Logo, "image/png");
+
+        var response = await ReplaceFileApiTests.ReplaceAsync(_secondAdmin, _first.SiteA, file.Id, 1, "logo-v2.png", ImageFixtures.LogoV2);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var replaced = (await response.Content.ReadFromJsonAsync<QuickBuilder.Media.Contracts.MediaFileDto>(MediaApi.Json))!;
+
+        Assert.Equal(HttpStatusCode.NotFound, (await MediaApi.PublicAsync(_first.App, MediaScenario.HostA, file.PublicPath)).StatusCode);
+        var served = await MediaApi.PublicAsync(_first.App, MediaScenario.HostA, replaced.PublicPath);
+        Assert.Equal(ImageFixtures.LogoV2, await served.Content.ReadAsByteArrayAsync());
+    }
 
     /// <summary>
     /// US3 scenario 5, on a bucket of its own: pausing the shared one would stall other
