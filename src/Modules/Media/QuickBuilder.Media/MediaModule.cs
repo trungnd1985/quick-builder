@@ -9,6 +9,7 @@ using QuickBuilder.Media.Features.DeleteFile;
 using QuickBuilder.Media.Features.Folders;
 using QuickBuilder.Media.Features.GetFile;
 using QuickBuilder.Media.Features.GetFileContent;
+using QuickBuilder.Media.Features.GetFileUsage;
 using QuickBuilder.Media.Features.GetFileVariant;
 using QuickBuilder.Media.Features.ListFiles;
 using QuickBuilder.Media.Features.MoveFiles;
@@ -118,7 +119,7 @@ public static class MediaModule
         services.AddScoped<IQueryHandler<ListFilesQuery, Result<MediaFilePageDto>>, ListFilesHandler>();
         services.AddScoped<IQueryHandler<GetFileContentQuery, Result<MediaContent>>, GetFileContentHandler>();
         services.AddScoped<IQueryHandler<ServePublicFileQuery, Result<PublicMediaContent>>, ServePublicFileHandler>();
-        services.AddScoped<ICommandHandler<DeleteFileCommand, Result>, DeleteFileHandler>();
+        services.AddScoped<ICommandHandler<DeleteFileCommand, DeleteFileOutcome>, DeleteFileHandler>();
 
         // 013 (contracts/media-api.yaml).
         services.AddScoped<IQueryHandler<GetFileQuery, Result<MediaFileDto>>, GetFileHandler>();
@@ -129,6 +130,7 @@ public static class MediaModule
         services.AddScoped<ICommandHandler<UpdateFolderCommand, Result<MediaFolderDto>>, UpdateFolderHandler>();
         services.AddScoped<ICommandHandler<DeleteFolderCommand, Result>, DeleteFolderHandler>();
         services.AddScoped<IQueryHandler<GetFileVariantQuery, Result<AdminVariantContent>>, GetFileVariantHandler>();
+        services.AddScoped<IQueryHandler<GetFileUsageQuery, Result<MediaUsageDto>>, GetFileUsageHandler>();
         services.AddScoped<IQueryHandler<GetStorageCheckQuery, Result<StorageStatusDto>>, GetStorageCheckHandler>();
         services.AddScoped<ICommandHandler<StartStorageCheckCommand, Result<StorageCheckDto>>, StartStorageCheckHandler>();
         // 012: pages that show a deleted file refresh (data-model §3.2).

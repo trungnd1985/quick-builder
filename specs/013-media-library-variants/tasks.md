@@ -615,12 +615,12 @@ live-use deletion limited to members who may publish.
 
 ### Tests for User Story 5 ⚠️
 
-- [ ] T093 [P] [US5] Create `ITESTS/Media/FileUsageApiTests.cs`:
+- [X] T093 [P] [US5] Create `ITESTS/Media/FileUsageApiTests.cs`:
   - `GET …/usage` lists draft, live, history and component places with correct flags and `livePagesThroughComponent`;
   - the counts match `IMediaUsageReader` after draft edits, publish, rollback and page deletion (SC-008);
   - `places` is empty with counts only for a caller without `pages.content.view` (simulated with a test capability set);
   - another site's file is not found.
-- [ ] T094 [P] [US5] Create `ITESTS/Media/DeleteInUseTests.cs` (SC-007, SC-015):
+- [X] T094 [P] [US5] Create `ITESTS/Media/DeleteInUseTests.cs` (SC-007, SC-015):
   - a used file without `confirmInUse` gives `409 media.in_use` with `usage`;
   - with it, the file is deleted;
   - an unused file is deleted without the flag;
@@ -630,7 +630,7 @@ live-use deletion limited to members who may publish.
   - `canDelete` in listings reflects the live rule.
 
   Extend `ITESTS/Media/DeleteFileTests.cs` so that 003's cases still pass.
-- [ ] T095 [P] [US5] Create `ADMINTESTS/media/UsageList.spec.ts` and extend `ADMINTESTS/media/DeleteDialog.spec.ts`:
+- [X] T095 [P] [US5] Create `ADMINTESTS/media/UsageList.spec.ts` and extend `ADMINTESTS/media/DeleteDialog.spec.ts`:
   - the list groups places with draft, live and history badges and links;
   - the delete dialog with usage names the places and needs a second confirmation;
   - the live-use message is shown to Editors before they act, and the Delete action is disabled when `canDelete` is false;
@@ -639,14 +639,14 @@ live-use deletion limited to members who may publish.
 
 ### Implementation for User Story 5
 
-- [ ] T096 [US5] Create `MEDIA/Features/GetFileUsage/GetFileUsage.cs` (`GET …/files/{fileId}/usage`, `media.files.view`): it calls `IMediaUsageReader.ListAsync` and `SummariseAsync`, and names places only when `access.HasCapabilityAsync(PageContentCapabilities.View, siteId)` holds. Make T093 pass.
-- [ ] T097 [US5] Extend `MEDIA/Features/DeleteFile/DeleteFile.cs` (MV-06). After the ownership check:
+- [X] T096 [US5] Create `MEDIA/Features/GetFileUsage/GetFileUsage.cs` (`GET …/files/{fileId}/usage`, `media.files.view`): it calls `IMediaUsageReader.ListAsync` and `SummariseAsync`, and names places only when `access.HasCapabilityAsync(PageContentCapabilities.View, siteId)` holds. Make T093 pass.
+- [X] T097 [US5] Extend `MEDIA/Features/DeleteFile/DeleteFile.cs` (MV-06). After the ownership check:
   - call `SummariseAsync`;
   - when `InLiveUse` and the caller lacks `PublishingCapabilities.Manage`, refuse with `media.in_live_use`;
   - when `InUse` and `!command.ConfirmInUse`, refuse with `media.in_use` carrying the summary.
 
   Add `[FromQuery] bool confirmInUse` to the controller and use the row version on delete (`media.conflict`). Update the class remarks with the accepted race (MV-06). Make T094 pass.
-- [ ] T098 [US5] Create `MEDIAUI/UsageList.vue` (places with badges and router links to the page editor or component editor, "on N live pages" for components) and place it in `MediaDetailsPanel.vue`'s usage slot. Rework `MEDIAUI/DeleteDialog.vue`:
+- [X] T098 [US5] Create `MEDIAUI/UsageList.vue` (places with badges and router links to the page editor or component editor, "on N live pages" for components) and place it in `MediaDetailsPanel.vue`'s usage slot. Rework `MEDIAUI/DeleteDialog.vue`:
   - show the usage summary and named places;
   - require a second explicit confirmation when in use, then call `remove(..., { confirmInUse: true })`;
   - explain the Designer or Administrator rule when `canDelete` is false because of live use;

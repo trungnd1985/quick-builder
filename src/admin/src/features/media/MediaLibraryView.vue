@@ -6,6 +6,7 @@ import { mediaApi, type MediaFile } from '../../api/media'
 import { useSitesStore } from '../../app/sitesStore'
 import MediaBrowser from './MediaBrowser.vue'
 import MediaDetailsPanel from './MediaDetailsPanel.vue'
+import UsageList from './UsageList.vue'
 
 // 003 and 013: one site's media library — folders, search, upload, browse, copy and delete
 // (MediaBrowser), and a file's details with its alternative text (MediaDetailsPanel).
@@ -119,7 +120,14 @@ async function onDeleted(file: MediaFile): Promise<void> {
         @close="closeDetails"
         @changed="onChanged"
         @reload="reloadDetails"
-      />
+      >
+        <template #usage="{ file }">
+          <UsageList
+            :site-id="siteId"
+            :file="file"
+          />
+        </template>
+      </MediaDetailsPanel>
     </div>
   </section>
 </template>

@@ -60,7 +60,7 @@ public sealed class MediaChangeRefreshTests(DatabaseFixture database) : IAsyncLi
         Assert.Contains(image, await VisitAsync("/through").ConfigureAwait(true), StringComparison.Ordinal);
         var before = await GenerationsAsync().ConfigureAwait(true);
 
-        Assert.Equal(HttpStatusCode.NoContent, (await MediaApi.DeleteAsync(_scenario.Admin, _scenario.SiteA, _file).ConfigureAwait(true)).StatusCode);
+        Assert.Equal(HttpStatusCode.NoContent, (await QuickBuilder.IntegrationTests.Media.UsageScenario.DeleteAsync(_scenario.Admin, _scenario.SiteA, _file, confirmInUse: true).ConfigureAwait(true)).StatusCode);
         await DispatchAsync().ConfigureAwait(true);
 
         var after = await GenerationsAsync().ConfigureAwait(true);
@@ -144,7 +144,8 @@ public sealed class MediaChangeRefreshTests(DatabaseFixture database) : IAsyncLi
     [Fact]
     public async Task The_delete_writes_its_event_with_the_delete()
     {
-        await MediaApi.DeleteAsync(_scenario.Admin, _scenario.SiteA, _file).ConfigureAwait(true);
+        // A live page shows it: confirmed, as 013 FR-015 requires.
+        await QuickBuilder.IntegrationTests.Media.UsageScenario.DeleteAsync(_scenario.Admin, _scenario.SiteA, _file, confirmInUse: true).ConfigureAwait(true);
 
         await using var scope = _scenario.App.Services.CreateAsyncScope();
         var media = scope.ServiceProvider.GetRequiredService<QuickBuilder.Media.Infrastructure.MediaDbContext>();

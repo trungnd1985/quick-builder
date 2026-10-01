@@ -230,7 +230,25 @@
       "cancel": "Cancel",
       "deleting": "Deleting…",
       "done": "{name} was deleted",
-      "failed": "Could not delete {name}"
+      "failed": "Could not delete {name}",
+      "inUseBody": "Pages or components use this file. Deleting it is permanent: where they show it, they will show nothing instead.",
+      "understood": "I understand that the place using it will show nothing in its place. | I understand that the {places} places using it will show nothing in its place."
+    },
+    "usage": {
+      "title": "Where it is used",
+      "loading": "Finding where it is used…",
+      "failed": "Could not find where the file is used.",
+      "none": "No page or component uses this file.",
+      "counts": "Used in {places} place(s): {draft} in drafts, {live} live, {history} only in earlier versions.",
+      "liveRule": "Published pages show this file. Only a Designer or Administrator can delete or replace it.",
+      "pages": "Pages",
+      "components": "Components",
+      "badges": {
+        "live": "Live",
+        "draft": "Draft",
+        "history": "Earlier version"
+      },
+      "livePages": "on {n} live page | on {n} live pages"
     },
     "folders": {
       "label": "Folders",

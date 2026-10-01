@@ -532,6 +532,30 @@ button.danger:where(:not(.qb-canvas *)) {
   }
 }
 
+/* 013 US5: where a file is used, and the in-use confirmation. */
+.media-usage__places {
+  margin: 0.25rem 0 0.75rem;
+  padding-left: 1.25rem;
+}
+
+.media-usage__places li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  align-items: baseline;
+}
+
+.badge--live {
+  border-color: var(--accent, var(--border));
+  color: var(--text);
+}
+
+.field--checkbox {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+}
+
 /* 009: site management. */
 .badge-warning {
   border-color: var(--danger);

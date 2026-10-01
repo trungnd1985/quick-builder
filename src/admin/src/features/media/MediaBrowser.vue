@@ -214,7 +214,7 @@ async function closeDialog(): Promise<void> {
   deleteTrigger.value?.focus()
 }
 
-async function confirmDelete(): Promise<void> {
+async function confirmDelete(options: { confirmInUse: boolean }): Promise<void> {
   const file = pendingDelete.value
   if (!file) {
     return
@@ -222,7 +222,7 @@ async function confirmDelete(): Promise<void> {
 
   deleting.value = true
   try {
-    await mediaApi.remove(props.siteId, file.id)
+    await mediaApi.remove(props.siteId, file.id, options)
     files.value = files.value.filter((f) => f.id !== file.id)
     totalCount.value = Math.max(0, totalCount.value - 1)
     list.value?.announce(t('media.delete.done', { name: file.fileName }))
@@ -233,6 +233,16 @@ async function confirmDelete(): Promise<void> {
     emit('deleted', file)
   } catch (caught) {
     const code = caught instanceof ApiError ? caught.errorCode : undefined
+
+    // 013 FR-015: something started using it while the dialog was open. Show the usage and ask again.
+    if (code === 'media.in_use' && caught instanceof ApiError && caught.problem?.usage) {
+      const updated = { ...file, usage: caught.problem.usage }
+      pendingDelete.value = updated
+      update(updated)
+      deleting.value = false
+      return
+    }
+
     const key = code?.startsWith('media.') ? `media.errors.${code.slice('media.'.length)}` : undefined
     list.value?.announce(key && te(key) ? t(key) : t('media.delete.failed', { name: file.fileName }))
     await closeDialog()
@@ -461,6 +471,7 @@ defineExpose({ reload: loadFirstPage, update })
 
     <DeleteDialog
       v-if="pendingDelete"
+      :site-id="siteId"
       :file="pendingDelete"
       :busy="deleting"
       @cancel="closeDialog"
