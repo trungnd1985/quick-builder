@@ -36,7 +36,8 @@ public sealed class AuthorizationDeclarationTests
         "SignInController.SignInAsync",
         "CheckSetPasswordLinkController.CheckAsync",
         "SetPasswordController.SetAsync",
-        // 003 FR-026: media files on each site's public surface.
+        // 003 FR-026: media files on each site's public surface. 013 MV-08: the same action serves
+        // later versions and resized variants (`{id}-v{n}.{ext}`, `{id}-v{n}-w{width}.{ext}`).
         "ServePublicFileController.GetAsync",
         // 012 FR-022: published pages, their stylesheet, and the 405 for other methods.
         "RenderPageController.GetAsync",

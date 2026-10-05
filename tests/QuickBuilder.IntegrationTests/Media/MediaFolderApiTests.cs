@@ -1,5 +1,7 @@
 using System.Net;
+using Microsoft.Extensions.DependencyInjection;
 using QuickBuilder.IntegrationTests.Infrastructure;
+using QuickBuilder.Media.Infrastructure;
 using QuickBuilder.Shared.Kernel.Authorization;
 
 namespace QuickBuilder.IntegrationTests.Media;
@@ -137,6 +139,35 @@ public sealed class MediaFolderApiTests(DatabaseFixture database) : IAsyncLifeti
         var tree = await LibraryApi.FoldersOkAsync(Admin, Site).ConfigureAwait(true);
         var parents = tree.Folders.ToDictionary(f => f.Id, f => f.ParentId);
         Assert.False(parents[a.Id] == b.Id && parents[b.Id] == a.Id, "Both moves committed and formed a cycle.");
+    }
+
+    /// <summary>
+    /// The same race, interleaved by hand so it never depends on timing: both changes are
+    /// validated against the same folders, the first commits, and the second must not.
+    /// </summary>
+    [Fact]
+    public async Task A_change_validated_before_another_committed_is_refused_as_a_conflict()
+    {
+        var a = await LibraryApi.CreateFolderOkAsync(Admin, Site, "A").ConfigureAwait(true);
+        var b = await LibraryApi.CreateFolderOkAsync(Admin, Site, "B").ConfigureAwait(true);
+
+        await using var first = _scenario.App.Services.CreateAsyncScope();
+        await using var second = _scenario.App.Services.CreateAsyncScope();
+        var firstWrites = first.ServiceProvider.GetRequiredService<FolderWrites>();
+        var secondWrites = second.ServiceProvider.GetRequiredService<FolderWrites>();
+
+        var firstView = await firstWrites.LoadAsync(Site, CancellationToken.None).ConfigureAwait(true);
+        var secondView = await secondWrites.LoadAsync(Site, CancellationToken.None).ConfigureAwait(true);
+        Assert.True(firstView.Move(firstView.Find(a.Id)!, b.Id).IsSuccess);
+        Assert.True(secondView.Move(secondView.Find(b.Id)!, a.Id).IsSuccess);
+
+        Assert.True((await firstWrites.SaveAsync(Site, CancellationToken.None).ConfigureAwait(true)).IsSuccess);
+        var refused = await secondWrites.SaveAsync(Site, CancellationToken.None).ConfigureAwait(true);
+
+        Assert.True(refused.IsFailure);
+        Assert.Equal("media.folder_conflict", refused.Error.Code);
+        var parents = (await LibraryApi.FoldersOkAsync(Admin, Site).ConfigureAwait(true)).Folders.ToDictionary(f => f.Id, f => f.ParentId);
+        Assert.Equal((b.Id, (Guid?)null), (parents[a.Id]!.Value, parents[b.Id]));
     }
 
     [Fact]

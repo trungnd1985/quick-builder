@@ -20,9 +20,18 @@ namespace QuickBuilder.Media.Infrastructure;
 /// </remarks>
 internal sealed class FolderWrites(MediaDbContext database)
 {
+    private FolderTree? _tree;
+
     /// <summary>Every folder of <paramref name="siteId"/>, tracked.</summary>
+    /// <remarks>
+    /// The tree row is read first and kept: its row version is what makes a change validated
+    /// against these folders fail if another change committed meanwhile. Read at save time
+    /// instead, it would already include the other change, and both would commit.
+    /// </remarks>
     public async Task<FolderStructure> LoadAsync(Guid siteId, CancellationToken cancellationToken)
     {
+        _tree = await FindTreeAsync(siteId, cancellationToken).ConfigureAwait(false);
+
         var folders = await database.Folders
             .AcrossAllSites("Admin folder change on a site named explicitly in the route (001 FR-011b).")
             .Where(f => f.SiteId == siteId)
@@ -41,11 +50,7 @@ internal sealed class FolderWrites(MediaDbContext database)
     /// </summary>
     public async Task<Result> SaveAsync(Guid siteId, CancellationToken cancellationToken)
     {
-        var tree = await database.FolderTrees
-            .AcrossAllSites("Admin folder change on a site named explicitly in the route (001 FR-011b).")
-            .FirstOrDefaultAsync(t => t.SiteId == siteId, cancellationToken)
-            .ConfigureAwait(false);
-
+        var tree = _tree ?? await FindTreeAsync(siteId, cancellationToken).ConfigureAwait(false);
         if (tree is null)
         {
             tree = new FolderTree(siteId);
@@ -89,6 +94,11 @@ internal sealed class FolderWrites(MediaDbContext database)
             return Result.Failure(MediaErrors.FolderNotEmpty);
         }
     }
+
+    private Task<FolderTree?> FindTreeAsync(Guid siteId, CancellationToken cancellationToken) =>
+        database.FolderTrees
+            .AcrossAllSites("Admin folder change on a site named explicitly in the route (001 FR-011b).")
+            .FirstOrDefaultAsync(t => t.SiteId == siteId, cancellationToken);
 
     /// <summary>How many files each folder holds directly, and how many sit at the top level.</summary>
     public async Task<(Dictionary<Guid, int> ByFolder, int TopLevel)> FileCountsAsync(Guid siteId, CancellationToken cancellationToken)

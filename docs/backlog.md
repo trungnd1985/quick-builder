@@ -27,3 +27,18 @@ Deferred by 012 (publishing and rendering; see specs/012-publishing-rendering/pl
 - Cache warming, pre-compressed responses, a shared cache provider, click-to-load embeds
 - Native review of the not-found page's texts in 39 languages
   (specs/012-publishing-rendering/quickstart-results.md)
+
+Deferred by 013 (media library, variants and remote storage; see specs/013-media-library-variants/plan.md):
+
+- Format conversion of JPEG and PNG originals to WebP or AVIF with `Accept` negotiation;
+  cropping and focal points
+- A built-in provider-to-provider copy (today: a documented copy and the consistency
+  check), CDN integrations, signed or expiring URLs
+- Trigram search for libraries beyond 10,000 files per site
+- Separate storage-provider projects, keeping the cloud SDKs out of
+  Shared.Infrastructure's dependency graph (needs a constitution amendment)
+- File renaming, tags, quotas, a recycle bin, moving files between sites
+- `sizes` arithmetic per column inside multi-column containers
+- Using the latest consistency check instead of per-file `HEAD` requests for availability
+  in listings on remote storage, if those listings prove slow
+- An S3-compatible test service for CI: MinIO no longer publishes container images

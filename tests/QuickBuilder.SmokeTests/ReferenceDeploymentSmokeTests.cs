@@ -320,6 +320,45 @@ public sealed class ReferenceDeploymentSmokeTests(ITestOutputHelper output) : IA
         Assert.Equal("text/html", goneResponse.Content.Headers.ContentType?.MediaType);
         output.WriteLine($"component and page published and viewed with {stylesheet}; unpublished page answers 404");
 
+        // 9f. 013 FR-043: a published image is responsive. A JPEG is placed on the home page,
+        //     the page is published, and the srcset a visitor receives names a resized variant
+        //     that the image itself produces with libvips.
+        using var jpeg = new HttpRequestMessage(HttpMethod.Post, new Uri($"/api/v1/media/sites/{siteId}/files", UriKind.Relative))
+        {
+            Content = new ByteArrayContent(QuickBuilder.TestFixtures.Media.ImageFixtures.RotatedPhoto),
+        };
+        jpeg.Content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("image/jpeg");
+        jpeg.Headers.Add("X-QuickBuilder-File-Name", "smoke-photo.jpg");
+        var stored = await client.SendAsync(jpeg).ConfigureAwait(true);
+        Assert.Equal(HttpStatusCode.Created, stored.StatusCode);
+        var photo = await stored.Content.ReadFromJsonAsync<JsonElement>().ConfigureAwait(true);
+        Assert.Equal(800, photo.GetProperty("width").GetInt32());
+
+        var homeWithImage = await SaveDraftAsync(client, homePath, $$$"""
+            {"schemaVersion":1,"root":{"id":"root","type":"root","props":{},"children":[
+              {"id":"s2","type":"section","props":{},"children":[
+                {"id":"i1","type":"image","props":{"media":{"mediaId":"{{{photo.GetProperty("id").GetGuid()}}}"},"alt":"Smoke photo"},"children":[]}]}]}}
+            """).ConfigureAwait(true);
+        await PublishAsync(client, homePath, homeWithImage).ConfigureAwait(true);
+
+        using var withImage = new HttpRequestMessage(HttpMethod.Get, new Uri("/", UriKind.Relative));
+        withImage.Headers.Host = "smoke.test";
+        using var imagePage = await publicClient.SendAsync(withImage).ConfigureAwait(true);
+        var imageHtml = await imagePage.Content.ReadAsStringAsync().ConfigureAwait(true);
+        Assert.Equal(HttpStatusCode.OK, imagePage.StatusCode);
+
+        var srcset = System.Text.RegularExpressions.Regex.Match(imageHtml, "srcset=\"(?<set>[^\"]+)\"").Groups["set"].Value;
+        Assert.False(string.IsNullOrEmpty(srcset), "The published image has no srcset.");
+        var variantPath = srcset.Split(',')[0].Trim().Split(' ')[0].Replace("&amp;", "&", StringComparison.Ordinal);
+        Assert.Contains("-w", variantPath, StringComparison.Ordinal);
+
+        using var variant = new HttpRequestMessage(HttpMethod.Get, new Uri(variantPath, UriKind.Relative));
+        variant.Headers.Host = "smoke.test";
+        using var variantResponse = await publicClient.SendAsync(variant).ConfigureAwait(true);
+        Assert.Equal(HttpStatusCode.OK, variantResponse.StatusCode);
+        Assert.Equal("image/jpeg", variantResponse.Content.Headers.ContentType?.MediaType);
+        output.WriteLine($"published image offers {srcset}; {variantPath} served as image/jpeg");
+
         // 10. Operator recovery (002 US5): with command-line access to the container, the
         //     operator issues a set-password link for the administrator, sets a new password
         //     through it, and signs in with that password.

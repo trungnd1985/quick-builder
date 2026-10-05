@@ -98,3 +98,15 @@ The suite covers:
 
 Adding a case here means every provider must pass it. Removing one needs a spec that
 justifies it.
+
+---
+
+## Providers added by 013 (2026-10-05)
+
+[013's storage-providers contract](../../013-media-library-variants/contracts/storage-providers.md)
+adds the S3-compatible and Azure Blob providers. The interface (§1), the key grammar (§2),
+the provider duties (§3) and this conformance suite (§5) are unchanged; both new providers
+pass the suite as written. 013 also adds two key forms, owned by Media: later versions of an
+original (`{site}/media/{id}-v{n}`) and resized variants (`{site}/media-variants/{id}-v{n}-w{width}`).
+The layout is identical on every provider, so moving between them is a copy
+([storage-providers.md §2](../../013-media-library-variants/contracts/storage-providers.md)).

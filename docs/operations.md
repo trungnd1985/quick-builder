@@ -172,18 +172,45 @@ Deletion is permanent. A deleted file stops being served on the next request, an
 bytes are removed straight away (or by the next sweep if that fails). Copies already held
 by visitors' browsers or by a proxy or CDN in front of the installation may keep showing
 until they expire: public files are sent with a one-year cache lifetime because an
-address never changes content. To replace a file, upload the new version — it gets a new
-address — and update whatever linked to the old one.
+address never changes content.
+
+A file that pages or components use is deleted only after a second confirmation, and one
+that a live page shows only by a Designer or Administrator. Pages that showed a deleted
+image show nothing in its place from their next request.
+
+### Replacing files
+
+**Replace** in a file's details keeps the file — its id, name, folder, alternative text and
+every page that shows it — and gives it new contents. The new contents get a new address
+(`{id}-v2.png`, then `-v3`, …); the previous address is not found from that moment, so a
+browser or proxy cache can never serve old contents under the new address. Live pages
+show the new contents at their next request. As for delete, a file a live page shows can
+be replaced only by a Designer or Administrator.
+
+### Resized images
+
+Published pages load images at the size they are shown, from copies at the widths in
+`Media:Variants:Widths` (default 320, 640, 960, 1280, 1920 and 2560 pixels, never wider
+than the original). The thumbnail is made right after upload; every other width is made
+the first time a visitor needs it — that visitor may wait up to about 3 seconds — and is
+served from storage afterwards. If a copy cannot be made (`Media:Variants:Timeout`, 10 s
+by default), the original is served instead and the image offers no copies.
+
+**Storage**: copies live next to the originals, under `{site}/media-variants/`, and
+typically add 30–60 % to the bytes of the images they belong to. They need no backup: lost
+copies are made again on request. GIFs, PDFs and images too small for any width have none.
 
 ### Clean-up
 
-Two hourly jobs keep storage tidy, and neither ever touches a file that has a library
-entry:
+Hourly jobs keep storage tidy, and none ever touches a file that has a library entry:
 
 - **Orphan sweep**: removes bytes with no library entry once they are older than
-  `Media:OrphanGracePeriod`, and logs how many per site.
+  `Media:OrphanGracePeriod`, and logs how many per site. It also removes resized copies
+  nobody can request any more — of a deleted file, of a replaced version, at a width no
+  longer configured — once they are an hour old.
 - **Incomplete uploads**: removes temporary `.part` files older than one hour from each
-  site's `.incoming` directory.
+  site's `.incoming` directory (Local), or aborts multipart uploads older than an hour
+  (S3).
 
 ### Choosing a provider
 
@@ -286,6 +313,31 @@ it.
 - Add the media volume to your backups, alongside the database.
 - `/_media/` on every site host is now served by the application.
 - Every site starts with an empty media library. Nothing else changes.
+
+### Upgrading from feature 012
+
+- Two migrations run automatically: `AddLibraryAndVariants` (Media) and
+  `AddMediaReferences` (Pages, which records which pages and components use which files).
+  No file, address or page changes.
+- Existing files keep their addresses and appear at the top level of each library, without
+  alternative text.
+- **Background work after the upgrade**, in batches of 50, one site at a time, without
+  delaying readiness:
+  - image dimensions and thumbnails are filled in over the first minutes; live pages pick
+    up `width`, `height` and `srcset` as each image is processed;
+  - search ignores letter case straight away, and accents once the search-text backfill has
+    run (a few seconds per site).
+- Deleting a file that pages use now needs a second confirmation; API clients pass
+  `confirmInUse=true`. Editors can no longer delete or replace a file that a live page
+  shows; a Designer or Administrator must.
+- Published images now load resized copies. The first visitor to need each size may wait
+  up to about 3 seconds. Storage use grows by roughly 30–60 % of image bytes as copies
+  accumulate (see "Resized images").
+- Several instances are now supported with `Storage:Provider` `S3` or `AzureBlob`. To move
+  existing files, follow "Moving media between providers", then check **Storage** in the
+  admin menu.
+- The image is about 25 MB larger (libvips, for image dimensions and resizing).
+- New command: `media check-storage`.
 
 ## Sites and host names
 

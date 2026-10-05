@@ -196,9 +196,28 @@ version:
   first, then insert the row that points to them, so nothing is ever listed or served
   half-written. Bytes left without a row are for a sweep to remove, as Media's orphan sweep
   does.
-- **A new provider** (S3-compatible, Azure Blob) implements `IFileStorage` and
-  `IFileStorageHealthCheck`, validates its settings at startup, and derives a test class
-  from `FileStorageConformanceTests`. It passes that suite unchanged before it ships.
+- **A new provider** implements `IFileStorage` and `IFileStorageHealthCheck`, validates its
+  settings at startup, and derives a test class from `FileStorageConformanceTests`. It
+  passes that suite unchanged before it ships, as Local, S3 and Azure Blob do (013). A
+  provider reports a service it cannot reach as an `IOException`, never an SDK type, so
+  consumers stay provider-agnostic, and it never puts a secret in a message or a log.
+
+## Image processing
+
+Images are measured and resized with libvips through NetVips, only in
+`QuickBuilder.Media.Imaging` (an architecture test keeps it there). It decodes files people
+upload, so it is security-sensitive:
+
+- **Five loaders only** (JPEG, PNG, GIF, WebP, HEIF/AVIF); every other loader and every
+  untrusted operation stays blocked. `ImagingRuntime` applies this before any image is
+  opened: resolve it, or a type that takes it, before using NetVips anywhere new.
+- **Headers before pixels**: dimensions are read from the header and checked against
+  `Media:MaxImagePixels` before anything is decoded.
+- **Keep the natives current**: `NetVips.Native.*` is pinned in `Directory.Packages.props`.
+  When libvips or one of its codecs (libjpeg-turbo, libpng, libwebp, libheif, dav1d,
+  libaom) publishes a security release, update all four native packages together, rebuild
+  the image, and run the variant golden tests (`VariantEncodingGoldenTests`): their byte
+  ceilings catch an encoder whose output changed.
 
 ## Adding a module with site-owned data
 

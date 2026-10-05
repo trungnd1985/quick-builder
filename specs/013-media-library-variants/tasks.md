@@ -705,8 +705,8 @@ only for the variant parts of the tests: skip those assertions when US2 is absen
 **Purpose**: isolation, logs, authorization declarations, upgrade, smoke, contracts and
 docs, and the manual validation run.
 
-- [ ] T103 [P] Extend `ITESTS/Isolation/Probes/MediaIsolationProbe.cs`: every new admin endpoint (folders, move, get, patch, usage, replace, admin variant) called with another site's ids is not found; public variant addresses of site A are not found on site B's host; `storage_check_missing` rows of site A never appear in a site-filtered read. The `AcrossAllSites` reads in `StorageCheckRunner`, `ImageMetadataBackfillService`, `SearchTextBackfillService` and `ThumbnailWorker` each have a test asserting they filter by the site they claim (Principle V).
-- [ ] T104 [P] Extend `ITESTS/Observability/LoggingTests.cs`: upload, create a folder, set alternative text, replace, produce a variant, fail a variant, run the storage check and fail S3 validation, all with distinctive names, folder names, alternative text and secrets. The logs contain ids and counts only (FR-041).
+- [X] T103 [P] Extend `ITESTS/Isolation/Probes/MediaIsolationProbe.cs`: every new admin endpoint (folders, move, get, patch, usage, replace, admin variant) called with another site's ids is not found; public variant addresses of site A are not found on site B's host; `storage_check_missing` rows of site A never appear in a site-filtered read. The `AcrossAllSites` reads in `StorageCheckRunner`, `ImageMetadataBackfillService`, `SearchTextBackfillService` and `ThumbnailWorker` each have a test asserting they filter by the site they claim (Principle V).
+- [X] T104 [P] Extend `ITESTS/Observability/LoggingTests.cs`: upload, create a folder, set alternative text, replace, produce a variant, fail a variant, run the storage check and fail S3 validation, all with distinctive names, folder names, alternative text and secrets. The logs contain ids and counts only (FR-041).
 
   Extend `ITESTS/Observability/NoEgressTests.cs` (FR-042): with the default Local provider, the following make zero outbound connections:
   - uploading an image;
@@ -714,8 +714,8 @@ docs, and the manual validation run.
   - the thumbnail worker;
   - the metadata and search-text backfills;
   - a storage check.
-- [ ] T105 [P] Extend `ATESTS/AuthorizationDeclarationTests.cs` so that every new action is covered, and the public variant route is in the explicit anonymous list.
-- [ ] T106 [P] Create `ITESTS/Media/UpgradeFrom012Tests.cs`, modelled on `ITESTS/Publishing/UpgradeFrom011Tests.cs` (SC-012, FR-045):
+- [X] T105 [P] Extend `ATESTS/AuthorizationDeclarationTests.cs` so that every new action is covered, and the public variant route is in the explicit anonymous list.
+- [X] T106 [P] Create `ITESTS/Media/UpgradeFrom012Tests.cs`, modelled on `ITESTS/Publishing/UpgradeFrom011Tests.cs` (SC-012, FR-045):
   - restore a 012 snapshot with files, drafts and published pages using images;
   - both migrations apply;
   - every file is at the top level with no alternative text, and serves byte-identical content at its 003 address;
@@ -723,11 +723,11 @@ docs, and the manual validation run.
   - after the metadata backfill, dimensions and thumbnails exist and live pages render `width`, `height` and `srcset`;
   - usage matches the documents;
   - folder, alternative text and content version are present for every file (FR-044: enough for a future media manifest).
-- [ ] T107 [P] Extend `STESTS/ReferenceDeploymentSmokeTests.cs` (FR-043): upload a JPEG fixture, place it in the published page's draft through the API, publish, read the `srcset` from the site's host name, and fetch one variant, expecting `200 image/jpeg`. Add `VariantPerformanceTests` to the performance job's filter in `.github/workflows/ci.yml` if the job lists classes. Set `QB_REQUIRE_DOCKER=1` in the `test` job so the MinIO and Azurite suites cannot pass by skipping.
-- [ ] T108 [P] Update `specs/003-media-storage/contracts/storage-provider.md` with a short "Providers added by 013" note pointing to `specs/013-media-library-variants/contracts/storage-providers.md` and the key layout (readers.md §4). Record in `specs/003-media-storage/spec.md` Out of Scope, as a dated note, that #13 now covers folders, search, alternative text, usage, replace, variants and both providers.
-- [ ] T109 [P] Update `docs/operations.md` with the variant storage growth and the metadata backfill after upgrade, update `docs/contributing.md` (the NetVips.Native security-update practice, plan Risks), and add the plan's Deferred items to `docs/backlog.md`. Put the plan's upgrade notes in the release notes draft.
+- [X] T107 [P] Extend `STESTS/ReferenceDeploymentSmokeTests.cs` (FR-043): upload a JPEG fixture, place it in the published page's draft through the API, publish, read the `srcset` from the site's host name, and fetch one variant, expecting `200 image/jpeg`. Add `VariantPerformanceTests` to the performance job's filter in `.github/workflows/ci.yml` if the job lists classes. Set `QB_REQUIRE_DOCKER=1` in the `test` job so the MinIO and Azurite suites cannot pass by skipping.
+- [X] T108 [P] Update `specs/003-media-storage/contracts/storage-provider.md` with a short "Providers added by 013" note pointing to `specs/013-media-library-variants/contracts/storage-providers.md` and the key layout (readers.md §4). Record in `specs/003-media-storage/spec.md` Out of Scope, as a dated note, that #13 now covers folders, search, alternative text, usage, replace, variants and both providers.
+- [X] T109 [P] Update `docs/operations.md` with the variant storage growth and the metadata backfill after upgrade, update `docs/contributing.md` (the NetVips.Native security-update practice, plan Risks), and add the plan's Deferred items to `docs/backlog.md`. Put the plan's upgrade notes in the release notes draft.
 - [ ] T110 Run [quickstart.md](./quickstart.md) §1–§9 by hand on the reference compose setup, with `docker-compose.storage.yml` for §6. Record the results, the SC-001, SC-002, SC-003 and SC-004 numbers, the Lighthouse CLS figure (SC-006) and the browser versions in `specs/013-media-library-variants/quickstart-results.md`.
-- [ ] T111 Run `dotnet format --verify-no-changes`, `dotnet test` (with Docker, `QB_REQUIRE_DOCKER=1`), and `npm run lint && npm run type-check && npm test && npm run build` in `src/admin`. Fix any failures, and confirm the per-package coverage gate passes for `QuickBuilder.Media`, `QuickBuilder.Pages` and `QuickBuilder.Rendering`.
+- [X] T111 Run `dotnet format --verify-no-changes`, `dotnet test` (with Docker, `QB_REQUIRE_DOCKER=1`), and `npm run lint && npm run type-check && npm test && npm run build` in `src/admin`. Fix any failures, and confirm the per-package coverage gate passes for `QuickBuilder.Media`, `QuickBuilder.Pages` and `QuickBuilder.Rendering`.
 
 ---
 

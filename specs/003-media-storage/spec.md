@@ -526,6 +526,11 @@ name, and confirm that start-up fails in the same way.
 - Site export and import. FR-033 only ensures that the stored details are sufficient
   for it.
 
+**Note (2026-10-05):** #13 (spec 013-media-library-variants) now covers folders, search,
+alternative text, usage tracking with protection from deletion, replace, image variants
+(resizing and thumbnails, with embedded metadata removed), and the S3-compatible and Azure
+Blob providers.
+
 ## Assumptions
 
 - **Uploaded files are public as soon as they are stored**: the constitution's
