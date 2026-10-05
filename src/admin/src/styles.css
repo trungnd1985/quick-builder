@@ -175,9 +175,15 @@ label:where(:not(.qb-canvas *)) {
   margin-bottom: 0.25rem;
 }
 
+/* Every typed field looks the same: a new input type belongs in this list. */
 input[type='text']:where(:not(.qb-canvas *)),
 input[type='email']:where(:not(.qb-canvas *)),
 input[type='password']:where(:not(.qb-canvas *)),
+input[type='search']:where(:not(.qb-canvas *)),
+input[type='url']:where(:not(.qb-canvas *)),
+input[type='number']:where(:not(.qb-canvas *)),
+input[type='date']:where(:not(.qb-canvas *)),
+input[type='time']:where(:not(.qb-canvas *)),
 select:where(:not(.qb-canvas *)) {
   width: 100%;
   padding: 0.5rem 0.625rem;
@@ -186,6 +192,11 @@ select:where(:not(.qb-canvas *)) {
   font: inherit;
   background: var(--bg);
   color: var(--text);
+}
+
+/* Numbers sit beside a label and a unit; a few digits need no more room. */
+input[type='number']:where(:not(.qb-canvas *)) {
+  width: 8rem;
 }
 
 input[aria-invalid='true']:where(:not(.qb-canvas *)) {
