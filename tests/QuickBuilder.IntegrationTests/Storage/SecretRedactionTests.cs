@@ -10,28 +10,28 @@ namespace QuickBuilder.IntegrationTests.Storage;
 /// <see cref="S3StartupValidationTests"/> and <see cref="AzureStartupValidationTests"/>.
 /// </summary>
 [Collection(DatabaseCollection.Name)]
-public sealed class SecretRedactionTests(DatabaseFixture database, MinioFixture minio, AzuriteFixture azurite)
-    : IClassFixture<MinioFixture>, IClassFixture<AzuriteFixture>
+public sealed class SecretRedactionTests(DatabaseFixture database, S3Fixture s3, AzuriteFixture azurite)
+    : IClassFixture<S3Fixture>, IClassFixture<AzuriteFixture>
 {
     [Fact]
     public async Task S3_readiness_fails_when_the_bucket_disappears_without_logging_the_secret()
     {
         var connection = await database.CreateDatabaseAsync("s3-redaction");
-        using var app = new QuickBuilderApp(connection, settings: minio.Configuration());
+        using var app = new QuickBuilderApp(connection, settings: s3.Configuration());
         using var client = IdentitySeed.CreateAnonymousClient(app);
         Assert.Equal(HttpStatusCode.OK, (await client.GetAsync(new Uri("/health/ready", UriKind.Relative))).StatusCode);
 
-        using (var s3 = minio.CreateClient())
+        using (var bucketClient = s3.CreateClient())
         {
-            await s3.DeleteBucketAsync(minio.Bucket);
+            await bucketClient.DeleteBucketAsync(s3.Bucket);
         }
 
         var ready = await client.GetAsync(new Uri("/health/ready", UriKind.Relative));
         var body = await ready.Content.ReadAsStringAsync();
 
         Assert.Equal(HttpStatusCode.ServiceUnavailable, ready.StatusCode);
-        Assert.DoesNotContain(minio.SecretKey, body, StringComparison.Ordinal);
-        Assert.DoesNotContain(minio.SecretKey, Logs(app), StringComparison.Ordinal);
+        Assert.DoesNotContain(S3Fixture.SecretKey, body, StringComparison.Ordinal);
+        Assert.DoesNotContain(S3Fixture.SecretKey, Logs(app), StringComparison.Ordinal);
     }
 
     [Fact]

@@ -41,4 +41,3 @@ Deferred by 013 (media library, variants and remote storage; see specs/013-media
 - `sizes` arithmetic per column inside multi-column containers
 - Using the latest consistency check instead of per-file `HEAD` requests for availability
   in listings on remote storage, if those listings prove slow
-- An S3-compatible test service for CI: MinIO no longer publishes container images

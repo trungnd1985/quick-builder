@@ -8,22 +8,22 @@ using QuickBuilder.Shared.Infrastructure.Storage.S3;
 namespace QuickBuilder.IntegrationTests.Storage;
 
 /// <summary>What the S3 provider does beyond the conformance suite (013 contracts/storage-providers.md §3, §7).</summary>
-public sealed class S3FileStorageTests(MinioFixture minio) : IClassFixture<MinioFixture>
+public sealed class S3FileStorageTests(S3Fixture s3) : IClassFixture<S3Fixture>
 {
     private const int LargeSize = 70 * 1024 * 1024;
 
     [Fact]
     public async Task A_write_above_64_mib_goes_multipart_and_reads_back_identically()
     {
-        using var storage = new S3FileStorage(minio.Settings());
+        using var storage = new S3FileStorage(s3.Settings());
         var bytes = RandomNumberGenerator.GetBytes(LargeSize);
         var key = new StorageKey("site-a/media/large");
 
         await storage.WriteAsync(key, new MemoryStream(bytes));
 
         // A multipart object's ETag ends with its part count: 70 MiB in 16 MiB parts is 5.
-        using var client = minio.CreateClient();
-        var head = await client.GetObjectMetadataAsync(minio.Bucket, storage.KeyPrefix + key.Value);
+        using var client = s3.CreateClient();
+        var head = await client.GetObjectMetadataAsync(s3.Bucket, storage.KeyPrefix + key.Value);
         Assert.EndsWith("-5\"", head.ETag, StringComparison.Ordinal);
 
         await using var stored = await storage.OpenReadAsync(key);
@@ -40,7 +40,7 @@ public sealed class S3FileStorageTests(MinioFixture minio) : IClassFixture<Minio
     [Fact]
     public async Task Cancelling_mid_multipart_leaves_no_object_and_no_pending_upload()
     {
-        using var storage = new S3FileStorage(minio.Settings());
+        using var storage = new S3FileStorage(s3.Settings());
         var key = new StorageKey("site-a/media/cancelled");
         using var cancellation = new CancellationTokenSource();
 
@@ -70,11 +70,11 @@ public sealed class S3FileStorageTests(MinioFixture minio) : IClassFixture<Minio
     [Fact]
     public async Task The_key_prefix_is_added_on_write_and_removed_from_listings()
     {
-        using var storage = new S3FileStorage(minio.Settings("tenant-one/"));
+        using var storage = new S3FileStorage(s3.Settings("tenant-one/"));
         await storage.WriteAsync(new StorageKey("site-a/media/one"), new MemoryStream([1]));
 
-        using var client = minio.CreateClient();
-        var raw = await client.ListObjectsV2Async(new ListObjectsV2Request { BucketName = minio.Bucket, Prefix = "tenant-one/" });
+        using var client = s3.CreateClient();
+        var raw = await client.ListObjectsV2Async(new ListObjectsV2Request { BucketName = s3.Bucket, Prefix = "tenant-one/" });
         Assert.Equal(["tenant-one/site-a/media/one"], raw.S3Objects.Select(o => o.Key));
 
         var listed = new List<string>();
@@ -89,11 +89,11 @@ public sealed class S3FileStorageTests(MinioFixture minio) : IClassFixture<Minio
     [Fact]
     public async Task Probe_objects_are_not_listed_and_health_succeeds_with_path_style_addressing()
     {
-        using var storage = new S3FileStorage(minio.Settings());
+        using var storage = new S3FileStorage(s3.Settings());
         Assert.True(await storage.CheckAsync());
 
-        using var client = minio.CreateClient();
-        await client.PutObjectAsync(new PutObjectRequest { BucketName = minio.Bucket, Key = storage.KeyPrefix + RemoteProbe.Folder + "left-behind", ContentBody = "x" });
+        using var client = s3.CreateClient();
+        await client.PutObjectAsync(new PutObjectRequest { BucketName = s3.Bucket, Key = storage.KeyPrefix + RemoteProbe.Folder + "left-behind", ContentBody = "x" });
 
         await foreach (var entry in storage.ListAsync(string.Empty))
         {
@@ -104,20 +104,19 @@ public sealed class S3FileStorageTests(MinioFixture minio) : IClassFixture<Minio
     [Fact]
     public async Task The_cleanup_aborts_pending_uploads_older_than_an_hour_and_only_those()
     {
-        using var storage = new S3FileStorage(minio.Settings());
-        using var client = minio.CreateClient();
+        using var storage = new S3FileStorage(s3.Settings());
+        using var client = s3.CreateClient();
         var abandonedKey = new StorageKey("site-a/media/abandoned");
-        var abandoned = await client.InitiateMultipartUploadAsync(minio.Bucket, storage.KeyPrefix + abandonedKey.Value);
-        var name = storage.KeyPrefix + abandonedKey.Value;
+        var abandoned = await client.InitiateMultipartUploadAsync(s3.Bucket, storage.KeyPrefix + abandonedKey.Value);
 
         var clock = new ManualClock();
         var cleanup = new S3AbandonedUploadCleanupService(storage, clock, NullLogger<S3AbandonedUploadCleanupService>.Instance);
 
-        Assert.Equal(0, await cleanup.RunOnceAsync(name, CancellationToken.None));
+        Assert.Equal(0, await cleanup.RunOnceAsync(CancellationToken.None));
         Assert.Single(await PendingUploadsAsync(storage, abandonedKey));
 
         clock.Advance(TimeSpan.FromHours(2));
-        Assert.Equal(1, await cleanup.RunOnceAsync(name, CancellationToken.None));
+        Assert.Equal(1, await cleanup.RunOnceAsync(CancellationToken.None));
         Assert.Empty(await PendingUploadsAsync(storage, abandonedKey));
         Assert.NotNull(abandoned.UploadId);
     }
@@ -125,7 +124,7 @@ public sealed class S3FileStorageTests(MinioFixture minio) : IClassFixture<Minio
     [Fact]
     public async Task Reads_seek_through_ranges_of_a_larger_object()
     {
-        using var storage = new S3FileStorage(minio.Settings());
+        using var storage = new S3FileStorage(s3.Settings());
         var bytes = RandomNumberGenerator.GetBytes((3 * 1024 * 1024) + 7);
         var key = new StorageKey("site-a/media/ranged");
         await storage.WriteAsync(key, new MemoryStream(bytes));
@@ -140,11 +139,11 @@ public sealed class S3FileStorageTests(MinioFixture minio) : IClassFixture<Minio
         }
     }
 
-    /// <summary>Pending uploads of one object: MinIO lists them by exact object name only.</summary>
+    /// <summary>Pending uploads of one object.</summary>
     private async Task<List<MultipartUpload>> PendingUploadsAsync(S3FileStorage storage, StorageKey key)
     {
-        using var client = minio.CreateClient();
-        var uploads = await client.ListMultipartUploadsAsync(new ListMultipartUploadsRequest { BucketName = minio.Bucket, Prefix = storage.KeyPrefix + key.Value });
+        using var client = s3.CreateClient();
+        var uploads = await client.ListMultipartUploadsAsync(new ListMultipartUploadsRequest { BucketName = s3.Bucket, Prefix = storage.KeyPrefix + key.Value });
         return uploads.MultipartUploads ?? [];
     }
 }

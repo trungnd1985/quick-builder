@@ -9,7 +9,7 @@ namespace QuickBuilder.IntegrationTests.Storage;
 /// Azurite container per test run, and a fresh blob container per test class.
 /// </summary>
 /// <remarks>
-/// Shared and started on first use, like <see cref="MinioFixture"/>. The API version check is
+/// Shared and started on first use, like <see cref="S3Fixture"/>. The API version check is
 /// skipped because the client library may be newer than the emulator.
 /// </remarks>
 public sealed class AzuriteFixture : IAsyncLifetime

@@ -43,18 +43,15 @@ internal sealed class S3AbandonedUploadCleanupService(
         while (await WaitAsync(timer, stoppingToken).ConfigureAwait(false));
     }
 
-    /// <summary>Aborts every pending upload under the key prefix older than an hour.</summary>
-    internal Task<int> RunOnceAsync(CancellationToken cancellationToken) => RunOnceAsync(storage.KeyPrefix, cancellationToken);
-
-    /// <summary>
-    /// Aborts pending uploads whose names start with <paramref name="prefix"/>. Exposed for tests:
-    /// MinIO lists multipart uploads only by exact object name (it expires stale ones itself
-    /// after 24 hours), so a test there names the object.
-    /// </summary>
-    internal async Task<int> RunOnceAsync(string prefix, CancellationToken cancellationToken)
+    /// <summary>Aborts every pending upload under the key prefix older than an hour. Exposed for tests.</summary>
+    /// <remarks>
+    /// MinIO lists multipart uploads only by exact object name, so there this finds nothing;
+    /// MinIO expires stale uploads itself after 24 hours (docs/operations.md).
+    /// </remarks>
+    internal async Task<int> RunOnceAsync(CancellationToken cancellationToken)
     {
         var cutoff = clock.GetUtcNow() - Age;
-        var request = new ListMultipartUploadsRequest { BucketName = storage.Bucket, Prefix = prefix };
+        var request = new ListMultipartUploadsRequest { BucketName = storage.Bucket, Prefix = storage.KeyPrefix };
         var aborted = 0;
 
         ListMultipartUploadsResponse page;

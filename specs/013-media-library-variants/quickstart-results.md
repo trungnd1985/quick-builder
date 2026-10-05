@@ -29,9 +29,20 @@ committed, so the optimistic check never fired. It now reads the tree row with t
 before validation. `MediaFolderApiTests.A_change_validated_before_another_committed_is_refused_as_a_conflict`
 reproduces the race deterministically: it fails on the old code and passes now.
 
-**Not runnable in CI yet**: MinIO no longer publishes container images, so the S3 tests ran
-here against a locally cached `minio/minio:latest` (RELEASE.2025-09-07). A CI runner cannot
-pull it. Choosing an S3-compatible test service for CI is open (docs/backlog.md).
+**S3 test service (2026-10-06)**: MinIO no longer publishes container images, so a CI runner
+could not pull it. The S3 tests and `docker-compose.storage.yml` now use LocalStack 4.9, chosen
+by probing three services with the provider's own SDK settings:
+
+| Service | Second create-only PUT | Second multipart completion | Pending uploads by prefix |
+|---|---|---|---|
+| LocalStack 4.9 | 412 | 412 | listed |
+| MinIO RELEASE.2025-09-07 | 412 | 412 | not listed (exact name only) |
+| S3Mock 4.9.1 | 412 | 304, not 412 | listed |
+
+LocalStack does not check credentials, so the "wrong secret" start-up case answers as AWS does
+from an in-process stand-in (403 `SignatureDoesNotMatch`). The second instance in
+`docker-compose.storage.yml` also migrates automatically now: with `Database:AutoMigrate=false`
+it never reported ready.
 
 ## Success criteria
 
@@ -46,7 +57,7 @@ pull it. Choosing an S3-compatible test service for CI is open (docs/backlog.md)
 | SC-007 (in-use warning) | Met | `DeleteInUseTests`, `DeleteDialog.spec.ts` |
 | SC-008 (usage matches content) | Met, in the same transaction as each change | `FileUsageApiTests`, `MediaUsageReaderTests`, `MediaReferenceBackfillTests` |
 | SC-009 (no old bytes at the new address) | Met | `ReplaceFileApiTests`, `MediaAcrossInstancesTests` |
-| SC-010 (conformance, two instances) | Met: 29 of 29 conformance cases on MinIO and on Azurite; the media journeys across two instances on MinIO | `RemoteFileStorageConformanceTests`, `MediaAcrossInstancesTests` |
+| SC-010 (conformance, two instances) | Met: 29 of 29 conformance cases on LocalStack and on Azurite; the media journeys across two instances on LocalStack | `RemoteFileStorageConformanceTests`, `MediaAcrossInstancesTests` |
 | SC-011 (misconfiguration, no secrets) | Met: 10 S3 and 9 Azure cases, plus readiness failures | `S3StartupValidationTests`, `AzureStartupValidationTests`, `SecretRedactionTests` |
 | SC-012 (upgrade) | Met | `UpgradeFrom012Tests` |
 | SC-013 (keyboard, translation) | Covered for the picker, delete, replace and storage dialogs by their component tests; the full keyboard pass is T110 | `MediaControl.spec.ts`, `DeleteDialog.spec.ts`, `ReplaceDialog.spec.ts` |

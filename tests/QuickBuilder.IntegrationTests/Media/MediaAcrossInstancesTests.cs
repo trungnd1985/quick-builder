@@ -3,7 +3,6 @@ using System.Net.Http.Json;
 using QuickBuilder.IntegrationTests.Infrastructure;
 using QuickBuilder.IntegrationTests.Storage;
 using QuickBuilder.TestFixtures.Media;
-using Testcontainers.Minio;
 
 namespace QuickBuilder.IntegrationTests.Media;
 
@@ -12,7 +11,7 @@ namespace QuickBuilder.IntegrationTests.Media;
 /// media, and an unreachable bucket takes them out of rotation until it returns.
 /// </summary>
 [Collection(DatabaseCollection.Name)]
-public sealed class MediaAcrossInstancesTests(DatabaseFixture database, MinioFixture minio) : IAsyncLifetime, IClassFixture<MinioFixture>
+public sealed class MediaAcrossInstancesTests(DatabaseFixture database, S3Fixture s3) : IAsyncLifetime, IClassFixture<S3Fixture>
 {
     private string _connection = null!;
     private MediaScenario _first = null!;
@@ -22,7 +21,7 @@ public sealed class MediaAcrossInstancesTests(DatabaseFixture database, MinioFix
     public async Task InitializeAsync()
     {
         _connection = await database.CreateDatabaseAsync("across-instances").ConfigureAwait(false);
-        var storage = minio.Configuration();
+        var storage = s3.Configuration();
 
         _first = await MediaScenario.CreateAsync(database, "across-instances", connectionString: _connection, settings: storage).ConfigureAwait(false);
         _second = new QuickBuilderApp(_connection, settings: storage);
@@ -86,27 +85,15 @@ public sealed class MediaAcrossInstancesTests(DatabaseFixture database, MinioFix
     [Fact]
     public async Task An_unreachable_bucket_makes_instances_unready_and_uploads_refused_until_it_returns()
     {
-        var container = new MinioBuilder(MinioFixture.Image).Build();
-        await container.StartAsync();
+        var container = await S3Fixture.StartDedicatedAsync();
         try
         {
-            using (var setup = new Amazon.S3.AmazonS3Client(
-                new Amazon.Runtime.BasicAWSCredentials(container.GetAccessKey(), container.GetSecretKey()),
-                new Amazon.S3.AmazonS3Config { ServiceURL = container.GetConnectionString(), ForcePathStyle = true, AuthenticationRegion = "us-east-1" }))
+            using (var setup = S3Fixture.ClientFor(S3Fixture.UrlOf(container)))
             {
                 await setup.PutBucketAsync("own");
             }
 
-            var settings = new Dictionary<string, string>
-            {
-                ["Storage:Provider"] = "S3",
-                ["Storage:S3:Bucket"] = "own",
-                ["Storage:S3:Region"] = "us-east-1",
-                ["Storage:S3:ServiceUrl"] = container.GetConnectionString(),
-                ["Storage:S3:ForcePathStyle"] = "true",
-                ["Storage:S3:AccessKeyId"] = container.GetAccessKey(),
-                ["Storage:S3:SecretAccessKey"] = container.GetSecretKey(),
-            };
+            var settings = S3Fixture.ConfigurationFor(S3Fixture.UrlOf(container), "own");
 
             using var app = new QuickBuilderApp(_connection, settings: settings);
             var admin = await IdentitySeed.SeedUserAsync(app.Services, administrator: true, displayName: "Own");

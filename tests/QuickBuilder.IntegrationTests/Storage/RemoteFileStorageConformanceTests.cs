@@ -5,14 +5,14 @@ using QuickBuilder.Shared.Infrastructure.Storage.S3;
 namespace QuickBuilder.IntegrationTests.Storage;
 
 /// <summary>
-/// 003's conformance suite, unchanged, against the S3 provider on MinIO (013 FR-030, SC-010).
+/// 003's conformance suite, unchanged, against the S3 provider on LocalStack (013 FR-030, SC-010).
 /// Each test gets its own key prefix in the class's bucket: a fresh, empty store.
 /// </summary>
-public sealed class S3FileStorageConformanceTests(MinioFixture minio) : FileStorageConformanceTests, IClassFixture<MinioFixture>
+public sealed class S3FileStorageConformanceTests(S3Fixture s3) : FileStorageConformanceTests, IClassFixture<S3Fixture>
 {
     private S3FileStorage? _storage;
 
-    protected override IFileStorage CreateStorage() => _storage = new S3FileStorage(minio.Settings());
+    protected override IFileStorage CreateStorage() => _storage = new S3FileStorage(s3.Settings());
 
     protected override void Cleanup() => _storage?.Dispose();
 }

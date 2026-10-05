@@ -35,9 +35,9 @@ Record results, timings and versions in `quickstart-results.md`.
 - **Shorthands**: `$API=http://127.0.0.1:8080/api/v1`. `H` stands for
   `-H "X-QuickBuilder-Request: 1"`. `PUB(host, path)` stands for
   `curl -si --resolve $host:8080:127.0.0.1 http://$host:8080$path`.
-- **Remote storage for §6**: `docker compose -f docker-compose.yml -f
-  docker-compose.storage.yml up -d minio azurite`. This is a new dev-only compose overlay
-  that creates the bucket `qb-media` and the container `qb-media`.
+- **Remote storage for §6**: `./qb.ps1 cloud` (S3 on LocalStack) or `./qb.ps1 cloud -Azure`
+  (Azurite). They use the dev-only `docker-compose.storage.yml`, which creates the bucket
+  `qb-media` or the container `qb-media` and starts a second instance on port 8081.
 - **Automated suites**:
 
   ```bash
@@ -172,7 +172,7 @@ Record results, timings and versions in `quickstart-results.md`.
 
 ## 6. Remote providers and multiple instances (US3, SC-010, SC-011, SC-014)
 
-1. **S3 (MinIO)**: set `Storage__Provider=S3`, `Storage__S3__ServiceUrl=http://minio:9000`,
+1. **S3 (LocalStack)**: set `Storage__Provider=S3`, `Storage__S3__ServiceUrl=http://localstack:4566`,
    `Storage__S3__Region=us-east-1`, `Storage__S3__Bucket=qb-media`,
    `Storage__S3__ForcePathStyle=true` and the keys. Start two app instances
    (`docker-compose.storage.yml` defines `app2` next to `app`, sharing the database).
@@ -189,12 +189,13 @@ Record results, timings and versions in `quickstart-results.md`.
    `Container=qb-media`. Repeat step 2 and a missing container.
 5. **Moving providers**:
    - with the Local provider, upload 20 files;
-   - `rclone copy --exclude ".incoming/**" --exclude ".probe-*" <media-dir> minio:qb-media`,
+   - `rclone copy --exclude ".incoming/**" --exclude ".probe-*" <media-dir> localstack:qb-media` (an rclone S3 remote at http://127.0.0.1:4566),
      deliberately leaving out one site's folder;
    - switch to S3 and start;
    - open **Settings → Storage**; run `dotnet QuickBuilder.Host.dll media check-storage`;
    - copy the rest and run the check again.
-6. Stop MinIO while the app runs. Call `/health/ready` and try an upload. Start MinIO again.
+6. Stop LocalStack while the app runs. Call `/health/ready` and try an upload. Start it again
+   (LocalStack keeps nothing across a restart: run step 5 again after it).
 
 **Expected**:
 - **Two instances**: everything works through both. Conformance passes 100 % for S3 and
@@ -205,7 +206,7 @@ Record results, timings and versions in `quickstart-results.md`.
   exactly the missing site's files; the CLI exits `3`. After the full copy it reports 0
   missing, exits `0`, and every file serves at its old address (SC-014).
 - **Outage**: readiness is unhealthy, uploads are refused as `media.storage_unavailable`,
-  and both recover when MinIO is back (US3 scenario 5).
+  and both recover when the service is back (US3 scenario 5).
 
 ---
 

@@ -570,7 +570,7 @@ SC-011, SC-014).
 
 **Checkpoint**: US3 is demoable. Quickstart §6 passes. Multi-instance is documented.
 
-**Open at the US3 checkpoint (2026-10-01)**: MinIO no longer publishes images to Docker Hub or quay.io. The S3 tests and `docker-compose.storage.yml` use `minio/minio:latest`, which works only where it is already cached; the S3 test service for CI is to be decided.
+**Resolved after the US3 checkpoint (2026-10-06)**: MinIO no longer publishes images, so the S3 tests (`ITESTS/Storage/S3Fixture.cs`, formerly `MinioFixture.cs`) and `docker-compose.storage.yml` use LocalStack 4.9, the one service probed that refuses both kinds of second create-only write with 412 and lists pending uploads by prefix (quickstart-results.md). The abandoned-upload clean-up test lists by prefix again.
 
 ---
 

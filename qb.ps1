@@ -8,7 +8,7 @@
     ./qb.ps1 code             Show the one-time setup code again.
     ./qb.ps1 logs             Follow the application's log.
     ./qb.ps1 dev              Work on the code: backend and admin with hot reload.
-    ./qb.ps1 cloud [-Azure]   Two instances sharing S3 (MinIO) or Azure (Azurite) storage.
+    ./qb.ps1 cloud [-Azure]   Two instances sharing S3 (LocalStack) or Azure (Azurite) storage.
     ./qb.ps1 test [-Quick]    Run the tests (-Quick: unit, architecture and admin only).
     ./qb.ps1 reset            Delete everything, database and files included, and start over.
 
@@ -21,7 +21,7 @@ param(
     [ValidateSet('start', 'stop', 'code', 'logs', 'dev', 'cloud', 'test', 'reset')]
     [string] $Command = 'start',
 
-    # cloud: Azure Blob (Azurite) instead of S3 (MinIO).
+    # cloud: Azure Blob (Azurite) instead of S3 (LocalStack).
     [switch] $Azure,
 
     # test: skip the integration tests, which take several minutes.
@@ -96,7 +96,7 @@ switch ($Command) {
     'start' {
         Require docker 'Install Docker Desktop: https://www.docker.com/products/docker-desktop/'
         Say "Building and starting QuickBuilder (the first build takes a few minutes)…"
-        # --remove-orphans: leaving `cloud` mode stops its MinIO, Azurite and second instance.
+        # --remove-orphans: leaving `cloud` mode stops its emulator and second instance.
         Compose up -d --build --remove-orphans
         Wait-Ready "http://127.0.0.1:$Port"
         Write-Host ""
@@ -106,7 +106,7 @@ switch ($Command) {
     }
 
     'stop' {
-        Compose -f docker-compose.yml -f docker-compose.storage.yml down --remove-orphans
+        Compose -f docker-compose.yml -f docker-compose.storage.yml --profile s3 --profile azure down --remove-orphans
         Say "Stopped. Your sites, pages and files are kept; ./qb.ps1 starts it again."
     }
 
@@ -119,7 +119,7 @@ switch ($Command) {
             $answer = Read-Host "This deletes every site, page, user and uploaded file. Type 'delete' to continue"
             if ($answer -ne 'delete') { Say "Nothing was deleted."; return }
         }
-        Compose -f docker-compose.yml -f docker-compose.storage.yml down -v --remove-orphans
+        Compose -f docker-compose.yml -f docker-compose.storage.yml --profile s3 --profile azure down -v --remove-orphans
         Say "Everything was deleted. ./qb.ps1 starts a fresh installation."
     }
 
@@ -128,13 +128,14 @@ switch ($Command) {
         $env:QB_STORAGE = if ($Azure) { 'AzureBlob' } else { 'S3' }
         Say "Starting two instances on $($env:QB_STORAGE) storage…"
         Compose build app
-        Compose -f docker-compose.yml -f docker-compose.storage.yml up -d
+        $storageProfile = if ($Azure) { 'azure' } else { 's3' }
+        Compose -f docker-compose.yml -f docker-compose.storage.yml --profile $storageProfile up -d --remove-orphans
         Wait-Ready "http://127.0.0.1:$Port"
         Write-Host ""
         Show-SetupCode
         Show-Tips
         Write-Host "  Second instance:  http://127.0.0.1:8081/admin (same sites and files)"
-        if (-not $Azure) { Write-Host "  MinIO console:    http://127.0.0.1:9001 (minioadmin / minioadmin)" }
+        if (-not $Azure) { Write-Host "  S3 (LocalStack):  http://127.0.0.1:4566, bucket qb-media" }
         Write-Host "  Check storage:    docker compose exec app dotnet QuickBuilder.Host.dll media check-storage"
         Write-Host ""
         Open-Browser $Admin
