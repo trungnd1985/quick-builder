@@ -333,7 +333,7 @@ defineExpose({ reload: load })
         :data-folder-key="keyOf(node.id)"
         :tabindex="node.id === (focusedId ?? selectedId) ? 0 : -1"
         :class="{ selected: node.id === selectedId }"
-        :style="{ paddingInlineStart: `${(node.level - 1) * 1}rem` }"
+        :style="{ paddingInlineStart: `${0.5 + (node.level - 1)}rem` }"
         @click.self="select(node.id)"
         @keydown="onKeydown($event, node)"
       >

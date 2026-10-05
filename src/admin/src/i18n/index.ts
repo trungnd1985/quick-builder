@@ -15,6 +15,13 @@ export const i18n = createI18n({
   locale: 'en',
   fallbackLocale: 'en',
   messages: { en },
+  // Screens format dates with `d(date, 'short')`. A format that is not registered renders
+  // as nothing at all, so every name screens use must be listed here.
+  datetimeFormats: {
+    en: {
+      short: { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' },
+    },
+  },
 })
 
 export type MessageSchema = typeof en
