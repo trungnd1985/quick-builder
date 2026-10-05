@@ -5,6 +5,10 @@ example throughout — when in doubt, open it and copy what it does.
 
 ## Run it locally
 
+**The short way:** `./qb.ps1` builds, starts and opens the admin, and `./qb.ps1 dev` runs
+the backend and the hot-reloading admin app together (see the [README](../README.md)). The
+steps it automates follow.
+
 **As an operator would:**
 
 ```bash
