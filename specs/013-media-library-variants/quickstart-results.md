@@ -3,10 +3,13 @@
 ## Status
 
 The automated verification (T111) and the measurements below were run on 2026-10-05 on a
-Windows 11 workstation with Docker Desktop 28.5.1. **The hand-run of quickstart.md §1–§9
-(T110) is still to be done**: it needs a browser for the keyboard and translation pass (§7),
-the Lighthouse layout-shift figure (SC-006), the usability timing (SC-002) and the browser
-versions. Until then, the success criteria below are backed by the automated tests named.
+Windows 11 workstation with Docker Desktop 28.5.1.
+
+**Hand-run (T110), 2026-10-07**: the maintainer ran the new features on the reference
+deployment and judged them working, with a library of 1,000 images filled by
+`./qb.ps1 seed`. Measured by hand: SC-002 and SC-006 below. Not done by hand: a full
+keyboard-only and translation pass (§7), which rests on the component tests named under
+SC-013, and the browser versions, which were not recorded.
 
 ## Automated verification (T111), 2026-10-05
 
@@ -49,11 +52,11 @@ it never reported ready.
 | Criterion | Result | Evidence |
 |---|---|---|
 | SC-001 (≤ 1 s, 10,000 files) | Met: last page by name p95 8 ms, search p95 9 ms, any page ≤ 12 ms | `MediaPerformanceTests`, reference limits (2 CPUs, 4 GB) |
-| SC-002 (≤ 30 s usability) | Not measured | T110 |
+| SC-002 (≤ 30 s usability) | Met: about 22 s to find a file among 1,000 by search and place it in an Image block | Hand-run, 2026-10-07 (reported as "22 ms"; read as seconds) |
 | SC-003 (≥ 80 % fewer bytes) | Met: a 4,000-pixel photo-like JPEG (9.1 MB) at 375 px 2× gets the 960 variant, 44.8 KB (99.5 % fewer); 1,280: 98.9 %; 1,920: 96.3 %. The original is never in `srcset`. | VariantEncoder settings on a generated image; `MediaRendererTests` |
 | SC-004 (cached ≤ 100 ms p95; first ≤ 3 s) | Met: stored variant first byte p50 10 ms, p95 34 ms (50 at once, 1,000 requests); first request per width 259–1,232 ms (20 MiB JPEG) and 1,272–2,105 ms (8.2 MB AVIF) | `MediaPerformanceTests` (variants), reference limits |
 | SC-005 (exactly once, two instances) | Met | `VariantProductionExactlyOnceTests` |
-| SC-006 (no layout shift) | `width` and `height` are rendered on every image with dimensions; Lighthouse figure not measured | `MediaRendererTests`, golden files; T110 |
+| SC-006 (no layout shift) | Met: Lighthouse Cumulative Layout Shift 0 on a published page with images | Hand-run, 2026-10-07; `MediaRendererTests`, golden files |
 | SC-007 (in-use warning) | Met | `DeleteInUseTests`, `DeleteDialog.spec.ts` |
 | SC-008 (usage matches content) | Met, in the same transaction as each change | `FileUsageApiTests`, `MediaUsageReaderTests`, `MediaReferenceBackfillTests` |
 | SC-009 (no old bytes at the new address) | Met | `ReplaceFileApiTests`, `MediaAcrossInstancesTests` |
