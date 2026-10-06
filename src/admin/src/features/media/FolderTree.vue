@@ -2,6 +2,7 @@
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ApiError, mediaApi, type MediaFolder } from '../../api/media'
+import IconButton from '../../components/IconButton.vue'
 
 // 013 US1: a site's folders as an ARIA tree (the treeview pattern: arrows move, Right opens
 // or enters, Left closes or leaves, Home/End jump, Enter selects), with create, rename, move
@@ -359,32 +360,28 @@ defineExpose({ reload: load })
       class="folder-actions"
     >
       <template v-if="mode === 'none'">
-        <button
-          type="button"
+        <IconButton
+          icon="folder-plus"
+          :label="t('media.folders.new')"
           @click="begin('create')"
-        >
-          {{ t('media.folders.new') }}
-        </button>
+        />
         <template v-if="selectedFolder">
-          <button
-            type="button"
+          <IconButton
+            icon="pencil"
+            :label="t('media.folders.rename')"
             @click="begin('rename')"
-          >
-            {{ t('media.folders.rename') }}
-          </button>
-          <button
-            type="button"
+          />
+          <IconButton
+            icon="folder-move"
+            :label="t('media.folders.move')"
             @click="begin('move')"
-          >
-            {{ t('media.folders.move') }}
-          </button>
-          <button
-            type="button"
-            class="danger"
+          />
+          <IconButton
+            icon="trash"
+            danger
+            :label="t('media.folders.delete')"
             @click="begin('delete')"
-          >
-            {{ t('media.folders.delete') }}
-          </button>
+          />
         </template>
       </template>
 
