@@ -30,6 +30,7 @@ with nothing else to set up.
 | `./qb.ps1 dev` | Work on the code: backend and admin with hot reload (needs the .NET 10 SDK and Node 24) |
 | `./qb.ps1 cloud` | Two instances sharing S3 storage (`-Azure` for Azure Blob) |
 | `./qb.ps1 test` | Run every test (`-Quick` skips the slow integration tests) |
+| `./qb.ps1 seed` | Fill a site's media library with 1,000 generated images (`-Count` to change it) |
 | `./qb.ps1 reset` | Delete everything and start over |
 
 On macOS and Linux, run `pwsh ./qb.ps1`. Without PowerShell, `docker compose up -d --build`
