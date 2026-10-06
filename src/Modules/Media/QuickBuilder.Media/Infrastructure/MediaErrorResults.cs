@@ -50,6 +50,76 @@ internal static class MediaErrors
     public static Error TooLarge(long limit) => Error.Validation(
         "media.too_large",
         $"The file is larger than the limit of {limit} bytes.");
+
+    // --- 013 (data-model.md §5) ------------------------------------------------------
+
+    public static readonly Error DimensionsTooLarge = Error.Validation(
+        "media.dimensions_too_large",
+        "The image has more pixels than this installation accepts.");
+
+    public static readonly Error KindMismatch = Error.Validation(
+        "media.kind_mismatch",
+        "A replacement must be the same kind of file: an image for an image, a document for a document.");
+
+    public static readonly Error InUse = Error.Conflict(
+        "media.in_use",
+        "The file is used by pages or components. Confirm to delete it anyway.");
+
+    public static readonly Error InLiveUse = new(
+        "media.in_live_use",
+        "Published pages show this file. Only a Designer or Administrator can change or delete it.");
+
+    public static readonly Error Conflict = Error.Conflict(
+        "media.conflict",
+        "The file changed since you loaded it. Reload and try again.");
+
+    public static readonly Error AltTextNotAllowed = Error.Validation(
+        "media.alt_text_not_allowed",
+        "Only images have alternative text.");
+
+    public static readonly Error InvalidAltText = Error.Validation(
+        "media.invalid_alt_text",
+        "Alternative text may be at most 300 characters.");
+
+    public static readonly Error FolderNotFound = Error.NotFound("media.folder_not_found", "No such folder.");
+
+    public static readonly Error FolderNameTaken = Error.Conflict(
+        "media.folder_name_taken",
+        "A folder with this name already exists here.");
+
+    public static readonly Error InvalidFolderName = Error.Validation(
+        "media.invalid_folder_name",
+        "A folder name must be 1 to 100 characters.");
+
+    public static readonly Error FolderTooDeep = Error.Validation(
+        "media.folder_too_deep",
+        "Folders can be nested at most 8 levels deep.");
+
+    public static readonly Error FolderCycle = Error.Validation(
+        "media.folder_cycle",
+        "A folder cannot be moved into itself or one of its own folders.");
+
+    public static readonly Error FolderLimit = Error.Validation(
+        "media.folder_limit",
+        "A site can have at most 1,000 folders.");
+
+    public static readonly Error FolderNotEmpty = Error.Conflict(
+        "media.folder_not_empty",
+        "The folder still contains files or folders.");
+
+    public static readonly Error FolderConflict = Error.Conflict(
+        "media.folder_conflict",
+        "The folders changed while you were working. Reload and try again.");
+
+    public static readonly Error TooManyFiles = Error.Validation(
+        "media.too_many_files",
+        "At most 100 files can be moved at once.");
+
+    public static Error InvalidQuery(string detail) => Error.Validation("media.invalid_query", detail);
+
+    public static readonly Error StorageCheckRunning = Error.Conflict(
+        "media.storage_check_running",
+        "A storage check is already running.");
 }
 
 /// <summary>
@@ -59,8 +129,10 @@ internal static class MediaErrorResults
 {
     public static int StatusFor(string errorCode) => errorCode switch
     {
-        "media.not_found" or "sites.not_found" => StatusCodes.Status404NotFound,
-        "identity.forbidden" => StatusCodes.Status403Forbidden,
+        "media.not_found" or "sites.not_found" or "media.folder_not_found" => StatusCodes.Status404NotFound,
+        "identity.forbidden" or "media.in_live_use" => StatusCodes.Status403Forbidden,
+        "media.in_use" or "media.conflict" or "media.folder_name_taken" or "media.folder_not_empty"
+            or "media.folder_conflict" or "media.storage_check_running" => StatusCodes.Status409Conflict,
         "media.too_large" => StatusCodes.Status413PayloadTooLarge,
         "media.unsupported_type" => StatusCodes.Status415UnsupportedMediaType,
         "media.storage_unavailable" => StatusCodes.Status503ServiceUnavailable,
@@ -68,12 +140,24 @@ internal static class MediaErrorResults
         _ => StatusCodes.Status400BadRequest,
     };
 
-    public static IActionResult ToActionResult(Error error)
+    public static IActionResult ToActionResult(Error error) => ToActionResult(error, extensions: null);
+
+    /// <summary>
+    /// As <see cref="ToActionResult(Error)"/>, with extra problem members, such as the usage
+    /// summary a <c>media.in_use</c> refusal carries (013 contracts/media-api.yaml).
+    /// </summary>
+    public static IActionResult ToActionResult(Error error, IReadOnlyDictionary<string, object?>? extensions)
     {
         ArgumentNullException.ThrowIfNull(error);
 
         var status = StatusFor(error.Code);
-        return new ObjectResult(Create(status, error))
+        var problem = Create(status, error);
+        foreach (var (key, value) in extensions ?? new Dictionary<string, object?>())
+        {
+            problem.Extensions[key] = value;
+        }
+
+        return new ObjectResult(problem)
         {
             StatusCode = status,
             ContentTypes = { "application/problem+json" },
@@ -109,6 +193,7 @@ internal static class MediaErrorResults
     private static string TitleFor(int status) => status switch
     {
         StatusCodes.Status403Forbidden => "Forbidden",
+        StatusCodes.Status409Conflict => "Conflict",
         StatusCodes.Status404NotFound => "Not found",
         StatusCodes.Status413PayloadTooLarge => "Too large",
         StatusCodes.Status415UnsupportedMediaType => "Unsupported type",

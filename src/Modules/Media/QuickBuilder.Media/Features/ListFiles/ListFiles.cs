@@ -1,7 +1,7 @@
-using System.Buffers.Binary;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using QuickBuilder.Media.Contracts;
+using QuickBuilder.Media.Domain;
 using QuickBuilder.Media.Infrastructure;
 using QuickBuilder.Shared.Infrastructure.Dispatch;
 using QuickBuilder.Shared.Infrastructure.MultiSite;
@@ -12,17 +12,35 @@ using QuickBuilder.Sites.Contracts;
 
 namespace QuickBuilder.Media.Features.ListFiles;
 
-internal sealed record ListFilesQuery(Guid SiteId, string? Cursor, int? Limit, string PathBase)
-    : IQuery<Result<MediaFilePageDto>>;
+/// <summary>What to list: one folder, or a search (013 contracts/media-api.yaml <c>listMediaFiles</c>).</summary>
+internal sealed record ListFilesQuery(
+    Guid SiteId,
+    string? Cursor,
+    int? Limit,
+    string PathBase,
+    Guid? FolderId = null,
+    string? Scope = null,
+    string? Search = null,
+    string? Kind = null,
+    string? Sort = null,
+    string? Direction = null) : IQuery<Result<MediaFilePageDto>>;
 
 /// <summary>
-/// One page of a site's library, newest first (003 FR-003, research M-16).
+/// One page of a site's library: a folder, or a search across the library or a subtree
+/// (003 FR-003, research M-16; 013 FR-005, FR-006, research MV-03).
 /// </summary>
 /// <remarks>
-/// Keyset paging on <c>(uploaded_at_utc, id)</c>, descending: a file uploaded while someone
-/// pages lands before their cursor, so it can never shift a page still to come — every file
-/// appears exactly once (US3 scenario 1), and the last page of 10,000 costs what the first
-/// does (SC-009a). The cursor is opaque to clients: the position of the last row, base64url.
+/// <para>
+/// <b>Without a search</b>, the files directly in one folder, or at the top level. <b>With
+/// one</b>, every file whose name or alternative text contains the term, ignoring case and
+/// accents, across the whole library, or under one folder with <c>scope=subtree</c>.
+/// </para>
+/// <para>
+/// Keyset paging per sort, with the id as tie-breaker: a file uploaded while someone pages
+/// lands before their cursor or after the last page, so it never shifts a page still to come,
+/// and every file appears exactly once (003 US3 scenario 1). The last page of 10,000 costs
+/// what the first does (SC-001).
+/// </para>
 /// </remarks>
 internal sealed class ListFilesHandler(
     MediaDbContext database,
@@ -42,10 +60,16 @@ internal sealed class ListFilesHandler(
             return Result.Failure<MediaFilePageDto>(MediaErrors.InvalidLimit(MaxLimit));
         }
 
-        Cursor? after = null;
+        if (Parse(query) is not { } shape)
+        {
+            return Result.Failure<MediaFilePageDto>(MediaErrors.InvalidQuery(
+                "Unknown sort, direction, kind or scope, a search longer than 100 characters, or scope=subtree without a folder and a search."));
+        }
+
+        ListingCursor? after = null;
         if (query.Cursor is not null)
         {
-            after = Cursor.TryDecode(query.Cursor);
+            after = ListingCursor.TryDecode(query.Cursor, shape.Sort, shape.Descending, shape.Fingerprint);
             if (after is null)
             {
                 return Result.Failure<MediaFilePageDto>(MediaErrors.InvalidCursor);
@@ -64,19 +88,16 @@ internal sealed class ListFilesHandler(
             .AsNoTracking()
             .Where(f => f.SiteId == query.SiteId);
 
-        var total = await library.CountAsync(cancellationToken).ConfigureAwait(false);
-
-        var page = library;
-        if (after is { } position)
+        var filtered = await FilterAsync(library, query, shape, cancellationToken).ConfigureAwait(false);
+        if (filtered.IsFailure)
         {
-            page = page.Where(f => EF.Functions.LessThan(
-                ValueTuple.Create(f.UploadedAtUtc, f.Id),
-                ValueTuple.Create(position.UploadedAtUtc, position.Id)));
+            return Result.Failure<MediaFilePageDto>(filtered.Error);
         }
 
-        var rows = await page
-            .OrderByDescending(f => f.UploadedAtUtc)
-            .ThenByDescending(f => f.Id)
+        var matching = filtered.Value;
+        var total = await matching.CountAsync(cancellationToken).ConfigureAwait(false);
+
+        var rows = await Order(After(matching, shape, after), shape)
             .Take(limit + 1)
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
@@ -90,51 +111,171 @@ internal sealed class ListFilesHandler(
         var items = await mapper.MapAsync(rows, query.SiteId, query.PathBase, checkAvailability: true, cancellationToken)
             .ConfigureAwait(false);
 
-        var next = hasMore ? new Cursor(rows[^1].UploadedAtUtc, rows[^1].Id).Encode() : null;
+        var next = hasMore ? CursorAfter(rows[^1], shape).Encode() : null;
         return Result.Success(new MediaFilePageDto(items, total, next));
     }
 
-    /// <summary>A position in the listing: the last row a page returned.</summary>
-    internal readonly record struct Cursor(DateTimeOffset UploadedAtUtc, Guid Id)
+    /// <summary>A validated query: its filters, sort, direction and fingerprint.</summary>
+    private sealed record Shape(string? Search, bool Subtree, string? Kind, ListingSort Sort, bool Descending, uint Fingerprint);
+
+    private static Shape? Parse(ListFilesQuery query)
     {
-        private const int EncodedLength = 8 + 16;
-
-        public string Encode()
+        var search = string.IsNullOrWhiteSpace(query.Search) ? null : query.Search.Trim();
+        if (search is { Length: > SearchText.MaxTermLength })
         {
-            Span<byte> bytes = stackalloc byte[EncodedLength];
-            BinaryPrimitives.WriteInt64BigEndian(bytes, UploadedAtUtc.UtcTicks);
-            Id.TryWriteBytes(bytes[8..]);
-            return Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
+            return null;
         }
 
-        public static Cursor? TryDecode(string value)
+        var subtree = query.Scope switch
         {
-            var base64 = value.Replace('-', '+').Replace('_', '/');
-            base64 = base64.PadRight(base64.Length + ((4 - (base64.Length % 4)) % 4), '=');
+            null or "" or "folder" => false,
+            "subtree" => true,
+            _ => (bool?)null,
+        };
 
-            Span<byte> bytes = stackalloc byte[EncodedLength + 3];
-            if (!Convert.TryFromBase64String(base64, bytes, out var written) || written != EncodedLength)
-            {
-                return null;
-            }
+        ListingSort? sort = query.Sort switch
+        {
+            null or "" or "uploaded" => ListingSort.Uploaded,
+            "name" => ListingSort.Name,
+            "size" => ListingSort.Size,
+            _ => null,
+        };
 
-            var ticks = BinaryPrimitives.ReadInt64BigEndian(bytes);
-            if (ticks < DateTimeOffset.MinValue.UtcTicks || ticks > DateTimeOffset.MaxValue.UtcTicks)
-            {
-                return null;
-            }
-
-            return new Cursor(new DateTimeOffset(ticks, TimeSpan.Zero), new Guid(bytes[8..EncodedLength]));
+        if (subtree is null || sort is null || query.Kind is not (null or "" or "image" or "document"))
+        {
+            return null;
         }
+
+        // A subtree search needs both the folder and the term (contracts/media-api.yaml).
+        if (subtree == true && (query.FolderId is null || search is null))
+        {
+            return null;
+        }
+
+        bool? descending = query.Direction switch
+        {
+            null or "" => sort != ListingSort.Name,
+            "desc" => true,
+            "asc" => false,
+            _ => null,
+        };
+
+        if (descending is null)
+        {
+            return null;
+        }
+
+        var kind = string.IsNullOrEmpty(query.Kind) ? null : query.Kind;
+        var fingerprint = ListingCursor.Fingerprint(
+            query.FolderId?.ToString("N"), subtree.Value ? "subtree" : "folder", search is null ? null : SearchText.Normalise(search), kind);
+
+        return new Shape(search, subtree.Value, kind, sort.Value, descending.Value, fingerprint);
     }
+
+    private async Task<Result<IQueryable<MediaFile>>> FilterAsync(
+        IQueryable<MediaFile> library, ListFilesQuery query, Shape shape, CancellationToken cancellationToken)
+    {
+        var folders = database.Folders
+            .AcrossAllSites("Admin listing of a site named explicitly in the route (001 FR-011b).")
+            .AsNoTracking()
+            .Where(f => f.SiteId == query.SiteId);
+
+        if (shape.Subtree)
+        {
+            var structure = new FolderStructure(await folders.ToListAsync(cancellationToken).ConfigureAwait(false));
+            if (structure.Find(query.FolderId!.Value) is null)
+            {
+                return Result.Failure<IQueryable<MediaFile>>(MediaErrors.FolderNotFound);
+            }
+
+            var inside = structure.Descendants(query.FolderId.Value).ToList();
+            library = library.Where(f => f.FolderId != null && inside.Contains(f.FolderId.Value));
+        }
+        else if (query.FolderId is { } folderId)
+        {
+            if (!await folders.AnyAsync(f => f.Id == folderId, cancellationToken).ConfigureAwait(false))
+            {
+                return Result.Failure<IQueryable<MediaFile>>(MediaErrors.FolderNotFound);
+            }
+
+            // Browsing a folder, or searching "everything" while one is open: a search without
+            // scope=subtree covers the whole library (FR-006).
+            if (shape.Search is null)
+            {
+                library = library.Where(f => f.FolderId == folderId);
+            }
+        }
+        else if (shape.Search is null)
+        {
+            library = library.Where(f => f.FolderId == null);
+        }
+
+        if (shape.Search is { } term)
+        {
+            var pattern = SearchText.LikePattern(term);
+            library = library.Where(f => EF.Functions.Like(f.SearchText, pattern, "\\"));
+        }
+
+        library = shape.Kind switch
+        {
+            "image" => library.Where(f => f.ContentType.StartsWith("image/")),
+            "document" => library.Where(f => !f.ContentType.StartsWith("image/")),
+            _ => library,
+        };
+
+        return Result.Success(library);
+    }
+
+    private static IQueryable<MediaFile> After(IQueryable<MediaFile> files, Shape shape, ListingCursor? cursor)
+    {
+        if (cursor is null)
+        {
+            return files;
+        }
+
+        var id = cursor.Id;
+        return (shape.Sort, shape.Descending) switch
+        {
+            (ListingSort.Uploaded, true) => files.Where(f => EF.Functions.LessThan(
+                ValueTuple.Create(f.UploadedAtUtc, f.Id), ValueTuple.Create(new DateTimeOffset(cursor.NumberKey, TimeSpan.Zero), id))),
+            (ListingSort.Uploaded, false) => files.Where(f => EF.Functions.GreaterThan(
+                ValueTuple.Create(f.UploadedAtUtc, f.Id), ValueTuple.Create(new DateTimeOffset(cursor.NumberKey, TimeSpan.Zero), id))),
+            (ListingSort.Size, true) => files.Where(f => EF.Functions.LessThan(
+                ValueTuple.Create(f.SizeBytes, f.Id), ValueTuple.Create(cursor.NumberKey, id))),
+            (ListingSort.Size, false) => files.Where(f => EF.Functions.GreaterThan(
+                ValueTuple.Create(f.SizeBytes, f.Id), ValueTuple.Create(cursor.NumberKey, id))),
+            (ListingSort.Name, true) => files.Where(f => EF.Functions.LessThan(
+                ValueTuple.Create(f.SortName, f.Id), ValueTuple.Create(cursor.TextKey ?? string.Empty, id))),
+            _ => files.Where(f => EF.Functions.GreaterThan(
+                ValueTuple.Create(f.SortName, f.Id), ValueTuple.Create(cursor.TextKey ?? string.Empty, id))),
+        };
+    }
+
+    private static IQueryable<MediaFile> Order(IQueryable<MediaFile> files, Shape shape) =>
+        (shape.Sort, shape.Descending) switch
+        {
+            (ListingSort.Uploaded, true) => files.OrderByDescending(f => f.UploadedAtUtc).ThenByDescending(f => f.Id),
+            (ListingSort.Uploaded, false) => files.OrderBy(f => f.UploadedAtUtc).ThenBy(f => f.Id),
+            (ListingSort.Size, true) => files.OrderByDescending(f => f.SizeBytes).ThenByDescending(f => f.Id),
+            (ListingSort.Size, false) => files.OrderBy(f => f.SizeBytes).ThenBy(f => f.Id),
+            (ListingSort.Name, true) => files.OrderByDescending(f => f.SortName).ThenByDescending(f => f.Id),
+            _ => files.OrderBy(f => f.SortName).ThenBy(f => f.Id),
+        };
+
+    private static ListingCursor CursorAfter(MediaFile last, Shape shape) => shape.Sort switch
+    {
+        ListingSort.Uploaded => new ListingCursor(shape.Sort, shape.Descending, shape.Fingerprint, last.Id, last.UploadedAtUtc.UtcTicks, null),
+        ListingSort.Size => new ListingCursor(shape.Sort, shape.Descending, shape.Fingerprint, last.Id, last.SizeBytes, null),
+        _ => new ListingCursor(shape.Sort, shape.Descending, shape.Fingerprint, last.Id, 0, last.SortName),
+    };
 }
 
-/// <summary>Administrative surface: browse a site's library.</summary>
+/// <summary>Administrative surface: browse or search a site's library.</summary>
 [ApiController]
 [Route("api/v1/media/sites/{siteId:guid}/files")]
 public sealed class ListFilesController(IDispatcher dispatcher) : ControllerBase
 {
-    /// <summary>One page of the site's library, newest first.</summary>
+    /// <summary>One page of a folder, or of a search (013 contracts/media-api.yaml).</summary>
     [HttpGet]
     [RequireCapability(MediaCapabilities.View)]
     [ProducesResponseType(StatusCodes.Status200OK)]
@@ -144,11 +285,18 @@ public sealed class ListFilesController(IDispatcher dispatcher) : ControllerBase
         Guid siteId,
         [FromQuery] int? limit,
         [FromQuery] string? cursor,
+        [FromQuery] Guid? folderId,
+        [FromQuery] string? scope,
+        [FromQuery] string? q,
+        [FromQuery] string? kind,
+        [FromQuery] string? sort,
+        [FromQuery] string? direction,
         CancellationToken cancellationToken)
     {
-        var result = await dispatcher
-            .QueryAsync(new ListFilesQuery(siteId, cursor, limit, Request.PathBase.Value ?? string.Empty), cancellationToken)
-            .ConfigureAwait(false);
+        var query = new ListFilesQuery(
+            siteId, cursor, limit, Request.PathBase.Value ?? string.Empty, folderId, scope, q, kind, sort, direction);
+
+        var result = await dispatcher.QueryAsync(query, cancellationToken).ConfigureAwait(false);
 
         return result.IsFailure ? MediaErrorResults.ToActionResult(result.Error) : Ok(result.Value);
     }

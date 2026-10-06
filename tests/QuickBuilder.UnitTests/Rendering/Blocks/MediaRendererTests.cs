@@ -19,6 +19,61 @@ public sealed class MediaRendererTests
             html);
     }
 
+    /// <summary>013 contracts/public-media.md §2: attribute order, variants, never the huge original.</summary>
+    [Fact]
+    public void A_measured_photo_offers_its_variants_states_its_size_and_never_the_original()
+    {
+        var (html, _) = _harness.Block($$$"""
+            {"id":"s","type":"section","props":{"width":"contained"},"children":[
+              {"id":"i","type":"image","props":{"media":{"mediaId":"{{{LargePhoto}}}"},"alt":"Harbour"},"children":[]}]}
+            """);
+
+        var id = LargePhoto.ToString("N");
+        var srcset = string.Join(", ", new[] { 320, 640, 960, 1280, 1920, 2560 }.Select(w => $"/_media/{id}-v1-w{w}.jpg {w}w"));
+        Assert.Contains(
+            $"<img src=\"/_media/{id}-v1-w1280.jpg\" srcset=\"{srcset}\" sizes=\"(max-width: 1200px) 100vw, 1200px\" width=\"6000\" height=\"4000\" alt=\"Harbour\" loading=\"lazy\" decoding=\"async\">",
+            html,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain($"/_media/{id}.jpg", html, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("narrow", "full", "(max-width: 720px) 100vw, 720px")]
+    [InlineData("wide", "full", "(max-width: 1440px) 100vw, 1440px")]
+    [InlineData("full", "full", "100vw")]
+    [InlineData("wide", "natural", "(max-width: 800px) 100vw, 800px")]
+    [InlineData("narrow", "natural", "(max-width: 720px) 100vw, 720px")]
+    public void Sizes_follow_the_section_width_and_a_natural_images_own_width(string section, string width, string expected)
+    {
+        var (html, _) = _harness.Block($$$"""
+            {"id":"s","type":"section","props":{"width":"{{{section}}}"},"children":[
+              {"id":"i","type":"image","props":{"media":{"mediaId":"{{{SmallLogo}}}"},"width":"{{{width}}}"},"children":[]}]}
+            """);
+
+        Assert.Contains($"sizes=\"{expected}\"", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_small_image_offers_itself_last_and_is_its_own_source_when_nothing_is_narrower()
+    {
+        var (html, _) = _harness.Block($$$"""{"id":"i","type":"image","props":{"media":{"mediaId":"{{{SmallLogo}}}"}},"children":[]}""");
+
+        var id = SmallLogo.ToString("N");
+        Assert.Contains($"srcset=\"/_media/{id}-v2-w320.png 320w, /_media/{id}-v2-w640.png 640w, /_media/{id}-v2.png 800w\"", html, StringComparison.Ordinal);
+        Assert.Contains($"src=\"/_media/{id}-v2-w640.png\"", html, StringComparison.Ordinal);
+        Assert.Contains("sizes=\"100vw\"", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void An_image_without_variants_or_dimensions_writes_neither()
+    {
+        var (html, _) = _harness.Block($$$"""{"id":"i","type":"image","props":{"media":{"mediaId":"{{{Photo}}}"}},"children":[]}""");
+
+        Assert.DoesNotContain("srcset", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("sizes", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("width=", html, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void A_decorative_image_has_empty_alternative_text()
     {

@@ -15,7 +15,8 @@ namespace QuickBuilder.Pages;
 internal static class PagesCapabilities
 {
     /// <summary>See the page tree, pages, drafts, components and their usages. Every site role.</summary>
-    public const string ContentView = "pages.content.view";
+    /// <remarks>Declared in the contract since 013, because Media asks for it too.</remarks>
+    public const string ContentView = QuickBuilder.Pages.Contracts.PageContentCapabilities.View;
 
     /// <summary>Create, rename, move, delete pages and choose the home page. Designer.</summary>
     public const string StructureManage = "pages.structure.manage";

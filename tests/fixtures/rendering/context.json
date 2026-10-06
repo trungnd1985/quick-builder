@@ -12,7 +12,16 @@
   "media": {
     "0192f5a0-1b2c-7d3e-8f40-5a6b7c8d9e30": {
       "publicPath": "/_media/0192f5a01b2c7d3e8f405a6b7c8d9e30.jpg",
-      "contentType": "image/jpeg"
+      "contentType": "image/jpeg",
+      "width": 1600,
+      "height": 900,
+      "variants": [
+        { "width": 320, "publicPath": "/_media/0192f5a01b2c7d3e8f405a6b7c8d9e30-v1-w320.jpg" },
+        { "width": 640, "publicPath": "/_media/0192f5a01b2c7d3e8f405a6b7c8d9e30-v1-w640.jpg" },
+        { "width": 960, "publicPath": "/_media/0192f5a01b2c7d3e8f405a6b7c8d9e30-v1-w960.jpg" },
+        { "width": 1280, "publicPath": "/_media/0192f5a01b2c7d3e8f405a6b7c8d9e30-v1-w1280.jpg" }
+      ],
+      "offerOriginal": true
     }
   },
   "components": {

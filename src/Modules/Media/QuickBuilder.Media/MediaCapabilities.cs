@@ -28,11 +28,18 @@ internal static class MediaCapabilities
     /// </summary>
     public const string DeleteOwn = "media.own_files.delete";
 
+    /// <summary>
+    /// Read and run the storage consistency check (013 research MV-21). Installation scope,
+    /// granted to no site role: Administrators only. It reports on every site's files.
+    /// </summary>
+    public const string StorageCheck = "media.storage.check";
+
     public static IEnumerable<CapabilityDefinition> All =>
     [
         new(View, CapabilityScope.Site, [SystemRole.Designer, SystemRole.Editor]),
         new(Upload, CapabilityScope.Site, [SystemRole.Designer, SystemRole.Editor]),
         new(Delete, CapabilityScope.Site, [SystemRole.Designer]),
         new(DeleteOwn, CapabilityScope.Site, [SystemRole.Designer, SystemRole.Editor]),
+        new(StorageCheck, CapabilityScope.Installation, []),
     ];
 }

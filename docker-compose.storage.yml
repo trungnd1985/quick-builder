@@ -1,0 +1,128 @@
+# QuickBuilder — remote storage and multi-instance override (013 quickstart §6).
+#
+# ─────────────────────────────────────────────────────────────────────────────────────
+#  FOR DEVELOPMENT AND TESTING ONLY. NEVER USE THIS FILE IN PRODUCTION.
+#  The LocalStack and Azurite credentials below are well-known test values, and both
+#  emulators keep their data only until they are recreated.
+# ─────────────────────────────────────────────────────────────────────────────────────
+#
+# The easy way: `./qb.ps1 cloud` (S3) or `./qb.ps1 cloud -Azure`.
+#
+# By hand, layered over docker-compose.yml, with the profile of the provider you want:
+#
+#   docker compose -f docker-compose.yml -f docker-compose.storage.yml --profile s3 up -d
+#   QB_STORAGE=AzureBlob docker compose -f docker-compose.yml -f docker-compose.storage.yml --profile azure up -d
+#
+# Adds:
+#   - localstack (profile s3)  an S3-compatible service, with bucket `qb-media` created at start;
+#   - azurite (profile azure)  the Azure Storage emulator, with container `qb-media` created
+#                               by azurite-init;
+#   - app2                      a second instance of the app on the same database, on
+#                               127.0.0.1:8081.
+#
+# With a remote provider both instances share media, which is the configuration 013
+# FR-036 supports. LocalStack stands in for S3 because it supports the conditional writes
+# QuickBuilder requires and publishes its images (MinIO no longer does).
+
+x-storage-env: &storage-env
+  Storage__Provider: "${QB_STORAGE:-S3}"
+  Storage__S3__ServiceUrl: "http://localstack:4566"
+  Storage__S3__Region: "us-east-1"
+  Storage__S3__Bucket: "qb-media"
+  Storage__S3__ForcePathStyle: "true"
+  # LocalStack accepts any credentials.
+  Storage__S3__AccessKeyId: "test"
+  Storage__S3__SecretAccessKey: "test"
+  # Azurite's published development account key (not a secret).
+  Storage__AzureBlob__ConnectionString: "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;"
+  Storage__AzureBlob__Container: "qb-media"
+
+x-storage-dependencies: &storage-dependencies
+  # Only the provider's own emulator runs; `required: false` skips the other.
+  localstack:
+    condition: service_healthy
+    required: false
+  azurite-init:
+    condition: service_completed_successfully
+    required: false
+
+configs:
+  localstack-bucket:
+    content: |
+      #!/bin/sh
+      awslocal s3 mb s3://qb-media
+
+services:
+  localstack:
+    image: localstack/localstack:4.9
+    profiles: [s3]
+    environment:
+      SERVICES: s3
+    configs:
+      # LocalStack runs the scripts in ready.d once S3 is up.
+      - source: localstack-bucket
+        target: /etc/localstack/init/ready.d/bucket.sh
+        mode: 0755
+    ports:
+      - "127.0.0.1:4566:4566"
+    healthcheck:
+      test: ["CMD", "awslocal", "s3api", "head-bucket", "--bucket", "qb-media"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  azurite:
+    image: mcr.microsoft.com/azure-storage/azurite:3.35.0
+    profiles: [azure]
+    command: azurite-blob --blobHost 0.0.0.0 --blobPort 10000 --loose --skipApiVersionCheck
+    volumes:
+      - azurite-data:/data
+    ports:
+      - "127.0.0.1:10000:10000"
+
+  azurite-init:
+    image: mcr.microsoft.com/azure-cli:latest
+    profiles: [azure]
+    depends_on:
+      - azurite
+    entrypoint: >
+      sh -c "for i in 1 2 3 4 5 6 7 8 9 10; do
+               az storage container create --name qb-media --connection-string
+               'DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;'
+               && exit 0; sleep 2; done; exit 1"
+
+  app:
+    depends_on:
+      <<: *storage-dependencies
+    environment:
+      <<: *storage-env
+
+  app2:
+    image: quickbuilder:latest
+    restart: unless-stopped
+    depends_on:
+      <<: *storage-dependencies
+      db:
+        condition: service_healthy
+      app:
+        # The first instance applies migrations; the second starts once it is ready.
+        condition: service_healthy
+    environment:
+      <<: *storage-env
+      ConnectionStrings__Default: "Host=db;Port=5432;Database=quickbuilder;Username=quickbuilder;Password=change-me-before-real-use"
+      # Both instances may migrate: an advisory lock serialises them and the second finds
+      # nothing to apply. With false, an instance never reports ready until `migrate` runs.
+      Database__AutoMigrate: "true"
+      Telemetry__OtlpEndpoint: ""
+      Identity__AllowInsecureHttp: "true"
+    ports:
+      - "127.0.0.1:8081:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --spider http://127.0.0.1:8080/health/ready || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 40s
+
+volumes:
+  azurite-data:

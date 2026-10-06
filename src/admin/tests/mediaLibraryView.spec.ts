@@ -28,6 +28,18 @@ function file(id: string, overrides: Partial<MediaFile> = {}): MediaFile {
     publicPath: `/_media/${id}.png`,
     available: true,
     canDelete: true,
+    folderId: null,
+    altText: null,
+    width: 64,
+    height: 64,
+    contentVersion: 1,
+    metadataState: 'recorded',
+    replacedAtUtc: null,
+    replacedBy: null,
+    variants: [],
+    thumbnailPath: `/api/v1/media/sites/${SITE}/files/${id}/content`,
+    usage: { places: 0, draftPlaces: 0, livePlaces: 0, historyOnlyPlaces: 0, inLiveUse: false },
+    canReplace: true,
     ...overrides,
   }
 }
@@ -49,6 +61,10 @@ function stubFetch(routes: Routes) {
 
     if (url === '/api/v1/sites') {
       return { ok: true, status: 200, json: async () => routes.sites ?? [{ id: SITE, name: 'Site A', hostNames: ['site-a.test'], createdAtUtc: '2026-09-25T00:00:00Z' }] }
+    }
+
+    if (url.startsWith(`/api/v1/media/sites/${SITE}/folders`)) {
+      return { ok: true, status: 200, json: async () => ({ folders: [], topLevelFileCount: 0, revision: 0 }) }
     }
 
     if (method === 'DELETE') {
@@ -167,7 +183,9 @@ describe('MediaLibraryView', () => {
   it('shows loading, then an error distinct from empty when the list fails', async () => {
     vi.stubGlobal('fetch', vi.fn(async (url: string) => url === '/api/v1/sites'
       ? { ok: true, status: 200, json: async () => [] }
-      : { ok: false, status: 500, statusText: 'Boom', text: async () => '{"title":"Boom","status":500,"errorCode":"internal.unexpected"}' }))
+      : url.includes('/folders')
+        ? { ok: true, status: 200, json: async () => ({ folders: [], topLevelFileCount: 0, revision: 0 }) }
+        : { ok: false, status: 500, statusText: 'Boom', text: async () => '{"title":"Boom","status":500,"errorCode":"internal.unexpected"}' }))
 
     await renderView()
 

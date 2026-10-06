@@ -38,14 +38,18 @@ internal sealed class MediaScenario : IDisposable
         string label,
         Action<IServiceCollection>? configureTestServices = null,
         string? storagePath = null,
-        string? connectionString = null)
+        string? connectionString = null,
+        IReadOnlyDictionary<string, string>? settings = null,
+        bool runBackgroundServices = false)
     {
         ArgumentNullException.ThrowIfNull(database);
 
         var app = new QuickBuilderApp(
             connectionString ?? await database.CreateDatabaseAsync(label).ConfigureAwait(false),
+            runBackgroundServices: runBackgroundServices,
             configureTestServices: configureTestServices,
-            storagePath: storagePath);
+            storagePath: storagePath,
+            settings: settings);
 
         var admin = await app.CreateAdminClientAsync().ConfigureAwait(false);
         var siteA = await MediaApi.CreateSiteAsync(admin, "Site A", HostA).ConfigureAwait(false);

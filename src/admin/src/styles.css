@@ -175,9 +175,15 @@ label:where(:not(.qb-canvas *)) {
   margin-bottom: 0.25rem;
 }
 
+/* Every typed field looks the same: a new input type belongs in this list. */
 input[type='text']:where(:not(.qb-canvas *)),
 input[type='email']:where(:not(.qb-canvas *)),
 input[type='password']:where(:not(.qb-canvas *)),
+input[type='search']:where(:not(.qb-canvas *)),
+input[type='url']:where(:not(.qb-canvas *)),
+input[type='number']:where(:not(.qb-canvas *)),
+input[type='date']:where(:not(.qb-canvas *)),
+input[type='time']:where(:not(.qb-canvas *)),
 select:where(:not(.qb-canvas *)) {
   width: 100%;
   padding: 0.5rem 0.625rem;
@@ -186,6 +192,11 @@ select:where(:not(.qb-canvas *)) {
   font: inherit;
   background: var(--bg);
   color: var(--text);
+}
+
+/* Numbers sit beside a label and a unit; a few digits need no more room. */
+input[type='number']:where(:not(.qb-canvas *)) {
+  width: 8rem;
 }
 
 input[aria-invalid='true']:where(:not(.qb-canvas *)) {
@@ -224,6 +235,51 @@ button.primary:where(:not(.qb-canvas *)) {
 button:disabled:where(:not(.qb-canvas *)) {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+/* An icon with its name as a tooltip, on hover and on keyboard focus alike (IconButton.vue). */
+.icon-button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  padding: 0;
+}
+
+.icon-button:hover:not(:disabled) {
+  background: var(--surface);
+}
+
+.icon-button::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  top: calc(100% + 0.375rem);
+  left: 50%;
+  z-index: 20;
+  padding: 0.25rem 0.5rem;
+  border-radius: var(--radius);
+  background: var(--text);
+  color: var(--bg);
+  font-size: 0.8125rem;
+  font-weight: 400;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateX(-50%);
+  transition: opacity 0.1s;
+}
+
+.icon-button:hover::after,
+.icon-button:focus-visible::after {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .icon-button::after {
+    transition: none;
+  }
 }
 
 .sites-table {
@@ -374,19 +430,224 @@ button.danger:where(:not(.qb-canvas *)) {
   color: var(--danger);
 }
 
+/* Above everything on the page, the editor canvas's selection outlines and the header included. */
 .dialog-backdrop {
   position: fixed;
   inset: 0;
+  z-index: 100;
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 1rem;
   background: rgb(22 25 29 / 40%);
 }
 
 .dialog {
   margin: 0;
+  max-height: calc(100vh - 2rem);
+  overflow-y: auto;
   background: var(--bg);
   box-shadow: 0 0.5rem 2rem rgb(22 25 29 / 30%);
+}
+
+/* The editor's image picker: the whole library, as wide as the window allows (013 US4).
+   A card is otherwise capped for reading width, which would squeeze the library. */
+.dialog--wide {
+  width: min(72rem, 100%);
+  max-width: none;
+}
+
+.dialog--wide > .page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.dialog--wide > .page-header h2 {
+  margin: 0;
+}
+
+/* --- Media library: folders, search, details (013) -------------------------------- */
+
+.media-library {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+.media-library:has(.media-details) {
+  grid-template-columns: minmax(0, 1fr) minmax(16rem, 22rem);
+}
+
+.media-browser {
+  display: grid;
+  grid-template-columns: minmax(12rem, 16rem) minmax(0, 1fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+.media-browser__main {
+  min-width: 0;
+}
+
+.folder-tree ul[role="tree"] {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.folder-tree [role="treeitem"] {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding-block: 0.25rem;
+  padding-inline: 0.5rem;
+  border-radius: var(--radius);
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+
+.folder-tree [role="treeitem"].selected {
+  background: var(--surface);
+  font-weight: 600;
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+.folder-tree .toggle {
+  padding: 0 0.25rem;
+  border: 0;
+  background: none;
+}
+
+.folder-actions,
+.folder-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.folder-form {
+  flex-direction: column;
+}
+
+.media-toolbar,
+.move-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.media-toolbar .field,
+.move-bar .field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-bottom: 0;
+}
+
+/* Search takes the room; the choices beside it are as wide as their options. */
+.media-toolbar .field:has(input[type='search']) {
+  flex: 1 1 16rem;
+}
+
+.media-toolbar select:where(:not(.qb-canvas *)) {
+  width: auto;
+}
+
+/* In the picker, the files come first and uploading follows them (013 US4). */
+.media-browser--picker .media-browser__main {
+  display: flex;
+  flex-direction: column;
+}
+
+.media-browser--picker .upload-area {
+  order: 1;
+  max-width: none;
+}
+
+.media-details {
+  position: sticky;
+  top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.media-details__header {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.media-details__header h2 {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.media-details__preview {
+  max-width: 100%;
+  max-height: 16rem;
+  object-fit: contain;
+  background: var(--surface);
+  border-radius: var(--radius);
+}
+
+.media-details__facts {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.25rem 0.75rem;
+  margin: 0;
+}
+
+.media-details__facts dt {
+  color: var(--text-muted);
+}
+
+.media-details__facts dd {
+  margin: 0;
+}
+
+.alt-text-editor textarea {
+  width: 100%;
+  font: inherit;
+}
+
+@media (max-width: 48rem) {
+  .media-browser,
+  .media-library:has(.media-details) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* 013 US5: where a file is used, and the in-use confirmation. */
+.media-usage__places {
+  margin: 0.25rem 0 0.75rem;
+  padding-left: 1.25rem;
+}
+
+.media-usage__places li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  align-items: baseline;
+}
+
+.badge--live {
+  border-color: var(--accent, var(--border));
+  color: var(--text);
+}
+
+.field--checkbox {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
 }
 
 /* 009: site management. */

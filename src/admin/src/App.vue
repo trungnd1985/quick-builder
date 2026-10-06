@@ -92,6 +92,11 @@ async function signOut(): Promise<void> {
             </li>
             <!-- Courtesy only: the server refuses non-administrators regardless (FR-024). -->
             <li v-if="auth.isAdministrator">
+              <RouterLink to="/settings/storage">
+                {{ t('app.nav.storage') }}
+              </RouterLink>
+            </li>
+            <li v-if="auth.isAdministrator">
               <RouterLink to="/users">
                 {{ t('app.nav.users') }}
               </RouterLink>

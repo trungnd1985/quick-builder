@@ -3,9 +3,12 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using QuickBuilder.IntegrationTests.Infrastructure;
+using QuickBuilder.Media.Domain;
 using QuickBuilder.Media.Infrastructure;
+using QuickBuilder.Shared.Infrastructure.MultiSite;
 using QuickBuilder.Shared.Infrastructure.Storage;
 using QuickBuilder.Shared.Infrastructure.Storage.Local;
+using QuickBuilder.TestFixtures.Media;
 
 namespace QuickBuilder.IntegrationTests.Media;
 
@@ -135,6 +138,53 @@ public sealed class MediaOrphanSweepTests(DatabaseFixture database) : IAsyncLife
         // orphan. Seeing both sites' rows is what keeps both files.
         Assert.Equal(0, await Sweeper.SweepAsync(CancellationToken.None).ConfigureAwait(true));
         Assert.Equal(2, _scenario.StoredObjects().Count);
+    }
+
+    /// <summary>013 MV-14: variants nobody can request any more go after an hour; the rest stay.</summary>
+    [Fact]
+    public async Task Variants_nobody_can_request_go_and_current_or_young_ones_stay()
+    {
+        var photo = await LibraryApi.UploadNamedAsync(_scenario.Admin, _scenario.SiteA, "photo.jpg", ImageFixtures.LargePhoto, "image/jpeg").ConfigureAwait(true);
+        var withdrawn = await LibraryApi.UploadNamedAsync(_scenario.Admin, _scenario.SiteB, "other.jpg", ImageFixtures.LargePhoto, "image/jpeg").ConfigureAwait(true);
+        await using (var scope = _scenario.App.Services.CreateAsyncScope())
+        {
+            await scope.ServiceProvider.GetRequiredService<MediaDbContext>().MediaFiles
+                .AcrossAllSites("Test withdraws one file's variants.")
+                .Where(f => f.Id == withdrawn.Id)
+                .ExecuteUpdateAsync(s => s.SetProperty(f => f.VariantsState, MediaVariantsState.Unavailable))
+                .ConfigureAwait(true);
+        }
+
+        var old = TimeSpan.FromHours(2);
+        var current = VariantFile(_scenario.SiteA, photo.Id, 1, 640, old);
+        var staleVersion = VariantFile(_scenario.SiteA, photo.Id, 3, 640, old);
+        var unconfigured = VariantFile(_scenario.SiteA, photo.Id, 1, 700, old);
+        var deletedFile = VariantFile(_scenario.SiteA, Guid.NewGuid(), 1, 640, old);
+        var unavailable = VariantFile(_scenario.SiteB, withdrawn.Id, 1, 320, old);
+        var young = VariantFile(_scenario.SiteA, Guid.NewGuid(), 1, 640, TimeSpan.FromMinutes(10));
+        Age(_scenario.ObjectPath(_scenario.SiteA, photo.Id), TimeSpan.FromDays(30));
+
+        var removed = await Sweeper.SweepAsync(CancellationToken.None).ConfigureAwait(true);
+
+        Assert.True(File.Exists(current), "A variant still served is kept.");
+        Assert.True(File.Exists(young), "A variant younger than an hour may be mid-production.");
+        Assert.False(File.Exists(staleVersion));
+        Assert.False(File.Exists(unconfigured));
+        Assert.False(File.Exists(deletedFile));
+        Assert.False(File.Exists(unavailable));
+        Assert.True(File.Exists(_scenario.ObjectPath(_scenario.SiteA, photo.Id)), "Originals are never touched by the variant pass.");
+        Assert.True(File.Exists(_scenario.ObjectPath(_scenario.SiteB, withdrawn.Id)));
+        Assert.Equal(4, removed);
+    }
+
+    private string VariantFile(Guid siteId, Guid fileId, int version, int width, TimeSpan age)
+    {
+        var key = MediaStorageKeys.Variant(siteId, fileId, version, width).Value;
+        var path = Path.Combine(_scenario.App.StoragePath, key.Replace('/', Path.DirectorySeparatorChar));
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        File.WriteAllBytes(path, SampleFiles.Png);
+        Age(path, age);
+        return path;
     }
 
     private void Age(string path, TimeSpan age) => File.SetLastWriteTimeUtc(path, (_clock.GetUtcNow() - age).UtcDateTime);

@@ -142,6 +142,46 @@ public sealed class NoEgressTests(DatabaseFixture database) : IAsyncLifetime
     }
 
     /// <summary>
+    /// 013 FR-042: with the default Local provider, the library's journeys and background
+    /// work make no outbound call — images are measured and resized in-process, and nothing
+    /// reaches a remote store.
+    /// </summary>
+    [Fact]
+    public async Task Library_journeys_and_background_work_make_no_outbound_http_calls()
+    {
+        var outbound = 0;
+
+        using var listener = new System.Diagnostics.ActivityListener
+        {
+            ShouldListenTo = source => source.Name == "System.Net.Http",
+            Sample = (ref System.Diagnostics.ActivityCreationOptions<System.Diagnostics.ActivityContext> _) =>
+                System.Diagnostics.ActivitySamplingResult.AllData,
+            ActivityStarted = _ => Interlocked.Increment(ref outbound),
+        };
+
+        System.Diagnostics.ActivitySource.AddActivityListener(listener);
+
+        var admin = await _app.CreateAdminClientAsync().ConfigureAwait(true);
+        var siteId = await Media.MediaApi.CreateSiteAsync(admin, "Offline library", "offline-library.test").ConfigureAwait(true);
+        var file = await Media.LibraryApi.UploadNamedAsync(admin, siteId, "photo.jpg", TestFixtures.Media.ImageFixtures.RotatedPhoto, "image/jpeg").ConfigureAwait(true);
+
+        await Media.MediaApi.PublicAsync(_app, "offline-library.test", file.PublicPath).ConfigureAwait(true);
+        await Media.MediaApi.PublicAsync(_app, "offline-library.test", $"/_media/{file.Id:N}-v1-w640.jpg").ConfigureAwait(true);
+
+        var services = _app.Services;
+        await services.GetRequiredService<QuickBuilder.Media.Variants.ThumbnailWorker>()
+            .ProduceAsync(new QuickBuilder.Media.Variants.ThumbnailRequest(siteId, file.Id, 1), CancellationToken.None).ConfigureAwait(true);
+        await services.GetRequiredService<QuickBuilder.Media.Infrastructure.ImageMetadataBackfillService>().RunOnceAsync(CancellationToken.None).ConfigureAwait(true);
+        await services.GetRequiredService<QuickBuilder.Media.Infrastructure.SearchTextBackfillService>().RunOnceAsync(CancellationToken.None).ConfigureAwait(true);
+
+        var runner = services.GetRequiredService<QuickBuilder.Media.Infrastructure.StorageCheckRunner>();
+        var check = await runner.TryClaimAsync("cli", null, CancellationToken.None).ConfigureAwait(true);
+        await runner.RunAsync(check!.Id, CancellationToken.None).ConfigureAwait(true);
+
+        Assert.Equal(0, outbound);
+    }
+
+    /// <summary>
     /// 002 FR-035: the identity journeys make no outbound call either — no breached-password
     /// lookup, no email, no licence check.
     /// </summary>

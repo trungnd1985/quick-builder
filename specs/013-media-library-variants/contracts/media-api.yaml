@@ -1,0 +1,600 @@
+openapi: 3.1.0
+info:
+  title: QuickBuilder Media API — library, variants and storage check
+  version: v1
+  description: |
+    HTTP contract changes for feature 013 (issue #13). This document lists **only new and
+    changed operations and schemas**; everything else in
+    specs/003-media-storage/contracts/media-api.yaml is unchanged and still applies,
+    including its conventions: problem+json errors, the 002 authorization behaviour
+    (401, 403 `identity.*`, 404 `sites.not_found`, 428), and the `X-QuickBuilder-Request: 1`
+    header and same-origin `Origin` on every state-changing request.
+
+    All changes are additive for existing clients: new query parameters are optional, new
+    response fields are added, and the only changed behaviour is that deleting a file that
+    is in use now needs `confirmInUse=true` (FR-015).
+
+    Research references (MV-xx) are to specs/013-media-library-variants/research.md.
+
+servers:
+  - url: /
+
+tags:
+  - name: Media (admin)
+  - name: Media folders (admin)
+  - name: Media storage (admin)
+  - name: Media (public)
+
+paths:
+  /api/v1/media/sites/{siteId}/files:
+    parameters:
+      - $ref: '#/components/parameters/SiteId'
+
+    get:
+      tags: [Media (admin)]
+      operationId: listMediaFiles
+      summary: Browse or search a site's library (changed)
+      description: |
+        Requires `media.files.view` (MV-03).
+        - Without `q`: the files directly in `folderId` (top level when omitted).
+        - With `q`: search. The whole library by default; `scope=subtree` limits it to
+          `folderId` and its descendants.
+        Keyset paging per sort; a cursor is only valid with the sort and filters that
+        produced it.
+      parameters:
+        - name: folderId
+          in: query
+          schema: { type: string, format: uuid }
+        - name: scope
+          in: query
+          schema: { type: string, enum: [folder, subtree], default: folder }
+          description: '`subtree` requires `folderId` and `q`.'
+        - name: q
+          in: query
+          schema: { type: string, minLength: 1, maxLength: 100 }
+          description: Literal text matched, ignoring case and accents, against name and alternative text.
+        - name: kind
+          in: query
+          schema: { type: string, enum: [image, document] }
+        - name: sort
+          in: query
+          schema: { type: string, enum: [uploaded, name, size], default: uploaded }
+        - name: direction
+          in: query
+          schema: { type: string, enum: [asc, desc] }
+          description: Defaults to `desc` for `uploaded` and `size`, `asc` for `name`.
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 50 }
+        - name: cursor
+          in: query
+          schema: { type: string }
+      responses:
+        '200':
+          description: One page.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MediaFilePage' }
+        '400':
+          description: '`media.invalid_query`, `media.invalid_cursor`, `media.invalid_limit`.'
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '404':
+          description: '`media.folder_not_found`.'
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+
+    post:
+      tags: [Media (admin)]
+      operationId: uploadMediaFile
+      summary: Upload one file (changed)
+      description: |
+        As in 003: the body is the file's raw bytes, named by `X-QuickBuilder-File-Name`.
+        New: an optional `folderId` query parameter files it in that folder, checked before
+        any byte is stored, and the refusal `media.dimensions_too_large` (MV-10). An
+        accepted image has `width`, `height` and `metadataState: recorded`; its thumbnail
+        is produced in the background (MV-13).
+      parameters:
+        - name: folderId
+          in: query
+          required: false
+          schema: { type: string, format: uuid }
+        - name: X-QuickBuilder-File-Name
+          in: header
+          required: true
+          schema: { type: string, maxLength: 2048 }
+      requestBody:
+        required: true
+        content:
+          '*/*':
+            schema: { type: string, format: binary }
+      responses:
+        '201':
+          description: Stored and public; the extended `MediaFile`.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MediaFile' }
+        '400':
+          description: 003's codes, plus `media.dimensions_too_large`.
+        '404':
+          description: '`media.folder_not_found`.'
+
+  /api/v1/media/sites/{siteId}/files/move:
+    parameters:
+      - $ref: '#/components/parameters/SiteId'
+    post:
+      tags: [Media folders (admin)]
+      operationId: moveMediaFiles
+      summary: Move files into a folder or to the top level
+      description: Requires `media.files.upload`. Addresses never change (FR-003).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [fileIds]
+              properties:
+                fileIds:
+                  type: array
+                  minItems: 1
+                  maxItems: 100
+                  items: { type: string, format: uuid }
+                folderId:
+                  type: [string, 'null']
+                  format: uuid
+                  description: Null or absent moves to the top level.
+      responses:
+        '204': { description: Moved. Ids that are not the site's files are ignored. }
+        '404': { description: '`media.folder_not_found`.' }
+        '400': { description: '`media.too_many_files`.' }
+
+  /api/v1/media/sites/{siteId}/files/{fileId}:
+    parameters:
+      - $ref: '#/components/parameters/SiteId'
+      - $ref: '#/components/parameters/FileId'
+
+    get:
+      tags: [Media (admin)]
+      operationId: getMediaFile
+      summary: One file with its details and usage summary
+      description: Requires `media.files.view`.
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MediaFile' }
+        '404': { description: '`media.not_found`.' }
+
+    patch:
+      tags: [Media (admin)]
+      operationId: updateMediaFile
+      summary: Set or clear an image's alternative text
+      description: Requires `media.files.upload` (MV-04). Documents refuse alternative text.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [altText]
+              properties:
+                altText:
+                  type: [string, 'null']
+                  maxLength: 300
+                  description: Null or empty clears it.
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MediaFile' }
+        '404': { description: '`media.not_found`.' }
+        '409': { description: '`media.conflict`.' }
+        '400': { description: '`media.alt_text_not_allowed`, `media.invalid_alt_text`.' }
+
+    delete:
+      tags: [Media (admin)]
+      operationId: deleteMediaFile
+      summary: Delete a file (changed)
+      description: |
+        Declares `media.own_files.delete`, as in 003. Additionally (MV-06):
+        - another user's file needs `media.files.delete`;
+        - a file used by a currently published page or component needs
+          `pages.publishing.manage` on the site, whoever uploaded it;
+        - a file with any usage (draft, live or history) needs `confirmInUse=true`,
+          otherwise `409 media.in_use` returns the usage summary to show.
+      parameters:
+        - name: confirmInUse
+          in: query
+          schema: { type: boolean, default: false }
+      responses:
+        '204': { description: Deleted. Live pages stop showing it at their next request. }
+        '403':
+          description: '`identity.forbidden` (another user''s file; 003''s existing code) or `media.in_live_use`.'
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '404': { description: '`media.not_found`.' }
+        '409':
+          description: '`media.in_use` (with `usage`) or `media.conflict`.'
+          content:
+            application/problem+json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Problem'
+                  - type: object
+                    properties:
+                      usage: { $ref: '#/components/schemas/UsageSummary' }
+
+  /api/v1/media/sites/{siteId}/files/{fileId}/content:
+    parameters:
+      - $ref: '#/components/parameters/SiteId'
+      - $ref: '#/components/parameters/FileId'
+    put:
+      tags: [Media (admin)]
+      operationId: replaceMediaFile
+      summary: Replace a file's contents, keeping its identity
+      description: |
+        Declares `media.own_files.delete`; the same additional rules as delete except the
+        in-use confirmation (MV-06, MV-07). The replacement goes through 003's validation
+        and must be of the same kind. On success the file has a new `contentVersion` and
+        `publicPath`; the previous address is not found from now on, and live pages show
+        the new contents at their next request (FR-019). Like upload, the body is the new
+        file's raw bytes named by `X-QuickBuilder-File-Name`; the display name is kept.
+      parameters:
+        - name: expectedContentVersion
+          in: query
+          required: true
+          description: The version the member saw; a mismatch is `media.conflict`.
+          schema: { type: integer, minimum: 1 }
+        - name: X-QuickBuilder-File-Name
+          in: header
+          required: true
+          schema: { type: string, maxLength: 2048 }
+      requestBody:
+        required: true
+        content:
+          '*/*':
+            schema: { type: string, format: binary }
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MediaFile' }
+        '403': { description: '`identity.forbidden`, `media.in_live_use`.' }
+        '404': { description: '`media.not_found`.' }
+        '409': { description: '`media.conflict`.' }
+        '413': { description: '`media.too_large`.' }
+        '400':
+          description: |
+            `media.kind_mismatch`, `media.dimensions_too_large`, and 003's
+            `media.empty`, `media.unsupported_type`, `media.type_mismatch`.
+        '503': { description: '`media.storage_unavailable`.' }
+
+  /api/v1/media/sites/{siteId}/files/{fileId}/usage:
+    parameters:
+      - $ref: '#/components/parameters/SiteId'
+      - $ref: '#/components/parameters/FileId'
+    get:
+      tags: [Media (admin)]
+      operationId: getMediaFileUsage
+      summary: Where a file is used (FR-014)
+      description: |
+        Requires `media.files.view`. Places are named only when the caller holds
+        `pages.content.view`; otherwise `places` is empty and only counts are given.
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Usage' }
+        '404': { description: '`media.not_found`.' }
+
+  /api/v1/media/sites/{siteId}/files/{fileId}/variants/{width}:
+    parameters:
+      - $ref: '#/components/parameters/SiteId'
+      - $ref: '#/components/parameters/FileId'
+      - name: width
+        in: path
+        required: true
+        schema: { type: integer }
+    get:
+      tags: [Media (admin)]
+      operationId: getMediaFileVariant
+      summary: A resized preview for the admin shell (MV-16)
+      description: |
+        Requires `media.files.view`. Works for sites with no host name. `v` must equal the
+        file's current `contentVersion`; the response is then cacheable privately for a
+        year. Same production path as public variants (MV-12).
+      parameters:
+        - name: v
+          in: query
+          required: true
+          schema: { type: integer, minimum: 1 }
+      responses:
+        '200':
+          description: "The variant, with 003's safe-serving headers and Cache-Control private, max-age=31536000, immutable."
+          content:
+            image/*:
+              schema: { type: string, format: binary }
+        '404': { description: '`media.not_found` (unknown width or version, not eligible).' }
+
+  /api/v1/media/sites/{siteId}/folders:
+    parameters:
+      - $ref: '#/components/parameters/SiteId'
+    get:
+      tags: [Media folders (admin)]
+      operationId: listMediaFolders
+      summary: The site's whole folder tree
+      description: Requires `media.files.view`. At most 1,000 folders (MV-02).
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/FolderTree' }
+    post:
+      tags: [Media folders (admin)]
+      operationId: createMediaFolder
+      summary: Create a folder
+      description: Requires `media.files.upload`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string, minLength: 1, maxLength: 100 }
+                parentId: { type: [string, 'null'], format: uuid }
+      responses:
+        '201':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Folder' }
+        '404': { description: '`media.folder_not_found` (parent).' }
+        '409': { description: '`media.folder_name_taken`, `media.folder_conflict`.' }
+        '400': { description: '`media.invalid_folder_name`, `media.folder_too_deep`, `media.folder_limit`.' }
+
+  /api/v1/media/sites/{siteId}/folders/{folderId}:
+    parameters:
+      - $ref: '#/components/parameters/SiteId'
+      - name: folderId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    patch:
+      tags: [Media folders (admin)]
+      operationId: updateMediaFolder
+      summary: Rename and/or move a folder
+      description: Requires `media.files.upload`. Any folder of the site, whoever created it.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              minProperties: 1
+              properties:
+                name: { type: string, minLength: 1, maxLength: 100 }
+                parentId:
+                  type: [string, 'null']
+                  format: uuid
+                  description: Present to move; null moves to the top level.
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Folder' }
+        '404': { description: '`media.folder_not_found`.' }
+        '409': { description: '`media.folder_name_taken`, `media.folder_conflict`.' }
+        '400': { description: '`media.invalid_folder_name`, `media.folder_cycle`, `media.folder_too_deep`.' }
+    delete:
+      tags: [Media folders (admin)]
+      operationId: deleteMediaFolder
+      summary: Delete an empty folder
+      description: Requires `media.files.upload`.
+      responses:
+        '204': { description: Deleted. }
+        '404': { description: '`media.folder_not_found`.' }
+        '409': { description: '`media.folder_not_empty`, `media.folder_conflict`.' }
+
+  /api/v1/media/storage-check:
+    get:
+      tags: [Media storage (admin)]
+      operationId: getStorageCheck
+      summary: The configured provider and the latest consistency check (MV-21)
+      description: Requires `media.storage.check` (installation scope; Administrators).
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/StorageStatus' }
+    post:
+      tags: [Media storage (admin)]
+      operationId: startStorageCheck
+      summary: Start a consistency check now
+      description: Requires `media.storage.check`. Runs in the background.
+      responses:
+        '202':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/StorageCheck' }
+        '409': { description: '`media.storage_check_running`.' }
+
+  /_media/{file}:
+    get:
+      tags: [Media (public)]
+      operationId: getPublicMedia
+      summary: An original or a variant on the site's public surface (changed)
+      description: |
+        Anonymous; site from the `Host` header (003). `{file}` follows MV-08 exactly:
+        - `{id}.{ext}` — original, content version 1 (unchanged from 003);
+        - `{id}-v{n}.{ext}` — original, content version n ≥ 2;
+        - `{id}-v{n}-w{width}.{ext}` — variant of version n at a configured width.
+        Every other form, a stale version, an unconfigured width or an ineligible file is
+        `media.not_found`, identical to an unknown id. Headers are 003's (M-11) for every
+        form. If a variant cannot be produced, the original's bytes are returned at the
+        variant address with `Cache-Control: no-store` (MV-12).
+      parameters:
+        - name: file
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: The bytes. }
+        '206': { description: Partial content. }
+        '304': { description: Not modified. }
+        '404': { description: '`media.not_found`.' }
+
+components:
+  parameters:
+    SiteId:
+      name: siteId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    FileId:
+      name: fileId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+
+  schemas:
+    MediaFile:
+      description: 003's `MediaFile` with the fields below added.
+      allOf:
+        - $ref: '../../003-media-storage/contracts/media-api.yaml#/components/schemas/MediaFile'
+        - type: object
+          required: [folderId, altText, contentVersion, metadataState, variants, usage, canReplace]
+          properties:
+            folderId: { type: [string, 'null'], format: uuid }
+            altText: { type: [string, 'null'], maxLength: 300 }
+            width: { type: [integer, 'null'] }
+            height: { type: [integer, 'null'] }
+            contentVersion: { type: integer, minimum: 1 }
+            metadataState:
+              type: string
+              enum: [pending, recorded, not_applicable, over_limit, unreadable]
+            replacedAtUtc: { type: [string, 'null'], format: date-time }
+            replacedBy:
+              oneOf:
+                - $ref: '../../003-media-storage/contracts/media-api.yaml#/components/schemas/UserSummary'
+                - type: 'null'
+            variants:
+              description: Admin preview addresses (MV-16); empty when not eligible.
+              type: array
+              items:
+                type: object
+                required: [width, path]
+                properties:
+                  width: { type: integer }
+                  path: { type: string }
+            thumbnailPath:
+              type: string
+              description: Admin address of the thumbnail, or of 003's preview when not eligible.
+            usage: { $ref: '#/components/schemas/UsageSummary' }
+            canDelete:
+              type: boolean
+              description: Now also false for live-used files without the publishing capability.
+            canReplace: { type: boolean }
+
+    MediaFilePage:
+      type: object
+      required: [items, totalCount, nextCursor]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/MediaFile' }
+        totalCount:
+          type: integer
+          description: Files matching the query (folder, search, kind).
+        nextCursor: { type: [string, 'null'] }
+
+    UsageSummary:
+      type: object
+      required: [places, draftPlaces, livePlaces, historyOnlyPlaces, inLiveUse]
+      properties:
+        places: { type: integer, description: Distinct pages and components using the file. }
+        draftPlaces: { type: integer }
+        livePlaces: { type: integer }
+        historyOnlyPlaces: { type: integer }
+        inLiveUse: { type: boolean }
+
+    Usage:
+      type: object
+      required: [summary, places]
+      properties:
+        summary: { $ref: '#/components/schemas/UsageSummary' }
+        places:
+          type: array
+          items:
+            type: object
+            required: [kind, id, title, inDraft, live, inHistory]
+            properties:
+              kind: { type: string, enum: [page, component] }
+              id: { type: string, format: uuid }
+              title: { type: string, description: Render as text. }
+              inDraft: { type: boolean }
+              live: { type: boolean }
+              inHistory: { type: boolean }
+              livePagesThroughComponent:
+                type: [integer, 'null']
+                description: For live components, how many live pages show it.
+
+    Folder:
+      type: object
+      required: [id, name, parentId, fileCount, createdAtUtc]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string, description: Render as text. }
+        parentId: { type: [string, 'null'], format: uuid }
+        fileCount: { type: integer, description: Files directly in the folder. }
+        createdAtUtc: { type: string, format: date-time }
+
+    FolderTree:
+      type: object
+      required: [folders, topLevelFileCount, revision]
+      properties:
+        folders:
+          type: array
+          maxItems: 1000
+          items: { $ref: '#/components/schemas/Folder' }
+        topLevelFileCount: { type: integer }
+        revision: { type: integer, description: Changes on every structural change. }
+
+    StorageCheck:
+      type: object
+      required: [id, trigger, provider, status, startedAtUtc, filesChecked, missingCount]
+      properties:
+        id: { type: string, format: uuid }
+        trigger: { type: string, enum: [startup, admin, cli] }
+        provider: { type: string, enum: [Local, S3, AzureBlob] }
+        status: { type: string, enum: [running, completed, failed] }
+        startedAtUtc: { type: string, format: date-time }
+        finishedAtUtc: { type: [string, 'null'], format: date-time }
+        filesChecked: { type: integer }
+        missingCount: { type: integer }
+        missing:
+          type: array
+          maxItems: 1000
+          items:
+            type: object
+            required: [siteId, fileId]
+            properties:
+              siteId: { type: string, format: uuid }
+              fileId: { type: string, format: uuid }
+
+    StorageStatus:
+      type: object
+      required: [provider, latestCheck]
+      properties:
+        provider: { type: string, enum: [Local, S3, AzureBlob] }
+        latestCheck:
+          oneOf:
+            - $ref: '#/components/schemas/StorageCheck'
+            - type: 'null'
+
+    Problem:
+      $ref: '../../003-media-storage/contracts/media-api.yaml#/components/schemas/Problem'

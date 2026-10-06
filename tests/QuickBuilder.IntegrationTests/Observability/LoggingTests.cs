@@ -173,6 +173,61 @@ public sealed class LoggingTests(DatabaseFixture database) : IAsyncLifetime
     }
 
     /// <summary>
+    /// 013 FR-041: the library's journeys log ids and counts only — never a file name, folder
+    /// name, alternative text or storage secret.
+    /// </summary>
+    /// <remarks>
+    /// Every value a member or operator types carries the canary marker: the file names, a
+    /// folder, alternative text, and the secret key of a misconfigured S3 provider. The journey
+    /// uploads, files, describes, replaces, produces and fails a variant, runs the storage
+    /// check, and fails S3 start-up validation.
+    /// </remarks>
+    [Fact]
+    public async Task Library_journeys_log_ids_and_counts_only()
+    {
+        var connection = await database.CreateDatabaseAsync("logging-library").ConfigureAwait(true);
+        using var app = new QuickBuilderApp(connection, configureTestServices: Media.ControllableEncoder.Install);
+        var admin = await app.CreateAdminClientAsync().ConfigureAwait(true);
+        var siteId = await Media.MediaApi.CreateSiteAsync(admin, "Logged library", "logged-library.test").ConfigureAwait(true);
+        var canary = Media.MediaApi.CanaryMarker;
+
+        var file = await Media.LibraryApi.UploadNamedAsync(admin, siteId, Media.MediaApi.CanaryName("jpg"), TestFixtures.Media.ImageFixtures.LargePhoto, "image/jpeg").ConfigureAwait(true);
+        var folder = await Media.LibraryApi.CreateFolderOkAsync(admin, siteId, $"{canary}folder").ConfigureAwait(true);
+        await Media.LibraryApi.MoveAsync(admin, siteId, [file.Id], folder.Id).ConfigureAwait(true);
+        await Media.LibraryApi.SetAltTextAsync(admin, siteId, file.Id, $"{canary}alternative text").ConfigureAwait(true);
+        await Media.ReplaceFileApiTests.ReplaceAsync(admin, siteId, file.Id, 1, Media.MediaApi.CanaryName("jpg"), TestFixtures.Media.ImageFixtures.RotatedPhoto).ConfigureAwait(true);
+
+        await Media.MediaApi.PublicAsync(app, "logged-library.test", $"/_media/{file.Id:N}-v2-w320.jpg").ConfigureAwait(true);
+        Media.ControllableEncoder.Of(app.Services).Fail = true;
+        await Media.MediaApi.PublicAsync(app, "logged-library.test", $"/_media/{file.Id:N}-v2-w640.jpg").ConfigureAwait(true);
+
+        var runner = app.Services.GetRequiredService<QuickBuilder.Media.Infrastructure.StorageCheckRunner>();
+        var check = await runner.TryClaimAsync("cli", null, CancellationToken.None).ConfigureAwait(true);
+        await runner.RunAsync(check!.Id, CancellationToken.None).ConfigureAwait(true);
+
+        var secret = $"{canary}secret-access-key";
+        var (startupMessage, startupLogs) = Storage.RemoteStartup.Fail(connection, new Dictionary<string, string>
+        {
+            ["Storage:Provider"] = "S3",
+            ["Storage:S3:Bucket"] = "media",
+            ["Storage:S3:Region"] = "us-east-1",
+            ["Storage:S3:ServiceUrl"] = "http://127.0.0.1:1",
+            ["Storage:S3:AccessKeyId"] = "AKIDEXAMPLE",
+            ["Storage:S3:SecretAccessKey"] = secret,
+        });
+
+        var events = app.Logs.Events.Select(LogCapture.Render).ToList();
+        var leak = events.FirstOrDefault(e => e.Contains(canary, StringComparison.OrdinalIgnoreCase));
+        Assert.True(leak is null, $"A log event contains something a member or operator typed: {leak}");
+        Assert.DoesNotContain(secret, startupMessage, StringComparison.Ordinal);
+        Assert.DoesNotContain(secret, startupLogs, StringComparison.Ordinal);
+
+        // The events that should be there, are: by id, and with counts.
+        Assert.Contains(events, e => e.Contains(file.Id.ToString(), StringComparison.OrdinalIgnoreCase) && e.Contains("replaced", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(events, e => e.Contains("Storage check", StringComparison.Ordinal) && e.Contains("file(s) checked", StringComparison.Ordinal));
+    }
+
+    /// <summary>
     /// 010 FR-037: pages and components are logged by id, never by title, name or content.
     /// </summary>
     /// <remarks>

@@ -7,7 +7,11 @@
 
     It reaches stored bytes only through IFileStorage in Shared.Infrastructure (FR-019),
     names sites through Sites.Contracts and uploaders through Identity.Contracts — never
-    through another module's implementation.
+    through another module's implementation. Since 013 it also asks Pages.Contracts where
+    files are used and what "may publish" means (013 contracts/readers.md §5).
+
+    NetVips and its natives (013 research MV-09) are used only from Imaging/, which the
+    architecture tests enforce: nothing else in the product touches native image code.
   -->
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
@@ -20,6 +24,15 @@
     <ProjectReference Include="..\QuickBuilder.Media.Contracts\QuickBuilder.Media.Contracts.csproj" />
     <ProjectReference Include="..\..\Sites\QuickBuilder.Sites.Contracts\QuickBuilder.Sites.Contracts.csproj" />
     <ProjectReference Include="..\..\Identity\QuickBuilder.Identity.Contracts\QuickBuilder.Identity.Contracts.csproj" />
+    <ProjectReference Include="..\..\Pages\QuickBuilder.Pages.Contracts\QuickBuilder.Pages.Contracts.csproj" />
+  </ItemGroup>
+
+  <ItemGroup Label="Image processing (013 MV-09)">
+    <PackageReference Include="NetVips" />
+    <PackageReference Include="NetVips.Native.linux-musl-x64" />
+    <PackageReference Include="NetVips.Native.linux-musl-arm64" />
+    <PackageReference Include="NetVips.Native.linux-x64" />
+    <PackageReference Include="NetVips.Native.win-x64" />
   </ItemGroup>
 
   <ItemGroup>

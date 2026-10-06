@@ -1,5 +1,8 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using QuickBuilder.Media.Contracts;
+using QuickBuilder.Media.Domain;
+using QuickBuilder.Media.Imaging;
 using QuickBuilder.Shared.Infrastructure.Data;
 using QuickBuilder.Shared.Infrastructure.MultiSite;
 using QuickBuilder.Shared.Kernel.MultiSite;
@@ -13,8 +16,13 @@ namespace QuickBuilder.Media.Infrastructure;
 /// A deleted file's row is gone (003's delete is permanent), so "the row exists" is what
 /// "available" means here. Checking the stored bytes on every render would put file-system
 /// calls on the public path for a case — bytes removed by hand — the admin already reports.
+/// The variant list comes from the row and the configuration alone (013 MV-15): a variant
+/// not produced yet is produced when the browser first asks for it.
 /// </remarks>
-internal sealed class PublicMediaReader(PublicMediaReadDbContext database) : IPublicMediaReader
+internal sealed class PublicMediaReader(
+    PublicMediaReadDbContext database,
+    IOptions<MediaOptions> options,
+    ImagingRuntime imaging) : IPublicMediaReader
 {
     public async Task<IReadOnlyDictionary<Guid, PublicMediaFile>> GetAsync(
         Guid siteId, IReadOnlyCollection<Guid> mediaIds, CancellationToken cancellationToken = default)
@@ -28,12 +36,30 @@ internal sealed class PublicMediaReader(PublicMediaReadDbContext database) : IPu
 
         var files = await database.Files
             .Where(f => f.SiteId == siteId && mediaIds.Contains(f.Id))
-            .Select(f => new { f.Id, f.Extension, f.ContentType })
+            .Select(f => new { f.Id, f.Extension, f.ContentType, f.ContentVersion, f.Width, f.Height, f.IsAnimated, f.MetadataState, f.VariantsState })
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
 
+        var widths = options.Value.Variants.Widths;
+
         // The same address MediaFileMapper.PublicPath builds, without the base path.
-        return files.ToDictionary(f => f.Id, f => new PublicMediaFile($"/_media/{f.Id:N}.{f.Extension}", f.ContentType));
+        return files.ToDictionary(
+            f => f.Id,
+            f =>
+            {
+                var eligible = VariantPlan.IsEligible(f.ContentType, f.IsAnimated, f.MetadataState, f.VariantsState, imaging.AvifVariants);
+                IReadOnlyList<PublicMediaVariant> variants = eligible
+                    ? [.. VariantPlan.Widths(f.Width, widths).Select(w => new PublicMediaVariant(w, new MediaAddress(f.Id, f.ContentVersion, w, f.Extension).ToPath()))]
+                    : [];
+
+                return new PublicMediaFile(
+                    new MediaAddress(f.Id, f.ContentVersion, null, f.Extension).ToPath(),
+                    f.ContentType,
+                    f.Width,
+                    f.Height,
+                    variants,
+                    OfferOriginal: eligible && VariantPlan.OfferOriginal(f.Width, widths));
+            });
     }
 }
 
@@ -70,6 +96,8 @@ internal sealed class PublicMediaReadDbContext(DbContextOptions<PublicMediaReadD
         {
             entity.ToTable("media_files");
             entity.HasKey(e => e.Id);
+            entity.Property(e => e.MetadataState).HasConversion<short>();
+            entity.Property(e => e.VariantsState).HasConversion<short>();
             entity.HasQueryFilter(e => e.SiteId == CurrentSiteId);
         });
 
@@ -92,4 +120,16 @@ internal sealed class PublicMediaRow : ISiteOwned
     public string Extension { get; set; } = string.Empty;
 
     public string ContentType { get; set; } = string.Empty;
+
+    public int ContentVersion { get; set; }
+
+    public int? Width { get; set; }
+
+    public int? Height { get; set; }
+
+    public bool IsAnimated { get; set; }
+
+    public MediaMetadataState MetadataState { get; set; }
+
+    public MediaVariantsState VariantsState { get; set; }
 }

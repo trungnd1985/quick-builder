@@ -184,6 +184,11 @@ internal sealed class PublishingWrites(
             content.Document, content.SchemaVersion, title, fromDraftVersion, versionKind, restoredFromNumber, actor, subject.Path, now);
         database.PublishedVersions.Add(version);
 
+        // 013 research MV-05: which files this version shows, for usage (live now, history
+        // once another version replaces it). Removed with the version, by cascade.
+        database.VersionMediaReferences.AddRange(DependencyExtractor.Media(content.Document)
+            .Select(mediaId => new VersionMediaReference(siteId, version.Id, mediaId)));
+
         await ReplaceDependenciesAsync(siteId, subject, content.Document, cancellationToken).ConfigureAwait(false);
 
         if (scheduleOwner is null)
@@ -280,6 +285,13 @@ internal sealed class PublishingWrites(
 
         await database.ForSite<PublishSchedule>(siteId)
             .Where(s => s.SubjectKind == subject.Kind && s.SubjectId == subject.Id)
+            .ExecuteDeleteAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        // 013 research MV-05: the draft's media usage goes with the subject. (Its versions'
+        // references go with the versions.)
+        await database.ForSite<DraftMediaReference>(siteId)
+            .Where(r => r.SubjectKind == subject.Kind && r.SubjectId == subject.Id)
             .ExecuteDeleteAsync(cancellationToken)
             .ConfigureAwait(false);
 

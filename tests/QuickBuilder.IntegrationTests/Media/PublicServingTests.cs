@@ -78,6 +78,37 @@ public sealed class PublicServingTests(DatabaseFixture database) : IAsyncLifetim
         Assert.Equal(HttpStatusCode.NotModified, unchanged.StatusCode);
     }
 
+    /// <summary>
+    /// 013 research MV-08: a version-1 file keeps its 003 address and ETag, and only the
+    /// canonical form of an address is served.
+    /// </summary>
+    [Fact]
+    public async Task Only_canonical_addresses_serve_and_version_one_keeps_the_003_form()
+    {
+        var file = await MediaApi.UploadOkAsync(_scenario.Admin, _scenario.SiteA, SampleFiles.Png).ConfigureAwait(true);
+        var id = file.Id.ToString("N");
+        Assert.EndsWith($"/_media/{id}.png", file.PublicPath, StringComparison.Ordinal);
+
+        var served = await MediaApi.PublicAsync(_scenario.App, MediaScenario.HostA, file.PublicPath).ConfigureAwait(true);
+        Assert.Equal(HttpStatusCode.OK, served.StatusCode);
+        Assert.Equal($"\"{id}\"", served.Headers.ETag!.Tag);
+
+        foreach (var other in new[]
+        {
+            $"/_media/{id}-v1.png",          // version 1's original has one address
+            $"/_media/{id}-v2.png",          // not a version that exists
+            $"/_media/{id}-v1-w320.png",     // no variants yet (US2), and a PNG this small has none
+            $"/_media/{id}-v1-w700.png",     // not a configured width
+            $"/_media/{id}-v01.png",
+            $"/_media/{id}.PNG",
+            $"/_media/{id}.jpg",
+        })
+        {
+            var response = await MediaApi.PublicAsync(_scenario.App, MediaScenario.HostA, other).ConfigureAwait(true);
+            Assert.True(response.StatusCode == HttpStatusCode.NotFound, $"{other} answered {response.StatusCode}");
+        }
+    }
+
     /// <summary>FR-013: public addresses include the configured base path.</summary>
     [Fact]
     public async Task With_a_base_path_the_address_includes_it_and_is_served_under_it()

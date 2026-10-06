@@ -12,6 +12,7 @@
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
     <PackageReference Include="Testcontainers.PostgreSql" />
+    <PackageReference Include="Testcontainers.Azurite" />
     <PackageReference Include="xunit" />
     <PackageReference Include="xunit.runner.visualstudio" />
     <!-- Already approved for the smoke tests (001 research). 003 uses it for Unix-only
@@ -36,6 +37,11 @@
     <ProjectReference Include="..\..\src\Modules\Editor\QuickBuilder.Editor.Contracts\QuickBuilder.Editor.Contracts.csproj" />
     <ProjectReference Include="..\..\src\Modules\Rendering\QuickBuilder.Rendering\QuickBuilder.Rendering.csproj" />
     <ProjectReference Include="..\..\src\Modules\Rendering\QuickBuilder.Rendering.Contracts\QuickBuilder.Rendering.Contracts.csproj" />
+  </ItemGroup>
+
+  <!-- 013 T045: images generated at test time (tests/fixtures/media/ImageFixtures.cs). -->
+  <ItemGroup>
+    <Compile Include="../fixtures/media/ImageFixtures.cs" Link="Fixtures/ImageFixtures.cs" />
   </ItemGroup>
 
 </Project>

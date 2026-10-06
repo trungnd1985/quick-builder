@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using QuickBuilder.Rendering.Domain;
@@ -8,10 +9,27 @@ namespace QuickBuilder.Rendering.Rendering.Blocks;
 // component in src/admin/src/editor/blocks/<type>/, except where page-schema.md §9 allows the
 // published page to differ (a missing image, a link to a page that is not live, the embed).
 
-/// <summary>An image from the site's media library (012 FR-027).</summary>
+/// <summary>An image from the site's media library (012 FR-027; responsive since 013 MV-15).</summary>
+/// <remarks>
+/// <para>
+/// <b>Correctly sized</b> (contracts/public-media.md §2): <c>srcset</c> offers every resized
+/// copy, and the original only when it is no wider than the largest copy, so a 6,000-pixel
+/// photo is never downloaded (SC-003). <c>sizes</c> tells the browser how wide the image will
+/// be: the enclosing Section's content width, or the image's own width when it is shown at
+/// its natural size. <c>src</c> is a sensible default for browsers that ignore both.
+/// </para>
+/// <para>
+/// <b>No layout shift</b>: <c>width</c> and <c>height</c> state the displayed size, so the
+/// browser reserves the space before the bytes arrive (SC-006). They are left out while the
+/// size is unknown (an image not measured yet).
+/// </para>
+/// </remarks>
 internal sealed class ImageRenderer : IBlockRenderer
 {
     private static readonly string[] Widths = ["full", "natural"];
+
+    /// <summary>The widest copy used as <c>src</c>: enough for a desktop screen at 1×.</summary>
+    internal const int DefaultSourceWidth = 1_280;
 
     public string Type => "image";
 
@@ -29,12 +47,13 @@ internal sealed class ImageRenderer : IBlockRenderer
             return;
         }
 
-        var src = PageShell.TrimBase(context.Inputs.BasePath) + file.PublicPath;
+        var basePath = PageShell.TrimBase(context.Inputs.BasePath);
+        var width = context.Choice(node, "width", Widths);
         var alt = context.Bool(node, "decorative") ? string.Empty : context.String(node, "alt");
         var link = LinkResolver.Resolve(context.Prop(node, "link"), context);
         var linked = link is not null && LinkResolver.IsWritable(link);
 
-        writer.Open("figure").Attribute("class", $"qb-image qb-image--{context.Choice(node, "width", Widths)}").EndTag();
+        writer.Open("figure").Attribute("class", $"qb-image qb-image--{width}").EndTag();
 
         if (linked)
         {
@@ -43,8 +62,23 @@ internal sealed class ImageRenderer : IBlockRenderer
             writer.EndTag();
         }
 
+        var source = file.Variants.LastOrDefault(v => v.Width <= DefaultSourceWidth)?.PublicPath ?? file.PublicPath;
+
         writer.Open("img");
-        writer.SitePath("src", src);
+        writer.SitePath("src", basePath + source);
+
+        if (file.Variants.Count > 0)
+        {
+            writer.Attribute("srcset", SourceSet(file, basePath));
+            writer.Attribute("sizes", Sizes(context.SectionWidth, width == "natural" ? file.Width : null));
+        }
+
+        if (file.Width is { } w && file.Height is { } h)
+        {
+            writer.Attribute("width", w.ToString(CultureInfo.InvariantCulture))
+                .Attribute("height", h.ToString(CultureInfo.InvariantCulture));
+        }
+
         writer.Attribute("alt", alt).Attribute("loading", "lazy").Attribute("decoding", "async").EndTag();
 
         if (linked)
@@ -53,6 +87,46 @@ internal sealed class ImageRenderer : IBlockRenderer
         }
 
         writer.Close("figure");
+    }
+
+    /// <summary>Every resized copy, and the original when it is no wider than the largest.</summary>
+    internal static string SourceSet(QuickBuilder.Media.Contracts.PublicMediaFile file, string basePath)
+    {
+        ArgumentNullException.ThrowIfNull(file);
+
+        var entries = file.Variants
+            .Select(v => $"{basePath}{v.PublicPath} {v.Width.ToString(CultureInfo.InvariantCulture)}w")
+            .ToList();
+
+        if (file.OfferOriginal && file.Width is { } original)
+        {
+            entries.Add($"{basePath}{file.PublicPath} {original.ToString(CultureInfo.InvariantCulture)}w");
+        }
+
+        return string.Join(", ", entries);
+    }
+
+    /// <summary>
+    /// How wide the image will be drawn: the Section's content width, capped by the image's own
+    /// width when it is shown at its natural size; the whole viewport in a full-width Section.
+    /// </summary>
+    internal static string Sizes(double? sectionWidth, int? naturalWidth)
+    {
+        double? cap = (sectionWidth, naturalWidth) switch
+        {
+            ({ } s, { } n) => Math.Min(s, n),
+            ({ } s, null) => s,
+            (null, { } n) => n,
+            _ => null,
+        };
+
+        if (cap is not { } px)
+        {
+            return "100vw";
+        }
+
+        var value = px.ToString("0.##", CultureInfo.InvariantCulture);
+        return $"(max-width: {value}px) 100vw, {value}px";
     }
 }
 

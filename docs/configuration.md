@@ -100,11 +100,46 @@ app before it listens, with a message that names the key.
 
 | Key | Default | Meaning |
 |---|---|---|
-| `Storage:Provider` | `Local` | The storage provider. `Local` (the file system) is the only one in this release; any other name stops startup and lists the supported names. S3-compatible and Azure Blob providers are planned. |
+| `Storage:Provider` | `Local` | `Local` (the file system), `S3` (any S3-compatible service) or `AzureBlob`, case-insensitive. Any other name stops startup and lists the supported names. Only the selected provider is loaded, and only it makes network calls. |
 | `Storage:Local:Path` | Image: `/var/lib/quickbuilder/media`. Elsewhere: `{LocalApplicationData}/QuickBuilder/media` | The directory that holds uploaded files. It must be absolute, and it must not be, or be inside, the application's own directory, content root or web root (checked after resolving links). It is created if missing and must be writable. In a container, mount persistent storage here — the reference compose file uses the `media-data` volume. |
 
-`/health/ready` includes a storage check: an instance whose storage location stops being
-writable or readable after startup reports not ready until it recovers.
+### S3-compatible (`Storage:Provider` = `S3`)
+
+AWS S3, Cloudflare R2, MinIO, Ceph and other services that support conditional writes
+(`If-None-Match: *`). Startup checks that they do.
+
+| Key | Default | Meaning |
+|---|---|---|
+| `Storage:S3:Bucket` | — (required) | The bucket. It must exist; QuickBuilder never creates it. |
+| `Storage:S3:Region` | — (required) | The region, e.g. `eu-west-1`. Any value (such as `auto`) for services that ignore regions. |
+| `Storage:S3:ServiceUrl` | AWS | An absolute `http(s)` URL for any service other than AWS, e.g. `https://<account>.r2.cloudflarestorage.com`. |
+| `Storage:S3:ForcePathStyle` | `false` | `true` for most self-hosted services (MinIO, Ceph), which address buckets by path rather than by host name. |
+| `Storage:S3:KeyPrefix` | empty | Puts every object under a prefix, e.g. `quickbuilder/`: lower-case letters, digits and `-` in segments, ending in `/`. Lets one bucket serve several installations. |
+| `Storage:S3:AccessKeyId` | — | With `SecretAccessKey`, or neither. With neither, the environment's credentials are used: environment variables, web identity (EKS, IRSA) or the instance profile. |
+| `Storage:S3:SecretAccessKey` | — | **Secret.** Set it through the environment (`Storage__S3__SecretAccessKey`) or a secret store, never in a committed file. It never appears in messages or logs. |
+
+### Azure Blob (`Storage:Provider` = `AzureBlob`)
+
+Set exactly one of `ConnectionString` and `AccountUrl`.
+
+| Key | Default | Meaning |
+|---|---|---|
+| `Storage:AzureBlob:Container` | — (required) | The container. It must exist; QuickBuilder never creates it. |
+| `Storage:AzureBlob:ConnectionString` | — | An account-key or SAS connection string. **Secret**: set it through the environment (`Storage__AzureBlob__ConnectionString`) or a secret store. Neither it nor the key inside it ever appears in messages or logs. |
+| `Storage:AzureBlob:AccountUrl` | — | `https://<account>.blob.core.windows.net`, authenticated with the environment's identity instead of a secret: managed identity, workload identity, the `AZURE_*` environment variables, or a signed-in Azure CLI. Never an interactive sign-in. |
+| `Storage:AzureBlob:KeyPrefix` | empty | As for S3. |
+
+### Startup and readiness
+
+With a remote provider, startup writes, re-writes (which must be refused), reads and
+deletes a small probe object under `{KeyPrefix}.quickbuilder-probe/`, within 30 seconds.
+A failure stops the app before it listens and names the key at fault: credentials
+rejected, bucket or container missing, access denied, unreachable, or no conditional
+writes.
+
+`/health/ready` includes a storage check (2 seconds for a remote provider): an instance
+whose storage stops being writable or readable after startup reports not ready until it
+recovers.
 
 ## Media
 
@@ -113,6 +148,10 @@ writable or readable after startup reports not ready until it recovers.
 | `Media:MaxFileSizeBytes` | `20971520` (20 MiB) | 1,024 – 1,073,741,824 | The largest file an upload may be. The server stops receiving an upload the moment it passes this. |
 | `Media:AllowedTypes` | all six: `image/jpeg`, `image/png`, `image/gif`, `image/webp`, `image/avif`, `application/pdf` | a subset of those six | Which types uploads may have, decided from each file's contents. Set `Media__AllowedTypes__0`, `__1`, … to narrow the list; any other type (SVG, for example) stops startup. |
 | `Media:OrphanGracePeriod` | `1.00:00:00` (24 h) | 1 hour – 30 days | Stored bytes with no library entry — left by a crash or a failed clean-up — are removed by an hourly sweep once they are this old. |
+| `Media:MaxImagePixels` | `100000000` (100 megapixels) | 1,000,000 – 1,000,000,000 | Images with more pixels (width × height) are refused at upload with `media.dimensions_too_large`. Only the image header is read to decide, so an oversized image is never decoded. |
+| `Media:Variants:Widths` | `320, 640, 960, 1280, 1920, 2560` | 1–10 widths, ascending, 64 – 4,096 | The widths published pages and the admin offer resized copies at. The smallest is the thumbnail width, produced right after upload; the others are produced the first time they are requested. Set `Media__Variants__Widths__0`, `__1`, … to replace the list; addresses for removed widths stop working and their stored copies are cleaned up. |
+| `Media:Variants:MaxConcurrent` | half the processor count, at least 1 | 1 – 64 | How many resized copies one instance produces at the same time. Requests beyond it wait. |
+| `Media:Variants:Timeout` | `00:00:10` | 1 – 60 seconds | How long producing one resized copy may take, waiting included. Past it, the original is sent (not cached) and the file stops offering resized copies until it is replaced. |
 
 Every site serves its media files at `/_media/{id}.{ext}` on its own host names. The
 `/_media` path is reserved on every site host: if a reverse proxy handled that path

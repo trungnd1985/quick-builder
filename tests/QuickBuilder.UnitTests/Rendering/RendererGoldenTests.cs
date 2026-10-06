@@ -99,8 +99,21 @@ public sealed class RendererGoldenTests
 
         foreach (var file in root.GetProperty("media").EnumerateObject())
         {
+            var value = file.Value;
+            int? Number(string name) => value.TryGetProperty(name, out var n) ? n.GetInt32() : null;
+
+            // 013 MV-15: dimensions and variants, when the context gives them.
+            var variants = value.TryGetProperty("variants", out var list)
+                ? [.. list.EnumerateArray().Select(v => new PublicMediaVariant(v.GetProperty("width").GetInt32(), v.GetProperty("publicPath").GetString()!))]
+                : new List<PublicMediaVariant>();
+
             harness.Media[Guid.Parse(file.Name)] = new PublicMediaFile(
-                file.Value.GetProperty("publicPath").GetString()!, file.Value.GetProperty("contentType").GetString()!);
+                value.GetProperty("publicPath").GetString()!,
+                value.GetProperty("contentType").GetString()!,
+                Number("width"),
+                Number("height"),
+                variants,
+                value.TryGetProperty("offerOriginal", out var offer) && offer.GetBoolean());
         }
 
         foreach (var component in root.GetProperty("components").EnumerateObject())

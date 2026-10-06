@@ -62,6 +62,64 @@ public sealed class MediaOptionsValidationTests
         Assert.Contains("Media:OrphanGracePeriod", result.FailureMessage, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void The_variant_defaults_are_valid()
+    {
+        var options = Defaulted(new MediaOptions());
+
+        Assert.True(_validator.Validate(null, options).Succeeded);
+        Assert.Equal([320, 640, 960, 1280, 1920, 2560], options.Variants.Widths);
+        Assert.Equal(320, options.Variants.ThumbnailWidth);
+        Assert.Equal(100_000_000, options.MaxImagePixels);
+        Assert.InRange(options.Variants.MaxConcurrent, 1, 64);
+        Assert.Equal(TimeSpan.FromSeconds(10), options.Variants.Timeout);
+    }
+
+    [Fact]
+    public void A_configured_width_list_replaces_the_default() =>
+        Assert.Equal([400, 800], Defaulted(new MediaOptions { Variants = new VariantOptions { Widths = [400, 800] } }).Variants.Widths);
+
+    [Theory]
+    [InlineData(new[] { 640, 320 })]
+    [InlineData(new[] { 320, 320 })]
+    [InlineData(new[] { 32 })]
+    [InlineData(new[] { 5000 })]
+    [InlineData(new[] { 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1100 })]
+    public void A_bad_width_list_fails_naming_the_key(int[] widths)
+    {
+        var result = _validator.Validate(null, Defaulted(new MediaOptions { Variants = new VariantOptions { Widths = widths } }));
+
+        Assert.True(result.Failed);
+        Assert.Contains("Media:Variants:Widths", result.FailureMessage, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(0, 10)]
+    [InlineData(65, 10)]
+    [InlineData(2, 0)]
+    [InlineData(2, 61)]
+    public void Concurrency_and_timeout_are_bounded(int concurrency, int timeoutSeconds)
+    {
+        var result = _validator.Validate(null, Defaulted(new MediaOptions
+        {
+            Variants = new VariantOptions { MaxConcurrent = concurrency, Timeout = TimeSpan.FromSeconds(timeoutSeconds) },
+        }));
+
+        Assert.True(result.Failed);
+        Assert.Contains("Media:Variants:", result.FailureMessage, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(999_999)]
+    [InlineData(1_000_000_001)]
+    public void The_pixel_limit_is_bounded(long pixels)
+    {
+        var result = _validator.Validate(null, Defaulted(new MediaOptions { MaxImagePixels = pixels }));
+
+        Assert.True(result.Failed);
+        Assert.Contains("Media:MaxImagePixels", result.FailureMessage, StringComparison.Ordinal);
+    }
+
     private static MediaOptions Defaulted(MediaOptions options)
     {
         new MediaOptionsDefaults().PostConfigure(null, options);

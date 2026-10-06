@@ -18,7 +18,7 @@ namespace QuickBuilder.IntegrationTests.Rendering;
 /// through a component, once however often the event arrives (012 data-model §3.2).
 /// </summary>
 [Collection(DatabaseCollection.Name)]
-public sealed class MediaDeletionRefreshTests(DatabaseFixture database) : IAsyncLifetime
+public sealed class MediaChangeRefreshTests(DatabaseFixture database) : IAsyncLifetime
 {
     private PagesScenario _scenario = null!;
     private Guid _file;
@@ -60,7 +60,7 @@ public sealed class MediaDeletionRefreshTests(DatabaseFixture database) : IAsync
         Assert.Contains(image, await VisitAsync("/through").ConfigureAwait(true), StringComparison.Ordinal);
         var before = await GenerationsAsync().ConfigureAwait(true);
 
-        Assert.Equal(HttpStatusCode.NoContent, (await MediaApi.DeleteAsync(_scenario.Admin, _scenario.SiteA, _file).ConfigureAwait(true)).StatusCode);
+        Assert.Equal(HttpStatusCode.NoContent, (await QuickBuilder.IntegrationTests.Media.UsageScenario.DeleteAsync(_scenario.Admin, _scenario.SiteA, _file, confirmInUse: true).ConfigureAwait(true)).StatusCode);
         await DispatchAsync().ConfigureAwait(true);
 
         var after = await GenerationsAsync().ConfigureAwait(true);
@@ -92,10 +92,60 @@ public sealed class MediaDeletionRefreshTests(DatabaseFixture database) : IAsync
         Assert.Equal(before[_throughComponent] + 1, after[_throughComponent]);
     }
 
+    /// <summary>013 research MV-17: every reason refreshes exactly the pages showing the file, once per event.</summary>
+    [Theory]
+    [InlineData(FileChangeReasons.Replaced)]
+    [InlineData(FileChangeReasons.Dimensions)]
+    [InlineData(FileChangeReasons.Variants)]
+    [InlineData("some-future-reason")]
+    public async Task A_changed_file_refreshes_the_pages_showing_it_once(string reason)
+    {
+        var before = await GenerationsAsync().ConfigureAwait(true);
+        var changed = new FileChanged(Guid.CreateVersion7(), DateTimeOffset.UtcNow, _scenario.SiteA, _file, reason);
+
+        for (var i = 0; i < 2; i++)
+        {
+            await using var scope = _scenario.App.Services.CreateAsyncScope();
+            foreach (var handler in scope.ServiceProvider.GetServices<IIntegrationEventHandler<FileChanged>>())
+            {
+                await handler.HandleAsync(changed, CancellationToken.None).ConfigureAwait(true);
+            }
+        }
+
+        var after = await GenerationsAsync().ConfigureAwait(true);
+        Assert.Equal(before[_direct] + 1, after[_direct]);
+        Assert.Equal(before[_throughComponent] + 1, after[_throughComponent]);
+        Assert.Equal(before[_unrelated], after[_unrelated]);
+    }
+
+    [Fact]
+    public async Task A_deletion_and_a_change_with_the_same_event_id_are_both_handled()
+    {
+        // Deduplication is per handler and event type: the two keys must not collide.
+        var id = Guid.CreateVersion7();
+        var before = await GenerationsAsync().ConfigureAwait(true);
+
+        await using (var scope = _scenario.App.Services.CreateAsyncScope())
+        {
+            foreach (var handler in scope.ServiceProvider.GetServices<IIntegrationEventHandler<FileChanged>>())
+            {
+                await handler.HandleAsync(new FileChanged(id, DateTimeOffset.UtcNow, _scenario.SiteA, _file, FileChangeReasons.Replaced), CancellationToken.None).ConfigureAwait(true);
+            }
+
+            foreach (var handler in scope.ServiceProvider.GetServices<IIntegrationEventHandler<FileDeleted>>())
+            {
+                await handler.HandleAsync(new FileDeleted(id, DateTimeOffset.UtcNow, _scenario.SiteA, _file, null), CancellationToken.None).ConfigureAwait(true);
+            }
+        }
+
+        Assert.Equal(before[_direct] + 2, (await GenerationsAsync().ConfigureAwait(true))[_direct]);
+    }
+
     [Fact]
     public async Task The_delete_writes_its_event_with_the_delete()
     {
-        await MediaApi.DeleteAsync(_scenario.Admin, _scenario.SiteA, _file).ConfigureAwait(true);
+        // A live page shows it: confirmed, as 013 FR-015 requires.
+        await QuickBuilder.IntegrationTests.Media.UsageScenario.DeleteAsync(_scenario.Admin, _scenario.SiteA, _file, confirmInUse: true).ConfigureAwait(true);
 
         await using var scope = _scenario.App.Services.CreateAsyncScope();
         var media = scope.ServiceProvider.GetRequiredService<QuickBuilder.Media.Infrastructure.MediaDbContext>();

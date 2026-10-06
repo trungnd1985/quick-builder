@@ -4,6 +4,7 @@
     "nav": {
       "sites": "Sites",
       "settings": "Settings",
+      "storage": "Storage",
       "users": "Users"
     },
     "skipToContent": "Skip to main content",
@@ -156,7 +157,8 @@
     },
     "empty": {
       "title": "No files yet",
-      "body": "Upload images or PDFs to use them on this site."
+      "body": "Upload images or PDFs to use them on this site.",
+      "folderTitle": "This folder is empty"
     },
     "noHost": "This site has no host name yet. Its files will be reachable at a public address once it has one.",
     "upload": {
@@ -179,7 +181,13 @@
       "unsupported_type": "This type of file is not allowed. Use JPEG, PNG, GIF, WebP, AVIF or PDF.",
       "storage_unavailable": "The file could not be stored. Try again.",
       "storage_full": "The storage location is full. Ask an administrator.",
-      "unknown": "The file could not be uploaded."
+      "unknown": "The file could not be uploaded.",
+      "dimensions_too_large": "The image has too many pixels for this installation.",
+      "kind_mismatch": "Replace an image with an image, and a document with a document.",
+      "in_use": "The file is used by pages or components.",
+      "in_live_use": "Published pages show this file. Only a Designer or Administrator can change or delete it.",
+      "conflict": "The file changed meanwhile. Reload and try again.",
+      "folder_not_found": "That folder no longer exists."
     },
     "table": {
       "caption": "Files in this site’s library",
@@ -192,7 +200,13 @@
       "actions": "Actions",
       "pdf": "PDF",
       "unavailable": "Unavailable",
-      "unknownUser": "Unknown user"
+      "unknownUser": "Unknown user",
+      "pickerCaption": "Images you can choose",
+      "select": "Select",
+      "selectFile": "Select {name}",
+      "usedIn": "Used in",
+      "unused": "Not used",
+      "places": "One place | {n} places"
     },
     "size": {
       "bytes": "{n} B",
@@ -216,7 +230,129 @@
       "cancel": "Cancel",
       "deleting": "Deleting…",
       "done": "{name} was deleted",
-      "failed": "Could not delete {name}"
+      "failed": "Could not delete {name}",
+      "inUseBody": "Pages or components use this file. Deleting it is permanent: where they show it, they will show nothing instead.",
+      "understood": "I understand that the place using it will show nothing in its place. | I understand that the {places} places using it will show nothing in its place."
+    },
+    "usage": {
+      "title": "Where it is used",
+      "loading": "Finding where it is used…",
+      "failed": "Could not find where the file is used.",
+      "none": "No page or component uses this file.",
+      "counts": "Used in {places} place(s): {draft} in drafts, {live} live, {history} only in earlier versions.",
+      "liveRule": "Published pages show this file. Only a Designer or Administrator can delete or replace it.",
+      "pages": "Pages",
+      "components": "Components",
+      "badges": {
+        "live": "Live",
+        "draft": "Draft",
+        "history": "Earlier version"
+      },
+      "livePages": "on {n} live page | on {n} live pages"
+    },
+    "replace": {
+      "button": "Replace…",
+      "title": "Replace {name}",
+      "used": "One place uses this file. | {places} places use this file.",
+      "live": "Published pages will show the new file straight away.",
+      "unused": "Nothing uses this file yet.",
+      "keeps": "The name, folder, alternative text and every link to it stay the same. The previous version stops being served.",
+      "choose": "Choose the new file",
+      "progress": "Uploading… {percent}%",
+      "failed": "The file could not be replaced.",
+      "cancel": "Cancel"
+    },
+    "folders": {
+      "label": "Folders",
+      "topLevel": "All files (top level)",
+      "loading": "Loading folders…",
+      "loadFailed": "Could not load folders.",
+      "new": "New folder",
+      "rename": "Rename",
+      "move": "Move",
+      "delete": "Delete folder",
+      "newName": "New folder name",
+      "renameName": "Folder name",
+      "moveTo": "Move “{name}” to",
+      "deleteConfirm": "Delete the folder “{name}”? Only an empty folder can be deleted.",
+      "cancel": "Cancel",
+      "submit": {
+        "create": "Create",
+        "rename": "Rename",
+        "move": "Move",
+        "delete": "Delete folder",
+        "none": "OK"
+      },
+      "created": "Folder {name} created",
+      "renamed": "Folder renamed to {name}",
+      "moved": "Folder {name} moved",
+      "deleted": "Folder {name} deleted",
+      "errors": {
+        "folder_not_found": "That folder no longer exists.",
+        "folder_name_taken": "A folder with this name already exists here.",
+        "invalid_folder_name": "A folder name must be 1 to 100 characters.",
+        "folder_too_deep": "Folders can be nested at most 8 levels deep.",
+        "folder_cycle": "A folder cannot be moved into itself or one of its own folders.",
+        "folder_limit": "This site already has the maximum of 1,000 folders.",
+        "folder_not_empty": "Only an empty folder can be deleted. Move its files and folders out first.",
+        "folder_conflict": "The folders changed meanwhile. They have been reloaded; try again.",
+        "unknown": "The folder could not be changed."
+      }
+    },
+    "search": {
+      "label": "Search",
+      "placeholder": "Name or alternative text",
+      "onlyThisFolder": "Only in this folder",
+      "none": "No files match your search",
+      "everywhere": "Search all folders",
+      "clear": "Clear search"
+    },
+    "filter": {
+      "kind": "Show",
+      "all": "All files",
+      "images": "Images",
+      "documents": "Documents"
+    },
+    "sort": {
+      "label": "Sort by",
+      "uploaded": "Upload time",
+      "name": "Name",
+      "size": "Size",
+      "direction": "Order",
+      "default": "Default",
+      "asc": "Ascending",
+      "desc": "Descending"
+    },
+    "move": {
+      "label": "Move one selected file to | Move {n} selected files to",
+      "button": "Move",
+      "done": "One file moved | {n} files moved",
+      "failed": "The files could not be moved."
+    },
+    "picker": {
+      "choose": "Choose",
+      "chooseFile": "Choose {name}"
+    },
+    "details": {
+      "button": "Details",
+      "label": "Details of {name}",
+      "close": "Close details of {name}",
+      "closeButton": "Close",
+      "dimensions": "Dimensions",
+      "pixels": "{width} × {height} px",
+      "replaced": "Replaced"
+    },
+    "altText": {
+      "label": "Alternative text",
+      "help": "Describes the image for people who cannot see it. It is copied into an Image block when you choose this image; changing it here does not change pages already built.",
+      "remaining": "{n} characters left",
+      "save": "Save alternative text",
+      "saving": "Saving…",
+      "saved": "Alternative text saved",
+      "conflict": "The file changed meanwhile. Reload it and try again.",
+      "tooLong": "Alternative text may be at most 300 characters.",
+      "failed": "Could not save the alternative text.",
+      "reload": "Reload"
     }
   },
   "pages": {
@@ -380,6 +516,47 @@
   "settings": {
     "title": "Settings",
     "placeholder": "Settings arrive with a later feature."
+  },
+  "storageSettings": {
+    "title": "Storage",
+    "intro": "Where uploaded files are kept, and a check that every file in the libraries is there. Run it after copying media to another provider.",
+    "provider": "Provider",
+    "providers": {
+      "Local": "Local disk",
+      "S3": "S3-compatible object storage",
+      "AzureBlob": "Azure Blob Storage"
+    },
+    "run": "Run check",
+    "running": "Check running…",
+    "empty": "No check has run yet.",
+    "latest": "Latest check",
+    "status": "Status",
+    "statuses": {
+      "running": "Running",
+      "completed": "Completed",
+      "failed": "Failed"
+    },
+    "started": "Started",
+    "finished": "Finished",
+    "triggers": {
+      "startup": "at start-up",
+      "admin": "from this screen",
+      "cli": "from the command line"
+    },
+    "checked": "Files checked",
+    "missingCount": "Files missing",
+    "allPresent": "Every file in every library is present.",
+    "missingHeading": "Missing files",
+    "capped": "Showing {shown} of {total}. The command line lists the rest by id.",
+    "columns": {
+      "site": "Site",
+      "file": "File"
+    },
+    "errors": {
+      "load": "The storage status could not be loaded. Try again.",
+      "start": "The check could not be started. Try again.",
+      "running": "A check is already running. It is shown below."
+    }
   },
   "common": {
     "dismiss": "Dismiss"
@@ -787,12 +964,8 @@
         "change": "Change image",
         "remove": "Remove image",
         "missing": "The chosen image is no longer in the media library.",
-        "loading": "Loading images…",
-        "loadFailed": "The media library could not be loaded.",
-        "empty": "The media library has no images yet. Upload one below.",
-        "upload": "Upload a new image",
-        "uploading": "Uploading… {percent}%",
-        "uploadFailed": "The image could not be uploaded."
+        "dialogTitle": "Choose an image",
+        "close": "Close"
       },
       "richText": {
         "help": "Rich text is edited on the page itself, where you see it as visitors will.",

@@ -71,6 +71,18 @@ RUN dotnet publish src/QuickBuilder.Host/QuickBuilder.Host.csproj \
       --no-restore \
       --output /app
 
+# 013 research MV-09: the portable publish copies libvips natives for every RID the Media
+# module references (win-x64, linux-x64 and both musl builds). Keep only the one this
+# image runs on; the others are dead weight (and the Windows one is a .dll). buildx sets
+# TARGETARCH to amd64 or arm64; a plain `docker build` leaves it empty, meaning amd64.
+ARG TARGETARCH
+RUN arch="$( [ "${TARGETARCH:-amd64}" = "arm64" ] && echo arm64 || echo x64 )" \
+ && find /app/runtimes -mindepth 1 -maxdepth 1 -type d ! -name "linux-musl-${arch}" -exec rm -rf {} + \
+ && test -n "$(find /app/runtimes/linux-musl-${arch}/native -name 'libvips*' -print -quit)"
+
+# 013 T005: LGPL and bundled-codec notices travel with the binaries they describe.
+COPY THIRD-PARTY-NOTICES.md /app/THIRD-PARTY-NOTICES.md
+
 # --- Stage 3: runtime --------------------------------------------------------------
 FROM mcr.microsoft.com/dotnet/aspnet:10.0-alpine AS runtime
 WORKDIR /app

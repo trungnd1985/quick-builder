@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using QuickBuilder.Media.Domain;
 using QuickBuilder.Shared.Infrastructure.MultiSite;
 using QuickBuilder.Shared.Infrastructure.Storage;
 
@@ -67,15 +68,38 @@ internal sealed class MediaOrphanSweepService(
         }
     }
 
+    /// <summary>How old a variant must be before the sweep may remove it (013 MV-14): productions racing a replace finish first.</summary>
+    internal static readonly TimeSpan VariantGracePeriod = TimeSpan.FromHours(1);
+
     /// <summary>Runs one sweep. Returns how many stored objects were removed. Exposed for tests.</summary>
     public async Task<int> SweepAsync(CancellationToken cancellationToken)
     {
-        var cutoff = clock.GetUtcNow() - options.Value.OrphanGracePeriod;
+        var now = clock.GetUtcNow();
+        var cutoff = now - options.Value.OrphanGracePeriod;
+        var variantCutoff = now - VariantGracePeriod;
         var removedBySite = new Dictionary<Guid, int>();
+        var variantsBySite = new Dictionary<Guid, int>();
         var batch = new List<(StoredFileInfo Entry, Guid SiteId)>(BatchSize);
+        var variantBatch = new List<(StorageKey Key, VariantKey Variant)>(BatchSize);
 
         await foreach (var entry in storage.ListAsync(string.Empty, cancellationToken).ConfigureAwait(false))
         {
+            // 013 MV-14: variants have their own prefix and their own rule.
+            if (MediaStorageKeys.ParseVariant(entry.Key) is { } variant)
+            {
+                if (entry.LastModifiedUtc < variantCutoff)
+                {
+                    variantBatch.Add((entry.Key, variant));
+                    if (variantBatch.Count == BatchSize)
+                    {
+                        await RemoveStaleVariantsAsync(variantBatch, variantsBySite, cancellationToken).ConfigureAwait(false);
+                        variantBatch.Clear();
+                    }
+                }
+
+                continue;
+            }
+
             // Young bytes may be an upload in progress; anything not shaped like a media key
             // belongs to some other consumer of the storage.
             if (entry.LastModifiedUtc >= cutoff || MediaStorageKeys.SiteOf(entry.Key) is not { } siteId)
@@ -92,13 +116,66 @@ internal sealed class MediaOrphanSweepService(
         }
 
         await RemoveOrphansAsync(batch, removedBySite, cancellationToken).ConfigureAwait(false);
+        await RemoveStaleVariantsAsync(variantBatch, variantsBySite, cancellationToken).ConfigureAwait(false);
 
         foreach (var (siteId, count) in removedBySite)
         {
             logger.LogInformation("Media orphan sweep removed {Count} stored file(s) with no library entry on site {SiteId}.", count, siteId);
         }
 
-        return removedBySite.Values.Sum();
+        foreach (var (siteId, count) in variantsBySite)
+        {
+            logger.LogInformation("Media orphan sweep removed {Count} stale variant(s) on site {SiteId}.", count, siteId);
+        }
+
+        return removedBySite.Values.Sum() + variantsBySite.Values.Sum();
+    }
+
+    /// <summary>
+    /// Removes variants nobody can request any more (013 MV-14): the file is gone, its version
+    /// has moved on, the width is no longer configured, or its variants were withdrawn.
+    /// </summary>
+    private async Task RemoveStaleVariantsAsync(
+        List<(StorageKey Key, VariantKey Variant)> batch,
+        Dictionary<Guid, int> removedBySite,
+        CancellationToken cancellationToken)
+    {
+        if (batch.Count == 0)
+        {
+            return;
+        }
+
+        var ids = batch.Select(b => b.Variant.FileId).Distinct().ToList();
+        Dictionary<Guid, (Guid SiteId, int Version, MediaVariantsState State)> current;
+        await using (var scope = scopes.CreateAsyncScope())
+        {
+            var database = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
+            current = await database.MediaFiles
+                .AcrossAllSites("Background sweep compares stored variants with every site's rows (013 MV-14).")
+                .AsNoTracking()
+                .Where(f => ids.Contains(f.Id))
+                .Select(f => new { f.Id, f.SiteId, f.ContentVersion, f.VariantsState })
+                .ToDictionaryAsync(f => f.Id, f => (f.SiteId, f.ContentVersion, f.VariantsState), cancellationToken)
+                .ConfigureAwait(false);
+        }
+
+        var widths = options.Value.Variants.Widths;
+        foreach (var (key, variant) in batch)
+        {
+            var stillServed = current.TryGetValue(variant.FileId, out var file)
+                && file.SiteId == variant.SiteId
+                && file.Version == variant.Version
+                && file.State == MediaVariantsState.Available
+                && widths.Contains(variant.Width);
+
+            if (stillServed)
+            {
+                continue;
+            }
+
+            await storage.DeleteAsync(key, cancellationToken).ConfigureAwait(false);
+            removedBySite[variant.SiteId] = removedBySite.GetValueOrDefault(variant.SiteId) + 1;
+        }
     }
 
     private async Task RemoveOrphansAsync(
