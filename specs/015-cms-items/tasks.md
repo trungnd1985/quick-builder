@@ -528,13 +528,13 @@ version 1, a version 4 records the rollback, and the draft is unchanged (quickst
 ## Phase 10: Polish & Cross-Cutting Concerns
 
 - [X] T078 [P] Extend `ITESTS/Isolation/Probes/CmsIsolationProbe.cs`: from site B, every item endpoint, including lookup, referrers and history, with site A's ids gives 404 or `missing`. `IsolationCoverageTests` must stay green.
-- [ ] T079 [P] Extend `ATESTS/AuthorizationDeclarationTests` coverage, and confirm that every new action declares exactly one capability.
+- [X] T079 [P] Extend `ATESTS/AuthorizationDeclarationTests` coverage, and confirm that every new action declares exactly one capability.
 - [X] T080 [P] Add to `ITESTS/Cms/Items/ItemSchemaMigrationTests.cs` the cases not yet covered: an interrupted migration (014's `TestMigrationObserver`) leaves items, versions, schedules and derived rows exactly as before (014 SC-005 still holds); and the indexer output equals a fresh recomputation after every scenario.
 - [ ] T081 [P] Create `STESTS/ItemListPerformanceTests.cs` (Performance category): 10,000 items, p95 under 1 s for the list, search, each filter and sort, and the picker search (SC-003); item save and publish under 300 ms p95 (plan Performance Goals).
 - [ ] T082 [P] Create `STESTS/ItemMigrationPerformanceTests.cs` (Performance category): 10,000 items with 3 versions each and 100 pending schedules; a field removal and a lossy type change complete within 30 s (014 SC-003, IT-12). If it fails, apply IT-12's fallback and record it here.
-- [ ] T083 Add "create an item and publish it" to the release smoke journey in `STESTS/ReferenceDeploymentSmokeTests.cs`.
-- [ ] T084 [P] Update `qb.ps1` `seed-items`: create items through `POST …/items` with generated values, slugs from names, and `-Publish <percent>` publishing that share. Update the help text.
-- [ ] T085 [P] Update the docs:
+- [X] T083 Add "create an item and publish it" to the release smoke journey in `STESTS/ReferenceDeploymentSmokeTests.cs`.
+- [X] T084 [P] Update `qb.ps1` `seed-items`: create items through `POST …/items` with generated values, slugs from names, and `-Publish <percent>` publishing that share. Update the help text.
+- [X] T085 [P] Update the docs:
   - `docs/operations.md`: items, who can publish them, schedules, media in live use through items, and that schema changes also rewrite kept versions;
   - `docs/backlog.md`: field-content search (clarification Q5), bulk item actions, and in the E-6 entry, "versions are migrated too";
   - `README.md`'s feature list, if it has one.
