@@ -21,6 +21,31 @@ built from this branch by the smoke project's compose deployment.
 | — | Release smoke | `ReferenceDeploymentSmokeTests` | Passes, including step 9g (collection created and read back from the image). |
 | — | `./qb.ps1 seed-items` | Its SQL run against PostgreSQL 16 with a schema of every seedable type | Well-formed values; optional fields sometimes empty; `min` respected. |
 
+## Hand-run on the running app (`./qb.ps1`), 2026-10-07
+
+Driven through the admin API as an Administrator, with item counts checked directly in
+PostgreSQL. Data-changing steps ran on test collections (`qa-014` with 300 items from
+`./qb.ps1 seed-items`, `qa-big` with 10,000), never on the user's `blog-posts`.
+
+| § | Step | Result |
+|---|---|---|
+| §2 | On `blog-posts` (300 seeded items): rename and rekey a field, move a field, rename the collection, then restore | Preview: every change `free`, no confirmation. Revision 2 → 3; field ids unchanged; fingerprint of all 300 items (draft and published) identical. A re-added old key got the new id `f7` and no values. Names restored at revision 5. |
+| §3.1 | Add an optional field | `free`; no item changed. |
+| §3.2 | Add a required option with a fill-in | `filled: 300`; written to 300 drafts and 300 published copies. |
+| §3.3 | Make a field required, no fill-in | `stillMissing: 92`, equal to the 92 items without it; nothing changed. |
+| §3.4 | Remove a field with values | Without a digest: 409 `cms.confirmation_required`, `cleared: 200` (SQL: 200), 10 examples. With it: saved; no item holds the field. |
+| §3.5 | Remove the title field | 400 `invalid_title_field`. |
+| §4.1 | Text to whole number on "5", "12.5", "about 7", "" | converted 75, partly lost 75, cleared 150; stored 75 × 5, 75 × 13, 150 empty, draft and published. |
+| §4.3 | Date to yes/no with values | 400 `cms.type_change_not_allowed`. |
+| §4.4 | Lower `maxLength` to 10 | `reported`, `nowInvalid: 137` (SQL: 137 longer); values unchanged. |
+| §4.6 | Stale preview | One item moved off the option after the preview: 409 `cms.preview_outdated`, fresh preview 66 instead of 67; saved with the fresh digest. |
+| §5 | Delete a referenced collection | 409 `cms.collection_referenced` naming "Author in QA 014"; after removing the field, 204 and the address name is free again. A self-reference did not block anything. |
+| §6.1 | History | 11 entries, newest first; no item value anywhere in it. |
+| §6.2 | Save from a stale revision | 409 `cms.revision_conflict`, `currentRevision` 11. |
+| §6.3 | Save while a change rewrites 10,000 items | 409 `cms.collection_busy`; reads still 200; the change completed. |
+| §6.4 | `docker compose restart app` mid-change | Graceful stop: the in-flight change finished (200) before the app stopped. |
+| §6.4 | `docker compose kill app` mid-change | Connection lost; after restart, revision and schema unchanged and all 10,000 items byte-identical; the same save then succeeded, so no lock was left behind. |
+
 ## Not yet done by hand
 
 These need a person at a browser and are still open:
@@ -29,8 +54,6 @@ These need a person at a browser and are still open:
   (quickstart §1 step 1), timed.
 - **SC-007 (manual part)**: the keyboard-only walk through §1 step 1 (create, add fields,
   edit options, reorder, preview, confirm, delete) with a screen reader.
-- **§2–§6 by hand** on `./qb.ps1` with `./qb.ps1 seed-items`, including stopping the app
-  container mid-change (§6 step 4). The automated equivalents above all pass.
 
 ## Findings during implementation
 
