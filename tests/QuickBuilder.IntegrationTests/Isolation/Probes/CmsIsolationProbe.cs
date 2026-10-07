@@ -38,6 +38,11 @@ internal sealed class CmsIsolationProbe : ISiteIsolationProbe
         "POST api/v1/cms/sites/{siteId:guid}/collections/{collectionId:guid}/items/{itemId:guid}/unpublish",
         "POST api/v1/cms/sites/{siteId:guid}/collections/{collectionId:guid}/items/{itemId:guid}/duplicate",
         "GET api/v1/cms/sites/{siteId:guid}/collections/{collectionId:guid}/items/{itemId:guid}/referrers",
+        "GET api/v1/cms/sites/{siteId:guid}/collections/{collectionId:guid}/items/{itemId:guid}/history",
+        "PUT api/v1/cms/sites/{siteId:guid}/collections/{collectionId:guid}/items/{itemId:guid}/schedules/{scheduleAction}",
+        "DELETE api/v1/cms/sites/{siteId:guid}/collections/{collectionId:guid}/items/{itemId:guid}/schedules/{scheduleAction}",
+        "POST api/v1/cms/sites/{siteId:guid}/collections/{collectionId:guid}/items/{itemId:guid}/versions/{number:int}/rollback",
+        "POST api/v1/cms/sites/{siteId:guid}/collections/{collectionId:guid}/items/{itemId:guid}/versions/{number:int}/copy-to-draft",
     ];
 
     public string? NeverIssuedPublicPath => null;
@@ -93,6 +98,11 @@ internal sealed class CmsIsolationProbe : ISiteIsolationProbe
         yield return new ProbeRequest(HttpMethod.Post, $"{item}/unpublish", ProbeKind.Addressed, publishing);
         yield return new ProbeRequest(HttpMethod.Post, $"{item}/duplicate", ProbeKind.Addressed, new { });
         yield return new ProbeRequest(HttpMethod.Get, $"{item}/referrers", ProbeKind.Addressed);
+        yield return new ProbeRequest(HttpMethod.Get, $"{item}/history", ProbeKind.Addressed);
+        yield return new ProbeRequest(HttpMethod.Put, $"{item}/schedules/publish", ProbeKind.Addressed, new { dueAtUtc = DateTimeOffset.UtcNow.AddHours(1), revision = 1 });
+        yield return new ProbeRequest(HttpMethod.Delete, $"{item}/schedules/publish?revision=1", ProbeKind.Addressed);
+        yield return new ProbeRequest(HttpMethod.Post, $"{item}/versions/1/rollback", ProbeKind.Addressed, publishing);
+        yield return new ProbeRequest(HttpMethod.Post, $"{item}/versions/1/copy-to-draft", ProbeKind.Addressed, new { revision = 1 });
     }
 
     public async Task<bool> StillIntactAsync(HttpClient admin, Guid siteId, SeededRecords seeded)

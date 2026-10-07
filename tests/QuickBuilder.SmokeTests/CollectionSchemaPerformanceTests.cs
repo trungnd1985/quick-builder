@@ -13,8 +13,8 @@ namespace QuickBuilder.SmokeTests;
 /// (2 CPUs, 4 GB) through the built image.
 /// </summary>
 /// <remarks>
-/// The items are seeded with one SQL statement, as the media test seeds files: there is no item
-/// API until #15 (research CS-19). The change is text to number on a field every item holds,
+/// The items are seeded with one SQL statement (ItemSeedSql), as the media test seeds files:
+/// the item API would take minutes for 10,000 items. The change is text to number on a field every item holds,
 /// so the preview counts and the save rewrites all 10,000 items, draft and published.
 /// </remarks>
 [Trait("Category", "Performance")]
@@ -73,14 +73,14 @@ public sealed class CollectionSchemaPerformanceTests(ITestOutputHelper output) :
             Assert.Equal(HttpStatusCode.OK, saved.StatusCode);
         }
 
+        // 015: items are stored with slugs, statuses and their index, as the product writes them.
         var seed = await _deployment.ComposeAsync(
             "exec -T db psql -U quickbuilder -d quickbuilder -v ON_ERROR_STOP=1 -c \"" +
-            "INSERT INTO cms.items (id, site_id, collection_id, draft, published, created_at_utc, updated_at_utc) " +
-            "SELECT g.id, s.site, s.coll, v.doc, v.doc, now(), now() " +
-            "FROM (SELECT gen_random_uuid() AS id, n FROM generate_series(1, " + Items + ") AS n) g " +
-            $"CROSS JOIN (SELECT '{siteId}'::uuid AS site, '{collectionId}'::uuid AS coll) s " +
-            "CROSS JOIN LATERAL (SELECT jsonb_build_object('schemaVersion', 1, 'values', " +
-            "jsonb_build_object('f1', 'Item ' || g.n, 'f2', CASE WHEN g.n % 10 = 0 THEN 'about ' || g.n ELSE (g.n % 60)::text END)) AS doc) v;\"").ConfigureAwait(true);
+            ItemSeedSql.Items(siteId, collectionId, Items,
+                "jsonb_build_object('schemaVersion', 1, 'values', jsonb_build_object('f1', 'Item ' || g.n, 'f2', " +
+                "CASE WHEN g.n % 10 = 0 THEN 'about ' || g.n ELSE (g.n % 60)::text END))",
+                publishEvery: 1) +
+            "\"").ConfigureAwait(true);
         Assert.True(seed.ExitCode == 0, $"Seeding {Items} items failed:\n{seed.Output}");
 
         var numberSchema = new

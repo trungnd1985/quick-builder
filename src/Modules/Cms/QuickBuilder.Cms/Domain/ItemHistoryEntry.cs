@@ -29,7 +29,7 @@ internal sealed class ItemHistoryEntry : ISiteOwned
 {
     private ItemHistoryEntry(Guid siteId, Guid itemId, string kind, Guid by, DateTimeOffset at)
     {
-        Id = Guid.CreateVersion7(at);
+        Id = MonotonicIds.Next(at);
         SiteId = siteId;
         ItemId = itemId;
         Kind = kind;

@@ -294,7 +294,7 @@ field. Unpublishing keeps the draft (quickstart §2).
 
 ### Tests for User Story 2 ⚠️
 
-- [ ] T043 [P] [US2] Create `ITESTS/Cms/Items/ItemDraftAndPublishTests.cs`:
+- [X] T043 [P] [US2] Create `ITESTS/Cms/Items/ItemDraftAndPublishTests.cs`:
   - **Publish**: creates version 1 and sets `published`, `published_slug`, `live_version`, `published_at_utc` and `published_by`; status becomes `published`.
   - **Drafts never touch published data** (SC-004): every later draft write (save, copy to draft, duplicate) leaves `published` byte-for-byte unchanged, and the status becomes `changed`.
   - **Refusals**: publishing with attention gives `cms.item_needs_attention`, listing every field.
@@ -303,7 +303,7 @@ field. Unpublishing keeps the draft (quickstart §2).
   - **Retention**: 52 publishes keep 50 versions, including the live one.
   - **Referrers**: `GET …/referrers` lists up to 50 plus the total with names and flags; `published=true` counts only references in published values.
   - **Events**: `Cms.ItemPublished` (with `slugChanged`) and `Cms.ItemUnpublished` carry ids only.
-- [ ] T044 [P] [US2] Create `ITESTS/Cms/Items/ItemConcurrencyTests.cs`:
+- [X] T044 [P] [US2] Create `ITESTS/Cms/Items/ItemConcurrencyTests.cs`:
   - two concurrent publish requests: one succeeds; the other gets `cms.item_conflict` with `currentRevision`; retried with it, it produces version 2. Both versions are complete, in commit order;
   - a concurrent save and publish give one `cms.item_conflict`;
   - two items racing for one slug give exactly one `cms.item_slug_taken`;
@@ -343,7 +343,7 @@ and page through. Results are correct, complete and stable, and fast (quickstart
 
 ### Tests for User Story 3 ⚠️
 
-- [ ] T050 [P] [US3] Create `ITESTS/Cms/Items/ItemListQueryTests.cs`:
+- [X] T050 [P] [US3] Create `ITESTS/Cms/Items/ItemListQueryTests.cs`:
   - **Search**: matches name or slug, ignoring case and accents (`héllo` = `HELLO`), with `%` and `_` taken literally; text field content is not searched (clarification Q5).
   - **Filters**: `status`, `attention`, `scheduled`, and `field[...]` for option, boolean (where `false` also matches no value), reference and multi-reference (contains), combined with AND.
   - **Sorts**: every column, plus number and date fields, in both directions, with missing values last and `id` as the tie-breaker.
@@ -385,7 +385,7 @@ refused (quickstart §4).
 
 ### Tests for User Story 4 ⚠️
 
-- [ ] T054 [P] [US4] Add to `ITESTS/Cms/Items/ItemApiTests.cs`:
+- [X] T054 [P] [US4] Add to `ITESTS/Cms/Items/ItemApiTests.cs`:
   - `POST items/lookup` returns names, slugs, statuses and collections, and lists unknown ids, including site B's ids, in `missing`;
   - more than 200 ids gives 400;
   - saving a reference to the item itself gives `reference_self`.
@@ -419,19 +419,19 @@ refusals list the referrers. Duplicate an item and check its copy (quickstart §
 
 ### Tests for User Story 5 ⚠️
 
-- [ ] T058 [P] [US5] Create `ITESTS/Cms/Items/ItemReferenceIntegrityTests.cs` (SC-005):
+- [X] T058 [P] [US5] Create `ITESTS/Cms/Items/ItemReferenceIntegrityTests.cs` (SC-005):
   - **Refused deletes**: an item referred to from another item's draft, published values or pending scheduled content gives `cms.item_referenced`, with referrers (names, collection, field, flags) and the total, up to 50 of 60 listed.
   - **Self-references**: a self-reference cannot be stored (`reference_self` on save), so it never blocks deletion.
   - **Race**: a reference added in a concurrent transaction is caught by the `NO ACTION` foreign key and reported as `cms.item_referenced`.
   - **Collection delete**: deleting a whole collection whose items refer to each other still succeeds (014).
   - **Delete**: `Cms.ItemDeleted` carries `wasPublished`, and the slug is free again.
   - **No dangling references** remain after a randomised sequence of saves, publishes, unpublishes and deletes.
-- [ ] T059 [P] [US5] Create `ITESTS/Cms/Items/ItemMediaUsageTests.cs`:
+- [X] T059 [P] [US5] Create `ITESTS/Cms/Items/ItemMediaUsageTests.cs`:
   - the media library's usage summary and list include item places (draft, live, scheduled and history flags; item and collection names);
   - item places are shown only with `cms.collections.view`;
   - deleting a file used by a published item without `publishing.manage` gives `media.in_live_use`;
   - any item use needs `confirmInUse`.
-- [ ] T060 [P] [US5] Add duplicate cases to `ITESTS/Cms/Items/ItemApiTests.cs`: the copy has the same draft values, a name with " (copy)" shortened to fit, and the slug `-copy` or `-copy-2`; it has no published values, versions or schedules, and status `draft`.
+- [X] T060 [P] [US5] Add duplicate cases to `ITESTS/Cms/Items/ItemApiTests.cs`: the copy has the same draft values, a name with " (copy)" shortened to fit, and the slug `-copy` or `-copy-2`; it has no published values, versions or schedules, and status `draft`.
 - [X] T061 [P] [US5] Create `ADMINTESTS/cms/items/DeleteItemDialog.spec.ts`:
   - the confirmation says when the item is live;
   - a refusal lists the referrers with links;
@@ -468,14 +468,14 @@ later draft. A scheduled unpublish happens. Across a restart, each runs once (qu
 
 ### Tests for User Story 6 ⚠️
 
-- [ ] T066 [P] [US6] Create `ITESTS/Cms/Items/ItemScheduleTests.cs`:
+- [X] T066 [P] [US6] Create `ITESTS/Cms/Items/ItemScheduleTests.cs`:
   - **Setting**: a publish schedule captures the draft and `scheduledDiffersFromDraft` follows later saves; a draft with attention gives `cms.item_needs_attention`; a past time gives `cms.schedule_in_past`; an unpublish not later than the publish gives `cms.schedule_order`; an unpublish of a draft with no pending publish gives `cms.item_not_published`.
   - **Changing**: reschedule bumps the revision and the old message does nothing; `recapture` replaces the content; cancel works, with nothing pending gives `cms.schedule_not_found`, and with a stale revision gives `cms.item_conflict`.
   - **Manual actions**: a manual publish, unpublish or rollback without `cancelSchedule` gives `cms.schedule_pending`, and with it cancels the schedule and records it.
   - **Failure**: a captured content that becomes invalid (a field made required, no fill-in) fails at run time, records `scheduleFailed` and puts the item in attention.
   - **Schema changes**: they migrate captured content, including fill-ins.
   - **History**: `scheduled`, `rescheduled` and `scheduleCancelled` are recorded.
-- [ ] T067 [P] [US6] Create `ITESTS/Cms/Items/ItemScheduledExactlyOnceTests.cs` (SC-006), modelled on 012's `ScheduledPublishExactlyOnceTests`:
+- [X] T067 [P] [US6] Create `ITESTS/Cms/Items/ItemScheduledExactlyOnceTests.cs` (SC-006), modelled on 012's `ScheduledPublishExactlyOnceTests`:
   - two dispatchers run it once;
   - a redelivery does nothing;
   - stopping across the due time, it runs once after start;
@@ -509,7 +509,7 @@ version 1, a version 4 records the rollback, and the draft is unchanged (quickst
 
 ### Tests for User Story 7 ⚠️
 
-- [ ] T074 [P] [US7] Create `ITESTS/Cms/Items/ItemRollbackTests.cs`:
+- [X] T074 [P] [US7] Create `ITESTS/Cms/Items/ItemRollbackTests.cs`:
   - **Rollback** creates version 4 of kind `rollback`, with `restoredFrom` 1, and leaves the draft unchanged.
   - **Refusals**: a version referring to a deleted item gives `cms.version_not_publishable` (`reference_missing`); a version whose slug is now used by another item is refused the same way; a version made invalid by a newly required field is refused; an unknown version gives `cms.version_not_found`.
   - **Copy to draft** always works and publishes nothing.
@@ -527,9 +527,9 @@ version 1, a version 4 records the rollback, and the draft is unchanged (quickst
 
 ## Phase 10: Polish & Cross-Cutting Concerns
 
-- [ ] T078 [P] Extend `ITESTS/Isolation/Probes/CmsIsolationProbe.cs`: from site B, every item endpoint, including lookup, referrers and history, with site A's ids gives 404 or `missing`. `IsolationCoverageTests` must stay green.
+- [X] T078 [P] Extend `ITESTS/Isolation/Probes/CmsIsolationProbe.cs`: from site B, every item endpoint, including lookup, referrers and history, with site A's ids gives 404 or `missing`. `IsolationCoverageTests` must stay green.
 - [ ] T079 [P] Extend `ATESTS/AuthorizationDeclarationTests` coverage, and confirm that every new action declares exactly one capability.
-- [ ] T080 [P] Add to `ITESTS/Cms/Items/ItemSchemaMigrationTests.cs` the cases not yet covered: an interrupted migration (014's `TestMigrationObserver`) leaves items, versions, schedules and derived rows exactly as before (014 SC-005 still holds); and the indexer output equals a fresh recomputation after every scenario.
+- [X] T080 [P] Add to `ITESTS/Cms/Items/ItemSchemaMigrationTests.cs` the cases not yet covered: an interrupted migration (014's `TestMigrationObserver`) leaves items, versions, schedules and derived rows exactly as before (014 SC-005 still holds); and the indexer output equals a fresh recomputation after every scenario.
 - [ ] T081 [P] Create `STESTS/ItemListPerformanceTests.cs` (Performance category): 10,000 items, p95 under 1 s for the list, search, each filter and sort, and the picker search (SC-003); item save and publish under 300 ms p95 (plan Performance Goals).
 - [ ] T082 [P] Create `STESTS/ItemMigrationPerformanceTests.cs` (Performance category): 10,000 items with 3 versions each and 100 pending schedules; a field removal and a lossy type change complete within 30 s (014 SC-003, IT-12). If it fails, apply IT-12's fallback and record it here.
 - [ ] T083 Add "create an item and publish it" to the release smoke journey in `STESTS/ReferenceDeploymentSmokeTests.cs`.

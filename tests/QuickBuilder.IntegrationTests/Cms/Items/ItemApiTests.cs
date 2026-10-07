@@ -84,6 +84,11 @@ public sealed class ItemApiTests(DatabaseFixture database)
             ItemsApi.Draft("post", new JsonObject { ["f1"] = "zz-canary-t", ["f9"] = ItemsApi.Id(foreign).ToString() }, scenario.PostsSchemaRevision)));
 
         Assert.Equal([("f9", "reference_missing")], ItemsApi.Problems(refused.Body.GetProperty("report")));
+
+        // Looked up from site A, site B's item is missing (Principle V).
+        var lookup = await PagesApi.OkAsync(await ItemsApi.LookupAsync(scenario.Admin, scenario.Site, [ItemsApi.Id(foreign)]));
+        Assert.Equal(0, lookup.GetProperty("items").GetArrayLength());
+        Assert.Equal(ItemsApi.Id(foreign), lookup.GetProperty("missing")[0].GetGuid());
     }
 
     [Fact]

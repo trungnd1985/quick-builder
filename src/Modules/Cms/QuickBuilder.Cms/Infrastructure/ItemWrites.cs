@@ -213,9 +213,10 @@ internal sealed class ItemWrites(
             // referrers. The delete slice reads them again to answer.
             return await FailAsync(CmsErrors.ItemReferenced([], 0)).ConfigureAwait(false);
         }
-        catch (DbUpdateException ex) when (Constraint(ex, PostgresErrorCodes.UniqueViolation) == "ix_item_schedules_item_id_action")
+        catch (DbUpdateException ex) when (Constraint(ex, PostgresErrorCodes.UniqueViolation) is "ix_item_schedules_item_id_action" or "pk_item_versions")
         {
-            // Another member set the same schedule at the same moment.
+            // Another member set the same schedule, or published the same item, at the same moment:
+            // the version number they took is the conflict (US2 scenario 7).
             await RollBackAsync().ConfigureAwait(false);
             var current = await CurrentRevisionAsync(request, cancellationToken).ConfigureAwait(false);
             return Result.Failure<Item?>(CmsErrors.ItemConflict(current ?? 0));

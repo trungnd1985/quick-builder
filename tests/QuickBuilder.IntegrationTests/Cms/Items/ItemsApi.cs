@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using Microsoft.Extensions.DependencyInjection;
 using QuickBuilder.IntegrationTests.Infrastructure;
 using QuickBuilder.IntegrationTests.Media;
 using QuickBuilder.IntegrationTests.Pages;
@@ -173,4 +174,21 @@ internal sealed class ItemsScenario : IDisposable
         ItemsApi.CreateOkAsync(Admin, Site, Posts, ItemsApi.Draft(slug, values ?? new JsonObject { ["f1"] = $"{PagesApi.CanaryMarker}{slug}" }, PostsSchemaRevision));
 
     public void Dispose() => Cms.Dispose();
+}
+
+/// <summary>Delivers integration events by hand: the outbox does not run in tests.</summary>
+internal static class EventDelivery
+{
+    /// <summary>Calls every handler of <typeparamref name="TEvent"/>, each in its own scope, as the dispatcher does.</summary>
+    public static async Task DeliverAsync<TEvent>(this QuickBuilderApp app, TEvent integrationEvent)
+        where TEvent : QuickBuilder.Shared.Kernel.Events.IIntegrationEvent
+    {
+        ArgumentNullException.ThrowIfNull(app);
+
+        await using var scope = app.Services.CreateAsyncScope();
+        foreach (var handler in scope.ServiceProvider.GetServices<QuickBuilder.Shared.Kernel.Events.IIntegrationEventHandler<TEvent>>())
+        {
+            await handler.HandleAsync(integrationEvent, CancellationToken.None).ConfigureAwait(false);
+        }
+    }
 }

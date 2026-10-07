@@ -100,7 +100,9 @@ internal sealed class ItemIndexer(CmsDbContext database, ItemValidation validati
             var report = await validation
                 .ValidateAsync(siteId, item.Id, schema, item.Slug, copy.Draft, lookups, lookups, cancellationToken)
                 .ConfigureAwait(false);
-            if (failedAt.TryGetValue(item.Id, out var failed) && failed >= item.UpdatedAtUtc)
+            // Compared at PostgreSQL's precision: the failure and the item's last change are one
+            // clock reading, and only the stored copy has lost its sub-microsecond ticks.
+            if (failedAt.TryGetValue(item.Id, out var failed) && Microseconds(failed) >= Microseconds(item.UpdatedAtUtc))
             {
                 report = report.With(new ItemProblem(ItemReport.ScheduleField, ItemProblems.ScheduleFailed));
             }
@@ -209,6 +211,8 @@ internal sealed class ItemIndexer(CmsDbContext database, ItemValidation validati
             JsonValue v when v.TryGetValue<string>(out var s) && Guid.TryParse(s, out var g) => [g],
             _ => [],
         };
+
+    private static long Microseconds(DateTimeOffset? moment) => (moment?.UtcTicks ?? 0) / TimeSpan.TicksPerMicrosecond;
 
     private sealed record Copies(ItemValues Draft, ItemValues? Published, ItemValues? Captured)
     {

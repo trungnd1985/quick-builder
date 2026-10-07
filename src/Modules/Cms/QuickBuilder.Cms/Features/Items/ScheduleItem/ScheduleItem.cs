@@ -170,7 +170,7 @@ internal sealed class CancelItemScheduleHandler(ItemWrites writes, ItemReads rea
 
 /// <summary>Administrative surface: an item's schedules.</summary>
 [ApiController]
-[Route("api/v1/cms/sites/{siteId:guid}/collections/{collectionId:guid}/items/{itemId:guid}/schedules/{action}")]
+[Route("api/v1/cms/sites/{siteId:guid}/collections/{collectionId:guid}/items/{itemId:guid}/schedules/{scheduleAction}")]
 public sealed class ItemSchedulesController(IDispatcher dispatcher) : ControllerBase
 {
     [HttpPut]
@@ -179,11 +179,11 @@ public sealed class ItemSchedulesController(IDispatcher dispatcher) : Controller
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
-    public async Task<IActionResult> SetAsync(Guid siteId, Guid collectionId, Guid itemId, string action, ScheduleRequest request, CancellationToken cancellationToken)
+    public async Task<IActionResult> SetAsync(Guid siteId, Guid collectionId, Guid itemId, string scheduleAction, ScheduleRequest request, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        var result = await dispatcher.SendAsync(new ScheduleItemCommand(siteId, collectionId, itemId, action, request), cancellationToken).ConfigureAwait(false);
+        var result = await dispatcher.SendAsync(new ScheduleItemCommand(siteId, collectionId, itemId, scheduleAction, request), cancellationToken).ConfigureAwait(false);
         return result.IsFailure ? CmsErrorResults.ToActionResult(result.Error) : Ok(result.Value);
     }
 
@@ -192,9 +192,9 @@ public sealed class ItemSchedulesController(IDispatcher dispatcher) : Controller
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
-    public async Task<IActionResult> CancelAsync(Guid siteId, Guid collectionId, Guid itemId, string action, [FromQuery] int revision, CancellationToken cancellationToken)
+    public async Task<IActionResult> CancelAsync(Guid siteId, Guid collectionId, Guid itemId, string scheduleAction, [FromQuery] int revision, CancellationToken cancellationToken)
     {
-        var result = await dispatcher.SendAsync(new CancelItemScheduleCommand(siteId, collectionId, itemId, action, revision), cancellationToken).ConfigureAwait(false);
+        var result = await dispatcher.SendAsync(new CancelItemScheduleCommand(siteId, collectionId, itemId, scheduleAction, revision), cancellationToken).ConfigureAwait(false);
         return result.IsFailure ? CmsErrorResults.ToActionResult(result.Error) : Ok(result.Value);
     }
 }
