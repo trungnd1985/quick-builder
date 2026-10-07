@@ -477,7 +477,7 @@ history with the right revision, person, time and counts (quickstart §6).
   - **`docs/operations.md`**: a "Collections" section: who can change schemas; that removals and lossy conversions cannot be undone, so back up first; and a reverse-proxy timeout of at least 60 s for large schema changes (plan Risks).
   - **`docs/backlog.md`**: a "Deferred by 014" list: unique field values (clarification Q4), schema snapshots and restore, background migration beyond 10,000 items, a per-site time zone, and **exception E-6 for #16**: decide how a schema change reaches live pages before items are rendered (plan Complexity Tracking).
 - [X] T086 [P] Extend `ITESTS/Observability/LoggingTests.cs`: a schema change over seeded items logs no item value, title, field name or collection name.
-- [ ] T087 Run quickstart.md §1–§9 by hand on the compose setup, including SC-001 timed with a first-time user and SC-007 keyboard-only. Record results, timings and versions in `specs/014-cms-collections-schema/quickstart-results.md`.
+- [X] T087 Run quickstart.md §1–§9 by hand on the compose setup, including SC-001 timed with a first-time user and SC-007 keyboard-only. Record results, timings and versions in `specs/014-cms-collections-schema/quickstart-results.md`.
 - [X] T088 Run `dotnet format --verify-no-changes`, `dotnet test` (with Docker, `QB_REQUIRE_DOCKER=1`), and `npm run lint && npm run type-check && npm test && npm run build` in `src/admin`. Fix any failures and confirm the coverage gate passes.
 
 ---

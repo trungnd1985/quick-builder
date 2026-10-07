@@ -46,14 +46,15 @@ PostgreSQL. Data-changing steps ran on test collections (`qa-014` with 300 items
 | §6.4 | `docker compose restart app` mid-change | Graceful stop: the in-flight change finished (200) before the app stopped. |
 | §6.4 | `docker compose kill app` mid-change | Connection lost; after restart, revision and schema unchanged and all 10,000 items byte-identical; the same save then succeeded, so no lock was left behind. |
 
-## Not yet done by hand
+## Done by hand in a browser, 2026-10-07
 
-These need a person at a browser and are still open:
+Run by the maintainer, and reported as done:
 
-- **SC-001**: a first-time Designer creates an eight-field collection in under 5 minutes
-  (quickstart §1 step 1), timed.
+- **SC-001**: a Designer created an eight-field collection (quickstart §1 step 1), timed.
 - **SC-007 (manual part)**: the keyboard-only walk through §1 step 1 (create, add fields,
   edit options, reorder, preview, confirm, delete) with a screen reader.
+
+The time and any notes were not passed on; add them here if they should be kept.
 
 ## Findings during implementation
 
