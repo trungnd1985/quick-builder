@@ -36,7 +36,11 @@ browser and are still open (T086).
 
 | Measure | Target | Result |
 |---|---|---|
-| List, search, filters, sorts, picker search at 10,000 items (p95) | 1 s | Passed (timings to be filled from the next recorded run) |
-| Save and publish one item (p95) | 300 ms | Passed |
-| Schema change over 10,000 items × 3 versions + 100 schedules | 30 s | Passed |
-| 014 SC-003: preview and change over 10,000 items | 5 s / 30 s | Passed |
+| List, search, filters, sorts, picker search at 10,000 items (p95) | 1 s | 10–29 ms (list 13, search 17, status 10, option 15, boolean 16, number sort 14, date sort 16, name sort last page 29, picker 10) |
+| Save and publish one item (p95) | 300 ms | save 18 ms, publish 17 ms |
+| Schema change over 10,000 items × 3 versions + 100 schedules | 30 s | 6.2 s |
+| 014 SC-003: preview and change over 10,000 items | 5 s / 30 s | 0.33 s / 5.4 s |
+
+Measured 2026-10-08 through the built image with docker-compose.perf.yml on the development
+machine, not on the 2-vCPU reference host; the margins are wide enough that the reference host
+is not expected to change the outcome.
