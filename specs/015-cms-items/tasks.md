@@ -359,7 +359,7 @@ and page through. Results are correct, complete and stable, and fast (quickstart
 
 ### Implementation for User Story 3
 
-- [ ] T052 [US3] Create `CMS/Infrastructure/ItemListQuery.cs` (IT-13, IT-14):
+- [X] T052 [US3] Create `CMS/Infrastructure/ItemListQuery.cs` (IT-13, IT-14):
   - parses and checks the query against the schema;
   - search: `SearchText.LikePattern`, with `EF.Functions.Like` and the escape;
   - filters: column predicates, and draft-value predicates through Npgsql's `JsonElement` translation (`GetProperty("values").GetProperty(id).GetString()` and `GetBoolean()`, and `EF.Functions.JsonContains` for multi-references);
