@@ -75,6 +75,63 @@ internal static class CmsErrors
         Error.Conflict("cms.collection_referenced", "Other collections have reference fields that target this collection. Remove or change them first."),
         ("references", references));
 
+    // Items (015 data-model §6).
+
+    internal static Error ItemNotFound { get; } = Error.NotFound("cms.item_not_found", "No such item in this collection.");
+
+    internal static Error VersionNotFound { get; } = Error.NotFound("cms.version_not_found", "That version is no longer kept.");
+
+    internal static Error ScheduleNotFound { get; } = Error.NotFound("cms.schedule_not_found", "Nothing of that kind is scheduled for this item.");
+
+    internal static Error ItemNotPublished { get; } = Error.Conflict(
+        "cms.item_not_published", "This item has nothing published, and no publish is scheduled.");
+
+    internal static Error ScheduleInPast { get; } = Error.Validation("cms.schedule_in_past", "Choose a time in the future.");
+
+    internal static Error ScheduleOrder { get; } = Error.Validation(
+        "cms.schedule_order", "A scheduled unpublish must come after the scheduled publish.");
+
+    internal static Error ItemTooLarge() => Error.Validation(
+        "cms.item_too_large", $"An item may be at most {MaxItemRequestBytes / 1024 / 1024} MiB.");
+
+    internal const int MaxItemRequestBytes = 1_048_576;
+
+    internal static Error InvalidItem(object report) => With(
+        Error.Validation("cms.invalid_item", "Some values are not valid for their fields. Fix them and save again."),
+        ("report", report));
+
+    internal static Error ItemNeedsAttention(object report) => With(
+        Error.Conflict("cms.item_needs_attention", "Some fields need attention before this item can be published."),
+        ("report", report));
+
+    internal static Error VersionNotPublishable(object report) => With(
+        Error.Conflict("cms.version_not_publishable", "That version no longer meets today's rules, so it cannot be published again. You can copy it into the draft."),
+        ("report", report));
+
+    internal static Error ItemSlugTaken(string suggestion) => With(
+        Error.Conflict("cms.item_slug_taken", "Another item of this collection already uses this slug."),
+        ("suggestion", suggestion));
+
+    internal static Error ItemConflict(int currentRevision) => With(
+        Error.Conflict("cms.item_conflict", "This item was changed by someone else since you opened it. Reload and try again."),
+        ("currentRevision", currentRevision));
+
+    internal static Error SchemaChanged(int schemaRevision) => With(
+        Error.Conflict("cms.schema_changed", "The fields of this collection changed since you opened this item. Reload the form; your entries are kept."),
+        ("schemaRevision", schemaRevision));
+
+    internal static Error ItemReferenced(IReadOnlyList<object> referrers, int total) => With(
+        Error.Conflict("cms.item_referenced", "Other items refer to this item. Change their references first."),
+        ("referrers", referrers), ("total", total));
+
+    internal static Error SchedulePending(object schedule) => With(
+        Error.Conflict("cms.schedule_pending", "A publish is scheduled for this item. Confirm that it should be cancelled."),
+        ("schedule", schedule));
+
+    internal static Error InvalidQuery(string parameter) => With(
+        Error.Validation("cms.invalid_query", "The list query is not valid for this collection."),
+        ("parameter", parameter));
+
     internal static IReadOnlyDictionary<string, object?>? ExtensionsOf(Error error) =>
         ExtensionsByError.TryGetValue(error, out var extensions) ? extensions : null;
 

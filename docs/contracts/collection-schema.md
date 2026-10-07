@@ -169,6 +169,17 @@ and `pointer`. Both the server (`CollectionSchemaGoldenTests`) and the admin
 (`collectionSchema.spec.ts`) run every file and must give exactly those answers (SC-006).
 The examples are stored documents.
 
+`collection-schema/examples/items/` holds **item values** examples (added by
+[015](../../specs/015-cms-items/), research IT-05): one `schema.json`, one values document per
+file, and `expected.json` giving each file's report, the list of `{ fieldId, problem, limit }`
+the server (`ItemValueGoldenTests`) and the admin (`itemValues.spec.ts`) must both produce
+(015 FR-012). The validators that run them know no media file and no item, so a media or
+reference value is always reported missing. Problem codes are those of 015 data-model §2;
+`malformed`, `unknown_field`, `unknown_option`, `reference_missing`,
+`reference_wrong_collection`, `reference_self`, `duplicate_reference` and
+`too_many_references` mark a value that is never stored. These are examples, not a change to
+the contract: the version stays 1.
+
 ## 6. Proposals
 
 The admin sends a whole proposed schema (research CS-06):

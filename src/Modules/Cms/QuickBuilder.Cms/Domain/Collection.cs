@@ -34,6 +34,7 @@ internal sealed class Collection : AggregateRoot, ISiteOwned
         Schema = CollectionSchemaDocument.Empty.ToJson();
         SchemaVersion = CollectionSchema.CurrentVersion;
         Revision = 1;
+        SchemaRevision = 1;
         NextFieldNumber = 1;
         NextOptionNumber = 1;
         CreatedAtUtc = now;
@@ -68,6 +69,12 @@ internal sealed class Collection : AggregateRoot, ISiteOwned
 
     /// <summary>Incremented by every saved change; the concurrency token.</summary>
     public int Revision { get; private set; }
+
+    /// <summary>
+    /// The <see cref="Revision"/> at which the schema document last changed (015 research IT-07).
+    /// An item form built from an older one is out of date; a details-only save leaves it alone.
+    /// </summary>
+    public int SchemaRevision { get; private set; }
 
     public int NextFieldNumber { get; private set; }
 
@@ -140,6 +147,11 @@ internal sealed class Collection : AggregateRoot, ISiteOwned
         UpdatedBy = actor;
 
         var schemaChanged = impact.Changes.Any(c => c.Change.Kind != ChangeKind.DetailsChanged);
+        if (schemaChanged)
+        {
+            SchemaRevision = Revision;
+        }
+
         Raise(new CollectionChangedEvent(SiteId, Id, Revision, schemaChanged, impact.RewritesItems, now));
 
         return SchemaChangeEntry.For(this, detailsBefore, impact, actor, now);

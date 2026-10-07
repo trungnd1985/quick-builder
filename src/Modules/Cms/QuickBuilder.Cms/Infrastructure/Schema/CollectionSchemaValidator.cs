@@ -107,7 +107,8 @@ internal sealed class CollectionSchemaValidator
         return SchemaValidationResult.Valid(schema);
     }
 
-    private static string? FindDuplicateProperty(JsonElement element, string pointer)
+    /// <summary>The pointer of the first property name repeated within one object, or null (also for item values, 015).</summary>
+    internal static string? FindDuplicateProperty(JsonElement element, string pointer)
     {
         switch (element.ValueKind)
         {

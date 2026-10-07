@@ -103,7 +103,7 @@ No behaviour.
 
 ### Database
 
-- [ ] T004 Extend `CMS/Infrastructure/CmsDbContext.cs` with everything in data-model §1:
+- [X] T004 Extend `CMS/Infrastructure/CmsDbContext.cs` with everything in data-model §1:
   - `collections.schema_revision`;
   - the 14 new `items` columns (`name` as `text`, its index on `left(name, 256)`): `revision` as the concurrency token, `attention` as `jsonb` mapped to `JsonDocument`, and the five `items` indexes, including the partial one on `attention`;
   - the entities `ItemSlug`, `ItemReference`, `ItemMediaUse`, `ItemVersion`, `ItemSchedule` and `ItemHistoryEntry`, with their keys and the foreign keys exactly as specified: **cascade** on sources, and **`ON DELETE NO ACTION`** on `item_references.target_item_id` (IT-10);
@@ -112,67 +112,67 @@ No behaviour.
   - global site filters on every new entity.
 
   Create minimal entity classes in `CMS/Domain/` for the six new types (properties and private setters only; behaviour comes in later tasks).
-- [ ] T005 Generate `CMS/Infrastructure/Migrations/<ts>_AddItems.cs` with `dotnet ef migrations add AddItems`. Then hand-add the IT-22 backfill SQL to `Up`, after the schema changes:
+- [X] T005 Generate `CMS/Infrastructure/Migrations/<ts>_AddItems.cs` with `dotnet ef migrations add AddItems`. Then hand-add the IT-22 backfill SQL to `Up`, after the schema changes:
   - `schema_revision = revision`;
   - for existing items: `slug = 'item-' || left(replace(id::text,'-',''),12)`, `status` from `published IS NULL`, `revision = 1`, `index_version = 0`, empty-guid `created_by`/`updated_by`, and `next_version_number` = 2 for published items, otherwise 1;
   - for published items: an `item_versions` row (number 1, kind `publish`, values `published`, slug, `published_at_utc = updated_at_utc`), plus `live_version = 1`, `published_slug = slug`, `published_at_utc` and `published_by`;
   - one `item_slugs` row per item.
 
   Check that the generated SQL matches data-model §1.
-- [ ] T006 [P] Create `ITESTS/Cms/Items/UpgradeFrom014Tests.cs`, following `ITESTS/Cms/UpgradeFrom013Tests.cs`. Use a 014 snapshot holding a collection with draft-only and published items:
+- [X] T006 [P] Create `ITESTS/Cms/Items/UpgradeFrom014Tests.cs`, following `ITESTS/Cms/UpgradeFrom013Tests.cs`. Use a 014 snapshot holding a collection with draft-only and published items:
   - after the upgrade, every item has a slug, a status and `revision` 1;
   - published items have version 1 and `live_version` 1;
   - after `ItemIndexBackfillService` runs (T022), names, search text, attention and the derived tables are filled, slugs come from names (made unique), and `index_version` is current.
-- [ ] T007 Add `SchemaRevision` to `CMS/Domain/Collection.cs`. `Apply` sets it to the new revision when the diff changes the schema document, and leaves it unchanged for details-only saves (IT-07). Return it from `GetCollection` in `CMS/Features/CollectionResponses.cs`. Add a case to `UTESTS/Cms/CollectionTests.cs`.
+- [X] T007 Add `SchemaRevision` to `CMS/Domain/Collection.cs`. `Apply` sets it to the new revision when the diff changes the schema document, and leaves it unchanged for details-only saves (IT-07). Return it from `GetCollection` in `CMS/Features/CollectionResponses.cs`. Add a case to `UTESTS/Cms/CollectionTests.cs`.
 
 ### Domain core (tests first)
 
-- [ ] T008 [P] Create `UTESTS/Cms/Items/SlugRulesTests.cs`:
+- [X] T008 [P] Create `UTESTS/Cms/Items/SlugRulesTests.cs`:
   - the format `^[a-z0-9][a-z0-9-]{0,99}$`;
   - slugify from a name, matching `ADMIN/features/pages/slugify.ts` (including Vietnamese and other accented names);
   - the fallback `item-<yyyymmddhhmmss>` for empty or non-Latin names;
   - numbered suggestions `-2`, `-3`;
   - copy slugs `-copy`, `-copy-2`, shortened to 100 characters.
-- [ ] T009 [P] Create `UTESTS/Cms/Items/ItemStatusTests.cs`:
+- [X] T009 [P] Create `UTESTS/Cms/Items/ItemStatusTests.cs`:
   - `draft` with no published values;
   - `published` when draft values and slug equal the published ones as JSON values (property order ignored);
   - `changed` when the values or the slug differ;
   - a hand-made edit that restores the published content returns to `published`.
-- [ ] T010 [P] Create `UTESTS/Cms/Items/ItemValidationTests.cs`, one case per problem code in research IT-05:
+- [X] T010 [P] Create `UTESTS/Cms/Items/ItemValidationTests.cs`, one case per problem code in research IT-05:
   - **Malformed** (refused on save): `malformed`, `unknown_field`, `unknown_option`, `reference_missing`, `reference_wrong_collection`, `reference_self`, `duplicate_reference`, `too_many_references`, a slug problem.
   - **Reported** (allowed on save, refused on publish): `missing_required`, `too_long`, `out_of_range`, `too_many_decimals`, `file_kind`, `media_missing`.
   - **Booleans**: a boolean is never missing.
   - The database lookups are faked through the interfaces T013 introduces.
-- [ ] T011 Create `CMS/Domain/SlugRules.cs` (format, slugify from name, fallback, numbered and copy suggestions; the C# twin of `slugify.ts`, with a comment linking them) and `CMS/Domain/ItemStatus.cs` (`Compute(draft, draftSlug, published?, publishedSlug?)` using `JsonNode.DeepEquals`). Makes T008 and T009 pass.
-- [ ] T012 Create `CMS/Domain/ItemReport.cs`: the report of data-model §2, with `Problems`, `HasMalformed` and `IsEmpty`, writing to and reading from `JsonDocument`, problem codes as constants, and `slug` as a pseudo field id.
-- [ ] T013 Create `CMS/Infrastructure/ItemValidation.cs`: `ValidateAsync(siteId, collectionId, itemId, schema, slug, ItemValues, ct)` returns an `ItemReport`. It works in three steps:
+- [X] T011 Create `CMS/Domain/SlugRules.cs` (format, slugify from name, fallback, numbered and copy suggestions; the C# twin of `slugify.ts`, with a comment linking them) and `CMS/Domain/ItemStatus.cs` (`Compute(draft, draftSlug, published?, publishedSlug?)` using `JsonNode.DeepEquals`). Makes T008 and T009 pass.
+- [X] T012 Create `CMS/Domain/ItemReport.cs`: the report of data-model §2, with `Problems`, `HasMalformed` and `IsEmpty`, writing to and reading from `JsonDocument`, problem codes as constants, and `slug` as a pseudo field id.
+- [X] T013 Create `CMS/Infrastructure/ItemValidation.cs`: `ValidateAsync(siteId, collectionId, itemId, schema, slug, ItemValues, ct)` returns an `ItemReport`. It works in three steps:
   1. Per field, `ItemValueValidator.Check` (014) mapped to problem codes, with the specific setting broken (`too_long` with `limit`, and so on), plus keys that are not fields.
   2. For media values, one `MediaKinds.LookupAsync` (014 CS-12), giving `media_missing`, or `file_kind` against `accept`.
   3. For references, one query over `ForSite<Item>`, giving `reference_missing`, `reference_wrong_collection`, `reference_self`, duplicates and the count.
 
   Behind two small internal interfaces, `IItemMediaLookup` and `IItemReferenceLookup`, so T010 can fake them. Makes T010 pass.
-- [ ] T014 Extend `CMS/Domain/Item.cs` into the aggregate root of data-model §3.1, **core operations only**: `Create`, `SaveDraft`, `Duplicate`, `Delete`, revision increments, status recompute, and domain events in `CMS/Domain/Events/ItemDomainEvents.cs`. Publishing, schedules and rollback are added by their stories. Keep `Migrate` from 014, which now also increments `Revision`. Create `UTESTS/Cms/Items/ItemTests.cs` covering these operations and their events.
+- [X] T014 Extend `CMS/Domain/Item.cs` into the aggregate root of data-model §3.1, **core operations only**: `Create`, `SaveDraft`, `Duplicate`, `Delete`, revision increments, status recompute, and domain events in `CMS/Domain/Events/ItemDomainEvents.cs`. Publishing, schedules and rollback are added by their stories. Keep `Migrate` from 014, which now also increments `Revision`. Create `UTESTS/Cms/Items/ItemTests.cs` covering these operations and their events.
 
 ### Golden item values (FR-012)
 
-- [ ] T015 [P] Create `CONTRACTS/collection-schema/examples/items/`:
+- [X] T015 [P] Create `CONTRACTS/collection-schema/examples/items/`:
   - **one schema** `schema.json`, with one field of every type and setting, a required title, and a reference and a multi-reference;
   - **about 30 values documents**: one valid example per type, and one per problem code of IT-05 that needs no database;
   - **`expected.json`**, mapping each file to its expected report.
 
   Add a §5a paragraph to `CONTRACTS/collection-schema.md` describing these examples. This is examples only; the version stays 1.
-- [ ] T016 [P] Create `UTESTS/Cms/Items/ItemValueGoldenTests.cs`: every example's report from `ItemValidation`, with fakes that know no media and no items, equals `expected.json`.
+- [X] T016 [P] Create `UTESTS/Cms/Items/ItemValueGoldenTests.cs`: every example's report from `ItemValidation`, with fakes that know no media and no items, equals `expected.json`.
 
 ### Indexer and the write path
 
-- [ ] T017 [P] Create `ITESTS/Cms/Items/ItemIndexerTests.cs`. After `Refresh`:
+- [X] T017 [P] Create `ITESTS/Cms/Items/ItemIndexerTests.cs`. After `Refresh`:
   - `name`, `search_text` (via `SearchText`), `attention`, `status` and `index_version` are right;
   - `item_slugs` holds the draft slug and, when different, the published slug;
   - `item_references` holds one row per distinct reference with `in_draft`, `in_published` and `in_scheduled`, and no self rows;
   - `item_media` holds the right flags;
   - refreshing twice changes nothing.
-- [ ] T018 Create `CMS/Infrastructure/ItemIndexer.cs` (IT-11). `RefreshAsync(item, schema, ct)` recomputes every derived column and replaces the item's rows in `item_slugs`, `item_references` and `item_media` from its draft, published values, pending captured content and kept versions (`in_history`). It sets `index_version` to `ItemIndexer.CurrentVersion = 1`. Makes T017 pass.
-- [ ] T019 Create `CMS/Infrastructure/ItemWrites.cs` (IT-06; needs T023 and T024 for its errors and events). `ExecuteAsync(siteId, collectionId, itemId?, expectedItemRevision?, expectedSchemaRevision?, Func<ItemWriteContext, Task<Result<T>>> operation, ct)` runs these steps, in order:
+- [X] T018 Create `CMS/Infrastructure/ItemIndexer.cs` (IT-11). `RefreshAsync(item, schema, ct)` recomputes every derived column and replaces the item's rows in `item_slugs`, `item_references` and `item_media` from its draft, published values, pending captured content and kept versions (`in_history`). It sets `index_version` to `ItemIndexer.CurrentVersion = 1`. Makes T017 pass.
+- [X] T019 Create `CMS/Infrastructure/ItemWrites.cs` (IT-06; needs T023 and T024 for its errors and events). `ExecuteAsync(siteId, collectionId, itemId?, expectedItemRevision?, expectedSchemaRevision?, Func<ItemWriteContext, Task<Result<T>>> operation, ct)` runs these steps, in order:
   1. begins a transaction;
   2. `CollectionWriteGate.EnterAsync` (014), mapping `cms.revision_conflict` from the gate to nothing, because item writes do not pass the collection revision;
   3. compares `expectedSchemaRevision` with `collections.schema_revision`, giving `cms.schema_changed` with the current one;
@@ -183,28 +183,28 @@ No behaviour.
   8. saves and commits.
 
   It also maps the database errors: a primary-key violation on `item_slugs` becomes `cms.item_slug_taken` with a suggestion, a foreign-key violation on `item_references` becomes `cms.item_referenced` (re-read), and `DbUpdateConcurrencyException` becomes `cms.item_conflict`.
-- [ ] T020 [P] Create `ATESTS/ItemWritesOnlyTests.cs`: within `QuickBuilder.Cms`, only `ItemWrites`, `ItemIndexer`, `ItemMigrator` and the schedule runner may call `Add`, `Remove` or setters on `Item`, `ItemVersion`, `ItemSchedule`, `ItemHistoryEntry` or the derived entities. This is a reflection or IL scan in the style of the existing architecture tests (module-surface.md §5).
-- [ ] T021 Extend `CMS/Infrastructure/ItemMigrator.cs` (014): every item it rewrites gets `revision + 1` and `ItemIndexer.RefreshAsync`. When the diff changes the title field, any `required` flag, a setting or a type, **every** item of the collection is refreshed, in the same batches, even if no value changed (IT-11). Add the cases to `ITESTS/Cms/SchemaMigrationTests.cs`: names follow a new title field, and attention follows a newly required field.
-- [ ] T022 Create `CMS/Infrastructure/ItemIndexBackfillService.cs`, a `BackgroundService` modelled on `MEDIA/Infrastructure/SearchTextBackfillService.cs`. It refreshes items with `index_version < CurrentVersion` in batches of 500, each batch through `CollectionWriteGate` (a busy collection is skipped and retried on the next pass). For `index_version` 0 it also replaces `item-…` slugs with `SlugRules` slugs from the name, made unique (IT-22). Register it in `CMS/CmsModule.cs`. Makes T006 pass.
+- [X] T020 [P] Create `ATESTS/ItemWritesOnlyTests.cs`: within `QuickBuilder.Cms`, only `ItemWrites`, `ItemIndexer`, `ItemMigrator` and the schedule runner may call `Add`, `Remove` or setters on `Item`, `ItemVersion`, `ItemSchedule`, `ItemHistoryEntry` or the derived entities. This is a reflection or IL scan in the style of the existing architecture tests (module-surface.md §5).
+- [X] T021 Extend `CMS/Infrastructure/ItemMigrator.cs` (014): every item it rewrites gets `revision + 1` and `ItemIndexer.RefreshAsync`. When the diff changes the title field, any `required` flag, a setting or a type, **every** item of the collection is refreshed, in the same batches, even if no value changed (IT-11). Add the cases to `ITESTS/Cms/SchemaMigrationTests.cs`: names follow a new title field, and attention follows a newly required field.
+- [X] T022 Create `CMS/Infrastructure/ItemIndexBackfillService.cs`, a `BackgroundService` modelled on `MEDIA/Infrastructure/SearchTextBackfillService.cs`. It refreshes items with `index_version < CurrentVersion` in batches of 500, each batch through `CollectionWriteGate` (a busy collection is skipped and retried on the next pass). For `index_version` 0 it also replaces `item-…` slugs with `SlugRules` slugs from the name, made unique (IT-22). Register it in `CMS/CmsModule.cs`. Makes T006 pass.
 
 ### Module, capabilities, errors, events
 
-- [ ] T023 [P] Add `ItemsEdit = "cms.items.edit"` and `ItemsPublish = "cms.items.publish"` to `CMS/CmsCapabilities.cs`, both held by Designer and Editor. Add every code in data-model §6 to `CMS/CmsErrors.cs` (with extensions: `report`, `suggestion`, `currentRevision`, `schemaRevision`, `referrers`, `total`, `schedule`, `parameter`) and to `CMS/CmsErrorResults.cs` (statuses as listed).
-- [ ] T024 [P] Create `CMSC/Events/ItemCreated.cs`, `ItemDraftSaved.cs`, `ItemPublished.cs`, `ItemUnpublished.cs` and `ItemDeleted.cs`, with the payloads in data-model §4 implementing `IIntegrationEvent`. Map them from the domain events in `CMS/Infrastructure/CmsOutbox.cs`, and register the five `EventTypeRegistration`s in `CMS/CmsModule.cs`.
-- [ ] T025 [P] Update the shared registries: add the two capabilities to `specs/002-identity-setup/contracts/authorization.md` §2 under "Registered by 015", the five events to `specs/001-foundation-skeleton/contracts/integration-events.md`, and mark the #15 obligations met in `specs/014-cms-collections-schema/contracts/module-surface.md` §5.
-- [ ] T026 Register in `CMS/CmsModule.cs`: `ItemValidation`, `ItemIndexer`, `ItemWrites` (scoped), the two lookups, and an `ItemReads` stub (`CMS/Infrastructure/ItemReads.cs`, which maps an `Item` plus names to the `Item` response shape of items-api.yaml). Create `CMS/Features/Items/ItemResponses.cs` with `ItemResponse`, `ItemSummaryResponse`, `ItemRefResponse`, `ReportResponse` and `ScheduleResponse`.
+- [X] T023 [P] Add `ItemsEdit = "cms.items.edit"` and `ItemsPublish = "cms.items.publish"` to `CMS/CmsCapabilities.cs`, both held by Designer and Editor. Add every code in data-model §6 to `CMS/CmsErrors.cs` (with extensions: `report`, `suggestion`, `currentRevision`, `schemaRevision`, `referrers`, `total`, `schedule`, `parameter`) and to `CMS/CmsErrorResults.cs` (statuses as listed).
+- [X] T024 [P] Create `CMSC/Events/ItemCreated.cs`, `ItemDraftSaved.cs`, `ItemPublished.cs`, `ItemUnpublished.cs` and `ItemDeleted.cs`, with the payloads in data-model §4 implementing `IIntegrationEvent`. Map them from the domain events in `CMS/Infrastructure/CmsOutbox.cs`, and register the five `EventTypeRegistration`s in `CMS/CmsModule.cs`.
+- [X] T025 [P] Update the shared registries: add the two capabilities to `specs/002-identity-setup/contracts/authorization.md` §2 under "Registered by 015", the five events to `specs/001-foundation-skeleton/contracts/integration-events.md`, and mark the #15 obligations met in `specs/014-cms-collections-schema/contracts/module-surface.md` §5.
+- [X] T026 Register in `CMS/CmsModule.cs`: `ItemValidation`, `ItemIndexer`, `ItemWrites` (scoped), the two lookups, and an `ItemReads` stub (`CMS/Infrastructure/ItemReads.cs`, which maps an `Item` plus names to the `Item` response shape of items-api.yaml). Create `CMS/Features/Items/ItemResponses.cs` with `ItemResponse`, `ItemSummaryResponse`, `ItemRefResponse`, `ReportResponse` and `ScheduleResponse`.
 
 ### Isolation and test support
 
-- [ ] T027 [P] Update `ITESTS/Cms/ItemSeed.cs` to give seeded items slugs, statuses and an index. It writes through `ItemIndexer`, and has options for published copies with version 1, pending schedules, and references between seeded items.
-- [ ] T028 [P] Extend `ITESTS/Cms/CmsSiteFilterTests.cs`: every new table is filtered by site, and `ForSite` reads of items, slugs, references, media, versions, schedules and history never return site A's rows to site B.
+- [X] T027 [P] Update `ITESTS/Cms/ItemSeed.cs` to give seeded items slugs, statuses and an index. It writes through `ItemIndexer`, and has options for published copies with version 1, pending schedules, and references between seeded items.
+- [X] T028 [P] Extend `ITESTS/Cms/CmsSiteFilterTests.cs`: every new table is filtered by site, and `ForSite` reads of items, slugs, references, media, versions, schedules and history never return site A's rows to site B.
 
 ### Admin foundations
 
-- [ ] T029 [P] Create `ADMIN/api/items.ts`: typed requests and responses for every operation in contracts/items-api.yaml, built on `ADMIN/api/request.ts`, surfacing `errorCode`, `report`, `suggestion`, `currentRevision`, `schemaRevision`, `referrers` and `schedule`.
-- [ ] T030 [P] Create `ADMINTESTS/cms/items/itemValues.spec.ts`: every example in `CONTRACTS/collection-schema/examples/items/` gives the expected report through the admin rules (FR-012).
-- [ ] T031 Create `ITEMUI/itemValueRules.ts`, a port of `ItemValidation`'s schema-only checks over `collectionSchema.ts`'s contract validator, and `ITEMUI/itemErrors.ts` (error and problem code → i18n key). Makes T030 pass.
-- [ ] T032 Add the routes `site-collection-items` (`/sites/:siteId/collections/:collectionId/items`), `site-collection-item-new` (`…/items/new`) and `site-collection-item` (`…/items/:itemId`) to `ADMIN/app/router.ts`, with placeholder views. Add an **Items** link per collection in `ADMIN/features/cms/CollectionsView.vue`, and an **Items** tab in `ADMIN/features/cms/CollectionBuilderView.vue`.
+- [X] T029 [P] Create `ADMIN/api/items.ts`: typed requests and responses for every operation in contracts/items-api.yaml, built on `ADMIN/api/request.ts`, surfacing `errorCode`, `report`, `suggestion`, `currentRevision`, `schemaRevision`, `referrers` and `schedule`.
+- [X] T030 [P] Create `ADMINTESTS/cms/items/itemValues.spec.ts`: every example in `CONTRACTS/collection-schema/examples/items/` gives the expected report through the admin rules (FR-012).
+- [X] T031 Create `ITEMUI/itemValueRules.ts`, a port of `ItemValidation`'s schema-only checks over `collectionSchema.ts`'s contract validator, and `ITEMUI/itemErrors.ts` (error and problem code → i18n key). Makes T030 pass.
+- [X] T032 Add the routes `site-collection-items` (`/sites/:siteId/collections/:collectionId/items`), `site-collection-item-new` (`…/items/new`) and `site-collection-item` (`…/items/:itemId`) to `ADMIN/app/router.ts`, with placeholder views. Add an **Items** link per collection in `ADMIN/features/cms/CollectionsView.vue`, and an **Items** tab in `ADMIN/features/cms/CollectionBuilderView.vue`.
 
 **Checkpoint**: the database, the item core, validation, the indexer and the write path
 exist; stories can begin.

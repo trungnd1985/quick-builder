@@ -73,6 +73,8 @@ export interface Collection {
   description: string | null
   schema: SchemaDocument
   revision: number
+  /** The revision at which the schema last changed; item forms send it back (015 research IT-07). */
+  schemaRevision: number
   itemCount: number
   canManage: boolean
   createdAtUtc: string

@@ -58,6 +58,11 @@ public static class CmsModule
         services.AddSingleton<IEventTypeRegistration>(new EventTypeRegistration<CollectionCreated>());
         services.AddSingleton<IEventTypeRegistration>(new EventTypeRegistration<CollectionChanged>());
         services.AddSingleton<IEventTypeRegistration>(new EventTypeRegistration<CollectionDeleted>());
+        services.AddSingleton<IEventTypeRegistration>(new EventTypeRegistration<ItemCreated>());
+        services.AddSingleton<IEventTypeRegistration>(new EventTypeRegistration<ItemDraftSaved>());
+        services.AddSingleton<IEventTypeRegistration>(new EventTypeRegistration<ItemPublished>());
+        services.AddSingleton<IEventTypeRegistration>(new EventTypeRegistration<ItemUnpublished>());
+        services.AddSingleton<IEventTypeRegistration>(new EventTypeRegistration<ItemDeleted>());
 
         // Shared by the slices: the validators (stateless, load the contract files once), the
         // access helper, the row locks and the migration observer (a no-op outside tests).
@@ -75,6 +80,19 @@ public static class CmsModule
         services.AddScoped<ItemMigrator>();
         services.AddScoped<ProposalEvaluator>();
         services.AddScoped<CollectionWriteGate>();
+
+        // Items (015 research IT-05, IT-06, IT-11): validation, the indexer and the one write path.
+        services.AddScoped<IItemMediaLookup, ItemMediaLookup>();
+        services.AddScoped<IItemReferenceLookup, ItemReferenceLookup>();
+        services.AddScoped<ItemValidation>();
+        services.AddScoped<ItemIndexer>();
+        services.AddScoped<SlugAvailability>();
+        services.AddScoped<ItemWrites>();
+        services.AddScoped<ItemReads>();
+
+        // Research IT-11, IT-22: indexes items stored before 015, and any after a future indexer change.
+        services.AddSingleton<ItemIndexBackfillService>();
+        services.AddHostedService(sp => sp.GetRequiredService<ItemIndexBackfillService>());
 
         // Feature slices. Each is registered here and nowhere else.
         services.AddScoped<IQueryHandler<ListCollectionsQuery, Result<CollectionListResponse>>, ListCollectionsHandler>();

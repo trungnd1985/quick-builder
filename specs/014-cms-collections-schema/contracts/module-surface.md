@@ -53,6 +53,11 @@ Ids only; no names or values. No consumer in this feature; #16 subscribes.
 
 ## 5. Obligations on later features
 
+**Status after #15**: the first two are met. Every item write enters `CollectionWriteGate`
+through `ItemWrites`, which `ItemWritesOnlyTests` enforces, and validates against the schema
+it returns; readers accept the stored `schemaVersion` and treat a missing key as no value
+(015 research IT-05, IT-06). Bindings remain for #16.
+
 - **Every item write** (#15) goes through `CollectionWriteGate` (data-model §3.3) and
   validates values against the schema it returns.
 - **Readers of item values** (#15, #16) accept every `schemaVersion` still stored (contract

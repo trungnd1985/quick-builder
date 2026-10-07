@@ -1,0 +1,133 @@
+{
+  "schemaVersion": 1,
+  "titleFieldId": "f1",
+  "fields": [
+    {
+      "id": "f1",
+      "key": "title",
+      "name": "Title",
+      "help": "",
+      "required": true,
+      "type": "text",
+      "multiline": false,
+      "maxLength": 20
+    },
+    {
+      "id": "f2",
+      "key": "summary",
+      "name": "Summary",
+      "help": "",
+      "required": false,
+      "type": "text",
+      "multiline": true,
+      "maxLength": 50
+    },
+    {
+      "id": "f3",
+      "key": "body",
+      "name": "Body",
+      "help": "",
+      "required": false,
+      "type": "richText"
+    },
+    {
+      "id": "f4",
+      "key": "price",
+      "name": "Price",
+      "help": "",
+      "required": false,
+      "type": "number",
+      "decimals": 2,
+      "min": 0,
+      "max": 1000
+    },
+    {
+      "id": "f5",
+      "key": "count",
+      "name": "Count",
+      "help": "",
+      "required": false,
+      "type": "number",
+      "decimals": 0
+    },
+    {
+      "id": "f6",
+      "key": "featured",
+      "name": "Featured",
+      "help": "",
+      "required": true,
+      "type": "boolean"
+    },
+    {
+      "id": "f7",
+      "key": "day",
+      "name": "Day",
+      "help": "",
+      "required": false,
+      "type": "date",
+      "withTime": false
+    },
+    {
+      "id": "f8",
+      "key": "starts",
+      "name": "Starts",
+      "help": "",
+      "required": false,
+      "type": "date",
+      "withTime": true
+    },
+    {
+      "id": "f9",
+      "key": "cover",
+      "name": "Cover",
+      "help": "",
+      "required": false,
+      "type": "image"
+    },
+    {
+      "id": "f10",
+      "key": "brochure",
+      "name": "Brochure",
+      "help": "",
+      "required": false,
+      "type": "file",
+      "accept": "documents"
+    },
+    {
+      "id": "f11",
+      "key": "category",
+      "name": "Category",
+      "help": "",
+      "required": false,
+      "type": "option",
+      "options": [
+        {
+          "id": "o1",
+          "label": "News"
+        },
+        {
+          "id": "o2",
+          "label": "Guides"
+        }
+      ]
+    },
+    {
+      "id": "f12",
+      "key": "author",
+      "name": "Author",
+      "help": "",
+      "required": false,
+      "type": "reference",
+      "target": "0192f5a0-1b2c-7d3e-8f40-5a6b7c8d9e0f"
+    },
+    {
+      "id": "f13",
+      "key": "related",
+      "name": "Related",
+      "help": "",
+      "required": false,
+      "type": "multiReference",
+      "target": "0192f5a0-1b2c-7d3e-8f40-5a6b7c8d9e0f"
+    }
+  ]
+}

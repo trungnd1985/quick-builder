@@ -93,7 +93,16 @@ internal sealed class SaveCollectionHandler(
             }
         }
 
-        await migrator.MigrateAsync(collection, evaluation.Plans, cancellationToken).ConfigureAwait(false);
+        // 015 research IT-11: a change to the title field, a required flag, a setting or a type
+        // can change items' names or attention without changing any value.
+        var reindexAll = evaluation.Changes.Any(c => c.Kind is ChangeKind.TitleFieldChanged
+            or ChangeKind.RequiredChanged
+            or ChangeKind.SettingsChanged
+            or ChangeKind.TypeChanged
+            or ChangeKind.FieldAdded
+            or ChangeKind.FieldRemoved
+            or ChangeKind.OptionRemoved);
+        await migrator.MigrateAsync(collection, evaluation.Plans, evaluation.Assignment.Document, reindexAll, cancellationToken).ConfigureAwait(false);
 
         var actor = access.Actor;
         var entry = collection.Apply(evaluation.Details, evaluation.Assignment, evaluation.Impact, actor, clock);

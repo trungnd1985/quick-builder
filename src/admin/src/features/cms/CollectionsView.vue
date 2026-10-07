@@ -256,7 +256,14 @@ async function deleted(collection: CollectionSummary): Promise<void> {
             </th>
             <td><code>{{ collection.slug }}</code></td>
             <td>{{ collection.fieldCount }}</td>
-            <td>{{ collection.itemCount }}</td>
+            <td>
+              <RouterLink
+                :to="{ name: 'site-collection-items', params: { siteId, collectionId: collection.id } }"
+                :aria-label="t('cms.items.list.title', { collection: collection.name })"
+              >
+                {{ collection.itemCount }}
+              </RouterLink>
+            </td>
             <td>{{ d(new Date(collection.updatedAtUtc), 'short') }}</td>
             <td v-if="canManage">
               <button

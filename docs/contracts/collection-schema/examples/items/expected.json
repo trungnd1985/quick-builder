@@ -1,0 +1,228 @@
+{
+  "valid-minimal.json": {
+    "problems": []
+  },
+  "valid-every-type.json": {
+    "problems": []
+  },
+  "valid-required-boolean-absent.json": {
+    "problems": []
+  },
+  "missing-title.json": {
+    "problems": [
+      {
+        "fieldId": "f1",
+        "problem": "missing_required"
+      }
+    ]
+  },
+  "title-too-long.json": {
+    "problems": [
+      {
+        "fieldId": "f1",
+        "problem": "too_long",
+        "limit": 20
+      }
+    ]
+  },
+  "title-two-lines.json": {
+    "problems": [
+      {
+        "fieldId": "f1",
+        "problem": "not_single_line"
+      }
+    ]
+  },
+  "summary-too-long.json": {
+    "problems": [
+      {
+        "fieldId": "f2",
+        "problem": "too_long",
+        "limit": 50
+      }
+    ]
+  },
+  "price-below-min.json": {
+    "problems": [
+      {
+        "fieldId": "f4",
+        "problem": "out_of_range",
+        "limit": 0
+      }
+    ]
+  },
+  "price-above-max.json": {
+    "problems": [
+      {
+        "fieldId": "f4",
+        "problem": "out_of_range",
+        "limit": 1000
+      }
+    ]
+  },
+  "price-too-many-decimals.json": {
+    "problems": [
+      {
+        "fieldId": "f4",
+        "problem": "too_many_decimals",
+        "limit": 2
+      }
+    ]
+  },
+  "count-not-whole.json": {
+    "problems": [
+      {
+        "fieldId": "f5",
+        "problem": "too_many_decimals",
+        "limit": 0
+      }
+    ]
+  },
+  "price-as-text.json": {
+    "problems": [
+      {
+        "fieldId": "f4",
+        "problem": "malformed"
+      }
+    ]
+  },
+  "boolean-as-text.json": {
+    "problems": [
+      {
+        "fieldId": "f6",
+        "problem": "malformed"
+      }
+    ]
+  },
+  "date-not-a-date.json": {
+    "problems": [
+      {
+        "fieldId": "f7",
+        "problem": "malformed"
+      }
+    ]
+  },
+  "date-with-a-time.json": {
+    "problems": [
+      {
+        "fieldId": "f7",
+        "problem": "malformed"
+      }
+    ]
+  },
+  "date-time-without-utc.json": {
+    "problems": [
+      {
+        "fieldId": "f8",
+        "problem": "malformed"
+      }
+    ]
+  },
+  "rich-text-not-a-document.json": {
+    "problems": [
+      {
+        "fieldId": "f3",
+        "problem": "malformed"
+      }
+    ]
+  },
+  "option-unknown.json": {
+    "problems": [
+      {
+        "fieldId": "f11",
+        "problem": "unknown_option"
+      }
+    ]
+  },
+  "option-not-an-id.json": {
+    "problems": [
+      {
+        "fieldId": "f11",
+        "problem": "malformed"
+      }
+    ]
+  },
+  "unknown-field.json": {
+    "problems": [
+      {
+        "fieldId": "f99",
+        "problem": "unknown_field"
+      }
+    ]
+  },
+  "image-missing.json": {
+    "problems": [
+      {
+        "fieldId": "f9",
+        "problem": "media_missing"
+      }
+    ]
+  },
+  "image-not-a-media-value.json": {
+    "problems": [
+      {
+        "fieldId": "f9",
+        "problem": "malformed"
+      }
+    ]
+  },
+  "reference-missing.json": {
+    "problems": [
+      {
+        "fieldId": "f12",
+        "problem": "reference_missing"
+      }
+    ]
+  },
+  "reference-not-an-id.json": {
+    "problems": [
+      {
+        "fieldId": "f12",
+        "problem": "malformed"
+      }
+    ]
+  },
+  "multi-reference-duplicate.json": {
+    "problems": [
+      {
+        "fieldId": "f13",
+        "problem": "duplicate_reference"
+      }
+    ]
+  },
+  "multi-reference-too-many.json": {
+    "problems": [
+      {
+        "fieldId": "f13",
+        "problem": "too_many_references",
+        "limit": 100
+      }
+    ]
+  },
+  "multi-reference-empty.json": {
+    "problems": [
+      {
+        "fieldId": "f13",
+        "problem": "malformed"
+      }
+    ]
+  },
+  "several-problems-in-schema-order.json": {
+    "problems": [
+      {
+        "fieldId": "f1",
+        "problem": "too_long",
+        "limit": 20
+      },
+      {
+        "fieldId": "f4",
+        "problem": "out_of_range",
+        "limit": 0
+      },
+      {
+        "fieldId": "f99",
+        "problem": "unknown_field"
+      }
+    ]
+  }
+}

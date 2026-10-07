@@ -31,6 +31,18 @@ internal sealed class CmsDbContext(DbContextOptions<CmsDbContext> options, ISite
 
     internal DbSet<SchemaChangeEntry> SchemaChanges => Set<SchemaChangeEntry>();
 
+    internal DbSet<ItemSlug> ItemSlugs => Set<ItemSlug>();
+
+    internal DbSet<ItemReference> ItemReferences => Set<ItemReference>();
+
+    internal DbSet<ItemMediaUse> ItemMedia => Set<ItemMediaUse>();
+
+    internal DbSet<ItemVersion> ItemVersions => Set<ItemVersion>();
+
+    internal DbSet<ItemSchedule> ItemSchedules => Set<ItemSchedule>();
+
+    internal DbSet<ItemHistoryEntry> ItemHistory => Set<ItemHistoryEntry>();
+
     internal DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
 
     /// <summary>
@@ -56,11 +68,33 @@ internal sealed class CmsDbContext(DbContextOptions<CmsDbContext> options, ISite
             .AcrossAllSites("Admin operation on a site named explicitly in the route (001 FR-011b).")
             .Where(e => e.SiteId == siteId);
 
+    /// <summary>
+    /// The collections, of any site, that hold items not yet indexed by
+    /// <paramref name="indexVersion"/> (015 research IT-11, IT-22).
+    /// </summary>
+    /// <remarks>
+    /// The module's second and last <c>AcrossAllSites</c> call, kept here beside
+    /// <see cref="ForSite{T}"/>: background work has no site, and must first learn which sites
+    /// have work. It returns ids only; each collection is then processed through
+    /// <see cref="ForSite{T}"/> on its own site. <c>CmsSiteFilterTests</c> covers it.
+    /// </remarks>
+    internal Task<List<SiteCollection>> CollectionsToIndexAsync(int indexVersion, CancellationToken cancellationToken) =>
+        Set<Item>()
+            .AcrossAllSites("Background indexing first finds which collections have work; each is then processed on its own site (015 IT-22).")
+            .AsNoTracking()
+            .Where(i => i.IndexVersion < indexVersion)
+            .Select(i => new SiteCollection(i.SiteId, i.CollectionId))
+            .Distinct()
+            .ToListAsync(cancellationToken);
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         ArgumentNullException.ThrowIfNull(modelBuilder);
 
         modelBuilder.HasDefaultSchema(Schema);
+
+        // Item slugs compare ignoring case (015 research IT-03), as page slugs do.
+        modelBuilder.HasPostgresExtension("citext");
 
         modelBuilder.Entity<Collection>(entity =>
         {
@@ -91,15 +125,148 @@ internal sealed class CmsDbContext(DbContextOptions<CmsDbContext> options, ISite
 
         modelBuilder.Entity<Item>(entity =>
         {
-            entity.ToTable("items", Schema);
+            entity.ToTable("items", Schema, t =>
+            {
+                t.HasCheckConstraint("ck_items_status", "status IN ('draft', 'published', 'changed')");
+                t.HasCheckConstraint("ck_items_revision", "revision >= 1");
+                t.HasCheckConstraint("ck_items_published_slug", "(published IS NULL) = (published_slug IS NULL)");
+            });
 
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Id).ValueGeneratedNever();
             entity.Property(e => e.Draft).HasColumnType("jsonb").IsRequired();
             entity.Property(e => e.Published).HasColumnType("jsonb");
+            entity.Property(e => e.Slug).HasMaxLength(SlugRules.MaxLength).IsRequired();
+            entity.Property(e => e.PublishedSlug).HasMaxLength(SlugRules.MaxLength);
+            entity.Property(e => e.Status).HasMaxLength(10).IsRequired();
+            entity.Property(e => e.Revision).IsConcurrencyToken();
+
+            // 015 analysis I2: a title may be 10,000 characters, so the name is text and is
+            // sorted and indexed on its first 256 (research IT-14).
+            entity.Property(e => e.Name).HasColumnType("text");
+            entity.Property(e => e.SearchText).HasColumnType("text").IsRequired();
+            entity.Property(e => e.Attention).HasColumnType("jsonb");
+            entity.Ignore(e => e.NewHistory);
+            entity.Ignore(e => e.IsPublished);
+            entity.Ignore(e => e.DomainEvents);
 
             entity.HasOne<Collection>().WithMany().HasForeignKey(e => e.CollectionId).OnDelete(DeleteBehavior.Cascade);
             entity.HasIndex(e => new { e.CollectionId, e.Id });
+            entity.HasIndex(e => new { e.CollectionId, e.UpdatedAtUtc, e.Id }).IsDescending(false, true, false);
+            entity.HasIndex(e => new { e.CollectionId, e.Slug });
+            entity.HasIndex(e => new { e.CollectionId, e.Status });
+            entity.HasIndex(e => e.CollectionId)
+                .HasDatabaseName("ix_items_collection_id_attention")
+                .HasFilter("attention IS NOT NULL");
+
+            entity.HasQueryFilter(e => e.SiteId == CurrentSiteId);
+        });
+
+        // Research IT-03: one key over every draft and published slug of a collection, so the
+        // database refuses a taken slug even when two saves race.
+        modelBuilder.Entity<ItemSlug>(entity =>
+        {
+            entity.ToTable("item_slugs", Schema);
+
+            entity.HasKey(e => new { e.CollectionId, e.Slug });
+            entity.Property(e => e.Slug).HasColumnType("citext").HasMaxLength(SlugRules.MaxLength);
+
+            entity.HasOne<Collection>().WithMany().HasForeignKey(e => e.CollectionId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne<Item>().WithMany().HasForeignKey(e => e.ItemId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasIndex(e => e.ItemId);
+
+            entity.HasQueryFilter(e => e.SiteId == CurrentSiteId);
+        });
+
+        // Research IT-10: NO ACTION on the target refuses deleting an item something refers to,
+        // even when the reference was added concurrently, while a whole-collection delete still
+        // works: the cascade removes both ends in one statement, and NO ACTION is checked at the
+        // end of it, unlike RESTRICT.
+        modelBuilder.Entity<ItemReference>(entity =>
+        {
+            entity.ToTable("item_references", Schema, t =>
+            {
+                t.HasCheckConstraint("ck_item_references_not_self", "source_item_id <> target_item_id");
+                t.HasCheckConstraint("ck_item_references_somewhere", "in_draft OR in_published OR in_scheduled");
+            });
+
+            entity.HasKey(e => new { e.SourceItemId, e.FieldId, e.TargetItemId });
+            entity.Property(e => e.FieldId).HasMaxLength(8);
+
+            entity.HasOne<Item>().WithMany().HasForeignKey(e => e.SourceItemId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne<Item>().WithMany().HasForeignKey(e => e.TargetItemId).OnDelete(DeleteBehavior.NoAction);
+            entity.HasIndex(e => e.TargetItemId);
+
+            entity.HasQueryFilter(e => e.SiteId == CurrentSiteId);
+        });
+
+        // Research IT-15: the media library reads items' usage from here. No foreign key to the
+        // media file: that table belongs to the Media module.
+        modelBuilder.Entity<ItemMediaUse>(entity =>
+        {
+            entity.ToTable("item_media", Schema);
+
+            entity.HasKey(e => new { e.ItemId, e.MediaId });
+
+            entity.HasOne<Item>().WithMany().HasForeignKey(e => e.ItemId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasIndex(e => new { e.SiteId, e.MediaId });
+
+            entity.HasQueryFilter(e => e.SiteId == CurrentSiteId);
+        });
+
+        modelBuilder.Entity<ItemVersion>(entity =>
+        {
+            entity.ToTable("item_versions", Schema, t =>
+                t.HasCheckConstraint("ck_item_versions_kind", "kind IN ('publish', 'scheduled', 'rollback')"));
+
+            entity.HasKey(e => new { e.ItemId, e.Number });
+            entity.Property(e => e.Values).HasColumnType("jsonb").IsRequired();
+            entity.Property(e => e.Slug).HasMaxLength(SlugRules.MaxLength).IsRequired();
+            entity.Property(e => e.Kind).HasMaxLength(10).IsRequired();
+
+            entity.HasOne<Item>().WithMany().HasForeignKey(e => e.ItemId).OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasQueryFilter(e => e.SiteId == CurrentSiteId);
+        });
+
+        // Research IT-09: at most one pending schedule per item and action.
+        modelBuilder.Entity<ItemSchedule>(entity =>
+        {
+            entity.ToTable("item_schedules", Schema, t =>
+            {
+                t.HasCheckConstraint("ck_item_schedules_action", "action IN ('publish', 'unpublish')");
+                t.HasCheckConstraint("ck_item_schedules_state", "state IN ('pending', 'done', 'cancelled', 'failed')");
+            });
+
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).ValueGeneratedNever();
+            entity.Property(e => e.Action).HasMaxLength(10).IsRequired();
+            entity.Property(e => e.State).HasMaxLength(10).IsRequired();
+            entity.Property(e => e.CapturedValues).HasColumnType("jsonb");
+            entity.Property(e => e.CapturedSlug).HasMaxLength(SlugRules.MaxLength);
+            entity.Property(e => e.FailureCode).HasMaxLength(64);
+            entity.Ignore(e => e.IsPending);
+
+            entity.HasOne<Item>().WithMany().HasForeignKey(e => e.ItemId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasIndex(e => new { e.ItemId, e.Action })
+                .IsUnique()
+                .HasFilter("state = 'pending'");
+
+            entity.HasQueryFilter(e => e.SiteId == CurrentSiteId);
+        });
+
+        modelBuilder.Entity<ItemHistoryEntry>(entity =>
+        {
+            entity.ToTable("item_history", Schema);
+
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).ValueGeneratedNever();
+            entity.Property(e => e.Kind).HasMaxLength(24).IsRequired();
+            entity.Property(e => e.ScheduleAction).HasMaxLength(10);
+            entity.Property(e => e.FailureCode).HasMaxLength(64);
+
+            entity.HasOne<Item>().WithMany().HasForeignKey(e => e.ItemId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasIndex(e => new { e.ItemId, e.Id });
 
             entity.HasQueryFilter(e => e.SiteId == CurrentSiteId);
         });

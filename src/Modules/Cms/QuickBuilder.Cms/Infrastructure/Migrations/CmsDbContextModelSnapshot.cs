@@ -22,6 +22,7 @@ namespace QuickBuilder.Cms.Infrastructure.Migrations
                 .HasAnnotation("ProductVersion", "10.0.12")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
+            NpgsqlModelBuilderExtensions.HasPostgresExtension(modelBuilder, "citext");
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
             modelBuilder.Entity("QuickBuilder.Cms.Domain.Collection", b =>
@@ -66,6 +67,10 @@ namespace QuickBuilder.Cms.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("jsonb")
                         .HasColumnName("schema");
+
+                    b.Property<int>("SchemaRevision")
+                        .HasColumnType("integer")
+                        .HasColumnName("schema_revision");
 
                     b.Property<short>("SchemaVersion")
                         .HasColumnType("smallint")
@@ -146,6 +151,10 @@ namespace QuickBuilder.Cms.Infrastructure.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<JsonDocument>("Attention")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("attention");
+
                     b.Property<Guid>("CollectionId")
                         .HasColumnType("uuid")
                         .HasColumnName("collection_id");
@@ -154,30 +163,405 @@ namespace QuickBuilder.Cms.Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at_utc");
 
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
                     b.Property<JsonDocument>("Draft")
                         .IsRequired()
                         .HasColumnType("jsonb")
                         .HasColumnName("draft");
 
+                    b.Property<int>("IndexVersion")
+                        .HasColumnType("integer")
+                        .HasColumnName("index_version");
+
+                    b.Property<int?>("LiveVersion")
+                        .HasColumnType("integer")
+                        .HasColumnName("live_version");
+
+                    b.Property<string>("Name")
+                        .HasColumnType("text")
+                        .HasColumnName("name");
+
+                    b.Property<int>("NextVersionNumber")
+                        .HasColumnType("integer")
+                        .HasColumnName("next_version_number");
+
                     b.Property<JsonDocument>("Published")
                         .HasColumnType("jsonb")
                         .HasColumnName("published");
+
+                    b.Property<DateTimeOffset?>("PublishedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("published_at_utc");
+
+                    b.Property<Guid?>("PublishedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("published_by");
+
+                    b.Property<string>("PublishedSlug")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("published_slug");
+
+                    b.Property<int>("Revision")
+                        .IsConcurrencyToken()
+                        .HasColumnType("integer")
+                        .HasColumnName("revision");
+
+                    b.Property<string>("SearchText")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("search_text");
 
                     b.Property<Guid>("SiteId")
                         .HasColumnType("uuid")
                         .HasColumnName("site_id");
 
+                    b.Property<string>("Slug")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("slug");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)")
+                        .HasColumnName("status");
+
                     b.Property<DateTimeOffset>("UpdatedAtUtc")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at_utc");
 
+                    b.Property<Guid>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
                     b.HasKey("Id")
                         .HasName("pk_items");
+
+                    b.HasIndex("CollectionId")
+                        .HasDatabaseName("ix_items_collection_id_attention")
+                        .HasFilter("attention IS NOT NULL");
 
                     b.HasIndex("CollectionId", "Id")
                         .HasDatabaseName("ix_items_collection_id_id");
 
-                    b.ToTable("items", "cms");
+                    b.HasIndex("CollectionId", "Slug")
+                        .HasDatabaseName("ix_items_collection_id_slug");
+
+                    b.HasIndex("CollectionId", "Status")
+                        .HasDatabaseName("ix_items_collection_id_status");
+
+                    b.HasIndex("CollectionId", "UpdatedAtUtc", "Id")
+                        .IsDescending(false, true, false)
+                        .HasDatabaseName("ix_items_collection_id_updated_at_utc_id");
+
+                    b.ToTable("items", "cms", t =>
+                        {
+                            t.HasCheckConstraint("ck_items_published_slug", "(published IS NULL) = (published_slug IS NULL)");
+
+                            t.HasCheckConstraint("ck_items_revision", "revision >= 1");
+
+                            t.HasCheckConstraint("ck_items_status", "status IN ('draft', 'published', 'changed')");
+                        });
+                });
+
+            modelBuilder.Entity("QuickBuilder.Cms.Domain.ItemHistoryEntry", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("AtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("at_utc");
+
+                    b.Property<Guid>("By")
+                        .HasColumnType("uuid")
+                        .HasColumnName("by");
+
+                    b.Property<DateTimeOffset?>("DueAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("due_at_utc");
+
+                    b.Property<string>("FailureCode")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("failure_code");
+
+                    b.Property<Guid>("ItemId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("item_id");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(24)
+                        .HasColumnType("character varying(24)")
+                        .HasColumnName("kind");
+
+                    b.Property<string>("ScheduleAction")
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)")
+                        .HasColumnName("schedule_action");
+
+                    b.Property<Guid>("SiteId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("site_id");
+
+                    b.Property<int?>("VersionNumber")
+                        .HasColumnType("integer")
+                        .HasColumnName("version_number");
+
+                    b.HasKey("Id")
+                        .HasName("pk_item_history");
+
+                    b.HasIndex("ItemId", "Id")
+                        .HasDatabaseName("ix_item_history_item_id_id");
+
+                    b.ToTable("item_history", "cms");
+                });
+
+            modelBuilder.Entity("QuickBuilder.Cms.Domain.ItemMediaUse", b =>
+                {
+                    b.Property<Guid>("ItemId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("item_id");
+
+                    b.Property<Guid>("MediaId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("media_id");
+
+                    b.Property<bool>("InDraft")
+                        .HasColumnType("boolean")
+                        .HasColumnName("in_draft");
+
+                    b.Property<bool>("InHistory")
+                        .HasColumnType("boolean")
+                        .HasColumnName("in_history");
+
+                    b.Property<bool>("InLive")
+                        .HasColumnType("boolean")
+                        .HasColumnName("in_live");
+
+                    b.Property<bool>("InScheduled")
+                        .HasColumnType("boolean")
+                        .HasColumnName("in_scheduled");
+
+                    b.Property<Guid>("SiteId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("site_id");
+
+                    b.HasKey("ItemId", "MediaId")
+                        .HasName("pk_item_media");
+
+                    b.HasIndex("SiteId", "MediaId")
+                        .HasDatabaseName("ix_item_media_site_id_media_id");
+
+                    b.ToTable("item_media", "cms");
+                });
+
+            modelBuilder.Entity("QuickBuilder.Cms.Domain.ItemReference", b =>
+                {
+                    b.Property<Guid>("SourceItemId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("source_item_id");
+
+                    b.Property<string>("FieldId")
+                        .HasMaxLength(8)
+                        .HasColumnType("character varying(8)")
+                        .HasColumnName("field_id");
+
+                    b.Property<Guid>("TargetItemId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("target_item_id");
+
+                    b.Property<bool>("InDraft")
+                        .HasColumnType("boolean")
+                        .HasColumnName("in_draft");
+
+                    b.Property<bool>("InPublished")
+                        .HasColumnType("boolean")
+                        .HasColumnName("in_published");
+
+                    b.Property<bool>("InScheduled")
+                        .HasColumnType("boolean")
+                        .HasColumnName("in_scheduled");
+
+                    b.Property<Guid>("SiteId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("site_id");
+
+                    b.HasKey("SourceItemId", "FieldId", "TargetItemId")
+                        .HasName("pk_item_references");
+
+                    b.HasIndex("TargetItemId")
+                        .HasDatabaseName("ix_item_references_target_item_id");
+
+                    b.ToTable("item_references", "cms", t =>
+                        {
+                            t.HasCheckConstraint("ck_item_references_not_self", "source_item_id <> target_item_id");
+
+                            t.HasCheckConstraint("ck_item_references_somewhere", "in_draft OR in_published OR in_scheduled");
+                        });
+                });
+
+            modelBuilder.Entity("QuickBuilder.Cms.Domain.ItemSchedule", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)")
+                        .HasColumnName("action");
+
+                    b.Property<string>("CapturedSlug")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("captured_slug");
+
+                    b.Property<JsonDocument>("CapturedValues")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("captured_values");
+
+                    b.Property<DateTimeOffset?>("CompletedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("completed_at_utc");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at_utc");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<DateTimeOffset>("DueAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("due_at_utc");
+
+                    b.Property<string>("FailureCode")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("failure_code");
+
+                    b.Property<Guid>("ItemId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("item_id");
+
+                    b.Property<int>("Revision")
+                        .HasColumnType("integer")
+                        .HasColumnName("revision");
+
+                    b.Property<Guid>("SiteId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("site_id");
+
+                    b.Property<string>("State")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)")
+                        .HasColumnName("state");
+
+                    b.HasKey("Id")
+                        .HasName("pk_item_schedules");
+
+                    b.HasIndex("ItemId", "Action")
+                        .IsUnique()
+                        .HasDatabaseName("ix_item_schedules_item_id_action")
+                        .HasFilter("state = 'pending'");
+
+                    b.ToTable("item_schedules", "cms", t =>
+                        {
+                            t.HasCheckConstraint("ck_item_schedules_action", "action IN ('publish', 'unpublish')");
+
+                            t.HasCheckConstraint("ck_item_schedules_state", "state IN ('pending', 'done', 'cancelled', 'failed')");
+                        });
+                });
+
+            modelBuilder.Entity("QuickBuilder.Cms.Domain.ItemSlug", b =>
+                {
+                    b.Property<Guid>("CollectionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("collection_id");
+
+                    b.Property<string>("Slug")
+                        .HasMaxLength(100)
+                        .HasColumnType("citext")
+                        .HasColumnName("slug");
+
+                    b.Property<Guid>("ItemId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("item_id");
+
+                    b.Property<Guid>("SiteId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("site_id");
+
+                    b.HasKey("CollectionId", "Slug")
+                        .HasName("pk_item_slugs");
+
+                    b.HasIndex("ItemId")
+                        .HasDatabaseName("ix_item_slugs_item_id");
+
+                    b.ToTable("item_slugs", "cms");
+                });
+
+            modelBuilder.Entity("QuickBuilder.Cms.Domain.ItemVersion", b =>
+                {
+                    b.Property<Guid>("ItemId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("item_id");
+
+                    b.Property<int>("Number")
+                        .HasColumnType("integer")
+                        .HasColumnName("number");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)")
+                        .HasColumnName("kind");
+
+                    b.Property<DateTimeOffset>("PublishedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("published_at_utc");
+
+                    b.Property<Guid>("PublishedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("published_by");
+
+                    b.Property<int?>("RestoredFrom")
+                        .HasColumnType("integer")
+                        .HasColumnName("restored_from");
+
+                    b.Property<Guid>("SiteId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("site_id");
+
+                    b.Property<string>("Slug")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("slug");
+
+                    b.Property<JsonDocument>("Values")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("values");
+
+                    b.HasKey("ItemId", "Number")
+                        .HasName("pk_item_versions");
+
+                    b.ToTable("item_versions", "cms", t =>
+                        {
+                            t.HasCheckConstraint("ck_item_versions_kind", "kind IN ('publish', 'scheduled', 'rollback')");
+                        });
                 });
 
             modelBuilder.Entity("QuickBuilder.Cms.Domain.SchemaChangeEntry", b =>
@@ -321,6 +705,80 @@ namespace QuickBuilder.Cms.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_items_collections_collection_id");
+                });
+
+            modelBuilder.Entity("QuickBuilder.Cms.Domain.ItemHistoryEntry", b =>
+                {
+                    b.HasOne("QuickBuilder.Cms.Domain.Item", null)
+                        .WithMany()
+                        .HasForeignKey("ItemId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_item_history_items_item_id");
+                });
+
+            modelBuilder.Entity("QuickBuilder.Cms.Domain.ItemMediaUse", b =>
+                {
+                    b.HasOne("QuickBuilder.Cms.Domain.Item", null)
+                        .WithMany()
+                        .HasForeignKey("ItemId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_item_media_items_item_id");
+                });
+
+            modelBuilder.Entity("QuickBuilder.Cms.Domain.ItemReference", b =>
+                {
+                    b.HasOne("QuickBuilder.Cms.Domain.Item", null)
+                        .WithMany()
+                        .HasForeignKey("SourceItemId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_item_references_items_source_item_id");
+
+                    b.HasOne("QuickBuilder.Cms.Domain.Item", null)
+                        .WithMany()
+                        .HasForeignKey("TargetItemId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired()
+                        .HasConstraintName("fk_item_references_items_target_item_id");
+                });
+
+            modelBuilder.Entity("QuickBuilder.Cms.Domain.ItemSchedule", b =>
+                {
+                    b.HasOne("QuickBuilder.Cms.Domain.Item", null)
+                        .WithMany()
+                        .HasForeignKey("ItemId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_item_schedules_items_item_id");
+                });
+
+            modelBuilder.Entity("QuickBuilder.Cms.Domain.ItemSlug", b =>
+                {
+                    b.HasOne("QuickBuilder.Cms.Domain.Collection", null)
+                        .WithMany()
+                        .HasForeignKey("CollectionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_item_slugs_collections_collection_id");
+
+                    b.HasOne("QuickBuilder.Cms.Domain.Item", null)
+                        .WithMany()
+                        .HasForeignKey("ItemId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_item_slugs_items_item_id");
+                });
+
+            modelBuilder.Entity("QuickBuilder.Cms.Domain.ItemVersion", b =>
+                {
+                    b.HasOne("QuickBuilder.Cms.Domain.Item", null)
+                        .WithMany()
+                        .HasForeignKey("ItemId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_item_versions_items_item_id");
                 });
 
             modelBuilder.Entity("QuickBuilder.Cms.Domain.SchemaChangeEntry", b =>

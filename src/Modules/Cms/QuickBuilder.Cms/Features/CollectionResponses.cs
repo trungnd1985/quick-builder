@@ -22,6 +22,7 @@ public sealed record PersonResponse(Guid Id, string DisplayName);
 /// <summary>One collection with its schema and revision (contracts/cms-api.yaml, <c>Collection</c>).</summary>
 /// <param name="CanManage">Whether the caller may change it; the builder is read-only otherwise.</param>
 /// <param name="IdMap">After a save: each temporary id of the proposal and its permanent id. Empty otherwise.</param>
+/// <param name="SchemaRevision">The revision at which the schema last changed; item forms send it back (015 research IT-07).</param>
 public sealed record CollectionResponse(
     Guid Id,
     string Name,
@@ -29,6 +30,7 @@ public sealed record CollectionResponse(
     string? Description,
     JsonNode Schema,
     int Revision,
+    int SchemaRevision,
     int ItemCount,
     bool CanManage,
     DateTimeOffset CreatedAtUtc,
