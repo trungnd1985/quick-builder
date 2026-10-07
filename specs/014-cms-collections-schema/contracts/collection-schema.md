@@ -162,7 +162,7 @@ Fields are matched **by id** between the stored and proposed schemas. Each chang
 
 | From → To | Rule | Conversion |
 |---|---|---|
-| `text` → `richText` | lossless | each line becomes a paragraph; past 500 blocks, lines join the last paragraph with hard breaks |
+| `text` → `richText` | lossless | each line becomes a paragraph; past 500 lines, consecutive lines share paragraphs evenly, separated by hard breaks |
 | `richText` → `text` | lossy | block text joined by line breaks (several lines) or spaces (single line); marks, links and lists dropped; shortened to `maxLength` |
 | `number` → `text` | lossless | invariant, shortest round-trip, `.` separator, no grouping |
 | `text` → `number` | lossy | trimmed, `^-?(0|[1-9][0-9]*)(\.[0-9]+)?$`; extra decimals rounded half away from zero; outside `min`/`max` or the safe range: cleared |
@@ -175,11 +175,11 @@ Fields are matched **by id** between the stored and proposed schemas. Each chang
 | `file` → `image` | lossy | non-images cleared; missing files kept |
 | `reference` → `multiReference` | lossless | a list of one |
 | `multiReference` → `reference` | lossy | the first item kept |
-| `decimals` 0 → more | lossless | unchanged |
+| `decimals` raised | free | unchanged |
 | `decimals` lowered | lossy | rounded half away from zero |
 | `withTime` false → true | lossless | midnight UTC |
 | `withTime` true → false | lossy | the UTC calendar date |
-| `multiline` false → true | lossless | unchanged |
+| `multiline` false → true | free | unchanged |
 | `multiline` true → false | lossless | lines joined with one space |
 | reference `target` changed | forbidden | |
 | any other type change | forbidden | |

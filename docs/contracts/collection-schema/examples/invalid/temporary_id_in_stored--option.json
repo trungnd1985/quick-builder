@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "fields": [
+    {
+      "id": "f1",
+      "key": "kind",
+      "name": "Kind",
+      "help": "",
+      "required": false,
+      "type": "option",
+      "options": [
+        {
+          "id": "~1",
+          "label": "A"
+        }
+      ]
+    }
+  ]
+}

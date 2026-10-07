@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "fields": [
+    {
+      "id": "f1",
+      "key": "ratio",
+      "name": "Ratio",
+      "help": "",
+      "required": false,
+      "type": "number",
+      "decimals": 7
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "fields": [
+    {
+      "id": "f1",
+      "key": "body",
+      "name": "Body",
+      "help": "",
+      "required": false,
+      "type": "text",
+      "multiline": true,
+      "maxLength": 5000
+    },
+    {
+      "id": "f2",
+      "key": "rating",
+      "name": "Rating",
+      "help": "",
+      "required": false,
+      "type": "number",
+      "decimals": 1
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "fields": [
+    {
+      "id": "f1",
+      "key": "code",
+      "name": "Code",
+      "help": "",
+      "required": false,
+      "type": "text",
+      "multiline": false,
+      "maxLength": 0
+    }
+  ]
+}

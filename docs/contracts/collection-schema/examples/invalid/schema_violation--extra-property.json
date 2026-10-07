@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "fields": [
+    {
+      "id": "f1",
+      "key": "flag",
+      "name": "Flag",
+      "help": "",
+      "required": false,
+      "type": "boolean",
+      "default": true
+    }
+  ]
+}

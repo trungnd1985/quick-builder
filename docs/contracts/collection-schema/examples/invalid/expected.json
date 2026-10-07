@@ -1,0 +1,133 @@
+{
+  "$comment": "What each invalid example must fail with: the error code, the rule (also the start of its file name) and the JSON Pointer of the first failure. Shared by the server and the admin validators (docs/contracts/collection-schema.md §5, SC-006). The examples are stored documents, so temporary ids are refused.",
+  "malformed_json--truncated.json": {
+    "code": "cms.invalid_schema",
+    "rule": "malformed_json",
+    "pointer": ""
+  },
+  "duplicate_property--field-key.json": {
+    "code": "cms.invalid_schema",
+    "rule": "duplicate_property",
+    "pointer": "/fields/0/key"
+  },
+  "unsupported_schema_version--version-2.json": {
+    "code": "cms.unsupported_schema_version",
+    "rule": "unsupported_schema_version",
+    "pointer": "/schemaVersion"
+  },
+  "schema_violation--missing-fields.json": {
+    "code": "cms.invalid_schema",
+    "rule": "schema_violation",
+    "pointer": ""
+  },
+  "schema_violation--unknown-type.json": {
+    "code": "cms.invalid_schema",
+    "rule": "schema_violation",
+    "pointer": "/fields/0"
+  },
+  "schema_violation--extra-property.json": {
+    "code": "cms.invalid_schema",
+    "rule": "schema_violation",
+    "pointer": "/fields/0/default"
+  },
+  "schema_violation--bad-key.json": {
+    "code": "cms.invalid_schema",
+    "rule": "schema_violation",
+    "pointer": "/fields/0/key"
+  },
+  "schema_violation--option-field-without-options.json": {
+    "code": "cms.invalid_schema",
+    "rule": "schema_violation",
+    "pointer": "/fields/0/options"
+  },
+  "schema_violation--max-length-zero.json": {
+    "code": "cms.invalid_schema",
+    "rule": "schema_violation",
+    "pointer": "/fields/0/maxLength"
+  },
+  "schema_violation--decimals-seven.json": {
+    "code": "cms.invalid_schema",
+    "rule": "schema_violation",
+    "pointer": "/fields/0/decimals"
+  },
+  "schema_violation--target-not-uuid.json": {
+    "code": "cms.invalid_schema",
+    "rule": "schema_violation",
+    "pointer": "/fields/0/target"
+  },
+  "schema_violation--hundred-and-one-fields.json": {
+    "code": "cms.invalid_schema",
+    "rule": "schema_violation",
+    "pointer": "/fields"
+  },
+  "schema_violation--control-character-in-name.json": {
+    "code": "cms.invalid_schema",
+    "rule": "schema_violation",
+    "pointer": "/fields/0/name"
+  },
+  "duplicate_key--twice.json": {
+    "code": "cms.invalid_schema",
+    "rule": "duplicate_key",
+    "pointer": "/fields/1/key"
+  },
+  "reserved_key--slug.json": {
+    "code": "cms.invalid_schema",
+    "rule": "reserved_key",
+    "pointer": "/fields/0/key"
+  },
+  "duplicate_field_id--twice.json": {
+    "code": "cms.invalid_schema",
+    "rule": "duplicate_field_id",
+    "pointer": "/fields/1/id"
+  },
+  "duplicate_option_label--case.json": {
+    "code": "cms.invalid_schema",
+    "rule": "duplicate_option_label",
+    "pointer": "/fields/0/options/1/label"
+  },
+  "duplicate_option_id--twice.json": {
+    "code": "cms.invalid_schema",
+    "rule": "duplicate_option_id",
+    "pointer": "/fields/0/options/1/id"
+  },
+  "min_above_max--number.json": {
+    "code": "cms.invalid_schema",
+    "rule": "min_above_max",
+    "pointer": "/fields/0/min"
+  },
+  "invalid_title_field--number.json": {
+    "code": "cms.invalid_schema",
+    "rule": "invalid_title_field",
+    "pointer": "/titleFieldId"
+  },
+  "invalid_title_field--multiline.json": {
+    "code": "cms.invalid_schema",
+    "rule": "invalid_title_field",
+    "pointer": "/titleFieldId"
+  },
+  "invalid_title_field--not-required.json": {
+    "code": "cms.invalid_schema",
+    "rule": "invalid_title_field",
+    "pointer": "/titleFieldId"
+  },
+  "invalid_title_field--missing-field.json": {
+    "code": "cms.invalid_schema",
+    "rule": "invalid_title_field",
+    "pointer": "/titleFieldId"
+  },
+  "missing_title_field--text-without-title.json": {
+    "code": "cms.invalid_schema",
+    "rule": "missing_title_field",
+    "pointer": "/titleFieldId"
+  },
+  "temporary_id_in_stored--field.json": {
+    "code": "cms.invalid_schema",
+    "rule": "temporary_id_in_stored",
+    "pointer": "/fields/0/id"
+  },
+  "temporary_id_in_stored--option.json": {
+    "code": "cms.invalid_schema",
+    "rule": "temporary_id_in_stored",
+    "pointer": "/fields/0/options/0/id"
+  }
+}

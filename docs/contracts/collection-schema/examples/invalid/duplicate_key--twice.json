@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "fields": [
+    {
+      "id": "f1",
+      "key": "flag",
+      "name": "Flag",
+      "help": "",
+      "required": false,
+      "type": "boolean"
+    },
+    {
+      "id": "f2",
+      "key": "flag",
+      "name": "Other flag",
+      "help": "",
+      "required": false,
+      "type": "boolean"
+    }
+  ]
+}

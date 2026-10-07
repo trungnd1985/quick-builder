@@ -83,16 +83,16 @@ Shorthand used below:
 **Purpose**: the feature's documents, the two new projects and their wiring. Nothing here has
 behaviour.
 
-- [ ] T001 Commit `specs/014-cms-collections-schema/` (spec, plan, research, data model, contracts, quickstart, checklist, tasks) as the first commit on branch `014-cms-collections-schema`, referencing #14 (plan.md "Development Workflow").
-- [ ] T002 Create the two projects (module-surface.md §1) and add both to `QuickBuilder.slnx`:
+- [X] T001 Commit `specs/014-cms-collections-schema/` (spec, plan, research, data model, contracts, quickstart, checklist, tasks) as the first commit on branch `014-cms-collections-schema`, referencing #14 (plan.md "Development Workflow").
+- [X] T002 Create the two projects (module-surface.md §1) and add both to `QuickBuilder.slnx`:
   - **`CMSC/QuickBuilder.Cms.Contracts.csproj`**: references `Shared.Kernel` only. Add an `EmbeddedResource` of `..\..\..\..\docs\contracts\collection-schema\*.schema.json` with `LogicalName="QuickBuilder.Cms.Contracts.CollectionSchema.%(Filename)%(Extension)"`, plus a header comment, as `PAGESC/QuickBuilder.Pages.Contracts.csproj` does.
   - **`CMS/QuickBuilder.Cms.csproj`**: copy `src/Modules/Pages/QuickBuilder.Pages/QuickBuilder.Pages.csproj`'s framework reference and packages. Add project references to `Shared.Kernel`, `Shared.Infrastructure`, `Cms.Contracts`, `Pages.Contracts`, `Media.Contracts`, `Sites.Contracts` and `Identity.Contracts`, and `InternalsVisibleTo` for the integration, unit and architecture test projects.
-- [ ] T003 Create `CMS/CmsModule.cs` with `public static IServiceCollection AddCmsModule(this IServiceCollection, IConfiguration)`, registering nothing yet. Then wire the host:
+- [X] T003 Create `CMS/CmsModule.cs` with `public static IServiceCollection AddCmsModule(this IServiceCollection, IConfiguration)`, registering nothing yet. Then wire the host:
   - `HOST/QuickBuilder.Host.csproj`: a project reference to `CMS`;
   - `HOST/Program.cs`: `builder.Services.AddCmsModule(builder.Configuration);` after `AddEditorModule`, and `.AddApplicationPart(typeof(CmsModule).Assembly)`;
   - `Dockerfile`'s restore stage: two `COPY src/Modules/Cms/QuickBuilder.Cms*/*.csproj` lines beside the others.
-- [ ] T004 [P] Add the Cms projects as references in `ITESTS/QuickBuilder.IntegrationTests.csproj`, `UTESTS/QuickBuilder.UnitTests.csproj` and `ATESTS/QuickBuilder.ArchitectureTests.csproj`.
-- [ ] T005 [P] Extend `ATESTS/ModuleBoundaryTests.cs`:
+- [X] T004 [P] Add the Cms projects as references in `ITESTS/QuickBuilder.IntegrationTests.csproj`, `UTESTS/QuickBuilder.UnitTests.csproj` and `ATESTS/QuickBuilder.ArchitectureTests.csproj`.
+- [X] T005 [P] Extend `ATESTS/ModuleBoundaryTests.cs`:
   - add `typeof(Cms.CmsModule).Assembly` to `ModuleImplementations` and `typeof(Cms.Contracts.CollectionSchema).Assembly` to `ModuleContracts` (the latter compiles after T010);
   - `QuickBuilder.Cms` may reference `Pages.Contracts` and `Media.Contracts`;
   - no module references `QuickBuilder.Cms` or `QuickBuilder.Cms.Contracts`.
@@ -113,58 +113,58 @@ behaviour.
 
 ### The contract
 
-- [ ] T006 Create `CONTRACTS/collection-schema/v1.schema.json` (JSON Schema 2020-12) from contracts/collection-schema.md §2–§3, using only the keywords in `SchemaSubsetValidator.SupportedKeywords`, with ECMAScript-safe patterns (no lookbehind, named groups or `\p{}`):
+- [X] T006 Create `CONTRACTS/collection-schema/v1.schema.json` (JSON Schema 2020-12) from contracts/collection-schema.md §2–§3, using only the keywords in `SchemaSubsetValidator.SupportedKeywords`, with ECMAScript-safe patterns (no lookbehind, named groups or `\p{}`):
   - **The root** is the schema document: `schemaVersion` (`const: 1`), optional `titleFieldId`, and `fields` (`maxItems: 100`, items `$ref: #/$defs/field`).
   - **`$defs/field`** is a `oneOf` of `textField`, `richTextField`, `numberField`, `booleanField`, `dateField`, `imageField`, `fileField`, `optionField`, `referenceField` and `multiReferenceField`, each with the common properties, its `type` const, its settings, and `additionalProperties: false`.
   - **Ids**: `$defs/fieldId` (`^(f[1-9][0-9]{0,5}|~[1-9][0-9]{0,2})$`), `$defs/optionId` and `$defs/option`.
   - **Item values**: `$defs/itemValues` (`{ schemaVersion, values }`, `values` an object whose properties match `$defs/fieldId`), plus `textValue`, `numberValue`, `booleanValue`, `dateValue`, `dateTimeValue`, `mediaValue`, `optionValue`, `referenceValue` and `multiReferenceValue` (`minItems: 1`, `maxItems: 100`).
-- [ ] T007 [P] Create the golden examples under `CONTRACTS/collection-schema/examples/`:
+- [X] T007 [P] Create the golden examples under `CONTRACTS/collection-schema/examples/`:
   - **`valid/`**: an empty schema, one field of every type with every setting, 100 fields, a 200-option field, a self-reference, and item values documents for each type;
   - **`invalid/`**: one file per rule in contract §5, plus schema violations (unknown type, extra property, bad key pattern, an option field with no options, a stored document with a temporary id). Each has a sibling `<name>.expected.json`: `{ "code", "rule", "pointer" }`.
-- [ ] T008 [P] Create `CONTRACTS/collection-schema.md` from contracts/collection-schema.md, replacing its "Where it will live" paragraph with the embedding sentence used in `CONTRACTS/page-schema.md`. Add the collection schema row to `CONTRACTS/README.md`, and remove the line "The collection schema … arrive with the CMS features" there, keeping the binding expression format as still to come.
-- [ ] T009 [P] Create `ITESTS/Cms/CollectionSchemaContractTests.cs`:
+- [X] T008 [P] Create `CONTRACTS/collection-schema.md` from contracts/collection-schema.md, replacing its "Where it will live" paragraph with the embedding sentence used in `CONTRACTS/page-schema.md`. Add the collection schema row to `CONTRACTS/README.md`, and remove the line "The collection schema … arrive with the CMS features" there, keeping the binding expression format as still to come.
+- [X] T009 [P] Create `ITESTS/Cms/CollectionSchemaContractTests.cs`:
   - the embedded resource bytes equal `docs/contracts/collection-schema/v1.schema.json`;
   - `SchemaSubsetValidator.UnsupportedKeywords` finds nothing in the file;
   - every type in contract §2's table has exactly one `$defs/field` branch, and every value `$defs` entry in §3's table exists.
-- [ ] T010 Create `CMSC/CollectionSchema.cs` (`CurrentVersion = 1`, `SupportedVersions`, `OpenSchema(int)` over the embedded resource, mirroring `PAGESC/PageSchema.cs`) and `CMSC/CollectionSchemaLimits.cs` (contract §8 constants).
+- [X] T010 Create `CMSC/CollectionSchema.cs` (`CurrentVersion = 1`, `SupportedVersions`, `OpenSchema(int)` over the embedded resource, mirroring `PAGESC/PageSchema.cs`) and `CMSC/CollectionSchemaLimits.cs` (contract §8 constants).
 
 ### `ValidateDefinition` (module-surface.md §2)
 
-- [ ] T011 [P] Create `UTESTS/Pages/SchemaSubsetValidatorDefinitionTests.cs`:
+- [X] T011 [P] Create `UTESTS/Pages/SchemaSubsetValidatorDefinitionTests.cs`:
   - validates an instance against a named `$defs` entry, with `$ref` inside it resolved;
   - an unknown definition name throws;
   - failure locations are relative to the instance;
   - the page schema's `rtDoc` accepts a valid rich text document and refuses one with an unknown node type.
-- [ ] T012 Add `public SchemaFailure? ValidateDefinition(string definition, JsonElement instance)` to `PAGESC/Schema/SchemaSubsetValidator.cs`, with an XML doc comment citing 014 CS-04.
-- [ ] T013 [P] Create `ADMINTESTS/cms/validateDefinition.spec.ts` with the same cases as T011.
-- [ ] T014 Add `validateDefinition(definition, instance)` to `ADMIN/editor/schema/subsetValidator.ts`.
+- [X] T012 Add `public SchemaFailure? ValidateDefinition(string definition, JsonElement instance)` to `PAGESC/Schema/SchemaSubsetValidator.cs`, with an XML doc comment citing 014 CS-04.
+- [X] T013 [P] Create `ADMINTESTS/cms/validateDefinition.spec.ts` with the same cases as T011.
+- [X] T014 Add `validateDefinition(definition, instance)` to `ADMIN/editor/schema/subsetValidator.ts`.
 
 ### Domain (tests first)
 
-- [ ] T015 [P] Create `UTESTS/Cms/CollectionSchemaRulesTests.cs`: every rule in contract §5 in its stated order, every reserved key (§4), the limits (§8), and `titleFieldId` pointing at a non-text field, a multiline text field, a non-required field or a missing field.
-- [ ] T016 [P] Create `UTESTS/Cms/SchemaDiffTests.cs`, covering each change kind in research CS-06:
+- [X] T015 [P] Create `UTESTS/Cms/CollectionSchemaRulesTests.cs`: every rule in contract §5 in its stated order, every reserved key (§4), the limits (§8), and `titleFieldId` pointing at a non-text field, a multiline text field, a non-required field or a missing field.
+- [X] T016 [P] Create `UTESTS/Cms/SchemaDiffTests.cs`, covering each change kind in research CS-06:
   - `fieldAdded` (temporary id), `fieldRemoved`, `fieldsReordered`, `fieldRenamed` (name, key, help), `requiredChanged`, `typeChanged`, `settingsChanged` per setting;
   - `optionAdded`, `optionRemoved`, `optionRelabelled`, `optionsReordered`, `titleFieldChanged`, `detailsChanged`;
   - an empty diff;
   - a permanent id the stored schema lacks → `cms.unknown_field_id` (and an option id → `cms.unknown_option_id`).
-- [ ] T017 [P] Create `UTESTS/Cms/FieldChangeClassificationTests.cs`: a table-driven test over every ordered pair of the ten types, and every setting change, asserting the rule (`free`, `reported`, `lossless`, `lossy`, `forbidden`) from contract §7 and data-model §3.2. Include an added field with and without a fill-in (`reported` versus `free`), required turned on (`reported`) and each tightened setting (`reported`).
-- [ ] T018 [P] Create `UTESTS/Cms/CollectionSchemaGoldenTests.cs`: for every file under `docs/contracts/collection-schema/examples/`, the server validator's verdict, and for invalid files its `code`, `rule` and `pointer`, equal the sibling `.expected.json`.
-- [ ] T019 [P] Create `UTESTS/Cms/ItemValuesTests.cs`:
+- [X] T017 [P] Create `UTESTS/Cms/FieldChangeClassificationTests.cs`: a table-driven test over every ordered pair of the ten types, and every setting change, asserting the rule (`free`, `reported`, `lossless`, `lossy`, `forbidden`) from contract §7 and data-model §3.2. Include an added field with and without a fill-in (`reported` versus `free`), required turned on (`reported`) and each tightened setting (`reported`).
+- [X] T018 [P] Create `UTESTS/Cms/CollectionSchemaGoldenTests.cs`: for every file under `docs/contracts/collection-schema/examples/`, the server validator's verdict, and for invalid files its `code`, `rule` and `pointer`, equal the sibling `.expected.json`.
+- [X] T019 [P] Create `UTESTS/Cms/ItemValuesTests.cs`:
   - well-formedness per type, including rich text through the page schema `rtDoc`;
   - `null` and unknown keys refused;
   - validity against settings (`maxLength`, `min`/`max`, `decimals`, `accept`, required) reported as attention, not refusal;
   - missing media or reference ids reported as missing.
-- [ ] T020 [P] Create `UTESTS/Cms/CollectionTests.cs`:
+- [X] T020 [P] Create `UTESTS/Cms/CollectionTests.cs`:
   - `Create` gives revision 1, an empty schema and counters at 1;
   - applying a proposal assigns `f{n}` and `o{n}` from the counters and advances them, and never reuses an id after removal;
   - the first single-line text field becomes the title field and required;
   - an empty diff adds no revision;
   - each applied change raises the domain event that becomes `Cms.CollectionChanged`.
-- [ ] T021 Create `CMS/Domain/FieldType.cs`, `Field.cs`, `FieldOption.cs`, `CollectionSchemaDocument.cs` and `ReservedKeys.cs`. They parse from and write to `JsonElement` and `JsonObject`, write in canonical property order, and tell temporary ids from permanent ones.
-- [ ] T022 Create `CMS/Domain/CollectionSchemaRules.cs` (contract §5, in order, first failure with rule and pointer) and `CMS/Infrastructure/Schema/CollectionSchemaValidator.cs`. The validator runs research CS-04's order: 64 KiB size; duplicate JSON properties (as `src/Modules/Pages/QuickBuilder.Pages/Infrastructure/Schema/PageDocumentValidator.cs` does); `schemaVersion`; `SchemaSubsetValidator` over the embedded file; then the rules. Results carry `code`, `rule` and `pointer`. Makes T015 and T018 pass.
-- [ ] T023 Create `CMS/Domain/SchemaProposal.cs`, `SchemaDiff.cs`, `FieldChange.cs` and `CMS/Domain/FieldConversion.cs`, the last with **`Classify(FieldChange)` only**. Value conversion comes in US4 (T069). Makes T016 and T017 pass.
-- [ ] T024 Create `CMS/Domain/ItemValues.cs` (parse and write the item values document) and `CMS/Infrastructure/ItemValueValidator.cs`: well-formedness through the contract `$defs` and the page schema's `rtDoc` via `ValidateDefinition`, and validity states (`valid`, `needsAttention`, `missingRequired`, `missingTarget`). Makes T019 pass.
-- [ ] T025 Create `CMS/Domain/Collection.cs`, the aggregate root of data-model §3.1:
+- [X] T021 Create `CMS/Domain/FieldType.cs`, `Field.cs`, `FieldOption.cs`, `CollectionSchemaDocument.cs` and `ReservedKeys.cs`. They parse from and write to `JsonElement` and `JsonObject`, write in canonical property order, and tell temporary ids from permanent ones.
+- [X] T022 Create `CMS/Domain/CollectionSchemaRules.cs` (contract §5, in order, first failure with rule and pointer) and `CMS/Infrastructure/Schema/CollectionSchemaValidator.cs`. The validator runs research CS-04's order: 64 KiB size; duplicate JSON properties (as `src/Modules/Pages/QuickBuilder.Pages/Infrastructure/Schema/PageDocumentValidator.cs` does); `schemaVersion`; `SchemaSubsetValidator` over the embedded file; then the rules. Results carry `code`, `rule` and `pointer`. Makes T015 and T018 pass.
+- [X] T023 Create `CMS/Domain/SchemaProposal.cs`, `SchemaDiff.cs`, `FieldChange.cs` and `CMS/Domain/FieldConversion.cs`, the last with **`Classify(FieldChange)` only**. Value conversion comes in US4 (T069). Makes T016 and T017 pass.
+- [X] T024 Create `CMS/Domain/ItemValues.cs` (parse and write the item values document) and `CMS/Infrastructure/ItemValueValidator.cs`: well-formedness through the contract `$defs` and the page schema's `rtDoc` via `ValidateDefinition`, and validity states (`valid`, `needsAttention`, `missingRequired`, `missingTarget`). Makes T019 pass.
+- [X] T025 Create `CMS/Domain/Collection.cs`, the aggregate root of data-model §3.1:
   - `Create`, `Apply(diff, impact, confirmation, actor, clock)` and `MarkDeleted`;
   - id assignment from the counters, revision increments, and title-field designation;
   - domain events in `CMS/Domain/Events/DomainEvents.cs`.
@@ -173,25 +173,25 @@ behaviour.
 
 ### Database, module, capabilities, errors, events
 
-- [ ] T026 Create `CMS/Infrastructure/CmsDbContext.cs`:
+- [X] T026 Create `CMS/Infrastructure/CmsDbContext.cs`:
   - schema `cms`, with snake_case as in the other modules;
   - entities and indexes exactly as data-model §1: unique `(site_id, slug)`, foreign keys with `CASCADE`, and `RESTRICT` on `collection_references.target_collection_id`;
   - `revision` as a concurrency token, and the `jsonb` columns mapped as `JsonDocument`;
   - global site filters, the `ForSite<T>(siteId)` helper (copied from `EditorDbContext`), and `OutboxModelBuilder`.
 
   Also create `CMS/Infrastructure/CmsDbContextFactory.cs` (design time) and `CMS/Infrastructure/CmsOutbox.cs`, mirroring `PagesOutbox.cs`.
-- [ ] T027 Generate the migration `CMS/Infrastructure/Migrations/<ts>_InitialCms.cs` with `dotnet ef migrations add InitialCms` (history table `cms.__EFMigrationsHistory`). Check that the generated SQL matches data-model §1.
-- [ ] T028 [P] Create `CMSC/Events/CollectionCreated.cs`, `CollectionChanged.cs` and `CollectionDeleted.cs`, with the payloads in data-model §4 implementing `IIntegrationEvent` and the names `Cms.CollectionCreated`, `Cms.CollectionChanged` and `Cms.CollectionDeleted`.
-- [ ] T029 [P] Create `CMS/CmsCapabilities.cs`, declaring `cms.collections.view` (Designer, Editor) and `cms.collections.manage` (Designer) as `CapabilityDefinition`s, as `PagesCapabilities.cs` does. Create `CMS/CmsErrors.cs`, with the factories for every code in data-model §5 and their extensions. Create `CMS/CmsErrorResults.cs`, which maps statuses as data-model §5 does (400, 404, 409, 413).
-- [ ] T030 [P] Create `CMS/Infrastructure/CmsAccess.cs` (site exists, actor, `CanManageAsync`, display names), modelled on `src/Modules/Pages/QuickBuilder.Pages/Infrastructure/PagesAccess.cs`.
-- [ ] T031 Complete `CMS/CmsModule.cs`:
+- [X] T027 Generate the migration `CMS/Infrastructure/Migrations/<ts>_InitialCms.cs` with `dotnet ef migrations add InitialCms` (history table `cms.__EFMigrationsHistory`). Check that the generated SQL matches data-model §1.
+- [X] T028 [P] Create `CMSC/Events/CollectionCreated.cs`, `CollectionChanged.cs` and `CollectionDeleted.cs`, with the payloads in data-model §4 implementing `IIntegrationEvent` and the names `Cms.CollectionCreated`, `Cms.CollectionChanged` and `Cms.CollectionDeleted`.
+- [X] T029 [P] Create `CMS/CmsCapabilities.cs`, declaring `cms.collections.view` (Designer, Editor) and `cms.collections.manage` (Designer) as `CapabilityDefinition`s, as `PagesCapabilities.cs` does. Create `CMS/CmsErrors.cs`, with the factories for every code in data-model §5 and their extensions. Create `CMS/CmsErrorResults.cs`, which maps statuses as data-model §5 does (400, 404, 409, 413).
+- [X] T030 [P] Create `CMS/Infrastructure/CmsAccess.cs` (site exists, actor, `CanManageAsync`, display names), modelled on `src/Modules/Pages/QuickBuilder.Pages/Infrastructure/PagesAccess.cs`.
+- [X] T031 Complete `CMS/CmsModule.cs`:
   - `CmsDbContext` with its own migrations history table;
   - `CmsDatabaseProvider : IModuleDatabaseProvider`, mirroring `PagesDatabaseProvider`;
   - capabilities, the three `EventTypeRegistration`s, `CollectionSchemaValidator` and `ItemValueValidator` as singletons, and `CmsAccess` as scoped;
   - `ISchemaMigrationObserver` registered as a no-op (CS-20): create `CMS/Infrastructure/ISchemaMigrationObserver.cs` here, with `AfterBatch(int batchNumber, CancellationToken)`, and `NoSchemaMigrationObserver`.
 
   Slices are registered in their stories.
-- [ ] T032 Create `CMS/Infrastructure/CollectionLocks.cs` with `LockForUpdateAsync(siteId, collectionId)` and `LockForShareAsync(siteId, collectionId)`:
+- [X] T032 Create `CMS/Infrastructure/CollectionLocks.cs` with `LockForUpdateAsync(siteId, collectionId)` and `LockForShareAsync(siteId, collectionId)`:
   - each uses `FromSql($"SELECT * FROM cms.collections WHERE id = {collectionId} AND site_id = {siteId} FOR UPDATE NOWAIT")` (and `FOR SHARE NOWAIT`) on the current transaction;
   - each has a code comment that the site predicate replaces the global filter here;
   - PostgreSQL `55P03` becomes `CmsErrors.CollectionBusy`.

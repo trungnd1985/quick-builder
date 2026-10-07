@@ -43,6 +43,8 @@ COPY src/Modules/Pages/QuickBuilder.Pages.Contracts/*.csproj          src/Module
 COPY src/Modules/Pages/QuickBuilder.Pages/*.csproj                    src/Modules/Pages/QuickBuilder.Pages/
 COPY src/Modules/Editor/QuickBuilder.Editor.Contracts/*.csproj        src/Modules/Editor/QuickBuilder.Editor.Contracts/
 COPY src/Modules/Editor/QuickBuilder.Editor/*.csproj                  src/Modules/Editor/QuickBuilder.Editor/
+COPY src/Modules/Cms/QuickBuilder.Cms.Contracts/*.csproj              src/Modules/Cms/QuickBuilder.Cms.Contracts/
+COPY src/Modules/Cms/QuickBuilder.Cms/*.csproj                        src/Modules/Cms/QuickBuilder.Cms/
 COPY src/Modules/Rendering/QuickBuilder.Rendering.Contracts/*.csproj  src/Modules/Rendering/QuickBuilder.Rendering.Contracts/
 COPY src/Modules/Rendering/QuickBuilder.Rendering/*.csproj            src/Modules/Rendering/QuickBuilder.Rendering/
 RUN dotnet restore src/QuickBuilder.Host/QuickBuilder.Host.csproj

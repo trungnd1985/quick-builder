@@ -3,6 +3,10 @@
     <Project Path="src/QuickBuilder.Host/QuickBuilder.Host.csproj" />
   </Folder>
   <Folder Name="/src/Modules/" />
+  <Folder Name="/src/Modules/Cms/">
+    <Project Path="src/Modules/Cms/QuickBuilder.Cms.Contracts/QuickBuilder.Cms.Contracts.csproj" />
+    <Project Path="src/Modules/Cms/QuickBuilder.Cms/QuickBuilder.Cms.csproj" />
+  </Folder>
   <Folder Name="/src/Modules/Editor/">
     <Project Path="src/Modules/Editor/QuickBuilder.Editor.Contracts/QuickBuilder.Editor.Contracts.csproj" />
     <Project Path="src/Modules/Editor/QuickBuilder.Editor/QuickBuilder.Editor.csproj" />

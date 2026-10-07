@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Extensions.Options;
+using QuickBuilder.Cms;
 using QuickBuilder.Editor;
 using QuickBuilder.Host;
 using QuickBuilder.Host.Configuration;
@@ -97,6 +98,7 @@ builder.Services.AddIdentityModule(builder.Configuration);
 builder.Services.AddMediaModule(builder.Configuration);
 builder.Services.AddPagesModule(builder.Configuration);
 builder.Services.AddEditorModule(builder.Configuration);
+builder.Services.AddCmsModule(builder.Configuration);
 builder.Services.AddRenderingModule(builder.Configuration);
 
 // Controllers live in their modules and are discovered through application parts
@@ -108,6 +110,7 @@ builder.Services
     .AddApplicationPart(typeof(MediaModule).Assembly)
     .AddApplicationPart(typeof(PagesModule).Assembly)
     .AddApplicationPart(typeof(EditorModule).Assembly)
+    .AddApplicationPart(typeof(CmsModule).Assembly)
     .AddApplicationPart(typeof(RenderingModule).Assembly);
 
 var app = builder.Build();

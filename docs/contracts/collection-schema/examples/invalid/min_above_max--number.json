@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "fields": [
+    {
+      "id": "f1",
+      "key": "age",
+      "name": "Age",
+      "help": "",
+      "required": false,
+      "type": "number",
+      "decimals": 0,
+      "min": 10,
+      "max": 5
+    }
+  ]
+}

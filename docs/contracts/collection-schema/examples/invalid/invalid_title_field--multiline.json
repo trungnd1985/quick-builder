@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "titleFieldId": "f1",
+  "fields": [
+    {
+      "id": "f1",
+      "key": "body",
+      "name": "Body",
+      "help": "",
+      "required": true,
+      "type": "text",
+      "multiline": true,
+      "maxLength": 5000
+    }
+  ]
+}
