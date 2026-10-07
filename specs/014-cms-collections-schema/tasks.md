@@ -203,9 +203,9 @@ behaviour.
 
 ### Admin foundations
 
-- [ ] T038 [P] Create `ADMIN/api/cms.ts`: typed requests and responses for every operation in contracts/cms-api.yaml, using `ADMIN/api/request.ts` as `ADMIN/api/pages.ts` does, and surfacing `errorCode`, `rule`, `pointer`, `preview`, `currentRevision` and `references`.
-- [ ] T039 [P] Create `ADMINTESTS/cms/collectionSchema.spec.ts`: it runs every golden example through the admin validator and expects the same verdict, `code`, `rule` and `pointer` as the `.expected.json` (SC-006).
-- [ ] T040 Create `CMSUI/collectionSchema.ts` (types for the schema document and proposals, temporary-id allocation, loading `@contracts/collection-schema/v1.schema.json`, and validating in CS-04 order), plus `CMSUI/collectionSchemaRules.ts` (a port of `CollectionSchemaRules`) and `CMSUI/cmsErrors.ts` (error code → i18n key). Makes T039 pass.
+- [X] T038 [P] Create `ADMIN/api/cms.ts`: typed requests and responses for every operation in contracts/cms-api.yaml, using `ADMIN/api/request.ts` as `ADMIN/api/pages.ts` does, and surfacing `errorCode`, `rule`, `pointer`, `preview`, `currentRevision` and `references`.
+- [X] T039 [P] Create `ADMINTESTS/cms/collectionSchema.spec.ts`: it runs every golden example through the admin validator and expects the same verdict, `code`, `rule` and `pointer` as the `.expected.json` (SC-006).
+- [X] T040 Create `CMSUI/collectionSchema.ts` (types for the schema document and proposals, temporary-id allocation, loading `@contracts/collection-schema/v1.schema.json`, and validating in CS-04 order), plus `CMSUI/collectionSchemaRules.ts` (a port of `CollectionSchemaRules`) and `CMSUI/cmsErrors.ts` (error code → i18n key). Makes T039 pass.
 
 **Checkpoint**: the contract, the domain and the database exist; stories can begin.
 
@@ -229,7 +229,7 @@ invalid schemas are refused with a reason pointing at the field (quickstart §1)
   - **Errors**: each invalid golden example gives 400 with its `rule` and `pointer`; a reference to a site B collection gives `cms.unknown_target_collection`; a forged `f99` gives `cms.unknown_field_id`; a stale `revision` gives `cms.revision_conflict` with `currentRevision`; 65 KiB gives 413.
   - **Roles**: Editor gets 200 on list and get, and 403 on create and save; a user with no role gets 404 everywhere.
   - **Event**: `Cms.CollectionCreated` and `Cms.CollectionChanged` reach the outbox with ids only.
-- [ ] T042 [P] [US1] Create `ADMINTESTS/cms/CollectionsView.spec.ts` (list, empty state, create dialog suggesting the address name, `cms.slug_taken` shown on the field, axe) and `ADMINTESTS/cms/CollectionBuilderView.spec.ts`:
+- [X] T042 [P] [US1] Create `ADMINTESTS/cms/CollectionsView.spec.ts` (list, empty state, create dialog suggesting the address name, `cms.slug_taken` shown on the field, axe) and `ADMINTESTS/cms/CollectionBuilderView.spec.ts`:
   - add one field of each type with its settings; option editing;
   - the key is suggested until edited by hand;
   - client validation highlights the offending field before any request;
@@ -250,9 +250,9 @@ invalid schemas are refused with a reason pointing at the field (quickstart §1)
   6. `Collection.Apply`, replacing `collection_references` rows (self-references excluded), adding a `schema_changes` row with the summary of data-model §3.4, writing the outbox `Cms.CollectionChanged`, and committing.
 
   The response carries `idMap`. An empty diff returns 200 unchanged. A request-size attribute modelled on `DraftSizeLimitAttribute` returns `cms.proposal_too_large`. Makes T041 pass.
-- [ ] T046 [US1] Add the routes `/sites/:siteId/collections` (`site-collections`) and `/sites/:siteId/collections/:collectionId` (`site-collection`) to `ADMIN/app/router.ts`, and a **Collections** link beside Media, Pages, Components and Design in `ADMIN/features/sites/SiteDetailView.vue` (the site navigation). The link is visible to anyone with `cms.collections.view`.
-- [ ] T047 [US1] Create `CMSUI/CollectionsView.vue` and `CMSUI/CollectionFormDialog.vue` (name, address name suggested with `ADMIN/features/pages/slugify.ts`, description; server errors on their fields).
-- [ ] T048 [US1] Create `CMSUI/CollectionBuilderView.vue`, `CMSUI/FieldList.vue` (list and select, without reordering yet), `CMSUI/AddFieldMenu.vue`, `CMSUI/FieldEditor.vue` and `CMSUI/OptionsEditor.vue`:
+- [X] T046 [US1] Add the routes `/sites/:siteId/collections` (`site-collections`) and `/sites/:siteId/collections/:collectionId` (`site-collection`) to `ADMIN/app/router.ts`, and a **Collections** link beside Media, Pages, Components and Design in `ADMIN/features/sites/SiteDetailView.vue` (the site navigation). The link is visible to anyone with `cms.collections.view`.
+- [X] T047 [US1] Create `CMSUI/CollectionsView.vue` and `CMSUI/CollectionFormDialog.vue` (name, address name suggested with `ADMIN/features/pages/slugify.ts`, description; server errors on their fields).
+- [X] T048 [US1] Create `CMSUI/CollectionBuilderView.vue`, `CMSUI/FieldList.vue` (list and select, without reordering yet), `CMSUI/AddFieldMenu.vue`, `CMSUI/FieldEditor.vue` and `CMSUI/OptionsEditor.vue`:
   - **Builder**: details at the top, fields and editor below, and a save bar showing unsaved changes.
   - **Field editor**: common settings, then the type settings from contract §2, plus a target picker listing the site's collections.
   - **Options**: add, relabel and remove with temporary ids.
@@ -280,14 +280,14 @@ relabel, and rename the collection. Every stored value and every id is unchanged
   - assert every `draft` and `published` document is equal as JSON before and after, and that no `items` row was updated (`xmin` unchanged);
   - assert ids are unchanged and the revision advanced by exactly 1;
   - a new field with a removed field's key gets a fresh id and no values.
-- [ ] T050 [P] [US2] Create `ADMINTESTS/cms/schemaChanges.spec.ts` (the client diff and classification agree with T016 and T017's cases) and `ADMINTESTS/cms/FieldList.spec.ts`:
+- [X] T050 [P] [US2] Create `ADMINTESTS/cms/schemaChanges.spec.ts` (the client diff and classification agree with T016 and T017's cases) and `ADMINTESTS/cms/FieldList.spec.ts`:
   - reorder by drag and by Alt+↑/↓, with a live announcement;
   - a rename-only save makes no preview request.
 
 ### Implementation for User Story 2
 
-- [ ] T051 [US2] Create `CMSUI/schemaChanges.ts`, a TypeScript port of `SchemaDiff` and `FieldConversion.Classify` that tells the builder whether a save needs a preview: all `free` → save directly (FR-030); any `reported`, `lossless` or `lossy` change → preview first. Makes the first half of T050 pass.
-- [ ] T052 [US2] Add reordering to `CMSUI/FieldList.vue` with `ADMIN/editor/dnd/useDragDrop.ts`, plus the keyboard equivalent (Alt+↑/↓ and an `aria-live` announcement, as the editor's layers panel does). Wire `schemaChanges.ts` into `CMSUI/CollectionBuilderView.vue`'s save. Makes T050 pass.
+- [X] T051 [US2] Create `CMSUI/schemaChanges.ts`, a TypeScript port of `SchemaDiff` and `FieldConversion.Classify` that tells the builder whether a save needs a preview: all `free` → save directly (FR-030); any `reported`, `lossless` or `lossy` change → preview first. Makes the first half of T050 pass.
+- [X] T052 [US2] Add reordering to `CMSUI/FieldList.vue` with `ADMIN/editor/dnd/useDragDrop.ts`, plus the keyboard equivalent (Alt+↑/↓ and an `aria-live` announcement, as the editor's layers panel does). Wire `schemaChanges.ts` into `CMSUI/CollectionBuilderView.vue`'s save. Makes T050 pass.
 - [X] T053 [US2] Confirm that `SaveCollection` writes no item when the impact is empty: the item migration step is skipped entirely. Add an assertion log at Debug level with the count of items written (0). Makes T049 pass.
 
 **Checkpoint**: quickstart §2 passes.
@@ -326,7 +326,7 @@ the stored result, and confirmation is required where values are lost (quickstar
   - a concurrent plain read returns the before-state, then the after-state after commit, never a mix;
   - while a gated write holds `FOR SHARE`, a schema save gives `cms.collection_busy`.
 - [X] T058 [P] [US3] Create `UTESTS/Cms/ImpactDigestTests.cs`: the digest is stable across property order and example changes, and changes when any count or change entry changes.
-- [ ] T059 [P] [US3] Create `ADMINTESTS/cms/SchemaPreviewDialog.spec.ts`:
+- [X] T059 [P] [US3] Create `ADMINTESTS/cms/SchemaPreviewDialog.spec.ts`:
   - counts and examples per change;
   - "cannot be undone" wording when values are cleared;
   - fill-in inputs for added and required fields;
@@ -355,7 +355,7 @@ the stored result, and confirmation is required where values are lost (quickstar
   Wire the migrator into `SaveCollection` after the confirmation check. The check now compares the digest under the lock: `cms.confirmation_required` or `cms.preview_outdated`, each with the fresh preview. Validate fill-ins against the field (`cms.invalid_fill_in`). Makes T054–T056 pass.
 - [X] T063 [US3] Create `CMS/Features/PreviewCollection/PreviewCollection.cs` (`POST {id}/preview`, view). It is read-only, takes no lock, and returns the same validation errors as the save and the `Preview` of contracts/cms-api.yaml.
 - [X] T064 [US3] Create `CMS/Infrastructure/CollectionWriteGate.cs`: `EnterAsync(siteId, collectionId, expectedRevision?, ct)` in the caller's transaction takes `LockForShareAsync` and returns the current schema and revision. Turn the busy error into `cms.items_being_updated` here. Add an XML doc comment that every item write from #15 on must use it (data-model §3.3). Makes T057 pass.
-- [ ] T065 [US3] Create `CMSUI/SchemaPreviewDialog.vue` and wire it into `CMSUI/CollectionBuilderView.vue`:
+- [X] T065 [US3] Create `CMSUI/SchemaPreviewDialog.vue` and wire it into `CMSUI/CollectionBuilderView.vue`:
   - when `schemaChanges.ts` finds a change that is not `free`, `POST preview`, then show the dialog: per-change counts, examples, the "cannot be undone" warning, and fill-in inputs where `fillInAllowed`;
   - confirm sends `PUT` with the digest, and shows "Updating N items…" while it runs (FR-036);
   - on `cms.preview_outdated`, reopen with the new preview.
@@ -389,7 +389,7 @@ without change (quickstart §4).
   - **file to image** and **narrowing `accept`**: use an image and a PDF uploaded through the Media API, plus a deleted file, which is counted `missing` and kept;
   - **target change**: refused with values, allowed without;
   - **forbidden pair**: `cms.type_change_not_allowed` with values, allowed on an empty field.
-- [ ] T068 [P] [US4] Create `ADMINTESTS/cms/FieldEditor.spec.ts`:
+- [X] T068 [P] [US4] Create `ADMINTESTS/cms/FieldEditor.spec.ts`:
   - changing type offers every type, with lossless and lossy ones marked from `schemaChanges.ts`;
   - a forbidden change shows the server's reason and suggests adding a new field;
   - the preview labels each outcome (converted, partly lost, cleared, needs attention, missing) and says "UTC" for date changes;
@@ -400,7 +400,7 @@ without change (quickstart §4).
 - [X] T069 [US4] Add `Convert(FieldChange, JsonNode value, MediaKindLookup)` → `(ValueOutcome, JsonNode?)` to `CMS/Domain/FieldConversion.cs`, with one private function per contract §7 row and the settings checks of CS-07. It is culture-invariant and uses `DateTimeOffset` in UTC. Makes T066 pass.
 - [X] T070 [US4] Create `CMS/Infrastructure/MediaKinds.cs`. It collects distinct media ids from the affected values and calls `IPublicMediaReader.GetAsync(siteId, ids)` once per preview or save. A content type starting with `image/` is an image, and absent ids are missing (CS-12).
 - [X] T071 [US4] Wire conversions into `CMS/Infrastructure/ImpactCalculator.cs` and `CMS/Infrastructure/ItemMigrator.cs` for `typeChanged` and `settingsChanged`. In `SaveCollection` and `PreviewCollection`, refuse forbidden changes on fields with any value in either copy (`cms.type_change_not_allowed`, `cms.target_change_not_allowed`), using an `EXISTS`-style query over the projected field. Makes T067 pass.
-- [ ] T072 [US4] Extend `CMSUI/FieldEditor.vue` with type changing (lossless and lossy marked; a forbidden change explained after the server's refusal), and `CMSUI/SchemaPreviewDialog.vue` with outcome labels and the UTC note for date changes. Makes T068 pass.
+- [X] T072 [US4] Extend `CMSUI/FieldEditor.vue` with type changing (lossless and lossy marked; a forbidden change explained after the server's refusal), and `CMSUI/SchemaPreviewDialog.vue` with outcome labels and the UTC note for date changes. Makes T068 pass.
 
 **Checkpoint**: quickstart §4 passes.
 
@@ -423,12 +423,12 @@ collection's reference field (quickstart §5).
   - a stale revision gives `cms.revision_conflict`;
   - an Editor gets 403;
   - a race where a delete and a save adding a reference to it run concurrently leaves exactly one outcome, with the loser getting `cms.collection_referenced` or `cms.unknown_target_collection`.
-- [ ] T074 [P] [US5] Create `ADMINTESTS/cms/DeleteCollectionDialog.spec.ts`: shows the item count and "cannot be undone"; Delete is enabled only once the exact name is typed; the referencing fields are listed when refused; axe.
+- [X] T074 [P] [US5] Create `ADMINTESTS/cms/DeleteCollectionDialog.spec.ts`: shows the item count and "cannot be undone"; Delete is enabled only once the exact name is typed; the referencing fields are listed when refused; axe.
 
 ### Implementation for User Story 5
 
 - [X] T075 [US5] Create `CMS/Features/DeleteCollection/DeleteCollection.cs` (`DELETE {id}?revision=n`, manage). It runs in one transaction: lock, revision check, a check of `collection_references` targeting it (`cms.collection_referenced` with names), `Collection.MarkDeleted`, the outbox `Cms.CollectionDeleted`, then remove and commit. Catch a foreign-key violation and report it as `cms.collection_referenced`. Makes T073 pass.
-- [ ] T076 [US5] Create `CMSUI/DeleteCollectionDialog.vue` and open it from `CMSUI/CollectionsView.vue` and `CMSUI/CollectionBuilderView.vue`. After a delete, go back to the list. Makes T074 pass.
+- [X] T076 [US5] Create `CMSUI/DeleteCollectionDialog.vue` and open it from `CMSUI/CollectionsView.vue` and `CMSUI/CollectionBuilderView.vue`. After a delete, go back to the list. Makes T074 pass.
 
 **Checkpoint**: quickstart §5 passes.
 
@@ -450,12 +450,12 @@ history with the right revision, person, time and counts (quickstart §6).
   - no seeded item value appears anywhere in the `summary` JSON (FR-033);
   - Editors may read the history.
 - [X] T078 [P] [US6] Create `ITESTS/Cms/ConcurrencyTests.cs`: two saves from the same revision give one 200 and one `cms.revision_conflict`; a save while another runs on 10,000 items gives `cms.collection_busy`; a delete during a save gives `cms.collection_busy`.
-- [ ] T079 [P] [US6] Create `ADMINTESTS/cms/SchemaHistoryPanel.spec.ts`: entries rendered as sentences from their kinds and counts; "load more"; `cms.revision_conflict` shows `ADMIN/editor/ConflictBanner.vue` with "Reload"; `cms.collection_busy` shows "try again shortly"; axe.
+- [X] T079 [P] [US6] Create `ADMINTESTS/cms/SchemaHistoryPanel.spec.ts`: entries rendered as sentences from their kinds and counts; "load more"; `cms.revision_conflict` shows `ADMIN/editor/ConflictBanner.vue` with "Reload"; `cms.collection_busy` shows "try again shortly"; axe.
 
 ### Implementation for User Story 6
 
 - [X] T080 [US6] Create `CMS/Features/GetSchemaHistory/GetSchemaHistory.cs` (`GET {id}/history`, view; `before` and `limit`; names of the members who made changes). Makes T077 pass. T078 should already pass from T045 and T075; fix any gap in `CollectionLocks`.
-- [ ] T081 [US6] Create `CMSUI/SchemaHistoryPanel.vue`, a side panel on the builder with one i18n sentence per entry kind. Add conflict and busy handling to `CMSUI/CollectionBuilderView.vue`, reusing `ADMIN/editor/ConflictBanner.vue`. Makes T079 pass.
+- [X] T081 [US6] Create `CMSUI/SchemaHistoryPanel.vue`, a side panel on the builder with one i18n sentence per entry kind. Add conflict and busy handling to `CMSUI/CollectionBuilderView.vue`, reusing `ADMIN/editor/ConflictBanner.vue`. Makes T079 pass.
 
 **Checkpoint**: quickstart §6 passes. All stories are done.
 
@@ -598,3 +598,30 @@ XI).
   - a second `AcrossAllSites` call;
   - item values or names in logs and events;
   - culture-dependent parsing or local time zones in conversions.
+
+## Implementation notes (deviations from the task text)
+
+Recorded during `/speckit-implement`, so the tasks above can still be read as written:
+
+- **T007**: invalid golden examples share one `invalid/expected.json` (code, rule, pointer per
+  file), as the page schema and design token examples do, instead of a sibling file per
+  example. Item values have no golden files: they depend on a schema, and `ItemValuesTests`
+  covers them.
+- **T025, T060**: `ValueOutcome` and `ImpactSummary` were created in full with the aggregate;
+  the save engine (`ImpactCalculator`, `ItemMigrator`, `ProposalEvaluator`, `ValueMigration`,
+  `FieldPlan`, `FieldConversion.Values`) was written once, so T044's placeholder never existed.
+- **CS-12**: `IPublicMediaReader` resolves its site from the request's host name and finds
+  nothing on the admin surface. Media gained `IMediaContentTypes` (research CS-12, corrected).
+- **Contract**: two rules joined during implementation — `duplicate_temporary_id` (proposals)
+  — and two settings changes became `free` (`multiline` on, `decimals` raised), because they
+  change no value. Adding a required field is `reported`. Text to rich text past 500 lines
+  shares paragraphs evenly instead of filling the last one, which would break the page
+  schema's 1,000-node limit per paragraph.
+- **T047, T048**: creating a collection is a form on `CollectionsView`, as components are
+  created on `ComponentsView`; the "add field" control lives in `CollectionBuilderView`. There
+  is no `CollectionFormDialog.vue` or `AddFieldMenu.vue`.
+- **T052, T081**: the editor's `useDragDrop` and `ConflictBanner` are bound to the page
+  document's state, so the field list uses native drag events with the same keyboard rule
+  (Alt+↑/↓) and the builder shows the components screen's "reload" notice.
+- **T065**: fill-in values are entered in the field's settings (`FieldEditor`), where the
+  field is, rather than in the preview dialog; the preview shows how many items they fill.
