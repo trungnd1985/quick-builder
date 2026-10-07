@@ -234,7 +234,7 @@ field is saved and flagged, and a taken slug is refused (quickstart §1).
   - **Roles**: Editor, Designer and Administrator are allowed; a user with no role gets 404 on every endpoint.
   - **Events**: `Cms.ItemCreated` and `Cms.ItemDraftSaved` carry ids only.
 - [X] T034 [P] [US1] Create `ITESTS/Cms/Items/ItemWriteGateTests.cs`. While a schema change holds the collection (014's `TestMigrationObserver`), create, save and delete give `cms.items_being_updated`, and the item is unchanged (FR-006).
-- [ ] T035 [P] [US1] Create `ADMINTESTS/cms/items/ItemFormView.spec.ts` and `ADMINTESTS/cms/items/ItemField.spec.ts`:
+- [X] T035 [P] [US1] Create `ADMINTESTS/cms/items/ItemFormView.spec.ts` and `ADMINTESTS/cms/items/ItemField.spec.ts`:
   - one input per field type, in schema order, with help, a required mark and the remaining length;
   - the slug follows the name until edited, and shows the taken-slug message from `slug-availability`;
   - local problems are shown before saving, and server report problems are mapped to fields and to a summary with links;
@@ -255,7 +255,7 @@ field is saved and flagged, and a taken slug is refused (quickstart §1).
   Bodies are capped at 1 MiB by an attribute modelled on `DraftSizeLimitAttribute`, and duplicate JSON properties are refused as in `SaveCollection`. Register the slices and add them to `EndpointCatalog`. Makes T033 and T034 pass.
 - [X] T037 [US1] Create `CMS/Features/Items/ListItems/ListItems.cs` (`GET`, view), **first version**: newest change first, `page` and `pageSize` (25/50/100), and `total`, using `ItemSummaryResponse`. US3 adds search, filters and sorts in `CMS/Infrastructure/ItemListQuery.cs`.
 - [X] T038 [US1] Create `CMS/Features/Items/ReindexItemsForMedia/ReindexItemsForMedia.cs`: idempotent handlers for `Media.FileDeleted` and `Media.FileChanged` that re-index, through `ItemWrites`, the items `item_media` lists for the file. A busy collection makes the handler throw, so the outbox retries. Register them in `CMS/CmsModule.cs`. Add a case to `ITESTS/Cms/Items/ItemApiTests.cs`: deleting the cover image's media file gives the item `media_missing` attention.
-- [ ] T039 [P] [US1] Create the inputs under `ITEMUI/inputs/`:
+- [X] T039 [P] [US1] Create the inputs under `ITEMUI/inputs/`:
   - `TextInput.vue` (single line or several lines, remaining length);
   - `RichTextInput.vue`, a standalone TipTap editor from `ADMIN/editor/richtext/tiptap.ts`, `RichTextToolbar.vue` and `toContractRichText.ts`, emitting `rtDoc`;
   - `NumberInput.vue` (decimals, min and max shown);
@@ -265,8 +265,8 @@ field is saved and flagged, and a taken slug is refused (quickstart §1).
   - `OptionSelect.vue` (options in order, clear).
 
   Each takes `{ field, value, error, id }` and emits `update:value`, where `undefined` means no value.
-- [ ] T040 [US1] Create `ITEMUI/ItemField.vue`, which picks the input by type and renders the label, help, required mark and error with ids for `aria-describedby`. Reference and multi-reference fields render the chosen ids as plain read-only chips with Clear; US4 replaces them with pickers.
-- [ ] T041 [US1] Create `ITEMUI/ItemFormView.vue` for the new and edit routes:
+- [X] T040 [US1] Create `ITEMUI/ItemField.vue`, which picks the input by type and renders the label, help, required mark and error with ids for `aria-describedby`. Reference and multi-reference fields render the chosen ids as plain read-only chips with Clear; US4 replaces them with pickers.
+- [X] T041 [US1] Create `ITEMUI/ItemFormView.vue` for the new and edit routes:
   - loads the collection schema and the item;
   - keeps the slug suggested until it is edited, with a debounced `slug-availability` check;
   - validates locally with `itemValueRules.ts`;
@@ -277,7 +277,7 @@ field is saved and flagged, and a taken slug is refused (quickstart §1).
   - treats `cms.collection_not_found` and `cms.item_not_found` on save the same: the item no longer exists.
 
   Makes T035 pass.
-- [ ] T042 [US1] Create `ITEMUI/ItemListView.vue`, **first version**: a table of name (or slug), slug, status, attention, updated time and updater, a pager with page size and total, a **New item** button, and rows linking to the form. Replace the T032 placeholders.
+- [X] T042 [US1] Create `ITEMUI/ItemListView.vue`, **first version**: a table of name (or slug), slug, status, attention, updated time and updater, a pager with page size and total, a **New item** button, and rows linking to the form. Replace the T032 placeholders.
 
 **Checkpoint**: quickstart §1 passes. **MVP.**
 
@@ -308,7 +308,7 @@ field. Unpublishing keeps the draft (quickstart §2).
   - a concurrent save and publish give one `cms.item_conflict`;
   - two items racing for one slug give exactly one `cms.item_slug_taken`;
   - publishing a slug equal to another item's published slug is refused.
-- [ ] T045 [P] [US2] Create `ADMINTESTS/cms/items/ItemPublishBar.spec.ts`:
+- [X] T045 [P] [US2] Create `ADMINTESTS/cms/items/ItemPublishBar.spec.ts`:
   - Publish shows the unpublished-references warning before confirming;
   - Unpublish shows the referrer count from `referrers?published=true`;
   - a `cms.item_needs_attention` refusal focuses the summary;
@@ -327,7 +327,7 @@ field. Unpublishing keeps the draft (quickstart §2).
 
   Register them and add them to `EndpointCatalog`. Makes T043 and T044 pass.
 - [ ] T048 [US2] Extend `CMS/Infrastructure/ItemMigrator.cs` to also migrate `item_versions.values` (IT-12): the same `FieldPlan`s **without fill-ins**, in batches of 500, loading only versions that hold a value in a changed field (`EF.Functions.JsonExistAny` on the `values` element, with an in-memory filter fallback and a code comment). Then refresh `item_media.in_history`. Create `ITESTS/Cms/Items/ItemSchemaMigrationTests.cs` with: a removed field's values leave every version, a lossy conversion converts versions, a fill-in is not written to versions, and a rename writes no version.
-- [ ] T049 [P] [US2] Create `ITEMUI/ItemStatusBadge.vue` (status, attention and, from US6, schedules) and `ITEMUI/ItemPublishBar.vue` (Save draft, Publish and Unpublish, each with its warning dialog, using the 012 `ConfirmDialog`). On `cms.item_conflict` from Publish, the bar reloads the item and retries once, telling the member if the content changed. When the draft slug differs from the published slug, the publish confirmation says the item's published address will change (spec Edge Cases). Use them in `ItemFormView.vue` and in the list's status column. Makes T045 pass.
+- [X] T049 [P] [US2] Create `ITEMUI/ItemStatusBadge.vue` (status, attention and, from US6, schedules) and `ITEMUI/ItemPublishBar.vue` (Save draft, Publish and Unpublish, each with its warning dialog, using the 012 `ConfirmDialog`). On `cms.item_conflict` from Publish, the bar reloads the item and retries once, telling the member if the content changed. When the draft slug differs from the published slug, the publish confirmation says the item's published address will change (spec Edge Cases). Use them in `ItemFormView.vue` and in the list's status column. Makes T045 pass.
 
 **Checkpoint**: quickstart §2 passes. Items can be published.
 
@@ -349,7 +349,7 @@ and page through. Results are correct, complete and stable, and fast (quickstart
   - **Sorts**: every column, plus number and date fields, in both directions, with missing values last and `id` as the tie-breaker.
   - **Paging**: every item appears on exactly one page across all pages, and `total` is right.
   - **Refusals**: a filter on a text field, a sort on a rich text field, an unknown field id, page size 30 and a 101-character term each give `cms.invalid_query` with `parameter`.
-- [ ] T051 [P] [US3] Create `ADMINTESTS/cms/items/ItemListView.spec.ts`:
+- [X] T051 [P] [US3] Create `ADMINTESTS/cms/items/ItemListView.spec.ts`:
   - search, filters, sort, page and page size are written to and restored from the route query, and returning from an item restores them;
   - the search is debounced;
   - sortable headers carry `aria-sort`;
@@ -367,7 +367,7 @@ and page through. Results are correct, complete and stable, and fast (quickstart
   - paging: `Skip`/`Take` plus `CountAsync`.
 
   If a translation fails, stop and record the case in research.md rather than adding raw SQL. Use it from `ListItems.cs`. Makes T050 pass.
-- [ ] T053 [P] [US3] Create `ITEMUI/listQuery.ts` (route query ↔ typed list query), `ITEMUI/ItemFilters.vue` and `ITEMUI/ItemPager.vue`. Complete `ITEMUI/ItemListView.vue` with search, filters, sortable headers and the pager. Makes T051 pass.
+- [X] T053 [P] [US3] Create `ITEMUI/listQuery.ts` (route query ↔ typed list query), `ITEMUI/ItemFilters.vue` and `ITEMUI/ItemPager.vue`. Complete `ITEMUI/ItemListView.vue` with search, filters, sortable headers and the pager. Makes T051 pass.
 
 **Checkpoint**: quickstart §3 passes, except the SC-003 timing, which is measured in Polish
 (T081).
@@ -389,7 +389,7 @@ refused (quickstart §4).
   - `POST items/lookup` returns names, slugs, statuses and collections, and lists unknown ids, including site B's ids, in `missing`;
   - more than 200 ids gives 400;
   - saving a reference to the item itself gives `reference_self`.
-- [ ] T055 [P] [US4] Create `ADMINTESTS/cms/items/ReferencePicker.spec.ts` and `ADMINTESTS/cms/items/MultiReferencePicker.spec.ts`:
+- [X] T055 [P] [US4] Create `ADMINTESTS/cms/items/ReferencePicker.spec.ts` and `ADMINTESTS/cms/items/MultiReferencePicker.spec.ts`:
   - the picker searches the target collection and pages through results;
   - options use `role="listbox"`, with arrow keys and Enter;
   - a single reference replaces the earlier choice, and Clear removes it;
@@ -402,7 +402,7 @@ refused (quickstart §4).
 ### Implementation for User Story 4
 
 - [ ] T056 [US4] Create `CMS/Features/Items/LookupItems/LookupItems.cs` (`POST /sites/{siteId}/items/lookup`, view; up to 200 ids, one `ForSite<Item>` query joined to collection names). Register it and add it to `EndpointCatalog`. Makes T054 pass.
-- [ ] T057 [US4] Create `ITEMUI/ReferencePickerDialog.vue` (a dialog over the target collection's `ListItems` with `q` and `pageSize=25`, the listbox semantics of IT-21, and a disabled set), `ITEMUI/ReferencePicker.vue` (single) and `ITEMUI/MultiReferencePicker.vue` (an ordered list with native drag events and the keyboard rule of 014's `FieldList.vue`: Alt+↑/↓, buttons and an `aria-live` region). Both resolve names through `items/lookup`. Replace the read-only chips in `ITEMUI/ItemField.vue`. Makes T055 pass.
+- [X] T057 [US4] Create `ITEMUI/ReferencePickerDialog.vue` (a dialog over the target collection's `ListItems` with `q` and `pageSize=25`, the listbox semantics of IT-21, and a disabled set), `ITEMUI/ReferencePicker.vue` (single) and `ITEMUI/MultiReferencePicker.vue` (an ordered list with native drag events and the keyboard rule of 014's `FieldList.vue`: Alt+↑/↓, buttons and an `aria-live` region). Both resolve names through `items/lookup`. Replace the read-only chips in `ITEMUI/ItemField.vue`. Makes T055 pass.
 
 **Checkpoint**: quickstart §4 passes.
 
@@ -432,7 +432,7 @@ refusals list the referrers. Duplicate an item and check its copy (quickstart §
   - deleting a file used by a published item without `publishing.manage` gives `media.in_live_use`;
   - any item use needs `confirmInUse`.
 - [ ] T060 [P] [US5] Add duplicate cases to `ITESTS/Cms/Items/ItemApiTests.cs`: the copy has the same draft values, a name with " (copy)" shortened to fit, and the slug `-copy` or `-copy-2`; it has no published values, versions or schedules, and status `draft`.
-- [ ] T061 [P] [US5] Create `ADMINTESTS/cms/items/DeleteItemDialog.spec.ts`:
+- [X] T061 [P] [US5] Create `ADMINTESTS/cms/items/DeleteItemDialog.spec.ts`:
   - the confirmation says when the item is live;
   - a refusal lists the referrers with links;
   - Duplicate opens the copy;
@@ -481,7 +481,7 @@ later draft. A scheduled unpublish happens. Across a restart, each runs once (qu
   - stopping across the due time, it runs once after start;
   - a schema change holding the collection at the due time makes the run retry, and it succeeds afterwards;
   - each case runs within a minute of the due time, or of start-up.
-- [ ] T068 [P] [US6] Create `ADMINTESTS/components/ZonedDateTimeInput.spec.ts` (names the member's zone, converts to and from UTC, refuses past times) and `ADMINTESTS/cms/items/ItemScheduleDialog.spec.ts` (set, move, recapture, cancel, the "draft differs" notice, axe).
+- [X] T068 [P] [US6] Create `ADMINTESTS/components/ZonedDateTimeInput.spec.ts` (names the member's zone, converts to and from UTC, refuses past times) and `ADMINTESTS/cms/items/ItemScheduleDialog.spec.ts` (set, move, recapture, cancel, the "draft differs" notice, axe).
 
 ### Implementation for User Story 6
 
@@ -493,7 +493,7 @@ later draft. A scheduled unpublish happens. Across a restart, each runs once (qu
   - `cms.items_being_updated` throws, so the outbox retries.
 - [ ] T071 [US6] Create `CMS/Features/Items/ScheduleItem/ScheduleItem.cs` (`PUT schedules/{action}`, `cms.items.publish`; writes the due message with `OutboxMessage.From(..., availableAtUtc: dueAtUtc)`) and `CMS/Features/Items/CancelItemSchedule/CancelItemSchedule.cs` (`DELETE ?revision=`, guarded like a run). Add `cancelSchedule` handling to `PublishItem.cs` and `UnpublishItem.cs`. Register the slices and add them to `EndpointCatalog`. Makes T066 and T067 pass.
 - [ ] T072 [US6] Extend `CMS/Infrastructure/ItemMigrator.cs` to migrate `item_schedules.captured_values` of pending publishes, **with fill-ins**, in the same batches (IT-12). Add the case to `ITESTS/Cms/Items/ItemSchemaMigrationTests.cs`.
-- [ ] T073 [P] [US6] Extract `ADMIN/components/ZonedDateTimeInput.vue` from `ADMIN/features/publishing/ScheduleDialog.vue` and use it there. The existing `ScheduleDialog` tests must pass unchanged. Create `ITEMUI/ItemScheduleDialog.vue`, add Schedule to `ITEMUI/ItemPublishBar.vue`, show pending schedules in `ITEMUI/ItemStatusBadge.vue` and the list, and add the `scheduled` filter option to `ITEMUI/ItemFilters.vue`. Makes T068 pass.
+- [X] T073 [P] [US6] Extract `ADMIN/components/ZonedDateTimeInput.vue` from `ADMIN/features/publishing/ScheduleDialog.vue` and use it there. The existing `ScheduleDialog` tests must pass unchanged. Create `ITEMUI/ItemScheduleDialog.vue`, add Schedule to `ITEMUI/ItemPublishBar.vue`, show pending schedules in `ITEMUI/ItemStatusBadge.vue` and the list, and add the `scheduled` filter option to `ITEMUI/ItemFilters.vue`. Makes T068 pass.
 
 **Checkpoint**: quickstart §6 passes.
 
@@ -514,12 +514,12 @@ version 1, a version 4 records the rollback, and the draft is unchanged (quickst
   - **Refusals**: a version referring to a deleted item gives `cms.version_not_publishable` (`reference_missing`); a version whose slug is now used by another item is refused the same way; a version made invalid by a newly required field is refused; an unknown version gives `cms.version_not_found`.
   - **Copy to draft** always works and publishes nothing.
   - **History** lists versions newest first with `live`, and events with members, and holds no values.
-- [ ] T075 [P] [US7] Create `ADMINTESTS/cms/items/ItemHistoryPanel.spec.ts`: versions and events listed, rollback confirmation with refusal reasons, copy to draft reloading the form, the live version marked, and axe.
+- [X] T075 [P] [US7] Create `ADMINTESTS/cms/items/ItemHistoryPanel.spec.ts`: versions and events listed, rollback confirmation with refusal reasons, copy to draft reloading the form, the live version marked, and axe.
 
 ### Implementation for User Story 7
 
 - [ ] T076 [US7] Add `Rollback(number)` and `CopyToDraft(number)` to `CMS/Domain/Item.cs`, with the `rolledBack` and `copiedToDraft` history kinds. Create the slices `CMS/Features/Items/GetItemHistory/GetItemHistory.cs` (view), `CMS/Features/Items/RollbackItem/RollbackItem.cs` (`cms.items.publish`; validates the version through `ItemValidation`, including the slug; honours `cancelSchedule`) and `CMS/Features/Items/CopyVersionToDraft/CopyVersionToDraft.cs` (`cms.items.edit`). Register them and add them to `EndpointCatalog`. Makes T074 pass.
-- [ ] T077 [P] [US7] Create `ITEMUI/ItemHistoryPanel.vue` (a side panel in `ItemFormView.vue`), modelled on `ADMIN/features/publishing/HistoryView.vue`'s layout. Makes T075 pass.
+- [X] T077 [P] [US7] Create `ITEMUI/ItemHistoryPanel.vue` (a side panel in `ItemFormView.vue`), modelled on `ADMIN/features/publishing/HistoryView.vue`'s layout. Makes T075 pass.
 
 **Checkpoint**: quickstart §7 passes. All stories are done.
 

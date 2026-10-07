@@ -1600,6 +1600,8 @@
         "pickItem": "Choose…",
         "pickItems": "Add items…",
         "moveUp": "Move {name} up",
+          "upSymbol": "↑",
+          "downSymbol": "↓",
         "moveDown": "Move {name} down",
         "remove": "Remove {name}",
         "moved": "{name} moved to position {position}.",
