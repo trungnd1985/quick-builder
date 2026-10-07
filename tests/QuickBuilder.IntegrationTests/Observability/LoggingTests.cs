@@ -4,6 +4,7 @@ using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using QuickBuilder.Identity.Infrastructure;
+using QuickBuilder.IntegrationTests.Cms.Items;
 using QuickBuilder.IntegrationTests.Identity;
 using QuickBuilder.IntegrationTests.Infrastructure;
 using Xunit;
@@ -270,6 +271,60 @@ public sealed class LoggingTests(DatabaseFixture database) : IAsyncLifetime
         var leak = events.FirstOrDefault(e => e.Contains(canary, StringComparison.OrdinalIgnoreCase));
         Assert.True(leak is null, $"A log event contains a name or an item value: {leak}");
         Assert.Contains(events, e => e.Contains(id.ToString(), StringComparison.OrdinalIgnoreCase));
+    }
+
+    /// <summary>015 FR-032: item journeys log ids, kinds and codes, never values, names or slugs.</summary>
+    [Fact]
+    public async Task Item_journeys_never_log_values_names_or_slugs()
+    {
+        var admin = await _app.CreateAdminClientAsync().ConfigureAwait(true);
+        var siteId = await Media.MediaApi.CreateSiteAsync(admin, "Logged items", "logged-items.test").ConfigureAwait(true);
+        var canary = Pages.PagesApi.CanaryMarker;
+
+        var created = await Cms.CmsApi.CreateOkAsync(admin, siteId, "items", $"{canary}collection").ConfigureAwait(true);
+        var collectionId = created.GetProperty("id").GetGuid();
+        var schema = new System.Text.Json.Nodes.JsonObject
+        {
+            ["schemaVersion"] = 1,
+            ["fields"] = new System.Text.Json.Nodes.JsonArray(
+                Cms.CmsApi.Field("~1", "title", "text", settings: new { multiline = false, maxLength = 256 }),
+                Cms.CmsApi.Field("~2", "minutes", "number", settings: new { decimals = 0 })),
+        };
+        var saved = await Cms.CmsApi.SaveOkAsync(admin, siteId, collectionId, Cms.CmsApi.SaveBody(created, schema)).ConfigureAwait(true);
+        var schemaRevision = saved.GetProperty("schemaRevision").GetInt32();
+
+        var item = await Cms.Items.ItemsApi.CreateOkAsync(admin, siteId, collectionId,
+            Cms.Items.ItemsApi.Draft($"{canary}slug", new System.Text.Json.Nodes.JsonObject { ["f1"] = $"{canary}title" }, schemaRevision)).ConfigureAwait(true);
+        var itemId = Cms.Items.ItemsApi.Id(item);
+
+        // Refusals that carry the values back to the caller: malformed, taken slug, stale revision.
+        await Cms.Items.ItemsApi.CreateAsync(admin, siteId, collectionId,
+            Cms.Items.ItemsApi.Draft($"{canary}other", new System.Text.Json.Nodes.JsonObject { ["f1"] = $"{canary}t", ["f2"] = $"{canary}not-a-number" }, schemaRevision)).ConfigureAwait(true);
+        await Cms.Items.ItemsApi.CreateAsync(admin, siteId, collectionId,
+            Cms.Items.ItemsApi.Draft($"{canary}slug", new System.Text.Json.Nodes.JsonObject { ["f1"] = $"{canary}t" }, schemaRevision)).ConfigureAwait(true);
+        await Cms.Items.ItemsApi.SaveAsync(admin, siteId, collectionId, itemId,
+            Cms.Items.ItemsApi.Draft($"{canary}slug", new System.Text.Json.Nodes.JsonObject { ["f1"] = $"{canary}stale" }, schemaRevision, revision: 99)).ConfigureAwait(true);
+
+        item = await Cms.Items.ItemsApi.SaveOkAsync(admin, siteId, collectionId, itemId,
+            Cms.Items.ItemsApi.Draft($"{canary}slug", new System.Text.Json.Nodes.JsonObject { ["f1"] = $"{canary}changed" }, schemaRevision, Cms.Items.ItemsApi.Revision(item))).ConfigureAwait(true);
+        item = await Cms.Items.ItemsApi.PublishOkAsync(admin, siteId, collectionId, itemId, Cms.Items.ItemsApi.Revision(item)).ConfigureAwait(true);
+        item = await Pages.PagesApi.OkAsync(await Cms.Items.ItemsApi.ScheduleAsync(admin, siteId, collectionId, itemId, "unpublish", DateTimeOffset.UtcNow.AddHours(1), Cms.Items.ItemsApi.Revision(item)).ConfigureAwait(true)).ConfigureAwait(true);
+
+        await using (var scope = _app.Services.CreateAsyncScope())
+        {
+            var cms = scope.ServiceProvider.GetRequiredService<QuickBuilder.Cms.Infrastructure.CmsDbContext>();
+            var schedule = await cms.ForSite<QuickBuilder.Cms.Domain.ItemSchedule>(siteId).SingleAsync(s => s.ItemId == itemId).ConfigureAwait(true);
+            await _app.DeliverAsync(new QuickBuilder.Cms.Features.Items.RunItemSchedule.ItemScheduleDue(Guid.NewGuid(), DateTimeOffset.UtcNow, siteId, schedule.Id, schedule.Revision)).ConfigureAwait(true);
+        }
+
+        var duplicate = await Pages.PagesApi.OkAsync(await Cms.Items.ItemsApi.PostAsync(admin, siteId, collectionId, itemId, "duplicate").ConfigureAwait(true), System.Net.HttpStatusCode.Created).ConfigureAwait(true);
+        await Cms.Items.ItemsApi.DeleteAsync(admin, siteId, collectionId, Cms.Items.ItemsApi.Id(duplicate), Cms.Items.ItemsApi.Revision(duplicate)).ConfigureAwait(true);
+        await Cms.Items.ItemsApi.ListAsync(admin, siteId, collectionId, $"?q={canary}title").ConfigureAwait(true);
+
+        var events = _app.Logs.Events.Select(LogCapture.Render).ToList();
+        var leak = events.FirstOrDefault(e => e.Contains(canary, StringComparison.OrdinalIgnoreCase));
+        Assert.True(leak is null, $"A log event contains an item value, name or slug: {leak}");
+        Assert.Contains(events, e => e.Contains(itemId.ToString(), StringComparison.OrdinalIgnoreCase));
     }
 
     [Fact]

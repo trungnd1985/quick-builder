@@ -147,7 +147,11 @@ Append-only. No values, names or slugs (FR-032).
   { "fieldId": "f4", "problem": "media_missing" } ] }
 ```
 
-Problem codes: research IT-05. `slug` problems use `"fieldId": "slug"`.
+Problem codes: research IT-05, plus `not_single_line` (line breaks in a single-line text),
+`invalid_slug` (field id `slug`), and `schedule_failed` (field id `schedule`: a scheduled action
+failed after the item last changed, FR-026; it clears with the item's next write). Every value
+problem but `not_single_line`, `too_long`, `out_of_range`, `too_many_decimals`, `file_kind`,
+`media_missing`, `missing_required` and `schedule_failed` marks a value that is never stored.
 
 ---
 

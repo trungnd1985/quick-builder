@@ -188,12 +188,12 @@ paths:
         '200': { description: Unpublished., content: { application/json: { schema: { $ref: '#/components/schemas/Item' } } } }
         '409': { description: '`cms.item_not_published`, `cms.schedule_pending`, `cms.item_conflict`.' }
 
-  /sites/{siteId}/collections/{collectionId}/items/{itemId}/schedules/{action}:
+  /sites/{siteId}/collections/{collectionId}/items/{itemId}/schedules/{scheduleAction}:
     parameters:
       - $ref: '#/components/parameters/SiteId'
       - $ref: '#/components/parameters/CollectionId'
       - $ref: '#/components/parameters/ItemId'
-      - { name: action, in: path, required: true, schema: { type: string, enum: [publish, unpublish] } }
+      - { name: scheduleAction, in: path, required: true, schema: { type: string, enum: [publish, unpublish] }, description: 'Named so because `action` is reserved by the server framework.' }
     put:
       summary: Set or move the pending schedule for this action
       description: Requires `cms.items.publish`. A publish schedule captures the draft now (FR-025).

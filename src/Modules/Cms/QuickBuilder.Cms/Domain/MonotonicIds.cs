@@ -13,23 +13,23 @@ namespace QuickBuilder.Cms.Domain;
 internal static class MonotonicIds
 {
     private static readonly Lock Gate = new();
-    private static Guid _last;
-    private static long _lastMillisecond;
+    private static Guid Last;
+    private static long LastMillisecond;
 
     public static Guid Next(DateTimeOffset at)
     {
         var millisecond = at.ToUnixTimeMilliseconds();
         lock (Gate)
         {
-            if (millisecond > _lastMillisecond || _last == Guid.Empty)
+            if (millisecond > LastMillisecond || Last == Guid.Empty)
             {
-                _last = Guid.CreateVersion7(at);
-                _lastMillisecond = millisecond;
-                return _last;
+                Last = Guid.CreateVersion7(at);
+                LastMillisecond = millisecond;
+                return Last;
             }
 
-            _last = Increment(_last);
-            return _last;
+            Last = Increment(Last);
+            return Last;
         }
     }
 

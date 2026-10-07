@@ -142,7 +142,11 @@ public sealed class ItemPerformanceTests(ITestOutputHelper output) : IAsyncLifet
         var watch = Stopwatch.StartNew();
         using var save = await client.PutAsJsonAsync(new Uri(path, UriKind.Relative), new
         {
-            body.revision, body.name, body.slug, body.schema, confirmation = new { digest },
+            body.revision,
+            body.name,
+            body.slug,
+            body.schema,
+            confirmation = new { digest },
         }).ConfigureAwait(true);
         watch.Stop();
         Assert.Equal(HttpStatusCode.OK, save.StatusCode);

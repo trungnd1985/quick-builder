@@ -539,7 +539,7 @@ version 1, a version 4 records the rollback, and the draft is unchanged (quickst
   - `docs/backlog.md`: field-content search (clarification Q5), bulk item actions, and in the E-6 entry, "versions are migrated too";
   - `README.md`'s feature list, if it has one.
 - [ ] T086 Run the whole of `quickstart.md` by hand on the reference compose setup, including SC-001 with a stopwatch and SC-007 keyboard-only, and record the results in `specs/015-cms-items/quickstart-results.md`.
-- [ ] T087 [P] Run `dotnet test` with coverage. The item publish path (`ItemWrites`, `Item`, `PublishItem`, `RunItemScheduleHandler`) must be at ≥ 80 % line coverage (Principle X). Run `npm run lint`, `npm run type-check` and `npm test`, and check that the formatting and analyzer gates are clean.
+- [X] T087 [P] Run `dotnet test` with coverage. The item publish path (`ItemWrites`, `Item`, `PublishItem`, `RunItemScheduleHandler`) must be at ≥ 80 % line coverage (Principle X). Run `npm run lint`, `npm run type-check` and `npm test`, and check that the formatting and analyzer gates are clean.
 - [ ] T088 Scan the logs of a full test run for item values, names and slugs: none may appear (FR-032). Then open the PR closing #15, with the plan's operator impact and upgrade notes in the description.
 
 ---
@@ -639,3 +639,46 @@ One PR, as with 010–014, so there is no feature flag (plan, Principle XI).
   - a second `AcrossAllSites` call;
   - values, names or slugs in logs and events;
   - local time zones on the server: the API is UTC, and the admin converts.
+
+## Implementation notes (deviations from the task text)
+
+Recorded during `/speckit-implement`, so the tasks above can still be read as written:
+
+- **Order of work**: the backend slices of US2, US5, US6 and US7 (T047, T056, T062, T070,
+  T071, T076) were written with US1's, because US1's gate and role tests (T033, T034) publish
+  and delete; the admin parts of every story were written together, because the item form
+  hosts the publish bar, pickers, schedule, delete and history. Each story's tests were written
+  and run against them.
+- **Slug grammar** (T008, T011): the page slug grammar `^[a-z0-9]+(-[a-z0-9]+)*$`, stricter than
+  research IT-03's pattern (no doubled or trailing hyphens), so a slug is exactly what
+  `slugify.ts` can produce.
+- **SearchText** (T002): `For(fileName, altText)` named a media concept and became the generic
+  `Combine(first, second)`; its test lives under `UnitTests/SharedKernel/`, because a `Shared`
+  or `Text` namespace in the unit test project hides other names.
+- **Placeholder slugs** (T005, T014): `item-` and the **last** 12 hex digits of the id; the
+  first 12 of a UUID v7 are its time, shared by items stored in one millisecond.
+- **Problem codes** (T012): `not_single_line`, `invalid_slug` and `schedule_failed` were added
+  (data-model §2). A failed scheduled action flags the item until its next write (FR-026).
+- **ItemPublishing** (T047, T070, T076): publish, unpublish, rollback and scheduled runs share
+  one static service for the publish checks, versions with retention, and the schedules a
+  manual action cancels.
+- **T040**: the reference pickers (T057) were written at once instead of read-only chips.
+- **Schedules** (T071): the route parameter is `{scheduleAction}`; `{action}` is reserved by
+  ASP.NET Core MVC. The schedule's `state` is a concurrency token, added to the unreleased
+  `AddItems` migration's designer and snapshot.
+- **History order** (T076): entries of one operation share a millisecond, and UUID v7 ids of one
+  millisecond are unordered, so history ids come from `MonotonicIds`, strictly increasing per
+  process.
+- **Collection delete** (T058): deleting a collection first removes its items' reference rows;
+  `NO ACTION` alone did not allow it (research IT-10, corrected).
+- **Concurrent publishes** (T044): a collision on the new version number is mapped to
+  `cms.item_conflict`, like the revision check it races.
+- **Media** (T064): Media reads items through a small `MediaUsage` service that adds item
+  counts to the Pages ones; the usage DTO gained `collectionId`, `collectionName` and
+  `inScheduled` (additive). The media picker gained `initialKind` (MediaBrowser) and `kind`
+  (MediaControl) so file fields can pick documents.
+- **Performance** (T081, T082): one file, `SmokeTests/ItemPerformanceTests.cs`; 014's
+  performance test now seeds items through the shared `ItemSeedSql`, because the 015 columns
+  have no usable defaults.
+- **Coverage gate** (T087): `QuickBuilder.Cms` joins the per-assembly list in CI, as publishing
+  is a critical path.

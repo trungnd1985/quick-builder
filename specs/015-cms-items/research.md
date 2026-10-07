@@ -270,9 +270,10 @@ instances, restart safety and retries (Principle IV), and 012 proved it.
 - **Foreign keys**: the source cascades, and the target uses `ON DELETE NO ACTION`. So:
   - deleting an item that something refers to fails in the database, even when the
     reference was added in a concurrent transaction (FR-008);
-  - deleting a whole collection (014) still works, because the cascade removes both ends
-    in one statement, and `NO ACTION` is checked at the end of the statement, unlike
-    `RESTRICT`.
+  - deleting a whole collection (014) still works: the collection delete first removes the
+    reference rows of its own items, then cascades. *(Corrected during implementation: the
+    plan expected `NO ACTION` alone to allow it, but PostgreSQL checks the key on the
+    cascaded item delete before it cascades to the reference rows.)*
 - **Delete** (FR-008) first reads the referrers. When there are any, it is refused with
   `cms.item_referenced` and the list (up to 50, with the total): item name, collection
   name, field name, and `inDraft` / `inPublished` / `inScheduled`. A foreign-key violation
