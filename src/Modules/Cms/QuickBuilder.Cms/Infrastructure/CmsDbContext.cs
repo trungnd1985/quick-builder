@@ -241,7 +241,8 @@ internal sealed class CmsDbContext(DbContextOptions<CmsDbContext> options, ISite
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Id).ValueGeneratedNever();
             entity.Property(e => e.Action).HasMaxLength(10).IsRequired();
-            entity.Property(e => e.State).HasMaxLength(10).IsRequired();
+            // A schedule runs once: a second run that raced finds it no longer pending (research IT-09).
+            entity.Property(e => e.State).HasMaxLength(10).IsRequired().IsConcurrencyToken();
             entity.Property(e => e.CapturedValues).HasColumnType("jsonb");
             entity.Property(e => e.CapturedSlug).HasMaxLength(SlugRules.MaxLength);
             entity.Property(e => e.FailureCode).HasMaxLength(64);

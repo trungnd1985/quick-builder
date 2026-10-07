@@ -26,6 +26,9 @@ internal static class ItemProblems
     public const string FileKind = "file_kind";
     public const string MediaMissing = "media_missing";
 
+    /// <summary>A scheduled action failed after the item last changed (FR-026); field id <c>schedule</c>.</summary>
+    public const string ScheduleFailed = "schedule_failed";
+
     private static readonly HashSet<string> MalformedCodes =
     [
         Malformed, UnknownField, UnknownOption, ReferenceMissing, ReferenceWrongCollection,
@@ -53,6 +56,9 @@ internal sealed class ItemReport
     /// <summary>The pseudo field id of a problem with the slug.</summary>
     public const string SlugField = "slug";
 
+    /// <summary>The pseudo field id of a failed scheduled action.</summary>
+    public const string ScheduleField = "schedule";
+
     public static ItemReport Clean { get; } = new([]);
 
     public ItemReport(IReadOnlyList<ItemProblem> problems)
@@ -68,6 +74,9 @@ internal sealed class ItemReport
 
     /// <summary>The report without its malformed problems: what a stored draft can still need attention for.</summary>
     public ItemReport Reported => new(Problems.Where(p => !ItemProblems.IsMalformed(p.Problem)).ToList());
+
+    /// <summary>This report with <paramref name="problem"/> added.</summary>
+    public ItemReport With(ItemProblem problem) => new([.. Problems, problem]);
 
     public JsonObject Write()
     {

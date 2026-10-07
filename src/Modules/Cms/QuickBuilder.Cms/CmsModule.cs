@@ -9,11 +9,16 @@ using QuickBuilder.Cms.Features.Items.CreateItem;
 using QuickBuilder.Cms.Features.Items.DeleteItem;
 using QuickBuilder.Cms.Features.Items.DuplicateItem;
 using QuickBuilder.Cms.Features.Items.GetItem;
+using QuickBuilder.Cms.Features.Items.GetItemHistory;
 using QuickBuilder.Cms.Features.Items.ListItemReferrers;
 using QuickBuilder.Cms.Features.Items.ListItems;
+using QuickBuilder.Cms.Features.Items.LookupItems;
 using QuickBuilder.Cms.Features.Items.PublishItem;
 using QuickBuilder.Cms.Features.Items.ReindexItemsForMedia;
+using QuickBuilder.Cms.Features.Items.RollbackItem;
+using QuickBuilder.Cms.Features.Items.RunItemSchedule;
 using QuickBuilder.Cms.Features.Items.SaveItemDraft;
+using QuickBuilder.Cms.Features.Items.ScheduleItem;
 using QuickBuilder.Cms.Features.Items.UnpublishItem;
 using QuickBuilder.Cms.Features.CreateCollection;
 using QuickBuilder.Cms.Features.DeleteCollection;
@@ -103,6 +108,7 @@ public static class CmsModule
         services.AddScoped<SlugAvailability>();
         services.AddScoped<ItemWrites>();
         services.AddScoped<ItemReads>();
+        services.AddScoped<QuickBuilder.Cms.Contracts.Media.IItemMediaUsageReader, ItemMediaUsageReader>();
 
         // Research IT-11, IT-22: indexes items stored before 015, and any after a future indexer change.
         services.AddSingleton<ItemIndexBackfillService>();
@@ -130,6 +136,16 @@ public static class CmsModule
         services.AddScoped<IQueryHandler<ListItemReferrersQuery, Result<ReferrerListResponse>>, ListItemReferrersHandler>();
         services.AddScoped<ICommandHandler<DeleteItemCommand, Result>, DeleteItemHandler>();
         services.AddScoped<ICommandHandler<DuplicateItemCommand, Result<ItemResponse>>, DuplicateItemHandler>();
+        services.AddScoped<IQueryHandler<LookupItemsQuery, Result<ItemLookupResponse>>, LookupItemsHandler>();
+        services.AddScoped<IQueryHandler<GetItemHistoryQuery, Result<ItemHistoryResponse>>, GetItemHistoryHandler>();
+        services.AddScoped<ICommandHandler<RollbackItemCommand, Result<ItemResponse>>, RollbackItemHandler>();
+        services.AddScoped<ICommandHandler<CopyVersionToDraftCommand, Result<ItemResponse>>, CopyVersionToDraftHandler>();
+        services.AddScoped<ICommandHandler<ScheduleItemCommand, Result<ItemResponse>>, ScheduleItemHandler>();
+        services.AddScoped<ICommandHandler<CancelItemScheduleCommand, Result<ItemResponse>>, CancelItemScheduleHandler>();
+
+        // Research IT-09: due schedules arrive as delayed messages in the Cms outbox.
+        services.AddSingleton<IEventTypeRegistration>(new EventTypeRegistration<ItemScheduleDue>());
+        services.AddScoped<IIntegrationEventHandler<ItemScheduleDue>, RunItemScheduleHandler>();
 
         // Research IT-11: items using a deleted or replaced media file are checked again.
         services.AddScoped<IIntegrationEventHandler<FileDeleted>, ReindexItemsForMediaHandler>();

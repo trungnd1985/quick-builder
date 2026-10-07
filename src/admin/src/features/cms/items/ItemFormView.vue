@@ -62,8 +62,11 @@ const problems = computed<Problem[]>(() => {
 const problemOf = (fieldId: string): Problem | null => problems.value.find((p) => p.fieldId === fieldId) ?? null
 const malformed = computed(() => problems.value.filter(isMalformed))
 const fieldName = (fieldId: string): string =>
-  fieldId === SLUG_FIELD ? t('cms.items.form.slug') : (schema.value?.fields.find((f) => f.id === fieldId)?.name ?? fieldId)
-const anchorOf = (fieldId: string): string => (fieldId === SLUG_FIELD ? '#item-slug' : `#item-field-${fieldId}`)
+  fieldId === SLUG_FIELD ? t('cms.items.form.slug')
+    : fieldId === 'schedule' ? t('cms.items.form.schedule')
+      : (schema.value?.fields.find((f) => f.id === fieldId)?.name ?? fieldId)
+const anchorOf = (fieldId: string): string =>
+  fieldId === SLUG_FIELD ? '#item-slug' : fieldId === 'schedule' ? '#item-history' : `#item-field-${fieldId}`
 
 function startFrom(next: Item | null, schemaDocument: SchemaDocument): void {
   item.value = next

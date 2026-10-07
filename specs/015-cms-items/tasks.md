@@ -319,14 +319,14 @@ field. Unpublishing keeps the draft (quickstart §2).
 
 ### Implementation for User Story 2
 
-- [ ] T046 [US2] Add `Publish`, `Unpublish` and retention to `CMS/Domain/Item.cs`, with `ItemVersion` creation in `CMS/Domain/ItemVersion.cs`, the `published` and `unpublished` history entries in `CMS/Domain/ItemHistoryEntry.cs`, and the version counter. Add the cases to `UTESTS/Cms/Items/ItemTests.cs`.
-- [ ] T047 [US2] Create the slices:
+- [X] T046 [US2] Add `Publish`, `Unpublish` and retention to `CMS/Domain/Item.cs`, with `ItemVersion` creation in `CMS/Domain/ItemVersion.cs`, the `published` and `unpublished` history entries in `CMS/Domain/ItemHistoryEntry.cs`, and the version counter. Add the cases to `UTESTS/Cms/Items/ItemTests.cs`.
+- [X] T047 [US2] Create the slices:
   - `CMS/Features/Items/PublishItem/PublishItem.cs` (`POST publish`, `cms.items.publish`): it refuses on a non-empty report, computes `unpublishedReferences` from `item_references` joined to target statuses, and returns them.
   - `CMS/Features/Items/UnpublishItem/UnpublishItem.cs`.
   - `CMS/Features/Items/ListItemReferrers/ListItemReferrers.cs` (`GET referrers`, view): up to 50 plus the total, with names, collection and field names, and the flags; `published=true` filters.
 
   Register them and add them to `EndpointCatalog`. Makes T043 and T044 pass.
-- [ ] T048 [US2] Extend `CMS/Infrastructure/ItemMigrator.cs` to also migrate `item_versions.values` (IT-12): the same `FieldPlan`s **without fill-ins**, in batches of 500, loading only versions that hold a value in a changed field (`EF.Functions.JsonExistAny` on the `values` element, with an in-memory filter fallback and a code comment). Then refresh `item_media.in_history`. Create `ITESTS/Cms/Items/ItemSchemaMigrationTests.cs` with: a removed field's values leave every version, a lossy conversion converts versions, a fill-in is not written to versions, and a rename writes no version.
+- [X] T048 [US2] Extend `CMS/Infrastructure/ItemMigrator.cs` to also migrate `item_versions.values` (IT-12): the same `FieldPlan`s **without fill-ins**, in batches of 500, loading only versions that hold a value in a changed field (`EF.Functions.JsonExistAny` on the `values` element, with an in-memory filter fallback and a code comment). Then refresh `item_media.in_history`. Create `ITESTS/Cms/Items/ItemSchemaMigrationTests.cs` with: a removed field's values leave every version, a lossy conversion converts versions, a fill-in is not written to versions, and a rename writes no version.
 - [X] T049 [P] [US2] Create `ITEMUI/ItemStatusBadge.vue` (status, attention and, from US6, schedules) and `ITEMUI/ItemPublishBar.vue` (Save draft, Publish and Unpublish, each with its warning dialog, using the 012 `ConfirmDialog`). On `cms.item_conflict` from Publish, the bar reloads the item and retries once, telling the member if the content changed. When the draft slug differs from the published slug, the publish confirmation says the item's published address will change (spec Edge Cases). Use them in `ItemFormView.vue` and in the list's status column. Makes T045 pass.
 
 **Checkpoint**: quickstart §2 passes. Items can be published.
@@ -401,7 +401,7 @@ refused (quickstart §4).
 
 ### Implementation for User Story 4
 
-- [ ] T056 [US4] Create `CMS/Features/Items/LookupItems/LookupItems.cs` (`POST /sites/{siteId}/items/lookup`, view; up to 200 ids, one `ForSite<Item>` query joined to collection names). Register it and add it to `EndpointCatalog`. Makes T054 pass.
+- [X] T056 [US4] Create `CMS/Features/Items/LookupItems/LookupItems.cs` (`POST /sites/{siteId}/items/lookup`, view; up to 200 ids, one `ForSite<Item>` query joined to collection names). Register it and add it to `EndpointCatalog`. Makes T054 pass.
 - [X] T057 [US4] Create `ITEMUI/ReferencePickerDialog.vue` (a dialog over the target collection's `ListItems` with `q` and `pageSize=25`, the listbox semantics of IT-21, and a disabled set), `ITEMUI/ReferencePicker.vue` (single) and `ITEMUI/MultiReferencePicker.vue` (an ordered list with native drag events and the keyboard rule of 014's `FieldList.vue`: Alt+↑/↓, buttons and an `aria-live` region). Both resolve names through `items/lookup`. Replace the read-only chips in `ITEMUI/ItemField.vue`. Makes T055 pass.
 
 **Checkpoint**: quickstart §4 passes.
@@ -440,19 +440,19 @@ refusals list the referrers. Duplicate an item and check its copy (quickstart §
 
 ### Implementation for User Story 5
 
-- [ ] T062 [US5] Create the slices:
+- [X] T062 [US5] Create the slices:
   - `CMS/Features/Items/DeleteItem/DeleteItem.cs` (`DELETE ?revision=`, `cms.items.edit`): reads referrers and refuses with up to 50 plus the total; otherwise `Item.Delete`, and the foreign-key race is mapped in `ItemWrites`.
   - `CMS/Features/Items/DuplicateItem/DuplicateItem.cs` (`POST duplicate`, `cms.items.edit`): the slug from `SlugRules` copy suggestions, retried on `cms.item_slug_taken` up to 3 times.
 
   Register them and add them to `EndpointCatalog`. Makes T058 and T060 pass.
-- [ ] T063 [US5] Create `CMSC/Media/IItemMediaUsageReader.cs` with the records of module-surface.md §2, and `CMS/Infrastructure/ItemMediaUsageReader.cs` over `item_media` with `ForSite`, registered in `CMS/CmsModule.cs`.
-- [ ] T064 [US5] Use `IItemMediaUsageReader` in Media:
+- [X] T063 [US5] Create `CMSC/Media/IItemMediaUsageReader.cs` with the records of module-surface.md §2, and `CMS/Infrastructure/ItemMediaUsageReader.cs` over `item_media` with `ForSite`, registered in `CMS/CmsModule.cs`.
+- [X] T064 [US5] Use `IItemMediaUsageReader` in Media:
   - `MEDIA/Infrastructure/MediaFileMapper.cs`: usage counts include items;
   - `MEDIA/Features/GetFileUsage/GetFileUsage.cs`: item places after pages and components, only when the caller has `cms.collections.view`;
   - `MEDIA/Features/DeleteFile/DeleteFile.cs` and `MEDIA/Features/ReplaceFile/ReplaceFile.cs`: live item use counts as live use, and any item use as in use (013 MV-06, unchanged).
 
   Update `specs/013-media-library-variants/contracts/readers.md`. Makes T059 pass.
-- [ ] T065 [P] [US5] Create `ITEMUI/DeleteItemDialog.vue`, and add Duplicate and Delete to `ITEMUI/ItemPublishBar.vue`. In `ADMIN/features/media/UsageList.vue`, show item places (item name or slug, collection, flags) linking to the item form. Makes T061 pass.
+- [X] T065 [P] [US5] Create `ITEMUI/DeleteItemDialog.vue`, and add Duplicate and Delete to `ITEMUI/ItemPublishBar.vue`. In `ADMIN/features/media/UsageList.vue`, show item places (item name or slug, collection, flags) linking to the item form. Makes T061 pass.
 
 **Checkpoint**: quickstart §5 and §9 pass.
 
@@ -485,14 +485,14 @@ later draft. A scheduled unpublish happens. Across a restart, each runs once (qu
 
 ### Implementation for User Story 6
 
-- [ ] T069 [US6] Complete `CMS/Domain/ItemSchedule.cs` (`ForPublish` with capture, `ForUnpublish`, `Reschedule`, `Recapture`, `IsDue`, `Complete`, `Cancel`, `Fail`, mirroring `src/Modules/Pages/QuickBuilder.Pages/Domain/PublishSchedule.cs`). Add `Schedule`, `CancelSchedule`, the cancellation of a pending publish by manual actions (`cancelSchedule`), and the history kinds to `CMS/Domain/Item.cs`. Add the cases to `UTESTS/Cms/Items/ItemTests.cs`.
-- [ ] T070 [US6] Create `CMS/Features/Items/RunItemSchedule/ItemScheduleDue.cs` (internal event `Cms.ItemScheduleDue`, registered with `EventTypeRegistration`) and `RunItemScheduleHandler.cs`, modelled on `src/Modules/Pages/QuickBuilder.Pages/Features/RunDueSchedule/` and `ScheduleWrites.RunAsync`:
+- [X] T069 [US6] Complete `CMS/Domain/ItemSchedule.cs` (`ForPublish` with capture, `ForUnpublish`, `Reschedule`, `Recapture`, `IsDue`, `Complete`, `Cancel`, `Fail`, mirroring `src/Modules/Pages/QuickBuilder.Pages/Domain/PublishSchedule.cs`). Add `Schedule`, `CancelSchedule`, the cancellation of a pending publish by manual actions (`cancelSchedule`), and the history kinds to `CMS/Domain/Item.cs`. Add the cases to `UTESTS/Cms/Items/ItemTests.cs`.
+- [X] T070 [US6] Create `CMS/Features/Items/RunItemSchedule/ItemScheduleDue.cs` (internal event `Cms.ItemScheduleDue`, registered with `EventTypeRegistration`) and `RunItemScheduleHandler.cs`, modelled on `src/Modules/Pages/QuickBuilder.Pages/Features/RunDueSchedule/` and `ScheduleWrites.RunAsync`:
   - its own scope;
   - claims the schedule by a guarded update inside `ItemWrites` (owner = who set it, kind `scheduled`);
   - a domain refusal rolls back, then marks the schedule `failed` with `scheduleFailed` and re-indexes the item;
   - `cms.items_being_updated` throws, so the outbox retries.
-- [ ] T071 [US6] Create `CMS/Features/Items/ScheduleItem/ScheduleItem.cs` (`PUT schedules/{action}`, `cms.items.publish`; writes the due message with `OutboxMessage.From(..., availableAtUtc: dueAtUtc)`) and `CMS/Features/Items/CancelItemSchedule/CancelItemSchedule.cs` (`DELETE ?revision=`, guarded like a run). Add `cancelSchedule` handling to `PublishItem.cs` and `UnpublishItem.cs`. Register the slices and add them to `EndpointCatalog`. Makes T066 and T067 pass.
-- [ ] T072 [US6] Extend `CMS/Infrastructure/ItemMigrator.cs` to migrate `item_schedules.captured_values` of pending publishes, **with fill-ins**, in the same batches (IT-12). Add the case to `ITESTS/Cms/Items/ItemSchemaMigrationTests.cs`.
+- [X] T071 [US6] Create `CMS/Features/Items/ScheduleItem/ScheduleItem.cs` (`PUT schedules/{action}`, `cms.items.publish`; writes the due message with `OutboxMessage.From(..., availableAtUtc: dueAtUtc)`) and `CMS/Features/Items/CancelItemSchedule/CancelItemSchedule.cs` (`DELETE ?revision=`, guarded like a run). Add `cancelSchedule` handling to `PublishItem.cs` and `UnpublishItem.cs`. Register the slices and add them to `EndpointCatalog`. Makes T066 and T067 pass.
+- [X] T072 [US6] Extend `CMS/Infrastructure/ItemMigrator.cs` to migrate `item_schedules.captured_values` of pending publishes, **with fill-ins**, in the same batches (IT-12). Add the case to `ITESTS/Cms/Items/ItemSchemaMigrationTests.cs`.
 - [X] T073 [P] [US6] Extract `ADMIN/components/ZonedDateTimeInput.vue` from `ADMIN/features/publishing/ScheduleDialog.vue` and use it there. The existing `ScheduleDialog` tests must pass unchanged. Create `ITEMUI/ItemScheduleDialog.vue`, add Schedule to `ITEMUI/ItemPublishBar.vue`, show pending schedules in `ITEMUI/ItemStatusBadge.vue` and the list, and add the `scheduled` filter option to `ITEMUI/ItemFilters.vue`. Makes T068 pass.
 
 **Checkpoint**: quickstart §6 passes.
@@ -518,7 +518,7 @@ version 1, a version 4 records the rollback, and the draft is unchanged (quickst
 
 ### Implementation for User Story 7
 
-- [ ] T076 [US7] Add `Rollback(number)` and `CopyToDraft(number)` to `CMS/Domain/Item.cs`, with the `rolledBack` and `copiedToDraft` history kinds. Create the slices `CMS/Features/Items/GetItemHistory/GetItemHistory.cs` (view), `CMS/Features/Items/RollbackItem/RollbackItem.cs` (`cms.items.publish`; validates the version through `ItemValidation`, including the slug; honours `cancelSchedule`) and `CMS/Features/Items/CopyVersionToDraft/CopyVersionToDraft.cs` (`cms.items.edit`). Register them and add them to `EndpointCatalog`. Makes T074 pass.
+- [X] T076 [US7] Add `Rollback(number)` and `CopyToDraft(number)` to `CMS/Domain/Item.cs`, with the `rolledBack` and `copiedToDraft` history kinds. Create the slices `CMS/Features/Items/GetItemHistory/GetItemHistory.cs` (view), `CMS/Features/Items/RollbackItem/RollbackItem.cs` (`cms.items.publish`; validates the version through `ItemValidation`, including the slug; honours `cancelSchedule`) and `CMS/Features/Items/CopyVersionToDraft/CopyVersionToDraft.cs` (`cms.items.edit`). Register them and add them to `EndpointCatalog`. Makes T074 pass.
 - [X] T077 [P] [US7] Create `ITEMUI/ItemHistoryPanel.vue` (a side panel in `ItemFormView.vue`), modelled on `ADMIN/features/publishing/HistoryView.vue`'s layout. Makes T075 pass.
 
 **Checkpoint**: quickstart §7 passes. All stories are done.

@@ -239,14 +239,16 @@
       "title": "Where it is used",
       "loading": "Finding where it is used…",
       "failed": "Could not find where the file is used.",
-      "none": "No page or component uses this file.",
+      "none": "No page, component or item uses this file.",
       "counts": "Used in {places} place(s): {draft} in drafts, {live} live, {history} only in earlier versions.",
-      "liveRule": "Published pages show this file. Only a Designer or Administrator can delete or replace it.",
+      "liveRule": "Published pages or items show this file. Only a Designer or Administrator can delete or replace it.",
       "pages": "Pages",
       "components": "Components",
+      "items": "Collection items",
       "badges": {
         "live": "Live",
         "draft": "Draft",
+        "scheduled": "Scheduled",
         "history": "Earlier version"
       },
       "livePages": "on {n} live page | on {n} live pages"
@@ -1567,6 +1569,7 @@
         "editTitle": "Edit item",
         "back": "Back to items",
         "slug": "Slug",
+        "schedule": "Schedule",
         "slugHelp": "Lower-case letters, digits and hyphens. Used in the item’s address.",
         "slugTaken": "Another item uses this slug. Try {suggestion}.",
         "useSuggestion": "Use {suggestion}",
@@ -1748,7 +1751,8 @@
         "out_of_range": "Outside the allowed range (limit {limit}).",
         "too_many_decimals": "At most {limit} decimal places.",
         "file_kind": "This kind of file is not allowed here.",
-        "media_missing": "The file was deleted from the media library."
+        "media_missing": "The file was deleted from the media library.",
+          "schedule_failed": "A scheduled action failed. See the history."
       }
     }
   }

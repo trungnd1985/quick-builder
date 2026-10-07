@@ -79,6 +79,17 @@ internal sealed class ItemIndexer(CmsDbContext database, ItemValidation validati
 
         var lookups = new BatchLookups(kindOf, collectionOf);
 
+        // FR-026: a scheduled action that failed after the item last changed needs attention,
+        // until someone acts on the item.
+        var failedAt = (await database.ForSite<ItemSchedule>(siteId)
+                .AsNoTracking()
+                .Where(s => ids.Contains(s.ItemId) && s.State == ItemScheduleStates.Failed)
+                .Select(s => new { s.ItemId, s.CompletedAtUtc })
+                .ToListAsync(cancellationToken)
+                .ConfigureAwait(false))
+            .GroupBy(s => s.ItemId)
+            .ToDictionary(g => g.Key, g => g.Max(s => s.CompletedAtUtc));
+
         await database.ForSite<ItemSlug>(siteId).Where(s => ids.Contains(s.ItemId)).ExecuteDeleteAsync(cancellationToken).ConfigureAwait(false);
         await database.ForSite<ItemReference>(siteId).Where(r => ids.Contains(r.SourceItemId)).ExecuteDeleteAsync(cancellationToken).ConfigureAwait(false);
         await database.ForSite<ItemMediaUse>(siteId).Where(m => ids.Contains(m.ItemId)).ExecuteDeleteAsync(cancellationToken).ConfigureAwait(false);
@@ -89,6 +100,10 @@ internal sealed class ItemIndexer(CmsDbContext database, ItemValidation validati
             var report = await validation
                 .ValidateAsync(siteId, item.Id, schema, item.Slug, copy.Draft, lookups, lookups, cancellationToken)
                 .ConfigureAwait(false);
+            if (failedAt.TryGetValue(item.Id, out var failed) && failed >= item.UpdatedAtUtc)
+            {
+                report = report.With(new ItemProblem(ItemReport.ScheduleField, ItemProblems.ScheduleFailed));
+            }
 
             var name = schema.TitleField is { } title && copy.Draft.Get(title.Id) is JsonValue value && value.TryGetValue<string>(out var text)
                 ? text

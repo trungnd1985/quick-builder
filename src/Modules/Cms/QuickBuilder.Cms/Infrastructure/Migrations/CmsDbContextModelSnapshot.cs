@@ -463,6 +463,7 @@ namespace QuickBuilder.Cms.Infrastructure.Migrations
                         .HasColumnName("site_id");
 
                     b.Property<string>("State")
+                        .IsConcurrencyToken()
                         .IsRequired()
                         .HasMaxLength(10)
                         .HasColumnType("character varying(10)")

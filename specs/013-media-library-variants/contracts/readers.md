@@ -102,6 +102,19 @@ public sealed record MediaUsagePlace(
 - **Titles**: page titles and component names. Media returns them to the admin shell only
   when the caller holds `PageContentCapabilities.View` (§2.2).
 
+### 2.1a Item usage (added by 015)
+
+Collection items use media too. Media now also reads
+`QuickBuilder.Cms.Contracts.Media.IItemMediaUsageReader` (015 research IT-15,
+[015 module-surface.md §2](../../015-cms-items/contracts/module-surface.md)) and adds its counts
+to `MediaUsageSummary` through `MediaUsage`, so the listing, usage, delete and replace
+handlers treat an item like a page:
+- an item whose published values show the file makes it **in live use** (the 013 MV-06 rule,
+  unchanged: deleting or replacing it needs `pages.publishing.manage`);
+- any item use needs the in-use confirmation;
+- the usage places list items, as `kind: "item"` with `collectionId`, `collectionName` and
+  `inScheduled`, only to callers holding `cms.collections.view`.
+
 ### 2.2 Capability names moved into the contract
 
 ```csharp

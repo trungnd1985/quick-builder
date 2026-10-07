@@ -56,7 +56,7 @@ internal sealed class ReplaceFileHandler(
     MediaDbContext database,
     ISiteDirectory sites,
     IAccessEvaluator access,
-    IMediaUsageReader usage,
+    MediaUsage usage,
     UploadPipeline pipeline,
     MediaFileMapper mapper,
     ThumbnailQueue thumbnails,
