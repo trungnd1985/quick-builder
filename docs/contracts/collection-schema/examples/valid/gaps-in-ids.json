@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "titleFieldId": "f7",
+  "fields": [
+    {
+      "id": "f7",
+      "key": "name",
+      "name": "Name",
+      "help": "",
+      "required": true,
+      "type": "text",
+      "multiline": false,
+      "maxLength": 100
+    },
+    {
+      "id": "f3",
+      "key": "tags",
+      "name": "Tags",
+      "help": "",
+      "required": false,
+      "type": "option",
+      "options": [
+        {
+          "id": "o9",
+          "label": "A"
+        },
+        {
+          "id": "o2",
+          "label": "B"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "fields": [
+    {
+      "id": "f1",
+      "key": "colour",
+      "name": "Colour",
+      "help": "",
+      "required": false,
+      "type": "color"
+    }
+  ]
+}

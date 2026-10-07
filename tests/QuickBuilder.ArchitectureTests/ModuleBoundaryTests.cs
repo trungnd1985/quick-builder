@@ -29,6 +29,7 @@ public sealed class ModuleBoundaryTests
         typeof(Pages.PagesModule).Assembly,
         typeof(Editor.EditorModule).Assembly,
         typeof(Rendering.RenderingModule).Assembly,
+        typeof(Cms.CmsModule).Assembly,
     ];
 
     /// <summary>Every module contracts assembly.</summary>
@@ -40,6 +41,7 @@ public sealed class ModuleBoundaryTests
         typeof(Pages.Contracts.PageSchema).Assembly,
         typeof(Editor.Contracts.DesignTokens).Assembly,
         typeof(Rendering.Contracts.RenderingRoutes).Assembly,
+        typeof(Cms.Contracts.CollectionSchema).Assembly,
     ];
 
     /// <summary>The file-system types only a storage provider may use (003 FR-019).</summary>
@@ -166,6 +168,61 @@ public sealed class ModuleBoundaryTests
 
         // Nothing but the kernel; today it needs not even that.
         Assert.All(references, name => Assert.Equal(Kernel.GetName().Name, name));
+    }
+
+    /// <summary>
+    /// The collection schema contract depends on nothing but the kernel (014 contracts/module-surface.md §1).
+    /// </summary>
+    /// <remarks>
+    /// The item editor (#15) and the renderer (#16) will take Cms.Contracts; depending on the
+    /// contract must not mean depending on a third module.
+    /// </remarks>
+    [Fact]
+    public void Cms_contracts_reference_only_the_kernel()
+    {
+        var references = typeof(Cms.Contracts.CollectionSchema).Assembly
+            .GetReferencedAssemblies()
+            .Select(a => a.Name!)
+            .Where(name => name.StartsWith("QuickBuilder.", StringComparison.Ordinal))
+            .ToList();
+
+        Assert.All(references, name => Assert.Equal(Kernel.GetName().Name, name));
+    }
+
+    /// <summary>
+    /// Cms reads other modules only through the contracts its plan names (014 module-surface.md §1),
+    /// and no module depends on Cms yet.
+    /// </summary>
+    [Fact]
+    public void Cms_references_only_the_contracts_it_declares_and_nothing_references_cms()
+    {
+        string[] allowed =
+        [
+            "QuickBuilder.Shared.Kernel",
+            "QuickBuilder.Shared.Infrastructure",
+            "QuickBuilder.Cms.Contracts",
+            "QuickBuilder.Pages.Contracts",
+            "QuickBuilder.Media.Contracts",
+            "QuickBuilder.Sites.Contracts",
+            "QuickBuilder.Identity.Contracts",
+        ];
+
+        var references = typeof(Cms.CmsModule).Assembly
+            .GetReferencedAssemblies()
+            .Select(a => a.Name!)
+            .Where(name => name.StartsWith("QuickBuilder.", StringComparison.Ordinal))
+            .ToList();
+
+        Assert.All(references, name => Assert.Contains(name, allowed));
+
+        var dependents = ModuleImplementations
+            .Concat(ModuleContracts)
+            .Where(a => a.GetName().Name is not ("QuickBuilder.Cms" or "QuickBuilder.Cms.Contracts"))
+            .Where(a => a.GetReferencedAssemblies().Any(r => r.Name is "QuickBuilder.Cms" or "QuickBuilder.Cms.Contracts"))
+            .Select(a => a.GetName().Name)
+            .ToList();
+
+        Assert.Empty(dependents);
     }
 
     /// <summary>

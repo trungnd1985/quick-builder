@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "titleFieldId": "f1",
+  "fields": [
+    {
+      "id": "f1",
+      "key": "age",
+      "name": "Age",
+      "help": "",
+      "required": false,
+      "type": "number",
+      "decimals": 0
+    }
+  ]
+}

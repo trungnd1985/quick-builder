@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc.Routing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using QuickBuilder.ArchitectureTests.Fixtures;
+using QuickBuilder.Cms;
 using QuickBuilder.Editor;
 using QuickBuilder.Identity;
 using QuickBuilder.Media;
@@ -86,7 +87,8 @@ public sealed class AuthorizationDeclarationTests
             .AddIdentityModule(configuration)
             .AddMediaModule(configuration)
             .AddPagesModule(configuration)
-            .AddEditorModule(configuration);
+            .AddEditorModule(configuration)
+            .AddCmsModule(configuration);
 
         return services
             .Where(d => d.ServiceType == typeof(CapabilityDefinition))

@@ -1,0 +1,547 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://quickbuilder.dev/contracts/collection-schema/v1.schema.json",
+  "title": "QuickBuilder collection schema, version 1",
+  "description": "The root is a collection's schema document. $defs/itemValues is an item's draft or published values document; the value $defs give each field type's value. Rules beyond this file are in collection-schema.md §5.",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "fields"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "titleFieldId": {
+      "$ref": "#/$defs/fieldId"
+    },
+    "fields": {
+      "type": "array",
+      "maxItems": 100,
+      "items": {
+        "$ref": "#/$defs/field"
+      }
+    }
+  },
+  "$defs": {
+    "fieldId": {
+      "description": "Stored: f1, f2, … Proposals may also use temporary ids ~1, ~2, … (collection-schema.md §6).",
+      "type": "string",
+      "pattern": "^(f[1-9][0-9]{0,5}|~[1-9][0-9]{0,2})$"
+    },
+    "optionId": {
+      "description": "Stored: o1, o2, … Proposals may also use temporary ids ~1, ~2, …",
+      "type": "string",
+      "pattern": "^(o[1-9][0-9]{0,6}|~[1-9][0-9]{0,2})$"
+    },
+    "key": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]{0,63}$"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100,
+      "pattern": "^[^\\u0000-\\u001F\\u007F]+$"
+    },
+    "help": {
+      "type": "string",
+      "maxLength": 300,
+      "pattern": "^[^\\u0000-\\u0009\\u000B-\\u001F\\u007F]*$"
+    },
+    "uuid": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "field": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/textField"
+        },
+        {
+          "$ref": "#/$defs/richTextField"
+        },
+        {
+          "$ref": "#/$defs/numberField"
+        },
+        {
+          "$ref": "#/$defs/booleanField"
+        },
+        {
+          "$ref": "#/$defs/dateField"
+        },
+        {
+          "$ref": "#/$defs/imageField"
+        },
+        {
+          "$ref": "#/$defs/fileField"
+        },
+        {
+          "$ref": "#/$defs/optionField"
+        },
+        {
+          "$ref": "#/$defs/referenceField"
+        },
+        {
+          "$ref": "#/$defs/multiReferenceField"
+        }
+      ]
+    },
+    "textField": {
+      "type": "object",
+      "required": [
+        "id",
+        "key",
+        "name",
+        "help",
+        "required",
+        "type",
+        "multiline",
+        "maxLength"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/fieldId"
+        },
+        "key": {
+          "$ref": "#/$defs/key"
+        },
+        "name": {
+          "$ref": "#/$defs/name"
+        },
+        "help": {
+          "$ref": "#/$defs/help"
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "type": {
+          "const": "text"
+        },
+        "multiline": {
+          "type": "boolean"
+        },
+        "maxLength": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10000
+        }
+      }
+    },
+    "richTextField": {
+      "type": "object",
+      "required": [
+        "id",
+        "key",
+        "name",
+        "help",
+        "required",
+        "type"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/fieldId"
+        },
+        "key": {
+          "$ref": "#/$defs/key"
+        },
+        "name": {
+          "$ref": "#/$defs/name"
+        },
+        "help": {
+          "$ref": "#/$defs/help"
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "type": {
+          "const": "richText"
+        }
+      }
+    },
+    "numberField": {
+      "type": "object",
+      "required": [
+        "id",
+        "key",
+        "name",
+        "help",
+        "required",
+        "type",
+        "decimals"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/fieldId"
+        },
+        "key": {
+          "$ref": "#/$defs/key"
+        },
+        "name": {
+          "$ref": "#/$defs/name"
+        },
+        "help": {
+          "$ref": "#/$defs/help"
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "type": {
+          "const": "number"
+        },
+        "decimals": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 6
+        },
+        "min": {
+          "type": "number",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        },
+        "max": {
+          "type": "number",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        }
+      }
+    },
+    "booleanField": {
+      "type": "object",
+      "required": [
+        "id",
+        "key",
+        "name",
+        "help",
+        "required",
+        "type"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/fieldId"
+        },
+        "key": {
+          "$ref": "#/$defs/key"
+        },
+        "name": {
+          "$ref": "#/$defs/name"
+        },
+        "help": {
+          "$ref": "#/$defs/help"
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "type": {
+          "const": "boolean"
+        }
+      }
+    },
+    "dateField": {
+      "type": "object",
+      "required": [
+        "id",
+        "key",
+        "name",
+        "help",
+        "required",
+        "type",
+        "withTime"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/fieldId"
+        },
+        "key": {
+          "$ref": "#/$defs/key"
+        },
+        "name": {
+          "$ref": "#/$defs/name"
+        },
+        "help": {
+          "$ref": "#/$defs/help"
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "type": {
+          "const": "date"
+        },
+        "withTime": {
+          "type": "boolean"
+        }
+      }
+    },
+    "imageField": {
+      "type": "object",
+      "required": [
+        "id",
+        "key",
+        "name",
+        "help",
+        "required",
+        "type"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/fieldId"
+        },
+        "key": {
+          "$ref": "#/$defs/key"
+        },
+        "name": {
+          "$ref": "#/$defs/name"
+        },
+        "help": {
+          "$ref": "#/$defs/help"
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "type": {
+          "const": "image"
+        }
+      }
+    },
+    "fileField": {
+      "type": "object",
+      "required": [
+        "id",
+        "key",
+        "name",
+        "help",
+        "required",
+        "type",
+        "accept"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/fieldId"
+        },
+        "key": {
+          "$ref": "#/$defs/key"
+        },
+        "name": {
+          "$ref": "#/$defs/name"
+        },
+        "help": {
+          "$ref": "#/$defs/help"
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "type": {
+          "const": "file"
+        },
+        "accept": {
+          "enum": [
+            "any",
+            "documents",
+            "images"
+          ]
+        }
+      }
+    },
+    "option": {
+      "type": "object",
+      "required": [
+        "id",
+        "label"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/optionId"
+        },
+        "label": {
+          "$ref": "#/$defs/name"
+        }
+      }
+    },
+    "optionField": {
+      "type": "object",
+      "required": [
+        "id",
+        "key",
+        "name",
+        "help",
+        "required",
+        "type",
+        "options"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/fieldId"
+        },
+        "key": {
+          "$ref": "#/$defs/key"
+        },
+        "name": {
+          "$ref": "#/$defs/name"
+        },
+        "help": {
+          "$ref": "#/$defs/help"
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "type": {
+          "const": "option"
+        },
+        "options": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 200,
+          "items": {
+            "$ref": "#/$defs/option"
+          }
+        }
+      }
+    },
+    "referenceField": {
+      "type": "object",
+      "required": [
+        "id",
+        "key",
+        "name",
+        "help",
+        "required",
+        "type",
+        "target"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/fieldId"
+        },
+        "key": {
+          "$ref": "#/$defs/key"
+        },
+        "name": {
+          "$ref": "#/$defs/name"
+        },
+        "help": {
+          "$ref": "#/$defs/help"
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "type": {
+          "const": "reference"
+        },
+        "target": {
+          "$ref": "#/$defs/uuid"
+        }
+      }
+    },
+    "multiReferenceField": {
+      "type": "object",
+      "required": [
+        "id",
+        "key",
+        "name",
+        "help",
+        "required",
+        "type",
+        "target"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/fieldId"
+        },
+        "key": {
+          "$ref": "#/$defs/key"
+        },
+        "name": {
+          "$ref": "#/$defs/name"
+        },
+        "help": {
+          "$ref": "#/$defs/help"
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "type": {
+          "const": "multiReference"
+        },
+        "target": {
+          "$ref": "#/$defs/uuid"
+        }
+      }
+    },
+    "itemValues": {
+      "description": "An item's draft or published values, keyed by field id. Which keys and which value shape each may hold depend on the collection's schema, so they are checked against the value $defs below in code (collection-schema.md §3).",
+      "type": "object",
+      "required": [
+        "schemaVersion",
+        "values"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "values": {
+          "type": "object"
+        }
+      }
+    },
+    "textValue": {
+      "type": "string",
+      "maxLength": 10000
+    },
+    "numberValue": {
+      "type": "number",
+      "minimum": -9007199254740991,
+      "maximum": 9007199254740991
+    },
+    "booleanValue": {
+      "type": "boolean"
+    },
+    "dateValue": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$"
+    },
+    "dateTimeValue": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]Z$"
+    },
+    "mediaValue": {
+      "type": "object",
+      "required": [
+        "mediaId"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "mediaId": {
+          "$ref": "#/$defs/uuid"
+        }
+      }
+    },
+    "optionValue": {
+      "type": "string",
+      "pattern": "^o[1-9][0-9]{0,6}$"
+    },
+    "referenceValue": {
+      "$ref": "#/$defs/uuid"
+    },
+    "multiReferenceValue": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 100,
+      "items": {
+        "$ref": "#/$defs/uuid"
+      }
+    }
+  }
+}

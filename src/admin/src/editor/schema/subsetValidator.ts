@@ -80,6 +80,16 @@ export class SchemaSubsetValidator {
     return found
   }
 
+  /**
+   * The first failure of `instance` against `$defs/<name>`, or null; pointers are relative to
+   * `instance`. The C# twin is `SchemaSubsetValidator.ValidateDefinition` (014 research CS-04):
+   * item values are checked one field type's definition at a time, and rich text values
+   * against the page schema's `rtDoc`.
+   */
+  validateDefinition(name: string, instance: Json): SchemaFailure | null {
+    return this.check(this.definition(name), instance, '')
+  }
+
   /** Checks `instance` against any sub-schema of this schema, with `$ref`s resolved here. */
   checkAgainst(schema: Json, instance: Json, pointer = ''): SchemaFailure | null {
     return this.check(schema, instance, pointer)

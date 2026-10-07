@@ -1,0 +1,146 @@
+{
+  "schemaVersion": 1,
+  "titleFieldId": "f1",
+  "fields": [
+    {
+      "id": "f1",
+      "key": "title",
+      "name": "Title",
+      "help": "",
+      "required": true,
+      "type": "text",
+      "multiline": false,
+      "maxLength": 256
+    },
+    {
+      "id": "f2",
+      "key": "summary",
+      "name": "Summary",
+      "help": "Shown in lists.",
+      "required": false,
+      "type": "text",
+      "multiline": true,
+      "maxLength": 5000
+    },
+    {
+      "id": "f3",
+      "key": "body",
+      "name": "Body",
+      "help": "",
+      "required": false,
+      "type": "richText"
+    },
+    {
+      "id": "f4",
+      "key": "reading-time",
+      "name": "Reading time",
+      "help": "",
+      "required": false,
+      "type": "number",
+      "decimals": 0,
+      "min": 0,
+      "max": 600
+    },
+    {
+      "id": "f5",
+      "key": "price",
+      "name": "Price",
+      "help": "",
+      "required": false,
+      "type": "number",
+      "decimals": 2
+    },
+    {
+      "id": "f6",
+      "key": "featured",
+      "name": "Featured",
+      "help": "",
+      "required": false,
+      "type": "boolean"
+    },
+    {
+      "id": "f7",
+      "key": "published-on",
+      "name": "Published on",
+      "help": "",
+      "required": false,
+      "type": "date",
+      "withTime": false
+    },
+    {
+      "id": "f8",
+      "key": "starts-at",
+      "name": "Starts at",
+      "help": "",
+      "required": false,
+      "type": "date",
+      "withTime": true
+    },
+    {
+      "id": "f9",
+      "key": "cover",
+      "name": "Cover image",
+      "help": "",
+      "required": false,
+      "type": "image"
+    },
+    {
+      "id": "f10",
+      "key": "brochure",
+      "name": "Brochure",
+      "help": "",
+      "required": false,
+      "type": "file",
+      "accept": "documents"
+    },
+    {
+      "id": "f11",
+      "key": "attachment",
+      "name": "Attachment",
+      "help": "",
+      "required": false,
+      "type": "file",
+      "accept": "any"
+    },
+    {
+      "id": "f12",
+      "key": "category",
+      "name": "Category",
+      "help": "",
+      "required": false,
+      "type": "option",
+      "options": [
+        {
+          "id": "o1",
+          "label": "News"
+        },
+        {
+          "id": "o2",
+          "label": "Guides"
+        },
+        {
+          "id": "o3",
+          "label": "Releases"
+        }
+      ]
+    },
+    {
+      "id": "f13",
+      "key": "author",
+      "name": "Author",
+      "help": "",
+      "required": false,
+      "type": "reference",
+      "target": "0192f5a0-1b2c-7d3e-8f40-5a6b7c8d9e0f"
+    },
+    {
+      "id": "f14",
+      "key": "related",
+      "name": "Related",
+      "help": "",
+      "required": false,
+      "type": "multiReference",
+      "target": "0192f5a0-1b2c-7d3e-8f40-000000000001"
+    }
+  ]
+}

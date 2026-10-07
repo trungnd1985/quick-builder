@@ -234,6 +234,44 @@ public sealed class LoggingTests(DatabaseFixture database) : IAsyncLifetime
     /// Titles, component names and a node id carry the canary marker; the journey covers
     /// create, rename, a refused change, draft saves (accepted and refused) and both deletes.
     /// </remarks>
+    /// <summary>
+    /// 014 Principle IX: creating, changing, previewing and deleting a collection over stored
+    /// items logs ids and counts only — never an item value, a title, or a field or collection name.
+    /// </summary>
+    [Fact]
+    public async Task Collection_journeys_never_log_names_or_item_values()
+    {
+        var admin = await _app.CreateAdminClientAsync().ConfigureAwait(true);
+        var siteId = await Media.MediaApi.CreateSiteAsync(admin, "Logged", "logged-cms.test").ConfigureAwait(true);
+        var canary = Pages.PagesApi.CanaryMarker;
+
+        var created = await Cms.CmsApi.CreateOkAsync(admin, siteId, "logged", $"{canary}collection").ConfigureAwait(true);
+        var id = created.GetProperty("id").GetGuid();
+        var schema = new System.Text.Json.Nodes.JsonObject
+        {
+            ["schemaVersion"] = 1,
+            ["fields"] = new System.Text.Json.Nodes.JsonArray(
+                Cms.CmsApi.Field("~1", "title", "text", settings: new { multiline = false, maxLength = 256 }),
+                Cms.CmsApi.Field("~2", "minutes", "text", settings: new { multiline = false, maxLength = 256 })),
+        };
+        Cms.CmsApi.Fields(schema)[0]!["name"] = $"{canary}field";
+        var saved = await Cms.CmsApi.SaveOkAsync(admin, siteId, id, Cms.CmsApi.SaveBody(created, schema)).ConfigureAwait(true);
+
+        // Every seeded text value carries the canary (ItemSeed).
+        await Cms.ItemSeed.AddAsync(_app, siteId, id, 5, published: true).ConfigureAwait(true);
+
+        var changed = Cms.CmsApi.Schema(saved);
+        Cms.CmsApi.Fields(changed)[1] = Cms.CmsApi.Field("f2", "minutes", "number", settings: new { decimals = 0 });
+        var (_, afterChange) = await Cms.CmsApi.ConfirmAndSaveAsync(admin, siteId, saved, changed).ConfigureAwait(true);
+        await Cms.CmsApi.SaveAsync(admin, siteId, id, Cms.CmsApi.SaveBody(saved, changed)).ConfigureAwait(true);
+        await Cms.CmsApi.DeleteAsync(admin, siteId, id, afterChange.GetProperty("revision").GetInt32()).ConfigureAwait(true);
+
+        var events = _app.Logs.Events.Select(LogCapture.Render).ToList();
+        var leak = events.FirstOrDefault(e => e.Contains(canary, StringComparison.OrdinalIgnoreCase));
+        Assert.True(leak is null, $"A log event contains a name or an item value: {leak}");
+        Assert.Contains(events, e => e.Contains(id.ToString(), StringComparison.OrdinalIgnoreCase));
+    }
+
     [Fact]
     public async Task Page_journeys_never_log_titles_names_or_content()
     {

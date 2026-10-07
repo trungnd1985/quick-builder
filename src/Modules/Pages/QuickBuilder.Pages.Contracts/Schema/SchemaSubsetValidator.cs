@@ -170,6 +170,28 @@ public sealed class SchemaSubsetValidator
     /// <summary>The first failure of <paramref name="instance"/> against the schema, or null.</summary>
     public SchemaFailure? Validate(JsonElement instance) => Check(_root, instance, string.Empty);
 
+    /// <summary>
+    /// The first failure of <paramref name="instance"/> against <c>#/$defs/<paramref name="definition"/></c>
+    /// of the loaded schema, or null. Locations are relative to <paramref name="instance"/>.
+    /// </summary>
+    /// <remarks>
+    /// Added by 014 (research CS-04): the collection schema checks each item value against its
+    /// type's definition, and rich text values against the page schema's <c>rtDoc</c>, so the
+    /// product keeps one definition of rich text.
+    /// </remarks>
+    /// <exception cref="ArgumentException">The schema has no such definition.</exception>
+    public SchemaFailure? ValidateDefinition(string definition, JsonElement instance)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(definition);
+
+        if (!_root.TryGetProperty("$defs", out var defs) || !defs.TryGetProperty(definition, out var schema))
+        {
+            throw new ArgumentException($"The schema has no definition '{definition}'.", nameof(definition));
+        }
+
+        return Check(schema, instance, string.Empty);
+    }
+
     private SchemaFailure? Check(JsonElement schema, JsonElement instance, string pointer)
     {
         if (schema.ValueKind == JsonValueKind.True)

@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "titleFieldId": "f1",
+  "fields": [
+    {
+      "id": "f1",
+      "key": "title",
+      "name": "Title",
+      "help": "",
+      "required": false,
+      "type": "text",
+      "multiline": false,
+      "maxLength": 256
+    }
+  ]
+}

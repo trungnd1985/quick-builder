@@ -76,6 +76,17 @@ subscriber refreshing a page by address needs it.
 
 `actorUserId` is null when a schedule acted.
 
+### 014 Collections and the schema builder (#14)
+
+No subscriber yet; templates and binding (#16) will refresh live pages from them. See
+[014 research CS-14](../../014-cms-collections-schema/research.md#cs-14-integration-events).
+
+| Event | Published by | Payload | When |
+|---|---|---|---|
+| `Cms.CollectionCreated` | Cms | `siteId`, `collectionId`, `revision`, `actorUserId` | A collection was created, empty, at revision 1 |
+| `Cms.CollectionChanged` | Cms | `siteId`, `collectionId`, `revision`, `schemaChanged`, `itemsRewritten`, `actorUserId` | A save produced a new revision. `schemaChanged` is false when only the name, address name or description changed; `itemsRewritten` says whether any stored item value, draft or published, was rewritten. |
+| `Cms.CollectionDeleted` | Cms | `siteId`, `collectionId`, `actorUserId` | A collection and all its items were deleted |
+
 **Module-internal message**: `Pages.PublishScheduleDue` (`siteId`, `scheduleId`, `revision`)
 is written to the Pages outbox with `available_at_utc` set to the schedule's due time, and
 only Pages handles it (012 research PR-14). It is not a contract: no other module may

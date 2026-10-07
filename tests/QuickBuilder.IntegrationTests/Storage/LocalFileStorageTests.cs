@@ -95,6 +95,49 @@ public sealed class LocalFileStorageTests : IDisposable
         Assert.Empty(listed);
     }
 
+    /// <summary>
+    /// Publishing waits for the incoming directory's publish lock, so the existence check and
+    /// the move cannot interleave with another writer's (the race behind the intermittent
+    /// <c>Concurrent_writers_on_one_key_yield_exactly_one_success</c> failure on Linux, where a
+    /// rename replaces an existing file).
+    /// </summary>
+    [Fact]
+    public async Task A_write_publishes_only_while_holding_the_publish_lock()
+    {
+        var incoming = Path.Combine(_storage.Root, SiteA, LocalStoragePaths.IncomingDirectoryName);
+        Directory.CreateDirectory(incoming);
+        var key = StorageKey.Parse($"{SiteA}/media/locked");
+
+        Task write;
+        await using (new FileStream(Path.Combine(incoming, LocalStoragePaths.PublishLockName), FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None))
+        {
+            write = _storage.WriteAsync(key, new MemoryStream([1, 2, 3]));
+            await Task.Delay(300);
+
+            Assert.False(write.IsCompleted, "The write published without the publish lock.");
+            Assert.Null(await _storage.OpenReadAsync(key));
+        }
+
+        await write;
+        await using var stored = await _storage.OpenReadAsync(key);
+        Assert.NotNull(stored);
+    }
+
+    [Fact]
+    public async Task The_publish_lock_never_appears_in_a_listing()
+    {
+        await _storage.WriteAsync(StorageKey.Parse($"{SiteA}/media/a"), new MemoryStream([1]));
+
+        var listed = new List<StoredFileInfo>();
+        await foreach (var entry in _storage.ListAsync(string.Empty))
+        {
+            listed.Add(entry);
+        }
+
+        Assert.True(File.Exists(Path.Combine(_storage.Root, SiteA, LocalStoragePaths.IncomingDirectoryName, LocalStoragePaths.PublishLockName)));
+        Assert.Equal([$"{SiteA}/media/a"], listed.Select(e => e.Key.Value));
+    }
+
     [Fact]
     public void A_key_can_never_resolve_outside_the_root()
     {

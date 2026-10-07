@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "fields": [
+    {
+      "id": "f1",
+      "key": "author",
+      "name": "Author",
+      "help": "",
+      "required": false,
+      "type": "reference",
+      "target": "people"
+    }
+  ]
+}

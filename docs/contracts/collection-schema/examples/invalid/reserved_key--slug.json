@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "fields": [
+    {
+      "id": "f1",
+      "key": "slug",
+      "name": "Slug",
+      "help": "",
+      "required": false,
+      "type": "boolean"
+    }
+  ]
+}

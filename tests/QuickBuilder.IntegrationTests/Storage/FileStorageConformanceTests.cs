@@ -255,18 +255,25 @@ public abstract class FileStorageConformanceTests : IDisposable
     {
         var payloads = Enumerable.Range(0, 20).Select(i => RandomBytes(32 * 1024 + i)).ToList();
 
-        var outcomes = await Task.WhenAll(payloads.Select(async payload =>
+        // Each writer starts on the thread pool, so the writers really overlap. Started from one
+        // thread, they seldom reached the publish step together, and a race in the local
+        // provider (a rename replacing a file another writer had just published, on Linux)
+        // failed only now and then in CI.
+        // Created once, before the writers start: the lazy property is not thread-safe, and a
+        // remote provider created per thread would give each writer its own key prefix.
+        var storage = Storage;
+        var outcomes = await Task.WhenAll(payloads.Select(payload => Task.Run(async () =>
         {
             try
             {
-                await Storage.WriteAsync(KeyA, new MemoryStream(payload));
+                await storage.WriteAsync(KeyA, new MemoryStream(payload));
                 return true;
             }
             catch (StorageKeyExistsException)
             {
                 return false;
             }
-        }));
+        })));
 
         Assert.Equal(1, outcomes.Count(ok => ok));
 

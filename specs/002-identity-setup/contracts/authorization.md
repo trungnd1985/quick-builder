@@ -118,6 +118,17 @@ Everything else 013 adds reuses existing capabilities (013 research MV-24):
   uses also needs `pages.publishing.manage` on the site (013 clarifications).
 - **Usage places** are named only to holders of `pages.content.view`.
 
+Collections and the schema builder (014) add two, registered by Cms. Administrators and
+Designers shape the content model; Editors, who write content, see it. They are explained in
+[014 research CS-15](../../014-cms-collections-schema/research.md#cs-15-authorization).
+
+| Capability | Scope | Administrator | Designer | Editor |
+|---|---|---|---|---|
+| `cms.collections.view` | Site | ✓ | ✓ | ✓ |
+| `cms.collections.manage` | Site | ✓ | ✓ | — |
+
+The schema preview is read-only but shows item titles, so it needs `cms.collections.view`.
+
 ## 3. What a caller sees
 
 | Situation | Status | `errorCode` |

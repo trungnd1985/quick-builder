@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The Cms module's public surface (specs/014-cms-collections-schema): the collection schema
+    contract, its limits and the integration events. References only Shared.Kernel, so it
+    stays a contract that the item editor (#15) and the renderer (#16) can take. Asserted by
+    QuickBuilder.ArchitectureTests (Contracts purity).
+  -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\Shared\QuickBuilder.Shared.Kernel\QuickBuilder.Shared.Kernel.csproj" />
+  </ItemGroup>
+
+  <!--
+    Research CS-04: docs/contracts/collection-schema/ is the single definition of a schema and
+    of item values. It is embedded from where it lives, as Pages.Contracts embeds the page
+    schema, so what ships is the file the contract document describes.
+    CollectionSchemaContractTests asserts the embedded bytes equal the file.
+  -->
+  <ItemGroup>
+    <EmbeddedResource Include="..\..\..\..\docs\contracts\collection-schema\*.schema.json"
+                      LogicalName="QuickBuilder.Cms.Contracts.CollectionSchema.%(Filename)%(Extension)" />
+  </ItemGroup>
+
+</Project>

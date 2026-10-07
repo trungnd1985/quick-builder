@@ -1,0 +1,313 @@
+openapi: 3.1.0
+info:
+  title: QuickBuilder Cms API (collections and schemas)
+  version: v1
+  description: |
+    Admin API for collections and their schemas (specs/014-cms-collections-schema, research
+    CS-16). Every operation is site-scoped and declares one capability:
+    - `cms.collections.view` (Administrator, Designer, Editor): list, get, preview, history.
+    - `cms.collections.manage` (Administrator, Designer): create, save, delete.
+    A user with no role on the site gets the same `404` as for a site that does not exist.
+    Errors are `application/problem+json` with `errorCode`, and the extensions listed in
+    data-model.md §5.
+servers:
+  - url: /api/v1/cms
+paths:
+  /sites/{siteId}/collections:
+    parameters:
+      - $ref: '#/components/parameters/SiteId'
+    get:
+      summary: List the site's collections, by name
+      description: Requires `cms.collections.view`.
+      responses:
+        '200':
+          description: The collections.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [collections]
+                properties:
+                  collections:
+                    type: array
+                    items: { $ref: '#/components/schemas/CollectionSummary' }
+    post:
+      summary: Create a collection with an empty schema
+      description: Requires `cms.collections.manage`. Creates revision 1.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CollectionDetailsInput' }
+      responses:
+        '201':
+          description: Created.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Collection' }
+        '400': { description: 'Invalid name, slug or description (`cms.invalid_schema` with `rule`).' }
+        '409': { description: '`cms.slug_taken` or `cms.too_many_collections`.' }
+
+  /sites/{siteId}/collections/{collectionId}:
+    parameters:
+      - $ref: '#/components/parameters/SiteId'
+      - $ref: '#/components/parameters/CollectionId'
+    get:
+      summary: One collection with its schema and revision
+      description: Requires `cms.collections.view`.
+      responses:
+        '200':
+          description: The collection.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Collection' }
+        '404': { description: '`cms.collection_not_found`.' }
+    put:
+      summary: Save a proposed definition (details and schema) as one new revision
+      description: |
+        Requires `cms.collections.manage`. Diffed against the stored schema by field id
+        (CS-06) and applied in one transaction (CS-09). When the impact requires
+        confirmation, `confirmation.digest` must equal the digest of the impact computed at
+        save time (CS-08). An empty diff returns the current collection unchanged.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SaveRequest' }
+      responses:
+        '200':
+          description: Saved. Returns the new revision and the temporary-id map.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Collection'
+                  - type: object
+                    required: [idMap]
+                    properties:
+                      idMap:
+                        type: object
+                        additionalProperties: { type: string }
+                        description: Temporary id → permanent id, for fields and options.
+        '400':
+          description: |
+            `cms.invalid_schema`, `cms.unsupported_schema_version`, `cms.unknown_field_id`, `cms.unknown_option_id`,
+            `cms.unknown_target_collection`, `cms.type_change_not_allowed`,
+            `cms.target_change_not_allowed` or `cms.invalid_fill_in`.
+        '404': { description: '`cms.collection_not_found`.' }
+        '409':
+          description: |
+            `cms.revision_conflict` (`currentRevision`), `cms.collection_busy`,
+            `cms.slug_taken`, `cms.confirmation_required` or `cms.preview_outdated`
+            (both with `preview`, a `Preview`).
+        '413': { description: '`cms.proposal_too_large`.' }
+    delete:
+      summary: Delete the collection, its schema, history and all its items
+      description: Requires `cms.collections.manage`. Permanent (clarification Q5).
+      parameters:
+        - name: revision
+          in: query
+          required: true
+          schema: { type: integer, minimum: 1 }
+          description: The revision the caller last saw.
+      responses:
+        '204': { description: Deleted. }
+        '404': { description: '`cms.collection_not_found`.' }
+        '409':
+          description: |
+            `cms.revision_conflict`, `cms.collection_busy`, or `cms.collection_referenced`
+            with `references`: [{ collectionId, collectionName, fieldId, fieldName }].
+
+  /sites/{siteId}/collections/{collectionId}/preview:
+    parameters:
+      - $ref: '#/components/parameters/SiteId'
+      - $ref: '#/components/parameters/CollectionId'
+    post:
+      summary: What saving this proposal would do to the stored items
+      description: |
+        Requires `cms.collections.view`. Read-only. Takes the same body as the save; the
+        `confirmation` is ignored. Validation errors are the same as the save's.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SaveRequest' }
+      responses:
+        '200':
+          description: The preview.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Preview' }
+        '400': { description: As for the save. }
+        '404': { description: '`cms.collection_not_found`.' }
+        '409': { description: '`cms.revision_conflict`.' }
+
+  /sites/{siteId}/collections/{collectionId}/history:
+    parameters:
+      - $ref: '#/components/parameters/SiteId'
+      - $ref: '#/components/parameters/CollectionId'
+    get:
+      summary: Saved revisions, newest first
+      description: Requires `cms.collections.view`.
+      parameters:
+        - name: before
+          in: query
+          schema: { type: integer, minimum: 2 }
+          description: Only revisions lower than this.
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 50 }
+      responses:
+        '200':
+          description: A page of history.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [entries]
+                properties:
+                  entries:
+                    type: array
+                    items: { $ref: '#/components/schemas/HistoryEntry' }
+                  nextBefore:
+                    type: [integer, 'null']
+
+components:
+  parameters:
+    SiteId:
+      name: siteId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    CollectionId:
+      name: collectionId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+
+  schemas:
+    CollectionDetailsInput:
+      type: object
+      required: [name, slug]
+      additionalProperties: false
+      properties:
+        name: { type: string, minLength: 1, maxLength: 100 }
+        slug: { type: string, pattern: '^[a-z][a-z0-9-]{0,63}$' }
+        description: { type: [string, 'null'], maxLength: 500 }
+
+    CollectionSummary:
+      type: object
+      required: [id, name, slug, fieldCount, itemCount, revision, updatedAtUtc]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        slug: { type: string }
+        fieldCount: { type: integer }
+        itemCount: { type: integer }
+        revision: { type: integer }
+        updatedAtUtc: { type: string, format: date-time }
+
+    Collection:
+      type: object
+      required: [id, name, slug, schema, revision, itemCount, createdAtUtc, updatedAtUtc, updatedBy]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        slug: { type: string }
+        description: { type: [string, 'null'] }
+        schema:
+          description: The schema document (contracts/collection-schema.md §2).
+          type: object
+        revision: { type: integer }
+        itemCount: { type: integer }
+        createdAtUtc: { type: string, format: date-time }
+        updatedAtUtc: { type: string, format: date-time }
+        updatedBy:
+          type: object
+          properties:
+            id: { type: string, format: uuid }
+            displayName: { type: string }
+
+    SaveRequest:
+      type: object
+      required: [revision, name, slug, schema]
+      additionalProperties: false
+      properties:
+        revision:
+          type: integer
+          description: The revision this proposal was based on.
+        name: { type: string }
+        slug: { type: string }
+        description: { type: [string, 'null'] }
+        schema:
+          description: A proposed schema document; may hold temporary ids (contract §6).
+          type: object
+        fillIns:
+          type: object
+          description: Field id (permanent or temporary) → fill-in value (contract §7).
+          additionalProperties: true
+        confirmation:
+          type: object
+          required: [digest]
+          properties:
+            digest: { type: string, pattern: '^[0-9a-f]{64}$' }
+
+    Preview:
+      type: object
+      required: [revision, changes, requiresConfirmation, digest, itemCount]
+      properties:
+        revision: { type: integer, description: The stored revision the preview was computed against. }
+        itemCount: { type: integer }
+        requiresConfirmation: { type: boolean }
+        digest: { type: string, pattern: '^[0-9a-f]{64}$' }
+        changes:
+          type: array
+          items: { $ref: '#/components/schemas/PreviewChange' }
+
+    PreviewChange:
+      type: object
+      required: [kind, rule]
+      properties:
+        kind:
+          type: string
+          description: A history entry kind (data-model §3.4).
+        rule: { type: string, enum: [free, reported, lossless, lossy] }
+        fieldId: { type: string }
+        key: { type: string }
+        name: { type: string }
+        from: { type: string }
+        to: { type: string }
+        optionId: { type: string }
+        counts:
+          type: object
+          description: Outcome → number of items (CS-07). Zero counts are omitted.
+          additionalProperties: { type: integer }
+          propertyNames:
+            enum: [kept, converted, partlyLost, cleared, nowInvalid, missing, filled, stillMissing]
+        examples:
+          type: array
+          maxItems: 10
+          items:
+            type: object
+            required: [itemId, outcome]
+            properties:
+              itemId: { type: string, format: uuid }
+              title: { type: [string, 'null'], description: The item's title-field text, if any. }
+              outcome: { type: string }
+        fillInAllowed: { type: boolean }
+
+    HistoryEntry:
+      type: object
+      required: [revision, changedAtUtc, changedBy, changes]
+      properties:
+        revision: { type: integer }
+        changedAtUtc: { type: string, format: date-time }
+        changedBy:
+          type: object
+          properties:
+            id: { type: string, format: uuid }
+            displayName: { type: string }
+        changes:
+          type: array
+          description: Summary entries (data-model §3.4). No item values.
+          items: { type: object }

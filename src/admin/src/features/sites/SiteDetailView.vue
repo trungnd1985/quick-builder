@@ -164,6 +164,9 @@ watch(siteId, load)
         <RouterLink :to="{ name: 'site-components', params: { siteId: site.id } }">
           {{ t('sites.detail.components') }}
         </RouterLink>
+        <RouterLink :to="{ name: 'site-collections', params: { siteId: site.id } }">
+          {{ t('sites.detail.collections') }}
+        </RouterLink>
         <RouterLink :to="{ name: 'site-media', params: { siteId: site.id } }">
           {{ t('sites.detail.media') }}
         </RouterLink>
