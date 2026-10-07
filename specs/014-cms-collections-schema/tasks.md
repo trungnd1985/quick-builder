@@ -463,22 +463,22 @@ history with the right revision, person, time and counts (quickstart §6).
 
 ## Phase 9: Polish & Cross-Cutting Concerns
 
-- [ ] T082 [P] Create `STESTS/CollectionSchemaPerformanceTests.cs` (Category `Performance`, SC-003):
+- [X] T082 [P] Create `STESTS/CollectionSchemaPerformanceTests.cs` (Category `Performance`, SC-003):
   1. Create a collection through the API.
   2. Insert 10,000 items with one `generate_series` SQL statement, as `MediaPerformanceTests.cs` does.
   3. Time a preview of, then the confirmed save of, a text-to-number change touching every item.
   4. Assert the preview is under 5 s and the save under 30 s, and record both in the test output.
-- [ ] T083 [P] Extend the release smoke journey in `STESTS/ComposeDeployment.cs` (or its journey test) to create a collection with one text field and read it back (plan, Principle X).
-- [ ] T084 [P] Add `seed-items` to `qb.ps1` (CS-19):
+- [X] T083 [P] Extend the release smoke journey in `STESTS/ComposeDeployment.cs` (or its journey test) to create a collection with one text field and read it back (plan, Principle X).
+- [X] T084 [P] Add `seed-items` to `qb.ps1` (CS-19):
   - parameters `-Collection <slug>`, `-Count` (default 300) and `-Site`;
   - one `psql` statement that reads `cms.collections.schema` and inserts items with values per field type through `jsonb_build_object` and `generate_series`, filling about 70 % of optional fields;
   - a help block saying it is for development only.
-- [ ] T085 [P] Update the documentation:
+- [X] T085 [P] Update the documentation:
   - **`docs/operations.md`**: a "Collections" section: who can change schemas; that removals and lossy conversions cannot be undone, so back up first; and a reverse-proxy timeout of at least 60 s for large schema changes (plan Risks).
   - **`docs/backlog.md`**: a "Deferred by 014" list: unique field values (clarification Q4), schema snapshots and restore, background migration beyond 10,000 items, a per-site time zone, and **exception E-6 for #16**: decide how a schema change reaches live pages before items are rendered (plan Complexity Tracking).
-- [ ] T086 [P] Extend `ITESTS/Observability/LoggingTests.cs`: a schema change over seeded items logs no item value, title, field name or collection name.
+- [X] T086 [P] Extend `ITESTS/Observability/LoggingTests.cs`: a schema change over seeded items logs no item value, title, field name or collection name.
 - [ ] T087 Run quickstart.md §1–§9 by hand on the compose setup, including SC-001 timed with a first-time user and SC-007 keyboard-only. Record results, timings and versions in `specs/014-cms-collections-schema/quickstart-results.md`.
-- [ ] T088 Run `dotnet format --verify-no-changes`, `dotnet test` (with Docker, `QB_REQUIRE_DOCKER=1`), and `npm run lint && npm run type-check && npm test && npm run build` in `src/admin`. Fix any failures and confirm the coverage gate passes.
+- [X] T088 Run `dotnet format --verify-no-changes`, `dotnet test` (with Docker, `QB_REQUIRE_DOCKER=1`), and `npm run lint && npm run type-check && npm test && npm run build` in `src/admin`. Fix any failures and confirm the coverage gate passes.
 
 ---
 

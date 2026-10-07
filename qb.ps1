@@ -14,6 +14,9 @@
     ./qb.ps1 seed [-Count 1000] [-Site name]
                               Fill a site's media library with generated images, for trying
                               search, folders and the picker at scale.
+    ./qb.ps1 seed-items -Collection <address name> [-Count 300] [-Site name]
+                              Add generated items to a collection (development only),
+                              to try schema changes on real data.
 
     Needs Docker. `dev` and `test` also need the .NET 10 SDK and Node 24.
     On macOS and Linux run it with PowerShell 7: `pwsh ./qb.ps1`.
@@ -21,7 +24,7 @@
 #Requires -Version 7
 param(
     [Parameter(Position = 0)]
-    [ValidateSet('start', 'stop', 'code', 'logs', 'dev', 'cloud', 'test', 'reset', 'seed')]
+    [ValidateSet('start', 'stop', 'code', 'logs', 'dev', 'cloud', 'test', 'reset', 'seed', 'seed-items')]
     [string] $Command = 'start',
 
     # cloud: Azure Blob (Azurite) instead of S3 (LocalStack).
@@ -36,12 +39,15 @@ param(
     # start, cloud: do not open the browser.
     [switch] $NoBrowser,
 
-    # seed: how many images to upload.
+    # seed: how many images to upload; seed-items: how many items to add (default 300).
     [ValidateRange(1, 10000)]
     [int] $Count = 1000,
 
-    # seed: the site's name; asked for when there is more than one.
-    [string] $Site
+    # seed, seed-items: the site's name; asked for when there is more than one.
+    [string] $Site,
+
+    # seed-items: the collection's address name.
+    [string] $Collection
 )
 
 $ErrorActionPreference = 'Stop'
@@ -336,5 +342,71 @@ switch ($Command) {
         Say ("Done in {0:N0} s: {1} uploaded, {2} failed, in {3} folders and the top level." -f `
             $watch.Elapsed.TotalSeconds, ($Count - $failed), $failed, $folders.Count)
         Write-Host "  Try searching for 'ete' or 'cafe' (accents are ignored), or open the image picker in the editor."
+    }
+
+    'seed-items' {
+        # 014 research CS-19: there is no item editor until #15, so this writes items straight
+        # into the database, with values of the right type for each field, to try schema changes
+        # on real data. A development tool: it is never part of the product.
+        if (-not $Collection) { throw 'Name the collection by its address name: ./qb.ps1 seed-items -Collection blog-posts' }
+        if (-not $PSBoundParameters.ContainsKey('Count')) { $Count = 300 }
+
+        $api = "http://127.0.0.1:$Port/api/v1"
+        try { $null = Invoke-WebRequest "http://127.0.0.1:$Port/health/ready" -UseBasicParsing -TimeoutSec 3 }
+        catch { throw "QuickBuilder is not running on port $Port. Start it with ./qb.ps1 first." }
+
+        if (-not ($env:QB_EMAIL -and $env:QB_PASSWORD)) { Say "Sign in as an administrator." }
+        $email = if ($env:QB_EMAIL) { $env:QB_EMAIL } else { Read-Host 'Email' }
+        $password = if ($env:QB_PASSWORD) { $env:QB_PASSWORD } else { Read-Host 'Password' -MaskInput }
+        try {
+            $null = Invoke-RestMethod "$api/identity/sign-in" -Method Post -Headers @{ 'X-QuickBuilder-Request' = '1' } -SessionVariable session `
+                -ContentType 'application/json' -Body (@{ email = $email; password = $password } | ConvertTo-Json)
+        } catch { throw 'Sign-in failed. Check the email and password.' }
+
+        $sites = @(Invoke-RestMethod "$api/sites" -WebSession $session)
+        if ($sites.Count -eq 0) { throw 'There are no sites yet. Create one in the admin first.' }
+        $target = if ($Site) { $sites | Where-Object { $_.name -eq $Site } | Select-Object -First 1 }
+                  elseif ($sites.Count -eq 1) { $sites[0] }
+                  else {
+                      for ($i = 0; $i -lt $sites.Count; $i++) { Write-Host "  [$($i + 1)] $($sites[$i].name)" }
+                      $sites[[int](Read-Host 'Which site') - 1]
+                  }
+        if (-not $target) { throw "No site is named '$Site'." }
+
+        $found = (Invoke-RestMethod "$api/cms/sites/$($target.id)/collections" -WebSession $session).collections |
+            Where-Object { $_.slug -eq $Collection } | Select-Object -First 1
+        if (-not $found) { throw "Site '$($target.name)' has no collection with the address name '$Collection'." }
+
+        # One statement: every field gets a value of its type, and about 30 % of optional fields
+        # stay empty so previews have something to count. Image, file and reference fields stay
+        # empty: there is nothing yet to point them at.
+        $sql = @"
+INSERT INTO cms.items (id, site_id, collection_id, draft, published, created_at_utc, updated_at_utc)
+SELECT gen_random_uuid(), c.site_id, c.id, d.doc, NULL, now(), now()
+FROM cms.collections c
+CROSS JOIN generate_series(1, $Count) AS n
+CROSS JOIN LATERAL (
+  SELECT jsonb_build_object('schemaVersion', 1, 'values',
+           COALESCE(jsonb_object_agg(f->>'id', v.value) FILTER (WHERE v.value IS NOT NULL), '{}'::jsonb)) AS doc
+  FROM jsonb_array_elements(c.schema->'fields') AS f
+  CROSS JOIN LATERAL (SELECT CASE
+    WHEN (f->>'required')::boolean IS NOT TRUE AND random() < 0.3 THEN NULL
+    WHEN f->>'type' = 'text' THEN to_jsonb(left(f->>'name' || ' ' || n, COALESCE((f->>'maxLength')::int, 256)))
+    WHEN f->>'type' = 'richText' THEN jsonb_build_object('type', 'doc', 'content', jsonb_build_array(
+      jsonb_build_object('type', 'paragraph', 'content', jsonb_build_array(jsonb_build_object('type', 'text', 'text', 'Seeded text ' || n)))))
+    WHEN f->>'type' = 'number' THEN to_jsonb(GREATEST(COALESCE((f->>'min')::numeric, 0), LEAST(COALESCE((f->>'max')::numeric, 1000), (n % 100)::numeric)))
+    WHEN f->>'type' = 'boolean' THEN to_jsonb(n % 2 = 0)
+    WHEN f->>'type' = 'date' AND (f->>'withTime')::boolean THEN to_jsonb(to_char(timestamp '2026-01-01' + n * interval '1 hour', 'YYYY-MM-DD"T"HH24:MI:SS"Z"'))
+    WHEN f->>'type' = 'date' THEN to_jsonb(to_char(date '2026-01-01' + (n % 365), 'YYYY-MM-DD'))
+    WHEN f->>'type' = 'option' AND jsonb_array_length(f->'options') > 0 THEN f->'options'->(n % jsonb_array_length(f->'options'))->'id'
+    ELSE NULL END AS value) v
+) d
+WHERE c.id = '$($found.id)';
+"@
+
+        Say "Adding $Count items to '$($found.name)' on '$($target.name)'…"
+        $sql | docker compose exec -T db psql -U quickbuilder -d quickbuilder -v ON_ERROR_STOP=1 -q
+        if ($LASTEXITCODE -ne 0) { throw 'Seeding items failed.' }
+        Say "Done. Open the collection in the admin and change a field to see the preview count them."
     }
 }

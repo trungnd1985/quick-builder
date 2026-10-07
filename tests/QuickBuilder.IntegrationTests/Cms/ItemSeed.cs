@@ -4,6 +4,7 @@ using System.Text.Json.Nodes;
 using Microsoft.Extensions.DependencyInjection;
 using QuickBuilder.Cms.Domain;
 using QuickBuilder.Cms.Infrastructure;
+using QuickBuilder.IntegrationTests.Infrastructure;
 
 namespace QuickBuilder.IntegrationTests.Cms;
 
@@ -42,7 +43,7 @@ internal static class ItemSeed
     /// Every field gets a value unless <paramref name="valuesFor"/> says otherwise; when
     /// <paramref name="published"/> is set, each item also gets a published copy of the same values.
     /// </summary>
-    public static async Task<IReadOnlyList<Guid>> AddAsync(
+    public static Task<IReadOnlyList<Guid>> AddAsync(
         CmsScenario scenario,
         Guid siteId,
         Guid collectionId,
@@ -51,8 +52,21 @@ internal static class ItemSeed
         Func<Field, int, JsonNode?>? valuesFor = null)
     {
         ArgumentNullException.ThrowIfNull(scenario);
+        return AddAsync(scenario.App, siteId, collectionId, count, published, valuesFor);
+    }
 
-        await using var scope = scenario.App.Services.CreateAsyncScope();
+    /// <inheritdoc cref="AddAsync(CmsScenario, Guid, Guid, int, bool, Func{Field, int, JsonNode}?)"/>
+    public static async Task<IReadOnlyList<Guid>> AddAsync(
+        QuickBuilderApp app,
+        Guid siteId,
+        Guid collectionId,
+        int count,
+        bool published = false,
+        Func<Field, int, JsonNode?>? valuesFor = null)
+    {
+        ArgumentNullException.ThrowIfNull(app);
+
+        await using var scope = app.Services.CreateAsyncScope();
         var database = scope.ServiceProvider.GetRequiredService<CmsDbContext>();
         var clock = scope.ServiceProvider.GetRequiredService<TimeProvider>();
 

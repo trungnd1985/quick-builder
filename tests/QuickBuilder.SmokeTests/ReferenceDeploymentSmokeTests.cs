@@ -359,6 +359,26 @@ public sealed class ReferenceDeploymentSmokeTests(ITestOutputHelper output) : IA
         Assert.Equal("image/jpeg", variantResponse.Content.Headers.ContentType?.MediaType);
         output.WriteLine($"published image offers {srcset}; {variantPath} served as image/jpeg");
 
+        // 9g. 014 (plan, Principle X): the Cms module's migration ran in the image, and a
+        //     collection with one text field is created and read back.
+        var collections = $"/api/v1/cms/sites/{siteId}/collections";
+        using var newCollection = await client.PostAsJsonAsync(new Uri(collections, UriKind.Relative), new { name = "Posts", slug = "posts" }).ConfigureAwait(true);
+        Assert.Equal(HttpStatusCode.Created, newCollection.StatusCode);
+        var collectionId = (await newCollection.Content.ReadFromJsonAsync<JsonElement>().ConfigureAwait(true)).GetProperty("id").GetGuid();
+        using var withField = await client.PutAsJsonAsync(
+            new Uri($"{collections}/{collectionId}", UriKind.Relative),
+            new
+            {
+                revision = 1,
+                name = "Posts",
+                slug = "posts",
+                schema = new { schemaVersion = 1, fields = new[] { new { id = "~1", key = "title", name = "Title", help = "", required = true, type = "text", multiline = false, maxLength = 256 } } },
+            }).ConfigureAwait(true);
+        Assert.Equal(HttpStatusCode.OK, withField.StatusCode);
+        var collectionRead = await client.GetFromJsonAsync<JsonElement>(new Uri($"{collections}/{collectionId}", UriKind.Relative)).ConfigureAwait(true);
+        Assert.Equal(("f1", 2), (collectionRead.GetProperty("schema").GetProperty("titleFieldId").GetString(), collectionRead.GetProperty("revision").GetInt32()));
+        output.WriteLine($"collection {collectionId} created with field f1 at revision 2");
+
         // 10. Operator recovery (002 US5): with command-line access to the container, the
         //     operator issues a set-password link for the administrator, sets a new password
         //     through it, and signs in with that password.

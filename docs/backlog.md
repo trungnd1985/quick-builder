@@ -41,3 +41,13 @@ Deferred by 013 (media library, variants and remote storage; see specs/013-media
 - `sizes` arithmetic per column inside multi-column containers
 - Using the latest consistency check instead of per-file `HEAD` requests for availability
   in listings on remote storage, if those listings prove slow
+
+Deferred by 014 (collections and the schema builder; see specs/014-cms-collections-schema/plan.md):
+
+- **Exception E-6, for #16**: schema changes rewrite published item data at once. Before
+  items are rendered, decide how a schema change reaches live pages (invalidate on
+  `Cms.CollectionChanged`, or require republishing the affected pages)
+- Unique field values (a "must be unique" setting on text and number fields)
+- Full schema snapshots per revision, and restoring a schema or a removed field
+- A background migration engine for collections far beyond 10,000 items
+- A per-site time zone for date conversions (today: UTC)

@@ -578,6 +578,44 @@ suffice.
 - Several instances behind a load balancer now serve up-to-date pages without a shared
   cache. Media still needs shared storage.
 
+## Collections
+
+Each site can define collections: structured, repeatable content such as blog posts or
+products, managed under **Sites → a site → Collections**. Administrators and designers
+define a collection's fields; editors can see them. Creating and editing items comes with
+#15, and showing them on pages with #16.
+
+### Changing fields after items exist
+
+- **Renaming, re-keying and reordering** fields never touch stored items. Items are stored
+  by field id, which never changes.
+- **Removing a field or an option, and changes that convert values** (text to number, rich
+  text to text, fewer decimal places, …) show a preview first. It says how many items are
+  affected and how. Values removed or shortened this way are **deleted for good**: there is
+  no undo. Back up the database before a large restructuring.
+- A change applies to items' **draft and published** values at once. While it runs, edits
+  to that collection's items are refused with "try again shortly"; reading is never blocked.
+- Conversions of dates use **UTC**, because sites have no time zone yet.
+
+### Large collections and reverse proxies
+
+A change that rewrites many items runs inside one request (about 30 seconds at 10,000
+items on the reference setup). Give the admin path a proxy timeout of at least **60
+seconds**. If the connection drops, the change rolls back completely and can simply be
+saved again.
+
+### Deleting
+
+Deleting a collection deletes its fields, history and every item, permanently; there is no
+trash yet (#21). A collection that another collection's reference field points at cannot
+be deleted until that field is removed or changed.
+
+### Upgrading from feature 013
+
+- The upgrade adds a `cms` schema with its own migration history. Nothing else changes.
+- Sites have no collections after the upgrade.
+- No configuration changes are needed.
+
 ## Upgrading from the foundation release (feature 001)
 
 Feature 001 had no authentication. After the upgrade:
