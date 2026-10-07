@@ -1,0 +1,458 @@
+openapi: 3.1.0
+info:
+  title: QuickBuilder Cms API (items)
+  version: v1
+  description: |
+    Admin API for collection items (specs/015-cms-items, research IT-18). Every operation is
+    site-scoped and declares one capability:
+    - `cms.collections.view` (every site role): list, get, slug availability, history,
+      referrers, lookup.
+    - `cms.items.edit` (every site role): create, save, duplicate, delete, copy to draft.
+    - `cms.items.publish` (every site role): publish, unpublish, schedules, rollback.
+    A user with no role on the site gets the same `404` as for a site that does not exist.
+    Errors are `application/problem+json` with `errorCode` and the extensions in
+    data-model.md §6. Times are UTC ISO 8601. Request bodies over 1 MiB get `413`.
+    Every write that can conflict takes the item `revision` it was based on.
+servers:
+  - url: /api/v1/cms
+paths:
+  /sites/{siteId}/collections/{collectionId}/items:
+    parameters:
+      - $ref: '#/components/parameters/SiteId'
+      - $ref: '#/components/parameters/CollectionId'
+    get:
+      summary: One page of the collection's items
+      description: |
+        Requires `cms.collections.view`. Search, filters, sort and paging (research IT-13,
+        IT-14). Field filters and sorts read draft values.
+      parameters:
+        - { name: q, in: query, schema: { type: string, maxLength: 100 }, description: 'Contained in name or slug, ignoring case and accents.' }
+        - { name: status, in: query, schema: { type: string, enum: [draft, published, changed] } }
+        - { name: attention, in: query, schema: { type: boolean } }
+        - { name: scheduled, in: query, schema: { type: string, enum: [publish, unpublish, any] } }
+        - name: field
+          in: query
+          style: deepObject
+          explode: true
+          schema: { type: object, additionalProperties: { type: string } }
+          description: |
+            `field[f4]=o2` (option), `field[f7]=true` (boolean), `field[f5]=<itemId>`
+            (reference or multi-reference). Other field types are refused (`cms.invalid_query`).
+        - name: sort
+          in: query
+          schema: { type: string, default: updatedAt }
+          description: '`name`, `slug`, `status`, `createdAt`, `updatedAt`, `publishedAt`, or `field.<fieldId>` for a number or date field.'
+        - { name: dir, in: query, schema: { type: string, enum: [asc, desc], default: desc } }
+        - { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
+        - { name: pageSize, in: query, schema: { type: integer, enum: [25, 50, 100], default: 25 } }
+      responses:
+        '200':
+          description: The page.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items, total, page, pageSize]
+                properties:
+                  items: { type: array, items: { $ref: '#/components/schemas/ItemSummary' } }
+                  total: { type: integer }
+                  page: { type: integer }
+                  pageSize: { type: integer }
+        '400': { description: '`cms.invalid_query`.' }
+        '404': { description: '`cms.collection_not_found`.' }
+    post:
+      summary: Create an item
+      description: Requires `cms.items.edit`. Values may be incomplete (clarification Q2) but never malformed.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/DraftInput' }
+      responses:
+        '201': { description: Created., content: { application/json: { schema: { $ref: '#/components/schemas/Item' } } } }
+        '400': { description: '`cms.invalid_item` with `report`.' }
+        '409': { description: '`cms.item_slug_taken`, `cms.schema_changed`, `cms.items_being_updated`.' }
+
+  /sites/{siteId}/collections/{collectionId}/items/slug-availability:
+    parameters:
+      - $ref: '#/components/parameters/SiteId'
+      - $ref: '#/components/parameters/CollectionId'
+    get:
+      summary: Whether a slug is free, and the next free one
+      description: Requires `cms.collections.view`. Advisory; only a save decides (IT-03).
+      parameters:
+        - { name: slug, in: query, required: true, schema: { type: string, maxLength: 100 } }
+        - { name: itemId, in: query, schema: { type: string, format: uuid }, description: 'The item being edited; its own slugs count as free.' }
+      responses:
+        '200':
+          description: Answer.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [available, suggestion]
+                properties:
+                  available: { type: boolean }
+                  suggestion: { type: string, description: 'The slug itself when available, otherwise the first free `-2`, `-3`, …' }
+
+  /sites/{siteId}/collections/{collectionId}/items/{itemId}:
+    parameters:
+      - $ref: '#/components/parameters/SiteId'
+      - $ref: '#/components/parameters/CollectionId'
+      - $ref: '#/components/parameters/ItemId'
+    get:
+      summary: One item with its draft, published values, report and schedules
+      description: Requires `cms.collections.view`.
+      responses:
+        '200': { description: The item., content: { application/json: { schema: { $ref: '#/components/schemas/Item' } } } }
+        '404': { description: '`cms.item_not_found`.' }
+    put:
+      summary: Save the draft
+      description: Requires `cms.items.edit`. Never changes published data (SC-004).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/DraftInput'
+                - type: object
+                  required: [revision]
+                  properties: { revision: { type: integer } }
+      responses:
+        '200': { description: Saved., content: { application/json: { schema: { $ref: '#/components/schemas/Item' } } } }
+        '400': { description: '`cms.invalid_item`.' }
+        '409': { description: '`cms.item_conflict`, `cms.schema_changed`, `cms.item_slug_taken`, `cms.items_being_updated`.' }
+    delete:
+      summary: Delete the item permanently
+      description: Requires `cms.items.edit`. Refused while other items refer to it (FR-008).
+      parameters:
+        - { name: revision, in: query, required: true, schema: { type: integer } }
+      responses:
+        '204': { description: Deleted. }
+        '409': { description: '`cms.item_referenced` with `referrers` and `total`; `cms.item_conflict`; `cms.items_being_updated`.' }
+
+  /sites/{siteId}/collections/{collectionId}/items/{itemId}/duplicate:
+    parameters:
+      - $ref: '#/components/parameters/SiteId'
+      - $ref: '#/components/parameters/CollectionId'
+      - $ref: '#/components/parameters/ItemId'
+    post:
+      summary: Create a draft copy
+      description: Requires `cms.items.edit`.
+      responses:
+        '201': { description: The copy., content: { application/json: { schema: { $ref: '#/components/schemas/Item' } } } }
+
+  /sites/{siteId}/collections/{collectionId}/items/{itemId}/publish:
+    parameters:
+      - $ref: '#/components/parameters/SiteId'
+      - $ref: '#/components/parameters/CollectionId'
+      - $ref: '#/components/parameters/ItemId'
+    post:
+      summary: Publish the draft
+      description: Requires `cms.items.publish`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PublishingInput' }
+      responses:
+        '200':
+          description: Published.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Item'
+                  - type: object
+                    properties:
+                      unpublishedReferences:
+                        type: array
+                        items: { $ref: '#/components/schemas/ItemRef' }
+        '409': { description: '`cms.item_needs_attention` with `report`; `cms.schedule_pending`; `cms.item_conflict`; `cms.item_slug_taken`; `cms.items_being_updated`.' }
+
+  /sites/{siteId}/collections/{collectionId}/items/{itemId}/unpublish:
+    parameters:
+      - $ref: '#/components/parameters/SiteId'
+      - $ref: '#/components/parameters/CollectionId'
+      - $ref: '#/components/parameters/ItemId'
+    post:
+      summary: Unpublish, keeping the draft and versions
+      description: Requires `cms.items.publish`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PublishingInput' }
+      responses:
+        '200': { description: Unpublished., content: { application/json: { schema: { $ref: '#/components/schemas/Item' } } } }
+        '409': { description: '`cms.item_not_published`, `cms.schedule_pending`, `cms.item_conflict`.' }
+
+  /sites/{siteId}/collections/{collectionId}/items/{itemId}/schedules/{action}:
+    parameters:
+      - $ref: '#/components/parameters/SiteId'
+      - $ref: '#/components/parameters/CollectionId'
+      - $ref: '#/components/parameters/ItemId'
+      - { name: action, in: path, required: true, schema: { type: string, enum: [publish, unpublish] } }
+    put:
+      summary: Set or move the pending schedule for this action
+      description: Requires `cms.items.publish`. A publish schedule captures the draft now (FR-025).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [dueAtUtc, revision]
+              properties:
+                dueAtUtc: { type: string, format: date-time }
+                revision: { type: integer }
+                recapture: { type: boolean, default: false, description: 'Moving a publish schedule: also capture the current draft.' }
+      responses:
+        '200': { description: The item., content: { application/json: { schema: { $ref: '#/components/schemas/Item' } } } }
+        '400': { description: '`cms.schedule_in_past`, `cms.schedule_order`.' }
+        '409': { description: '`cms.item_needs_attention`, `cms.item_not_published`, `cms.item_conflict`.' }
+    delete:
+      summary: Cancel the pending schedule for this action
+      description: Requires `cms.items.publish`.
+      parameters:
+        - { name: revision, in: query, required: true, schema: { type: integer } }
+      responses:
+        '200': { description: The item., content: { application/json: { schema: { $ref: '#/components/schemas/Item' } } } }
+        '404': { description: '`cms.schedule_not_found`.' }
+        '409': { description: '`cms.item_conflict`.' }
+
+  /sites/{siteId}/collections/{collectionId}/items/{itemId}/history:
+    parameters:
+      - $ref: '#/components/parameters/SiteId'
+      - $ref: '#/components/parameters/CollectionId'
+      - $ref: '#/components/parameters/ItemId'
+    get:
+      summary: Kept versions and history events, newest first
+      description: Requires `cms.collections.view`.
+      responses:
+        '200':
+          description: History.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [versions, events]
+                properties:
+                  versions:
+                    type: array
+                    items:
+                      type: object
+                      required: [number, kind, publishedAtUtc, publishedBy, live]
+                      properties:
+                        number: { type: integer }
+                        kind: { type: string, enum: [publish, scheduled, rollback] }
+                        restoredFrom: { type: [integer, 'null'] }
+                        publishedAtUtc: { type: string, format: date-time }
+                        publishedBy: { $ref: '#/components/schemas/Member' }
+                        live: { type: boolean }
+                  events:
+                    type: array
+                    items:
+                      type: object
+                      required: [kind, atUtc, by]
+                      properties:
+                        kind: { type: string, enum: [created, published, rolledBack, unpublished, scheduled, rescheduled, scheduleCancelled, scheduleFailed, copiedToDraft] }
+                        versionNumber: { type: [integer, 'null'] }
+                        scheduleAction: { type: [string, 'null'] }
+                        dueAtUtc: { type: [string, 'null'], format: date-time }
+                        failureCode: { type: [string, 'null'] }
+                        atUtc: { type: string, format: date-time }
+                        by: { $ref: '#/components/schemas/Member' }
+
+  /sites/{siteId}/collections/{collectionId}/items/{itemId}/versions/{number}/rollback:
+    parameters:
+      - $ref: '#/components/parameters/SiteId'
+      - $ref: '#/components/parameters/CollectionId'
+      - $ref: '#/components/parameters/ItemId'
+      - { name: number, in: path, required: true, schema: { type: integer } }
+    post:
+      summary: Publish a kept version again as a new version
+      description: Requires `cms.items.publish`. The draft is unchanged.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PublishingInput' }
+      responses:
+        '200': { description: Rolled back., content: { application/json: { schema: { $ref: '#/components/schemas/Item' } } } }
+        '404': { description: '`cms.version_not_found`.' }
+        '409': { description: '`cms.version_not_publishable` with `report`; `cms.schedule_pending`; `cms.item_conflict`.' }
+
+  /sites/{siteId}/collections/{collectionId}/items/{itemId}/versions/{number}/copy-to-draft:
+    parameters:
+      - $ref: '#/components/parameters/SiteId'
+      - $ref: '#/components/parameters/CollectionId'
+      - $ref: '#/components/parameters/ItemId'
+      - { name: number, in: path, required: true, schema: { type: integer } }
+    post:
+      summary: Replace the draft with a kept version
+      description: Requires `cms.items.edit`. Never publishes.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [revision], properties: { revision: { type: integer } } }
+      responses:
+        '200': { description: The item., content: { application/json: { schema: { $ref: '#/components/schemas/Item' } } } }
+
+  /sites/{siteId}/collections/{collectionId}/items/{itemId}/referrers:
+    parameters:
+      - $ref: '#/components/parameters/SiteId'
+      - $ref: '#/components/parameters/CollectionId'
+      - $ref: '#/components/parameters/ItemId'
+    get:
+      summary: Items that refer to this item
+      description: Requires `cms.collections.view`. Used for the unpublish warning (FR-021).
+      parameters:
+        - { name: published, in: query, schema: { type: boolean }, description: 'Only references in published values.' }
+      responses:
+        '200':
+          description: Up to 50 referrers and the total.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [referrers, total]
+                properties:
+                  referrers: { type: array, items: { $ref: '#/components/schemas/Referrer' } }
+                  total: { type: integer }
+
+  /sites/{siteId}/items/lookup:
+    parameters:
+      - $ref: '#/components/parameters/SiteId'
+    post:
+      summary: Names and statuses of items by id, across the site's collections
+      description: Requires `cms.collections.view`. Unknown ids are returned in `missing`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [ids]
+              properties:
+                ids: { type: array, maxItems: 200, items: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: Found items.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items, missing]
+                properties:
+                  items: { type: array, items: { $ref: '#/components/schemas/ItemRef' } }
+                  missing: { type: array, items: { type: string, format: uuid } }
+
+components:
+  parameters:
+    SiteId: { name: siteId, in: path, required: true, schema: { type: string, format: uuid } }
+    CollectionId: { name: collectionId, in: path, required: true, schema: { type: string, format: uuid } }
+    ItemId: { name: itemId, in: path, required: true, schema: { type: string, format: uuid } }
+  schemas:
+    ValuesDocument:
+      description: Item values document, collection-schema contract §3.
+      type: object
+      required: [schemaVersion, values]
+      properties:
+        schemaVersion: { type: integer }
+        values: { type: object }
+    Report:
+      type: object
+      required: [problems]
+      properties:
+        problems:
+          type: array
+          items:
+            type: object
+            required: [fieldId, problem]
+            properties:
+              fieldId: { type: string, description: 'A field id, or `slug`.' }
+              problem: { type: string }
+              limit: { type: [number, 'null'] }
+    DraftInput:
+      type: object
+      required: [slug, values, schemaRevision]
+      properties:
+        slug: { type: string, maxLength: 100 }
+        values: { $ref: '#/components/schemas/ValuesDocument' }
+        schemaRevision: { type: integer }
+    PublishingInput:
+      type: object
+      required: [revision]
+      properties:
+        revision: { type: integer }
+        cancelSchedule: { type: boolean, default: false, description: 'Confirms cancelling a pending scheduled publish (FR-027).' }
+    Member:
+      type: object
+      required: [id, name]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+    Schedule:
+      type: object
+      required: [action, dueAtUtc, setBy]
+      properties:
+        action: { type: string, enum: [publish, unpublish] }
+        dueAtUtc: { type: string, format: date-time }
+        setBy: { $ref: '#/components/schemas/Member' }
+    ItemSummary:
+      type: object
+      required: [id, slug, status, attention, schedules, updatedAtUtc, updatedBy]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: [string, 'null'] }
+        slug: { type: string }
+        status: { type: string, enum: [draft, published, changed] }
+        attention: { type: boolean }
+        schedules: { type: array, items: { $ref: '#/components/schemas/Schedule' } }
+        createdAtUtc: { type: string, format: date-time }
+        updatedAtUtc: { type: string, format: date-time }
+        updatedBy: { $ref: '#/components/schemas/Member' }
+        publishedAtUtc: { type: [string, 'null'], format: date-time }
+    Item:
+      allOf:
+        - $ref: '#/components/schemas/ItemSummary'
+        - type: object
+          required: [collectionId, revision, schemaRevision, draft, report, scheduledDiffersFromDraft]
+          properties:
+            collectionId: { type: string, format: uuid }
+            revision: { type: integer }
+            schemaRevision: { type: integer }
+            draft: { $ref: '#/components/schemas/ValuesDocument' }
+            published:
+              oneOf:
+                - $ref: '#/components/schemas/ValuesDocument'
+                - type: 'null'
+            publishedSlug: { type: [string, 'null'] }
+            liveVersion: { type: [integer, 'null'] }
+            report: { $ref: '#/components/schemas/Report' }
+            scheduledDiffersFromDraft: { type: boolean }
+    ItemRef:
+      type: object
+      required: [id, collectionId, slug, status]
+      properties:
+        id: { type: string, format: uuid }
+        collectionId: { type: string, format: uuid }
+        name: { type: [string, 'null'] }
+        slug: { type: string }
+        status: { type: string, enum: [draft, published, changed] }
+    Referrer:
+      type: object
+      required: [itemId, collectionId, collectionName, fieldId, fieldName, inDraft, inPublished, inScheduled]
+      properties:
+        itemId: { type: string, format: uuid }
+        itemName: { type: [string, 'null'] }
+        collectionId: { type: string, format: uuid }
+        collectionName: { type: string }
+        fieldId: { type: string }
+        fieldName: { type: string }
+        inDraft: { type: boolean }
+        inPublished: { type: boolean }
+        inScheduled: { type: boolean }
