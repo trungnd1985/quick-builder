@@ -28,6 +28,12 @@ The TypeScript port (`src/admin/src/editor/schema/subsetValidator.ts`) gains
 rich text values, and with its own `$defs` for item values. This is additive: existing
 callers are unchanged.
 
+## 2a. Addition to `Media.Contracts`
+
+`IMediaContentTypes.GetAsync(siteId, mediaIds)` returns the content type of each of the named
+site's files (research CS-12). Cms uses it to tell images from documents in a schema change.
+Implemented by Media over its own context, reading the named site as its admin endpoints do.
+
 ## 3. Capabilities (added to 002 contracts/authorization.md §2)
 
 | Capability | Scope | Administrator | Designer | Editor |

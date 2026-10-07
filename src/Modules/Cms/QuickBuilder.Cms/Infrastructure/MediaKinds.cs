@@ -9,12 +9,12 @@ namespace QuickBuilder.Cms.Infrastructure;
 /// image, and narrowing what a file field accepts.
 /// </summary>
 /// <remarks>
-/// Asks Media once per preview or save, through its read-only contract, for every media id
+/// Asks Media once per preview or save, through <see cref="IMediaContentTypes"/>, for every media id
 /// the affected values hold. An id Media does not return no longer exists, and its value is
 /// kept as missing. Reading outside the Cms transaction is safe: a replace never changes a
 /// file's kind (013 FR-017), and a file deleted in between only becomes missing.
 /// </remarks>
-internal sealed class MediaKinds(IPublicMediaReader media)
+internal sealed class MediaKinds(IMediaContentTypes media)
 {
     public async Task<Func<Guid, MediaKind>> LookupAsync(Guid siteId, IEnumerable<JsonNode?> values, CancellationToken cancellationToken)
     {
@@ -31,8 +31,8 @@ internal sealed class MediaKinds(IPublicMediaReader media)
         }
 
         var files = await media.GetAsync(siteId, ids, cancellationToken).ConfigureAwait(false);
-        return id => files.TryGetValue(id, out var file)
-            ? file.ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase) ? MediaKind.Image : MediaKind.Document
+        return id => files.TryGetValue(id, out var contentType)
+            ? contentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase) ? MediaKind.Image : MediaKind.Document
             : MediaKind.Missing;
     }
 }

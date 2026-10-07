@@ -195,11 +195,11 @@ behaviour.
   - each uses `FromSql($"SELECT * FROM cms.collections WHERE id = {collectionId} AND site_id = {siteId} FOR UPDATE NOWAIT")` (and `FOR SHARE NOWAIT`) on the current transaction;
   - each has a code comment that the site predicate replaces the global filter here;
   - PostgreSQL `55P03` becomes `CmsErrors.CollectionBusy`.
-- [ ] T033 [P] Create `ITESTS/Cms/CmsSiteFilterTests.cs`: `CollectionLocks` never returns or locks another site's collection with the same id shape, and a lock held on site A's collection does not affect site B.
-- [ ] T034 [P] Create `ITESTS/Cms/ItemSeed.cs`, a test builder that inserts items through `CmsDbContext` with well-formed values for each field of a given schema. It has options for the fill rate, published copies, specific values, and count (batched up to 10,000).
-- [ ] T035 [P] Create `ITESTS/Isolation/Probes/CmsIsolationProbe.cs` and register it in `ITESTS/Isolation/IsolationProbes.cs`. From site B it checks every Cms endpoint for collections, preview, history and delete, and checks that `ForSite` reads never return site A's rows. `IsolationCoverageTests` must stay green.
-- [ ] T036 [P] Create `ITESTS/Cms/UpgradeFrom013Tests.cs`, following `ITESTS/Media/UpgradeFrom012Tests.cs`: a 013 database upgrades, gains an empty `cms` schema with its history table, and pages, media and design rows are unchanged.
-- [ ] T037 [P] Update the shared contract registries: add the two capabilities to `specs/002-identity-setup/contracts/authorization.md` §2 (with a "Registered by 014" heading), and the three events to `specs/001-foundation-skeleton/contracts/integration-events.md` "Events added by later features" (module-surface.md §3–§4).
+- [X] T033 [P] Create `ITESTS/Cms/CmsSiteFilterTests.cs`: `CollectionLocks` never returns or locks another site's collection with the same id shape, and a lock held on site A's collection does not affect site B.
+- [X] T034 [P] Create `ITESTS/Cms/ItemSeed.cs`, a test builder that inserts items through `CmsDbContext` with well-formed values for each field of a given schema. It has options for the fill rate, published copies, specific values, and count (batched up to 10,000).
+- [X] T035 [P] Create `ITESTS/Isolation/Probes/CmsIsolationProbe.cs` and register it in `ITESTS/Isolation/IsolationProbes.cs`. From site B it checks every Cms endpoint for collections, preview, history and delete, and checks that `ForSite` reads never return site A's rows. `IsolationCoverageTests` must stay green.
+- [X] T036 [P] Create `ITESTS/Cms/UpgradeFrom013Tests.cs`, following `ITESTS/Media/UpgradeFrom012Tests.cs`: a 013 database upgrades, gains an empty `cms` schema with its history table, and pages, media and design rows are unchanged.
+- [X] T037 [P] Update the shared contract registries: add the two capabilities to `specs/002-identity-setup/contracts/authorization.md` §2 (with a "Registered by 014" heading), and the three events to `specs/001-foundation-skeleton/contracts/integration-events.md` "Events added by later features" (module-surface.md §3–§4).
 
 ### Admin foundations
 
@@ -222,7 +222,7 @@ invalid schemas are refused with a reason pointing at the field (quickstart §1)
 
 ### Tests for User Story 1 ⚠️
 
-- [ ] T041 [P] [US1] Create `ITESTS/Cms/CollectionApiTests.cs`:
+- [X] T041 [P] [US1] Create `ITESTS/Cms/CollectionApiTests.cs`:
   - **Create**: 201 at revision 1 with an empty schema; `cms.slug_taken`; `cms.too_many_collections` at 100.
   - **List**: sorted by name, with field and item counts. **Get**: works; another site's id gives `cms.collection_not_found`.
   - **Save**: one field of every type is saved with ids `f1…f10`, options `o1…`, an `idMap`, the auto title field, and a read-back equal as JSON.
@@ -239,9 +239,9 @@ invalid schemas are refused with a reason pointing at the field (quickstart §1)
 
 ### Implementation for User Story 1
 
-- [ ] T043 [US1] Create the slices `CMS/Features/ListCollections/ListCollections.cs` (`GET`, view), `CMS/Features/CreateCollection/CreateCollection.cs` (`POST`, manage; name, slug and description rules; the limit count of CS-18; `Collection.Create`; history entry `created`; outbox `Cms.CollectionCreated`) and `CMS/Features/GetCollection/GetCollection.cs` (`GET {id}`, view; with `itemCount` and the updater's name). Register them and add them to `EndpointCatalog`.
-- [ ] T044 [US1] Create `CMS/Infrastructure/ImpactCalculator.cs` with `ComputeAsync(siteId, collection, diff, fillIns, ct)` returning an `ImpactSummary`. **First version**: an empty impact when the collection has no items or every change is `free`. Otherwise it marks each non-free change as requiring confirmation with no counts. US3 (T061) replaces the body.
-- [ ] T045 [US1] Create `CMS/Features/SaveCollection/SaveCollection.cs` (`PUT {id}`, manage), running research CS-09 in one transaction:
+- [X] T043 [US1] Create the slices `CMS/Features/ListCollections/ListCollections.cs` (`GET`, view), `CMS/Features/CreateCollection/CreateCollection.cs` (`POST`, manage; name, slug and description rules; the limit count of CS-18; `Collection.Create`; history entry `created`; outbox `Cms.CollectionCreated`) and `CMS/Features/GetCollection/GetCollection.cs` (`GET {id}`, view; with `itemCount` and the updater's name). Register them and add them to `EndpointCatalog`.
+- [X] T044 [US1] Create `CMS/Infrastructure/ImpactCalculator.cs` with `ComputeAsync(siteId, collection, diff, fillIns, ct)` returning an `ImpactSummary`. **First version**: an empty impact when the collection has no items or every change is `free`. Otherwise it marks each non-free change as requiring confirmation with no counts. US3 (T061) replaces the body.
+- [X] T045 [US1] Create `CMS/Features/SaveCollection/SaveCollection.cs` (`PUT {id}`, manage), running research CS-09 in one transaction:
   1. `CollectionLocks.LockForUpdateAsync`;
   2. the `revision` check;
   3. `CollectionSchemaValidator`, then reference targets loaded through `ForSite<Collection>`;
@@ -275,7 +275,7 @@ relabel, and rename the collection. Every stored value and every id is unchanged
 
 ### Tests for User Story 2 ⚠️
 
-- [ ] T049 [P] [US2] Create `ITESTS/Cms/RenameReorderTests.cs` (SC-002), using `ItemSeed` with 200 items that hold every type, draft and published:
+- [X] T049 [P] [US2] Create `ITESTS/Cms/RenameReorderTests.cs` (SC-002), using `ItemSeed` with 200 items that hold every type, draft and published:
   - rename the name, key and help of every field; reorder fields; relabel and reorder options; change the collection's name, slug and description;
   - assert every `draft` and `published` document is equal as JSON before and after, and that no `items` row was updated (`xmin` unchanged);
   - assert ids are unchanged and the revision advanced by exactly 1;
@@ -288,7 +288,7 @@ relabel, and rename the collection. Every stored value and every id is unchanged
 
 - [ ] T051 [US2] Create `CMSUI/schemaChanges.ts`, a TypeScript port of `SchemaDiff` and `FieldConversion.Classify` that tells the builder whether a save needs a preview: all `free` → save directly (FR-030); any `reported`, `lossless` or `lossy` change → preview first. Makes the first half of T050 pass.
 - [ ] T052 [US2] Add reordering to `CMSUI/FieldList.vue` with `ADMIN/editor/dnd/useDragDrop.ts`, plus the keyboard equivalent (Alt+↑/↓ and an `aria-live` announcement, as the editor's layers panel does). Wire `schemaChanges.ts` into `CMSUI/CollectionBuilderView.vue`'s save. Makes T050 pass.
-- [ ] T053 [US2] Confirm that `SaveCollection` writes no item when the impact is empty: the item migration step is skipped entirely. Add an assertion log at Debug level with the count of items written (0). Makes T049 pass.
+- [X] T053 [US2] Confirm that `SaveCollection` writes no item when the impact is empty: the item migration step is skipped entirely. Add an assertion log at Debug level with the count of items written (0). Makes T049 pass.
 
 **Checkpoint**: quickstart §2 passes.
 
@@ -306,7 +306,7 @@ the stored result, and confirmation is required where values are lost (quickstar
 
 ### Tests for User Story 3 ⚠️
 
-- [ ] T054 [P] [US3] Create `ITESTS/Cms/SchemaMigrationTests.cs` (add and remove part):
+- [X] T054 [P] [US3] Create `ITESTS/Cms/SchemaMigrationTests.cs` (add and remove part):
   - an optional field without a fill-in changes nothing;
   - a fill-in on an added optional boolean, and on an added required option (temporary option id), is written to draft and to published where present, counted `filled`;
   - required turned on without a fill-in is counted `stillMissing` and saved;
@@ -315,17 +315,17 @@ the stored result, and confirmation is required where values are lost (quickstar
   - removing the title field gives `invalid_title_field`;
   - an invalid fill-in gives `cms.invalid_fill_in`;
   - for every case, the stored outcome equals the preview's counts.
-- [ ] T055 [P] [US3] Create `ITESTS/Cms/ConfirmationTests.cs`:
+- [X] T055 [P] [US3] Create `ITESTS/Cms/ConfirmationTests.cs`:
   - a preview's digest is accepted;
   - after an SQL change that alters the counts, the save gives `cms.preview_outdated` with a fresh preview;
   - after an SQL change that leaves the counts the same, the save is accepted;
   - `free` and `reported` changes need no confirmation; a `reported` change (required turned on, a fill-in) still returns its counts from the preview.
-- [ ] T056 [P] [US3] Create `ITESTS/Cms/InterruptedSchemaChangeTests.cs` (SC-005): with 10,000 seeded items, a test `ISchemaMigrationObserver` throws after the second batch. The schema, revision, references, history and every item are unchanged, and no outbox row was written. Repeat with the connection killed through `pg_terminate_backend`.
-- [ ] T057 [P] [US3] Create `ITESTS/Cms/ItemWriteGateTests.cs` (FR-037, CS-10):
+- [X] T056 [P] [US3] Create `ITESTS/Cms/InterruptedSchemaChangeTests.cs` (SC-005): with 10,000 seeded items, a test `ISchemaMigrationObserver` throws after the second batch. The schema, revision, references, history and every item are unchanged, and no outbox row was written. Repeat with the connection killed through `pg_terminate_backend`.
+- [X] T057 [P] [US3] Create `ITESTS/Cms/ItemWriteGateTests.cs` (FR-037, CS-10):
   - while a schema change holds the lock (paused through the observer), a `CollectionWriteGate` call gives `cms.items_being_updated` at once;
   - a concurrent plain read returns the before-state, then the after-state after commit, never a mix;
   - while a gated write holds `FOR SHARE`, a schema save gives `cms.collection_busy`.
-- [ ] T058 [P] [US3] Create `UTESTS/Cms/ImpactDigestTests.cs`: the digest is stable across property order and example changes, and changes when any count or change entry changes.
+- [X] T058 [P] [US3] Create `UTESTS/Cms/ImpactDigestTests.cs`: the digest is stable across property order and example changes, and changes when any count or change entry changes.
 - [ ] T059 [P] [US3] Create `ADMINTESTS/cms/SchemaPreviewDialog.spec.ts`:
   - counts and examples per change;
   - "cannot be undone" wording when values are cleared;
@@ -337,8 +337,8 @@ the stored result, and confirmation is required where values are lost (quickstar
 
 ### Implementation for User Story 3
 
-- [ ] T060 [US3] Create `CMS/Domain/ValueOutcome.cs` (outcomes and the worse-of-two-copies order from CS-07), counts per outcome and up to 10 examples added to `CMS/Domain/ImpactSummary.cs` (created minimal in T025), and `CMS/Domain/ImpactDigest.cs` (canonical serialisation without examples or item ids; SHA-256 as lower-case hex). Makes T058 pass.
-- [ ] T061 [US3] Replace `CMS/Infrastructure/ImpactCalculator.cs`'s body (T044):
+- [X] T060 [US3] Create `CMS/Domain/ValueOutcome.cs` (outcomes and the worse-of-two-copies order from CS-07), counts per outcome and up to 10 examples added to `CMS/Domain/ImpactSummary.cs` (created minimal in T025), and `CMS/Domain/ImpactDigest.cs` (canonical serialisation without examples or item ids; SHA-256 as lower-case hex). Makes T058 pass.
+- [X] T061 [US3] Replace `CMS/Infrastructure/ImpactCalculator.cs`'s body (T044):
   - project only the affected fields and the title field from `draft` and `published` through `JsonDocument` `GetProperty` (CS-08);
   - compute outcomes for field removal, option removal, required on, and fill-ins;
   - take the worse outcome of the two copies per item;
@@ -346,15 +346,15 @@ the stored result, and confirmation is required where values are lost (quickstar
   - set `requiresConfirmation` and the digest.
 
   Changes that convert values call `FieldConversion`, which is finished in US4.
-- [ ] T062 [US3] Create `CMS/Infrastructure/ItemMigrator.cs`:
+- [X] T062 [US3] Create `CMS/Infrastructure/ItemMigrator.cs`:
   - loads affected items tracked in batches of 500 by id;
   - applies removals, option clears and fill-ins to both copies;
   - saves each batch and clears the change tracker;
   - calls `ISchemaMigrationObserver.AfterBatch`.
 
   Wire the migrator into `SaveCollection` after the confirmation check. The check now compares the digest under the lock: `cms.confirmation_required` or `cms.preview_outdated`, each with the fresh preview. Validate fill-ins against the field (`cms.invalid_fill_in`). Makes T054–T056 pass.
-- [ ] T063 [US3] Create `CMS/Features/PreviewCollection/PreviewCollection.cs` (`POST {id}/preview`, view). It is read-only, takes no lock, and returns the same validation errors as the save and the `Preview` of contracts/cms-api.yaml.
-- [ ] T064 [US3] Create `CMS/Infrastructure/CollectionWriteGate.cs`: `EnterAsync(siteId, collectionId, expectedRevision?, ct)` in the caller's transaction takes `LockForShareAsync` and returns the current schema and revision. Turn the busy error into `cms.items_being_updated` here. Add an XML doc comment that every item write from #15 on must use it (data-model §3.3). Makes T057 pass.
+- [X] T063 [US3] Create `CMS/Features/PreviewCollection/PreviewCollection.cs` (`POST {id}/preview`, view). It is read-only, takes no lock, and returns the same validation errors as the save and the `Preview` of contracts/cms-api.yaml.
+- [X] T064 [US3] Create `CMS/Infrastructure/CollectionWriteGate.cs`: `EnterAsync(siteId, collectionId, expectedRevision?, ct)` in the caller's transaction takes `LockForShareAsync` and returns the current schema and revision. Turn the busy error into `cms.items_being_updated` here. Add an XML doc comment that every item write from #15 on must use it (data-model §3.3). Makes T057 pass.
 - [ ] T065 [US3] Create `CMSUI/SchemaPreviewDialog.vue` and wire it into `CMSUI/CollectionBuilderView.vue`:
   - when `schemaChanges.ts` finds a change that is not `free`, `POST preview`, then show the dialog: per-change counts, examples, the "cannot be undone" warning, and fill-in inputs where `fillInAllowed`;
   - confirm sends `PUT` with the digest, and shows "Updating N items…" while it runs (FR-036);
@@ -377,14 +377,14 @@ without change (quickstart §4).
 
 ### Tests for User Story 4 ⚠️
 
-- [ ] T066 [P] [US4] Create `UTESTS/Cms/FieldConversionTests.cs` (SC-004), covering every row of contract §7:
+- [X] T066 [P] [US4] Create `UTESTS/Cms/FieldConversionTests.cs` (SC-004), covering every row of contract §7:
   - **fixed formats**: number text without grouping, rounding half away from zero, the safe integer range, `min`/`max` clearing;
   - **dates**: date and date-time parsing with offsets normalised to UTC, midnight UTC, the UTC calendar date;
   - **rich text**: to text with marks, links and lists dropped (`partlyLost`) versus plain paragraphs (`converted`), and shortened to `maxLength`; text to rich text past 500 lines using hard breaks;
   - **options**: label matching ignoring case and trimmed;
   - **other conversions**: several lines to one line; multi-reference to reference keeping the first;
   - **settings**: a converted value breaking the new settings is `nowInvalid`; tightened `maxLength`, `min`, `max` and `accept` are `nowInvalid`; lowered `decimals` rounds.
-- [ ] T067 [P] [US4] Extend `ITESTS/Cms/SchemaMigrationTests.cs` with type and settings changes:
+- [X] T067 [P] [US4] Extend `ITESTS/Cms/SchemaMigrationTests.cs` with type and settings changes:
   - for every lossless and lossy pair, seed known values, preview, confirm, and assert each stored value and each count equals the preview;
   - **file to image** and **narrowing `accept`**: use an image and a PDF uploaded through the Media API, plus a deleted file, which is counted `missing` and kept;
   - **target change**: refused with values, allowed without;
@@ -397,9 +397,9 @@ without change (quickstart §4).
 
 ### Implementation for User Story 4
 
-- [ ] T069 [US4] Add `Convert(FieldChange, JsonNode value, MediaKindLookup)` → `(ValueOutcome, JsonNode?)` to `CMS/Domain/FieldConversion.cs`, with one private function per contract §7 row and the settings checks of CS-07. It is culture-invariant and uses `DateTimeOffset` in UTC. Makes T066 pass.
-- [ ] T070 [US4] Create `CMS/Infrastructure/MediaKinds.cs`. It collects distinct media ids from the affected values and calls `IPublicMediaReader.GetAsync(siteId, ids)` once per preview or save. A content type starting with `image/` is an image, and absent ids are missing (CS-12).
-- [ ] T071 [US4] Wire conversions into `CMS/Infrastructure/ImpactCalculator.cs` and `CMS/Infrastructure/ItemMigrator.cs` for `typeChanged` and `settingsChanged`. In `SaveCollection` and `PreviewCollection`, refuse forbidden changes on fields with any value in either copy (`cms.type_change_not_allowed`, `cms.target_change_not_allowed`), using an `EXISTS`-style query over the projected field. Makes T067 pass.
+- [X] T069 [US4] Add `Convert(FieldChange, JsonNode value, MediaKindLookup)` → `(ValueOutcome, JsonNode?)` to `CMS/Domain/FieldConversion.cs`, with one private function per contract §7 row and the settings checks of CS-07. It is culture-invariant and uses `DateTimeOffset` in UTC. Makes T066 pass.
+- [X] T070 [US4] Create `CMS/Infrastructure/MediaKinds.cs`. It collects distinct media ids from the affected values and calls `IPublicMediaReader.GetAsync(siteId, ids)` once per preview or save. A content type starting with `image/` is an image, and absent ids are missing (CS-12).
+- [X] T071 [US4] Wire conversions into `CMS/Infrastructure/ImpactCalculator.cs` and `CMS/Infrastructure/ItemMigrator.cs` for `typeChanged` and `settingsChanged`. In `SaveCollection` and `PreviewCollection`, refuse forbidden changes on fields with any value in either copy (`cms.type_change_not_allowed`, `cms.target_change_not_allowed`), using an `EXISTS`-style query over the projected field. Makes T067 pass.
 - [ ] T072 [US4] Extend `CMSUI/FieldEditor.vue` with type changing (lossless and lossy marked; a forbidden change explained after the server's refusal), and `CMSUI/SchemaPreviewDialog.vue` with outcome labels and the UTC note for date changes. Makes T068 pass.
 
 **Checkpoint**: quickstart §4 passes.
@@ -416,7 +416,7 @@ collection's reference field (quickstart §5).
 
 ### Tests for User Story 5 ⚠️
 
-- [ ] T073 [P] [US5] Create `ITESTS/Cms/CollectionReferenceTests.cs`:
+- [X] T073 [P] [US5] Create `ITESTS/Cms/CollectionReferenceTests.cs`:
   - delete with items works: items, history and outgoing references are gone, the slug is free, and `Cms.CollectionDeleted` is written;
   - a referenced collection gives `cms.collection_referenced` listing each referencing collection and field;
   - a self-referencing collection deletes;
@@ -427,7 +427,7 @@ collection's reference field (quickstart §5).
 
 ### Implementation for User Story 5
 
-- [ ] T075 [US5] Create `CMS/Features/DeleteCollection/DeleteCollection.cs` (`DELETE {id}?revision=n`, manage). It runs in one transaction: lock, revision check, a check of `collection_references` targeting it (`cms.collection_referenced` with names), `Collection.MarkDeleted`, the outbox `Cms.CollectionDeleted`, then remove and commit. Catch a foreign-key violation and report it as `cms.collection_referenced`. Makes T073 pass.
+- [X] T075 [US5] Create `CMS/Features/DeleteCollection/DeleteCollection.cs` (`DELETE {id}?revision=n`, manage). It runs in one transaction: lock, revision check, a check of `collection_references` targeting it (`cms.collection_referenced` with names), `Collection.MarkDeleted`, the outbox `Cms.CollectionDeleted`, then remove and commit. Catch a foreign-key violation and report it as `cms.collection_referenced`. Makes T073 pass.
 - [ ] T076 [US5] Create `CMSUI/DeleteCollectionDialog.vue` and open it from `CMSUI/CollectionsView.vue` and `CMSUI/CollectionBuilderView.vue`. After a delete, go back to the list. Makes T074 pass.
 
 **Checkpoint**: quickstart §5 passes.
@@ -443,18 +443,18 @@ history with the right revision, person, time and counts (quickstart §6).
 
 ### Tests for User Story 6 ⚠️
 
-- [ ] T077 [P] [US6] Create `ITESTS/Cms/SchemaHistoryTests.cs`:
+- [X] T077 [P] [US6] Create `ITESTS/Cms/SchemaHistoryTests.cs`:
   - one entry per save, including creation and detail-only saves, newest first;
   - paging with `before` and `limit`;
   - each entry's kinds and counts equal the confirmed preview;
   - no seeded item value appears anywhere in the `summary` JSON (FR-033);
   - Editors may read the history.
-- [ ] T078 [P] [US6] Create `ITESTS/Cms/ConcurrencyTests.cs`: two saves from the same revision give one 200 and one `cms.revision_conflict`; a save while another runs on 10,000 items gives `cms.collection_busy`; a delete during a save gives `cms.collection_busy`.
+- [X] T078 [P] [US6] Create `ITESTS/Cms/ConcurrencyTests.cs`: two saves from the same revision give one 200 and one `cms.revision_conflict`; a save while another runs on 10,000 items gives `cms.collection_busy`; a delete during a save gives `cms.collection_busy`.
 - [ ] T079 [P] [US6] Create `ADMINTESTS/cms/SchemaHistoryPanel.spec.ts`: entries rendered as sentences from their kinds and counts; "load more"; `cms.revision_conflict` shows `ADMIN/editor/ConflictBanner.vue` with "Reload"; `cms.collection_busy` shows "try again shortly"; axe.
 
 ### Implementation for User Story 6
 
-- [ ] T080 [US6] Create `CMS/Features/GetSchemaHistory/GetSchemaHistory.cs` (`GET {id}/history`, view; `before` and `limit`; names of the members who made changes). Makes T077 pass. T078 should already pass from T045 and T075; fix any gap in `CollectionLocks`.
+- [X] T080 [US6] Create `CMS/Features/GetSchemaHistory/GetSchemaHistory.cs` (`GET {id}/history`, view; `before` and `limit`; names of the members who made changes). Makes T077 pass. T078 should already pass from T045 and T075; fix any gap in `CollectionLocks`.
 - [ ] T081 [US6] Create `CMSUI/SchemaHistoryPanel.vue`, a side panel on the builder with one i18n sentence per entry kind. Add conflict and busy handling to `CMSUI/CollectionBuilderView.vue`, reusing `ADMIN/editor/ConflictBanner.vue`. Makes T079 pass.
 
 **Checkpoint**: quickstart §6 passes. All stories are done.

@@ -19,7 +19,7 @@ model and the contracts. Each one gives the decision, why, and what else was con
 - **References out**:
   - `Pages.Contracts`: `SchemaSubsetValidator` (shared since 011) and the page schema, whose
     `rtDoc` definition is the rich text value format (CS-04).
-  - `Media.Contracts`: `IPublicMediaReader`, to tell images from documents for the two rules
+  - `Media.Contracts`: `IMediaContentTypes` (added by this feature, see CS-12), to tell images from documents for the two rules
     that need it (CS-12).
   - `Sites.Contracts` and `Identity.Contracts`, as every module does.
 - **Nothing references Cms yet.** #15 and #16 add their slices inside Cms or read through
@@ -461,18 +461,22 @@ the database cannot be lost to a race.
   (non-images cleared) and **narrowing `accept`** (values of the wrong kind counted
   `nowInvalid`).
 - The handler collects the distinct media ids involved and asks
-  `IPublicMediaReader.GetAsync(siteId, ids)` once per preview or save. An image is a
+  `IMediaContentTypes.GetAsync(siteId, ids)` once per preview or save. An image is a
   content type starting with `image/`. Absent ids are counted `missing` and kept.
 - This reads outside the Cms transaction. That is safe because 013 refuses a replace that
   changes a file's kind (013 FR-017), so the answer cannot change under the lock. A file
   deleted in between becomes `missing`, which keeps the value.
 
-**Rationale**: it reuses an existing read-only contract and adds no new Media surface. Kind
+**Rationale**: one small read contract, in the shape every admin read already takes. Kind
 is immutable, so there is no cross-module consistency problem.
 
 **Alternatives considered**:
 - *Storing the kind inside each media value*: a denormalised copy for one rare conversion.
-- *A new `IMediaKindReader`*: `IPublicMediaReader` already answers the question.
+- *`IPublicMediaReader`* (the first choice): it serves the public site and takes its site from
+  the request's host name, so on the admin surface it finds nothing. Found by
+  `SchemaMigrationTests` during implementation; replaced by `IMediaContentTypes`, a
+  one-method Media contract that reads the named site's files as Media's own admin
+  endpoints do (`AcrossAllSites` with a reason).
 
 ---
 

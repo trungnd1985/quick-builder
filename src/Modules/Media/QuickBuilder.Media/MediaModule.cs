@@ -66,6 +66,9 @@ public static class MediaModule
             .UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking));
         services.AddScoped<IPublicMediaReader, PublicMediaReader>();
 
+        // 014 research CS-12: content types for other modules' admin work (Cms schema changes).
+        services.AddScoped<IMediaContentTypes, MediaContentTypes>();
+
         services
             .AddOptions<MediaOptions>()
             .Bind(configuration.GetSection(MediaOptions.SectionName))

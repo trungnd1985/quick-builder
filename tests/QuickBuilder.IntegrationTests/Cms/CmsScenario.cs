@@ -98,6 +98,18 @@ internal sealed class CmsScenario : IDisposable
             .Select(i => (i.Id, i.Draft.RootElement.GetRawText(), i.Published?.RootElement.GetRawText()))
             .ToList());
 
+    /// <summary>Changes one item's draft values directly, as #15's editor will: to make a preview stale.</summary>
+    public Task<bool> EditItemAsync(Guid itemId, Action<ItemValues> edit, Guid? site = null) =>
+        WithDatabaseAsync(async database =>
+        {
+            var item = await database.ForSite<Item>(site ?? SiteA).SingleAsync(i => i.Id == itemId).ConfigureAwait(false);
+            var draft = item.DraftValues();
+            edit(draft);
+            item.Migrate(draft, item.PublishedValues(), TimeProvider.System);
+            await database.SaveChangesAsync().ConfigureAwait(false);
+            return true;
+        });
+
     public void Dispose()
     {
         Admin.Dispose();
