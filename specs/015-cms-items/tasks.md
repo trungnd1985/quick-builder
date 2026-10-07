@@ -223,7 +223,7 @@ field is saved and flagged, and a taken slug is refused (quickstart §1).
 
 ### Tests for User Story 1 ⚠️
 
-- [ ] T033 [P] [US1] Create `ITESTS/Cms/Items/ItemApiTests.cs` covering create, get, save draft and slug availability:
+- [X] T033 [P] [US1] Create `ITESTS/Cms/Items/ItemApiTests.cs` covering create, get, save draft and slug availability:
   - **Create**: 201 with `revision` 1 and status `draft`.
   - **Round trip** (SC-002): one value of every type and setting is read back equal as JSON.
   - **Malformed values**: each one gives `cms.invalid_item` with the report, and nothing is stored.
@@ -233,7 +233,7 @@ field is saved and flagged, and a taken slug is refused (quickstart §1).
   - **Limits**: a 1 MiB + 1 body gives 413 `cms.item_too_large`; duplicate JSON properties give 400.
   - **Roles**: Editor, Designer and Administrator are allowed; a user with no role gets 404 on every endpoint.
   - **Events**: `Cms.ItemCreated` and `Cms.ItemDraftSaved` carry ids only.
-- [ ] T034 [P] [US1] Create `ITESTS/Cms/Items/ItemWriteGateTests.cs`. While a schema change holds the collection (014's `TestMigrationObserver`), create, save and delete give `cms.items_being_updated`, and the item is unchanged (FR-006).
+- [X] T034 [P] [US1] Create `ITESTS/Cms/Items/ItemWriteGateTests.cs`. While a schema change holds the collection (014's `TestMigrationObserver`), create, save and delete give `cms.items_being_updated`, and the item is unchanged (FR-006).
 - [ ] T035 [P] [US1] Create `ADMINTESTS/cms/items/ItemFormView.spec.ts` and `ADMINTESTS/cms/items/ItemField.spec.ts`:
   - one input per field type, in schema order, with help, a required mark and the remaining length;
   - the slug follows the name until edited, and shows the taken-slug message from `slug-availability`;
@@ -246,15 +246,15 @@ field is saved and flagged, and a taken slug is refused (quickstart §1).
 
 ### Implementation for User Story 1
 
-- [ ] T036 [US1] Create the slices:
+- [X] T036 [US1] Create the slices:
   - `CMS/Features/Items/CreateItem/CreateItem.cs` (`POST`, `cms.items.edit`): `ItemWrites` with no item; `Item.Create`; refused on `HasMalformed`; history `created`.
   - `CMS/Features/Items/GetItem/GetItem.cs` (`GET`, view): `ItemReads` with the report, schedules, member names and `schemaRevision`.
   - `CMS/Features/Items/SaveItemDraft/SaveItemDraft.cs` (`PUT`, `cms.items.edit`).
   - `CMS/Features/Items/CheckSlug/CheckSlug.cs` (`GET slug-availability`, view).
 
   Bodies are capped at 1 MiB by an attribute modelled on `DraftSizeLimitAttribute`, and duplicate JSON properties are refused as in `SaveCollection`. Register the slices and add them to `EndpointCatalog`. Makes T033 and T034 pass.
-- [ ] T037 [US1] Create `CMS/Features/Items/ListItems/ListItems.cs` (`GET`, view), **first version**: newest change first, `page` and `pageSize` (25/50/100), and `total`, using `ItemSummaryResponse`. US3 adds search, filters and sorts in `CMS/Infrastructure/ItemListQuery.cs`.
-- [ ] T038 [US1] Create `CMS/Features/Items/ReindexItemsForMedia/ReindexItemsForMedia.cs`: idempotent handlers for `Media.FileDeleted` and `Media.FileChanged` that re-index, through `ItemWrites`, the items `item_media` lists for the file. A busy collection makes the handler throw, so the outbox retries. Register them in `CMS/CmsModule.cs`. Add a case to `ITESTS/Cms/Items/ItemApiTests.cs`: deleting the cover image's media file gives the item `media_missing` attention.
+- [X] T037 [US1] Create `CMS/Features/Items/ListItems/ListItems.cs` (`GET`, view), **first version**: newest change first, `page` and `pageSize` (25/50/100), and `total`, using `ItemSummaryResponse`. US3 adds search, filters and sorts in `CMS/Infrastructure/ItemListQuery.cs`.
+- [X] T038 [US1] Create `CMS/Features/Items/ReindexItemsForMedia/ReindexItemsForMedia.cs`: idempotent handlers for `Media.FileDeleted` and `Media.FileChanged` that re-index, through `ItemWrites`, the items `item_media` lists for the file. A busy collection makes the handler throw, so the outbox retries. Register them in `CMS/CmsModule.cs`. Add a case to `ITESTS/Cms/Items/ItemApiTests.cs`: deleting the cover image's media file gives the item `media_missing` attention.
 - [ ] T039 [P] [US1] Create the inputs under `ITEMUI/inputs/`:
   - `TextInput.vue` (single line or several lines, remaining length);
   - `RichTextInput.vue`, a standalone TipTap editor from `ADMIN/editor/richtext/tiptap.ts`, `RichTextToolbar.vue` and `toContractRichText.ts`, emitting `rtDoc`;

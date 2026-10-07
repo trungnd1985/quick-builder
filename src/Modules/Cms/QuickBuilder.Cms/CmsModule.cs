@@ -3,6 +3,18 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using QuickBuilder.Cms.Contracts.Events;
 using QuickBuilder.Cms.Features;
+using QuickBuilder.Cms.Features.Items;
+using QuickBuilder.Cms.Features.Items.CheckSlug;
+using QuickBuilder.Cms.Features.Items.CreateItem;
+using QuickBuilder.Cms.Features.Items.DeleteItem;
+using QuickBuilder.Cms.Features.Items.DuplicateItem;
+using QuickBuilder.Cms.Features.Items.GetItem;
+using QuickBuilder.Cms.Features.Items.ListItemReferrers;
+using QuickBuilder.Cms.Features.Items.ListItems;
+using QuickBuilder.Cms.Features.Items.PublishItem;
+using QuickBuilder.Cms.Features.Items.ReindexItemsForMedia;
+using QuickBuilder.Cms.Features.Items.SaveItemDraft;
+using QuickBuilder.Cms.Features.Items.UnpublishItem;
 using QuickBuilder.Cms.Features.CreateCollection;
 using QuickBuilder.Cms.Features.DeleteCollection;
 using QuickBuilder.Cms.Features.GetCollection;
@@ -12,10 +24,12 @@ using QuickBuilder.Cms.Features.PreviewCollection;
 using QuickBuilder.Cms.Features.SaveCollection;
 using QuickBuilder.Cms.Infrastructure;
 using QuickBuilder.Cms.Infrastructure.Schema;
+using QuickBuilder.Media.Contracts.Events;
 using QuickBuilder.Shared.Infrastructure.Modules;
 using QuickBuilder.Shared.Infrastructure.MultiSite;
 using QuickBuilder.Shared.Infrastructure.Outbox;
 using QuickBuilder.Shared.Kernel.Dispatch;
+using QuickBuilder.Shared.Kernel.Events;
 using QuickBuilder.Shared.Kernel.Results;
 
 namespace QuickBuilder.Cms;
@@ -102,6 +116,24 @@ public static class CmsModule
         services.AddScoped<IQueryHandler<PreviewCollectionQuery, Result<PreviewResponse>>, PreviewCollectionHandler>();
         services.AddScoped<ICommandHandler<DeleteCollectionCommand, Result>, DeleteCollectionHandler>();
         services.AddScoped<IQueryHandler<GetSchemaHistoryQuery, Result<SchemaHistoryResponse>>, GetSchemaHistoryHandler>();
+
+        // Item slices (015).
+        services.AddScoped<ItemListQuery>();
+        services.AddScoped<IQueryHandler<ListItemsQuery, Result<ItemListResponse>>, ListItemsHandler>();
+        services.AddScoped<ICommandHandler<CreateItemCommand, Result<ItemResponse>>, CreateItemHandler>();
+        services.AddScoped<IQueryHandler<GetItemQuery, Result<ItemResponse>>, GetItemHandler>();
+        services.AddScoped<ICommandHandler<SaveItemDraftCommand, Result<ItemResponse>>, SaveItemDraftHandler>();
+        services.AddScoped<IQueryHandler<CheckSlugQuery, Result<SlugAvailabilityResponse>>, CheckSlugHandler>();
+        services.AddScoped<ItemReferrers>();
+        services.AddScoped<ICommandHandler<PublishItemCommand, Result<ItemResponse>>, PublishItemHandler>();
+        services.AddScoped<ICommandHandler<UnpublishItemCommand, Result<ItemResponse>>, UnpublishItemHandler>();
+        services.AddScoped<IQueryHandler<ListItemReferrersQuery, Result<ReferrerListResponse>>, ListItemReferrersHandler>();
+        services.AddScoped<ICommandHandler<DeleteItemCommand, Result>, DeleteItemHandler>();
+        services.AddScoped<ICommandHandler<DuplicateItemCommand, Result<ItemResponse>>, DuplicateItemHandler>();
+
+        // Research IT-11: items using a deleted or replaced media file are checked again.
+        services.AddScoped<IIntegrationEventHandler<FileDeleted>, ReindexItemsForMediaHandler>();
+        services.AddScoped<IIntegrationEventHandler<FileChanged>, ReindexItemsForMediaHandler>();
 
         return services;
     }
