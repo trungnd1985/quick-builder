@@ -295,8 +295,8 @@ internal sealed partial class MediaFile : ISiteOwned
     /// <summary>Rebuilds <see cref="SearchText"/> and <see cref="SortName"/> with the full normalisation.</summary>
     public void RefreshSearchText()
     {
-        SearchText = Domain.SearchText.For(FileName, AltText);
-        SortName = Truncate(Domain.SearchText.Normalise(FileName), MediaFileName.MaxLength);
+        SearchText = Shared.Kernel.Text.SearchText.Combine(FileName, AltText);
+        SortName = Truncate(Shared.Kernel.Text.SearchText.Normalise(FileName), MediaFileName.MaxLength);
         SearchTextState = SearchTextState.Normalised;
     }
 

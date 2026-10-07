@@ -82,8 +82,8 @@ Shorthand used below:
 No behaviour.
 
 - [X] T001 Commit `specs/015-cms-items/` (spec, plan, research, data model, contracts, quickstart, checklist, tasks) as the first commit on branch `015-cms-items`, referencing #15.
-- [ ] T002 Move `MEDIA/Domain/SearchText.cs` to `KERNEL/Text/SearchText.cs` (namespace `QuickBuilder.Shared.Kernel.Text`, class made `public`, code unchanged, the remark naming 013 MV-03 and 015 IT-13 kept). Update every `using` in `MEDIA`, and move `UTESTS/Media/SearchTextTests.cs` to `UTESTS/Shared/SearchTextTests.cs`. Run `dotnet test --filter "SearchText"`; it must stay green, including `ITESTS/Media/SearchTextBackfillTests.cs`.
-- [ ] T003 [P] Add a project reference from `MEDIA/QuickBuilder.Media.csproj` to `CMSC/QuickBuilder.Cms.Contracts.csproj`. In `ATESTS/ModuleBoundaryTests.cs`, allow `QuickBuilder.Media` → `QuickBuilder.Cms.Contracts` and keep every other rule (module-surface.md §1).
+- [X] T002 Move `MEDIA/Domain/SearchText.cs` to `KERNEL/Text/SearchText.cs` (namespace `QuickBuilder.Shared.Kernel.Text`, class made `public`, code unchanged, the remark naming 013 MV-03 and 015 IT-13 kept). Update every `using` in `MEDIA`, and move `UTESTS/Media/SearchTextTests.cs` to `UTESTS/Shared/SearchTextTests.cs`. Run `dotnet test --filter "SearchText"`; it must stay green, including `ITESTS/Media/SearchTextBackfillTests.cs`.
+- [X] T003 [P] Add a project reference from `MEDIA/QuickBuilder.Media.csproj` to `CMSC/QuickBuilder.Cms.Contracts.csproj`. In `ATESTS/ModuleBoundaryTests.cs`, allow `QuickBuilder.Media` → `QuickBuilder.Cms.Contracts` and keep every other rule (module-surface.md §1).
 
 ---
 

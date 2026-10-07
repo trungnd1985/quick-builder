@@ -25,6 +25,8 @@
     <ProjectReference Include="..\..\Sites\QuickBuilder.Sites.Contracts\QuickBuilder.Sites.Contracts.csproj" />
     <ProjectReference Include="..\..\Identity\QuickBuilder.Identity.Contracts\QuickBuilder.Identity.Contracts.csproj" />
     <ProjectReference Include="..\..\Pages\QuickBuilder.Pages.Contracts\QuickBuilder.Pages.Contracts.csproj" />
+    <!-- 015 research IT-15: items' media usage, read through IItemMediaUsageReader. -->
+    <ProjectReference Include="..\..\Cms\QuickBuilder.Cms.Contracts\QuickBuilder.Cms.Contracts.csproj" />
   </ItemGroup>
 
   <ItemGroup Label="Image processing (013 MV-09)">

@@ -4,6 +4,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using QuickBuilder.Media.Domain;
 using QuickBuilder.Shared.Infrastructure.MultiSite;
+using QuickBuilder.Shared.Kernel.Text;
 
 namespace QuickBuilder.Media.Infrastructure;
 
@@ -14,7 +15,7 @@ namespace QuickBuilder.Media.Infrastructure;
 /// <para>
 /// The <c>AddLibraryAndVariants</c> migration can only emit SQL, so it filled
 /// <c>search_text</c> with <c>lower(file_name)</c> and marked the rows provisional. This
-/// rewrites them with <see cref="SearchText.For"/> after start-up. Until it has run, search
+/// rewrites them with <see cref="SearchText.Combine"/> after start-up. Until it has run, search
 /// on an upgraded site ignores case but not accents; the upgrade notes say so.
 /// </para>
 /// <para>

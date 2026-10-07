@@ -2,17 +2,17 @@ using System.Collections.Frozen;
 using System.Globalization;
 using System.Text;
 
-namespace QuickBuilder.Media.Domain;
+namespace QuickBuilder.Shared.Kernel.Text;
 
 /// <summary>
-/// How library search compares text: ignoring case and accents, literally (013 FR-006,
-/// research MV-03).
+/// How admin search compares text: ignoring case and accents, literally (013 FR-006,
+/// research MV-03). Used by the media library and by collection items (015 research IT-13).
 /// </summary>
 /// <remarks>
 /// <para>
 /// <b>Why a table.</b> The application runs with invariant globalization, where
 /// <c>string.Normalize</c> does nothing, so NFD decomposition cannot be used to strip accents
-/// (see <see cref="MediaFileName"/>). Instead each precomposed letter of Latin-1 Supplement,
+/// (as the Media module also notes for file names). Instead each precomposed letter of Latin-1 Supplement,
 /// Latin Extended-A/B and Latin Extended Additional (which holds Vietnamese) folds to its
 /// base letters through <see cref="Folds"/>, and combining marks from decomposed input are
 /// dropped. Scripts without a Latin base (Greek, Cyrillic, CJK, ...) are only lower-cased.
@@ -25,9 +25,9 @@ namespace QuickBuilder.Media.Domain;
 /// never a wrong result.
 /// </para>
 /// </remarks>
-internal static class SearchText
+public static class SearchText
 {
-    /// <summary>The longest search term accepted (contracts/media-api.yaml).</summary>
+    /// <summary>The longest search term accepted (013 contracts/media-api.yaml, 015 contracts/items-api.yaml).</summary>
     public const int MaxTermLength = 100;
 
     private const string FoldKeys = "ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖØÙÚÛÜÝÞßàáâãäåæçèéêëìíîïðñòóôõöøùúûüýþÿĀāĂăĄąĆćĈĉĊċČčĎďĐđĒēĔĕĖėĘęĚěĜĝĞğĠġĢģĤĥĦħĨĩĪīĬĭĮįİıĴĵĶķĸĹĺĻļĽľŁłŃńŅņŇňŊŋŌōŎŏŐőŒœŔŕŖŗŘřŚśŜŝŞşŠšŢţŤťŦŧŨũŪūŬŭŮůŰűŲųŴŵŶŷŸŹźŻżŽžƀƠơƯưǍǎǏǐǑǒǓǔǕǖǗǘǙǚǛǜǞǟǠǡǦǧǨǩǪǫǬǭǰǴǵǸǹǺǻȀȁȂȃȄȅȆȇȈȉȊȋȌȍȎȏȐȑȒȓȔȕȖȗȘșȚțȞȟȦȧȨȩȪȫȬȭȮȯȰȱȲȳɃḀḁḂḃḄḅḆḇḈḉḊḋḌḍḎḏḐḑḒḓḔḕḖḗḘḙḚḛḜḝḞḟḠḡḢḣḤḥḦḧḨḩḪḫḬḭḮḯḰḱḲḳḴḵḶḷḸḹḺḻḼḽḾḿṀṁṂṃṄṅṆṇṈṉṊṋṌṍṎṏṐṑṒṓṔṕṖṗṘṙṚṛṜṝṞṟṠṡṢṣṤṥṦṧṨṩṪṫṬṭṮṯṰṱṲṳṴṵṶṷṸṹṺṻṼṽṾṿẀẁẂẃẄẅẆẇẈẉẊẋẌẍẎẏẐẑẒẓẔẕẖẗẘẙẞẠạẢảẤấẦầẨẩẪẫẬậẮắẰằẲẳẴẵẶặẸẹẺẻẼẽẾếỀềỂểỄễỆệỈỉỊịỌọỎỏỐốỒồỔổỖỗỘộỚớỜờỞởỠỡỢợỤụỦủỨứỪừỬửỮữỰựỲỳỴỵỶỷỸỹ";
@@ -83,11 +83,15 @@ internal static class SearchText
         return builder.ToString();
     }
 
-    /// <summary>What a file is searched by: its display name and its alternative text.</summary>
-    public static string For(string fileName, string? altText) =>
-        string.IsNullOrWhiteSpace(altText)
-            ? Normalise(fileName)
-            : Normalise(fileName) + " " + Normalise(altText);
+    /// <summary>
+    /// Two texts searched as one, each normalised and joined by a space; <paramref name="second"/>
+    /// is left out when blank. A file is searched by its name and alternative text, an item by
+    /// its name and slug.
+    /// </summary>
+    public static string Combine(string first, string? second) =>
+        string.IsNullOrWhiteSpace(second)
+            ? Normalise(first)
+            : Normalise(first) + " " + Normalise(second);
 
     /// <summary>
     /// A <c>LIKE</c> pattern matching <paramref name="term"/> anywhere, as literal text:
