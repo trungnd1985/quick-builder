@@ -8,6 +8,9 @@ internal static class LocalStoragePaths
     /// <summary>The directory, under a key's first segment, that holds writes in progress.</summary>
     internal const string IncomingDirectoryName = ".incoming";
 
+    /// <summary>The lock file in an incoming directory that serialises publishing a key (see LocalFileStorage.WriteAsync).</summary>
+    internal const string PublishLockName = ".publish.lock";
+
     /// <summary>Prefix of the probe files written at the root by validation and health checks.</summary>
     internal const string ProbePrefix = ".probe-";
 

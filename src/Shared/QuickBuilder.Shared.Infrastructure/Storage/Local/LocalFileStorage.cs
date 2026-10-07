@@ -32,6 +32,11 @@ internal sealed class LocalFileStorage : IFileStorage, IFileStorageHealthCheck
 
     private static readonly TimeSpan DeleteRetryDelay = TimeSpan.FromMilliseconds(20);
 
+    // About ten seconds of waiting for the publish lock: a publish holds it for one rename.
+    private const int PublishLockAttempts = 500;
+
+    private static readonly TimeSpan PublishLockRetryDelay = TimeSpan.FromMilliseconds(20);
+
     // rw-r----- : no execute bit for anyone (FR-016, Principle IX).
     private const UnixFileMode FileMode =
         UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.GroupRead;
@@ -90,14 +95,28 @@ internal sealed class LocalFileStorage : IFileStorage, IFileStorageHealthCheck
 
             Directory.CreateDirectory(Path.GetDirectoryName(final)!);
 
-            try
+            // On Unix, File.Move without overwrite checks for the target and then renames, and
+            // rename replaces an existing file: two writers racing between the check and the
+            // rename both "won", the second silently replacing the first. The check and the
+            // move are therefore made under an exclusive lock on the incoming directory's
+            // publish lock file, so exactly one writer of a key succeeds.
+            var publishLock = await LockPublishingAsync(incoming, cancellationToken).ConfigureAwait(false);
+            await using (publishLock.ConfigureAwait(false))
             {
-                File.Move(part, final, overwrite: false);
-            }
-            catch (IOException) when (File.Exists(final))
-            {
-                // Lost a race with another writer of the same key.
-                throw new StorageKeyExistsException(key);
+                if (File.Exists(final))
+                {
+                    throw new StorageKeyExistsException(key);
+                }
+
+                try
+                {
+                    File.Move(part, final, overwrite: false);
+                }
+                catch (IOException) when (File.Exists(final))
+                {
+                    // Another process outside this lock (or a file system without locking).
+                    throw new StorageKeyExistsException(key);
+                }
             }
         }
         finally
@@ -230,6 +249,44 @@ internal sealed class LocalFileStorage : IFileStorage, IFileStorageHealthCheck
 
     public async Task<bool> CheckAsync(CancellationToken cancellationToken = default) =>
         await LocalStoragePaths.ProbeAsync(_root, cancellationToken).ConfigureAwait(false) is null;
+
+    /// <summary>
+    /// Takes the incoming directory's publish lock, waiting for it while another writer holds it.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="FileShare.None"/> is an exclusive advisory lock on Unix (<c>flock</c>) and a
+    /// sharing lock on Windows. Either way the kernel releases it when the holder closes the
+    /// file or dies, so a crash never leaves a key blocked. The lock file itself stays: one
+    /// per incoming directory, and the clean-up service sweeps only <c>.part</c> files.
+    /// </remarks>
+    private static async Task<FileStream> LockPublishingAsync(string incoming, CancellationToken cancellationToken)
+    {
+        var path = Path.Combine(incoming, LocalStoragePaths.PublishLockName);
+        var options = new FileStreamOptions
+        {
+            Mode = System.IO.FileMode.OpenOrCreate,
+            Access = FileAccess.ReadWrite,
+            Share = FileShare.None,
+            BufferSize = 0,
+        };
+
+        if (!OperatingSystem.IsWindows())
+        {
+            options.UnixCreateMode = FileMode;
+        }
+
+        for (var attempt = 1; ; attempt++)
+        {
+            try
+            {
+                return new FileStream(path, options);
+            }
+            catch (IOException) when (attempt < PublishLockAttempts)
+            {
+                await Task.Delay(PublishLockRetryDelay, cancellationToken).ConfigureAwait(false);
+            }
+        }
+    }
 
     private string IncomingDirectoryFor(StorageKey key) =>
         key.SegmentCount == 1
