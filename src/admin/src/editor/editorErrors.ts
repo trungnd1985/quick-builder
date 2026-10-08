@@ -46,6 +46,7 @@ export const DOCUMENT_RULES: readonly string[] = [
 /** Server error codes the editor and the design screen can receive. */
 export const SERVER_CODES: readonly string[] = [
   'pages.out_of_date',
+  'pages.admin_outdated',
   'pages.not_found',
   'pages.component_not_found',
   'pages.invalid_document',

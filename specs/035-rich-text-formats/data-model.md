@@ -70,7 +70,7 @@ On a collection's `richText` field: `formats: { headings?, images?, tables? }`, 
 |---|---|---|
 | yes | any | normal |
 | no | no | normal |
-| no | yes | 409 `admin_outdated`, nothing written |
+| no | yes | 409 `pages.admin_outdated` or `cms.admin_outdated`, nothing written |
 
 "Uses 035 formats" means any `heading`, `blockquote`, `image` or `table` node, any `align` attribute, or any `underline`, `strike` or `code` mark, in any rich text of the draft (`RichTextRules.UsesExtendedFormats`).
 
@@ -85,7 +85,7 @@ On a collection's `richText` field: `formats: { headings?, images?, tables? }`, 
 | `format_not_allowed` | item validation | field, plus `format` | yes, needs attention |
 | `image_alt_missing` | item validation | field, plus `path` | yes, needs attention |
 | `pages.image_alt_missing` | page publish | `problems[].pointer` | — (publish refused) |
-| `admin_outdated` | page draft and item writes | — | — (write refused) |
+| `pages.admin_outdated`, `cms.admin_outdated` | page and component draft saves, item draft save | — | — (write refused) |
 
 For an item value, the page validator's codes surface as 015's "malformed value" problem with the rule name (015 IT-05), as rule 9 (`rich_text_too_long`) does today.
 

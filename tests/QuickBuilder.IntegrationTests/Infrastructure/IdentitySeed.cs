@@ -143,6 +143,9 @@ internal static class IdentitySeed
         });
 
         client.DefaultRequestHeaders.Add("X-QuickBuilder-Request", "1");
+
+        // As the current admin does: it keeps every rich text format (035 research RT-13).
+        client.DefaultRequestHeaders.Add(QuickBuilder.Pages.Contracts.RichTextRules.ClientHeader, "2");
         if (hostName is not null)
         {
             client.DefaultRequestHeaders.Host = hostName;

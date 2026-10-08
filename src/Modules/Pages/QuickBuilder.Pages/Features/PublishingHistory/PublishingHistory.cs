@@ -173,8 +173,8 @@ internal sealed class CopyVersionToDraftHandler(
 
         using var document = JsonDocument.Parse(version.Document);
         var saved = subject.IsPage
-            ? await drafts.SavePageDraftAsync(command.SiteId, subject.Id, document.RootElement, command.DraftVersion, cancellationToken).ConfigureAwait(false)
-            : await drafts.SaveComponentDraftAsync(command.SiteId, subject.Id, document.RootElement, command.DraftVersion, cancellationToken).ConfigureAwait(false);
+            ? await drafts.SavePageDraftAsync(command.SiteId, subject.Id, document.RootElement, command.DraftVersion, clientKeepsEveryFormat: true, cancellationToken).ConfigureAwait(false)
+            : await drafts.SaveComponentDraftAsync(command.SiteId, subject.Id, document.RootElement, command.DraftVersion, clientKeepsEveryFormat: true, cancellationToken).ConfigureAwait(false);
 
         if (saved.IsFailure)
         {

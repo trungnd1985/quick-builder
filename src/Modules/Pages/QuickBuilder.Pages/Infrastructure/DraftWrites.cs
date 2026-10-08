@@ -27,6 +27,16 @@ internal sealed class DraftWrites(
     PageReads reads,
     TimeProvider clock)
 {
+    /// <summary>
+    /// Whether a stored draft uses a rich text format an admin from before 035 would drop
+    /// (035 FR-020, research RT-13). Such a client gets <c>pages.admin_outdated</c> instead.
+    /// </summary>
+    private static bool UsesExtendedFormats(string storedDocument)
+    {
+        using var stored = JsonDocument.Parse(storedDocument);
+        return RichTextRules.DocumentUsesExtendedFormats(stored.RootElement);
+    }
+
     /// <summary>The request-level rule shared by both draft saves: a document must be sent.</summary>
     internal static ValidationResult CheckRequest(JsonElement document) =>
         document.ValueKind == JsonValueKind.Undefined
@@ -38,6 +48,7 @@ internal sealed class DraftWrites(
         Guid pageId,
         JsonElement document,
         uint version,
+        bool clientKeepsEveryFormat,
         CancellationToken cancellationToken)
     {
         var text = document.GetRawText();
@@ -54,6 +65,11 @@ internal sealed class DraftWrites(
         if (draft is null)
         {
             return Result.Failure<DraftResponse>(PagesErrors.NotFound);
+        }
+
+        if (!clientKeepsEveryFormat && UsesExtendedFormats(draft.Document))
+        {
+            return Result.Failure<DraftResponse>(PagesErrors.AdminOutdated);
         }
 
         var referenced = checkedDocument.ReferencedComponentIds;
@@ -96,6 +112,7 @@ internal sealed class DraftWrites(
         Guid componentId,
         JsonElement document,
         uint version,
+        bool clientKeepsEveryFormat,
         CancellationToken cancellationToken)
     {
         var text = document.GetRawText();
@@ -112,6 +129,11 @@ internal sealed class DraftWrites(
         if (draft is null)
         {
             return Result.Failure<DraftResponse>(PagesErrors.ComponentNotFound);
+        }
+
+        if (!clientKeepsEveryFormat && UsesExtendedFormats(draft.Document))
+        {
+            return Result.Failure<DraftResponse>(PagesErrors.AdminOutdated);
         }
 
         if (draft.Version != version)

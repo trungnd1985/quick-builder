@@ -55,6 +55,7 @@ internal static class CmsErrorResults
             or "cms.items_being_updated"
             or "cms.item_slug_taken"
             or "cms.item_conflict"
+            or "cms.admin_outdated"
             or "cms.schema_changed"
             or "cms.item_needs_attention"
             or "cms.version_not_publishable"

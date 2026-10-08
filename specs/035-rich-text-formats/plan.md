@@ -227,7 +227,7 @@ src/
 │   ~ Infrastructure/ItemValidation.cs         # format_not_allowed, image_alt_missing (+ path)
 │   ~ Infrastructure/ItemIndexer.cs            # rich text images → item_media
 │   ~ Infrastructure/ItemWrites.cs             # admin_outdated
-│   ~ Features/Items/SaveItemDraft/  DuplicateItem/   # controllers read the header
+│   ~ Features/Items/SaveItemDraft/                   # the controller reads the header
 │   ~ Domain/ItemReport.cs  CmsErrors.cs  CmsErrorResults.cs
 
 src/admin/

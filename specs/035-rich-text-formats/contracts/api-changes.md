@@ -14,7 +14,7 @@ No endpoint is added or removed. Bodies keep their shapes. The changes are one r
 
 | Code | Status | When | Body extensions |
 |---|---|---|---|
-| `admin_outdated` | 409 | A page or component draft save (pages API), or an item draft save or duplicate (items API), arrives without `X-QB-Rich-Text: 2` (or with a lower value) while the stored draft holds any 035 format (RT-13). | none |
+| `pages.admin_outdated`, `cms.admin_outdated` | 409 | A page or component draft save (pages API), or an item draft save (items API), arrives without `X-QB-Rich-Text: 2` (or with a lower value) while the stored draft holds any 035 format (RT-13). | none |
 | `pages.image_alt_missing` | 422 | Publishing a page or component (manual, scheduled or rollback) whose document holds a rich text image with neither alternative text nor `decorative` (RT-10). | `problems`: `[{ "pointer": "/root/children/0/children/2/props/content/content/3" }]` |
 
 A scheduled page publish that meets `pages.image_alt_missing` fails like any other refused publish (012 `schedule_failed`).
@@ -34,7 +34,7 @@ Two optional properties are added to problem objects: `format` and `path`. Both 
 ## 5. Registries to update in the same PR
 
 - `docs/contracts/page-schema.md`: rules 10–12 and the rendering allow-list. It is the source; `specs/011-editor-core/contracts/page-schema-blocks.md` and `specs/012-publishing-rendering/contracts/page-schema-rendering.md` link to it, and each gains a one-line "extended by 035" note.
-- `specs/011-editor-core/contracts/editor-api.yaml`: `admin_outdated` on draft save.
+- `specs/010-page-tree-components/contracts/pages-api.yaml`: `pages.admin_outdated` on page and component draft saves.
 - `specs/012-publishing-rendering/contracts/publishing-api.yaml`: `pages.image_alt_missing` on publish.
-- `specs/015-cms-items/contracts/items-api.yaml`: `admin_outdated`; the `Report` problems' `format` and `path`.
+- `specs/015-cms-items/contracts/items-api.yaml`: `cms.admin_outdated` on item draft save; the `Report` problems' `format` and `path`.
 - `specs/015-cms-items/data-model.md` §2: the new problem codes, marked "added by 035".

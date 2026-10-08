@@ -122,7 +122,7 @@ paths:
       responses:
         '200': { description: Saved., content: { application/json: { schema: { $ref: '#/components/schemas/Item' } } } }
         '400': { description: '`cms.invalid_item`.' }
-        '409': { description: '`cms.item_conflict`, `cms.schema_changed`, `cms.item_slug_taken`, `cms.items_being_updated`.' }
+        '409': { description: '`cms.item_conflict`, `cms.schema_changed`, `cms.item_slug_taken`, `cms.items_being_updated`; `cms.admin_outdated` (added by 035: no `X-QB-Rich-Text: 2` while the stored draft uses a 035 rich text format).' }
     delete:
       summary: Delete the item permanently
       description: Requires `cms.items.edit`. Refused while other items refer to it (FR-008).

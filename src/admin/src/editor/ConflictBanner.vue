@@ -27,6 +27,11 @@ const message = computed(() =>
     : t(`editor.readOnly.${props.state.reason}`),
 )
 
+/** 035 FR-020: an out-of-date admin needs the page itself reloaded, to get the current admin. */
+function reloadPage(): void {
+  window.location.reload()
+}
+
 function reload(): void {
   if (window.confirm(t('editor.conflict.confirmReload'))) emit('reload')
 }
@@ -38,6 +43,13 @@ function reload(): void {
     role="alert"
   >
     <p>{{ message }}</p>
+    <button
+      v-if="state.reason === 'outdated'"
+      type="button"
+      @click="reloadPage"
+    >
+      {{ t('editor.conflict.reloadPage') }}
+    </button>
     <button
       v-if="canReload"
       type="button"

@@ -75,6 +75,14 @@ const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS'])
 export const REQUEST_HEADER = 'X-QuickBuilder-Request'
 
 /**
+ * Which rich text formats this admin keeps when it saves (035 research RT-13). The server
+ * refuses a save from an admin that does not say so, when the stored draft holds formats an
+ * older admin would drop.
+ */
+export const RICH_TEXT_HEADER = 'X-QB-Rich-Text'
+export const RICH_TEXT_LEVEL = '2'
+
+/**
  * Turns a refused response into an ApiError and runs the app-wide reaction to it. Shared
  * with calls that cannot use fetch — uploads use XMLHttpRequest for progress (003 M-10).
  */
@@ -116,6 +124,7 @@ export async function request<T>(path: string, init?: RequestInit): Promise<T> {
       // Browsers cannot add this to a cross-site request without a CORS preflight, which
       // the server never grants, so its presence proves the call came from this app.
       ...(SAFE_METHODS.has(method) ? {} : { [REQUEST_HEADER]: '1' }),
+      [RICH_TEXT_HEADER]: RICH_TEXT_LEVEL,
       ...(init?.headers ?? {}),
     },
   })

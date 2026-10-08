@@ -540,3 +540,41 @@ T053 → T054 → T055 (server)     T057 → T058 (admin)     T056 (items)     T
 
 The plan delivers one PR closing #35, as earlier features did. The checkpoints are where to
 stop and verify, not separate merges.
+
+---
+
+## Implementation notes (deviations from the task text)
+
+Recorded during `/speckit-implement`, so the tasks above can still be read as written:
+
+- **Packages** (T001): the new TipTap packages are pinned at 3.31.3, written as `~3.31.3` like
+  the others. A plain `~` install picked 3.31.4, whose peer is a newer `@tiptap/pm` than the
+  one installed.
+- **Baseline** (T002): the fixture is built through today's API, not stored as SQL (035 has no
+  migration). Only the Rich Text blocks' markup is compared, because the page around it embeds
+  a hash of `blocks.css`, which 035 changes. The golden file is
+  `tests/fixtures/rendering/upgrade-015/page.html`; the existing renderer golden files under
+  `tests/fixtures/rendering/golden/` also pin every valid example.
+- **Limits parity** (T004): the parity check is
+  `DesignTokenContractTests.The_admins_page_schema_limits_match_the_contract`; the plan's
+  `PageSchemaLimitsParityTests` doesn't exist.
+- **Rule names** (T006): the failure record's pointer is `Location`, like `SchemaFailure`,
+  because the analyzers forbid "pointer" in public names. Item values have no rule names: a
+  value breaking rules 10–12 is simply malformed, as for rule 9.
+- **Emptiness** (T010): the check is in `ItemValueValidator.Check`, which `ItemValidation`
+  calls. A required rich text that holds an empty document is now `missing_required`.
+- **Outdated admins** (T011–T015):
+  - error codes are module-prefixed like every other: `pages.admin_outdated` and
+    `cms.admin_outdated`;
+  - item **duplicate** is not checked: it copies on the server, so an old tab loses nothing;
+    the test asserts that an old tab's duplicate keeps the 035 format;
+  - the item check is in the `SaveItemDraft` slice, which reads the stored draft inside the
+    write; `ItemWrites` is unchanged;
+  - copying a version into a page draft (`PublishingHistory`) passes "keeps every format",
+    since the server does the copy;
+  - the test clients send `X-QB-Rich-Text: 2`, as the admin does; `AdminOutdatedTests`
+    removes it to act as an old tab;
+  - the page draft saves are documented in 010's `pages-api.yaml`, where those endpoints
+    live, not in 011's `editor-api.yaml`;
+  - the admin shows a "Reload the page" button (a full reload, to get the new admin) in
+    `ConflictBanner` and the item form; the autosave state is `outdated`.

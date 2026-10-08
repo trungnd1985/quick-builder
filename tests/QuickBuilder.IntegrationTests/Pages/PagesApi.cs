@@ -132,6 +132,20 @@ internal static class PagesApi
             new StringContent(body, Encoding.UTF8, "application/json"));
     }
 
+    /// <summary>Saves a draft based on the current version, with one extra request header.</summary>
+    public static async Task<HttpResponseMessage> SaveDraftWithHeaderAsync(HttpClient client, string ownerPath, string documentJson, string header, string value)
+    {
+        ArgumentNullException.ThrowIfNull(client);
+
+        var version = (await DraftOkAsync(client, ownerPath).ConfigureAwait(false)).GetProperty("version").GetUInt32();
+        using var request = new HttpRequestMessage(HttpMethod.Put, new Uri($"{ownerPath}/draft", UriKind.Relative))
+        {
+            Content = new StringContent($"{{\"version\":{version},\"document\":{documentJson}}}", Encoding.UTF8, "application/json"),
+        };
+        request.Headers.Add(header, value);
+        return await client.SendAsync(request).ConfigureAwait(false);
+    }
+
     /// <summary>Saves a draft based on the current version.</summary>
     public static async Task<HttpResponseMessage> SaveCurrentDraftAsync(HttpClient client, string ownerPath, string documentJson)
     {

@@ -1,6 +1,9 @@
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Mvc;
 using QuickBuilder.Cms.Domain;
 using QuickBuilder.Cms.Infrastructure;
+using QuickBuilder.Pages.Contracts;
 using QuickBuilder.Shared.Infrastructure.Dispatch;
 using QuickBuilder.Shared.Kernel.Authorization;
 using QuickBuilder.Shared.Kernel.Dispatch;
@@ -8,7 +11,8 @@ using QuickBuilder.Shared.Kernel.Results;
 
 namespace QuickBuilder.Cms.Features.Items.SaveItemDraft;
 
-internal sealed record SaveItemDraftCommand(Guid SiteId, Guid CollectionId, Guid ItemId, DraftRequest Request) : ICommand<Result<ItemResponse>>;
+internal sealed record SaveItemDraftCommand(Guid SiteId, Guid CollectionId, Guid ItemId, DraftRequest Request, bool ClientKeepsEveryFormat)
+    : ICommand<Result<ItemResponse>>;
 
 /// <summary>
 /// Saves an item's draft (015 US1, FR-005, FR-013, FR-014). Never touches its published values
@@ -40,6 +44,13 @@ internal sealed class SaveItemDraftHandler(ItemWrites writes, ItemReads reads, C
                 async context =>
                 {
                     var item = context.Item!;
+
+                    // 035 FR-020: an admin from before 035 would drop rich text formats it does not know.
+                    if (!command.ClientKeepsEveryFormat && UsesExtendedFormats(context.Schema, item.DraftValues()))
+                    {
+                        return Result.Failure<Item?>(CmsErrors.AdminOutdated);
+                    }
+
                     var report = await context.ValidateAsync(item.Id, slug, values, cancellationToken).ConfigureAwait(false);
                     if (ItemSlices.RefuseMalformed(report) is { } refused)
                     {
@@ -55,6 +66,14 @@ internal sealed class SaveItemDraftHandler(ItemWrites writes, ItemReads reads, C
 
         return await ItemSlices.AnswerAsync(written, reads, null, cancellationToken).ConfigureAwait(false);
     }
+
+    /// <summary>Whether any rich text value of the stored draft uses a 035 format (research RT-13).</summary>
+    private static bool UsesExtendedFormats(CollectionSchemaDocument schema, ItemValues draft) =>
+        schema.Fields
+            .Where(f => f.Type == FieldType.RichText)
+            .Select(f => draft.Get(f.Id))
+            .OfType<JsonNode>()
+            .Any(v => RichTextRules.UsesExtendedFormats(JsonSerializer.SerializeToElement(v)));
 }
 
 /// <summary>Administrative surface: save an item's draft.</summary>
@@ -74,7 +93,8 @@ public sealed class SaveItemDraftController(IDispatcher dispatcher) : Controller
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        var result = await dispatcher.SendAsync(new SaveItemDraftCommand(siteId, collectionId, itemId, request), cancellationToken).ConfigureAwait(false);
+        var result = await dispatcher.SendAsync(new SaveItemDraftCommand(
+                siteId, collectionId, itemId, request, RichTextRules.KnowsEveryFormat(Request.Headers[RichTextRules.ClientHeader].FirstOrDefault())), cancellationToken).ConfigureAwait(false);
         return result.IsFailure ? CmsErrorResults.ToActionResult(result.Error) : Ok(result.Value);
     }
 }

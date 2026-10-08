@@ -43,7 +43,7 @@ const changedFields = ref<Set<string>>(new Set())
 const loading = ref(true)
 const saving = ref(false)
 const loadError = ref<string | null>(null)
-const message = ref<{ kind: 'error' | 'info' | 'conflict'; text: string } | null>(null)
+const message = ref<{ kind: 'error' | 'info' | 'conflict' | 'outdated'; text: string } | null>(null)
 const showHistory = ref(false)
 let slugTimer: ReturnType<typeof setTimeout> | undefined
 
@@ -170,6 +170,11 @@ async function save(): Promise<void> {
   }
 }
 
+/** 035 FR-020: an out-of-date admin needs the page itself reloaded, to get the current admin. */
+function reloadPage(): void {
+  window.location.reload()
+}
+
 async function refused(caught: unknown): Promise<void> {
   const code = errorCodeOf(caught)
   const refusal = refusalOf(caught)
@@ -182,6 +187,8 @@ async function refused(caught: unknown): Promise<void> {
     slugSuggestion.value = refusal.suggestion ?? null
     serverProblems.value = [...serverProblems.value.filter((p) => p.fieldId !== SLUG_FIELD), { fieldId: SLUG_FIELD, problem: 'invalid_slug' }]
     message.value = { kind: 'error', text: itemErrorMessage(t, te, caught) }
+  } else if (code === 'cms.admin_outdated') {
+    message.value = { kind: 'outdated', text: t('cms.items.form.outdated') }
   } else if (code === 'cms.item_conflict') {
     message.value = { kind: 'conflict', text: t('cms.items.form.conflict') }
   } else if (code === 'cms.schema_changed') {
@@ -351,6 +358,13 @@ onBeforeUnmount(() => {
           @click="load"
         >
           {{ t('cms.items.form.reload') }}
+        </button>
+        <button
+          v-if="message.kind === 'outdated'"
+          type="button"
+          @click="reloadPage"
+        >
+          {{ t('cms.items.form.reloadPage') }}
         </button>
       </div>
 

@@ -276,9 +276,9 @@ The preview's examples show the converted text, so editors see what's lost. New 
 - From this release, every admin request carries `X-QB-Rich-Text: 2`, added in `api/request.ts`.
 - The three write paths that accept rich text content compare it with what's stored:
   - page and component draft save (`DraftWrites`);
-  - item draft save and duplicate (`ItemWrites`). Item create has no stored draft to protect.
+  - item draft save (`SaveItemDraft`). Item create has no stored draft to protect, and duplicate copies on the server, so an old tab loses nothing by either.
 
-  When the header is missing or below 2 **and** the stored draft uses any version-2 format (`RichTextRules.UsesExtendedFormats`), the write is refused with **409 `admin_outdated`**. The message reads "This page of the admin is out of date. Reload it to keep editing; your last change was not saved."
+  When the header is missing or below 2 **and** the stored draft uses any version-2 format (`RichTextRules.UsesExtendedFormats`), the write is refused with **409 `pages.admin_outdated` or `cms.admin_outdated`**. The message reads "This page of the admin is out of date. Reload it to keep editing; your last change was not saved."
 - Old tabs editing content without the new formats keep working (spec edge case).
 - **Old tabs on new content mostly fail before saving anyway**: the old bundle's own validator rejects unknown node types in untouched blocks. This check covers the remaining case, a block the old tab re-normalised.
 

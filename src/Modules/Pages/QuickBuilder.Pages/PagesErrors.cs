@@ -26,6 +26,11 @@ internal static class PagesErrors
         "pages.out_of_date",
         "This was changed by someone else since you opened it. Reload and try again.");
 
+    /// <summary>035 FR-020: an admin from before 035 would drop rich text formats it does not know.</summary>
+    internal static Error AdminOutdated { get; } = Error.Conflict(
+        "pages.admin_outdated",
+        "This page of the admin is out of date. Reload it to keep editing; your last change was not saved.");
+
     internal static Error NotFound { get; } = Error.NotFound("pages.not_found", "No such page on this site.");
 
     internal static Error ComponentNotFound { get; } =

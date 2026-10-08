@@ -125,6 +125,55 @@ public static class RichTextRules
             _ => false,
         });
 
+    /// <summary>
+    /// Every Rich Text block's content in a page or component document, with the pointer to
+    /// that content (<c>…/props/content</c>), in document order.
+    /// </summary>
+    public static IEnumerable<(JsonElement Content, string Location)> RichTextBlocks(JsonElement document)
+    {
+        if (document.ValueKind != JsonValueKind.Object || !document.TryGetProperty("root", out var root))
+        {
+            yield break;
+        }
+
+        var pending = new Stack<(JsonElement Node, string Location)>();
+        pending.Push((root, "/root"));
+
+        while (pending.Count > 0)
+        {
+            var (node, at) = pending.Pop();
+            if (node.ValueKind != JsonValueKind.Object)
+            {
+                continue;
+            }
+
+            if (TypeOf(node) == "rich-text"
+                && node.TryGetProperty("props", out var props) && props.ValueKind == JsonValueKind.Object
+                && props.TryGetProperty("content", out var content))
+            {
+                yield return (content, $"{at}/props/content");
+            }
+
+            if (node.TryGetProperty("children", out var children) && children.ValueKind == JsonValueKind.Array)
+            {
+                var list = children.EnumerateArray().ToList();
+                for (var i = list.Count - 1; i >= 0; i--)
+                {
+                    pending.Push((list[i], $"{at}/children/{i}"));
+                }
+            }
+        }
+    }
+
+    /// <summary>Whether any Rich Text block of a page or component document uses a 035 format.</summary>
+    public static bool DocumentUsesExtendedFormats(JsonElement document) =>
+        RichTextBlocks(document).Any(b => UsesExtendedFormats(b.Content));
+
+    /// <summary>Whether a client that sent <paramref name="level"/> in <see cref="ClientHeader"/> keeps every format.</summary>
+    public static bool KnowsEveryFormat(string? level) =>
+        int.TryParse(level, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var value)
+        && value >= CurrentClientLevel;
+
     private static bool HasAltOrIsDecorative(JsonElement image)
     {
         if (!image.TryGetProperty("attrs", out var attrs) || attrs.ValueKind != JsonValueKind.Object)

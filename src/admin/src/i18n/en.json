@@ -777,7 +777,8 @@
         "conflict": "Not saved — changed elsewhere",
         "forbidden": "Not saved — no permission",
         "gone": "Not saved — the page is gone",
-        "invalid": "Not saved — the page could not be checked"
+        "invalid": "Not saved — the page could not be checked",
+        "outdated": "Not saved — this page of the admin is out of date"
       }
     },
     "readOnly": {
@@ -786,7 +787,8 @@
       "gone": "This page no longer exists. Your changes were not saved.",
       "invalid": "This page cannot be edited here because its stored content does not pass the page schema check.",
       "invalidRule": "This page cannot be edited here: {reason}",
-      "recovery": "You are viewing unsaved changes from an earlier visit, read-only. Copy the blocks you want to keep."
+      "recovery": "You are viewing unsaved changes from an earlier visit, read-only. Copy the blocks you want to keep.",
+      "outdated": "This page of the admin is out of date, so your last change was not saved. Reload the page to keep editing."
     },
     "announce": {
       "inserted": "{name} added",
@@ -850,7 +852,8 @@
         "editor_content_widths_order": "The content widths must go from narrowest to widest: Narrow, then Normal, then Wide.",
         "editor_token_required": "Keep at least one colour, one text size and one spacing step.",
         "editor_tokens_too_large": "The design tokens are larger than 64 KB.",
-        "editor_unsupported_schema_version": "These design tokens were written by a newer version of QuickBuilder."
+        "editor_unsupported_schema_version": "These design tokens were written by a newer version of QuickBuilder.",
+        "pages_admin_outdated": "This page of the admin is out of date. Reload it to keep editing."
       }
     },
     "richText": {
@@ -996,7 +999,8 @@
       "reload": "Reload latest",
       "reloading": "Reloading…",
       "reloaded": "The latest saved version is now open.",
-      "confirmReload": "Reload the latest saved version? Changes you have not copied will be lost. Blocks you copied stay on the clipboard, ready to paste."
+      "confirmReload": "Reload the latest saved version? Changes you have not copied will be lost. Blocks you copied stay on the clipboard, ready to paste.",
+      "reloadPage": "Reload the page"
     },
     "recovery": {
       "title": "Unsaved changes found",
@@ -1593,7 +1597,9 @@
         "fieldChanged": "This field changed.",
         "reload": "Reload",
         "timeZone": "Times are in {zone}.",
-        "loading": "Loading the item…"
+        "loading": "Loading the item…",
+        "outdated": "This page of the admin is out of date, so your last change was not saved. Reload the page to keep editing.",
+        "reloadPage": "Reload the page"
       },
       "inputs": {
         "pickImage": "Choose an image…",
@@ -1603,8 +1609,8 @@
         "pickItem": "Choose…",
         "pickItems": "Add items…",
         "moveUp": "Move {name} up",
-          "upSymbol": "↑",
-          "downSymbol": "↓",
+        "upSymbol": "↑",
+        "downSymbol": "↓",
         "moveDown": "Move {name} down",
         "remove": "Remove {name}",
         "moved": "{name} moved to position {position}.",
@@ -1752,7 +1758,7 @@
         "too_many_decimals": "At most {limit} decimal places.",
         "file_kind": "This kind of file is not allowed here.",
         "media_missing": "The file was deleted from the media library.",
-          "schedule_failed": "A scheduled action failed. See the history."
+        "schedule_failed": "A scheduled action failed. See the history."
       }
     }
   }
