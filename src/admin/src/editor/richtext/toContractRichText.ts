@@ -64,9 +64,30 @@ const holdsBlocks = (content: Json[]): boolean =>
  */
 type Place = 'top' | 'nested'
 
+/** A heading level the contract allows: 1 reads as 2, and 5 and below as 4 (035 US4 scenario 1). */
+function headingLevel(attrs: unknown): number {
+  const level = isObject(attrs) && typeof attrs.level === 'number' ? attrs.level : 2
+  return Math.min(4, Math.max(2, Math.round(level)))
+}
+
 function block(node: unknown, place: Place = 'top'): Json[] {
   if (!isObject(node)) return []
   const content = Array.isArray(node.content) ? node.content : []
+
+  // Headings and quotes live at the top level only; anywhere else they become their paragraphs.
+  if (node.type === 'heading') {
+    const text = content.flatMap(inline)
+    if (place === 'nested') return [text.length > 0 ? { type: 'paragraph', content: text } : { type: 'paragraph' }]
+    const heading: { [key: string]: Json } = { type: 'heading', attrs: { level: headingLevel(node.attrs) } }
+    if (text.length > 0) heading.content = text
+    return [heading]
+  }
+
+  if (node.type === 'blockquote') {
+    const inner = content.flatMap((child) => block(child, 'nested'))
+    if (place === 'nested') return inner
+    return [{ type: 'blockquote', content: inner.length > 0 ? inner : [{ type: 'paragraph' }] }]
+  }
 
   if (node.type === 'bulletList' || node.type === 'orderedList') {
     const items = content.map(listItem).filter((i): i is Json => i !== null)

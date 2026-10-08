@@ -9,9 +9,12 @@
 // the editor never navigates and never points outside the installation (SC-008); the
 // renderer (#12) turns `to` into an address.
 
-import { Editor, Mark, type Extensions, type JSONContent } from '@tiptap/core'
+import { Editor, Extension, Mark, type Extensions, type JSONContent } from '@tiptap/core'
+import { Plugin } from '@tiptap/pm/state'
 import Document from '@tiptap/extension-document'
 import Paragraph from '@tiptap/extension-paragraph'
+import Heading from '@tiptap/extension-heading'
+import Blockquote from '@tiptap/extension-blockquote'
 import Text from '@tiptap/extension-text'
 import HardBreak from '@tiptap/extension-hard-break'
 import Bold from '@tiptap/extension-bold'
@@ -54,8 +57,71 @@ export const ContractLink = Mark.create({
   },
 })
 
+/** What list items and quotes may hold (`rtListBlock`, 035 research RT-01). */
+const LIST_BLOCKS = '(paragraph|bulletList|orderedList)'
+
+/**
+ * Headings of levels 2 to 4 (035 US1). Pasted `h1` reads as level 2 and `h5`, `h6` as 4 (US4
+ * scenario 1). The shortcuts are BlockStyleKeys', so AltGr typing is never taken for one.
+ */
+export const ContractHeading = Heading.extend({
+  parseHTML() {
+    return [
+      { tag: 'h1', attrs: { level: 2 } },
+      { tag: 'h2', attrs: { level: 2 } },
+      { tag: 'h3', attrs: { level: 3 } },
+      { tag: 'h4', attrs: { level: 4 } },
+      { tag: 'h5', attrs: { level: 4 } },
+      { tag: 'h6', attrs: { level: 4 } },
+    ]
+  },
+  addKeyboardShortcuts() {
+    return {}
+  },
+}).configure({ levels: [2, 3, 4] })
+
+const ContractParagraph = Paragraph.extend({
+  addKeyboardShortcuts() {
+    return {}
+  },
+})
+
+const ContractBlockquote = Blockquote.extend({ content: `${LIST_BLOCKS}+` })
+
+const ContractListItem = ListItem.extend({ content: `paragraph ${LIST_BLOCKS}*` })
+
+/**
+ * Ctrl/Cmd+Alt+2, 3 and 4 for headings, and 0 for a paragraph (035 FR-008). On Windows, Ctrl+Alt
+ * is AltGr, and on some layouts AltGr+2 types a character: the key pressed must be the digit
+ * itself, so that typing wins (research RT-07). On macOS, Option changes `key`, so the
+ * physical key is read instead; there is no AltGr there.
+ */
+const BlockStyleKeys = Extension.create({
+  name: 'blockStyleKeys',
+  addProseMirrorPlugins() {
+    const editor = this.editor
+    return [
+      new Plugin({
+        props: {
+          handleKeyDown: (_view, event) => {
+            if (!(event.ctrlKey || event.metaKey) || !event.altKey || event.shiftKey) return false
+            const digit = event.metaKey ? /^Digit(d)$/.exec(event.code)?.[1] : event.key
+            if (digit === '0') return editor.commands.setParagraph()
+            if (digit === '2' || digit === '3' || digit === '4') return editor.commands.toggleHeading({ level: Number(digit) as 2 | 3 | 4 })
+            return false
+          },
+        },
+      }),
+    ]
+  },
+})
+
 export function richTextExtensions(): Extensions {
-  return [Document, Paragraph, Text, HardBreak, Bold, Italic, BulletList, OrderedList, ListItem, ContractLink]
+  return [
+    Document, ContractParagraph, Text, HardBreak, Bold, Italic,
+    BulletList, OrderedList, ContractListItem, ContractLink,
+    ContractHeading, ContractBlockquote, BlockStyleKeys,
+  ]
 }
 
 export interface RichTextEditorOptions {

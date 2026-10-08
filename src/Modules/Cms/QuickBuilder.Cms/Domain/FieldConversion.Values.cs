@@ -225,7 +225,10 @@ internal static partial class FieldConversion
         {
             switch (block["type"]?.GetValue<string>())
             {
+                case "heading":
                 case "paragraph":
+                    // A heading is a line like a paragraph, and its being a heading is lost (035 RT-12).
+                    lost |= block["type"]!.GetValue<string>() == "heading";
                     var line = new StringBuilder();
                     foreach (var inline in block["content"]?.AsArray() ?? [])
                     {
@@ -241,6 +244,15 @@ internal static partial class FieldConversion
                     }
 
                     blocks.Add(line.ToString());
+                    break;
+                case "blockquote":
+                    // A quote's paragraphs and lists become lines; the quote itself is dropped (035 RT-12).
+                    lost = true;
+                    foreach (var child in block["content"]?.AsArray() ?? [])
+                    {
+                        Block(child!);
+                    }
+
                     break;
                 default:
                     // A list: its items' blocks become lines, and the list itself is dropped.

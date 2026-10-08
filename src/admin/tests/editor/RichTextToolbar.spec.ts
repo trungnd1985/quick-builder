@@ -116,3 +116,64 @@ describe('RichTextToolbar', () => {
     expect((await axe.run(container)).violations).toEqual([])
   })
 })
+
+describe('RichTextToolbar: headings and quotes (035 US1)', () => {
+  const firstBlock = () => editor!.getJSON().content![0]!
+
+  it('sets paragraph and headings 2 to 4 from the block style menu, which follows the cursor', async () => {
+    mount()
+    const style = screen.getByRole('combobox', { name: en.editor.richText.blockStyle }) as HTMLSelectElement
+    expect(style.value).toBe('paragraph')
+
+    await fireEvent.update(style, 'heading-2')
+    expect(firstBlock()).toMatchObject({ type: 'heading', attrs: { level: 2 } })
+    expect(style.value).toBe('heading-2')
+
+    await fireEvent.update(style, 'heading-4')
+    expect(firstBlock()).toMatchObject({ type: 'heading', attrs: { level: 4 } })
+
+    await fireEvent.update(style, 'paragraph')
+    expect(firstBlock()).toMatchObject({ type: 'paragraph' })
+    expect([...style.options].map((o) => o.textContent?.trim())).toEqual([
+      en.editor.richText.paragraph, en.editor.richText.heading2, en.editor.richText.heading3, en.editor.richText.heading4,
+    ])
+  })
+
+  it('toggles a quote around the block', async () => {
+    mount()
+    const quote = screen.getByRole('button', { name: en.editor.richText.quote })
+
+    await fireEvent.click(quote)
+    expect(firstBlock()).toMatchObject({ type: 'blockquote' })
+    expect(quote.getAttribute('aria-pressed')).toBe('true')
+
+    await fireEvent.click(quote)
+    expect(firstBlock()).toMatchObject({ type: 'paragraph' })
+  })
+
+  it.each([['2', 2], ['3', 3], ['4', 4]])('makes a heading with Ctrl+Alt+%s, and a paragraph again with Ctrl+Alt+0', async (key, level) => {
+    mount()
+
+    await fireEvent.keyDown(editor!.view.dom, { key, code: `Digit${key}`, ctrlKey: true, altKey: true })
+    expect(firstBlock()).toMatchObject({ type: 'heading', attrs: { level } })
+
+    await fireEvent.keyDown(editor!.view.dom, { key: '0', code: 'Digit0', ctrlKey: true, altKey: true })
+    expect(firstBlock()).toMatchObject({ type: 'paragraph' })
+  })
+
+  it('leaves AltGr typing alone: a character typed with Ctrl+Alt+2 changes no heading', async () => {
+    mount()
+
+    await fireEvent.keyDown(editor!.view.dom, { key: '²', code: 'Digit2', keyCode: 50, ctrlKey: true, altKey: true })
+
+    expect(firstBlock()).toMatchObject({ type: 'paragraph' })
+  })
+
+  it('hides headings and quotes when the field does not allow them', () => {
+    mount({ allowed: { headings: false, images: true, tables: true } })
+
+    expect(screen.queryByRole('combobox', { name: en.editor.richText.blockStyle })).toBeNull()
+    expect(screen.queryByRole('button', { name: en.editor.richText.quote })).toBeNull()
+  })
+})
+

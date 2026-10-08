@@ -49,6 +49,13 @@ function renderBlock(node: Json, key: number, links: LinkMarking): VNode | null 
   switch (node.type) {
     case 'paragraph':
       return h('p', { key }, content.map((c, i) => renderInline(c, i, links)).filter((c): c is VNode | string => c !== null) as Children)
+    case 'heading': {
+      // Levels 2 to 4, as the renderer draws them (035 US1).
+      const level = isObject(node.attrs) && typeof node.attrs.level === 'number' ? Math.min(4, Math.max(2, node.attrs.level)) : 2
+      return h(`h${level}`, { key }, content.map((c, i) => renderInline(c, i, links)).filter((c): c is VNode | string => c !== null) as Children)
+    }
+    case 'blockquote':
+      return h('blockquote', { key }, content.map((c, i) => renderBlock(c, i, links)).filter((c): c is VNode => c !== null))
     case 'bulletList':
       return h('ul', { key }, content.map((c, i) => renderBlock(c, i, links)).filter((c): c is VNode => c !== null))
     case 'orderedList': {

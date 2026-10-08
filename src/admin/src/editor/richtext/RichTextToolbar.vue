@@ -22,7 +22,10 @@ export interface RichTextHistory {
 
 interface Control {
   id: string
-  icon: IconName
+  /** A menu instead of a button: the block style (035 US1). */
+  kind?: 'select'
+  /** Every button has one; the menu has none. */
+  icon?: IconName
   label: string
   shortcut?: string
   /** Whether the format is on at the cursor; absent for actions. */
@@ -89,6 +92,11 @@ const groups = computed<Control[][]>(() => {
       ]
     : []
 
+  // The block style menu: a native select, so its own arrow keys keep working (RT-07).
+  const block: Control[] = props.allowed.headings
+    ? [{ id: 'blockStyle', kind: 'select', label: t('editor.richText.blockStyle'), run: () => undefined }]
+    : []
+
   const inline: Control[] = [
     { id: 'bold', icon: 'bold', label: t('editor.richText.bold'), shortcut: 'Mod+B', pressed: active('bold'), run: run((c) => c.toggleBold()) },
     { id: 'italic', icon: 'italic', label: t('editor.richText.italic'), shortcut: 'Mod+I', pressed: active('italic'), run: run((c) => c.toggleItalic()) },
@@ -97,16 +105,37 @@ const groups = computed<Control[][]>(() => {
   const lists: Control[] = [
     { id: 'bulletList', icon: 'bullet-list', label: t('editor.richText.bulletList'), shortcut: 'Mod+Shift+8', pressed: active('bulletList'), run: run((c) => c.toggleBulletList()) },
     { id: 'orderedList', icon: 'numbered-list', label: t('editor.richText.orderedList'), shortcut: 'Mod+Shift+7', pressed: active('orderedList'), run: run((c) => c.toggleOrderedList()) },
+    ...(props.allowed.headings
+      ? [{ id: 'quote', icon: 'quote', label: t('editor.richText.quote'), shortcut: 'Mod+Shift+B', pressed: active('blockquote'), run: run((c) => c.toggleBlockquote()) } satisfies Control]
+      : []),
   ]
 
   const insert: Control[] = [
     { id: 'link', icon: 'link', label: t('editor.richText.link'), pressed: active('link'), expanded: linking.value, run: toggleLink },
   ]
 
-  return [history, inline, lists, insert].filter((group) => group.length > 0)
+  return [history, block, inline, lists, insert].filter((group) => group.length > 0)
 })
 
 const flat = computed(() => groups.value.flat())
+
+const BLOCK_STYLES = ['paragraph', 'heading-2', 'heading-3', 'heading-4'] as const
+type BlockStyle = (typeof BLOCK_STYLES)[number]
+
+const blockStyle = computed<BlockStyle>(() => {
+  for (const level of [2, 3, 4] as const) if (active('heading', { level })) return `heading-${level}`
+  return 'paragraph'
+})
+
+const styleLabel = (style: BlockStyle): string =>
+  style === 'paragraph' ? t('editor.richText.paragraph') : t(`editor.richText.heading${style.slice(-1)}`)
+
+function setBlockStyle(event: Event): void {
+  const style = (event.target as HTMLSelectElement).value as BlockStyle
+  const chain = props.editor.chain().focus()
+  if (style === 'paragraph') chain.setParagraph().run()
+  else chain.setHeading({ level: Number(style.slice(-1)) as 2 | 3 | 4 }).run()
+}
 
 // Roving tab stop: one control is in the tab order; the arrow keys move it.
 const current = ref(0)
@@ -162,20 +191,41 @@ const indexOf = (control: Control): number => flat.value.indexOf(control)
         aria-orientation="vertical"
       />
       <div class="qb-rt-toolbar__group">
-        <IconButton
+        <template
           v-for="control in group"
           :key="control.id"
-          data-rt-control
-          :icon="control.icon"
-          :label="control.label"
-          :shortcut="control.shortcut"
-          :disabled="control.disabled"
-          :aria-pressed="control.pressed === undefined ? undefined : control.pressed"
-          :aria-expanded="control.expanded === undefined ? undefined : control.expanded"
-          :tabindex="indexOf(control) === current ? 0 : -1"
-          @mousedown.prevent
-          @click="control.run()"
-        />
+        >
+          <select
+            v-if="control.kind === 'select'"
+            data-rt-control
+            class="qb-rt-toolbar__style"
+            :aria-label="control.label"
+            :value="blockStyle"
+            :tabindex="indexOf(control) === current ? 0 : -1"
+            @change="setBlockStyle"
+          >
+            <option
+              v-for="style in BLOCK_STYLES"
+              :key="style"
+              :value="style"
+            >
+              {{ styleLabel(style) }}
+            </option>
+          </select>
+          <IconButton
+            v-else
+            data-rt-control
+            :icon="control.icon!"
+            :label="control.label"
+            :shortcut="control.shortcut"
+            :disabled="control.disabled"
+            :aria-pressed="control.pressed === undefined ? undefined : control.pressed"
+            :aria-expanded="control.expanded === undefined ? undefined : control.expanded"
+            :tabindex="indexOf(control) === current ? 0 : -1"
+            @mousedown.prevent
+            @click="control.run()"
+          />
+        </template>
       </div>
     </template>
     <div

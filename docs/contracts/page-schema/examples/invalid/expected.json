@@ -28,5 +28,10 @@
   "props_invalid--section-width-huge.json": { "rule": "props_invalid", "pointer": "/root/children/0/props/width" },
   "props_invalid--container-max-width.json": { "rule": "props_invalid", "pointer": "/root/children/0/children/0/props/maxWidth" },
   "props_invalid--container-columns.json": { "rule": "props_invalid", "pointer": "/root/children/0/children/0/props/columns" },
-  "rich_text_too_long--20001.json": { "rule": "rich_text_too_long", "pointer": "/root/children/0/children/0/props/content" }
+  "rich_text_too_long--20001.json": { "rule": "rich_text_too_long", "pointer": "/root/children/0/children/0/props/content" },
+  "props_invalid--rich-text-heading-level-1.json": { "rule": "props_invalid", "pointer": "/root/children/0/children/0/props/content/content/0/attrs/level" },
+  "props_invalid--rich-text-heading-level-5.json": { "rule": "props_invalid", "pointer": "/root/children/0/children/0/props/content/content/0/attrs/level" },
+  "props_invalid--rich-text-quote-in-quote.json": { "rule": "props_invalid", "pointer": "/root/children/0/children/0/props/content/content/0/content/0/type" },
+  "props_invalid--rich-text-heading-in-list.json": { "rule": "props_invalid", "pointer": "/root/children/0/children/0/props/content/content/0/content/0/content/0/type" },
+  "props_invalid--rich-text-table-in-quote.json": { "rule": "props_invalid", "pointer": "/root/children/0/children/0/props/content/content/0/content/0/type" }
 }

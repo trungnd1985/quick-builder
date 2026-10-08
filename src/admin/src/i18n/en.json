@@ -864,7 +864,13 @@
       "orderedList": "Numbered list",
       "link": "Link",
       "undo": "Undo",
-      "redo": "Redo"
+      "redo": "Redo",
+      "blockStyle": "Text style",
+      "paragraph": "Paragraph",
+      "heading2": "Heading 2",
+      "heading3": "Heading 3",
+      "heading4": "Heading 4",
+      "quote": "Quote"
     },
     "panel": {
       "title": "Properties",

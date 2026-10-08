@@ -585,3 +585,15 @@ Recorded during `/speckit-implement`, so the tasks above can still be read as wr
   (`AllowedFormats`, `ALL_FORMATS`). The toolbar counts the editor's transactions to keep
   its pressed states current. Shared layout styles are in `ADMIN/styles.css`; the canvas's
   colours stay in `ADMIN/editor/editor.css`.
+- **Conversion** (T025, T032 and later): the admin only classifies `richText → text` as lossy;
+  the server converts and builds the preview's examples, so only `FieldConversion.Values.cs`
+  and its tests change. `schemaChanges.ts` needs nothing.
+- **Headings** (T027): the heading and paragraph extensions' own shortcuts are switched off,
+  and `BlockStyleKeys` handles Ctrl/Cmd+Alt+0, 2, 3 and 4: on Windows it needs the typed key
+  to be the digit, so AltGr typing wins; on macOS it reads the physical key, since Option
+  changes `key`. List items hold `paragraph (paragraph|bulletList|orderedList)*` in TipTap,
+  so headings can't be typed into them. The quote's shortcut is TipTap's `Mod+Shift+B`.
+- **Golden pages** (T029): the full-page golden files link `blocks.css` by a content hash, so
+  every one changes by that one line when `blocks.css` does; the rich text markup is unchanged.
+- **Styles** (T031): rich text heading sizes use the Heading block's tokens for the same level
+  (`text-2xl`, `text-xl`, `text-lg`) with fallbacks, since a site can edit its tokens.

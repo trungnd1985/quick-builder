@@ -175,6 +175,22 @@ public sealed class FieldConversionTests
     }
 
     [Fact]
+    public void Headings_and_quoted_paragraphs_become_lines_and_their_formatting_is_lost()
+    {
+        const string document = """
+            {"type":"doc","content":[
+              {"type":"heading","attrs":{"level":2},"content":[{"type":"text","text":"Title"}]},
+              {"type":"blockquote","content":[
+                {"type":"paragraph","content":[{"type":"text","text":"Said"}]},
+                {"type":"bulletList","content":[{"type":"listItem","content":[{"type":"paragraph","content":[{"type":"text","text":"Item"}]}]}]}]},
+              {"type":"paragraph","content":[{"type":"text","text":"End"}]}]}
+            """;
+
+        Assert.Equal(("PartlyLost", "\"Title\\nSaid\\nItem\\nEnd\""), Run(Of(FieldType.RichText, "f1"), Text("f1", multiline: true, maxLength: 5000), document));
+        Assert.Equal(("PartlyLost", "\"Title Said Item End\""), Run(Of(FieldType.RichText, "f1"), Text("f1"), document));
+    }
+
+    [Fact]
     public void Several_lines_become_one_joined_with_spaces()
     {
         Assert.Equal(("Converted", "\"a b c\""), Run(Text("f1", multiline: true), Text("f1"), "\"a\\nb\\r\\nc\""));

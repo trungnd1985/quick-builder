@@ -7,9 +7,10 @@ namespace QuickBuilder.Rendering.Rendering;
 /// Stored rich text as HTML, through an allow-list (012 research PR-11; constitution Principle IX).
 /// </summary>
 /// <remarks>
-/// The same elements the canvas draws (RichTextView.ts): paragraph → <c>p</c>, bullet list →
-/// <c>ul</c>, ordered list → <c>ol</c>, list item → <c>li</c>, hard break → <c>br</c>, and the
-/// marks bold → <c>strong</c>, italic → <c>em</c>, link → <c>a</c>. Nothing else is ever
+/// The same elements the canvas draws (RichTextView.ts): paragraph → <c>p</c>, heading →
+/// <c>h2</c>–<c>h4</c> and quote → <c>blockquote</c> (035), bullet list → <c>ul</c>, ordered list →
+/// <c>ol</c>, list item → <c>li</c>, hard break → <c>br</c>, and the marks bold → <c>strong</c>,
+/// italic → <c>em</c>, link → <c>a</c>. Nothing else is ever
 /// written; a node or mark of another kind is skipped. Unmarked text sits in a <c>span</c>, as
 /// on the canvas. A link to a page that is not live keeps its text and loses the link.
 /// </remarks>
@@ -50,6 +51,27 @@ internal static class RichTextRenderer
                 }
 
                 writer.Markup("</p>");
+                break;
+
+            case "heading":
+                var level = HeadingLevel(node);
+                writer.Markup($"<h{level}>");
+                foreach (var inline in Children(node))
+                {
+                    RenderInline(inline, context, writer);
+                }
+
+                writer.Markup($"</h{level}>");
+                break;
+
+            case "blockquote":
+                writer.Markup("<blockquote>");
+                foreach (var child in Children(node))
+                {
+                    RenderBlock(child, context, writer);
+                }
+
+                writer.Markup("</blockquote>");
                 break;
 
             case "bulletList":
@@ -152,6 +174,13 @@ internal static class RichTextRenderer
         // Both pieces were produced by HtmlWriter: the text encoded, the tags constant.
         writer.Markup(wrapped ? content : $"<span>{content}</span>");
     }
+
+    /// <summary>A heading's level, 2 to 4; anything else is drawn as the nearest of those (035).</summary>
+    private static int HeadingLevel(JsonElement node) =>
+        node.TryGetProperty("attrs", out var attrs) && attrs.ValueKind == JsonValueKind.Object
+            && attrs.TryGetProperty("level", out var level) && level.TryGetInt32(out var value)
+            ? Math.Clamp(value, 2, 4)
+            : 2;
 
     private static List<JsonElement> Children(JsonElement node) =>
         node.TryGetProperty("content", out var content) && content.ValueKind == JsonValueKind.Array
