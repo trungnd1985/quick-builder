@@ -692,3 +692,6 @@ Recorded during `/speckit-implement`, so the tasks above can still be read as wr
 - **Published accessibility** (T096): axe runs over every `rich-text-*` golden page with the
   rules for heading order, image alternative text, table headers, lists, link names and
   scrollable regions. `empty-heading` is not in scope: an empty heading is valid content.
+- **Full run** (T100): results in [quickstart-results.md](./quickstart-results.md). The 013 media
+  backfill test now compares only examples without 035 formats, since no document of its time
+  could hold them. The one smoke failure is issue #28, unchanged by 035.
