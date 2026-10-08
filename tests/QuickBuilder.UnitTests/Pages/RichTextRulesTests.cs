@@ -139,6 +139,23 @@ public sealed class RichTextRulesTests
         Assert.False(RichTextRules.UsesExtendedFormats(doc));
     }
 
+    [Theory]
+    [InlineData("")]
+    [InlineData("""{"type":"paragraph"}""")]
+    [InlineData("""{"type":"paragraph"},{"type":"heading","attrs":{"level":2}}""")]
+    [InlineData("""{"type":"blockquote","content":[{"type":"paragraph"}]}""")]
+    [InlineData("""{"type":"table","content":[{"type":"tableRow","content":[{"type":"tableCell","content":[{"type":"paragraph"}]}]}]}""")]
+    [InlineData("""{"type":"paragraph","content":[{"type":"hardBreak"}]}""")]
+    public void A_rich_text_without_text_or_images_is_empty(string blocks) =>
+        Assert.True(RichTextRules.IsEmpty(JsonDocument.Parse($"{{\"type\":\"doc\",\"content\":[{blocks}]}}").RootElement));
+
+    [Fact]
+    public void One_image_or_one_character_is_not_empty()
+    {
+        Assert.False(RichTextRules.IsEmpty(Doc(Image())));
+        Assert.False(RichTextRules.IsEmpty(Doc(Paragraph("x"))));
+    }
+
     [Fact]
     public void Anything_that_is_not_a_document_is_not_extended_and_breaks_no_rule()
     {

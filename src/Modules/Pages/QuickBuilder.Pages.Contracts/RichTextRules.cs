@@ -112,6 +112,19 @@ public static class RichTextRules
             || (n.Node.TryGetProperty("attrs", out var attrs) && attrs.ValueKind == JsonValueKind.Object && attrs.TryGetProperty("align", out _))
             || Marks(n.Node).Any(m => ExtendedMarks.Contains(TypeOf(m) ?? string.Empty)));
 
+    /// <summary>
+    /// Whether <paramref name="document"/> is empty: no text and no images (035 spec edge case
+    /// "Empty structures"). Empty paragraphs, headings, quotes and tables don't count, so an
+    /// empty rich text is no value, and one holding only an image is not empty.
+    /// </summary>
+    public static bool IsEmpty(JsonElement document) =>
+        !Nodes(document, string.Empty).Any(n => TypeOf(n.Node) switch
+        {
+            "image" => true,
+            "text" => n.Node.TryGetProperty("text", out var text) && text.ValueKind == JsonValueKind.String && text.GetString()!.Length > 0,
+            _ => false,
+        });
+
     private static bool HasAltOrIsDecorative(JsonElement image)
     {
         if (!image.TryGetProperty("attrs", out var attrs) || attrs.ValueKind != JsonValueKind.Object)

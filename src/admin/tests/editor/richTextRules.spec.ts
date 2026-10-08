@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { checkRichTextRules, imagesWithoutAlt, usesExtendedFormats } from '../../src/editor/schema/richTextRules'
+import { checkRichTextRules, imagesWithoutAlt, isEmptyRichText, usesExtendedFormats } from '../../src/editor/schema/richTextRules'
 import type { Json } from '../../src/editor/schema/subsetValidator'
 
 // The same cases as the server's RichTextRulesTests (035 research RT-02, SC-007).
@@ -60,6 +60,24 @@ describe('rich text rules 10–12', () => {
   it('passes a table at the limits, with or without a header row', () => {
     expect(checkRichTextRules(doc(grid(200, 20)), AT)).toBeNull()
     expect(checkRichTextRules(doc(grid(3, 3, false)), AT)).toBeNull()
+  })
+})
+
+describe('emptiness', () => {
+  it.each<Json[]>([
+    [],
+    [{ type: 'paragraph' }],
+    [{ type: 'paragraph' }, { type: 'heading', attrs: { level: 2 } }],
+    [{ type: 'blockquote', content: [{ type: 'paragraph' }] }],
+    [table(row(cell()))],
+    [{ type: 'paragraph', content: [{ type: 'hardBreak' }] }],
+  ])('a rich text without text or images is empty (%#)', (...blocks) => {
+    expect(isEmptyRichText(doc(...blocks))).toBe(true)
+  })
+
+  it('one image or one character is not empty', () => {
+    expect(isEmptyRichText(doc(image()))).toBe(false)
+    expect(isEmptyRichText(doc(paragraph('x')))).toBe(false)
   })
 })
 

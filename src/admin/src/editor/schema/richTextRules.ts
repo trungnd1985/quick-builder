@@ -71,6 +71,15 @@ export function checkRichTextRules(document: Json, pointer: string): RichTextFai
   return null
 }
 
+/**
+ * Whether the document is empty: no text and no images (035 spec edge case "Empty
+ * structures"). An empty rich text is no value; one holding only an image is not empty.
+ */
+export function isEmptyRichText(document: Json): boolean {
+  return !nodes(document, '').some(({ node }) =>
+    node.type === 'image' || (node.type === 'text' && typeof node.text === 'string' && node.text.length > 0))
+}
+
 function hasAltOrIsDecorative(image: { [key: string]: Json }): boolean {
   const attrs = image.attrs
   if (!isObject(attrs)) return false

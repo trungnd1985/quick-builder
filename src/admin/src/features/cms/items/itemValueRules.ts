@@ -11,7 +11,7 @@ import type { Problem } from '../../../api/items'
 import { codePointLength, type Json } from '../../../editor/schema/subsetValidator'
 import { pageSchema } from '../../../editor/schema/schema'
 import { richTextChars } from '../../../editor/schema/documentValidator'
-import { checkRichTextRules } from '../../../editor/schema/richTextRules'
+import { checkRichTextRules, isEmptyRichText } from '../../../editor/schema/richTextRules'
 import { MAX_RICH_TEXT_CHARS } from '../../../editor/schema/limits'
 import { collectionSchema } from '../collectionSchema'
 
@@ -128,6 +128,11 @@ function checkField(field: SchemaField, value: Json | undefined, itemId: string 
   }
 
   if (!isWellFormed(field, value)) return { fieldId: field.id, problem: 'malformed' }
+
+  // A rich text with no text and no images is no value (035 spec edge case "Empty structures").
+  if (field.type === 'richText' && isEmptyRichText(value)) {
+    return field.required ? { fieldId: field.id, problem: 'missing_required' } : null
+  }
 
   const setting = settingProblem(field, value)
   if (setting) return setting

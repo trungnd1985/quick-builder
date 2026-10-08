@@ -116,13 +116,13 @@ Shorthand used below:
 
 ### Emptiness (spec edge case "Empty structures", RT-02)
 
-- [ ] T009 [P] Add `IsEmpty` cases to `UTESTS/Pages/RichTextRulesTests.cs` and `ADMINTESTS/editor/richTextRules.spec.ts` (they must fail first). An empty doc, empty paragraphs, an empty table and an empty quote are empty. One image alone, and one character, are not.
-- [ ] T010 Implement `RichTextRules.IsEmpty` in `PAGESC/RichTextRules.cs` and `isEmptyRichText` in `ADMIN/editor/schema/richTextRules.ts`. Use them:
+- [X] T009 [P] Add `IsEmpty` cases to `UTESTS/Pages/RichTextRulesTests.cs` and `ADMINTESTS/editor/richTextRules.spec.ts` (they must fail first). An empty doc, empty paragraphs, an empty table and an empty quote are empty. One image alone, and one character, are not.
+- [X] T010 Implement `RichTextRules.IsEmpty` in `PAGESC/RichTextRules.cs` and `isEmptyRichText` in `ADMIN/editor/schema/richTextRules.ts`. Use them:
   - in `ITEMUI/inputs/RichTextInput.vue`, in place of `richTextChars(doc) === 0`;
   - in `ITEMUI/itemValueRules.ts`;
   - in `CMS/Infrastructure/ItemValidation.cs`, for `missing_required` on rich text fields.
 
-  Add a case to `ADMINTESTS/cms/items/RichTextInput.spec.ts`: an image-only value is sent, not cleared. T009 passes.
+  T009 passes. *(Done: the check lives in `CMS/Infrastructure/ItemValueValidator.cs` `Check`, which `ItemValidation` calls. The admin case "an image-only value is sent, not cleared" needs image nodes, so it moved to T051.)*
 
 ### Outdated admin tabs (FR-020, RT-13)
 
@@ -282,7 +282,7 @@ Shorthand used below:
   - decorative or alt-filled images publish.
 - [ ] T049 [P] [US3] Write `ITESTS/Media/RichTextMediaUsageTests.cs`. A rich text image in a page draft, a published page, a component and an item draft and published value appears in the file's usage, with "in live use" after publishing. The delete warning lists them. Replacing the file re-renders the published page (`MediaChangeRefreshTests` pattern). Deleting it leaves no image in the page HTML.
 - [ ] T050 [P] [US3] Add item golden example `CONTRACTS/collection-schema/examples/items/rich-text-image-without-alt.json`, giving `image_alt_missing` with its `path`, and update `expected.json`. Run it through `UTESTS/Cms/CollectionSchemaGoldenTests.cs` and `ADMINTESTS/cms/items/itemValues.spec.ts`. Add an item case to T048's file: publishing refused, attention set, draft saved.
-- [ ] T051 [P] [US3] Write `ADMINTESTS/editor/contractImage.spec.ts`:
+- [ ] T051 [P] [US3] Write `ADMINTESTS/editor/contractImage.spec.ts` (plus, in `ADMINTESTS/cms/items/RichTextInput.spec.ts`, an item value holding only an image is sent, not cleared, moved from T010):
   - insert from the picker, with alt prefilled from the library;
   - edit alt, toggle decorative (input disabled), replace and remove;
   - the missing-file state;

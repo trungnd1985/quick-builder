@@ -56,6 +56,12 @@ internal sealed class ItemValueValidator(CollectionSchemaValidator schemas)
             return ValueState.Malformed;
         }
 
+        // A rich text with no text and no images is no value (035 spec edge case "Empty structures").
+        if (field.Type == FieldType.RichText && RichTextRules.IsEmpty(JsonSerializer.SerializeToElement(value)))
+        {
+            return field.Required ? ValueState.MissingRequired : ValueState.Empty;
+        }
+
         return MeetsSettings(field, value) ? ValueState.Valid : ValueState.NeedsAttention;
     }
 

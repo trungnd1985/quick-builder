@@ -8,7 +8,7 @@ import type { SchemaField } from '../../../../api/cms'
 import RichTextToolbar from '../../../../editor/richtext/RichTextToolbar.vue'
 import { createRichTextEditor } from '../../../../editor/richtext/tiptap'
 import { fromContractRichText, toContractRichText, type RichTextDoc } from '../../../../editor/richtext/toContractRichText'
-import { richTextChars } from '../../../../editor/schema/documentValidator'
+import { isEmptyRichText } from '../../../../editor/schema/richTextRules'
 import type { Json } from '../../../../editor/schema/subsetValidator'
 
 const props = defineProps<{ field: SchemaField; value: unknown; id: string; describedBy: string; invalid: boolean; siteId: string; label: string }>()
@@ -17,7 +17,7 @@ const emit = defineEmits<{ 'update:value': [value: unknown] }>()
 const host = ref<HTMLElement | null>(null)
 const editor = shallowRef<Editor | null>(null)
 
-const isEmpty = (doc: RichTextDoc): boolean => richTextChars(doc as unknown as Json) === 0
+const isEmpty = (doc: RichTextDoc): boolean => isEmptyRichText(doc as unknown as Json)
 
 onMounted(() => {
   if (!host.value) return
