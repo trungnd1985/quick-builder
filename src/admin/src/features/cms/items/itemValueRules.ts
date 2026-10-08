@@ -11,6 +11,7 @@ import type { Problem } from '../../../api/items'
 import { codePointLength, type Json } from '../../../editor/schema/subsetValidator'
 import { pageSchema } from '../../../editor/schema/schema'
 import { richTextChars } from '../../../editor/schema/documentValidator'
+import { checkRichTextRules } from '../../../editor/schema/richTextRules'
 import { MAX_RICH_TEXT_CHARS } from '../../../editor/schema/limits'
 import { collectionSchema } from '../collectionSchema'
 
@@ -79,7 +80,9 @@ function isRealDate(value: string, withTime: boolean): boolean {
 
 function isWellFormed(field: SchemaField, value: Json): boolean {
   if (field.type === 'richText') {
-    return pageSchema.validateDefinition('rtDoc', value) === null && richTextChars(value) <= MAX_RICH_TEXT_CHARS
+    return pageSchema.validateDefinition('rtDoc', value) === null
+      && richTextChars(value) <= MAX_RICH_TEXT_CHARS
+      && checkRichTextRules(value, '') === null
   }
 
   if (collectionSchema.validateDefinition(definitionOf(field), value) !== null) return false

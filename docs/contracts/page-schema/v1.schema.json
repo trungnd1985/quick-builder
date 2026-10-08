@@ -794,6 +794,19 @@
         }
       ]
     },
+    "rtListBlock": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/rtParagraph"
+        },
+        {
+          "$ref": "#/$defs/rtBulletList"
+        },
+        {
+          "$ref": "#/$defs/rtOrderedList"
+        }
+      ]
+    },
     "rtParagraph": {
       "type": "object",
       "required": [
@@ -882,7 +895,7 @@
           "minItems": 1,
           "maxItems": 50,
           "items": {
-            "$ref": "#/$defs/rtBlock"
+            "$ref": "#/$defs/rtListBlock"
           }
         }
       }
@@ -915,7 +928,7 @@
         },
         "marks": {
           "type": "array",
-          "maxItems": 3,
+          "maxItems": 6,
           "items": {
             "$ref": "#/$defs/rtMark"
           }

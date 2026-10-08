@@ -92,22 +92,22 @@ Shorthand used below:
 
 ### Contract structure (RT-01, RT-02)
 
-- [ ] T003 In `CONTRACTS/page-schema/v1.schema.json`, add `$defs/rtListBlock` (paragraph, bullet list, ordered list) and point `rtListItem.content` to it. `rtBlock` keeps its three branches for now. Raise `rtText.marks.maxItems` from 3 to 6. Add the "Additions in 035" note under §6 of `CONTRACTS/page-schema.md`. Confirm that `PageSchemaContractTests` (`ITESTS/Pages/PageSchemaContractTests.cs`) and `ADMINTESTS/editor/documentValidator.spec.ts` still give the same verdict on every existing example.
-- [ ] T004 [P] Add `MaxRichTextImages = 50` and `MaxRichTextTables = 20` to `PAGESC/PageSchema.cs` and `ADMIN/editor/schema/limits.ts`, and extend `PageSchemaLimitsParityTests` to cover both.
-- [ ] T005 [P] Write `UTESTS/Pages/RichTextRulesTests.cs` (it must fail first) for `RichTextRules`:
+- [X] T003 In `CONTRACTS/page-schema/v1.schema.json`, add `$defs/rtListBlock` (paragraph, bullet list, ordered list) and point `rtListItem.content` to it. `rtBlock` keeps its three branches for now. Raise `rtText.marks.maxItems` from 3 to 6. Add the "Additions in 035" note under §6 of `CONTRACTS/page-schema.md`. Confirm that `PageSchemaContractTests` (`ITESTS/Pages/PageSchemaContractTests.cs`) and `ADMINTESTS/editor/documentValidator.spec.ts` still give the same verdict on every existing example.
+- [X] T004 [P] Add `MaxRichTextImages = 50` and `MaxRichTextTables = 20` to `PAGESC/PageSchema.cs` and `ADMIN/editor/schema/limits.ts`, and extend `PageSchemaLimitsParityTests` to cover both.
+- [X] T005 [P] Write `UTESTS/Pages/RichTextRulesTests.cs` (it must fail first) for `RichTextRules`:
   - counting images and tables (rule 10), at 50/51 and 20/21;
   - ragged rows (rule 11);
   - a header cell in row 2, and a mixed first row (rule 12);
   - `ImagesWithoutAlt` (blank, whitespace, decorative, missing attrs);
   - `UsesExtendedFormats` (each 035 node, mark and `align`; false for every 015 document).
-- [ ] T006 Implement `PAGESC/RichTextRules.cs` so T005 passes. It provides one walk over an `rtDoc` `JsonElement` and returns:
+- [X] T006 Implement `PAGESC/RichTextRules.cs` so T005 passes. It provides one walk over an `rtDoc` `JsonElement` and returns:
   - the first rule failure as a `(rule, pointer)` pair, for rules 10 → 11 → 12;
   - `ImagesWithoutAlt(doc, basePointer)`, a list of pointers;
   - `UsesExtendedFormats(doc)`.
 
   It also holds the constants `ClientHeader = "X-QB-Rich-Text"` and `CurrentClientLevel = 2` (RT-13).
-- [ ] T007 [P] Write `ADMIN/editor/schema/richTextRules.ts`, the TypeScript twin of T006, and `ADMINTESTS/editor/richTextRules.spec.ts` with the same cases as T005.
-- [ ] T008 Run rules 10–12 after rule 9:
+- [X] T007 [P] Write `ADMIN/editor/schema/richTextRules.ts`, the TypeScript twin of T006, and `ADMINTESTS/editor/richTextRules.spec.ts` with the same cases as T005.
+- [X] T008 Run rules 10–12 after rule 9:
   - in `PAGES/Infrastructure/Schema/PageDocumentValidator.cs`, for every Rich Text block, at `…/props/content`;
   - in `CMS/Infrastructure/ItemValueValidator.cs`, for every `richText` value, as the malformed-value problem with the rule name, like `rich_text_too_long`;
   - in `ADMIN/editor/schema/documentValidator.ts` and `ITEMUI/itemValueRules.ts`.

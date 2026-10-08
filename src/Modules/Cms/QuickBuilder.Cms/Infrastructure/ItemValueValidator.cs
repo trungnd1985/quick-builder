@@ -69,7 +69,8 @@ internal sealed class ItemValueValidator(CollectionSchemaValidator schemas)
         if (field.Type == FieldType.RichText)
         {
             return _pageSchema.ValidateDefinition("rtDoc", element) is null
-                && RichText.CharacterCount(element) <= PageSchema.MaxRichTextChars;
+                && RichText.CharacterCount(element) <= PageSchema.MaxRichTextChars
+                && RichTextRules.Check(element, string.Empty) is null;
         }
 
         if (schemas.SchemaFor(CollectionSchema.CurrentVersion).ValidateDefinition(field.Type.ValueDefinition(field.WithTime), element) is not null)

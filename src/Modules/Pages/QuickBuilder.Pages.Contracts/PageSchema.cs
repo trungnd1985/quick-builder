@@ -32,6 +32,12 @@ public static class PageSchema
     /// </summary>
     public const int MaxRichTextChars = 20_000;
 
+    /// <summary>The most images one rich text may show (contract §3 rule 10, added by 035).</summary>
+    public const int MaxRichTextImages = 50;
+
+    /// <summary>The most tables one rich text may hold (contract §3 rule 10, added by 035).</summary>
+    public const int MaxRichTextTables = 20;
+
     private const string ResourcePrefix = "QuickBuilder.Pages.Contracts.PageSchema.v";
 
     /// <summary>Every version the product can validate and store.</summary>

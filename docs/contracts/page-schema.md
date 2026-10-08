@@ -143,6 +143,16 @@ binding.
    (Principle IX). A block type whose props include an HTML string is refused in review.
 9. A Rich Text block holds at most **20,000** characters of text, counted in code points
    over all its `text` nodes (`rich_text_too_long`, at `…/props/content`).
+10. A rich text shows at most **50** images (`rich_text_too_many_images`) and holds at most
+    **20** tables (`rich_text_too_many_tables`), reported at `…/props/content` (035).
+11. Every row of a table has as many cells as its first row (`table_not_rectangular`, at
+    the first row that differs). Cells never span rows or columns (035).
+12. Header cells appear only in the first row, and a first row with a header cell holds
+    only header cells (`table_header_misplaced`, at the first misplaced cell) (035).
+
+Rules 10–12 apply to rich text item values too (collection-schema.md §3), where a value that
+breaks one is malformed. Rows beyond 200 and cells beyond 20 per row fail the schema's
+`maxItems` (`props_invalid`, with the limit in the message), as every size limit does.
 
 Validation stops at the first failure and reports a `rule` and a JSON `pointer` (RFC 6901)
 into the submitted document. The checks run in this order, so a given document always
@@ -161,7 +171,8 @@ fails the same way:
      a children list that doesn't admit it, at its `/type`;
    - `unknown_type` for any other `type`, at its `/type`;
    - `children_not_allowed` for children under a type that takes none;
-6. the code rules: the component rules (rules 6–7), then rich text length (rule 9).
+6. the code rules: the component rules (rules 6–7), then rich text length (rule 9) for
+   every Rich Text block, then rules 10–12 for every Rich Text block, in document order.
 
 Depth and count come before the schema on purpose. They bound the work the schema check
 does, and they give an oversized document its own reason rather than a generic one.
@@ -221,6 +232,13 @@ neither listed here nor impossible to produce.
 - The renderer lists the schema versions it renders. `BlockRendererCoverageTests` fails the
   build when `page-schema/` holds a `vN.schema.json` the renderer does not list, so a new
   version cannot merge without rendering support (012; Principle VI).
+
+**Additions in 035 (still version 1)**: rich text gained headings (levels 2–4), quotes,
+images, tables, the marks underline, strikethrough and code, and an alignment on paragraphs
+and headings. List items now refer to `rtListBlock`, which holds exactly what `rtBlock` held
+before, so list items accept the same content as ever; `rtBlock` is the top level only. A
+text node may carry up to 6 marks instead of 3. Every document valid before stays valid and
+renders the same (035 SC-001).
 
 ## 7. The schema file
 
