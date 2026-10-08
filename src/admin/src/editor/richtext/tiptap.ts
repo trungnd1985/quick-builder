@@ -25,6 +25,9 @@ import Italic from '@tiptap/extension-italic'
 import { BulletList, ListItem, OrderedList } from '@tiptap/extension-list'
 import { fromContractRichText, toContractRichText, type RichTextDoc } from './toContractRichText'
 import { ContractImage, type ContractImageLabels } from './ContractImage'
+import { mediaApi } from '../../api/media'
+import { imageFiles, insertUploads, preparePastedHtml, type FileUploads, type RichTextNotice } from './paste'
+import { ALL_FORMATS, type AllowedFormats } from './formats'
 
 /** The link mark: a `to` attribute, drawn as an anchor with no address. */
 export const ContractLink = Mark.create({
@@ -149,19 +152,60 @@ export interface RichTextEditorOptions extends RichTextSetup {
   content: unknown
   /** Extensions only this editor needs: the item field's own undo history (035 RT-14). */
   extensions?: Extensions
+  /** The formats this rich text may hold (035 FR-022); every format by default. */
+  allowed?: AllowedFormats
+  /** Told what a paste or drop left out or could not upload (035 FR-012, FR-026). */
+  onNotice?: (notice: RichTextNotice) => void
   /** Called with the contract document after every change to it. */
   onChange: (doc: RichTextDoc) => void
   onBlur?: () => void
   label: string
 }
 
+/** Where a drop lands; the cursor when the point can't be resolved. */
+function dropPosition(view: { posAtCoords: (coords: { left: number; top: number }) => { pos: number } | null }, event: DragEvent): number | null {
+  try {
+    return view.posAtCoords({ left: event.clientX, top: event.clientY })?.pos ?? null
+  } catch {
+    return null
+  }
+}
+
 export function createRichTextEditor(options: RichTextEditorOptions): Editor {
+  const notify = (notice: RichTextNotice): void => options.onNotice?.(notice)
+  const uploads: FileUploads = {
+    siteId: options.siteId ?? '',
+    allowImages: (options.allowed ?? ALL_FORMATS).images,
+    onNotice: notify,
+    upload: (siteId, file) => mediaApi.upload(siteId, file, () => undefined),
+  }
+
   return new Editor({
     element: options.element,
     extensions: [...richTextExtensions(options), ...(options.extensions ?? [])],
     content: fromContractRichText(options.content) as JSONContent,
     editorProps: {
       attributes: { 'aria-label': options.label, 'aria-multiline': 'true', role: 'textbox', class: 'qb-rich-text__body' },
+      // 035 US4: pasted HTML loses its address-only images and merged cells before parsing.
+      transformPastedHTML: (html) => {
+        const prepared = preparePastedHtml(html)
+        if (prepared.imagesLeftOut > 0) notify({ kind: 'imagesLeftOut', count: prepared.imagesLeftOut })
+        return prepared.html
+      },
+      // Pasted and dropped image files are uploaded to the library (clarification Q2).
+      handlePaste: (view, event) => {
+        const files = imageFiles(event.clipboardData?.files)
+        if (files.length === 0) return false
+        insertUploads(view, files, null, uploads)
+        return true
+      },
+      handleDrop: (view, event, _slice, moved) => {
+        if (moved) return false
+        const files = imageFiles(event.dataTransfer?.files)
+        if (files.length === 0) return false
+        insertUploads(view, files, dropPosition(view, event), uploads)
+        return true
+      },
     },
     onUpdate: ({ editor }) => options.onChange(toContractRichText(editor.getJSON())),
     onBlur: () => options.onBlur?.(),

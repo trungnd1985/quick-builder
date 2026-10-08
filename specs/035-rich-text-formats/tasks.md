@@ -635,3 +635,20 @@ Recorded during `/speckit-implement`, so the tasks above can still be read as wr
     the pointers, so the editor selects the first image's block; an item shows
     `image_alt_missing` through `problemMessage`, on its field and in the form's summary
     (there is nothing to change in `ItemPublishBar`).
+- **Paste** (T062–T067):
+  - the samples are **written to match** each source's clipboard HTML (Word desktop's `mso`
+    markup and conditional comments, Word for the web's heading paragraphs and classes, Google
+    Docs' style-based bold, LibreOffice's classes, a web article, a hostile page); none was
+    captured from a live clipboard. Capturing real payloads is part of the by-hand walk (T101),
+    and any difference becomes a new sample;
+  - `preparePastedHtml` keeps inline `style` while parsing, because Google Docs and Word for the
+    web carry bold, italic and underline only there; the schema never stores a style. It also
+    turns Word for the web's `role="heading"` paragraphs into headings, drops Word desktop's
+    hidden list bullets, removes paragraphs left empty by a removed image, and drops the
+    browser's `Apple-interchange-newline`;
+  - Word desktop's lists arrive as paragraphs: Word sends them as styled paragraphs, not lists;
+  - there is no client-side upload permission check: every site role holds
+    `media.files.upload`, and a refusal (403) takes the same path as any failed upload, with
+    a notice;
+  - notices are shown in the toolbar's status line (`RT/notices.ts` words them), passed in by
+    the Rich Text block and the item field.

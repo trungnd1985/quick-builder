@@ -989,3 +989,10 @@ a.button-link.primary {
   align-items: center;
   gap: 0.375rem;
 }
+
+/* 035: what a paste or drop left out; an empty line takes no room but stays a live region. */
+.qb-rt-toolbar__notice {
+  flex-basis: 100%;
+  margin: 0;
+  font-size: 0.875rem;
+}

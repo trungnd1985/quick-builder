@@ -885,6 +885,10 @@
         "missing": "Missing image",
         "uploading": "Uploading…",
         "addAlt": "Add alternative text"
+      },
+      "notice": {
+        "imagesLeftOut": "One image was left out. Add images from the media library. | {count} images were left out. Add images from the media library.",
+        "uploadFailed": "A pasted image could not be uploaded: {reason}"
       }
     },
     "panel": {

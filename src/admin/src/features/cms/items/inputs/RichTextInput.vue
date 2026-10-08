@@ -9,6 +9,7 @@ import type { Editor, JSONContent } from '@tiptap/core'
 import { UndoRedo } from '@tiptap/extensions'
 import type { SchemaField } from '../../../../api/cms'
 import RichTextToolbar, { type RichTextHistory } from '../../../../editor/richtext/RichTextToolbar.vue'
+import { noticeText } from '../../../../editor/richtext/notices'
 import { createRichTextEditor } from '../../../../editor/richtext/tiptap'
 import { fromContractRichText, toContractRichText, type RichTextDoc } from '../../../../editor/richtext/toContractRichText'
 import { isEmptyRichText } from '../../../../editor/schema/richTextRules'
@@ -16,7 +17,10 @@ import type { Json } from '../../../../editor/schema/subsetValidator'
 
 const props = defineProps<{ field: SchemaField; value: unknown; id: string; describedBy: string; invalid: boolean; siteId: string; label: string }>()
 const emit = defineEmits<{ 'update:value': [value: unknown] }>()
-const { t } = useI18n()
+const { t, te } = useI18n()
+
+// The toolbar's status line: what the last paste or drop left out (035 FR-012).
+const notice = ref('')
 
 const host = ref<HTMLElement | null>(null)
 const editor = shallowRef<Editor | null>(null)
@@ -44,6 +48,9 @@ onMounted(() => {
     content: props.value ?? null,
     label: props.label,
     siteId: props.siteId,
+    onNotice: (next) => {
+      notice.value = noticeText(t, te, next)
+    },
     imageLabels: {
       missing: t('editor.richText.image.missing'),
       uploading: t('editor.richText.image.uploading'),
@@ -84,6 +91,7 @@ onBeforeUnmount(() => editor.value?.destroy())
       :editor="editor"
       :site-id="siteId"
       :history="history"
+      :notice="notice"
     />
     <div
       ref="host"

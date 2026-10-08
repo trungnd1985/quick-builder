@@ -43,7 +43,9 @@ const props = withDefaults(defineProps<{
   siteId: string
   allowed?: AllowedFormats
   history?: RichTextHistory
-}>(), { allowed: () => ALL_FORMATS, history: undefined })
+  /** What the last paste or drop left out, said politely (035 FR-012). */
+  notice?: string
+}>(), { allowed: () => ALL_FORMATS, history: undefined, notice: '' })
 
 const { t } = useI18n()
 
@@ -260,6 +262,13 @@ const indexOf = (control: Control): number => flat.value.indexOf(control)
         </template>
       </div>
     </template>
+    <p
+      class="qb-rt-toolbar__notice"
+      role="status"
+      aria-live="polite"
+    >
+      {{ notice }}
+    </p>
     <ImageGroup
       v-if="allowed.images && active('image')"
       :editor="editor"

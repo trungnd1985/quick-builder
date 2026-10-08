@@ -8,6 +8,7 @@ import { useI18n } from 'vue-i18n'
 import type { Editor, JSONContent } from '@tiptap/core'
 import RichTextView from '../../richtext/RichTextView'
 import RichTextToolbar, { type RichTextHistory } from '../../richtext/RichTextToolbar.vue'
+import { noticeText } from '../../richtext/notices'
 import { createRichTextEditor } from '../../richtext/tiptap'
 import { fromContractRichText, toContractRichText } from '../../richtext/toContractRichText'
 import { setProp } from '../../ops'
@@ -18,7 +19,10 @@ import { useBrokenLinks } from '../brokenLinks'
 import { useBlock } from '../useBlock'
 
 const props = defineProps<{ node: ContentNode }>()
-const { t } = useI18n()
+const { t, te } = useI18n()
+
+// The toolbar's status line: what the last paste or drop left out (035 FR-012).
+const notice = ref('')
 const { store, prop, token, editable } = useBlock(() => props.node)
 
 const root = ref<HTMLElement | null>(null)
@@ -59,6 +63,9 @@ async function startEditing(): Promise<void> {
     content: content.value,
     label: t('editor.blocks.richText'),
     siteId: store.siteId,
+    onNotice: (next) => {
+      notice.value = noticeText(t, te, next)
+    },
     imageLabels: {
       missing: t('editor.richText.image.missing'),
       uploading: t('editor.richText.image.uploading'),
@@ -134,6 +141,7 @@ onBeforeUnmount(stopEditing)
         :editor="editor"
         :site-id="store.siteId"
         :history="history"
+        :notice="notice"
       />
       <div
         ref="host"
