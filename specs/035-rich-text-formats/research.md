@@ -56,6 +56,8 @@ The schema itself bounds the other dimensions:
 
 Text in table cells, headings and quotes counts toward rule 9's 20,000 characters, because `richTextChars` already sums every `text` node at any depth.
 
+**Emptiness**: `RichTextRules.IsEmpty(doc)` (and `isEmptyRichText` in `richTextRules.ts`) is true when the document has no `text` node and no `image` node. The item form, the item checks and the server's `missing_required` all use it instead of "zero characters", so an image-only value is kept and counts as a value (spec edge case "Empty structures").
+
 **Where the code lives**: one `RichTextRules` class in `QuickBuilder.Pages.Contracts`, beside `PageSchema` and `SchemaSubsetValidator`, so the Cms module reuses it for item values without a new module edge. Cms already reads `rtDoc` through `Pages.Contracts`. Its TypeScript twin is `editor/schema/richTextRules.ts`. The constants go in `PageSchema` and `limits.ts`, and `PageSchemaLimitsParityTests` covers them.
 
 **Alternatives considered**: expressing rule 11 in JSON Schema is impossible, because the subset has no way to compare sibling arrays. Rule 10 would need `contains` with `maxContains`, which the subset doesn't support (research P-09). Widening the subset for two rules isn't worth it.
@@ -158,6 +160,8 @@ Text in table cells, headings and quotes counts toward rule 9's 20,000 character
   - `history`: `{ undo, redo, canUndo, canRedo }` from the host.
 
   The page editor passes its store's history, so undo stays the page's one history (FR-009, 011 ED-12). The item field passes TipTap's `UndoRedo` commands.
+
+**AltGr**: on Windows, Ctrl+Alt is AltGr, and on some layouts (German, Polish) AltGr+2 types a character. The heading shortcuts check `event.key`: when it is a printable character other than the digit, the key press is typing and the shortcut doesn't fire.
 
 The editor's global key handler (`editor/state/keyboard.ts`) already forwards Ctrl/Cmd+Z and Ctrl/Cmd+Shift+Z from inside a rich text to the store, so the page editor's shortcuts need no change.
 
@@ -272,7 +276,7 @@ The preview's examples show the converted text, so editors see what's lost. New 
 - From this release, every admin request carries `X-QB-Rich-Text: 2`, added in `api/request.ts`.
 - The three write paths that accept rich text content compare it with what's stored:
   - page and component draft save (`DraftWrites`);
-  - item draft save, create and duplicate (`ItemWrites`).
+  - item draft save and duplicate (`ItemWrites`). Item create has no stored draft to protect.
 
   When the header is missing or below 2 **and** the stored draft uses any version-2 format (`RichTextRules.UsesExtendedFormats`), the write is refused with **409 `admin_outdated`**. The message reads "This page of the admin is out of date. Reload it to keep editing; your last change was not saved."
 - Old tabs editing content without the new formats keep working (spec edge case).

@@ -57,6 +57,8 @@ Checked after rule 9, in this order, for each Rich Text block and each rich text
 11. **Rectangular tables**: every `tableRow` of a table has as many cells as the first: `table_not_rectangular`, at the first row that differs.
 12. **Header row**: `tableHeader` appears only in the first row, and a first row that holds one holds only `tableHeader`: `table_header_misplaced`, at the first misplaced cell.
 
+Rows (more than 200) and cells per row (more than 20) fail the schema's `maxItems`, reported as `props_invalid` with the pointer and `maxItems` in the message, which is how the contract reports every size limit.
+
 The constants are `PageSchema.MaxRichTextImages` (50) and `PageSchema.MaxRichTextTables` (20), mirrored in `limits.ts`.
 
 ## 4. Publish rule (not a validity rule)

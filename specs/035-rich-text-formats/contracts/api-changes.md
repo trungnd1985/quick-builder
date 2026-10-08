@@ -14,7 +14,7 @@ No endpoint is added or removed. Bodies keep their shapes. The changes are one r
 
 | Code | Status | When | Body extensions |
 |---|---|---|---|
-| `admin_outdated` | 409 | A page or component draft save (pages API), or an item create, draft save or duplicate (items API), arrives without `X-QB-Rich-Text: 2` (or with a lower value) while the stored draft holds any 035 format (RT-13). | none |
+| `admin_outdated` | 409 | A page or component draft save (pages API), or an item draft save or duplicate (items API), arrives without `X-QB-Rich-Text: 2` (or with a lower value) while the stored draft holds any 035 format (RT-13). | none |
 | `pages.image_alt_missing` | 422 | Publishing a page or component (manual, scheduled or rollback) whose document holds a rich text image with neither alternative text nor `decorative` (RT-10). | `problems`: `[{ "pointer": "/root/children/0/children/2/props/content/content/3" }]` |
 
 A scheduled page publish that meets `pages.image_alt_missing` fails like any other refused publish (012 `schedule_failed`).

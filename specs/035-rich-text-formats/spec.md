@@ -229,7 +229,9 @@ Check the result, including that existing text keeps its alignment.
 
   Beyond a limit, the action is refused with a message that names the limit.
 - **Empty structures**: an empty quote, or a table whose cells are all empty, is kept while
-  editing. A rich text that holds only empty structures counts as empty for a required field.
+  editing. A rich text is **empty** when it holds no text and no images: empty paragraphs,
+  headings, quotes and tables don't count. An empty rich text is no value, so a required
+  field reports it as missing. A rich text holding only an image is not empty.
 - **Nesting**:
   - Headings and tables cannot sit inside a list or a table cell.
   - Quotes can hold paragraphs and lists, but not other quotes, tables or headings.
@@ -276,7 +278,10 @@ Check the result, including that existing text keeps its alignment.
 - **FR-004**: Every rich text that was valid before this feature MUST stay valid and MUST
   render exactly as before. No stored content is rewritten.
 - **FR-005**: The limits in the edge cases MUST be checked on save. A failed check MUST give a
-  problem that names the limit and the place in the text.
+  problem that identifies the limit and the place in the text: a named problem for the
+  image, table and character counts and the table shape, and the exceeded size (its maximum,
+  for example 200 rows) for the row and column limits. The editor MUST refuse an action that
+  would go past a limit, with a message that names it.
 
 **Editing**
 
@@ -437,6 +442,8 @@ Check the result, including that existing text keeps its alignment.
 - **No new definition version**: the new formats are additions to the existing rich text
   definition. The page schema contract's versioning rules allow that within version 1. No
   stored content is migrated, and FR-020 covers admin pages opened before the upgrade.
+- **Alignment names**: alignment is stored as start, centre or end, the vocabulary blocks
+  already use, and shown to editors as left, centre and right.
 - **Heading levels 2 to 4 only**: the page title or a Heading block is the page's top-level
   heading, so rich text never adds a level 1 heading. Levels 5 and 6 are rarely needed.
 - **Defaults chosen for this release**:
