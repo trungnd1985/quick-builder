@@ -60,6 +60,18 @@ function renderBlock(node: Json, key: number, links: LinkMarking, siteId = ''): 
     }
     case 'blockquote':
       return h('blockquote', { key }, content.map((c, i) => renderBlock(c, i, links)).filter((c): c is VNode => c !== null))
+    case 'table': {
+      // As published: a focusable area that scrolls sideways, header cells only in the first row (035).
+      const rows = content.map((row, r) => {
+        const cells = isObject(row) && Array.isArray(row.content) ? row.content : []
+        return h('tr', { key: r }, cells.map((cell, c) => {
+          const header = isObject(cell) && cell.type === 'tableHeader'
+          const blocks = isObject(cell) && Array.isArray(cell.content) ? cell.content : []
+          return h(header ? 'th' : 'td', { key: c, scope: header ? 'col' : undefined }, blocks.map((b, i) => renderBlock(b, i, links, siteId)).filter((b): b is VNode => b !== null))
+        }))
+      })
+      return h('div', { key, class: 'qb-rt-table', tabindex: 0 }, [h('table', null, [h('tbody', null, rows)])])
+    }
     case 'image': {
       const attrs = isObject(node.attrs) ? node.attrs : {}
       const mediaId = isObject(attrs.media) && typeof attrs.media.mediaId === 'string' ? attrs.media.mediaId : null

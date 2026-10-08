@@ -78,7 +78,7 @@ A rich text `image` with neither a non-blank `alt` nor `decorative: true` is **v
   - `bold` → `strong`, `italic` → `em`;
   - `underline` → `u`, `strike` → `del`, `code` → `code`;
   - `link` → `a` (unchanged rules).
-- **Tables**: `table` → `div.qb-rt-table[tabindex=0] > table`, `tableRow` → `tr`, `tableHeader` → `th[scope=col]`, `tableCell` → `td`.
+- **Tables**: `table` → `div.qb-rt-table[tabindex=0] > table > tbody`, `tableRow` → `tr`, `tableHeader` → `th[scope=col]`, `tableCell` → `td`.
 - **Images**: `image` → `figure.qb-rt-image > img`, with `src`, `srcset`, `sizes`, `width`, `height`, `alt` (empty when decorative), `loading="lazy"` and `decoding="async"`. A missing file, or another site's file, renders nothing.
 
 Nothing else is ever emitted.

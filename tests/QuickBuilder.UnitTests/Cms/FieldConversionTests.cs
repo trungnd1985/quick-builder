@@ -175,6 +175,23 @@ public sealed class FieldConversionTests
     }
 
     [Fact]
+    public void Each_table_row_becomes_a_line_of_its_cells_text()
+    {
+        const string document = """
+            {"type":"doc","content":[{"type":"table","content":[
+              {"type":"tableRow","content":[
+                {"type":"tableHeader","content":[{"type":"paragraph","content":[{"type":"text","text":"Day"}]}]},
+                {"type":"tableHeader","content":[{"type":"paragraph","content":[{"type":"text","text":"Hours"}]}]}]},
+              {"type":"tableRow","content":[
+                {"type":"tableCell","content":[{"type":"paragraph","content":[{"type":"text","text":"Mon"}]}]},
+                {"type":"tableCell","content":[{"type":"paragraph"},{"type":"paragraph","content":[{"type":"text","text":"7-18"}]}]}]}]}]}
+            """;
+
+        Assert.Equal(("PartlyLost", "\"Day Hours\\nMon 7-18\""), Run(Of(FieldType.RichText, "f1"), Text("f1", multiline: true, maxLength: 5000), document));
+        Assert.Equal(("PartlyLost", "\"Day Hours Mon 7-18\""), Run(Of(FieldType.RichText, "f1"), Text("f1"), document));
+    }
+
+    [Fact]
     public void Images_are_dropped_without_their_alternative_text()
     {
         const string document = """

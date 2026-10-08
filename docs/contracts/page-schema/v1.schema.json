@@ -800,6 +800,9 @@
         },
         {
           "$ref": "#/$defs/rtImage"
+        },
+        {
+          "$ref": "#/$defs/rtTable"
         }
       ]
     },
@@ -930,6 +933,97 @@
             "decorative": {
               "type": "boolean"
             }
+          }
+        }
+      }
+    },
+    "rtTable": {
+      "type": "object",
+      "required": [
+        "type",
+        "content"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "table"
+        },
+        "content": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 200,
+          "items": {
+            "$ref": "#/$defs/rtTableRow"
+          }
+        }
+      }
+    },
+    "rtTableRow": {
+      "type": "object",
+      "required": [
+        "type",
+        "content"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "tableRow"
+        },
+        "content": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 20,
+          "items": {
+            "oneOf": [
+              {
+                "$ref": "#/$defs/rtTableCell"
+              },
+              {
+                "$ref": "#/$defs/rtTableHeader"
+              }
+            ]
+          }
+        }
+      }
+    },
+    "rtTableCell": {
+      "type": "object",
+      "required": [
+        "type",
+        "content"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "tableCell"
+        },
+        "content": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 50,
+          "items": {
+            "$ref": "#/$defs/rtParagraph"
+          }
+        }
+      }
+    },
+    "rtTableHeader": {
+      "type": "object",
+      "required": [
+        "type",
+        "content"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "tableHeader"
+        },
+        "content": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 50,
+          "items": {
+            "$ref": "#/$defs/rtParagraph"
           }
         }
       }

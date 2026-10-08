@@ -14,6 +14,7 @@ import LinkControl from '../panel/controls/LinkControl.vue'
 import type { Json } from '../schema/subsetValidator'
 import { ALL_FORMATS, type AllowedFormats } from './formats'
 import ImageGroup from './ImageGroup.vue'
+import TableGroup from './TableGroup.vue'
 
 /** The host's undo and redo: the page editor's one history, or the item field's own. */
 export interface RichTextHistory {
@@ -146,6 +147,9 @@ const groups = computed<Control[][]>(() => {
     ...(props.allowed.images
       ? [{ id: 'image', icon: 'image', label: t('editor.richText.image.insert'), run: () => { picking.value = 'insert' } } satisfies Control]
       : []),
+    ...(props.allowed.tables
+      ? [{ id: 'table', icon: 'table', label: t('editor.richText.table.insert'), pressed: active('table'), run: run((c) => c.insertContractTable()) } satisfies Control]
+      : []),
   ]
 
   return [history, block, inline, lists, insert].filter((group) => group.length > 0)
@@ -269,6 +273,11 @@ const indexOf = (control: Control): number => flat.value.indexOf(control)
     >
       {{ notice }}
     </p>
+    <TableGroup
+      v-if="allowed.tables && active('table')"
+      :editor="editor"
+      :tick="tick"
+    />
     <ImageGroup
       v-if="allowed.images && active('image')"
       :editor="editor"

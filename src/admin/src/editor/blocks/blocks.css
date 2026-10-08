@@ -196,6 +196,32 @@
     height: auto;
   }
 
+  /* A table scrolls sideways inside its own area rather than widening the page (035 US5). */
+  .qb-rt-table {
+    max-width: 100%;
+    overflow-x: auto;
+  }
+
+  .qb-rt-table table {
+    border-collapse: collapse;
+  }
+
+  .qb-rt-table :is(th, td) {
+    padding: 0.4em 0.75em;
+    border: 1px solid var(--qb-color-color-brand-light, rgba(0, 0, 0, 0.2));
+    text-align: start;
+    vertical-align: top;
+  }
+
+  .qb-rt-table th {
+    background: var(--qb-color-color-brand-light, rgba(0, 0, 0, 0.06));
+    font-weight: 700;
+  }
+
+  .qb-rt-table :is(th, td) > * + * {
+    margin-top: 0.5em;
+  }
+
   .qb-rich-text blockquote > * + * {
     margin-top: calc(var(--qb-base-size) * 0.75);
   }

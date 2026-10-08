@@ -116,6 +116,8 @@ function splitMergedCells(table: HTMLTableElement): void {
 export type RichTextNotice =
   | { kind: 'imagesLeftOut'; count: number }
   | { kind: 'uploadFailed'; code: string | null }
+  /** A table action stopped at a limit (035 spec edge case "Limits"). */
+  | { kind: 'limit'; limit: 'rows' | 'columns' | 'tables' }
 
 export interface FileUploads {
   siteId: string

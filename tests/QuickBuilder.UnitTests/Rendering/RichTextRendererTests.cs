@@ -173,4 +173,27 @@ public sealed class RichTextRendererTests
         Assert.Equal([RenderHarness.Photo], references.Media);
         Assert.Equal([RenderHarness.Photo], QuickBuilder.Pages.Domain.DependencyExtractor.Media(document.RootElement.GetRawText()));
     }
+
+    [Fact]
+    public void A_table_scrolls_in_its_own_focusable_area_with_its_header_cells_scoped_to_their_columns() =>
+        Assert.Equal(
+            "<div class=\"qb-rt-table\" tabindex=\"0\"><table><tbody>"
+                + "<tr><th scope=\"col\"><p><span>Day</span></p></th><th scope=\"col\"><p><span>Hours</span></p></th></tr>"
+                + "<tr><td><p><span>Sunday</span></p></td><td><p><strong>Closed</strong></p><p></p></td></tr>"
+                + "</tbody></table></div>",
+            Body("""
+                {"type":"table","content":[
+                  {"type":"tableRow","content":[
+                    {"type":"tableHeader","content":[{"type":"paragraph","content":[{"type":"text","text":"Day"}]}]},
+                    {"type":"tableHeader","content":[{"type":"paragraph","content":[{"type":"text","text":"Hours"}]}]}]},
+                  {"type":"tableRow","content":[
+                    {"type":"tableCell","content":[{"type":"paragraph","content":[{"type":"text","text":"Sunday"}]}]},
+                    {"type":"tableCell","content":[{"type":"paragraph","content":[{"type":"text","text":"Closed","marks":[{"type":"bold"}]}]},{"type":"paragraph"}]}]}]}
+                """));
+
+    [Fact]
+    public void A_table_without_a_header_row_has_only_data_cells_and_never_spans() =>
+        Assert.Equal(
+            "<div class=\"qb-rt-table\" tabindex=\"0\"><table><tbody><tr><td><p></p></td></tr></tbody></table></div>",
+            Body("""{"type":"table","content":[{"type":"tableRow","content":[{"type":"tableCell","attrs":{"colspan":3,"style":"x"},"content":[{"type":"paragraph"}]}]}]}"""));
 }

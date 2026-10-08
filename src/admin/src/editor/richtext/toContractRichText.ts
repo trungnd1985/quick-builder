@@ -98,6 +98,12 @@ function block(node: unknown, place: Place = 'top'): Json[] {
     return [{ type: 'image', attrs: kept }]
   }
 
+  if (node.type === 'table') {
+    const rows = tableRows(node)
+    if (place === 'nested') return rows.flat(2)
+    return rows.length === 0 ? [] : [table(rows, firstRowIsHeader(node))]
+  }
+
   if (node.type === 'blockquote') {
     const inner = content.flatMap((child) => block(child, 'nested'))
     if (place === 'nested') return inner
@@ -119,6 +125,75 @@ function block(node: unknown, place: Place = 'top'): Json[] {
 
   const text = content.flatMap(inline)
   return [text.length > 0 ? { type: 'paragraph', content: text } : { type: 'paragraph' }]
+}
+
+/** The most rows and columns a table may have (`rtTable`, `rtTableRow`); more is cut off. */
+const MAX_ROWS = 200
+const MAX_COLUMNS = 20
+
+/** A cell's paragraphs: lists, headings and quotes inside a cell become paragraphs. */
+function cellParagraphs(content: Json[]): Json[] {
+  const flat = (b: Json): Json[] =>
+    isObject(b) && b.type === 'paragraph' ? [b] : isObject(b) && Array.isArray(b.content) ? b.content.flatMap((c) => flat(c)) : []
+  return content.flatMap((child) => block(child, 'nested')).flatMap(flat)
+}
+
+/**
+ * A table's rows as a grid of cell contents (each a list of paragraphs), with merged cells
+ * split — the content in the first position, empty cells for the rest — and rows padded to
+ * the widest, so the table is rectangular (035 US4 scenario 5, rule 11).
+ */
+function tableRows(node: { [key: string]: Json }): Json[][][] {
+  const rows = (Array.isArray(node.content) ? node.content : []).filter((r) => isObject(r) && r.type === 'tableRow')
+  const pending = new Map<number, number>()
+  const grid: Json[][][] = []
+
+  for (const row of rows.slice(0, MAX_ROWS)) {
+    const cells: Json[][] = []
+    let column = 0
+    const fill = (): void => {
+      while ((pending.get(column) ?? 0) > 0) {
+        pending.set(column, (pending.get(column) ?? 1) - 1)
+        cells.push([])
+        column++
+      }
+    }
+    for (const cell of isObject(row) && Array.isArray(row.content) ? row.content : []) {
+      if (!isObject(cell)) continue
+      fill()
+      const attrs = isObject(cell.attrs) ? cell.attrs : {}
+      const span = typeof attrs.colspan === 'number' && attrs.colspan > 1 ? Math.floor(attrs.colspan) : 1
+      const down = typeof attrs.rowspan === 'number' && attrs.rowspan > 1 ? Math.floor(attrs.rowspan) : 1
+      cells.push(cellParagraphs(Array.isArray(cell.content) ? cell.content : []))
+      for (let extra = 1; extra < span; extra++) cells.push([])
+      if (down > 1) for (let k = 0; k < span; k++) pending.set(column + k, down - 1)
+      column += span
+    }
+    fill()
+    grid.push(cells)
+  }
+
+  const width = Math.min(MAX_COLUMNS, Math.max(0, ...grid.map((r) => r.length)))
+  return width === 0 ? [] : grid.map((r) => [...r.slice(0, width), ...Array.from({ length: Math.max(0, width - r.length) }, () => [])])
+}
+
+/** Whether the first row is a header row: any header cell in it makes all of it one (rule 12). */
+function firstRowIsHeader(node: { [key: string]: Json }): boolean {
+  const first = Array.isArray(node.content) ? node.content[0] : undefined
+  return isObject(first) && Array.isArray(first.content) && first.content.some((c) => isObject(c) && c.type === 'tableHeader')
+}
+
+function table(rows: Json[][][], header: boolean): Json {
+  return {
+    type: 'table',
+    content: rows.map((cells, r) => ({
+      type: 'tableRow',
+      content: cells.map((paragraphs) => ({
+        type: header && r === 0 ? 'tableHeader' : 'tableCell',
+        content: paragraphs.length > 0 ? paragraphs.slice(0, 50) : [{ type: 'paragraph' }],
+      })),
+    })),
+  }
 }
 
 function listItem(node: unknown): Json | null {

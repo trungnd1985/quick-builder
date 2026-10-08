@@ -996,3 +996,44 @@ a.button-link.primary {
   margin: 0;
   font-size: 0.875rem;
 }
+
+/* 035: tables in item fields and in the canvas editor, and the table's commands. */
+.item-rich-text__body table,
+.qb-rich-text__editor table {
+  border-collapse: collapse;
+  margin: 0;
+}
+
+.item-rich-text__body th,
+.item-rich-text__body td,
+.qb-rich-text__editor th,
+.qb-rich-text__editor td {
+  min-width: 4rem;
+  padding: 0.375rem 0.5rem;
+  border: 1px solid var(--border);
+  vertical-align: top;
+}
+
+.item-rich-text__body th,
+.qb-rich-text__editor th {
+  background: var(--surface);
+  text-align: start;
+}
+
+.item-rich-text__body .tableWrapper,
+.qb-rich-text__editor .tableWrapper {
+  overflow-x: auto;
+}
+
+.item-rich-text__body .selectedCell,
+.qb-rich-text__editor .selectedCell {
+  background: rgba(10, 90, 214, 0.12);
+}
+
+.qb-rt-toolbar__table {
+  display: flex;
+  flex-basis: 100%;
+  flex-wrap: wrap;
+  gap: 0.125rem;
+  padding-top: 0.25rem;
+}

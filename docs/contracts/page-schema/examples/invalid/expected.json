@@ -39,5 +39,13 @@
   "props_invalid--rich-text-image-src.json": { "rule": "props_invalid", "pointer": "/root/children/0/children/0/props/content/content/0/attrs/src" },
   "props_invalid--rich-text-image-media-not-uuid.json": { "rule": "props_invalid", "pointer": "/root/children/0/children/0/props/content/content/0/attrs/media/mediaId" },
   "props_invalid--rich-text-image-alt-301.json": { "rule": "props_invalid", "pointer": "/root/children/0/children/0/props/content/content/0/attrs/alt" },
-  "rich_text_too_many_images--51.json": { "rule": "rich_text_too_many_images", "pointer": "/root/children/0/children/0/props/content" }
+  "rich_text_too_many_images--51.json": { "rule": "rich_text_too_many_images", "pointer": "/root/children/0/children/0/props/content" },
+  "table_not_rectangular.json": { "rule": "table_not_rectangular", "pointer": "/root/children/0/children/0/props/content/content/0/content/1" },
+  "table_header_misplaced.json": { "rule": "table_header_misplaced", "pointer": "/root/children/0/children/0/props/content/content/0/content/1/content/1" },
+  "rich_text_too_many_tables--21.json": { "rule": "rich_text_too_many_tables", "pointer": "/root/children/0/children/0/props/content" },
+  "props_invalid--rich-text-table-in-list.json": { "rule": "props_invalid", "pointer": "/root/children/0/children/0/props/content/content/0/content/0/content/0/type" },
+  "props_invalid--rich-text-image-in-cell.json": { "rule": "props_invalid", "pointer": "/root/children/0/children/0/props/content/content/0/content/0/content/0/content/0/type" },
+  "props_invalid--rich-text-cell-colspan.json": { "rule": "props_invalid", "pointer": "/root/children/0/children/0/props/content/content/0/content/0/content/0/attrs" },
+  "props_invalid--rich-text-table-201-rows.json": { "rule": "props_invalid", "pointer": "/root/children/0/children/0/props/content/content/0/content" },
+  "props_invalid--rich-text-table-21-columns.json": { "rule": "props_invalid", "pointer": "/root/children/0/children/0/props/content/content/0/content/0/content" }
 }

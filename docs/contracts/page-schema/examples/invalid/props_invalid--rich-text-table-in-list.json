@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "root": {
+    "id": "root",
+    "type": "root",
+    "props": {},
+    "children": [
+      {
+        "id": "s",
+        "type": "section",
+        "props": {},
+        "children": [
+          {
+            "id": "rt",
+            "type": "rich-text",
+            "props": {
+              "content": {
+                "type": "doc",
+                "content": [
+                  {
+                    "type": "bulletList",
+                    "content": [
+                      {
+                        "type": "listItem",
+                        "content": [
+                          {
+                            "type": "table",
+                            "content": [
+                              {
+                                "type": "tableRow",
+                                "content": [
+                                  {
+                                    "type": "tableCell",
+                                    "content": [
+                                      {
+                                        "type": "paragraph"
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            },
+            "children": []
+          }
+        ]
+      }
+    ]
+  }
+}

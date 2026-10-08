@@ -652,3 +652,15 @@ Recorded during `/speckit-implement`, so the tasks above can still be read as wr
     a notice;
   - notices are shown in the toolbar's status line (`RT/notices.ts` words them), passed in by
     the Rich Text block and the item field.
+- **Tables** (T068–T078):
+  - the renderer and the canvas write `<tbody>`: HTML parsers add one to a `<table><tr>`, so
+    the canvas parity check would otherwise compare different trees;
+  - `valid/rich-text-limits.json` is written without indentation; indented, it is 1.27 MB, over
+    the 1 MiB document limit;
+  - table commands live in `RT/ContractTable.ts` (`insertContractTable`, `addContractRow`,
+    `addContractColumn` and the Tab key), which stop at the limits and report through the
+    editor's notices; `TableGroup.vue` is a row below the toolbar, outside its roving tab stop;
+  - `toContractRichText` cuts a table to 200 rows and 20 columns. A paste is the only way to get
+    past them, and refusing the whole paste would lose more than cutting off the excess;
+  - the page editor's `setProp` now refuses rich text that breaks rules 10–12, with a message,
+    as it does for the character limit.

@@ -78,6 +78,10 @@ internal static class RichTextRenderer
                 RenderImage(node, context, writer);
                 break;
 
+            case "table":
+                RenderTable(node, context, writer);
+                break;
+
             case "bulletList":
                 RenderList("ul", node, context, writer, start: null);
                 break;
@@ -230,6 +234,34 @@ internal static class RichTextRenderer
 
         writer.Attribute("alt", alt).Attribute("loading", "lazy").Attribute("decoding", "async").EndTag();
         writer.Close("figure");
+    }
+
+    /// <summary>
+    /// A table (035 FR-015): in an area that scrolls sideways, focusable so keyboards can scroll
+    /// it; header cells, which only the first row has, are the headers of their columns.
+    /// </summary>
+    private static void RenderTable(JsonElement node, RenderContext context, HtmlWriter writer)
+    {
+        writer.Markup("<div class=\"qb-rt-table\" tabindex=\"0\"><table><tbody>");
+        foreach (var row in Children(node))
+        {
+            writer.Markup("<tr>");
+            foreach (var cell in Children(row))
+            {
+                var header = cell.TryGetProperty("type", out var type) && type.GetString() == "tableHeader";
+                writer.Markup(header ? "<th scope=\"col\">" : "<td>");
+                foreach (var block in Children(cell))
+                {
+                    RenderBlock(block, context, writer);
+                }
+
+                writer.Markup(header ? "</th>" : "</td>");
+            }
+
+            writer.Markup("</tr>");
+        }
+
+        writer.Markup("</tbody></table></div>");
     }
 
     /// <summary>A heading's level, 2 to 4; anything else is drawn as the nearest of those (035).</summary>

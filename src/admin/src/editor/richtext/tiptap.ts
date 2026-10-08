@@ -25,6 +25,7 @@ import Italic from '@tiptap/extension-italic'
 import { BulletList, ListItem, OrderedList } from '@tiptap/extension-list'
 import { fromContractRichText, toContractRichText, type RichTextDoc } from './toContractRichText'
 import { ContractImage, type ContractImageLabels } from './ContractImage'
+import { ContractTable, ContractTableCell, ContractTableHeader, ContractTableRow } from './ContractTable'
 import { mediaApi } from '../../api/media'
 import { imageFiles, insertUploads, preparePastedHtml, type FileUploads, type RichTextNotice } from './paste'
 import { ALL_FORMATS, type AllowedFormats } from './formats'
@@ -134,6 +135,8 @@ const BlockStyleKeys = Extension.create({
 export interface RichTextSetup {
   siteId?: string
   imageLabels?: ContractImageLabels
+  /** Told what a paste, a drop or a table action left out or refused (035 FR-012, FR-026). */
+  onNotice?: (notice: RichTextNotice) => void
 }
 
 export function richTextExtensions(setup: RichTextSetup = {}): Extensions {
@@ -144,6 +147,7 @@ export function richTextExtensions(setup: RichTextSetup = {}): Extensions {
     Document, ContractParagraph, Text, HardBreak, Bold, Italic, Underline, ContractStrike, Code,
     BulletList, OrderedList, ContractListItem, ContractLink,
     ContractHeading, ContractBlockquote, BlockStyleKeys, image,
+    ContractTable.configure({ onNotice: setup.onNotice }), ContractTableRow, ContractTableHeader, ContractTableCell,
   ]
 }
 
@@ -154,8 +158,6 @@ export interface RichTextEditorOptions extends RichTextSetup {
   extensions?: Extensions
   /** The formats this rich text may hold (035 FR-022); every format by default. */
   allowed?: AllowedFormats
-  /** Told what a paste or drop left out or could not upload (035 FR-012, FR-026). */
-  onNotice?: (notice: RichTextNotice) => void
   /** Called with the contract document after every change to it. */
   onChange: (doc: RichTextDoc) => void
   onBlur?: () => void

@@ -5,6 +5,7 @@ import type { RichTextNotice } from './paste'
 
 export function noticeText(t: Composer['t'], te: Composer['te'], notice: RichTextNotice): string {
   if (notice.kind === 'imagesLeftOut') return t('editor.richText.notice.imagesLeftOut', notice.count)
+  if (notice.kind === 'limit') return t(`editor.richText.notice.${notice.limit}Limit`)
   const key = notice.code?.startsWith('media.') ? `media.errors.${notice.code.slice('media.'.length)}` : ''
   return t('editor.richText.notice.uploadFailed', { reason: key && te(key) ? t(key) : t('media.errors.unknown') })
 }

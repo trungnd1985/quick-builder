@@ -813,7 +813,11 @@
         "into_itself": "A block cannot be moved inside itself.",
         "read_only": "This page is read-only right now.",
         "needs_section": "Add a Section first: headings, text and images go inside one.",
-        "clipboard_empty": "Nothing has been copied from this site yet."
+        "clipboard_empty": "Nothing has been copied from this site yet.",
+        "rich_text_too_many_images": "A rich text holds at most 50 images.",
+        "rich_text_too_many_tables": "A rich text holds at most 20 tables.",
+        "table_not_rectangular": "Every row of a table needs the same number of cells.",
+        "table_header_misplaced": "Header cells can only make up the whole first row of a table."
       },
       "rules": {
         "malformed_json": "The page content is not well-formed.",
@@ -831,7 +835,11 @@
         "component_ref_not_allowed": "A shared component cannot contain another shared component.",
         "unknown_component": "The page uses a shared component that no longer exists.",
         "unsupported_schema_version": "The page was written by a newer version of QuickBuilder.",
-        "rich_text_too_long": "A rich text block holds more than 20,000 characters."
+        "rich_text_too_long": "A rich text block holds more than 20,000 characters.",
+        "rich_text_too_many_images": "A rich text block shows more than 50 images.",
+        "rich_text_too_many_tables": "A rich text block holds more than 20 tables.",
+        "table_not_rectangular": "A table has rows with different numbers of cells.",
+        "table_header_misplaced": "A table has header cells outside its first row."
       },
       "server": {
         "unexpected": "Something went wrong. Try again in a moment.",
@@ -888,7 +896,22 @@
       },
       "notice": {
         "imagesLeftOut": "One image was left out. Add images from the media library. | {count} images were left out. Add images from the media library.",
-        "uploadFailed": "A pasted image could not be uploaded: {reason}"
+        "uploadFailed": "A pasted image could not be uploaded: {reason}",
+        "rowsLimit": "A table holds at most 200 rows.",
+        "columnsLimit": "A table holds at most 20 columns.",
+        "tablesLimit": "A rich text holds at most 20 tables."
+      },
+      "table": {
+        "insert": "Table",
+        "group": "Table",
+        "rowAbove": "Add row above",
+        "rowBelow": "Add row below",
+        "columnBefore": "Add column before",
+        "columnAfter": "Add column after",
+        "deleteRow": "Delete row",
+        "deleteColumn": "Delete column",
+        "headerRow": "Header row",
+        "deleteTable": "Delete table"
       }
     },
     "panel": {
