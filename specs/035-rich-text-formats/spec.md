@@ -131,8 +131,9 @@ media library lists both usages.
    a file from the media library, **Then** the image appears there. Its alternative text
    starts as the file's own alternative text from the library and can be changed.
 2. **Given** an image with neither alternative text nor "decorative" set, **When** the Editor
-   publishes the page or item, **Then** publishing is refused and points to the image, as
-   for the Image block today. A draft can still be saved.
+   publishes the page or item, **Then** publishing is refused and points to the image. A
+   draft can still be saved. (The Image block has no such check today; this feature does not
+   add one to it.)
 3. **Given** a published page whose rich text shows an image, **When** someone looks at that
    file in the media library, **Then** the library lists the page as a usage, counted as live
    use, the same as an Image block. The same holds for items.
@@ -243,8 +244,10 @@ Check the result, including that existing text keeps its alignment.
   The preview's examples and counts reflect this.
 - **Media deleted or replaced**: replacing a file updates every rich text that shows it.
   Deleting a file in use warns and lists the pages and items, as for Image blocks.
-- **Another site's media**: an image may only name a file of the same site. Anything else is
-  refused.
+- **Another site's media**: an image may only show a file of the same site. An image that
+  names another site's file is treated exactly like a missing file: it is never shown on the
+  published page, the editor shows it as missing, and an item reports it as missing media.
+  The file never counts as used.
 - **Links in headings, quotes and table cells**: allowed, under the existing link rules.
 - **An admin tab opened before the upgrade and still open**: saving content from it still
   works, but it can't show the new formats until it is reloaded.
