@@ -1436,7 +1436,14 @@
       "fillInHelp": "Written to every existing item that has no value yet.",
       "fillInNone": "No value",
       "fillInTrue": "Yes",
-      "fillInFalse": "No"
+      "fillInFalse": "No",
+      "formats": "Allowed formats",
+      "formatsHelp": "Paragraphs, lists, bold, italic, links and alignment are always allowed.",
+      "formatGroups": {
+        "headings": "Headings and quotes",
+        "images": "Images",
+        "tables": "Tables"
+      }
     },
     "options": {
       "legend": "Options",
@@ -1816,7 +1823,13 @@
         "file_kind": "This kind of file is not allowed here.",
         "media_missing": "The file was deleted from the media library.",
         "schedule_failed": "A scheduled action failed. See the history.",
-        "image_alt_missing": "An image needs alternative text, or to be marked decorative, before publishing."
+        "image_alt_missing": "An image needs alternative text, or to be marked decorative, before publishing.",
+        "format_not_allowed": "This field does not allow {format}. Remove them before publishing.",
+        "formats": {
+          "headings": "headings or quotes",
+          "images": "images",
+          "tables": "tables"
+        }
       }
     }
   }

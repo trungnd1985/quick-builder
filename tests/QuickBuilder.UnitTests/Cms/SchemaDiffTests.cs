@@ -67,6 +67,7 @@ public sealed class SchemaDiffTests
     [InlineData(Settings.WithTime)]
     [InlineData(Settings.Accept)]
     [InlineData(Settings.Target)]
+    [InlineData(Settings.Formats)]
     public void Each_setting_is_its_own_change(string setting)
     {
         var (before, after) = setting switch
@@ -78,6 +79,7 @@ public sealed class SchemaDiffTests
             Settings.Max => (Of(FieldType.Number, "f1"), Of(FieldType.Number, "f1") with { Max = 9 }),
             Settings.WithTime => (Of(FieldType.Date, "f1"), Of(FieldType.Date, "f1") with { WithTime = true }),
             Settings.Accept => (Of(FieldType.File, "f1"), Of(FieldType.File, "f1") with { Accept = FileAccept.Images }),
+            Settings.Formats => (Of(FieldType.RichText, "f1"), Of(FieldType.RichText, "f1") with { Formats = new RichTextFormats(Tables: false) }),
             _ => (Of(FieldType.Reference, "f1"), Of(FieldType.Reference, "f1") with { Target = Guid.NewGuid() }),
         };
 

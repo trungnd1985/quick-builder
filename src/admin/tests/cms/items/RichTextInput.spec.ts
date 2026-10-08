@@ -81,4 +81,28 @@ describe('RichTextInput history', () => {
     const sent = (emitted()['update:value'] as unknown[][]).at(-1)![0]
     expect(sent).toEqual({ type: 'doc', content: [{ type: 'image', attrs: { media: { mediaId: 'file-1' }, alt: 'Front' } }] })
   })
+
+  it('follows the field’s allowed formats: its toolbar, paste and shortcuts (035 FR-023)', async () => {
+    const restricted: SchemaField = { ...field, formats: { headings: false, images: false, tables: false } }
+    const view = render(RichTextInput, {
+      props: { field: restricted, value: doc('Start'), id: 'f20-input', describedBy: 'f20-help', invalid: false, siteId: SITE, label: 'Body' },
+      global: { plugins: [i18n] },
+    })
+    await screen.findByRole('button', { name: en.editor.richText.undo })
+    const textbox = view.container.querySelector<HTMLElement & { editor: Editor }>('[role="textbox"]')!
+    const editor = textbox.editor
+
+    for (const name of [en.editor.richText.quote, en.editor.richText.image.insert, en.editor.richText.table.insert]) {
+      expect(screen.queryByRole('button', { name })).toBeNull()
+    }
+    expect(screen.queryByRole('combobox', { name: en.editor.richText.blockStyle })).toBeNull()
+
+    const html = editor.view.someProp('transformPastedHTML', (transform) => transform('<h2>Title</h2><blockquote><p>Said</p></blockquote><table><tr><td>A</td><td>B</td></tr></table>', editor.view))
+    expect(html).toBe('<p>Title</p><p>Said</p><p>A B</p>')
+
+    await fireEvent.keyDown(textbox, { key: '2', code: 'Digit2', ctrlKey: true, altKey: true })
+    editor.commands.setHeading({ level: 2 })
+    editor.commands.insertContent({ type: 'image', attrs: { media: { mediaId: 'file-1' } } })
+    expect(JSON.stringify(editor.getJSON())).not.toMatch(/"heading"|"image"/)
+  })
 })

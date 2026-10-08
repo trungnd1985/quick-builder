@@ -670,3 +670,16 @@ Recorded during `/speckit-implement`, so the tasks above can still be read as wr
   - pressing an alignment that is already on removes it, so the paragraph follows its block again;
   - no extra CSS was needed: a paragraph's own `qb-align--*` class beats the alignment it would
     inherit from its block.
+- **Allowed formats** (T084–T092):
+  - an item reports one problem per field (015's rule), so `format_not_allowed` names the first
+    disallowed group in document order, not one problem per group;
+  - the setting is checked through `ItemValueValidator`'s settings check, so schema-change
+    previews count affected items as `nowInvalid` and widening clears them on save, with no
+    new code in the migrator;
+  - the stored setting is written with all three groups when any is off, and left out when all
+    are on; the admin's field editor drops it when every box is checked again;
+  - instead of `restrictToAllowed` in the normaliser, a restricted field's editor has a guard
+    that refuses any change adding a disallowed node (shortcuts, typed "## ", drops), and paste
+    converts headings, quotes and tables to paragraphs before parsing. Content the field held
+    before its formats were narrowed is never removed silently: the item needs attention
+    until the member removes it.

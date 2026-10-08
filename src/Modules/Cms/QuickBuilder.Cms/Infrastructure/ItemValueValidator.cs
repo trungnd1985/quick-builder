@@ -65,6 +65,18 @@ internal sealed class ItemValueValidator(CollectionSchemaValidator schemas)
         return MeetsSettings(field, value) ? ValueState.Valid : ValueState.NeedsAttention;
     }
 
+    /// <summary>
+    /// The first format group a rich text value uses that its field does not allow, in document
+    /// order: <c>headings</c>, <c>images</c> or <c>tables</c> (035 FR-024); null when it uses none.
+    /// </summary>
+    public static string? FormatNotAllowed(Field field, JsonNode value)
+    {
+        ArgumentNullException.ThrowIfNull(field);
+        return field.Formats == RichTextFormats.All
+            ? null
+            : RichTextRules.FirstFormatOutside(JsonSerializer.SerializeToElement(value), field.Formats.Headings, field.Formats.Images, field.Formats.Tables);
+    }
+
     public bool IsWellFormed(Field field, JsonNode value)
     {
         ArgumentNullException.ThrowIfNull(field);
@@ -110,6 +122,8 @@ internal sealed class ItemValueValidator(CollectionSchemaValidator schemas)
             case FieldType.MultiReference:
                 var ids = value.AsArray().Select(n => n!.GetValue<string>()).ToList();
                 return ids.Distinct(StringComparer.OrdinalIgnoreCase).Count() == ids.Count;
+            case FieldType.RichText:
+                return FormatNotAllowed(field, value) is null;
             default:
                 return true;
         }

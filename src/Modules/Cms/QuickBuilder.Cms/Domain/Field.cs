@@ -51,6 +51,9 @@ internal sealed record Field
     /// <summary>Reference and multi-reference: the target collection.</summary>
     public Guid? Target { get; init; }
 
+    /// <summary>Rich text: the format groups it allows (035 FR-022); all by default.</summary>
+    public RichTextFormats Formats { get; init; } = RichTextFormats.All;
+
     /// <summary>Whether this field can name a collection's items (FR-011).</summary>
     public bool IsSingleLineText => Type == FieldType.Text && !Multiline;
 
@@ -80,6 +83,7 @@ internal sealed record Field
                 ? [.. element.GetProperty("options").EnumerateArray().Select(o => new FieldOption(o.GetProperty("id").GetString()!, o.GetProperty("label").GetString()!))]
                 : [],
             Target = type is FieldType.Reference or FieldType.MultiReference ? element.GetProperty("target").GetGuid() : null,
+            Formats = type == FieldType.RichText && element.TryGetProperty("formats", out var formats) ? RichTextFormats.Read(formats) : RichTextFormats.All,
         };
     }
 
@@ -127,6 +131,9 @@ internal sealed record Field
             case FieldType.Reference or FieldType.MultiReference:
                 json["target"] = Target!.Value.ToString();
                 break;
+            case FieldType.RichText when Formats != RichTextFormats.All:
+                json["formats"] = new JsonObject { ["headings"] = Formats.Headings, ["images"] = Formats.Images, ["tables"] = Formats.Tables };
+                break;
         }
 
         return json;
@@ -135,4 +142,29 @@ internal sealed record Field
     /// <summary>Two fields are the same definition, options and their order included.</summary>
     public bool SameDefinitionAs(Field other) =>
         this with { Options = [] } == other with { Options = [] } && Options.SequenceEqual(other.Options);
+}
+
+/// <summary>
+/// The format groups a rich text field allows (035 FR-022, collection-schema.md §2): headings
+/// and quotes, images, tables. A missing group, like a missing setting, is allowed.
+/// </summary>
+internal sealed record RichTextFormats(bool Headings = true, bool Images = true, bool Tables = true)
+{
+    public static RichTextFormats All { get; } = new();
+
+    public static RichTextFormats Read(JsonElement formats) => new(
+        !formats.TryGetProperty("headings", out var headings) || headings.GetBoolean(),
+        !formats.TryGetProperty("images", out var images) || images.GetBoolean(),
+        !formats.TryGetProperty("tables", out var tables) || tables.GetBoolean());
+
+    /// <summary>Whether <paramref name="after"/> disallows a group this allows.</summary>
+    public bool NarrowedBy(RichTextFormats after)
+    {
+        ArgumentNullException.ThrowIfNull(after);
+        return (Headings && !after.Headings) || (Images && !after.Images) || (Tables && !after.Tables);
+    }
+
+    /// <summary>The allowed groups, by name, for a preview and history: "headings images tables".</summary>
+    public override string ToString() =>
+        string.Join(" ", new[] { Headings ? "headings" : null, Images ? "images" : null, Tables ? "tables" : null }.OfType<string>());
 }

@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "titleFieldId": "f1",
+  "fields": [
+    {
+      "id": "f1",
+      "key": "title",
+      "name": "Title",
+      "help": "",
+      "required": true,
+      "type": "text",
+      "multiline": false,
+      "maxLength": 256
+    },
+    {
+      "id": "f2",
+      "key": "summary",
+      "name": "Summary",
+      "help": "",
+      "required": false,
+      "type": "richText",
+      "formats": {
+        "headings": false,
+        "tables": false
+      }
+    },
+    {
+      "id": "f3",
+      "key": "body",
+      "name": "Body",
+      "help": "",
+      "required": false,
+      "type": "richText",
+      "formats": {}
+    },
+    {
+      "id": "f4",
+      "key": "notes",
+      "name": "Notes",
+      "help": "",
+      "required": false,
+      "type": "richText",
+      "formats": {
+        "headings": true,
+        "images": true,
+        "tables": true
+      }
+    }
+  ]
+}

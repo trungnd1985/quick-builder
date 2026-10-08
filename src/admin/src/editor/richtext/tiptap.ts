@@ -10,6 +10,7 @@
 // renderer (#12) turns `to` into an address.
 
 import { Editor, Extension, Mark, type Extensions, type JSONContent } from '@tiptap/core'
+import type { Node as ProseMirrorNode } from '@tiptap/pm/model'
 import { Plugin } from '@tiptap/pm/state'
 import Document from '@tiptap/extension-document'
 import Paragraph from '@tiptap/extension-paragraph'
@@ -138,6 +139,31 @@ export interface RichTextSetup {
   imageLabels?: ContractImageLabels
   /** Told what a paste, a drop or a table action left out or refused (035 FR-012, FR-026). */
   onNotice?: (notice: RichTextNotice) => void
+  /** The formats this rich text may hold (035 FR-022); every format by default. */
+  allowed?: AllowedFormats
+}
+
+/**
+ * A field that does not allow a format group (035 FR-022) gets no more of it, whichever way it
+ * would come in — a shortcut, typing "## ", a drop: a change that adds such a node is refused.
+ * What the field held before its formats were narrowed stays until the member removes it.
+ */
+function allowedFormatsGuard(allowed: AllowedFormats): Extension {
+  const disallowed = (name: string): boolean =>
+    ((name === 'heading' || name === 'blockquote') && !allowed.headings)
+    || (name === 'image' && !allowed.images)
+    || (name === 'table' && !allowed.tables)
+  const count = (doc: ProseMirrorNode): number => {
+    let n = 0
+    doc.descendants((node) => {
+      if (disallowed(node.type.name)) n++
+    })
+    return n
+  }
+  return Extension.create({
+    name: 'allowedFormatsGuard',
+    addProseMirrorPlugins: () => [new Plugin({ filterTransaction: (tr, state) => !tr.docChanged || count(tr.doc) <= count(state.doc) })],
+  })
 }
 
 export function richTextExtensions(setup: RichTextSetup = {}): Extensions {
@@ -151,6 +177,7 @@ export function richTextExtensions(setup: RichTextSetup = {}): Extensions {
     ContractTable.configure({ onNotice: setup.onNotice }), ContractTableRow, ContractTableHeader, ContractTableCell,
     // Alignment on paragraphs and headings (035 US6); none means the block's own.
     TextAlign.configure({ types: ['heading', 'paragraph'], alignments: ['start', 'center', 'end'], defaultAlignment: null }),
+    ...(setup.allowed && !(setup.allowed.headings && setup.allowed.images && setup.allowed.tables) ? [allowedFormatsGuard(setup.allowed)] : []),
   ]
 }
 
@@ -159,8 +186,6 @@ export interface RichTextEditorOptions extends RichTextSetup {
   content: unknown
   /** Extensions only this editor needs: the item field's own undo history (035 RT-14). */
   extensions?: Extensions
-  /** The formats this rich text may hold (035 FR-022); every format by default. */
-  allowed?: AllowedFormats
   /** Called with the contract document after every change to it. */
   onChange: (doc: RichTextDoc) => void
   onBlur?: () => void
@@ -193,7 +218,7 @@ export function createRichTextEditor(options: RichTextEditorOptions): Editor {
       attributes: { 'aria-label': options.label, 'aria-multiline': 'true', role: 'textbox', class: 'qb-rich-text__body' },
       // 035 US4: pasted HTML loses its address-only images and merged cells before parsing.
       transformPastedHTML: (html) => {
-        const prepared = preparePastedHtml(html)
+        const prepared = preparePastedHtml(html, options.allowed ?? ALL_FORMATS)
         if (prepared.imagesLeftOut > 0) notify({ kind: 'imagesLeftOut', count: prepared.imagesLeftOut })
         return prepared.html
       },

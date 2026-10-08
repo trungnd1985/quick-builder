@@ -242,5 +242,23 @@
         "path": "/content/0"
       }
     ]
+  },
+  "rich-text-format-not-allowed.json": {
+    "problems": [
+      {
+        "fieldId": "f14",
+        "problem": "format_not_allowed",
+        "format": "headings"
+      }
+    ]
+  },
+  "rich-text-allowed-formats.json": {
+    "problems": [
+      {
+        "fieldId": "f14",
+        "problem": "media_missing",
+        "path": "/content/1"
+      }
+    ]
   }
 }

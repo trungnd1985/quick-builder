@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "values": {
+    "f1": "Hello",
+    "f14": {
+      "type": "doc",
+      "content": [
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "Plain"
+            }
+          ]
+        },
+        {
+          "type": "image",
+          "attrs": {
+            "media": {
+              "mediaId": "0192f5a1-0000-7000-8000-000000000010"
+            },
+            "decorative": true
+          }
+        }
+      ]
+    }
+  }
+}

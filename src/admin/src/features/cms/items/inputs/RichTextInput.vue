@@ -9,6 +9,7 @@ import type { Editor, JSONContent } from '@tiptap/core'
 import { UndoRedo } from '@tiptap/extensions'
 import type { SchemaField } from '../../../../api/cms'
 import RichTextToolbar, { type RichTextHistory } from '../../../../editor/richtext/RichTextToolbar.vue'
+import { allowedFormats } from '../../../../editor/richtext/formats'
 import { noticeText } from '../../../../editor/richtext/notices'
 import { createRichTextEditor } from '../../../../editor/richtext/tiptap'
 import { fromContractRichText, toContractRichText, type RichTextDoc } from '../../../../editor/richtext/toContractRichText'
@@ -26,6 +27,9 @@ const host = ref<HTMLElement | null>(null)
 const editor = shallowRef<Editor | null>(null)
 
 const isEmpty = (doc: RichTextDoc): boolean => isEmptyRichText(doc as unknown as Json)
+
+// The formats this field allows (035 FR-022): its toolbar, paste and uploads follow them.
+const allowed = computed(() => allowedFormats(props.field.formats))
 
 // Count transactions, so the undo and redo buttons follow the editor's history.
 const changes = ref(0)
@@ -57,6 +61,7 @@ onMounted(() => {
       addAlt: t('editor.richText.image.addAlt'),
     },
     extensions: [UndoRedo],
+    allowed: allowed.value,
     onChange: (doc) => emit('update:value', isEmpty(doc) ? undefined : doc),
   })
   editor.value.on('transaction', () => {
@@ -92,6 +97,7 @@ onBeforeUnmount(() => editor.value?.destroy())
       :site-id="siteId"
       :history="history"
       :notice="notice"
+      :allowed="allowed"
     />
     <div
       ref="host"

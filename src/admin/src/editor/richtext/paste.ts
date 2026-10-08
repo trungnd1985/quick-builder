@@ -20,7 +20,13 @@ export interface PreparedPaste {
 
 const NEVER_CONTENT = 'script, style, iframe, object, embed, noscript, template, link, meta, title, svg, canvas, video, audio, picture source'
 
-export function preparePastedHtml(html: string): PreparedPaste {
+/** The groups a paste may bring in; a field may limit them (035 FR-023). */
+export interface PasteFormats {
+  headings: boolean
+  tables: boolean
+}
+
+export function preparePastedHtml(html: string, formats: PasteFormats = { headings: true, tables: true }): PreparedPaste {
   const document = new DOMParser().parseFromString(html, 'text/html')
   const body = document.body
 
@@ -62,6 +68,26 @@ export function preparePastedHtml(html: string): PreparedPaste {
   })
 
   body.querySelectorAll('table').forEach(splitMergedCells)
+
+  // A field that does not allow headings and quotes, or tables, gets their text as paragraphs.
+  if (!formats.headings) {
+    body.querySelectorAll('h1, h2, h3, h4, h5, h6').forEach((heading) => {
+      const paragraph = document.createElement('p')
+      paragraph.append(...heading.childNodes)
+      heading.replaceWith(paragraph)
+    })
+    body.querySelectorAll('blockquote').forEach((quote) => quote.replaceWith(...quote.childNodes))
+  }
+  if (!formats.tables) {
+    body.querySelectorAll('table').forEach((table) => {
+      const rows = Array.from(table.rows).map((row) => {
+        const paragraph = document.createElement('p')
+        paragraph.textContent = Array.from(row.cells).map((cell) => (cell.textContent ?? '').trim()).filter((text) => text !== '').join(' ')
+        return paragraph
+      })
+      table.replaceWith(...rows)
+    })
+  }
 
   return { html: body.innerHTML, imagesLeftOut }
 }

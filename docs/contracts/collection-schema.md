@@ -70,7 +70,7 @@ Both are JSON objects carrying `schemaVersion`. This release supports `1` only. 
 | `type` | Settings | Defaults offered by the builder |
 |---|---|---|
 | `text` | `multiline`: bool; `maxLength`: 1–10,000 | single line, 256 (several lines: 5,000) |
-| `richText` | none | |
+| `richText` | `formats`: optional `{ headings, images, tables }`, each a bool; a missing group, or a missing `formats`, is allowed (035) | everything allowed |
 | `number` | `decimals`: 0–6 (0 = whole number); `min`, `max`: optional numbers, `min` ≤ `max` | 0 |
 | `boolean` | none | |
 | `date` | `withTime`: bool | false |
@@ -105,7 +105,10 @@ Both are JSON objects carrying `schemaVersion`. This release supports `1` only. 
 
 - **Well-formed versus valid**: a value is well-formed when it matches its `$defs` entry. It
   is valid when it also meets its field's settings (`maxLength`, `min`, `max`, `accept`,
-  required). Stored values are always well-formed. They may be invalid after a settings
+  `formats`, required). A rich text value using a format group its field does not allow —
+  a heading or quote for `headings`, an image for `images`, a table for `tables` — is invalid
+  with `format_not_allowed` and the group as `format`, the first in document order (035). A
+  rich text with no text and no images is no value (035). Stored values are always well-formed. They may be invalid after a settings
   change (§7), and are then reported as needing attention, never rewritten.
 - A media or reference value whose file or item no longer exists stays well-formed and is
   reported as missing.
@@ -171,7 +174,8 @@ The examples are stored documents.
 
 `collection-schema/examples/items/` holds **item values** examples (added by
 [015](../../specs/015-cms-items/), research IT-05): one `schema.json`, one values document per
-file, and `expected.json` giving each file's report, the list of `{ fieldId, problem, limit }`
+file, and `expected.json` giving each file's report, the list of
+`{ fieldId, problem, limit, format, path }` (`format` and `path` added by 035, when present)
 the server (`ItemValueGoldenTests`) and the admin (`itemValues.spec.ts`) must both produce
 (015 FR-012). The validators that run them know no media file and no item, so a media or
 reference value is always reported missing. Problem codes are those of 015 data-model §2;
@@ -233,8 +237,8 @@ Fields are matched **by id** between the stored and proposed schemas. Each chang
 - **Option removed**: lossy; values choosing it are cleared.
 - **Field removed**: lossy when any item has a value; its values are deleted from draft and
   published values.
-- **Tightened `maxLength`, `min`, `max`, `accept`**: reported. Values are kept, and those no
-  longer valid are counted as needing attention.
+- **Tightened `maxLength`, `min`, `max`, `accept`, or a `formats` group turned off (035)**:
+  reported. Values are kept, and those no longer valid are counted as needing attention.
 - **A converted value that breaks the new settings** is kept and counted as needing
   attention. Only `richText` → `text` shortens.
 - **Fill-in values**: when a field is added or turned required, a value may be given for

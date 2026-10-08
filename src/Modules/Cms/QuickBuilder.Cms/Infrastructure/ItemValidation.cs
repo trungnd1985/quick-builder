@@ -158,6 +158,8 @@ internal sealed class ItemValidation(ItemValueValidator validator, IItemMediaLoo
                 return new ItemProblem(field.Id, ItemProblems.UnknownOption);
             case FieldType.MultiReference:
                 return new ItemProblem(field.Id, ItemProblems.DuplicateReference);
+            case FieldType.RichText:
+                return new ItemProblem(field.Id, ItemProblems.FormatNotAllowed, Format: ItemValueValidator.FormatNotAllowed(field, value));
             default:
                 return new ItemProblem(field.Id, ItemProblems.Malformed);
         }

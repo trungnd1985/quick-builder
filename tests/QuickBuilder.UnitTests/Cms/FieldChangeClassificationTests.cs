@@ -114,6 +114,21 @@ public sealed class FieldChangeClassificationTests
         Assert.Equal(expected, RuleOf(before, after));
     }
 
+    [Theory]
+    [InlineData(true, true, true, false, true, true, nameof(ChangeRule.Reported))]
+    [InlineData(true, true, true, true, false, false, nameof(ChangeRule.Reported))]
+    [InlineData(false, true, true, true, true, true, nameof(ChangeRule.Free))]
+    [InlineData(false, true, false, true, true, true, nameof(ChangeRule.Free))]
+    [InlineData(false, true, true, true, false, true, nameof(ChangeRule.Reported))]
+    public void Narrowing_a_rich_text_fields_formats_is_reported_and_widening_is_free(
+        bool headingsBefore, bool imagesBefore, bool tablesBefore, bool headingsAfter, bool imagesAfter, bool tablesAfter, string expectedRule)
+    {
+        var before = Of(FieldType.RichText, "f1") with { Formats = new RichTextFormats(headingsBefore, imagesBefore, tablesBefore) };
+        var after = Of(FieldType.RichText, "f1") with { Formats = new RichTextFormats(headingsAfter, imagesAfter, tablesAfter) };
+
+        Assert.Equal(Enum.Parse<ChangeRule>(expectedRule), RuleOf(before, after));
+    }
+
     [Fact]
     public void A_new_reference_target_is_forbidden()
     {

@@ -81,6 +81,9 @@ internal static partial class FieldConversion
         Settings.WithTime => after.WithTime ? ChangeRule.Lossless : ChangeRule.Lossy,
         Settings.Accept => after.Accept == FileAccept.Any ? ChangeRule.Free : ChangeRule.Reported,
         Settings.Target => ChangeRule.Forbidden,
+
+        // 035 FR-025: values are kept; those using a group no longer allowed need attention.
+        Settings.Formats => before.Formats.NarrowedBy(after.Formats) ? ChangeRule.Reported : ChangeRule.Free,
         _ => throw new ArgumentOutOfRangeException(nameof(setting), setting, "Not a setting of the collection schema."),
     };
 }

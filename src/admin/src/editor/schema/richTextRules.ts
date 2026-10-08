@@ -103,6 +103,19 @@ export function imageMedia(document: Json, pointer: string): { mediaId: string; 
   })
 }
 
+/**
+ * The first format group the document uses that is not allowed, in document order: headings (a
+ * heading or quote), images or tables; null when it uses none (035 FR-024).
+ */
+export function firstFormatOutside(document: Json, allowed: { headings: boolean; images: boolean; tables: boolean }): 'headings' | 'images' | 'tables' | null {
+  for (const { node } of nodes(document, '')) {
+    if ((node.type === 'heading' || node.type === 'blockquote') && !allowed.headings) return 'headings'
+    if (node.type === 'image' && !allowed.images) return 'images'
+    if (node.type === 'table' && !allowed.tables) return 'tables'
+  }
+  return null
+}
+
 /** Whether the document uses anything an admin from before 035 cannot keep (RT-13). */
 export function usesExtendedFormats(document: Json): boolean {
   return nodes(document, '').some(({ node }) =>

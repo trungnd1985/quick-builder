@@ -159,6 +159,21 @@
         },
         "type": {
           "const": "richText"
+        },
+        "formats": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "headings": {
+              "type": "boolean"
+            },
+            "images": {
+              "type": "boolean"
+            },
+            "tables": {
+              "type": "boolean"
+            }
+          }
         }
       }
     },

@@ -122,6 +122,9 @@ internal static class SchemaDiff
             case FieldType.Option:
                 CompareOptions(old, field, changes);
                 break;
+            case FieldType.RichText:
+                Setting(Settings.Formats, old.Formats != field.Formats);
+                break;
         }
     }
 

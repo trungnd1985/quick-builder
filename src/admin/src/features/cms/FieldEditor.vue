@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { FieldOption, FieldType, SchemaField } from '../../api/cms'
+import { allowedFormats } from '../../editor/richtext/formats'
 import { FIELD_TYPES, LIMITS, suggestKey, withType } from './collectionSchema'
 import { isSingleLineText } from './collectionSchemaRules'
 import { typeChangeRule } from './schemaChanges'
@@ -46,6 +47,12 @@ const targets = computed(() => [
 
 function update(change: Partial<SchemaField>): void {
   emit('update', { ...props.field, ...change })
+}
+
+/** Turns a rich text format group on or off; all on is the same as no setting (035 FR-022). */
+function setFormat(group: 'headings' | 'images' | 'tables', allowed: boolean): void {
+  const next = { ...allowedFormats(props.field.formats), [group]: allowed }
+  update({ formats: next.headings && next.images && next.tables ? undefined : next })
 }
 
 function rename(name: string): void {
@@ -257,6 +264,29 @@ function setFillIn(raw: string): void {
         >
         <label :for="`${domId}-with-time`">{{ t('cms.field.withTime') }}</label>
       </div>
+
+      <fieldset
+        v-if="field.type === 'richText'"
+        class="field"
+      >
+        <legend>{{ t('cms.field.formats') }}</legend>
+        <p class="help">
+          {{ t('cms.field.formatsHelp') }}
+        </p>
+        <div
+          v-for="group in (['headings', 'images', 'tables'] as const)"
+          :key="group"
+          class="field--checkbox"
+        >
+          <input
+            :id="`${domId}-formats-${group}`"
+            :checked="field.formats?.[group] !== false"
+            type="checkbox"
+            @change="setFormat(group, ($event.target as HTMLInputElement).checked)"
+          >
+          <label :for="`${domId}-formats-${group}`">{{ t(`cms.field.formatGroups.${group}`) }}</label>
+        </div>
+      </fieldset>
 
       <div
         v-if="field.type === 'file'"

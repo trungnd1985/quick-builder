@@ -103,6 +103,22 @@ public static class RichTextRules
             .Select(n => n.Pointer)];
 
     /// <summary>
+    /// The first format group <paramref name="document"/> uses that is not allowed, in document
+    /// order: <c>headings</c> (a heading or quote), <c>images</c> or <c>tables</c>; null when it
+    /// uses none (035 FR-024: a collection's rich text field may limit its formats).
+    /// </summary>
+    public static string? FirstFormatOutside(JsonElement document, bool headings, bool images, bool tables) =>
+        Nodes(document, string.Empty)
+            .Select(n => TypeOf(n.Node) switch
+            {
+                "heading" or "blockquote" when !headings => "headings",
+                "image" when !images => "images",
+                "table" when !tables => "tables",
+                _ => null,
+            })
+            .FirstOrDefault(group => group is not null);
+
+    /// <summary>
     /// The media file each image of <paramref name="document"/> names, with the image's pointer
     /// below <paramref name="location"/>, in document order; images without a valid id are skipped.
     /// </summary>

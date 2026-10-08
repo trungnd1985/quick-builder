@@ -45,6 +45,17 @@ describe('whether a save needs the preview', () => {
     expect(needsPreview(stored, doc(...stored.fields, { id: '~1', key: 'flag', name: 'Flag', help: '', required: false, type: 'boolean' }), new Set(['~1']))).toBe(true)
   })
 
+  it('previews narrowing the formats of a rich text field, and saves widening them straight away (035 FR-025)', () => {
+    const rich = (formats?: { headings?: boolean; images?: boolean; tables?: boolean }) =>
+      ({ id: 'f9', key: 'body', name: 'Body', help: '', required: false, type: 'richText' as const, ...(formats ? { formats } : {}) })
+    const before = doc(stored.fields[0]!, rich())
+
+    expect(valueChanges(before, doc(stored.fields[0]!, rich({ tables: false })))[0]?.rule).toBe('reported')
+    expect(valueChanges(doc(stored.fields[0]!, rich({ headings: false })), doc(stored.fields[0]!, rich({ headings: false, images: false })))[0]?.rule).toBe('reported')
+    expect(needsPreview(doc(stored.fields[0]!, rich({ headings: false })), doc(stored.fields[0]!, rich()))).toBe(false)
+    expect(needsPreview(before, doc(stored.fields[0]!, rich({ headings: true, images: true, tables: true })))).toBe(false)
+  })
+
   it('saves an added optional field straight away, and previews an added required one', () => {
     expect(needsPreview(stored, doc(...stored.fields, text('~1')))).toBe(false)
     expect(needsPreview(stored, doc(...stored.fields, text('~1', { required: true })))).toBe(true)

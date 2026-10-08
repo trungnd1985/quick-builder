@@ -11,7 +11,8 @@ import type { Problem } from '../../../api/items'
 import { codePointLength, type Json } from '../../../editor/schema/subsetValidator'
 import { pageSchema } from '../../../editor/schema/schema'
 import { richTextChars } from '../../../editor/schema/documentValidator'
-import { checkRichTextRules, imageMedia, imagesWithoutAlt, isEmptyRichText } from '../../../editor/schema/richTextRules'
+import { checkRichTextRules, firstFormatOutside, imageMedia, imagesWithoutAlt, isEmptyRichText } from '../../../editor/schema/richTextRules'
+import { allowedFormats } from '../../../editor/richtext/formats'
 import { MAX_RICH_TEXT_CHARS } from '../../../editor/schema/limits'
 import { collectionSchema } from '../collectionSchema'
 
@@ -109,6 +110,10 @@ function settingProblem(field: SchemaField, value: Json): Problem | null {
     }
     case 'option':
       return field.options?.some((o) => o.id === value) ? null : { fieldId: field.id, problem: 'unknown_option' }
+    case 'richText': {
+      const format = firstFormatOutside(value, allowedFormats(field.formats))
+      return format ? { fieldId: field.id, problem: 'format_not_allowed', format } : null
+    }
     case 'multiReference': {
       const ids = (value as string[]).map((id) => id.toLowerCase())
       return new Set(ids).size === ids.length ? null : { fieldId: field.id, problem: 'duplicate_reference' }
