@@ -14,9 +14,9 @@
     ./qb.ps1 seed [-Count 1000] [-Site name]
                               Fill a site's media library with generated images, for trying
                               search, folders and the picker at scale.
-    ./qb.ps1 seed-items -Collection <address name> [-Count 300] [-Site name]
-                              Add generated items to a collection (development only),
-                              to try schema changes on real data.
+    ./qb.ps1 seed-items -Collection <address name> [-Count 300] [-Publish 0] [-Site name]
+                              Add generated items to a collection through the item API
+                              (development only), publishing the given percentage of them.
 
     Needs Docker. `dev` and `test` also need the .NET 10 SDK and Node 24.
     On macOS and Linux run it with PowerShell 7: `pwsh ./qb.ps1`.
@@ -47,7 +47,11 @@ param(
     [string] $Site,
 
     # seed-items: the collection's address name.
-    [string] $Collection
+    [string] $Collection,
+
+    # seed-items: the percentage of the new items to publish (default 0).
+    [ValidateRange(0, 100)]
+    [int] $Publish = 0
 )
 
 $ErrorActionPreference = 'Stop'
@@ -345,9 +349,9 @@ switch ($Command) {
     }
 
     'seed-items' {
-        # 014 research CS-19: there is no item editor until #15, so this writes items straight
-        # into the database, with values of the right type for each field, to try schema changes
-        # on real data. A development tool: it is never part of the product.
+        # 015 tasks T084: items are created through the item API, like the item form does, with a
+        # value of the right type for each field, and the given share published. A development
+        # tool: it is never part of the product.
         if (-not $Collection) { throw 'Name the collection by its address name: ./qb.ps1 seed-items -Collection blog-posts' }
         if (-not $PSBoundParameters.ContainsKey('Count')) { $Count = 300 }
 
@@ -377,36 +381,48 @@ switch ($Command) {
             Where-Object { $_.slug -eq $Collection } | Select-Object -First 1
         if (-not $found) { throw "Site '$($target.name)' has no collection with the address name '$Collection'." }
 
-        # One statement: every field gets a value of its type, and about 30 % of optional fields
-        # stay empty so previews have something to count. Image, file and reference fields stay
-        # empty: there is nothing yet to point them at.
-        $sql = @"
-INSERT INTO cms.items (id, site_id, collection_id, draft, published, created_at_utc, updated_at_utc)
-SELECT gen_random_uuid(), c.site_id, c.id, d.doc, NULL, now(), now()
-FROM cms.collections c
-CROSS JOIN generate_series(1, $Count) AS n
-CROSS JOIN LATERAL (
-  SELECT jsonb_build_object('schemaVersion', 1, 'values',
-           COALESCE(jsonb_object_agg(f->>'id', v.value) FILTER (WHERE v.value IS NOT NULL), '{}'::jsonb)) AS doc
-  FROM jsonb_array_elements(c.schema->'fields') AS f
-  CROSS JOIN LATERAL (SELECT CASE
-    WHEN (f->>'required')::boolean IS NOT TRUE AND random() < 0.3 THEN NULL
-    WHEN f->>'type' = 'text' THEN to_jsonb(left(f->>'name' || ' ' || n, COALESCE((f->>'maxLength')::int, 256)))
-    WHEN f->>'type' = 'richText' THEN jsonb_build_object('type', 'doc', 'content', jsonb_build_array(
-      jsonb_build_object('type', 'paragraph', 'content', jsonb_build_array(jsonb_build_object('type', 'text', 'text', 'Seeded text ' || n)))))
-    WHEN f->>'type' = 'number' THEN to_jsonb(GREATEST(COALESCE((f->>'min')::numeric, 0), LEAST(COALESCE((f->>'max')::numeric, 1000), (n % 100)::numeric)))
-    WHEN f->>'type' = 'boolean' THEN to_jsonb(n % 2 = 0)
-    WHEN f->>'type' = 'date' AND (f->>'withTime')::boolean THEN to_jsonb(to_char(timestamp '2026-01-01' + n * interval '1 hour', 'YYYY-MM-DD"T"HH24:MI:SS"Z"'))
-    WHEN f->>'type' = 'date' THEN to_jsonb(to_char(date '2026-01-01' + (n % 365), 'YYYY-MM-DD'))
-    WHEN f->>'type' = 'option' AND jsonb_array_length(f->'options') > 0 THEN f->'options'->(n % jsonb_array_length(f->'options'))->'id'
-    ELSE NULL END AS value) v
-) d
-WHERE c.id = '$($found.id)';
-"@
+        # Every field gets a value of its type, and about 30 % of optional fields stay empty so the
+        # list and previews have something to count. Image, file and reference fields stay empty:
+        # there is nothing yet to point them at.
+        $collection = Invoke-RestMethod "$api/cms/sites/$($target.id)/collections/$($found.id)" -WebSession $session
+        $items = "$api/cms/sites/$($target.id)/collections/$($found.id)/items"
+        $headers = @{ 'X-QuickBuilder-Request' = '1' }
+        $random = [Random]::new(15)
+        $stamp = Get-Date -Format 'HHmmss'
+        $published = 0
+        $failed = 0
 
-        Say "Adding $Count items to '$($found.name)' on '$($target.name)'…"
-        $sql | docker compose exec -T db psql -U quickbuilder -d quickbuilder -v ON_ERROR_STOP=1 -q
-        if ($LASTEXITCODE -ne 0) { throw 'Seeding items failed.' }
-        Say "Done. Open the collection in the admin and change a field to see the preview count them."
+        Say "Adding $Count items to '$($found.name)' on '$($target.name)', publishing about $Publish %…"
+        for ($n = 1; $n -le $Count; $n++) {
+            $values = [ordered]@{}
+            foreach ($field in $collection.schema.fields) {
+                if (-not $field.required -and $random.NextDouble() -lt 0.3) { continue }
+                $value = switch ($field.type) {
+                    'text' { "$($field.name) $n".Substring(0, [Math]::Min("$($field.name) $n".Length, $field.maxLength)) }
+                    'richText' { @{ type = 'doc'; content = @(@{ type = 'paragraph'; content = @(@{ type = 'text'; text = "Seeded text $n" }) }) } }
+                    'number' { [Math]::Max([double]($field.min ?? 0), [Math]::Min([double]($field.max ?? 1000), $n % 100)) }
+                    'boolean' { $n % 2 -eq 0 }
+                    'date' { if ($field.withTime) { (Get-Date '2026-01-01').AddHours($n).ToString("yyyy-MM-dd'T'HH:mm:ss'Z'") } else { (Get-Date '2026-01-01').AddDays($n % 365).ToString('yyyy-MM-dd') } }
+                    'option' { if ($field.options.Count -gt 0) { $field.options[$n % $field.options.Count].id } }
+                    default { $null }
+                }
+                if ($null -ne $value) { $values[$field.id] = $value }
+            }
+
+            $body = @{ slug = "seed-$stamp-$n"; schemaRevision = $collection.schemaRevision; values = @{ schemaVersion = 1; values = $values } } | ConvertTo-Json -Depth 10
+            try {
+                $item = Invoke-RestMethod $items -Method Post -WebSession $session -Headers $headers -ContentType 'application/json' -Body $body
+                if ($random.Next(100) -lt $Publish) {
+                    $publishBody = @{ revision = $item.revision; cancelSchedule = $false } | ConvertTo-Json
+                    $null = Invoke-RestMethod "$items/$($item.id)/publish" -Method Post -WebSession $session -Headers $headers -ContentType 'application/json' -Body $publishBody
+                    $published++
+                }
+            } catch { $failed++ }
+
+            if ($n % 50 -eq 0) { Write-Progress -Activity 'Adding items' -Status "$n of $Count" -PercentComplete (100 * $n / $Count) }
+        }
+        Write-Progress -Activity 'Adding items' -Completed
+
+        Say "Done: $($Count - $failed) added, $published published, $failed refused (a required field this script cannot fill, such as an image)."
     }
 }

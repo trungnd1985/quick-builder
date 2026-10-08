@@ -6,6 +6,7 @@
 import { computed, nextTick, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { publishingApi, type Publication, type ScheduleAction, type SubjectKind } from '../../api/publishing'
+import ZonedDateTimeInput from '../../components/ZonedDateTimeInput.vue'
 import { publishingErrorMessage } from './errorMessages'
 
 const props = defineProps<{
@@ -30,30 +31,11 @@ const actions = computed<ScheduleAction[]>(() =>
 const action = ref<ScheduleAction>('publish')
 const existing = computed(() => props.publication?.pendingSchedules.find((s) => s.action === action.value) ?? null)
 
-/** `YYYY-MM-DD` and `HH:MM` in local time, as date and time inputs use them. */
-function localParts(date: Date): { date: string; time: string } {
-  const pad = (n: number) => String(n).padStart(2, '0')
-  return {
-    date: `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`,
-    time: `${pad(date.getHours())}:${pad(date.getMinutes())}`,
-  }
-}
-
-const initial = localParts(existing.value ? new Date(existing.value.dueAtUtc) : new Date(Date.now() + 60 * 60 * 1000))
-const date = ref(initial.date)
-const time = ref(initial.time)
+/** The chosen moment in UTC, or null while incomplete; it starts an hour ahead, or at the existing schedule. */
+const due = ref<string | null>(existing.value ? existing.value.dueAtUtc : new Date(Date.now() + 60 * 60 * 1000).toISOString())
 const busy = ref(false)
 const error = ref<string | null>(null)
 const form = ref<HTMLFormElement | null>(null)
-
-const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone
-
-/** The chosen local moment in UTC, or null while the fields are incomplete. */
-function dueAtUtc(): string | null {
-  if (!date.value || !time.value) return null
-  const local = new Date(`${date.value}T${time.value}:00`)
-  return Number.isNaN(local.getTime()) ? null : local.toISOString()
-}
 
 onMounted(async () => {
   await nextTick()
@@ -61,9 +43,8 @@ onMounted(async () => {
 })
 
 async function save(): Promise<void> {
-  const due = dueAtUtc()
   error.value = null
-  if (!due || new Date(due).getTime() <= Date.now()) {
+  if (!due.value || new Date(due.value).getTime() <= Date.now()) {
     error.value = t('publishing.schedule.inPast')
     return
   }
@@ -72,7 +53,7 @@ async function save(): Promise<void> {
   try {
     const version = action.value === 'publish' ? await props.draftVersion() : undefined
     if (version === null) throw new Error('The draft could not be saved.')
-    await publishingApi.schedule(props.siteId, props.kind, props.subjectId, action.value, due, version)
+    await publishingApi.schedule(props.siteId, props.kind, props.subjectId, action.value, due.value, version)
     emit('changed')
   } catch (caught) {
     error.value = publishingErrorMessage(t, te, caught)
@@ -144,32 +125,10 @@ function onKeydown(event: KeyboardEvent): void {
         {{ t('publishing.schedule.existing', { when: d(new Date(existing.dueAtUtc), 'short') }) }}
       </p>
 
-      <div class="field">
-        <label :for="`${dialogId}-date`">{{ t('publishing.schedule.date') }}</label>
-        <input
-          :id="`${dialogId}-date`"
-          v-model="date"
-          type="date"
-          required
-          :aria-describedby="`${dialogId}-zone`"
-        >
-      </div>
-      <div class="field">
-        <label :for="`${dialogId}-time`">{{ t('publishing.schedule.time') }}</label>
-        <input
-          :id="`${dialogId}-time`"
-          v-model="time"
-          type="time"
-          required
-          :aria-describedby="`${dialogId}-zone`"
-        >
-      </div>
-      <p
-        :id="`${dialogId}-zone`"
-        class="help"
-      >
-        {{ t('publishing.schedule.timeZone', { zone: timeZone }) }}
-      </p>
+      <ZonedDateTimeInput
+        :id="dialogId"
+        v-model="due"
+      />
 
       <p
         v-if="error"

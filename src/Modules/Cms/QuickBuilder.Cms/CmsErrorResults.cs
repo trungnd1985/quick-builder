@@ -52,8 +52,16 @@ internal static class CmsErrorResults
             or "cms.confirmation_required"
             or "cms.preview_outdated"
             or "cms.collection_referenced"
-            or "cms.items_being_updated" => StatusCodes.Status409Conflict,
-        "cms.proposal_too_large" => StatusCodes.Status413PayloadTooLarge,
+            or "cms.items_being_updated"
+            or "cms.item_slug_taken"
+            or "cms.item_conflict"
+            or "cms.schema_changed"
+            or "cms.item_needs_attention"
+            or "cms.version_not_publishable"
+            or "cms.item_not_published"
+            or "cms.item_referenced"
+            or "cms.schedule_pending" => StatusCodes.Status409Conflict,
+        "cms.proposal_too_large" or "cms.item_too_large" => StatusCodes.Status413PayloadTooLarge,
         _ when code.EndsWith("not_found", StringComparison.Ordinal) => StatusCodes.Status404NotFound,
         _ => StatusCodes.Status400BadRequest,
     };

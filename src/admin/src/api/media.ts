@@ -103,7 +103,8 @@ export interface MediaFolderTree {
 }
 
 export interface MediaUsagePlace {
-  kind: 'page' | 'component'
+  /** `item`: a collection item (015), with its collection. */
+  kind: 'page' | 'component' | 'item'
   id: string
   /** Page title or component name. Always render as text. */
   title: string
@@ -112,6 +113,11 @@ export interface MediaUsagePlace {
   inHistory: boolean
   /** For a live component, how many live pages show it. */
   livePagesThroughComponent: number | null
+  /** For an item: its collection. The name is data: text only. */
+  collectionId?: string | null
+  collectionName?: string | null
+  /** For an item: a pending scheduled publish shows it. */
+  inScheduled?: boolean
 }
 
 export interface MediaUsage {

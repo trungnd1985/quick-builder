@@ -60,6 +60,16 @@ internal sealed class DeleteCollectionHandler(
             .SingleAsync(c => c.Id == command.CollectionId, cancellationToken)
             .ConfigureAwait(false);
 
+        // 015 research IT-10: references between this collection's own items go first. The
+        // cascade would remove them too, but PostgreSQL checks item_references' NO ACTION key on
+        // the cascaded item delete before it cascades to those rows. No other collection's item
+        // can refer to these: the collection_references check above refuses that.
+        var items = database.ForSite<Item>(command.SiteId).Where(i => i.CollectionId == collection.Id).Select(i => i.Id);
+        await database.ForSite<ItemReference>(command.SiteId)
+            .Where(r => items.Contains(r.SourceItemId))
+            .ExecuteDeleteAsync(cancellationToken)
+            .ConfigureAwait(false);
+
         collection.MarkDeleted(clock);
         CmsOutbox.AddFrom(database, collection, access.Actor);
         database.Collections.Remove(collection);

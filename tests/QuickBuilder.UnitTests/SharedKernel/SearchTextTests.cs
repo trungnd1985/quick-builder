@@ -1,6 +1,6 @@
-using QuickBuilder.Media.Domain;
+using QuickBuilder.Shared.Kernel.Text;
 
-namespace QuickBuilder.UnitTests.Media;
+namespace QuickBuilder.UnitTests.SharedKernel;
 
 /// <summary>Search ignores case and accents and treats the term literally (013 FR-006, research MV-03).</summary>
 /// <remarks>
@@ -28,9 +28,9 @@ public sealed class SearchTextTests
     [Fact]
     public void The_search_text_holds_name_and_alternative_text()
     {
-        Assert.Equal("desk.jpg anna nguyen at her desk", SearchText.For("Desk.jpg", "Anna Nguyễn at her desk"));
-        Assert.Equal("desk.jpg", SearchText.For("Desk.jpg", null));
-        Assert.Equal("desk.jpg", SearchText.For("Desk.jpg", "   "));
+        Assert.Equal("desk.jpg anna nguyen at her desk", SearchText.Combine("Desk.jpg", "Anna Nguyễn at her desk"));
+        Assert.Equal("desk.jpg", SearchText.Combine("Desk.jpg", null));
+        Assert.Equal("desk.jpg", SearchText.Combine("Desk.jpg", "   "));
     }
 
     [Theory]
@@ -54,7 +54,7 @@ public sealed class SearchTextTests
     [Fact]
     public void Searching_a_folded_name_with_a_folded_term_matches()
     {
-        var stored = SearchText.For("BROCHURE-été.pdf", null);
+        var stored = SearchText.Combine("BROCHURE-été.pdf", null);
 
         Assert.Contains(SearchText.Normalise("ÉTÉ"), stored, StringComparison.Ordinal);
     }

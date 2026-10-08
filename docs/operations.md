@@ -582,8 +582,9 @@ suffice.
 
 Each site can define collections: structured, repeatable content such as blog posts or
 products, managed under **Sites → a site → Collections**. Administrators and designers
-define a collection's fields; editors can see them. Creating and editing items comes with
-#15, and showing them on pages with #16.
+define a collection's fields; editors can see them. Every site role, editors included,
+writes, publishes and schedules a collection's **items** (feature 015), from the
+collection's **Items** link. Showing items on pages comes with #16.
 
 ### Changing fields after items exist
 
@@ -596,6 +597,9 @@ define a collection's fields; editors can see them. Creating and editing items c
 - A change applies to items' **draft and published** values at once. While it runs, edits
   to that collection's items are refused with "try again shortly"; reading is never blocked.
 - Conversions of dates use **UTC**, because sites have no time zone yet.
+- A change that removes or converts values also applies it to the **published versions kept
+  for rollback** and to content captured for a **scheduled publish**, so a removed value is
+  gone from everywhere.
 
 ### Large collections and reverse proxies
 
@@ -609,6 +613,28 @@ saved again.
 Deleting a collection deletes its fields, history and every item, permanently; there is no
 trash yet (#21). A collection that another collection's reference field points at cannot
 be deleted until that field is removed or changed.
+
+### Items
+
+- **Drafts and publishing**: an item's draft can be saved however incomplete; publishing
+  needs every required value and every value within its field's settings. Each publish is a
+  version; the last **50** are kept, and any of them can be published again or copied into the
+  draft.
+- **Who may publish**: unlike pages, **editors may publish, unpublish and schedule items**.
+- **Schedules** run through the same built-in background jobs as page schedules, within a
+  minute of their time, once, also after a restart. A scheduled publish whose content no
+  longer meets the fields' rules when its time comes does not publish; the item's history
+  says why and the item is marked as needing attention.
+- **Deleting an item** others refer to is refused, listing them; there is no trash yet (#21).
+- **Media**: a file used by a **published item** counts as in live use, so only designers and
+  administrators can delete or replace it, as for files on published pages.
+
+### Upgrading from feature 014
+
+- The upgrade adds item columns and tables to the `cms` schema. Items stored before it (only
+  test or demo data) get a slug and, if published, a version 1. Shortly after start-up, a
+  background step gives them names, search text and slugs built from their names.
+- No configuration changes are needed.
 
 ### Upgrading from feature 013
 

@@ -9,8 +9,9 @@ using QuickBuilder.IntegrationTests.Infrastructure;
 namespace QuickBuilder.IntegrationTests.Cms;
 
 /// <summary>
-/// Inserts items as stored data, for tests (research CS-19). There is no API that creates
-/// items until #15, so tests write through <see cref="CmsDbContext"/> directly.
+/// Inserts items as stored data, for tests (research CS-19): fast, for the large collections the
+/// schema-change and performance tests need. With <c>index</c>, they are then indexed as the
+/// 015 upgrade does; tests of item behaviour create items through the item API instead.
 /// </summary>
 /// <remarks>
 /// Values are well-formed for their field's type and valid for its settings, so every
@@ -49,20 +50,22 @@ internal static class ItemSeed
         Guid collectionId,
         int count,
         bool published = false,
-        Func<Field, int, JsonNode?>? valuesFor = null)
+        Func<Field, int, JsonNode?>? valuesFor = null,
+        bool index = false)
     {
         ArgumentNullException.ThrowIfNull(scenario);
-        return AddAsync(scenario.App, siteId, collectionId, count, published, valuesFor);
+        return AddAsync(scenario.App, siteId, collectionId, count, published, valuesFor, index);
     }
 
-    /// <inheritdoc cref="AddAsync(CmsScenario, Guid, Guid, int, bool, Func{Field, int, JsonNode}?)"/>
+    /// <inheritdoc cref="AddAsync(CmsScenario, Guid, Guid, int, bool, Func{Field, int, JsonNode}?, bool)"/>
     public static async Task<IReadOnlyList<Guid>> AddAsync(
         QuickBuilderApp app,
         Guid siteId,
         Guid collectionId,
         int count,
         bool published = false,
-        Func<Field, int, JsonNode?>? valuesFor = null)
+        Func<Field, int, JsonNode?>? valuesFor = null,
+        bool index = false)
     {
         ArgumentNullException.ThrowIfNull(app);
 
@@ -91,6 +94,13 @@ internal static class ItemSeed
 
             await database.SaveChangesAsync().ConfigureAwait(false);
             database.ChangeTracker.Clear();
+        }
+
+        // 015 research IT-22: items stored this way are what 014 left; the index backfill gives
+        // them slugs from their names, statuses and their derived rows, as after an upgrade.
+        if (index)
+        {
+            await app.Services.GetRequiredService<ItemIndexBackfillService>().RunOnceAsync(CancellationToken.None).ConfigureAwait(false);
         }
 
         return ids;

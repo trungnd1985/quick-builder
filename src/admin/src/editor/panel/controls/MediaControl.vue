@@ -4,13 +4,25 @@
 // from last on this site. Stored by id; a file that has since gone is marked.
 import { computed, nextTick, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ApiError, mediaApi, type MediaFile } from '../../../api/media'
+import { ApiError, mediaApi, type MediaFile, type MediaKind } from '../../../api/media'
 import { useAuthStore } from '../../../app/authStore'
 import MediaBrowser from '../../../features/media/MediaBrowser.vue'
 import * as lastFolder from '../../../features/media/lastFolder'
 import { isObject, type Json } from '../../schema/subsetValidator'
 
-const props = defineProps<{ siteId: string; value: Json | undefined; label: string; prop: string; id: string; error?: string }>()
+const props = withDefaults(
+  defineProps<{
+    siteId: string
+    value: Json | undefined
+    label: string
+    prop: string
+    id: string
+    error?: string
+    /** What the picker shows first: images for an Image block, or a file field's accepted kind (015). */
+    kind?: MediaKind | ''
+  }>(),
+  { error: undefined, kind: 'image' },
+)
 const emit = defineEmits<{
   change: [value: Json | undefined]
   /** A file was chosen; its library alternative text, if any, for a block without its own (FR-009). */
@@ -21,6 +33,8 @@ const auth = useAuthStore()
 
 const open = ref(false)
 const missing = ref(false)
+const fileName = ref<string | null>(null)
+const isImage = ref(true)
 const initialFolderId = ref<string | null>(null)
 const trigger = ref<HTMLButtonElement | null>(null)
 const dialog = ref<HTMLElement | null>(null)
@@ -31,9 +45,14 @@ const userId = computed(() => auth.user?.id ?? 'anonymous')
 // Marked when the chosen file is gone, or its bytes are.
 watch(mediaId, async (id) => {
   missing.value = false
+  fileName.value = null
+  isImage.value = true
   if (!id) return
   try {
-    missing.value = !(await mediaApi.get(props.siteId, id)).available
+    const file = await mediaApi.get(props.siteId, id)
+    missing.value = !file.available
+    fileName.value = file.fileName
+    isImage.value = file.contentType.startsWith('image/')
   } catch (caught) {
     missing.value = caught instanceof ApiError && caught.status === 404
   }
@@ -98,11 +117,12 @@ function onKeydown(event: KeyboardEvent): void {
     >{{ label }}</span>
     <div class="editor-media__current">
       <img
-        v-if="mediaId && !missing"
+        v-if="mediaId && !missing && isImage"
         :src="mediaApi.previewUrl(siteId, mediaId)"
         alt=""
         class="editor-media__preview"
       >
+      <span v-else-if="mediaId && !missing && fileName">{{ fileName }}</span>
       <span v-else-if="!mediaId">{{ t('editor.panel.media.none') }}</span>
     </div>
     <div class="editor-media__actions">
@@ -167,6 +187,7 @@ function onKeydown(event: KeyboardEvent): void {
           <MediaBrowser
             :site-id="siteId"
             mode="picker"
+            :initial-kind="kind"
             :initial-folder-id="initialFolderId"
             @folder-change="rememberFolder"
             @choose="choose"

@@ -61,4 +61,47 @@ public sealed class CmsSiteFilterTests(DatabaseFixture database)
         Assert.Equal(3, (await scenario.ItemsAsync(a)).Count);
         Assert.Empty(await scenario.ItemsAsync(a, scenario.SiteB));
     }
+
+    /// <summary>
+    /// Every table 015 adds is filtered by site, and the one cross-site read that background
+    /// indexing needs returns ids paired with their own site (015 data-model §1, research IT-22).
+    /// </summary>
+    [Fact]
+    public async Task Item_tables_of_another_site_are_never_read_and_indexing_work_is_paired_with_its_site()
+    {
+        using var scenario = await CmsScenario.CreateAsync(database, "cms-item-tables-site");
+        var schema = new JsonObject
+        {
+            ["schemaVersion"] = 1,
+            ["fields"] = new JsonArray(CmsApi.Field("~1", "title", "text", settings: new { multiline = false, maxLength = 256 })),
+        };
+        var a = (await scenario.CollectionAsync("posts", schema)).GetProperty("id").GetGuid();
+        var b = (await scenario.CollectionAsync("posts", schema, scenario.SiteB)).GetProperty("id").GetGuid();
+        await ItemSeed.AddAsync(scenario, scenario.SiteA, a, 2, published: true);
+        await ItemSeed.AddAsync(scenario, scenario.SiteB, b, 1);
+
+        var work = await scenario.WithDatabaseAsync(cms => cms.CollectionsToIndexAsync(int.MaxValue, CancellationToken.None));
+        Assert.Equal(
+            [new SiteCollection(scenario.SiteA, a), new SiteCollection(scenario.SiteB, b)],
+            work.OrderBy(w => w.SiteId == scenario.SiteB).ToList());
+
+        await scenario.App.Services.GetRequiredService<ItemIndexBackfillService>().RunOnceAsync(CancellationToken.None);
+
+        var counts = await scenario.WithDatabaseAsync(async cms => new[]
+        {
+            await cms.ForSite<QuickBuilder.Cms.Domain.ItemSlug>(scenario.SiteB).CountAsync(),
+            await cms.ForSite<QuickBuilder.Cms.Domain.ItemSlug>(scenario.SiteA).CountAsync(),
+            await cms.ForSite<QuickBuilder.Cms.Domain.ItemVersion>(scenario.SiteB).CountAsync(),
+            await cms.ForSite<QuickBuilder.Cms.Domain.ItemReference>(scenario.SiteB).CountAsync(),
+            await cms.ForSite<QuickBuilder.Cms.Domain.ItemMediaUse>(scenario.SiteB).CountAsync(),
+            await cms.ForSite<QuickBuilder.Cms.Domain.ItemSchedule>(scenario.SiteB).CountAsync(),
+            await cms.ForSite<QuickBuilder.Cms.Domain.ItemHistoryEntry>(scenario.SiteB).CountAsync(),
+
+            // Without a site, the global filters match nothing at all.
+            await cms.ItemSlugs.CountAsync(),
+            await cms.ItemVersions.CountAsync(),
+        });
+
+        Assert.Equal([1, 2, 0, 0, 0, 0, 0, 0, 0], counts);
+    }
 }

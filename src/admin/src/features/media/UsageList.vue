@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// 013 US5 (FR-014): where a file is used — pages first, then components — each with what
+// 013 US5 (FR-014): where a file is used — pages, components, then collection items (015) — each with what
 // uses it: the draft, the live version, or only versions kept for rollback. Places link to
 // their editor. Someone who may not see page content gets the counts alone. Titles are data:
 // text only.
@@ -16,6 +16,7 @@ const failed = ref(false)
 
 const pages = computed(() => usage.value?.places.filter((p) => p.kind === 'page') ?? [])
 const components = computed(() => usage.value?.places.filter((p) => p.kind === 'component') ?? [])
+const items = computed(() => usage.value?.places.filter((p) => p.kind === 'item') ?? [])
 const summary = computed(() => usage.value?.summary)
 const liveRule = computed(() => (summary.value?.inLiveUse ?? false) && !props.file.canDelete)
 
@@ -34,6 +35,9 @@ watch(() => [props.file.id, props.file.contentVersion], () => void load(), { imm
 defineExpose({ reload: load })
 
 function editor(place: MediaUsagePlace) {
+  if (place.kind === 'item') {
+    return { name: 'site-collection-item', params: { siteId: props.siteId, collectionId: place.collectionId ?? '', itemId: place.id } }
+  }
   return place.kind === 'page'
     ? { name: 'page-editor', params: { siteId: props.siteId, pageId: place.id } }
     : { name: 'component-editor', params: { siteId: props.siteId, componentId: place.id } }
@@ -77,7 +81,7 @@ function editor(place: MediaUsagePlace) {
       </p>
 
       <template
-        v-for="group in [{ key: 'pages', places: pages }, { key: 'components', places: components }]"
+        v-for="group in [{ key: 'pages', places: pages }, { key: 'components', places: components }, { key: 'items', places: items }]"
         :key="group.key"
       >
         <template v-if="group.places.length > 0">
@@ -91,6 +95,10 @@ function editor(place: MediaUsagePlace) {
                 {{ place.title }}
               </RouterLink>
               <span
+                v-if="place.collectionName"
+                class="help"
+              >{{ place.collectionName }}</span>
+              <span
                 v-if="place.live"
                 class="badge badge--live"
               >{{ t('media.usage.badges.live') }}</span>
@@ -98,6 +106,10 @@ function editor(place: MediaUsagePlace) {
                 v-if="place.inDraft"
                 class="badge"
               >{{ t('media.usage.badges.draft') }}</span>
+              <span
+                v-if="place.inScheduled"
+                class="badge"
+              >{{ t('media.usage.badges.scheduled') }}</span>
               <span
                 v-if="place.inHistory && !place.live && !place.inDraft"
                 class="badge"

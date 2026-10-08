@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "values": {
+    "f1": "Hello",
+    "f9": {
+      "mediaId": "0192f5a0-1b2c-7d3e-8f40-0000000000aa"
+    }
+  }
+}

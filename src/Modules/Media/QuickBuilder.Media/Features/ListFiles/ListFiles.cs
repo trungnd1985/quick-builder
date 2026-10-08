@@ -8,6 +8,7 @@ using QuickBuilder.Shared.Infrastructure.MultiSite;
 using QuickBuilder.Shared.Kernel.Authorization;
 using QuickBuilder.Shared.Kernel.Dispatch;
 using QuickBuilder.Shared.Kernel.Results;
+using QuickBuilder.Shared.Kernel.Text;
 using QuickBuilder.Sites.Contracts;
 
 namespace QuickBuilder.Media.Features.ListFiles;

@@ -83,6 +83,7 @@ public static class MediaModule
         }
 
         services.AddScoped<MediaFileMapper>();
+        services.AddScoped<MediaUsage>();
         services.AddSingleton<UploadGate>();
 
         // 013: the shared upload and replace pipeline, folders, and eager thumbnails (MV-13).

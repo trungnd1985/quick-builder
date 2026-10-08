@@ -129,6 +129,26 @@ Designers shape the content model; Editors, who write content, see it. They are 
 
 The schema preview is read-only but shows item titles, so it needs `cms.collections.view`.
 
+### Registered by 015
+
+Collection items (015) add two more, also registered by Cms. Every site role writes and
+publishes items (015 clarification Q1), unlike pages, where Editors only prepare drafts. The
+two are kept apart so that who may change what visitors see can be separated later without
+renaming a shipped capability. See
+[015 research IT-16](../../015-cms-items/research.md#it-16-authorization).
+
+| Capability | Scope | Administrator | Designer | Editor |
+|---|---|---|---|---|
+| `cms.items.edit` | Site | ✓ | ✓ | ✓ |
+| `cms.items.publish` | Site | ✓ | ✓ | ✓ |
+
+- **Reading** items (list, item, history, referrers, slug availability, lookup) needs
+  `cms.collections.view`.
+- **`cms.items.edit`**: create, save the draft, duplicate, delete, copy a version into the draft.
+- **`cms.items.publish`**: publish, unpublish, schedule and cancel schedules, roll back.
+- **Media in live use**: a file a published item uses counts as in live use, so deleting or
+  replacing it still needs `pages.publishing.manage` (013 rule, unchanged; 015 IT-15).
+
 ## 3. What a caller sees
 
 | Situation | Status | `errorCode` |

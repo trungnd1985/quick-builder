@@ -190,11 +190,12 @@ public sealed class ModuleBoundaryTests
     }
 
     /// <summary>
-    /// Cms reads other modules only through the contracts its plan names (014 module-surface.md §1),
-    /// and no module depends on Cms yet.
+    /// Cms reads other modules only through the contracts its plan names (014 module-surface.md §1).
+    /// Only Media depends on Cms, and only on its Contracts, to read items' media usage (015
+    /// module-surface.md §1-§2); nothing references the Cms implementation.
     /// </summary>
     [Fact]
-    public void Cms_references_only_the_contracts_it_declares_and_nothing_references_cms()
+    public void Cms_references_only_the_contracts_it_declares_and_only_media_references_cms_contracts()
     {
         string[] allowed =
         [
@@ -218,11 +219,12 @@ public sealed class ModuleBoundaryTests
         var dependents = ModuleImplementations
             .Concat(ModuleContracts)
             .Where(a => a.GetName().Name is not ("QuickBuilder.Cms" or "QuickBuilder.Cms.Contracts"))
-            .Where(a => a.GetReferencedAssemblies().Any(r => r.Name is "QuickBuilder.Cms" or "QuickBuilder.Cms.Contracts"))
-            .Select(a => a.GetName().Name)
+            .SelectMany(a => a.GetReferencedAssemblies()
+                .Where(r => r.Name is "QuickBuilder.Cms" or "QuickBuilder.Cms.Contracts")
+                .Select(r => $"{a.GetName().Name} -> {r.Name}"))
             .ToList();
 
-        Assert.Empty(dependents);
+        Assert.All(dependents, edge => Assert.Equal("QuickBuilder.Media -> QuickBuilder.Cms.Contracts", edge));
     }
 
     /// <summary>

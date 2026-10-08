@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "values": {
+    "f1": "Hello",
+    "f2": "Two\nlines",
+    "f3": {
+      "type": "doc",
+      "content": [
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "Hello"
+            }
+          ]
+        }
+      ]
+    },
+    "f4": 12.5,
+    "f5": 7,
+    "f6": false,
+    "f7": "2026-10-08",
+    "f8": "2026-10-08T09:30:00Z",
+    "f11": "o2"
+  }
+}

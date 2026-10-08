@@ -316,6 +316,12 @@ const savingLabel = computed(() => {
           </p>
         </div>
         <div class="page-toolbar">
+          <RouterLink
+            class="button-link"
+            :to="{ name: 'site-collection-items', params: { siteId, collectionId: collection.id } }"
+          >
+            {{ t('cms.items.tab') }}
+          </RouterLink>
           <button
             type="button"
             :aria-expanded="showHistory"

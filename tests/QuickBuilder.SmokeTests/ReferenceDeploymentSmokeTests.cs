@@ -379,6 +379,26 @@ public sealed class ReferenceDeploymentSmokeTests(ITestOutputHelper output) : IA
         Assert.Equal(("f1", 2), (collectionRead.GetProperty("schema").GetProperty("titleFieldId").GetString(), collectionRead.GetProperty("revision").GetInt32()));
         output.WriteLine($"collection {collectionId} created with field f1 at revision 2");
 
+        // 9h. 015 (plan, Principle X): an item is created in that collection and published, as
+        //     version 1.
+        var items = $"{collections}/{collectionId}/items";
+        using var newItem = await client.PostAsJsonAsync(new Uri(items, UriKind.Relative), new
+        {
+            slug = "hello-world",
+            schemaRevision = collectionRead.GetProperty("schemaRevision").GetInt32(),
+            values = new { schemaVersion = 1, values = new { f1 = "Hello world" } },
+        }).ConfigureAwait(true);
+        Assert.Equal(HttpStatusCode.Created, newItem.StatusCode);
+        var item = await newItem.Content.ReadFromJsonAsync<JsonElement>().ConfigureAwait(true);
+        var itemId = item.GetProperty("id").GetGuid();
+        using var publishedItem = await client.PostAsJsonAsync(
+            new Uri($"{items}/{itemId}/publish", UriKind.Relative),
+            new { revision = item.GetProperty("revision").GetInt32(), cancelSchedule = false }).ConfigureAwait(true);
+        Assert.Equal(HttpStatusCode.OK, publishedItem.StatusCode);
+        var itemRead = await publishedItem.Content.ReadFromJsonAsync<JsonElement>().ConfigureAwait(true);
+        Assert.Equal(("published", 1), (itemRead.GetProperty("status").GetString(), itemRead.GetProperty("liveVersion").GetInt32()));
+        output.WriteLine($"item {itemId} created and published as version 1");
+
         // 10. Operator recovery (002 US5): with command-line access to the container, the
         //     operator issues a set-password link for the administrator, sets a new password
         //     through it, and signs in with that password.

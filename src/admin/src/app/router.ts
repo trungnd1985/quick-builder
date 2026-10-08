@@ -54,6 +54,10 @@ export function createAppRouter(history: RouterHistory = createWebHistory('/admi
       // 014: collections and the schema builder.
       { path: '/sites/:siteId/collections', name: 'site-collections', component: () => import('../features/cms/CollectionsView.vue') },
       { path: '/sites/:siteId/collections/:collectionId', name: 'site-collection', component: () => import('../features/cms/CollectionBuilderView.vue') },
+      // 015: collection items.
+      { path: '/sites/:siteId/collections/:collectionId/items', name: 'site-collection-items', component: () => import('../features/cms/items/ItemListView.vue') },
+      { path: '/sites/:siteId/collections/:collectionId/items/new', name: 'site-collection-item-new', component: () => import('../features/cms/items/ItemFormView.vue') },
+      { path: '/sites/:siteId/collections/:collectionId/items/:itemId', name: 'site-collection-item', component: () => import('../features/cms/items/ItemFormView.vue') },
       // 011 US6: the site's design tokens. Loaded on demand, like the editor.
       { path: '/sites/:siteId/design', name: 'site-design', component: () => import('../features/design/DesignTokensView.vue') },
       // 011 ED-22: the editor loads on demand, so TipTap and the canvas stay out of the shell's

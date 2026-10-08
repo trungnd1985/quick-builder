@@ -19,9 +19,24 @@ internal static class CmsCapabilities
     /// <summary>Create, save and delete collections. Designer.</summary>
     public const string CollectionsManage = "cms.collections.manage";
 
+    /// <summary>
+    /// Create, save, duplicate and delete items, and copy a version into the draft. Every site
+    /// role (015 clarification Q1, research IT-16).
+    /// </summary>
+    public const string ItemsEdit = "cms.items.edit";
+
+    /// <summary>
+    /// Publish, unpublish, schedule and roll back items. Every site role (015 clarification Q1);
+    /// kept apart from <see cref="ItemsEdit"/> so who may change what visitors see can be
+    /// separated later without renaming a shipped capability.
+    /// </summary>
+    public const string ItemsPublish = "cms.items.publish";
+
     public static IEnumerable<CapabilityDefinition> All =>
     [
         new(CollectionsView, CapabilityScope.Site, [SystemRole.Designer, SystemRole.Editor]),
         new(CollectionsManage, CapabilityScope.Site, [SystemRole.Designer]),
+        new(ItemsEdit, CapabilityScope.Site, [SystemRole.Designer, SystemRole.Editor]),
+        new(ItemsPublish, CapabilityScope.Site, [SystemRole.Designer, SystemRole.Editor]),
     ];
 }

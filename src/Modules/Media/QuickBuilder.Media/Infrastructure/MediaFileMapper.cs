@@ -27,7 +27,7 @@ internal sealed class MediaFileMapper(
     IUserDirectory users,
     IAccessEvaluator access,
     IFileStorage storage,
-    IMediaUsageReader usage,
+    MediaUsage usage,
     IOptions<MediaOptions> options,
     ImagingRuntime imaging,
     ILogger<MediaFileMapper> logger)

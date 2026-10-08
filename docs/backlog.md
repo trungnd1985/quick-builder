@@ -44,10 +44,25 @@ Deferred by 013 (media library, variants and remote storage; see specs/013-media
 
 Deferred by 014 (collections and the schema builder; see specs/014-cms-collections-schema/plan.md):
 
-- **Exception E-6, for #16**: schema changes rewrite published item data at once. Before
-  items are rendered, decide how a schema change reaches live pages (invalidate on
-  `Cms.CollectionChanged`, or require republishing the affected pages)
+- **Exception E-6, for #16**: schema changes rewrite published item data at once, and since
+  015 also the versions kept for rollback and scheduled content. Before items are rendered,
+  decide how a schema change reaches live pages (invalidate on `Cms.CollectionChanged`, or
+  require republishing the affected pages)
 - Unique field values (a "must be unique" setting on text and number fields)
 - Full schema snapshots per revision, and restoring a schema or a removed field
 - A background migration engine for collections far beyond 10,000 items
 - A per-site time zone for date conversions (today: UTC)
+
+Deferred by 015 (collection items; see specs/015-cms-items/plan.md):
+
+- Searching the content of text and rich text fields in the item list (clarification Q5;
+  today: name and slug)
+- Bulk actions in the item list (publish, unpublish or delete many at once)
+- Keyset paging and per-field indexes for collections far beyond 10,000 items
+- Autosave and local recovery for the item form
+- **Richer rich text, next after #15**: headings (2–4) and quotes; underline, strikethrough,
+  inline code and undo and redo buttons; images from the media library with alt text (counted
+  in media usage); simple tables and text alignment. Extend the page schema's `rtDoc` with
+  TipTap extensions, shared by the page editor, item fields, both validators and the renderer.
+  TinyMCE and CKEditor were considered and rejected: they store HTML (Principle IX) and are
+  GPL-licensed (Principle XI)

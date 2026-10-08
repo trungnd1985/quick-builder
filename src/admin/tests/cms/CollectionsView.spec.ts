@@ -22,6 +22,7 @@ async function renderView(reply: (call: Call) => Reply) {
       { path: '/sites/:siteId', name: 'site', component: { template: '<div />' } },
       { path: '/sites/:siteId/collections', name: 'site-collections', component: CollectionsView },
       { path: '/sites/:siteId/collections/:collectionId', name: 'site-collection', component: { template: '<div>builder</div>' } },
+      { path: '/sites/:siteId/collections/:collectionId/items', name: 'site-collection-items', component: { template: '<div>items</div>' } },
     ],
   })
   await router.push(`/sites/${SITE}/collections`)

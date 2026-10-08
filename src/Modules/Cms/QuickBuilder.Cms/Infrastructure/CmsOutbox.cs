@@ -31,6 +31,16 @@ internal static class CmsOutbox
                     Guid.CreateVersion7(), e.OccurredAtUtc, e.SiteId, e.CollectionId, e.Revision, e.SchemaChanged, e.ItemsRewritten, actorUserId)),
                 CollectionDeletedEvent e => OutboxMessage.From(new CollectionDeleted(
                     Guid.CreateVersion7(), e.OccurredAtUtc, e.SiteId, e.CollectionId, actorUserId)),
+                ItemCreatedEvent e => OutboxMessage.From(new ItemCreated(
+                    Guid.CreateVersion7(), e.OccurredAtUtc, e.SiteId, e.CollectionId, e.ItemId, actorUserId)),
+                ItemDraftSavedEvent e => OutboxMessage.From(new ItemDraftSaved(
+                    Guid.CreateVersion7(), e.OccurredAtUtc, e.SiteId, e.CollectionId, e.ItemId, actorUserId)),
+                ItemPublishedEvent e => OutboxMessage.From(new ItemPublished(
+                    Guid.CreateVersion7(), e.OccurredAtUtc, e.SiteId, e.CollectionId, e.ItemId, e.VersionNumber, e.Kind, e.SlugChanged, actorUserId)),
+                ItemUnpublishedEvent e => OutboxMessage.From(new ItemUnpublished(
+                    Guid.CreateVersion7(), e.OccurredAtUtc, e.SiteId, e.CollectionId, e.ItemId, e.Scheduled, actorUserId)),
+                ItemDeletedEvent e => OutboxMessage.From(new ItemDeleted(
+                    Guid.CreateVersion7(), e.OccurredAtUtc, e.SiteId, e.CollectionId, e.ItemId, e.WasPublished, actorUserId)),
                 _ => throw new InvalidOperationException(
                     $"No integration event is defined for {domainEvent.GetType().Name}. Add one to Cms.Contracts.Events."),
             };

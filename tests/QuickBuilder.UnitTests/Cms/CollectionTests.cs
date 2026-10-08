@@ -115,6 +115,19 @@ public sealed class CollectionTests
     }
 
     [Fact]
+    public void The_schema_revision_moves_only_when_the_schema_changes()
+    {
+        var collection = NewCollection();
+        Assert.Equal(1, collection.SchemaRevision);
+
+        Save(collection, Doc(Text("~1")));
+        Assert.Equal((2, 2), (collection.Revision, collection.SchemaRevision));
+
+        Save(collection, collection.SchemaDocument, Details with { Name = "Articles" });
+        Assert.Equal((3, 2), (collection.Revision, collection.SchemaRevision));
+    }
+
+    [Fact]
     public void A_save_with_nothing_to_change_is_refused_as_a_revision()
     {
         var collection = NewCollection();

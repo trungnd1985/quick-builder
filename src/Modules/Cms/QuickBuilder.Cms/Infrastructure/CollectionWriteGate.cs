@@ -5,7 +5,8 @@ using QuickBuilder.Shared.Kernel.Results;
 namespace QuickBuilder.Cms.Infrastructure;
 
 /// <summary>What an item write may rely on once it holds the gate: the schema in force until it commits.</summary>
-internal sealed record GateEntry(int Revision, CollectionSchemaDocument Schema);
+/// <param name="SchemaRevision">The revision at which the schema last changed (015 research IT-07).</param>
+internal sealed record GateEntry(int Revision, int SchemaRevision, CollectionSchemaDocument Schema);
 
 /// <summary>
 /// The one way into writing a collection's items (research CS-10, FR-037, data-model §3.3).
@@ -42,10 +43,10 @@ internal sealed class CollectionWriteGate(CmsDbContext database, CollectionLocks
         var schema = await database.ForSite<Collection>(siteId)
             .AsNoTracking()
             .Where(c => c.Id == collectionId)
-            .Select(c => c.Schema)
+            .Select(c => new { c.Schema, c.SchemaRevision })
             .SingleAsync(cancellationToken)
             .ConfigureAwait(false);
 
-        return Result.Success(new GateEntry(locked.Value, CollectionSchemaDocument.Read(schema)));
+        return Result.Success(new GateEntry(locked.Value, schema.SchemaRevision, CollectionSchemaDocument.Read(schema.Schema)));
     }
 }

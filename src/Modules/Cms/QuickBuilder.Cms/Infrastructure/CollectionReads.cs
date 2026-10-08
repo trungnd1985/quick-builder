@@ -54,6 +54,7 @@ internal sealed class CollectionReads(CmsDbContext database, CmsAccess access)
             collection.Description,
             JsonNode.Parse(collection.Schema)!,
             collection.Revision,
+            collection.SchemaRevision,
             itemCount,
             canManage,
             collection.CreatedAtUtc,

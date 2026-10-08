@@ -22,8 +22,10 @@ const props = withDefaults(
     hostNames?: string[]
     /** Whether the member may upload, file and organise (the upload capability). */
     canUpload?: boolean
+    /** The kind shown first; by default images in a picker, everything in the library (015: file fields choose documents). */
+    initialKind?: MediaKind | ''
   }>(),
-  { mode: 'library', initialFolderId: null, hostNames: () => [], canUpload: true },
+  { mode: 'library', initialFolderId: null, hostNames: () => [], canUpload: true, initialKind: undefined },
 )
 
 const emit = defineEmits<{
@@ -41,7 +43,7 @@ const folderId = ref<string | null>(props.initialFolderId)
 const search = ref('')
 const appliedSearch = ref('')
 const onlyThisFolder = ref(false)
-const kind = ref<MediaKind | ''>(props.mode === 'picker' ? 'image' : '')
+const kind = ref<MediaKind | ''>(props.initialKind ?? (props.mode === 'picker' ? 'image' : ''))
 const sort = ref<MediaSort>('uploaded')
 const direction = ref<'' | 'asc' | 'desc'>('')
 

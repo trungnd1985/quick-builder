@@ -87,6 +87,27 @@ No subscriber yet; templates and binding (#16) will refresh live pages from them
 | `Cms.CollectionChanged` | Cms | `siteId`, `collectionId`, `revision`, `schemaChanged`, `itemsRewritten`, `actorUserId` | A save produced a new revision. `schemaChanged` is false when only the name, address name or description changed; `itemsRewritten` says whether any stored item value, draft or published, was rewritten. |
 | `Cms.CollectionDeleted` | Cms | `siteId`, `collectionId`, `actorUserId` | A collection and all its items were deleted |
 
+### 015 Collection items (#15)
+
+No subscriber yet; templates and binding (#16) will refresh live pages from the three that
+change published data. Ids, numbers and flags only, never values, names or slugs. See
+[015 research IT-17](../../015-cms-items/research.md#it-17-integration-events).
+
+| Event | Published by | Payload | When |
+|---|---|---|---|
+| `Cms.ItemCreated` | Cms | `siteId`, `collectionId`, `itemId`, `actorUserId` | An item was created, including as a duplicate |
+| `Cms.ItemDraftSaved` | Cms | `siteId`, `collectionId`, `itemId`, `actorUserId` | A draft was saved, or replaced by a kept version. Published data did not change. |
+| `Cms.ItemPublished` | Cms | `siteId`, `collectionId`, `itemId`, `versionNumber`, `kind`, `slugChanged`, `actorUserId` | A publish, scheduled publish (`kind: scheduled`) or rollback made a new live version |
+| `Cms.ItemUnpublished` | Cms | `siteId`, `collectionId`, `itemId`, `scheduled`, `actorUserId` | Published data was removed, by hand or by a schedule |
+| `Cms.ItemDeleted` | Cms | `siteId`, `collectionId`, `itemId`, `wasPublished`, `actorUserId` | An item was deleted with its versions, schedules and history |
+
+For a scheduled action, `actorUserId` is the member who set the schedule. Cms also consumes
+`Media.FileDeleted` and `Media.FileChanged` to re-check the items that use the file.
+
+**Module-internal message**: `Cms.ItemScheduleDue` (`siteId`, `scheduleId`, `revision`) is
+written to the Cms outbox with `available_at_utc` set to the due time, as Pages does below;
+only Cms handles it (015 research IT-09).
+
 **Module-internal message**: `Pages.PublishScheduleDue` (`siteId`, `scheduleId`, `revision`)
 is written to the Pages outbox with `available_at_utc` set to the schedule's due time, and
 only Pages handles it (012 research PR-14). It is not a contract: no other module may

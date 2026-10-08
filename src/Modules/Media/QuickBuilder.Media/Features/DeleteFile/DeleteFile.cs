@@ -56,7 +56,7 @@ internal sealed class DeleteFileHandler(
     ISiteDirectory sites,
     IAccessEvaluator access,
     IFileStorage storage,
-    IMediaUsageReader usage,
+    MediaUsage usage,
     ILogger<DeleteFileHandler> logger) : ICommandHandler<DeleteFileCommand, DeleteFileOutcome>
 {
     public async Task<DeleteFileOutcome> HandleAsync(DeleteFileCommand command, CancellationToken cancellationToken)

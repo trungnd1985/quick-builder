@@ -1,4 +1,5 @@
 using QuickBuilder.Shared.Kernel.MultiSite;
+using QuickBuilder.Shared.Kernel.Text;
 
 namespace QuickBuilder.Media.Domain;
 

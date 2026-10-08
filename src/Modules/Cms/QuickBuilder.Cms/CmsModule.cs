@@ -7,15 +7,34 @@ using QuickBuilder.Cms.Features.CreateCollection;
 using QuickBuilder.Cms.Features.DeleteCollection;
 using QuickBuilder.Cms.Features.GetCollection;
 using QuickBuilder.Cms.Features.GetSchemaHistory;
+using QuickBuilder.Cms.Features.Items;
+using QuickBuilder.Cms.Features.Items.CheckSlug;
+using QuickBuilder.Cms.Features.Items.CreateItem;
+using QuickBuilder.Cms.Features.Items.DeleteItem;
+using QuickBuilder.Cms.Features.Items.DuplicateItem;
+using QuickBuilder.Cms.Features.Items.GetItem;
+using QuickBuilder.Cms.Features.Items.GetItemHistory;
+using QuickBuilder.Cms.Features.Items.ListItemReferrers;
+using QuickBuilder.Cms.Features.Items.ListItems;
+using QuickBuilder.Cms.Features.Items.LookupItems;
+using QuickBuilder.Cms.Features.Items.PublishItem;
+using QuickBuilder.Cms.Features.Items.ReindexItemsForMedia;
+using QuickBuilder.Cms.Features.Items.RollbackItem;
+using QuickBuilder.Cms.Features.Items.RunItemSchedule;
+using QuickBuilder.Cms.Features.Items.SaveItemDraft;
+using QuickBuilder.Cms.Features.Items.ScheduleItem;
+using QuickBuilder.Cms.Features.Items.UnpublishItem;
 using QuickBuilder.Cms.Features.ListCollections;
 using QuickBuilder.Cms.Features.PreviewCollection;
 using QuickBuilder.Cms.Features.SaveCollection;
 using QuickBuilder.Cms.Infrastructure;
 using QuickBuilder.Cms.Infrastructure.Schema;
+using QuickBuilder.Media.Contracts.Events;
 using QuickBuilder.Shared.Infrastructure.Modules;
 using QuickBuilder.Shared.Infrastructure.MultiSite;
 using QuickBuilder.Shared.Infrastructure.Outbox;
 using QuickBuilder.Shared.Kernel.Dispatch;
+using QuickBuilder.Shared.Kernel.Events;
 using QuickBuilder.Shared.Kernel.Results;
 
 namespace QuickBuilder.Cms;
@@ -58,6 +77,11 @@ public static class CmsModule
         services.AddSingleton<IEventTypeRegistration>(new EventTypeRegistration<CollectionCreated>());
         services.AddSingleton<IEventTypeRegistration>(new EventTypeRegistration<CollectionChanged>());
         services.AddSingleton<IEventTypeRegistration>(new EventTypeRegistration<CollectionDeleted>());
+        services.AddSingleton<IEventTypeRegistration>(new EventTypeRegistration<ItemCreated>());
+        services.AddSingleton<IEventTypeRegistration>(new EventTypeRegistration<ItemDraftSaved>());
+        services.AddSingleton<IEventTypeRegistration>(new EventTypeRegistration<ItemPublished>());
+        services.AddSingleton<IEventTypeRegistration>(new EventTypeRegistration<ItemUnpublished>());
+        services.AddSingleton<IEventTypeRegistration>(new EventTypeRegistration<ItemDeleted>());
 
         // Shared by the slices: the validators (stateless, load the contract files once), the
         // access helper, the row locks and the migration observer (a no-op outside tests).
@@ -76,6 +100,20 @@ public static class CmsModule
         services.AddScoped<ProposalEvaluator>();
         services.AddScoped<CollectionWriteGate>();
 
+        // Items (015 research IT-05, IT-06, IT-11): validation, the indexer and the one write path.
+        services.AddScoped<IItemMediaLookup, ItemMediaLookup>();
+        services.AddScoped<IItemReferenceLookup, ItemReferenceLookup>();
+        services.AddScoped<ItemValidation>();
+        services.AddScoped<ItemIndexer>();
+        services.AddScoped<SlugAvailability>();
+        services.AddScoped<ItemWrites>();
+        services.AddScoped<ItemReads>();
+        services.AddScoped<QuickBuilder.Cms.Contracts.Media.IItemMediaUsageReader, ItemMediaUsageReader>();
+
+        // Research IT-11, IT-22: indexes items stored before 015, and any after a future indexer change.
+        services.AddSingleton<ItemIndexBackfillService>();
+        services.AddHostedService(sp => sp.GetRequiredService<ItemIndexBackfillService>());
+
         // Feature slices. Each is registered here and nowhere else.
         services.AddScoped<IQueryHandler<ListCollectionsQuery, Result<CollectionListResponse>>, ListCollectionsHandler>();
         services.AddScoped<ICommandHandler<CreateCollectionCommand, Result<CollectionResponse>>, CreateCollectionHandler>();
@@ -84,6 +122,34 @@ public static class CmsModule
         services.AddScoped<IQueryHandler<PreviewCollectionQuery, Result<PreviewResponse>>, PreviewCollectionHandler>();
         services.AddScoped<ICommandHandler<DeleteCollectionCommand, Result>, DeleteCollectionHandler>();
         services.AddScoped<IQueryHandler<GetSchemaHistoryQuery, Result<SchemaHistoryResponse>>, GetSchemaHistoryHandler>();
+
+        // Item slices (015).
+        services.AddScoped<ItemListQuery>();
+        services.AddScoped<IQueryHandler<ListItemsQuery, Result<ItemListResponse>>, ListItemsHandler>();
+        services.AddScoped<ICommandHandler<CreateItemCommand, Result<ItemResponse>>, CreateItemHandler>();
+        services.AddScoped<IQueryHandler<GetItemQuery, Result<ItemResponse>>, GetItemHandler>();
+        services.AddScoped<ICommandHandler<SaveItemDraftCommand, Result<ItemResponse>>, SaveItemDraftHandler>();
+        services.AddScoped<IQueryHandler<CheckSlugQuery, Result<SlugAvailabilityResponse>>, CheckSlugHandler>();
+        services.AddScoped<ItemReferrers>();
+        services.AddScoped<ICommandHandler<PublishItemCommand, Result<ItemResponse>>, PublishItemHandler>();
+        services.AddScoped<ICommandHandler<UnpublishItemCommand, Result<ItemResponse>>, UnpublishItemHandler>();
+        services.AddScoped<IQueryHandler<ListItemReferrersQuery, Result<ReferrerListResponse>>, ListItemReferrersHandler>();
+        services.AddScoped<ICommandHandler<DeleteItemCommand, Result>, DeleteItemHandler>();
+        services.AddScoped<ICommandHandler<DuplicateItemCommand, Result<ItemResponse>>, DuplicateItemHandler>();
+        services.AddScoped<IQueryHandler<LookupItemsQuery, Result<ItemLookupResponse>>, LookupItemsHandler>();
+        services.AddScoped<IQueryHandler<GetItemHistoryQuery, Result<ItemHistoryResponse>>, GetItemHistoryHandler>();
+        services.AddScoped<ICommandHandler<RollbackItemCommand, Result<ItemResponse>>, RollbackItemHandler>();
+        services.AddScoped<ICommandHandler<CopyVersionToDraftCommand, Result<ItemResponse>>, CopyVersionToDraftHandler>();
+        services.AddScoped<ICommandHandler<ScheduleItemCommand, Result<ItemResponse>>, ScheduleItemHandler>();
+        services.AddScoped<ICommandHandler<CancelItemScheduleCommand, Result<ItemResponse>>, CancelItemScheduleHandler>();
+
+        // Research IT-09: due schedules arrive as delayed messages in the Cms outbox.
+        services.AddSingleton<IEventTypeRegistration>(new EventTypeRegistration<ItemScheduleDue>());
+        services.AddScoped<IIntegrationEventHandler<ItemScheduleDue>, RunItemScheduleHandler>();
+
+        // Research IT-11: items using a deleted or replaced media file are checked again.
+        services.AddScoped<IIntegrationEventHandler<FileDeleted>, ReindexItemsForMediaHandler>();
+        services.AddScoped<IIntegrationEventHandler<FileChanged>, ReindexItemsForMediaHandler>();
 
         return services;
     }

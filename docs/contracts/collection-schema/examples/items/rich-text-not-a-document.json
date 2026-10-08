@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "values": {
+    "f1": "Hello",
+    "f3": {
+      "type": "paragraph"
+    }
+  }
+}
