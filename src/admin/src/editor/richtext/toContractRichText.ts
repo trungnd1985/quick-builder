@@ -21,18 +21,26 @@ function link(value: unknown): Json | null {
   return null
 }
 
+/** The marks without attributes the contract allows; `link` is handled on its own. Later formats join here. */
+const PLAIN_MARKS: ReadonlySet<string> = new Set(['bold', 'italic'])
+
+/** The most marks one text node may carry (`rtText.marks.maxItems`). */
+const MAX_MARKS = 6
+
 function marks(value: unknown): Json[] {
   if (!Array.isArray(value)) return []
   const kept: Json[] = []
+  const seen = new Set<string>()
   for (const mark of value) {
-    if (!isObject(mark)) continue
-    if (mark.type === 'bold' || mark.type === 'italic') kept.push({ type: mark.type })
+    if (!isObject(mark) || typeof mark.type !== 'string' || seen.has(mark.type)) continue
+    seen.add(mark.type)
+    if (PLAIN_MARKS.has(mark.type)) kept.push({ type: mark.type })
     if (mark.type === 'link') {
       const to = link(isObject(mark.attrs) ? mark.attrs.to : undefined)
       if (to) kept.push({ type: 'link', attrs: { to } })
     }
   }
-  return kept.slice(0, 3)
+  return kept.slice(0, MAX_MARKS)
 }
 
 function inline(node: unknown): Json[] {
@@ -50,7 +58,13 @@ function inline(node: unknown): Json[] {
 const holdsBlocks = (content: Json[]): boolean =>
   content.length > 0 && content.every((c) => isObject(c) && c.type !== 'text' && c.type !== 'hardBreak')
 
-function block(node: unknown): Json[] {
+/**
+ * Where a block sits: at the top of the document, or inside a list item or a quote, which hold
+ * only paragraphs and lists (`rtListBlock`, 035 research RT-01).
+ */
+type Place = 'top' | 'nested'
+
+function block(node: unknown, place: Place = 'top'): Json[] {
   if (!isObject(node)) return []
   const content = Array.isArray(node.content) ? node.content : []
 
@@ -65,7 +79,7 @@ function block(node: unknown): Json[] {
 
   // An unknown wrapper of blocks is unwrapped; any other unknown block (a heading, code)
   // becomes a paragraph of its text.
-  if (node.type !== 'paragraph' && holdsBlocks(content)) return content.flatMap(block)
+  if (node.type !== 'paragraph' && holdsBlocks(content)) return content.flatMap((child) => block(child, place))
 
   const text = content.flatMap(inline)
   return [text.length > 0 ? { type: 'paragraph', content: text } : { type: 'paragraph' }]
@@ -73,14 +87,14 @@ function block(node: unknown): Json[] {
 
 function listItem(node: unknown): Json | null {
   if (!isObject(node) || node.type !== 'listItem') return null
-  const content = (Array.isArray(node.content) ? node.content : []).flatMap(block)
+  const content = (Array.isArray(node.content) ? node.content : []).flatMap((child) => block(child, 'nested'))
   return { type: 'listItem', content: content.length > 0 ? content : [{ type: 'paragraph' }] }
 }
 
 /** Normalises any TipTap or ProseMirror document to the contract's rich text. */
 export function toContractRichText(value: unknown): RichTextDoc {
   const content = isObject(value) && Array.isArray(value.content) ? value.content : []
-  return { type: 'doc', content: content.flatMap(block) }
+  return { type: 'doc', content: content.flatMap((child) => block(child, 'top')) }
 }
 
 /** Stored rich text as TipTap content: identical, since the contract is a subset of it. */

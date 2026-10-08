@@ -47,6 +47,15 @@ describe('toContractRichText', () => {
     expect(validateDocument(asDocument(contract), 'page')).toEqual({ valid: true })
   })
 
+  it('keeps marks in their stored order and drops repeats (035)', () => {
+    const doc = toContractRichText({
+      type: 'doc',
+      content: [{ type: 'paragraph', content: [{ type: 'text', text: 'x', marks: [{ type: 'italic' }, { type: 'bold' }, { type: 'italic' }] }] }],
+    })
+
+    expect(doc.content[0]).toEqual({ type: 'paragraph', content: [{ type: 'text', text: 'x', marks: [{ type: 'italic' }, { type: 'bold' }] }] })
+  })
+
   it('keeps a numbered list start other than 1', () => {
     const contract = toContractRichText({ type: 'doc', content: [{ type: 'orderedList', attrs: { start: 4 }, content: [{ type: 'listItem', content: [{ type: 'paragraph' }] }] }] })
 

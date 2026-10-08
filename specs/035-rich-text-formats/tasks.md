@@ -578,3 +578,10 @@ Recorded during `/speckit-implement`, so the tasks above can still be read as wr
     live, not in 011's `editor-api.yaml`;
   - the admin shows a "Reload the page" button (a full reload, to get the new admin) in
     `ConflictBanner` and the item form; the autosave state is `outdated`.
+- **Mark order** (T016): marks keep their stored order (the renderer nests them in that
+  order) and repeats are dropped, up to 6; a fixed order would change the nesting of text an
+  editor re-saves.
+- **Toolbar** (T018, T019): the allowed format groups are typed in `RT/formats.ts`
+  (`AllowedFormats`, `ALL_FORMATS`). The toolbar counts the editor's transactions to keep
+  its pressed states current. Shared layout styles are in `ADMIN/styles.css`; the canvas's
+  colours stay in `ADMIN/editor/editor.css`.

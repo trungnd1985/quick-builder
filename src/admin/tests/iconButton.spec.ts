@@ -23,6 +23,22 @@ describe('IconButton', () => {
     expect(results.violations.map((v) => v.id)).toEqual([])
   })
 
+  it('shows its shortcut in the tooltip and announces it, without changing its name (035 FR-008)', () => {
+    render(IconButton, { props: { icon: 'strike', label: 'Strikethrough', shortcut: 'Mod+Shift+X' } })
+
+    const button = screen.getByRole('button', { name: 'Strikethrough' })
+    expect(button.getAttribute('data-tooltip')).toBe('Strikethrough (Ctrl+Shift+X)')
+    expect(button.getAttribute('aria-keyshortcuts')).toBe('Control+Shift+X')
+  })
+
+  it('draws every icon the rich text toolbar uses', () => {
+    for (const icon of ['undo', 'redo', 'bold', 'italic', 'underline', 'strike', 'code', 'bullet-list', 'numbered-list', 'quote', 'link', 'image', 'table', 'align-start', 'align-center', 'align-end', 'row-above', 'row-below', 'column-before', 'column-after', 'delete-row', 'delete-column', 'header-row', 'delete-table'] as const) {
+      const { container, unmount } = render(IconButton, { props: { icon, label: icon } })
+      expect(container.querySelectorAll('path').length).toBeGreaterThan(0)
+      unmount()
+    }
+  })
+
   it('can be disabled', () => {
     render(IconButton, { props: { icon: 'pencil', label: 'Rename', disabled: true } })
 

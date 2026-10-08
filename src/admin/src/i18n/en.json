@@ -862,7 +862,9 @@
       "italic": "Italic",
       "bulletList": "Bulleted list",
       "orderedList": "Numbered list",
-      "link": "Link"
+      "link": "Link",
+      "undo": "Undo",
+      "redo": "Redo"
     },
     "panel": {
       "title": "Properties",
