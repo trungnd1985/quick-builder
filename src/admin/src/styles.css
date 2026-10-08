@@ -184,6 +184,8 @@ input[type='url']:where(:not(.qb-canvas *)),
 input[type='number']:where(:not(.qb-canvas *)),
 input[type='date']:where(:not(.qb-canvas *)),
 input[type='time']:where(:not(.qb-canvas *)),
+input[type='datetime-local']:where(:not(.qb-canvas *)),
+textarea:where(:not(.qb-canvas *)),
 select:where(:not(.qb-canvas *)) {
   width: 100%;
   padding: 0.5rem 0.625rem;
@@ -199,7 +201,15 @@ input[type='number']:where(:not(.qb-canvas *)) {
   width: 8rem;
 }
 
-input[aria-invalid='true']:where(:not(.qb-canvas *)) {
+/* Text areas grow downwards only, so they never push the page sideways. */
+textarea:where(:not(.qb-canvas *)) {
+  min-height: 6rem;
+  resize: vertical;
+  line-height: 1.5;
+}
+
+input[aria-invalid='true']:where(:not(.qb-canvas *)),
+textarea[aria-invalid='true']:where(:not(.qb-canvas *)) {
   border-color: var(--danger);
   border-width: 2px;
 }
@@ -760,4 +770,33 @@ a.button-link {
 a.button-link.primary {
   background: var(--accent);
   color: var(--accent-text);
+}
+
+/* 015: the item form. Fields sit apart like the other forms, and the publishing actions are
+   a toolbar spaced like the page toolbars. */
+.item-field {
+  margin-bottom: 1.25rem;
+}
+
+.item-field__label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.item-field .help {
+  margin: 0.25rem 0;
+}
+
+.item-publish-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.75rem 0 1.25rem;
+}
+
+.item-publish-bar > p {
+  flex-basis: 100%;
+  margin: 0;
 }
