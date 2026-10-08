@@ -127,6 +127,9 @@ internal sealed class ItemValidation(ItemValueValidator validator, IItemMediaLoo
         return validator.Check(field, value) switch
         {
             ValueState.MissingRequired => new ItemProblem(field.Id, ItemProblems.MissingRequired),
+            // A rich text over a limit says which one (035 FR-005); it is never stored either.
+            ValueState.Malformed when field.Type == FieldType.RichText && validator.RichTextLimit(value!) is { } limit =>
+                new ItemProblem(field.Id, limit.Rule, limit.Limit),
             ValueState.Malformed => new ItemProblem(field.Id, ItemProblems.Malformed),
             ValueState.NeedsAttention => SettingProblem(field, value!),
             _ => null,

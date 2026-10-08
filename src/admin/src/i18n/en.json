@@ -899,7 +899,8 @@
         "uploadFailed": "A pasted image could not be uploaded: {reason}",
         "rowsLimit": "A table holds at most 200 rows.",
         "columnsLimit": "A table holds at most 20 columns.",
-        "tablesLimit": "A rich text holds at most 20 tables."
+        "tablesLimit": "A rich text holds at most 20 tables.",
+        "charactersLimit": "A rich text holds at most 20,000 characters, so that change was not made."
       },
       "table": {
         "insert": "Table",
@@ -1829,7 +1830,12 @@
           "headings": "headings or quotes",
           "images": "images",
           "tables": "tables"
-        }
+        },
+        "rich_text_too_long": "At most {limit} characters of text. Shorten it to save.",
+        "rich_text_too_many_images": "At most {limit} images. Remove some to save.",
+        "rich_text_too_many_tables": "At most {limit} tables. Remove some to save.",
+        "table_not_rectangular": "Every row of a table needs the same number of cells.",
+        "table_header_misplaced": "Header cells can only make up the whole first row of a table."
       }
     }
   }

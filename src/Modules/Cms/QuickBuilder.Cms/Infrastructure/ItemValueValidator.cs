@@ -77,6 +77,38 @@ internal sealed class ItemValueValidator(CollectionSchemaValidator schemas)
             : RichTextRules.FirstFormatOutside(JsonSerializer.SerializeToElement(value), field.Formats.Headings, field.Formats.Images, field.Formats.Tables);
     }
 
+    /// <summary>
+    /// Which limit a rich text value breaks, when it has the contract's shape but not its limits:
+    /// at most 20,000 characters, 50 images and 20 tables, rectangular tables with header cells
+    /// in the first row only (page-schema.md §3 rules 9 to 12). Length comes first: one pasted line
+    /// over the limit also breaks the schema's cap on a single text node. Null when the value breaks
+    /// none, or is not even a rich text document.
+    /// </summary>
+    public (string Rule, int? Limit)? RichTextLimit(JsonNode value)
+    {
+        ArgumentNullException.ThrowIfNull(value);
+
+        var element = JsonSerializer.SerializeToElement(value);
+        if (RichText.CharacterCount(element) > PageSchema.MaxRichTextChars)
+        {
+            return ("rich_text_too_long", PageSchema.MaxRichTextChars);
+        }
+
+        if (_pageSchema.ValidateDefinition("rtDoc", element) is not null)
+        {
+            return null;
+        }
+
+        return RichTextRules.Check(element, string.Empty) is { } broken
+            ? (broken.Rule, broken.Rule switch
+            {
+                "rich_text_too_many_images" => PageSchema.MaxRichTextImages,
+                "rich_text_too_many_tables" => PageSchema.MaxRichTextTables,
+                _ => null,
+            })
+            : null;
+    }
+
     public bool IsWellFormed(Field field, JsonNode value)
     {
         ArgumentNullException.ThrowIfNull(field);

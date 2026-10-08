@@ -31,6 +31,8 @@ import { ContractTable, ContractTableCell, ContractTableHeader, ContractTableRow
 import { mediaApi } from '../../api/media'
 import { imageFiles, insertUploads, preparePastedHtml, type FileUploads, type RichTextNotice } from './paste'
 import { ALL_FORMATS, type AllowedFormats } from './formats'
+import { MAX_RICH_TEXT_CHARS } from '../schema/limits'
+import { codePointLength } from '../schema/subsetValidator'
 
 /** The link mark: a `to` attribute, drawn as an anchor with no address. */
 export const ContractLink = Mark.create({
@@ -166,6 +168,35 @@ function allowedFormatsGuard(allowed: AllowedFormats): Extension {
   })
 }
 
+/** Characters of text, counted as the contract counts them: by code point. */
+function characters(doc: ProseMirrorNode): number {
+  let n = 0
+  doc.descendants((node) => {
+    if (node.isText) n += codePointLength(node.text ?? '')
+  })
+  return n
+}
+
+/**
+ * A rich text holds at most 20,000 characters (page-schema.md §3 rule 9): a paste or typing that
+ * would go past it is refused whole, and said so, rather than leaving a value that can't be saved
+ * (035 FR-005). A text already over the limit can still be shortened.
+ */
+function lengthGuard(notify: (notice: RichTextNotice) => void): Extension {
+  return Extension.create({
+    name: 'lengthGuard',
+    addProseMirrorPlugins: () => [new Plugin({
+      filterTransaction: (tr, state) => {
+        if (!tr.docChanged) return true
+        const after = characters(tr.doc)
+        if (after <= MAX_RICH_TEXT_CHARS || after <= characters(state.doc)) return true
+        notify({ kind: 'limit', limit: 'characters' })
+        return false
+      },
+    })],
+  })
+}
+
 export function richTextExtensions(setup: RichTextSetup = {}): Extensions {
   const image = setup.imageLabels
     ? ContractImage.configure({ siteId: setup.siteId ?? '', labels: setup.imageLabels })
@@ -212,7 +243,7 @@ export function createRichTextEditor(options: RichTextEditorOptions): Editor {
 
   return new Editor({
     element: options.element,
-    extensions: [...richTextExtensions(options), ...(options.extensions ?? [])],
+    extensions: [...richTextExtensions(options), lengthGuard(notify), ...(options.extensions ?? [])],
     content: fromContractRichText(options.content) as JSONContent,
     editorProps: {
       attributes: { 'aria-label': options.label, 'aria-multiline': 'true', role: 'textbox', class: 'qb-rich-text__body' },

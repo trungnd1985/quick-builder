@@ -260,5 +260,22 @@
         "path": "/content/1"
       }
     ]
+  },
+  "rich-text-too-long.json": {
+    "problems": [
+      {
+        "fieldId": "f3",
+        "problem": "rich_text_too_long",
+        "limit": 20000
+      }
+    ]
+  },
+  "rich-text-table-not-rectangular.json": {
+    "problems": [
+      {
+        "fieldId": "f3",
+        "problem": "table_not_rectangular"
+      }
+    ]
   }
 }

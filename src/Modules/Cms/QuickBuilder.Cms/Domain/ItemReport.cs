@@ -17,6 +17,13 @@ internal static class ItemProblems
     public const string TooManyReferences = "too_many_references";
     public const string InvalidSlug = "invalid_slug";
 
+    // A rich text over one of its limits (page-schema.md §3 rules 9 to 12; 035 FR-005).
+    public const string RichTextTooLong = "rich_text_too_long";
+    public const string RichTextTooManyImages = "rich_text_too_many_images";
+    public const string RichTextTooManyTables = "rich_text_too_many_tables";
+    public const string TableNotRectangular = "table_not_rectangular";
+    public const string TableHeaderMisplaced = "table_header_misplaced";
+
     // Reported: stored in a draft, refused at publish (FR-014, FR-020).
     public const string MissingRequired = "missing_required";
     public const string TooLong = "too_long";
@@ -39,6 +46,7 @@ internal static class ItemProblems
     [
         Malformed, UnknownField, UnknownOption, ReferenceMissing, ReferenceWrongCollection,
         ReferenceSelf, DuplicateReference, TooManyReferences, InvalidSlug,
+        RichTextTooLong, RichTextTooManyImages, RichTextTooManyTables, TableNotRectangular, TableHeaderMisplaced,
     ];
 
     /// <summary>Whether a value with this problem may not be stored at all.</summary>

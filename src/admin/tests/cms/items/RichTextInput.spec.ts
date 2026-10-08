@@ -106,3 +106,28 @@ describe('RichTextInput history', () => {
     expect(JSON.stringify(editor.getJSON())).not.toMatch(/"heading"|"image"/)
   })
 })
+
+describe('RichTextInput limits', () => {
+  // 20,000 words of paragraphs: far over the 20,000 characters a rich text holds.
+  const longPaste = Array.from({ length: 400 }, () => `<p>${'word '.repeat(50)}</p>`).join('')
+
+  it('refuses a paste past 20,000 characters whole, and says why (035 FR-005)', async () => {
+    const { editor, emitted } = await mount()
+
+    // jsdom has no ClipboardEvent; the guard filters every change, a paste or a command alike.
+    editor.commands.insertContent(longPaste)
+
+    expect(textOf(editor)).toBe('Start')
+    expect(emitted()['update:value']).toBeUndefined()
+    await screen.findByText(en.editor.richText.notice.charactersLimit)
+  })
+
+  it('still lets a text already over the limit be shortened', async () => {
+    const { editor, emitted } = await mount(doc('x'.repeat(20_005)))
+
+    editor.commands.deleteRange({ from: 1, to: 4 })
+
+    expect(textOf(editor)).toHaveLength(20_002)
+    expect(emitted()['update:value']).toHaveLength(1)
+  })
+})

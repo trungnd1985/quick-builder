@@ -695,3 +695,10 @@ Recorded during `/speckit-implement`, so the tasks above can still be read as wr
 - **Full run** (T100): results in [quickstart-results.md](./quickstart-results.md). The 013 media
   backfill test now compares only examples without 035 formats, since no document of its time
   could hold them. The one smoke failure is issue #28, unchanged by 035.
+- **Limits in the editor and the item form** (found in the by-hand walk): a paste past 20,000
+  characters showed only "This value is not valid for this field." Both editors now refuse a
+  change that would go past the limit, whole, and say so in the toolbar; a text already over it
+  can still be shortened. An item value over a limit gets its own problem (`rich_text_too_long`
+  with its limit, `rich_text_too_many_images`, `rich_text_too_many_tables`,
+  `table_not_rectangular`, `table_header_misplaced`), still never stored. Length is checked
+  before shape, since one long line also breaks the schema's 20,000-character cap on a text node.
