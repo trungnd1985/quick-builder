@@ -245,6 +245,10 @@ internal static partial class FieldConversion
 
                     blocks.Add(line.ToString());
                     break;
+                case "image":
+                    // An image has no text to keep, and its alternative text is not added (035 RT-12).
+                    lost = true;
+                    break;
                 case "blockquote":
                     // A quote's paragraphs and lists become lines; the quote itself is dropped (035 RT-12).
                     lost = true;

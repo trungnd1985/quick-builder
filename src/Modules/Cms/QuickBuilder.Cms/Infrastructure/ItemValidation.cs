@@ -1,8 +1,10 @@
 using System.Globalization;
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.EntityFrameworkCore;
 using QuickBuilder.Cms.Contracts;
 using QuickBuilder.Cms.Domain;
+using QuickBuilder.Pages.Contracts;
 
 namespace QuickBuilder.Cms.Infrastructure;
 
@@ -62,6 +64,7 @@ internal sealed class ItemValidation(ItemValueValidator validator, IItemMediaLoo
 
         var byField = new Dictionary<string, ItemProblem>(StringComparer.Ordinal);
         var mediaFields = new List<(Field Field, JsonNode Value)>();
+        var richTextImages = new List<(Field Field, IReadOnlyList<(Guid MediaId, string Location)> Images)>();
         var referenceFields = new List<(Field Field, IReadOnlyList<Guid> Ids)>();
 
         foreach (var field in schema.Fields)
@@ -79,9 +82,23 @@ internal sealed class ItemValidation(ItemValueValidator validator, IItemMediaLoo
             {
                 referenceFields.Add((field, ReferenceIds(value)));
             }
+            else if (value is not null && field.Type == FieldType.RichText)
+            {
+                // 035 FR-014: an image needs alternative text, or to be decorative, to be published.
+                var document = JsonSerializer.SerializeToElement(value);
+                if (RichTextRules.ImagesWithoutAlt(document, string.Empty) is [var first, ..])
+                {
+                    byField[field.Id] = new ItemProblem(field.Id, ItemProblems.ImageAltMissing, Path: first);
+                }
+                else if (RichTextRules.ImageMedia(document, string.Empty) is { Count: > 0 } images)
+                {
+                    richTextImages.Add((field, images));
+                }
+            }
         }
 
         await CheckMediaAsync(siteId, mediaLookup, mediaFields, byField, cancellationToken).ConfigureAwait(false);
+        await CheckRichTextMediaAsync(siteId, mediaLookup, richTextImages, byField, cancellationToken).ConfigureAwait(false);
         await CheckReferencesAsync(siteId, itemId, referenceLookup, referenceFields, byField, cancellationToken).ConfigureAwait(false);
 
         problems.AddRange(schema.Fields.Where(f => byField.ContainsKey(f.Id)).Select(f => byField[f.Id]));
@@ -170,6 +187,38 @@ internal sealed class ItemValidation(ItemValueValidator validator, IItemMediaLoo
             else if ((allowed == FileAccept.Images && kind != MediaKind.Image) || (allowed == FileAccept.Documents && kind != MediaKind.Document))
             {
                 byField[field.Id] = new ItemProblem(field.Id, ItemProblems.FileKind);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Rich text images whose file is gone, belongs to another site, or is not an image
+    /// (035 spec edge case "Another site's media"): the first one, by its path.
+    /// </summary>
+    private static async Task CheckRichTextMediaAsync(
+        Guid siteId,
+        IItemMediaLookup media,
+        List<(Field Field, IReadOnlyList<(Guid MediaId, string Location)> Images)> fields,
+        Dictionary<string, ItemProblem> byField,
+        CancellationToken cancellationToken)
+    {
+        if (fields.Count == 0)
+        {
+            return;
+        }
+
+        var values = fields.SelectMany(f => f.Images).Select(i => (JsonNode?)new JsonObject { ["mediaId"] = i.MediaId.ToString() });
+        var kindOf = await media.LookupAsync(siteId, values, cancellationToken).ConfigureAwait(false);
+        foreach (var (field, images) in fields)
+        {
+            foreach (var (mediaId, location) in images)
+            {
+                var kind = kindOf(mediaId);
+                if (kind != MediaKind.Image)
+                {
+                    byField[field.Id] = new ItemProblem(field.Id, kind == MediaKind.Missing ? ItemProblems.MediaMissing : ItemProblems.FileKind, Path: location);
+                    break;
+                }
             }
         }
     }

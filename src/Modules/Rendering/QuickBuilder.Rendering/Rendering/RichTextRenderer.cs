@@ -74,6 +74,10 @@ internal static class RichTextRenderer
                 writer.Markup("</blockquote>");
                 break;
 
+            case "image":
+                RenderImage(node, context, writer);
+                break;
+
             case "bulletList":
                 RenderList("ul", node, context, writer, start: null);
                 break;
@@ -186,6 +190,46 @@ internal static class RichTextRenderer
 
         // Both pieces were produced by HtmlWriter: the text encoded, the tags constant.
         writer.Markup(wrapped ? content : $"<span>{content}</span>");
+    }
+
+    /// <summary>
+    /// A rich text image (035 FR-015): the Image block's pipeline at the text's width, never
+    /// wider than the file itself. A file that is gone, or another site's, shows nothing (FR-017).
+    /// </summary>
+    private static void RenderImage(JsonElement node, RenderContext context, HtmlWriter writer)
+    {
+        if (!node.TryGetProperty("attrs", out var attrs) || attrs.ValueKind != JsonValueKind.Object
+            || !attrs.TryGetProperty("media", out var media) || media.ValueKind != JsonValueKind.Object
+            || !media.TryGetProperty("mediaId", out var id) || id.ValueKind != JsonValueKind.String
+            || !Guid.TryParse(id.GetString(), out var mediaId)
+            || !context.Inputs.Media.TryGetValue(mediaId, out var file))
+        {
+            return;
+        }
+
+        var decorative = attrs.TryGetProperty("decorative", out var flag) && flag.ValueKind == JsonValueKind.True;
+        var alt = !decorative && attrs.TryGetProperty("alt", out var text) && text.ValueKind == JsonValueKind.String ? text.GetString()! : string.Empty;
+        var basePath = PageShell.TrimBase(context.Inputs.BasePath);
+        var source = file.Variants.LastOrDefault(v => v.Width <= Blocks.ImageRenderer.DefaultSourceWidth)?.PublicPath ?? file.PublicPath;
+
+        writer.Open("figure").Attribute("class", "qb-rt-image").EndTag();
+        writer.Open("img");
+        writer.SitePath("src", basePath + source);
+
+        if (file.Variants.Count > 0)
+        {
+            writer.Attribute("srcset", Blocks.ImageRenderer.SourceSet(file, basePath));
+            writer.Attribute("sizes", Blocks.ImageRenderer.Sizes(context.SectionWidth, file.Width));
+        }
+
+        if (file.Width is { } w && file.Height is { } h)
+        {
+            writer.Attribute("width", w.ToString(System.Globalization.CultureInfo.InvariantCulture))
+                .Attribute("height", h.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        }
+
+        writer.Attribute("alt", alt).Attribute("loading", "lazy").Attribute("decoding", "async").EndTag();
+        writer.Close("figure");
     }
 
     /// <summary>A heading's level, 2 to 4; anything else is drawn as the nearest of those (035).</summary>

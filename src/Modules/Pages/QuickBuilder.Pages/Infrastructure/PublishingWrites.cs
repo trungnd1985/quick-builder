@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Npgsql;
@@ -160,6 +161,18 @@ internal sealed class PublishingWrites(
         if (!checkedDocument.IsValid)
         {
             return Result.Failure(PagesErrors.InvalidDocument(checkedDocument));
+        }
+
+        // 035 FR-014: a rich text image needs alternative text, or to be decorative, to go live.
+        using (var parsed = JsonDocument.Parse(content.Document))
+        {
+            var withoutAlt = RichTextRules.RichTextBlocks(parsed.RootElement)
+                .SelectMany(block => RichTextRules.ImagesWithoutAlt(block.Content, block.Location))
+                .ToList();
+            if (withoutAlt.Count > 0)
+            {
+                return Result.Failure(PagesErrors.ImageAltMissing(withoutAlt));
+            }
         }
 
         // FR-003: a page may show only components visitors can already get.

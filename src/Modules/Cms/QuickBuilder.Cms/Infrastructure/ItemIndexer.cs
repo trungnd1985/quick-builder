@@ -1,6 +1,8 @@
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.EntityFrameworkCore;
 using QuickBuilder.Cms.Domain;
+using QuickBuilder.Pages.Contracts;
 using QuickBuilder.Shared.Kernel.Text;
 
 namespace QuickBuilder.Cms.Infrastructure;
@@ -189,7 +191,15 @@ internal sealed class ItemIndexer(CmsDbContext database, ItemValidation validati
         .ToDictionary(g => g.Key, g => g.Select(m => m.MediaId).ToHashSet());
 
     private static IEnumerable<JsonNode?> MediaValues(CollectionSchemaDocument schema, ItemValues values) =>
-        schema.Fields.Where(f => f.Type is FieldType.Image or FieldType.File).Select(f => values.Get(f.Id));
+        schema.Fields.Where(f => f.Type is FieldType.Image or FieldType.File).Select(f => values.Get(f.Id))
+            .Concat(schema.Fields.Where(f => f.Type == FieldType.RichText).SelectMany(f => RichTextMedia(values.Get(f.Id))));
+
+    /// <summary>The images of a rich text value, as media values (035 FR-018, research RT-11).</summary>
+    private static IEnumerable<JsonNode?> RichTextMedia(JsonNode? value) =>
+        value is JsonObject
+            ? RichTextRules.ImageMedia(JsonSerializer.SerializeToElement(value), string.Empty)
+                .Select(i => (JsonNode?)new JsonObject { ["mediaId"] = i.MediaId.ToString() })
+            : [];
 
     private static List<Guid> MediaIdsOf(CollectionSchemaDocument schema, ItemValues values) =>
         MediaValues(schema, values)

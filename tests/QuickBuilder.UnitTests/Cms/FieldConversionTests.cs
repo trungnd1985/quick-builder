@@ -175,6 +175,19 @@ public sealed class FieldConversionTests
     }
 
     [Fact]
+    public void Images_are_dropped_without_their_alternative_text()
+    {
+        const string document = """
+            {"type":"doc","content":[
+              {"type":"paragraph","content":[{"type":"text","text":"Shop"}]},
+              {"type":"image","attrs":{"media":{"mediaId":"0192f5a1-0000-7000-8000-000000000010"},"alt":"Front"}}]}
+            """;
+
+        Assert.Equal(("PartlyLost", "\"Shop\""), Run(Of(FieldType.RichText, "f1"), Text("f1"), document));
+        Assert.Equal(("Cleared", null), Run(Of(FieldType.RichText, "f1"), Text("f1"), """{"type":"doc","content":[{"type":"image","attrs":{"media":{"mediaId":"0192f5a1-0000-7000-8000-000000000010"}}}]}"""));
+    }
+
+    [Fact]
     public void Headings_and_quoted_paragraphs_become_lines_and_their_formatting_is_lost()
     {
         const string document = """

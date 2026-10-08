@@ -606,3 +606,16 @@ Recorded during `/speckit-implement`, so the tasks above can still be read as wr
   Undo and redo are disabled while the page is read-only.
 - **Shortcut tests** (T036, T037): key events carry `keyCode`, as browsers send it, because
   ProseMirror reads it for shortcuts with Shift.
+- **Images, server** (T046–T055, T061):
+  - the schema has no shared `media` definition, so `rtImage` repeats the Image block's inline
+    `{ mediaId: uuid }` shape;
+  - the publish test is `ITESTS/Publishing/PublishRichTextImageTests.cs`, beside the other
+    publishing tests, and also covers the item case;
+  - an item's rich text field reports, in order: `image_alt_missing`, then `media_missing` or
+    `file_kind` for the first image whose file is gone or not an image, each with the image's
+    `path`. Alternative text comes first because the item golden validators know no media,
+    and a second golden example, `rich-text-image-missing.json`, covers the missing file;
+  - `ProblemResponse` leaves out `format` and `path` when they are null, so 015 responses are
+    unchanged; `ItemReport` stores them in the `attention` column;
+  - `RichTextRules` gained `RichTextBlocks` (a page document's Rich Text blocks) and
+    `ImageMedia` (a rich text's images by media id), used by the publish check and the indexer.

@@ -34,5 +34,10 @@
   "props_invalid--rich-text-quote-in-quote.json": { "rule": "props_invalid", "pointer": "/root/children/0/children/0/props/content/content/0/content/0/type" },
   "props_invalid--rich-text-heading-in-list.json": { "rule": "props_invalid", "pointer": "/root/children/0/children/0/props/content/content/0/content/0/content/0/type" },
   "props_invalid--rich-text-table-in-quote.json": { "rule": "props_invalid", "pointer": "/root/children/0/children/0/props/content/content/0/content/0/type" },
-  "props_invalid--rich-text-seven-marks.json": { "rule": "props_invalid", "pointer": "/root/children/0/children/0/props/content/content/0/content/0/marks" }
+  "props_invalid--rich-text-seven-marks.json": { "rule": "props_invalid", "pointer": "/root/children/0/children/0/props/content/content/0/content/0/marks" },
+  "props_invalid--rich-text-image-in-list.json": { "rule": "props_invalid", "pointer": "/root/children/0/children/0/props/content/content/0/content/0/content/0/type" },
+  "props_invalid--rich-text-image-src.json": { "rule": "props_invalid", "pointer": "/root/children/0/children/0/props/content/content/0/attrs/src" },
+  "props_invalid--rich-text-image-media-not-uuid.json": { "rule": "props_invalid", "pointer": "/root/children/0/children/0/props/content/content/0/attrs/media/mediaId" },
+  "props_invalid--rich-text-image-alt-301.json": { "rule": "props_invalid", "pointer": "/root/children/0/children/0/props/content/content/0/attrs/alt" },
+  "rich_text_too_many_images--51.json": { "rule": "rich_text_too_many_images", "pointer": "/root/children/0/children/0/props/content" }
 }

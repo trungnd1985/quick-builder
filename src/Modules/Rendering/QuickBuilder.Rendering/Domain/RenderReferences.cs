@@ -74,6 +74,14 @@ internal sealed class RenderReferences
             return;
         }
 
+        // 035: a rich text image shows a media file.
+        if (node.TryGetProperty("type", out var type) && type.ValueKind == JsonValueKind.String && type.GetString() == "image"
+            && node.TryGetProperty("attrs", out var imageAttrs) && imageAttrs.ValueKind == JsonValueKind.Object
+            && imageAttrs.TryGetProperty("media", out var media) && media.ValueKind == JsonValueKind.Object)
+        {
+            AddGuid(Media, media, "mediaId");
+        }
+
         if (node.TryGetProperty("marks", out var marks) && marks.ValueKind == JsonValueKind.Array)
         {
             foreach (var mark in marks.EnumerateArray())

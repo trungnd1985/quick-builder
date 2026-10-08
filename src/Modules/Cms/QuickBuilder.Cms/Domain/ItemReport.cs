@@ -26,6 +26,12 @@ internal static class ItemProblems
     public const string FileKind = "file_kind";
     public const string MediaMissing = "media_missing";
 
+    /// <summary>A rich text image with neither alternative text nor "decorative" (035 FR-014), with its path.</summary>
+    public const string ImageAltMissing = "image_alt_missing";
+
+    /// <summary>Rich text using a format group the field does not allow (035 FR-024), with the format.</summary>
+    public const string FormatNotAllowed = "format_not_allowed";
+
     /// <summary>A scheduled action failed after the item last changed (FR-026); field id <c>schedule</c>.</summary>
     public const string ScheduleFailed = "schedule_failed";
 
@@ -41,7 +47,9 @@ internal static class ItemProblems
 
 /// <summary>One thing wrong with one field of an item, or with its slug (field id <c>slug</c>).</summary>
 /// <param name="Limit">The setting broken, when there is one: the maximum length, the bound, the decimals.</param>
-internal sealed record ItemProblem(string FieldId, string Problem, decimal? Limit = null);
+/// <param name="Format">For <c>format_not_allowed</c>: the format group, <c>headings</c>, <c>images</c> or <c>tables</c> (035).</param>
+/// <param name="Path">For a problem inside a rich text value: a JSON pointer into the value (035).</param>
+internal sealed record ItemProblem(string FieldId, string Problem, decimal? Limit = null, string? Format = null, string? Path = null);
 
 /// <summary>
 /// Everything wrong with one copy of an item, measured against its schema (015 research IT-05).
@@ -89,6 +97,16 @@ internal sealed class ItemReport
                 entry["limit"] = limit;
             }
 
+            if (problem.Format is { } format)
+            {
+                entry["format"] = format;
+            }
+
+            if (problem.Path is { } path)
+            {
+                entry["path"] = path;
+            }
+
             problems.Add(entry);
         }
 
@@ -109,7 +127,9 @@ internal sealed class ItemReport
             .Select(p => new ItemProblem(
                 p.GetProperty("fieldId").GetString()!,
                 p.GetProperty("problem").GetString()!,
-                p.TryGetProperty("limit", out var limit) && limit.ValueKind == JsonValueKind.Number ? limit.GetDecimal() : null))
+                p.TryGetProperty("limit", out var limit) && limit.ValueKind == JsonValueKind.Number ? limit.GetDecimal() : null,
+                p.TryGetProperty("format", out var format) && format.ValueKind == JsonValueKind.String ? format.GetString() : null,
+                p.TryGetProperty("path", out var path) && path.ValueKind == JsonValueKind.String ? path.GetString() : null))
             .ToList();
         return new ItemReport(problems);
     }

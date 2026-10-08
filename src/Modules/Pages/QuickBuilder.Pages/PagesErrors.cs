@@ -157,6 +157,16 @@ internal static class PagesErrors
             $"{componentIds.Count} component(s) this uses are not published. Publish them first."),
         ("componentIds", componentIds.ToArray()));
 
+    /// <summary>
+    /// 035 FR-014: rich text images that need alternative text, or to be marked decorative,
+    /// before publishing; <c>problems</c> gives each one's JSON pointer.
+    /// </summary>
+    internal static Error ImageAltMissing(IReadOnlyCollection<string> pointers) => With(
+        Error.Validation(
+            "pages.image_alt_missing",
+            $"{pointers.Count} image(s) in rich text need alternative text, or to be marked decorative, before this is published."),
+        ("problems", pointers.Select(p => new Dictionary<string, string> { ["pointer"] = p }).ToArray()));
+
     internal static Error ComponentInUseByPublishedPages(int pageCount) => With(
         Error.Conflict(
             "pages.component_in_use_by_published_pages",

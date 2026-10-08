@@ -376,6 +376,8 @@ components:
               fieldId: { type: string, description: 'A field id, or `slug`.' }
               problem: { type: string }
               limit: { type: [number, 'null'] }
+              format: { type: string, enum: [headings, images, tables], description: 'Added by 035: for `format_not_allowed`, the format group the field does not allow.' }
+              path: { type: string, description: 'Added by 035: for a problem inside a rich text value (`image_alt_missing`, `media_missing`, `file_kind`), a JSON pointer into the value.' }
     DraftInput:
       type: object
       required: [slug, values, schemaRevision]

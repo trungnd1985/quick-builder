@@ -103,6 +103,25 @@ public static class RichTextRules
             .Select(n => n.Pointer)];
 
     /// <summary>
+    /// The media file each image of <paramref name="document"/> names, with the image's pointer
+    /// below <paramref name="location"/>, in document order; images without a valid id are skipped.
+    /// </summary>
+    public static IReadOnlyList<(Guid MediaId, string Location)> ImageMedia(JsonElement document, string location) =>
+        [.. Nodes(document, location)
+            .Where(n => TypeOf(n.Node) == "image")
+            .Select(n => (Id: MediaIdOf(n.Node), n.Pointer))
+            .Where(n => n.Id is not null)
+            .Select(n => (n.Id!.Value, n.Pointer))];
+
+    private static Guid? MediaIdOf(JsonElement image) =>
+        image.TryGetProperty("attrs", out var attrs) && attrs.ValueKind == JsonValueKind.Object
+            && attrs.TryGetProperty("media", out var media) && media.ValueKind == JsonValueKind.Object
+            && media.TryGetProperty("mediaId", out var id) && id.ValueKind == JsonValueKind.String
+            && Guid.TryParse(id.GetString(), out var mediaId)
+            ? mediaId
+            : null;
+
+    /// <summary>
     /// Whether <paramref name="document"/> uses anything an admin from before 035 cannot keep: a
     /// heading, quote, image or table, an alignment, or an underline, strikethrough or code mark.
     /// </summary>

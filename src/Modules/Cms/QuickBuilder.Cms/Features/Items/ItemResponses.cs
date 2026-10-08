@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using System.Text.Json.Serialization;
 
 namespace QuickBuilder.Cms.Features.Items;
 
@@ -13,7 +14,12 @@ public sealed record MemberResponse(Guid Id, string Name);
 public sealed record ScheduleResponse(string Action, DateTimeOffset DueAtUtc, MemberResponse SetBy);
 
 /// <summary>One problem of an item's report; <c>FieldId</c> is a field id or <c>slug</c>.</summary>
-public sealed record ProblemResponse(string FieldId, string Problem, decimal? Limit);
+public sealed record ProblemResponse(
+    string FieldId,
+    string Problem,
+    decimal? Limit,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? Format = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? Path = null);
 
 /// <summary>Everything wrong with an item's draft (research IT-05).</summary>
 public sealed record ReportResponse(IReadOnlyList<ProblemResponse> Problems);
