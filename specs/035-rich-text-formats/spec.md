@@ -37,6 +37,23 @@ invalid content, and the published page. Rich text stays structured content, nev
 (Principle IX). The new formats are additions only, so content saved before this feature
 stays valid and looks exactly as it did.
 
+## Clarifications
+
+### Session 2026-10-08
+
+- Q: Should a collection's rich text field be able to limit which formats it allows? → A: Yes.
+  Rich text fields gain an optional setting of allowed format groups (headings and quotes;
+  images; tables). All groups are allowed by default, and the server enforces the setting.
+  Rich Text blocks on pages always allow every format.
+- Q: When an Editor pastes content that contains images, what should happen to those images?
+  → A: Images pasted as files (screenshots, copied image files) are uploaded to the media
+  library through the usual upload checks and inserted without alternative text, so
+  publishing asks for it. Images that exist only as web addresses are left out, with a notice.
+- Q: How should the rich text toolbar show its controls, now that it grows from 5 buttons to
+  about 18? → A: Icon buttons with their name and shortcut as a tooltip, in groups (history,
+  block style, inline styles, lists, insert, alignment). The block style (paragraph,
+  heading 2–4) is one dropdown.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Structure a text with headings and quotes (Priority: P1)
@@ -145,10 +162,13 @@ some unsupported ones, and compare the stored result with the expected one.
    levels 1 and 2 become level 2, level 3 stays level 3, and levels 4 to 6 become level 4.
 2. **Given** copied text with colours, fonts, font sizes, highlights or embedded scripts,
    **When** it is pasted, **Then** only the text and the supported formats are kept.
-3. **Given** copied text that includes images, **When** it is pasted, **Then** the images are
-   left out. The Editor is told how many were left out, and that images come from the media
-   library.
-4. **Given** a copied table with merged cells, **When** it is pasted, **Then** it becomes a
+3. **Given** a screenshot or a copied image file, **When** it is pasted, **Then** it is
+   uploaded to the site's media library through the usual upload checks and inserted at the
+   cursor, without alternative text, so publishing asks for it.
+4. **Given** copied web content with images that exist only as web addresses, **When** it is
+   pasted, **Then** those images are left out. The Editor is told how many were left out, and
+   that images can be added from the media library.
+5. **Given** a copied table with merged cells, **When** it is pasted, **Then** it becomes a
    simple table. Each merged cell's text sits in its first cell, and the others are empty.
 
 ---
@@ -296,7 +316,9 @@ Check the result, including that existing text keeps its alignment.
   - unsupported nesting is flattened;
   - unsupported inline formats are dropped;
   - merged table cells are split;
-  - pasted images are left out, with a notice giving their number.
+  - images pasted as files are uploaded to the media library and inserted (FR-026);
+  - images that exist only as web addresses are left out, with a notice giving their number.
+    The server never fetches a pasted address.
 - **FR-013**: Paste conversion MUST be checked against a set of sample documents with known
   expected results. The set MUST cover at least a word processor, an online document editor
   and a web page.
@@ -332,6 +354,46 @@ Check the result, including that existing text keeps its alignment.
 - **FR-021**: No log entry may contain rich text content, alternative text or file names, as
   today.
 
+**Allowed formats per rich text field**
+
+- **FR-022**: A collection's rich text field MUST have an optional setting of allowed format
+  groups: headings and quotes, images, and tables. All three are allowed by default, so
+  existing fields keep every format. The core formats (paragraphs, lists, line breaks, the
+  inline styles, links and alignment) are always allowed. Rich Text blocks on pages always
+  allow every format.
+- **FR-023**: The item form's toolbar MUST offer only the field's allowed formats. Paste MUST
+  convert content from a disallowed group: headings and quotes become paragraphs, tables
+  become paragraphs of their cell text row by row, and images are left out with a notice and
+  not uploaded.
+- **FR-024**: The server MUST refuse to publish an item whose rich text holds a format the
+  field does not allow, naming the field and the place in the text. As for other publish
+  checks (015 clarification Q2), a draft with such a format may be saved; the item then needs
+  attention.
+- **FR-025**: Narrowing a field's allowed formats while items use them MUST be a reported
+  schema change (014): existing content is kept, the affected items need attention (015), and
+  publishing them is refused until the disallowed formats are removed. The change preview
+  MUST count the affected items.
+
+**Pasted image files**
+
+- **FR-026**: An image pasted or dropped as a file MUST go through the media library's usual
+  upload checks (type, size, permission to upload) and land in the library's top folder. It
+  is inserted without alternative text, so publishing asks for it (FR-014). While it uploads,
+  the editor shows a placeholder in its place. If the upload is refused or fails, the
+  placeholder is removed and the Editor is told why; the rest of the paste is kept. If the
+  member may not upload, or the field does not allow images (FR-023), the image is left out
+  with a notice.
+
+**Toolbar layout**
+
+- **FR-027**: The toolbar MUST show its controls as icon buttons, each with its name and
+  shortcut as a tooltip on hover and on keyboard focus, in this order of groups: history
+  (undo, redo); block style, as one dropdown of paragraph and headings 2 to 4; inline styles;
+  lists and quote; insert (link, image, table); alignment. Groups are visually separated, and
+  the toolbar wraps by whole groups when narrow. Table commands (rows, columns, header row)
+  appear only while the cursor is in a table. Controls the field does not allow (FR-022) are
+  not shown.
+
 ### Key Entities
 
 - **Rich text document**: structured content made of blocks (paragraphs, headings, quotes,
@@ -341,6 +403,8 @@ Check the result, including that existing text keeps its alignment.
   a decorative flag. It counts as a usage of that file.
 - **Table**: rows of cells holding paragraphs, with an optional header row and no merged
   cells.
+- **Allowed formats setting**: an optional setting on a collection's rich text field that
+  lists the allowed format groups (headings and quotes, images, tables). Missing means all.
 
 ## Success Criteria *(mandatory)*
 
@@ -386,7 +450,9 @@ Check the result, including that existing text keeps its alignment.
 - **Same editor technology**: the formats are built on the editor that rich text already
   uses. HTML editors were considered and rejected, for Principle IX and for their licences,
   as the backlog records.
-- **Permissions**: unchanged. Whoever can edit a page or an item can use every format.
+- **Permissions**: unchanged. Whoever can edit a page can use every format, and whoever can
+  edit an item can use every format its field allows (FR-022). Administrators and Designers
+  set the allowed formats, as they set other field settings.
 - **Out of scope**:
   - raw HTML and custom embeds;
   - colours and fonts per selection;
@@ -401,5 +467,6 @@ Check the result, including that existing text keeps its alignment.
   the editor's history and the renderer's allow-list.
 - **#13 media library**: the image picker, alternative text, responsive image sizes and usage
   tracking.
-- **#14 and #15 collections and items**: rich text fields, the item form, schema change
-  conversions and item publishing checks.
+- **#14 and #15 collections and items**: rich text fields and their settings, the schema
+  builder, the item form, schema change conversions, "needs attention" and item publishing
+  checks.
