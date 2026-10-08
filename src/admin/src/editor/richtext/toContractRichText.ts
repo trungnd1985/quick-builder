@@ -22,7 +22,7 @@ function link(value: unknown): Json | null {
 }
 
 /** The marks without attributes the contract allows; `link` is handled on its own. Later formats join here. */
-const PLAIN_MARKS: ReadonlySet<string> = new Set(['bold', 'italic'])
+const PLAIN_MARKS: ReadonlySet<string> = new Set(['bold', 'italic', 'underline', 'strike', 'code'])
 
 /** The most marks one text node may carry (`rtText.marks.maxItems`). */
 const MAX_MARKS = 6

@@ -72,4 +72,29 @@ public sealed class RichTextRendererTests
 
         Assert.Equal("<h2><span>t</span></h2><blockquote><p></p></blockquote>", html);
     }
+
+    [Theory]
+    [InlineData("underline", "<u>x</u>")]
+    [InlineData("strike", "<del>x</del>")]
+    [InlineData("code", "<code>x</code>")]
+    public void Underline_strikethrough_and_code_are_their_semantic_elements(string mark, string html) =>
+        Assert.Equal(
+            $"<p>{html}</p>",
+            Body($$"""{"type":"paragraph","content":[{"type":"text","text":"x","marks":[{"type":"{{mark}}"}]}]}"""));
+
+    [Fact]
+    public void Marks_nest_in_their_stored_order_first_innermost_with_a_link_outermost() =>
+        Assert.Equal(
+            "<p><a class=\"qb-link\" href=\"https://example.com/\"><code><del><u><em><strong>all</strong></em></u></del></code></a></p>",
+            Body("""
+                {"type":"paragraph","content":[{"type":"text","text":"all","marks":[
+                  {"type":"bold"},{"type":"italic"},{"type":"underline"},{"type":"strike"},{"type":"code"},
+                  {"type":"link","attrs":{"to":{"type":"url","href":"https://example.com/"}}}]}]}
+                """));
+
+    [Fact]
+    public void Code_text_is_encoded() =>
+        Assert.Equal(
+            "<p><code>&lt;script&gt;alert(1)&lt;/script&gt;</code></p>",
+            Body("""{"type":"paragraph","content":[{"type":"text","text":"<script>alert(1)</script>","marks":[{"type":"code"}]}]}"""));
 }

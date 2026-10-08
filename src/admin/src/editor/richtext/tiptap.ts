@@ -15,6 +15,9 @@ import Document from '@tiptap/extension-document'
 import Paragraph from '@tiptap/extension-paragraph'
 import Heading from '@tiptap/extension-heading'
 import Blockquote from '@tiptap/extension-blockquote'
+import Underline from '@tiptap/extension-underline'
+import Strike from '@tiptap/extension-strike'
+import Code from '@tiptap/extension-code'
 import Text from '@tiptap/extension-text'
 import HardBreak from '@tiptap/extension-hard-break'
 import Bold from '@tiptap/extension-bold'
@@ -90,6 +93,13 @@ const ContractBlockquote = Blockquote.extend({ content: `${LIST_BLOCKS}+` })
 
 const ContractListItem = ListItem.extend({ content: `paragraph ${LIST_BLOCKS}*` })
 
+/** Strikethrough on Ctrl/Cmd+Shift+X (035 FR-008), not TipTap's Ctrl/Cmd+Shift+S. */
+const ContractStrike = Strike.extend({
+  addKeyboardShortcuts() {
+    return { 'Mod-Shift-x': () => this.editor.commands.toggleStrike() }
+  },
+})
+
 /**
  * Ctrl/Cmd+Alt+2, 3 and 4 for headings, and 0 for a paragraph (035 FR-008). On Windows, Ctrl+Alt
  * is AltGr, and on some layouts AltGr+2 types a character: the key pressed must be the digit
@@ -118,7 +128,7 @@ const BlockStyleKeys = Extension.create({
 
 export function richTextExtensions(): Extensions {
   return [
-    Document, ContractParagraph, Text, HardBreak, Bold, Italic,
+    Document, ContractParagraph, Text, HardBreak, Bold, Italic, Underline, ContractStrike, Code,
     BulletList, OrderedList, ContractListItem, ContractLink,
     ContractHeading, ContractBlockquote, BlockStyleKeys,
   ]
@@ -127,6 +137,8 @@ export function richTextExtensions(): Extensions {
 export interface RichTextEditorOptions {
   element: HTMLElement
   content: unknown
+  /** Extensions only this editor needs: the item field's own undo history (035 RT-14). */
+  extensions?: Extensions
   /** Called with the contract document after every change to it. */
   onChange: (doc: RichTextDoc) => void
   onBlur?: () => void
@@ -136,7 +148,7 @@ export interface RichTextEditorOptions {
 export function createRichTextEditor(options: RichTextEditorOptions): Editor {
   return new Editor({
     element: options.element,
-    extensions: richTextExtensions(),
+    extensions: [...richTextExtensions(), ...(options.extensions ?? [])],
     content: fromContractRichText(options.content) as JSONContent,
     editorProps: {
       attributes: { 'aria-label': options.label, 'aria-multiline': 'true', role: 'textbox', class: 'qb-rich-text__body' },

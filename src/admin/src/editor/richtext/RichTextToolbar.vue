@@ -100,6 +100,9 @@ const groups = computed<Control[][]>(() => {
   const inline: Control[] = [
     { id: 'bold', icon: 'bold', label: t('editor.richText.bold'), shortcut: 'Mod+B', pressed: active('bold'), run: run((c) => c.toggleBold()) },
     { id: 'italic', icon: 'italic', label: t('editor.richText.italic'), shortcut: 'Mod+I', pressed: active('italic'), run: run((c) => c.toggleItalic()) },
+    { id: 'underline', icon: 'underline', label: t('editor.richText.underline'), shortcut: 'Mod+U', pressed: active('underline'), run: run((c) => c.toggleUnderline()) },
+    { id: 'strike', icon: 'strike', label: t('editor.richText.strike'), shortcut: 'Mod+Shift+X', pressed: active('strike'), run: run((c) => c.toggleStrike()) },
+    { id: 'code', icon: 'code', label: t('editor.richText.code'), shortcut: 'Mod+E', pressed: active('code'), run: run((c) => c.toggleCode()) },
   ]
 
   const lists: Control[] = [

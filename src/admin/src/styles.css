@@ -883,6 +883,14 @@ a.button-link.primary {
   margin-top: 0.75rem;
 }
 
+.item-rich-text__body code {
+  padding: 0.1em 0.3em;
+  border-radius: 3px;
+  background: var(--surface);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.9em;
+}
+
 .item-rich-text__body .qb-link {
   color: var(--accent);
   text-decoration: underline;

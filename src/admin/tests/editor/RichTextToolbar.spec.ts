@@ -177,3 +177,38 @@ describe('RichTextToolbar: headings and quotes (035 US1)', () => {
   })
 })
 
+describe('RichTextToolbar: inline styles (035 US2)', () => {
+  const marksOfFirstText = () => (editor!.getJSON().content![0]!.content![0]!.marks ?? []).map((m) => m.type)
+
+  it.each([
+    ['underline', en.editor.richText.underline, 'Control+U'],
+    ['strike', en.editor.richText.strike, 'Control+Shift+X'],
+    ['code', en.editor.richText.code, 'Control+E'],
+  ])('%s: a button that toggles the mark on the selection and shows it is on', async (mark, name, shortcut) => {
+    mount()
+    editor!.commands.setTextSelection({ from: 1, to: 6 })
+    const button = screen.getByRole('button', { name })
+    expect(button.getAttribute('aria-keyshortcuts')).toBe(shortcut)
+
+    await fireEvent.click(button)
+    expect(marksOfFirstText()).toEqual([mark])
+    expect(button.getAttribute('aria-pressed')).toBe('true')
+
+    await fireEvent.click(button)
+    expect(marksOfFirstText()).toEqual([])
+  })
+
+  it.each([
+    ['underline', { key: 'u', code: 'KeyU', keyCode: 85 }],
+    ['strike', { key: 'X', code: 'KeyX', keyCode: 88, shiftKey: true }],
+    ['code', { key: 'e', code: 'KeyE', keyCode: 69 }],
+  ])('%s has its keyboard shortcut', async (mark, key) => {
+    mount()
+    editor!.commands.setTextSelection({ from: 1, to: 6 })
+
+    await fireEvent.keyDown(editor!.view.dom, { ...key, ctrlKey: true })
+
+    expect(marksOfFirstText()).toEqual([mark])
+  })
+})
+

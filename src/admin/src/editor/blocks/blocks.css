@@ -178,6 +178,14 @@
     border-inline-start: 4px solid var(--qb-color-color-brand-light, currentColor);
   }
 
+  .qb-rich-text code {
+    padding: 0.1em 0.3em;
+    border-radius: 3px;
+    background: var(--qb-color-color-brand-light, rgba(0, 0, 0, 0.06));
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 0.9em;
+  }
+
   .qb-rich-text blockquote > * + * {
     margin-top: calc(var(--qb-base-size) * 0.75);
   }

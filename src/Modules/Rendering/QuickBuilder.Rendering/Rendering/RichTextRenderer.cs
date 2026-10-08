@@ -10,7 +10,7 @@ namespace QuickBuilder.Rendering.Rendering;
 /// The same elements the canvas draws (RichTextView.ts): paragraph → <c>p</c>, heading →
 /// <c>h2</c>–<c>h4</c> and quote → <c>blockquote</c> (035), bullet list → <c>ul</c>, ordered list →
 /// <c>ol</c>, list item → <c>li</c>, hard break → <c>br</c>, and the marks bold → <c>strong</c>,
-/// italic → <c>em</c>, link → <c>a</c>. Nothing else is ever
+/// italic → <c>em</c>, underline → <c>u</c>, strike → <c>del</c>, code → <c>code</c> (035), link → <c>a</c>. Nothing else is ever
 /// written; a node or mark of another kind is skipped. Unmarked text sits in a <c>span</c>, as
 /// on the canvas. A link to a page that is not live keeps its text and loses the link.
 /// </remarks>
@@ -151,6 +151,19 @@ internal static class RichTextRenderer
                         break;
                     case "italic":
                         content = $"<em>{content}</em>";
+                        wrapped = true;
+                        break;
+                    case "underline":
+                        content = $"<u>{content}</u>";
+                        wrapped = true;
+                        break;
+                    case "strike":
+                        // Struck-through text is deleted text, and is announced as such (035 US2).
+                        content = $"<del>{content}</del>";
+                        wrapped = true;
+                        break;
+                    case "code":
+                        content = $"<code>{content}</code>";
                         wrapped = true;
                         break;
                     case "link":

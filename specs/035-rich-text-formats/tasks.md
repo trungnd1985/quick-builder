@@ -597,3 +597,12 @@ Recorded during `/speckit-implement`, so the tasks above can still be read as wr
   every one changes by that one line when `blocks.css` does; the rich text markup is unchanged.
 - **Styles** (T031): rich text heading sizes use the Heading block's tokens for the same level
   (`text-2xl`, `text-xl`, `text-lg`) with fallbacks, since a site can edit its tokens.
+- **Unknown mark example** (T034): the existing
+  `invalid/props_invalid--rich-text-unknown-mark.json` used `underline`, which 035 allows; it now
+  uses `highlight`, rather than adding a second unknown-mark example. The same change was made
+  in `PageDocumentValidatorTests`.
+- **Page history** (T043): `EditorView` provides its history (`pageHistoryKey` in
+  `state/history.ts`), and the Rich Text block injects it; the store has no history of its own.
+  Undo and redo are disabled while the page is read-only.
+- **Shortcut tests** (T036, T037): key events carry `keyCode`, as browsers send it, because
+  ProseMirror reads it for shortcuts with Shift.

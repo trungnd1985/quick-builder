@@ -39,7 +39,7 @@ describe('toContractRichText', () => {
       content: [
         { type: 'paragraph', content: [{ type: 'text', text: 'Hi' }] },
         { type: 'heading', attrs: { level: 2 }, content: [{ type: 'text', text: 'Lost heading' }] },
-        { type: 'paragraph', content: [{ type: 'text', text: 'u', marks: [{ type: 'bold' }] }] },
+        { type: 'paragraph', content: [{ type: 'text', text: 'u', marks: [{ type: 'underline' }, { type: 'bold' }] }] },
         { type: 'orderedList', content: [{ type: 'listItem', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'one' }] }] }] },
         { type: 'paragraph' },
       ],
@@ -108,7 +108,7 @@ describe('toContractRichText', () => {
     expect(text).not.toContain('script')
     expect(text).not.toContain('alert')
     expect(text).not.toContain('img')
-    expect(text).not.toContain('underline')
+    expect(text).toContain('underline')
     expect(text).toContain('strong')
     expect(validateDocument(asDocument(contract), 'page')).toEqual({ valid: true })
   })
@@ -179,3 +179,30 @@ describe('toContractRichText: headings and quotes (035 US1)', () => {
     ])
   })
 })
+
+describe('toContractRichText: inline styles (035 US2)', () => {
+  it('keeps underline, strikethrough and code, drops marks it does not know, and keeps at most six', () => {
+    const marks = ['underline', 'strike', 'code', 'highlight', 'bold', 'italic', 'textStyle'].map((type) => ({ type }))
+    const contract = toContractRichText({ type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'x', marks }] }] })
+
+    expect(contract.content[0]).toEqual({
+      type: 'paragraph',
+      content: [{ type: 'text', text: 'x', marks: [{ type: 'underline' }, { type: 'strike' }, { type: 'code' }, { type: 'bold' }, { type: 'italic' }] }],
+    })
+    expect(validateDocument(asDocument(contract), 'page')).toEqual({ valid: true })
+  })
+
+  it('reads pasted u, s, del and code as the contract marks', () => {
+    editor = new Editor({ extensions: richTextExtensions(), content: '<p><u>u</u><s>s</s><del>d</del><code>c</code></p>' })
+
+    expect(toContractRichText(editor.getJSON()).content[0]).toEqual({
+      type: 'paragraph',
+      content: [
+        { type: 'text', text: 'u', marks: [{ type: 'underline' }] },
+        { type: 'text', text: 'sd', marks: [{ type: 'strike' }] },
+        { type: 'text', text: 'c', marks: [{ type: 'code' }] },
+      ],
+    })
+  })
+})
+

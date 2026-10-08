@@ -29,6 +29,9 @@ function renderInline(node: Json, key: number, links: LinkMarking): VNode | stri
     if (!isObject(mark)) continue
     if (mark.type === 'bold') content = h('strong', null, [content])
     else if (mark.type === 'italic') content = h('em', null, [content])
+    else if (mark.type === 'underline') content = h('u', null, [content])
+    else if (mark.type === 'strike') content = h('del', null, [content])
+    else if (mark.type === 'code') content = h('code', null, [content])
     else if (mark.type === 'link') {
       const to = isObject(mark.attrs) ? mark.attrs.to : undefined
       content = links.isBroken(to)

@@ -1060,6 +1060,42 @@
               }
             }
           }
+        },
+        {
+          "type": "object",
+          "required": [
+            "type"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "underline"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "type"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "strike"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "type"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "code"
+            }
+          }
         }
       ]
     }

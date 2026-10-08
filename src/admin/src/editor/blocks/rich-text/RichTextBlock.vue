@@ -3,16 +3,17 @@
 // structure; double-click it, or press Enter on it, to edit it in place with TipTap (research
 // ED-03). Each change is committed as an operation grouped with the typing before it, so undo
 // takes back words, not keystrokes; undo from elsewhere flows back into the open editor.
-import { computed, nextTick, onBeforeUnmount, ref, shallowRef, watch } from 'vue'
+import { computed, inject, nextTick, onBeforeUnmount, ref, shallowRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { Editor, JSONContent } from '@tiptap/core'
 import RichTextView from '../../richtext/RichTextView'
-import RichTextToolbar from '../../richtext/RichTextToolbar.vue'
+import RichTextToolbar, { type RichTextHistory } from '../../richtext/RichTextToolbar.vue'
 import { createRichTextEditor } from '../../richtext/tiptap'
 import { fromContractRichText, toContractRichText } from '../../richtext/toContractRichText'
 import { setProp } from '../../ops'
 import type { ContentNode } from '../../schema/schema'
 import { isObject, type Json } from '../../schema/subsetValidator'
+import { pageHistoryKey } from '../../state/history'
 import { useBrokenLinks } from '../brokenLinks'
 import { useBlock } from '../useBlock'
 
@@ -26,6 +27,15 @@ const editor = shallowRef<Editor | null>(null)
 const editing = computed(() => editor.value !== null)
 /** True from the moment editing starts, so the editor's host element renders. */
 const mounting = ref(false)
+
+// Undo and redo are the page's, so the toolbar's buttons and Ctrl/Cmd+Z take back the same steps
+// (035 FR-009, 011 research ED-12).
+const pageHistory = inject(pageHistoryKey, null)
+const history = computed<RichTextHistory | undefined>(() => {
+  const page = pageHistory?.value
+  if (!page) return undefined
+  return { undo: page.undo, redo: page.redo, canUndo: page.canUndo.value && !store.readOnly, canRedo: page.canRedo.value && !store.readOnly }
+})
 
 const content = computed(() => props.node.props.content ?? null)
 const empty = computed(() => {
@@ -114,6 +124,7 @@ onBeforeUnmount(stopEditing)
         v-if="editor"
         :editor="editor"
         :site-id="store.siteId"
+        :history="history"
       />
       <div
         ref="host"
