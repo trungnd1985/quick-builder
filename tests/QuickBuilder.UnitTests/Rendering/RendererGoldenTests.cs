@@ -83,6 +83,13 @@ public sealed class RendererGoldenTests
     /// <summary>Renders a document file in the fixed context.</summary>
     internal static string RenderFile(string path)
     {
+        var (harness, document, title) = Prepare(path);
+        return harness.Page(document, title);
+    }
+
+    /// <summary>A harness set up with the fixed context, and the document file read, ready to render.</summary>
+    internal static (RenderHarness Harness, JsonElement Document, string Title) Prepare(string path)
+    {
         using var context = JsonDocument.Parse(File.ReadAllText(RepositoryFiles.Fixtures("context.json")));
         using var document = JsonDocument.Parse(File.ReadAllText(path));
         var root = context.RootElement;
@@ -121,6 +128,6 @@ public sealed class RendererGoldenTests
             harness.Components[Guid.Parse(component.Name)] = new LiveDocument(1, component.Value.Clone());
         }
 
-        return harness.Page(document.RootElement.Clone(), root.GetProperty("title").GetString()!);
+        return (harness, document.RootElement.Clone(), root.GetProperty("title").GetString()!);
     }
 }

@@ -416,7 +416,17 @@ visitors at `/_assets/blocks.{hash}.css`.
 - **Rich text**: rendered through an allow-list:
   - `paragraph` → `p`, `bulletList` → `ul`, `orderedList` → `ol`, `listItem` → `li`;
   - `hardBreak` → `br`;
-  - `bold` → `strong`, `italic` → `em`, `link` → `a`.
+  - `bold` → `strong`, `italic` → `em`, `link` → `a`;
+  - added by 035:
+    - `heading` → `h2`, `h3`, `h4`, and `blockquote` → `blockquote`;
+    - an `align` → `class="qb-align--start|center|end"` on the `p` or `h*`, never a style;
+    - `underline` → `u`, `strike` → `del`, `code` → `code`;
+    - `table` → `div.qb-rt-table[tabindex=0] > table > tbody`, `tableRow` → `tr`,
+      `tableHeader` → `th[scope=col]`, `tableCell` → `td`;
+    - `image` → `figure.qb-rt-image > img`, with `src`, `srcset`, `sizes` (the text's width,
+      capped by the file's own), `width`, `height`, `alt` (empty when decorative),
+      `loading="lazy"` and `decoding="async"`. A file that is gone, or another site's,
+      renders nothing.
 
   Nothing else is ever emitted.
 - **Adding a block type** also means adding one renderer class, which

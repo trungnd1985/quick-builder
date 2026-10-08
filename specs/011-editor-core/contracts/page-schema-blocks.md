@@ -1,5 +1,9 @@
 # Contract change: Page Schema v1, content blocks
 
+> **Extended by 035** (richer rich text): rich text now also holds headings, quotes, images,
+> tables, underline, strikethrough, code and alignment. `docs/contracts/page-schema.md` is the
+> source; see `specs/035-rich-text-formats/contracts/rich-text.md`.
+
 **Planning copy.** Implementation applies this to `docs/contracts/page-schema.md` and
 `docs/contracts/page-schema/v1.schema.json` in the same PR, with the golden examples
 (constitution, Development Workflow). **Additive within version 1** (contract §6): every

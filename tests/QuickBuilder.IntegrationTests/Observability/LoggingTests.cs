@@ -327,6 +327,43 @@ public sealed class LoggingTests(DatabaseFixture database) : IAsyncLifetime
         Assert.Contains(events, e => e.Contains(itemId.ToString(), StringComparison.OrdinalIgnoreCase));
     }
 
+    /// <summary>035 FR-021: rich text with headings, images, alt text and tables logs no text, alt text or file names.</summary>
+    [Fact]
+    public async Task Rich_text_journeys_never_log_text_alt_text_or_file_names()
+    {
+        var admin = await _app.CreateAdminClientAsync().ConfigureAwait(true);
+        var siteId = await Media.MediaApi.CreateSiteAsync(admin, "Logged rich text", "logged-rich-text.test").ConfigureAwait(true);
+        var canary = Pages.PagesApi.CanaryMarker;
+        var file = await Media.LibraryApi.UploadNamedAsync(admin, siteId, Media.MediaApi.CanaryName("jpg"), TestFixtures.Media.ImageFixtures.LargePhoto, "image/jpeg").ConfigureAwait(true);
+        var page = Pages.PagesApi.PagePath(siteId, (await Pages.PagesApi.SeedTreeAsync(admin, siteId, "home*\nshop").ConfigureAwait(true))["/shop"]);
+
+        string Document(string imageAttrs) =>
+            """
+            {"schemaVersion":1,"root":{"id":"root","type":"root","props":{},"children":[{"id":"s","type":"section","props":{},"children":[
+              {"id":"r","type":"rich-text","props":{"content":{"type":"doc","content":[
+                {"type":"heading","attrs":{"level":2},"content":[{"type":"text","text":"CANARYheading"}]},
+                {"type":"blockquote","content":[{"type":"paragraph","content":[{"type":"text","text":"CANARYquote","marks":[{"type":"underline"}]}]}]},
+                {"type":"image","attrs":{"media":{"mediaId":"MEDIA"}ATTRS}},
+                {"type":"table","content":[{"type":"tableRow","content":[{"type":"tableCell","content":[{"type":"paragraph","content":[{"type":"text","text":"CANARYcell"}]}]}]}]}]}},
+                "children":[]}]}]}}
+            """.Replace("CANARY", canary, StringComparison.Ordinal).Replace("MEDIA", file.Id.ToString(), StringComparison.Ordinal).Replace("ATTRS", imageAttrs, StringComparison.Ordinal);
+
+        // Refused: an image without alternative text, then a save from an admin from before 035.
+        await Publishing.PublishingApi.SaveAsync(admin, page, Document(string.Empty)).ConfigureAwait(true);
+        await Publishing.PublishingApi.PublishAsync(admin, page, await Publishing.PublishingApi.DraftVersionAsync(admin, page).ConfigureAwait(true)).ConfigureAwait(true);
+        var old = await _app.CreateAdminClientAsync().ConfigureAwait(true);
+        old.DefaultRequestHeaders.Remove(QuickBuilder.Pages.Contracts.RichTextRules.ClientHeader);
+        await Pages.PagesApi.SaveCurrentDraftAsync(old, page, Document(string.Empty)).ConfigureAwait(true);
+
+        await Publishing.PublishingApi.SaveAsync(admin, page, Document($$""","alt":"{{canary}}alt" """.TrimEnd())).ConfigureAwait(true);
+        await Publishing.PublishingApi.PublishCurrentAsync(admin, page).ConfigureAwait(true);
+        await _app.CreateClientForHost("logged-rich-text.test").GetAsync(new Uri("/shop", UriKind.Relative)).ConfigureAwait(true);
+
+        var events = _app.Logs.Events.Select(LogCapture.Render).ToList();
+        var leak = events.FirstOrDefault(e => e.Contains(canary, StringComparison.OrdinalIgnoreCase));
+        Assert.True(leak is null, $"A log event contains rich text, alternative text or a file name: {leak}");
+    }
+
     [Fact]
     public async Task Page_journeys_never_log_titles_names_or_content()
     {

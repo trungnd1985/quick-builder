@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.RegularExpressions;
 
 namespace QuickBuilder.UnitTests.Rendering;
 
@@ -213,4 +214,47 @@ public sealed class RichTextRendererTests
         Assert.Equal(
             "<p><span>x</span></p>",
             Body("""{"type":"paragraph","attrs":{"align":"justify\" onclick=\"x"},"content":[{"type":"text","text":"x"}]}"""));
+
+    private static readonly string[] AllowedElements =
+        ["div", "p", "span", "strong", "em", "u", "del", "code", "a", "h2", "h3", "h4", "blockquote", "ul", "ol", "li", "br", "figure", "img", "table", "tbody", "tr", "th", "td"];
+
+    private static readonly string[] AllowedAttributes =
+        ["class", "href", "tabindex", "scope", "src", "srcset", "sizes", "width", "height", "alt", "loading", "decoding", "start"];
+
+    /// <summary>035 SC-005, research RT-16: whatever a stored rich text holds, only the allow-list comes out.</summary>
+    [Fact]
+    public void Hostile_content_comes_out_as_allow_listed_elements_and_attributes_only()
+    {
+        const string hostileAlt = ""","alt":"\" onerror=\"alert(1)","onerror":"alert(1)" """;
+        var html = Body(
+            """
+            {"type":"heading","attrs":{"level":2,"align":"center\" onclick=\"x","onclick":"x"},"content":[{"type":"text","text":"<script>alert(1)</script>"}]},
+            {"type":"paragraph","attrs":{"style":"background:url(javascript:alert(1))"},"content":[
+              {"type":"text","text":"<img src=x onerror=alert(1)>","marks":[{"type":"link","attrs":{"to":{"type":"url","href":"javascript:alert(1)"}}}]},
+              {"type":"text","text":"ok","marks":[{"type":"link","attrs":{"to":{"type":"url","href":"https://example.com/\"><script>"}}}]},
+              {"type":"text","text":"x","marks":[{"type":"script"},{"type":"code","attrs":{"onclick":"x"}}]}]},
+            IMAGE,
+            {"type":"table","attrs":{"border":"1"},"content":[{"type":"tableRow","content":[
+              {"type":"tableHeader","attrs":{"style":"x","colspan":9},"content":[{"type":"paragraph","content":[{"type":"text","text":"</td><script>"}]}]}]}]},
+            {"type":"iframe","attrs":{"src":"https://evil.example/"}},
+            {"type":"blockquote","attrs":{"cite":"javascript:x"},"content":[{"type":"paragraph"}]}
+            """.Replace("IMAGE", Image(RenderHarness.Photo, hostileAlt.TrimEnd()), StringComparison.Ordinal));
+
+        Assert.DoesNotContain("<script", html, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("javascript:", html, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("iframe", html, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain(" style=", html, StringComparison.Ordinal);
+        Assert.Contains("alt=\"&quot; onerror=&quot;alert(1)\"", html, StringComparison.Ordinal);
+
+        var tags = Regex.Matches(html, @"<([a-z0-9]+)((?:\s+[a-z-]+=""[^""]*"")*)\s*>");
+        Assert.Equal(Regex.Count(html, "<[a-z]"), tags.Count);
+        foreach (Match tag in tags)
+        {
+            Assert.Contains(tag.Groups[1].Value, AllowedElements);
+            foreach (Match attribute in Regex.Matches(tag.Groups[2].Value, @"\s([a-z-]+)=""[^""]*"""))
+            {
+                Assert.Contains(attribute.Groups[1].Value, AllowedAttributes);
+            }
+        }
+    }
 }

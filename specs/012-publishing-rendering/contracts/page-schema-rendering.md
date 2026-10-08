@@ -1,5 +1,9 @@
 # Change: `docs/contracts/page-schema.md` for Rendering
 
+> **Extended by 035** (richer rich text): the rich text allow-list gained headings, quotes,
+> images, tables, underline, strikethrough, code and alignment classes. `docs/contracts/page-schema.md`
+> is the source; see `specs/035-rich-text-formats/contracts/rich-text.md` §5.
+
 **Feature**: 012 (issue #12) | **Research**: PR-09, PR-10, PR-11
 
 This is the planning copy of the edits this feature makes to the page schema contract. The

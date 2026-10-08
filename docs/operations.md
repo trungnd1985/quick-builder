@@ -629,6 +629,34 @@ be deleted until that field is removed or changed.
 - **Media**: a file used by a **published item** counts as in live use, so only designers and
   administrators can delete or replace it, as for files on published pages.
 
+### Rich text
+
+- **Formats**: rich text, in Rich Text blocks and in items' rich text fields, holds headings
+  (levels 2 to 4), quotes, bulleted and numbered lists, bold, italic, underline,
+  strikethrough, inline code, links, images from the media library, simple tables and
+  alignment. It is always stored as structured data, never as HTML.
+- **Images need alternative text** before a page, component or item is published, or must
+  be marked decorative. Drafts can be saved without it; publishing (manual or scheduled)
+  names the images that need it.
+- **Pasting**: content pasted from a word processor or a web page keeps its headings, lists,
+  tables and text styles; colours, fonts and anything else are dropped. Images that exist
+  only as web addresses are left out, with a notice; pasted image files (screenshots) are
+  uploaded to the media library's top folder.
+- **Limits** per rich text: 20,000 characters, 50 images and 20 tables; a table holds at most
+  200 rows and 20 columns.
+- **Collections**: a rich text field can limit its formats (headings and quotes, images,
+  tables). Turning a group off keeps existing content and marks the items that use it as
+  needing attention.
+- **Media**: images in rich text count as uses of their file, like Image blocks and image
+  fields.
+
+### Upgrading from feature 015 (richer rich text)
+
+- **Reload every open admin tab after upgrading.** A tab opened before the upgrade cannot save
+  over content that uses the new formats; it says it is out of date and asks to be reloaded.
+- No migration: stored content is unchanged and is published exactly as before.
+- No configuration changes are needed.
+
 ### Upgrading from feature 014
 
 - The upgrade adds item columns and tables to the `cms` schema. Items stored before it (only

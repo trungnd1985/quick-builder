@@ -683,3 +683,12 @@ Recorded during `/speckit-implement`, so the tasks above can still be read as wr
     converts headings, quotes and tables to paragraphs before parsing. Content the field held
     before its formats were narrowed is never removed silently: the item needs attention
     until the member removes it.
+- **Performance** (T094): a whole page with the limit document renders in about 4 ms on the
+  development machine (target 5 ms); the test's guard is 20 ms, so a busy CI machine does not
+  fail it while a several-fold regression still does. Normalising the limit document in the
+  admin takes about 2 ms (budget 30 ms), so no debounce was needed.
+- **Hostile content** (T095): the test parses every tag and attribute of the output against
+  the allow-list; a naive search for `on…=` would match encoded text inside an `alt` value.
+- **Published accessibility** (T096): axe runs over every `rich-text-*` golden page with the
+  rules for heading order, image alternative text, table headers, lists, link names and
+  scrollable regions. `empty-heading` is not in scope: an empty heading is valid content.
