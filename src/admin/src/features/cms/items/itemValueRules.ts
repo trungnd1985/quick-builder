@@ -11,7 +11,7 @@ import type { Problem } from '../../../api/items'
 import { codePointLength, type Json } from '../../../editor/schema/subsetValidator'
 import { pageSchema } from '../../../editor/schema/schema'
 import { richTextChars } from '../../../editor/schema/documentValidator'
-import { checkRichTextRules, isEmptyRichText } from '../../../editor/schema/richTextRules'
+import { checkRichTextRules, imageMedia, imagesWithoutAlt, isEmptyRichText } from '../../../editor/schema/richTextRules'
 import { MAX_RICH_TEXT_CHARS } from '../../../editor/schema/limits'
 import { collectionSchema } from '../collectionSchema'
 
@@ -132,6 +132,19 @@ function checkField(field: SchemaField, value: Json | undefined, itemId: string 
   // A rich text with no text and no images is no value (035 spec edge case "Empty structures").
   if (field.type === 'richText' && isEmptyRichText(value)) {
     return field.required ? { fieldId: field.id, problem: 'missing_required' } : null
+  }
+
+  // 035 FR-014: an image needs alternative text, or to be decorative; then its file must exist.
+  if (field.type === 'richText') {
+    const withoutAlt = imagesWithoutAlt(value, '')[0]
+    if (withoutAlt !== undefined) return { fieldId: field.id, problem: 'image_alt_missing', path: withoutAlt }
+    if (lookups.mediaKind) {
+      for (const image of imageMedia(value, '')) {
+        const kind = lookups.mediaKind(image.mediaId)
+        if (kind === 'missing') return { fieldId: field.id, problem: 'media_missing', path: image.pointer }
+        if (kind === 'document') return { fieldId: field.id, problem: 'file_kind', path: image.pointer }
+      }
+    }
   }
 
   const setting = settingProblem(field, value)

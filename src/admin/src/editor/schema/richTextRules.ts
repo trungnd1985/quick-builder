@@ -94,6 +94,15 @@ export function imagesWithoutAlt(document: Json, pointer: string): string[] {
     .map((n) => n.pointer)
 }
 
+/** The media file each image names, with the image's pointer, in document order. */
+export function imageMedia(document: Json, pointer: string): { mediaId: string; pointer: string }[] {
+  return nodes(document, pointer).flatMap(({ node, pointer: at }) => {
+    if (node.type !== 'image' || !isObject(node.attrs) || !isObject(node.attrs.media)) return []
+    const id = node.attrs.media.mediaId
+    return typeof id === 'string' ? [{ mediaId: id, pointer: at }] : []
+  })
+}
+
 /** Whether the document uses anything an admin from before 035 cannot keep (RT-13). */
 export function usesExtendedFormats(document: Json): boolean {
   return nodes(document, '').some(({ node }) =>

@@ -29,6 +29,10 @@ export interface Problem {
   fieldId: string
   problem: string
   limit?: number | null
+  /** 035: for `format_not_allowed`, the format group the field does not allow. */
+  format?: 'headings' | 'images' | 'tables'
+  /** 035: for a problem inside a rich text value, a JSON pointer into it. */
+  path?: string
 }
 
 export interface Report {

@@ -47,6 +47,7 @@ function normalise(element: Element, propsOf: (e: Element) => Record<string, str
   // A missing image, or an Embed with no video: a placeholder on the canvas, left out when
   // published (§9).
   if (kept.includes('qb-image') && !element.querySelector('img')) return null
+  if (kept.includes('qb-rt-image') && !element.querySelector('img')) return null
   if (kept.includes('qb-embed') && !element.querySelector('iframe, .qb-embed__url')) return null
 
   const embed = kept.includes('qb-embed')

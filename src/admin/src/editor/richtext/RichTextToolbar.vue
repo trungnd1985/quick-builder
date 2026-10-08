@@ -4,13 +4,16 @@
 // shortcuts as tooltips; one tab stop, moved through with the arrow keys, Home and End (the
 // WAI-ARIA toolbar pattern). Only formats the contract allows are offered, and a field's
 // allowed formats can hide whole groups.
-import { computed, onBeforeUnmount, ref, shallowRef, watch } from 'vue'
+import { computed, getCurrentInstance, onBeforeUnmount, ref, shallowRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { Editor } from '@tiptap/core'
+import type { MediaFile } from '../../api/media'
 import IconButton, { type IconName } from '../../components/IconButton.vue'
+import MediaPickerDialog from '../../features/media/MediaPickerDialog.vue'
 import LinkControl from '../panel/controls/LinkControl.vue'
 import type { Json } from '../schema/subsetValidator'
 import { ALL_FORMATS, type AllowedFormats } from './formats'
+import ImageGroup from './ImageGroup.vue'
 
 /** The host's undo and redo: the page editor's one history, or the item field's own. */
 export interface RichTextHistory {
@@ -64,6 +67,29 @@ const run = (command: (chain: ReturnType<Editor['chain']>) => ReturnType<Editor[
   command(props.editor.chain().focus()).run()
 }
 
+// Images come from the site's media library (035 FR-010): a new one, or another file for the selected one.
+const picking = ref<'insert' | 'replace' | null>(null)
+const pickerId = `rt-picker-${getCurrentInstance()?.uid ?? 0}`
+
+function chooseImage(file: MediaFile): void {
+  const libraryAlt = file.altText?.trim() ? file.altText : null
+  if (picking.value === 'replace') {
+    const own = props.editor.getAttributes('image').alt
+    props.editor.chain().focus().updateAttributes('image', {
+      media: { mediaId: file.id },
+      alt: typeof own === 'string' && own.trim() !== '' ? own : libraryAlt,
+    }).run()
+  } else {
+    props.editor.chain().focus().insertContent({ type: 'image', attrs: { media: { mediaId: file.id }, alt: libraryAlt } }).run()
+  }
+  picking.value = null
+}
+
+function closePicker(): void {
+  picking.value = null
+  props.editor.commands.focus()
+}
+
 const linking = ref(false)
 const linkValue = shallowRef<Json | undefined>(undefined)
 
@@ -115,6 +141,9 @@ const groups = computed<Control[][]>(() => {
 
   const insert: Control[] = [
     { id: 'link', icon: 'link', label: t('editor.richText.link'), pressed: active('link'), expanded: linking.value, run: toggleLink },
+    ...(props.allowed.images
+      ? [{ id: 'image', icon: 'image', label: t('editor.richText.image.insert'), run: () => { picking.value = 'insert' } } satisfies Control]
+      : []),
   ]
 
   return [history, block, inline, lists, insert].filter((group) => group.length > 0)
@@ -231,6 +260,20 @@ const indexOf = (control: Control): number => flat.value.indexOf(control)
         </template>
       </div>
     </template>
+    <ImageGroup
+      v-if="allowed.images && active('image')"
+      :editor="editor"
+      :tick="tick"
+      @replace="picking = 'replace'"
+    />
+    <MediaPickerDialog
+      v-if="picking"
+      :id="pickerId"
+      :site-id="siteId"
+      kind="image"
+      @choose="chooseImage"
+      @close="closePicker"
+    />
     <div
       v-if="linking"
       class="qb-rt-toolbar__link"

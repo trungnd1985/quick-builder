@@ -68,4 +68,17 @@ describe('RichTextInput history', () => {
     await waitFor(() => expect(textOf(editor)).toBe('Reloaded'))
     expect(undoButton().disabled).toBe(true)
   })
+
+  it('sends a value that holds only an image: it is not empty (035 spec edge case "Empty structures")', async () => {
+    const onlyImage = { type: 'doc', content: [{ type: 'image', attrs: { media: { mediaId: 'file-1' } } }] }
+    const { editor, emitted } = await mount(onlyImage)
+
+    editor.commands.command(({ tr }) => {
+      tr.setNodeMarkup(0, undefined, { media: { mediaId: 'file-1' }, alt: 'Front', decorative: false, uploadId: null })
+      return true
+    })
+
+    const sent = (emitted()['update:value'] as unknown[][]).at(-1)![0]
+    expect(sent).toEqual({ type: 'doc', content: [{ type: 'image', attrs: { media: { mediaId: 'file-1' }, alt: 'Front' } }] })
+  })
 })

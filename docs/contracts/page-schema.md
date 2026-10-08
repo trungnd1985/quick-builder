@@ -295,7 +295,7 @@ Every validator of this schema runs the same files:
 | `valid/widths-and-columns.json` | passes: every Section width, Container maximum width and column pattern |
 | `valid/rich-text-lists.json` | passes: nested lists, every mark, both link kinds |
 | `valid/rich-text-inline-marks.json` | passes: underline, strikethrough and code, and all six marks on one text (035) |
-| `valid/rich-text-image.json` | passes: images with alternative text, decorative, and naming a file that no longer exists (035) |
+| `valid/rich-text-image.json` | passes: an image with alternative text and a decorative one (035) |
 | `valid/rich-text-image-without-alt.json` | passes: an image without alternative text is valid; publishing refuses it (035 FR-014) |
 | `valid/rich-text-headings-quotes.json` | passes: headings 2–4, quotes holding paragraphs and lists, empty heading and quote (035) |
 | `valid/component-page.json` | passes as a component document: Sections only |

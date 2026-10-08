@@ -58,6 +58,12 @@ async function startEditing(): Promise<void> {
     element: host.value,
     content: content.value,
     label: t('editor.blocks.richText'),
+    siteId: store.siteId,
+    imageLabels: {
+      missing: t('editor.richText.image.missing'),
+      uploading: t('editor.richText.image.uploading'),
+      addAlt: t('editor.richText.image.addAlt'),
+    },
     onChange: (doc) => {
       const refused = store.apply(setProp(store.root!, props.node.id, 'content', doc as unknown as Json), {
         coalesce: `${props.node.id}:content`,
@@ -76,7 +82,10 @@ function stopEditing(): void {
 }
 
 function onFocusOut(event: FocusEvent): void {
-  if (!root.value?.contains(event.relatedTarget as Node | null)) stopEditing()
+  const next = event.relatedTarget as Node | null
+  // The toolbar's own dialogs (the media picker, 035) sit outside the block but belong to it.
+  if (next instanceof Element && next.closest('[data-qb-dialog]')) return
+  if (!root.value?.contains(next)) stopEditing()
 }
 
 function onKeydown(event: KeyboardEvent): void {
@@ -135,6 +144,7 @@ onBeforeUnmount(stopEditing)
       v-else
       :doc="content"
       :links="links"
+      :site-id="store.siteId"
     />
   </div>
 </template>

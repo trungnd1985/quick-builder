@@ -48,6 +48,23 @@ const announcement = ref('')
 const notice = ref('')
 const saveState = ref<Autosave['state']['value']>('saved')
 const history = shallowRef<History | null>(null)
+
+/**
+ * 035 FR-014: publishing was refused for these places — rich text images without alternative
+ * text. Selects the block that holds the first one, so the member can fix it.
+ */
+function selectRefused(pointers: string[]): void {
+  const first = pointers[0]
+  if (!first || !store.root) return
+  let node: ContentNode = store.root
+  const steps = first.split('/').slice(2)
+  for (let i = 0; i + 1 < steps.length && steps[i] === 'children'; i += 2) {
+    const child: ContentNode | undefined = node.children[Number(steps[i + 1])]
+    if (!child) break
+    node = child
+  }
+  if (node !== store.root) store.select(node.id)
+}
 provide(pageHistoryKey, history)
 const offer = shallowRef<RecoveryOffer | null>(null)
 const reloading = ref(false)
@@ -294,6 +311,7 @@ defineExpose({ autosave: () => autosave, history })
         :can-publish="canPublish && !store.readOnly"
         :before-publish="saveBeforePublish"
         @changed="(next) => (publication = next)"
+        @refused="selectRefused"
       />
       <PreviewWidthSwitch v-model="previewWidth" />
       <button

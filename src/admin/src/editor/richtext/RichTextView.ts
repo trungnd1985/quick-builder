@@ -6,6 +6,7 @@
 // that no longer exists is marked, with the given label as its title (spec Edge Cases).
 
 import { defineComponent, h, type PropType, type VNode } from 'vue'
+import RichTextImage from './RichTextImage'
 import { isObject, type Json } from '../schema/subsetValidator'
 
 type Children = (VNode | string)[]
@@ -45,7 +46,7 @@ function renderInline(node: Json, key: number, links: LinkMarking): VNode | stri
   return typeof content === 'string' ? h('span', { key }, content) : h(content, { key })
 }
 
-function renderBlock(node: Json, key: number, links: LinkMarking): VNode | null {
+function renderBlock(node: Json, key: number, links: LinkMarking, siteId = ''): VNode | null {
   if (!isObject(node)) return null
   const content = Array.isArray(node.content) ? node.content : []
 
@@ -59,6 +60,13 @@ function renderBlock(node: Json, key: number, links: LinkMarking): VNode | null 
     }
     case 'blockquote':
       return h('blockquote', { key }, content.map((c, i) => renderBlock(c, i, links)).filter((c): c is VNode => c !== null))
+    case 'image': {
+      const attrs = isObject(node.attrs) ? node.attrs : {}
+      const mediaId = isObject(attrs.media) && typeof attrs.media.mediaId === 'string' ? attrs.media.mediaId : null
+      if (!mediaId) return null
+      const alt = attrs.decorative === true ? '' : typeof attrs.alt === 'string' ? attrs.alt : ''
+      return h(RichTextImage, { key, siteId, mediaId, alt })
+    }
     case 'bulletList':
       return h('ul', { key }, content.map((c, i) => renderBlock(c, i, links)).filter((c): c is VNode => c !== null))
     case 'orderedList': {
@@ -77,12 +85,14 @@ export default defineComponent({
   props: {
     doc: { type: [Object, null] as PropType<Json>, default: null },
     links: { type: Object as PropType<LinkMarking>, default: () => NO_MARKING },
+    /** For images: the site whose media library they come from (035). */
+    siteId: { type: String, default: '' },
   },
   setup(props) {
     return () => {
       const links = props.links
       const content = isObject(props.doc) && Array.isArray(props.doc.content) ? props.doc.content : []
-      return h('div', { class: 'qb-rich-text__body' }, content.map((c, i) => renderBlock(c, i, links)).filter((c): c is VNode => c !== null))
+      return h('div', { class: 'qb-rich-text__body' }, content.map((c, i) => renderBlock(c, i, links, props.siteId)).filter((c): c is VNode => c !== null))
     }
   },
 })

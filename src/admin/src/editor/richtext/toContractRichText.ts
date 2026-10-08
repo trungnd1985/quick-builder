@@ -24,6 +24,9 @@ function link(value: unknown): Json | null {
 /** The marks without attributes the contract allows; `link` is handled on its own. Later formats join here. */
 const PLAIN_MARKS: ReadonlySet<string> = new Set(['bold', 'italic', 'underline', 'strike', 'code'])
 
+/** The longest alternative text, in code points (`rtImage.attrs.alt.maxLength`). */
+const MAX_ALT = 300
+
 /** The most marks one text node may carry (`rtText.marks.maxItems`). */
 const MAX_MARKS = 6
 
@@ -81,6 +84,18 @@ function block(node: unknown, place: Place = 'top'): Json[] {
     const heading: { [key: string]: Json } = { type: 'heading', attrs: { level: headingLevel(node.attrs) } }
     if (text.length > 0) heading.content = text
     return [heading]
+  }
+
+  // An image lives at the top level only, and only once it names a file (an upload in progress
+  // does not). Anything but its media, alternative text and decorative flag is dropped (035 US3).
+  if (node.type === 'image') {
+    const attrs = isObject(node.attrs) ? node.attrs : {}
+    const media = isObject(attrs.media) && typeof attrs.media.mediaId === 'string' ? attrs.media.mediaId : null
+    if (place === 'nested' || media === null) return []
+    const kept: { [key: string]: Json } = { media: { mediaId: media } }
+    if (typeof attrs.alt === 'string' && attrs.alt !== '') kept.alt = [...attrs.alt].slice(0, MAX_ALT).join('')
+    if (attrs.decorative === true) kept.decorative = true
+    return [{ type: 'image', attrs: kept }]
   }
 
   if (node.type === 'blockquote') {

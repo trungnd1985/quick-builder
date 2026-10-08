@@ -873,7 +873,19 @@
       "quote": "Quote",
       "underline": "Underline",
       "strike": "Strikethrough",
-      "code": "Code"
+      "code": "Code",
+      "image": {
+        "insert": "Image",
+        "settings": "Image settings",
+        "alt": "Alternative text",
+        "altHelp": "Describe what the image shows, for people who cannot see it.",
+        "decorative": "Decorative: adds nothing a description would say",
+        "replace": "Replace image",
+        "remove": "Remove image",
+        "missing": "Missing image",
+        "uploading": "Uploading…",
+        "addAlt": "Add alternative text"
+      }
     },
     "panel": {
       "title": "Properties",
@@ -1125,7 +1137,8 @@
         "unpublished_components": "A shared component it uses was not published by then.",
         "not_published": "It was no longer published.",
         "invalid_document": "Its content no longer passes the page checks.",
-        "unknown": "The schedule could not run."
+        "unknown": "The schedule could not run.",
+        "image_alt_missing": "An image in its rich text had no alternative text."
       },
       "scheduled": {
         "publish": "Publishes {when}",
@@ -1261,7 +1274,8 @@
         "schedule_not_found": "Nothing is scheduled.",
         "not_found": "This page no longer exists.",
         "component_not_found": "This component no longer exists.",
-        "unknown": "The schedule could not run."
+        "unknown": "The schedule could not run.",
+        "image_alt_missing": "{count} image(s) in rich text need alternative text, or to be marked decorative, before publishing. The first one is selected."
       },
       "editor": {
         "out_of_date": "Someone changed the design since you opened it. Reload and try again.",
@@ -1769,7 +1783,8 @@
         "too_many_decimals": "At most {limit} decimal places.",
         "file_kind": "This kind of file is not allowed here.",
         "media_missing": "The file was deleted from the media library.",
-        "schedule_failed": "A scheduled action failed. See the history."
+        "schedule_failed": "A scheduled action failed. See the history.",
+        "image_alt_missing": "An image needs alternative text, or to be marked decorative, before publishing."
       }
     }
   }

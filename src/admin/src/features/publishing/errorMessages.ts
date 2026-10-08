@@ -21,7 +21,8 @@ export function publishingErrorMessage(t: Composer['t'], te: Composer['te'], cau
     const key = (module === 'pages' || module === 'editor') && reason ? `publishing.errors.${module}.${reason}` : ''
     if (key && te(key)) {
       const componentIds = Array.isArray(problem.componentIds) ? problem.componentIds : []
-      return t(key, { count: componentIds.length || Number(problem.pageCount ?? 0) })
+      const problems = Array.isArray(problem.problems) ? problem.problems : []
+      return t(key, { count: componentIds.length || problems.length || Number(problem.pageCount ?? 0) })
     }
   }
 

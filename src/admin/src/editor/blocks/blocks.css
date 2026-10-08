@@ -186,6 +186,16 @@
     font-size: 0.9em;
   }
 
+  .qb-rt-image {
+    margin: 0;
+  }
+
+  .qb-rt-image img {
+    display: block;
+    max-width: 100%;
+    height: auto;
+  }
+
   .qb-rich-text blockquote > * + * {
     margin-top: calc(var(--qb-base-size) * 0.75);
   }

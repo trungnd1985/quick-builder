@@ -4,6 +4,7 @@
 // rtDoc allows (Principle IX). An editor with no text and no images is no value. It has its own
 // undo history, since the item form has no other (035 FR-009, research RT-14).
 import { computed, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import type { Editor, JSONContent } from '@tiptap/core'
 import { UndoRedo } from '@tiptap/extensions'
 import type { SchemaField } from '../../../../api/cms'
@@ -15,6 +16,7 @@ import type { Json } from '../../../../editor/schema/subsetValidator'
 
 const props = defineProps<{ field: SchemaField; value: unknown; id: string; describedBy: string; invalid: boolean; siteId: string; label: string }>()
 const emit = defineEmits<{ 'update:value': [value: unknown] }>()
+const { t } = useI18n()
 
 const host = ref<HTMLElement | null>(null)
 const editor = shallowRef<Editor | null>(null)
@@ -41,6 +43,12 @@ onMounted(() => {
     element: host.value,
     content: props.value ?? null,
     label: props.label,
+    siteId: props.siteId,
+    imageLabels: {
+      missing: t('editor.richText.image.missing'),
+      uploading: t('editor.richText.image.uploading'),
+      addAlt: t('editor.richText.image.addAlt'),
+    },
     extensions: [UndoRedo],
     onChange: (doc) => emit('update:value', isEmpty(doc) ? undefined : doc),
   })

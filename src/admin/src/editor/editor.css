@@ -404,3 +404,24 @@
 .qb-canvas-stage {
   margin-inline: auto;
 }
+
+/* 035: a rich text image while editing: selected, and marked when it needs alternative text. */
+.qb-canvas .qb-rt-image.qb-editor-rt-image--selected {
+  outline: 3px solid #0a5ad6;
+  outline-offset: 2px;
+}
+
+.qb-canvas .qb-rt-image {
+  position: relative;
+}
+
+.qb-canvas .qb-editor-rt-image__alt {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  padding: 0.125rem 0.5rem;
+  border-radius: 4px;
+  background: #a4232f;
+  color: #ffffff;
+  font: 600 0.8125rem/1.4 system-ui, sans-serif;
+}

@@ -24,6 +24,7 @@ import Bold from '@tiptap/extension-bold'
 import Italic from '@tiptap/extension-italic'
 import { BulletList, ListItem, OrderedList } from '@tiptap/extension-list'
 import { fromContractRichText, toContractRichText, type RichTextDoc } from './toContractRichText'
+import { ContractImage, type ContractImageLabels } from './ContractImage'
 
 /** The link mark: a `to` attribute, drawn as an anchor with no address. */
 export const ContractLink = Mark.create({
@@ -126,15 +127,24 @@ const BlockStyleKeys = Extension.create({
   },
 })
 
-export function richTextExtensions(): Extensions {
+/** What the image node needs from its host: the site, and its words in the member's language. */
+export interface RichTextSetup {
+  siteId?: string
+  imageLabels?: ContractImageLabels
+}
+
+export function richTextExtensions(setup: RichTextSetup = {}): Extensions {
+  const image = setup.imageLabels
+    ? ContractImage.configure({ siteId: setup.siteId ?? '', labels: setup.imageLabels })
+    : ContractImage.configure({ siteId: setup.siteId ?? '' })
   return [
     Document, ContractParagraph, Text, HardBreak, Bold, Italic, Underline, ContractStrike, Code,
     BulletList, OrderedList, ContractListItem, ContractLink,
-    ContractHeading, ContractBlockquote, BlockStyleKeys,
+    ContractHeading, ContractBlockquote, BlockStyleKeys, image,
   ]
 }
 
-export interface RichTextEditorOptions {
+export interface RichTextEditorOptions extends RichTextSetup {
   element: HTMLElement
   content: unknown
   /** Extensions only this editor needs: the item field's own undo history (035 RT-14). */
@@ -148,7 +158,7 @@ export interface RichTextEditorOptions {
 export function createRichTextEditor(options: RichTextEditorOptions): Editor {
   return new Editor({
     element: options.element,
-    extensions: [...richTextExtensions(), ...(options.extensions ?? [])],
+    extensions: [...richTextExtensions(options), ...(options.extensions ?? [])],
     content: fromContractRichText(options.content) as JSONContent,
     editorProps: {
       attributes: { 'aria-label': options.label, 'aria-multiline': 'true', role: 'textbox', class: 'qb-rich-text__body' },

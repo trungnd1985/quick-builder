@@ -619,3 +619,19 @@ Recorded during `/speckit-implement`, so the tasks above can still be read as wr
     unchanged; `ItemReport` stores them in the `attention` column;
   - `RichTextRules` gained `RichTextBlocks` (a page document's Rich Text blocks) and
     `ImageMedia` (a rich text's images by media id), used by the publish check and the indexer.
+- **Images, admin** (T051, T056–T060):
+  - the image node's view is plain DOM in `RT/ContractImage.ts` (there is no
+    `ContractImageView.vue`): TipTap's Vue node views need `EditorContent`, which neither
+    editor uses; its words come in through `richTextExtensions({ siteId, imageLabels })`;
+  - the canvas draws images with `RT/RichTextImage.ts`; the valid example no longer holds an
+    image whose file is gone, since the canvas can't know that before the image fails to load
+    (the renderer unit tests cover leaving it out);
+  - the media library dialog moved out of `MediaControl` into
+    `features/media/MediaPickerDialog.vue`, which the toolbar also opens; it carries
+    `data-qb-dialog`, so a Rich Text block keeps editing while it has focus;
+  - the image settings are a panel row (`RT/ImageGroup.vue`) outside the toolbar's roving tab
+    stop, like the link panel;
+  - a page's publish refusal names how many images, and `PublishMenu` emits `refused` with
+    the pointers, so the editor selects the first image's block; an item shows
+    `image_alt_missing` through `problemMessage`, on its field and in the form's summary
+    (there is nothing to change in `ItemPublishBar`).
