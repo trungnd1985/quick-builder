@@ -75,8 +75,8 @@ Shorthand used below:
 
 **Purpose**: the dependencies and the SC-001 baseline, captured before anything changes.
 
-- [ ] T001 Add `@tiptap/extension-heading`, `@tiptap/extension-blockquote`, `@tiptap/extension-underline`, `@tiptap/extension-strike`, `@tiptap/extension-code`, `@tiptap/extension-text-align`, `@tiptap/extension-table` and `@tiptap/extensions`, all `~3.31.3`, to `src/admin/package.json`. Run `npm install` so `src/admin/package-lock.json` updates, then confirm `npm run build` and `npm test` still pass (RT-18).
-- [ ] T002 [P] Capture the SC-001 baseline before any renderer change: a 015-era fixture under `ITESTS/Rendering/Fixtures/upgrade-015/`. It holds:
+- [X] T001 Add `@tiptap/extension-heading`, `@tiptap/extension-blockquote`, `@tiptap/extension-underline`, `@tiptap/extension-strike`, `@tiptap/extension-code`, `@tiptap/extension-text-align`, `@tiptap/extension-table` and `@tiptap/extensions`, all `~3.31.3`, to `src/admin/package.json`. Run `npm install` so `src/admin/package-lock.json` updates, then confirm `npm run build` and `npm test` still pass (RT-18).
+- [X] T002 [P] Capture the SC-001 baseline before any renderer change: a 015-era fixture under `ITESTS/Rendering/Fixtures/upgrade-015/`. It holds:
   - page, component and item documents using every 015 rich text feature (paragraphs, nested lists, ordered start, hard breaks, bold, italic, both link kinds, 20,000 characters);
   - the HTML the current renderer produces for each **page and component**, as `*.html`. Items aren't rendered until #16, so the fixture stores their values only.
 
