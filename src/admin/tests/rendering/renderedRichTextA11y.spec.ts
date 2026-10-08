@@ -28,5 +28,6 @@ describe('published rich text', () => {
     const results = await axe.run(document, { runOnly: { type: 'rule', values: RULES } })
 
     expect(results.violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.html).join(' | ')}`)).toEqual([])
-  })
+    // The limits page holds 4,000 table cells: axe needs longer than the default on a busy machine.
+  }, 30_000)
 })
