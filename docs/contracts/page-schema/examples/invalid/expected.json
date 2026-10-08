@@ -47,5 +47,8 @@
   "props_invalid--rich-text-image-in-cell.json": { "rule": "props_invalid", "pointer": "/root/children/0/children/0/props/content/content/0/content/0/content/0/content/0/type" },
   "props_invalid--rich-text-cell-colspan.json": { "rule": "props_invalid", "pointer": "/root/children/0/children/0/props/content/content/0/content/0/content/0/attrs" },
   "props_invalid--rich-text-table-201-rows.json": { "rule": "props_invalid", "pointer": "/root/children/0/children/0/props/content/content/0/content" },
-  "props_invalid--rich-text-table-21-columns.json": { "rule": "props_invalid", "pointer": "/root/children/0/children/0/props/content/content/0/content/0/content" }
+  "props_invalid--rich-text-table-21-columns.json": { "rule": "props_invalid", "pointer": "/root/children/0/children/0/props/content/content/0/content/0/content" },
+  "props_invalid--rich-text-align-justify.json": { "rule": "props_invalid", "pointer": "/root/children/0/children/0/props/content/content/0/attrs/align" },
+  "props_invalid--rich-text-paragraph-style.json": { "rule": "props_invalid", "pointer": "/root/children/0/children/0/props/content/content/0/attrs/style" },
+  "props_invalid--rich-text-align-on-quote.json": { "rule": "props_invalid", "pointer": "/root/children/0/children/0/props/content/content/0/attrs" }
 }

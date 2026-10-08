@@ -835,6 +835,19 @@
           "items": {
             "$ref": "#/$defs/rtInline"
           }
+        },
+        "attrs": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "align": {
+              "enum": [
+                "start",
+                "center",
+                "end"
+              ]
+            }
+          }
         }
       }
     },
@@ -861,6 +874,13 @@
                 2,
                 3,
                 4
+              ]
+            },
+            "align": {
+              "enum": [
+                "start",
+                "center",
+                "end"
               ]
             }
           }

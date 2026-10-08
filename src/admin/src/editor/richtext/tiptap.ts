@@ -18,6 +18,7 @@ import Blockquote from '@tiptap/extension-blockquote'
 import Underline from '@tiptap/extension-underline'
 import Strike from '@tiptap/extension-strike'
 import Code from '@tiptap/extension-code'
+import TextAlign from '@tiptap/extension-text-align'
 import Text from '@tiptap/extension-text'
 import HardBreak from '@tiptap/extension-hard-break'
 import Bold from '@tiptap/extension-bold'
@@ -148,6 +149,8 @@ export function richTextExtensions(setup: RichTextSetup = {}): Extensions {
     BulletList, OrderedList, ContractListItem, ContractLink,
     ContractHeading, ContractBlockquote, BlockStyleKeys, image,
     ContractTable.configure({ onNotice: setup.onNotice }), ContractTableRow, ContractTableHeader, ContractTableCell,
+    // Alignment on paragraphs and headings (035 US6); none means the block's own.
+    TextAlign.configure({ types: ['heading', 'paragraph'], alignments: ['start', 'center', 'end'], defaultAlignment: null }),
   ]
 }
 

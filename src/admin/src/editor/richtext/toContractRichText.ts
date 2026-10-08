@@ -67,6 +67,18 @@ const holdsBlocks = (content: Json[]): boolean =>
  */
 type Place = 'top' | 'nested'
 
+const ALIGNMENTS: ReadonlySet<string> = new Set(['start', 'center', 'end'])
+
+/**
+ * A paragraph's or heading's own alignment: TipTap's `textAlign`, or the contract's `align`
+ * (035 US6). Anything else, and none, means the block's own.
+ */
+function alignOf(attrs: unknown): string | null {
+  if (!isObject(attrs)) return null
+  const value = attrs.textAlign ?? attrs.align
+  return typeof value === 'string' && ALIGNMENTS.has(value) ? value : null
+}
+
 /** A heading level the contract allows: 1 reads as 2, and 5 and below as 4 (035 US4 scenario 1). */
 function headingLevel(attrs: unknown): number {
   const level = isObject(attrs) && typeof attrs.level === 'number' ? attrs.level : 2
@@ -81,7 +93,8 @@ function block(node: unknown, place: Place = 'top'): Json[] {
   if (node.type === 'heading') {
     const text = content.flatMap(inline)
     if (place === 'nested') return [text.length > 0 ? { type: 'paragraph', content: text } : { type: 'paragraph' }]
-    const heading: { [key: string]: Json } = { type: 'heading', attrs: { level: headingLevel(node.attrs) } }
+    const align = alignOf(node.attrs)
+    const heading: { [key: string]: Json } = { type: 'heading', attrs: align ? { level: headingLevel(node.attrs), align } : { level: headingLevel(node.attrs) } }
     if (text.length > 0) heading.content = text
     return [heading]
   }
@@ -124,7 +137,10 @@ function block(node: unknown, place: Place = 'top'): Json[] {
   if (node.type !== 'paragraph' && holdsBlocks(content)) return content.flatMap((child) => block(child, place))
 
   const text = content.flatMap(inline)
-  return [text.length > 0 ? { type: 'paragraph', content: text } : { type: 'paragraph' }]
+  const align = node.type === 'paragraph' || node.type === 'heading' ? alignOf(node.attrs) : null
+  const paragraph: { [key: string]: Json } = align ? { type: 'paragraph', attrs: { align } } : { type: 'paragraph' }
+  if (text.length > 0) paragraph.content = text
+  return [paragraph]
 }
 
 /** The most rows and columns a table may have (`rtTable`, `rtTableRow`); more is cut off. */
@@ -208,9 +224,19 @@ export function toContractRichText(value: unknown): RichTextDoc {
   return { type: 'doc', content: content.flatMap((child) => block(child, 'top')) }
 }
 
-/** Stored rich text as TipTap content: identical, since the contract is a subset of it. */
+/** A stored node as TipTap content: the contract's `align` is TipTap's `textAlign` (035 US6). */
+function toTipTap(node: Json): Json {
+  if (!isObject(node)) return node
+  const content = Array.isArray(node.content) ? node.content.map(toTipTap) : undefined
+  const attrs = isObject(node.attrs) && 'align' in node.attrs
+    ? Object.fromEntries(Object.entries(node.attrs).map(([k, v]) => (k === 'align' ? ['textAlign', v] : [k, v])))
+    : node.attrs
+  return { ...node, ...(attrs === undefined ? {} : { attrs }), ...(content === undefined ? {} : { content }) }
+}
+
+/** Stored rich text as TipTap content: the contract is a subset of it, but for alignment's name. */
 export function fromContractRichText(value: unknown): RichTextDoc {
   return isObject(value) && value.type === 'doc' && Array.isArray(value.content)
-    ? (value as unknown as RichTextDoc)
+    ? { type: 'doc', content: value.content.map(toTipTap) }
     : { type: 'doc', content: [] }
 }

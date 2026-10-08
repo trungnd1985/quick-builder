@@ -44,7 +44,7 @@ internal static class RichTextRenderer
         switch (type.GetString())
         {
             case "paragraph":
-                writer.Markup("<p>");
+                writer.Markup($"<p{AlignClass(node)}>");
                 foreach (var inline in Children(node))
                 {
                     RenderInline(inline, context, writer);
@@ -55,7 +55,7 @@ internal static class RichTextRenderer
 
             case "heading":
                 var level = HeadingLevel(node);
-                writer.Markup($"<h{level}>");
+                writer.Markup($"<h{level}{AlignClass(node)}>");
                 foreach (var inline in Children(node))
                 {
                     RenderInline(inline, context, writer);
@@ -263,6 +263,17 @@ internal static class RichTextRenderer
 
         writer.Markup("</tbody></table></div>");
     }
+
+    /// <summary>
+    /// A paragraph's or heading's own alignment, as one of the fixed classes blocks use (035
+    /// FR-016): never an inline style, and nothing for a value the contract does not have.
+    /// </summary>
+    private static string AlignClass(JsonElement node) =>
+        node.TryGetProperty("attrs", out var attrs) && attrs.ValueKind == JsonValueKind.Object
+            && attrs.TryGetProperty("align", out var align) && align.ValueKind == JsonValueKind.String
+            && align.GetString() is "start" or "center" or "end"
+            ? $" class=\"qb-align--{align.GetString()}\""
+            : string.Empty;
 
     /// <summary>A heading's level, 2 to 4; anything else is drawn as the nearest of those (035).</summary>
     private static int HeadingLevel(JsonElement node) =>

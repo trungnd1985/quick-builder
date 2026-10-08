@@ -912,6 +912,11 @@
         "deleteColumn": "Delete column",
         "headerRow": "Header row",
         "deleteTable": "Delete table"
+      },
+      "align": {
+        "start": "Align left",
+        "center": "Align centre",
+        "end": "Align right"
       }
     },
     "panel": {

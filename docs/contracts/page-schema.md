@@ -122,6 +122,8 @@ No other type changes (constitution Principle VI).
   - images (`{ "type": "image", "attrs": { "media": { "mediaId": uuid }, "alt"?, "decorative"? } }`)
     and tables of rows of cells (`tableCell`, or `tableHeader` in the first row only) holding
     paragraphs, at the top level only (035);
+  - an alignment on paragraphs and headings (`"attrs": { "align": "start" | "center" | "end" }`),
+    which, when absent, is the block's own (035);
   - the marks bold, italic, underline, strike and code (035), and link
     (`{ "type": "link", "attrs": { "to": <link> } }`), at most 6 on one text.
 
@@ -302,6 +304,8 @@ Every validator of this schema runs the same files:
 | `valid/rich-text-image-without-alt.json` | passes: an image without alternative text is valid; publishing refuses it (035 FR-014) |
 | `valid/rich-text-table.json` | passes: tables with and without a header row, cells with several paragraphs (035) |
 | `valid/rich-text-limits.json` | passes: every rich text limit at once — 50 images, 20 tables, one of 200 rows × 20 columns, 20,000 characters (035); written without indentation to stay under 1 MiB |
+| `valid/rich-text-align.json` | passes: aligned headings and paragraphs, and one that follows its block (035) |
+| `valid/rich-text-every-format.json` | passes: every 035 format together, with links inside a heading, a quote and a table cell (035) |
 | `valid/rich-text-headings-quotes.json` | passes: headings 2–4, quotes holding paragraphs and lists, empty heading and quote (035) |
 | `valid/component-page.json` | passes as a component document: Sections only |
 | `invalid/nesting_not_allowed--section-in-section.json` | at `/root/children/0/children/0/type` |
@@ -333,6 +337,9 @@ Every validator of this schema runs the same files:
 | `invalid/props_invalid--rich-text-image-media-not-uuid.json` | at `…/attrs/media/mediaId` (035) |
 | `invalid/props_invalid--rich-text-image-alt-301.json` | at `…/attrs/alt`: at most 300 characters (035) |
 | `invalid/rich_text_too_many_images--51.json` | at `…/props/content` (035, rule 10) |
+| `invalid/props_invalid--rich-text-align-justify.json` | at `…/attrs/align`: start, center or end only (035) |
+| `invalid/props_invalid--rich-text-paragraph-style.json` | at `…/attrs/style`: no styles, ever (035) |
+| `invalid/props_invalid--rich-text-align-on-quote.json` | at the quote's `/attrs`: quotes take no alignment (035) |
 | `invalid/rich_text_too_many_tables--21.json` | at `…/props/content` (035, rule 10) |
 | `invalid/table_not_rectangular.json` | at the first row that differs (035, rule 11) |
 | `invalid/table_header_misplaced.json` | at the header cell in row 2 (035, rule 12) |

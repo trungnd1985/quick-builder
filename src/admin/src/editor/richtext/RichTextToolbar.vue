@@ -66,6 +66,12 @@ const active = (name: string, attributes?: Record<string, unknown>): boolean => 
   return props.editor.isActive(name, attributes)
 }
 
+/** Whether the block at the cursor has this alignment of its own (035 US6). */
+const aligned = (align: string): boolean => {
+  void tick.value
+  return props.editor.isActive({ textAlign: align })
+}
+
 const run = (command: (chain: ReturnType<Editor['chain']>) => ReturnType<Editor['chain']>) => () => {
   command(props.editor.chain().focus()).run()
 }
@@ -152,7 +158,19 @@ const groups = computed<Control[][]>(() => {
       : []),
   ]
 
-  return [history, block, inline, lists, insert].filter((group) => group.length > 0)
+  // Pressing an alignment that is already on takes it off: the block's own alignment again.
+  const alignment: Control[] = (['start', 'center', 'end'] as const).map((align) => {
+    const on = aligned(align)
+    return {
+      id: `align-${align}`,
+      icon: `align-${align}` as IconName,
+      label: t(`editor.richText.align.${align}`),
+      pressed: on,
+      run: run((c) => (on ? c.unsetTextAlign() : c.setTextAlign(align))),
+    }
+  })
+
+  return [history, block, inline, lists, insert, alignment].filter((group) => group.length > 0)
 })
 
 const flat = computed(() => groups.value.flat())

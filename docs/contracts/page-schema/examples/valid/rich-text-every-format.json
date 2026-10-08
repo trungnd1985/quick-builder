@@ -1,0 +1,275 @@
+{
+  "schemaVersion": 1,
+  "root": {
+    "id": "root",
+    "type": "root",
+    "props": {},
+    "children": [
+      {
+        "id": "s",
+        "type": "section",
+        "props": {},
+        "children": [
+          {
+            "id": "rt",
+            "type": "rich-text",
+            "props": {
+              "content": {
+                "type": "doc",
+                "content": [
+                  {
+                    "type": "heading",
+                    "attrs": {
+                      "level": 2,
+                      "align": "center"
+                    },
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": "See "
+                      },
+                      {
+                        "type": "text",
+                        "text": "the menu",
+                        "marks": [
+                          {
+                            "type": "link",
+                            "attrs": {
+                              "to": {
+                                "type": "url",
+                                "href": "https://example.com/menu"
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "paragraph",
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": "b",
+                        "marks": [
+                          {
+                            "type": "bold"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "text",
+                        "text": "i",
+                        "marks": [
+                          {
+                            "type": "italic"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "text",
+                        "text": "u",
+                        "marks": [
+                          {
+                            "type": "underline"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "text",
+                        "text": "s",
+                        "marks": [
+                          {
+                            "type": "strike"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "text",
+                        "text": "c",
+                        "marks": [
+                          {
+                            "type": "code"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "hardBreak"
+                      },
+                      {
+                        "type": "text",
+                        "text": "next line"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "blockquote",
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "Quoted, with "
+                          },
+                          {
+                            "type": "text",
+                            "text": "a source",
+                            "marks": [
+                              {
+                                "type": "link",
+                                "attrs": {
+                                  "to": {
+                                    "type": "url",
+                                    "href": "https://example.com/source"
+                                  }
+                                }
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "orderedList",
+                    "attrs": {
+                      "start": 2
+                    },
+                    "content": [
+                      {
+                        "type": "listItem",
+                        "content": [
+                          {
+                            "type": "paragraph",
+                            "content": [
+                              {
+                                "type": "text",
+                                "text": "two"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "bulletList",
+                            "content": [
+                              {
+                                "type": "listItem",
+                                "content": [
+                                  {
+                                    "type": "paragraph",
+                                    "content": [
+                                      {
+                                        "type": "text",
+                                        "text": "nested"
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "image",
+                    "attrs": {
+                      "media": {
+                        "mediaId": "0192f5a0-1b2c-7d3e-8f40-5a6b7c8d9e30"
+                      },
+                      "alt": "The shop"
+                    }
+                  },
+                  {
+                    "type": "table",
+                    "content": [
+                      {
+                        "type": "tableRow",
+                        "content": [
+                          {
+                            "type": "tableHeader",
+                            "content": [
+                              {
+                                "type": "paragraph",
+                                "content": [
+                                  {
+                                    "type": "text",
+                                    "text": "Item"
+                                  }
+                                ]
+                              }
+                            ]
+                          },
+                          {
+                            "type": "tableHeader",
+                            "content": [
+                              {
+                                "type": "paragraph",
+                                "content": [
+                                  {
+                                    "type": "text",
+                                    "text": "Link"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "type": "tableRow",
+                        "content": [
+                          {
+                            "type": "tableCell",
+                            "content": [
+                              {
+                                "type": "paragraph",
+                                "content": [
+                                  {
+                                    "type": "text",
+                                    "text": "Bread"
+                                  }
+                                ]
+                              }
+                            ]
+                          },
+                          {
+                            "type": "tableCell",
+                            "content": [
+                              {
+                                "type": "paragraph",
+                                "content": [
+                                  {
+                                    "type": "text",
+                                    "text": "order",
+                                    "marks": [
+                                      {
+                                        "type": "link",
+                                        "attrs": {
+                                          "to": {
+                                            "type": "url",
+                                            "href": "https://example.com/order"
+                                          }
+                                        }
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            },
+            "children": []
+          }
+        ]
+      }
+    ]
+  }
+}

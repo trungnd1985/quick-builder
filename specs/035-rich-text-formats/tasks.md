@@ -664,3 +664,9 @@ Recorded during `/speckit-implement`, so the tasks above can still be read as wr
     past them, and refusing the whole paste would lose more than cutting off the excess;
   - the page editor's `setProp` now refuses rich text that breaks rules 10–12, with a message,
     as it does for the character limit.
+- **Alignment** (T079–T083):
+  - TipTap stores alignment as `textAlign`; `fromContractRichText` now maps the contract's
+    `align` to it, and `toContractRichText` maps it back, so alignment round-trips;
+  - pressing an alignment that is already on removes it, so the paragraph follows its block again;
+  - no extra CSS was needed: a paragraph's own `qb-align--*` class beats the alignment it would
+    inherit from its block.

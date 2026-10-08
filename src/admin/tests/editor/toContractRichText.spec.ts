@@ -206,3 +206,37 @@ describe('toContractRichText: inline styles (035 US2)', () => {
   })
 })
 
+describe('toContractRichText: alignment (035 US6)', () => {
+  it('keeps start, centre and end on paragraphs and headings, and drops everything else', () => {
+    const contract = toContractRichText({ type: 'doc', content: [
+      { type: 'paragraph', attrs: { textAlign: 'center' }, content: [{ type: 'text', text: 'a' }] },
+      { type: 'heading', attrs: { level: 3, textAlign: 'end' }, content: [{ type: 'text', text: 'b' }] },
+      { type: 'paragraph', attrs: { textAlign: 'start' } },
+      { type: 'paragraph', attrs: { textAlign: 'justify' } },
+      { type: 'paragraph', attrs: { textAlign: null } },
+      { type: 'blockquote', content: [{ type: 'paragraph', attrs: { textAlign: 'center' } }] },
+    ] })
+
+    expect(contract.content).toEqual([
+      { type: 'paragraph', attrs: { align: 'center' }, content: [{ type: 'text', text: 'a' }] },
+      { type: 'heading', attrs: { level: 3, align: 'end' }, content: [{ type: 'text', text: 'b' }] },
+      { type: 'paragraph', attrs: { align: 'start' } },
+      { type: 'paragraph' },
+      { type: 'paragraph' },
+      { type: 'blockquote', content: [{ type: 'paragraph', attrs: { align: 'center' } }] },
+    ])
+    expect(validateDocument(asDocument(contract), 'page')).toEqual({ valid: true })
+  })
+
+  it('round-trips alignment through TipTap unchanged', () => {
+    const contract = { type: 'doc', content: [
+      { type: 'heading', attrs: { level: 2, align: 'center' }, content: [{ type: 'text', text: 'T' }] },
+      { type: 'paragraph', attrs: { align: 'end' }, content: [{ type: 'text', text: 'p' }] },
+    ] }
+
+    editor = new Editor({ extensions: richTextExtensions(), content: fromContractRichText(contract) })
+
+    expect(toContractRichText(editor.getJSON())).toEqual(contract)
+  })
+})
+

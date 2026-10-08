@@ -196,4 +196,21 @@ public sealed class RichTextRendererTests
         Assert.Equal(
             "<div class=\"qb-rt-table\" tabindex=\"0\"><table><tbody><tr><td><p></p></td></tr></tbody></table></div>",
             Body("""{"type":"table","content":[{"type":"tableRow","content":[{"type":"tableCell","attrs":{"colspan":3,"style":"x"},"content":[{"type":"paragraph"}]}]}]}"""));
+
+    [Fact]
+    public void Alignment_is_a_class_on_the_paragraph_or_heading_never_a_style() =>
+        Assert.Equal(
+            "<h2 class=\"qb-align--center\"><span>t</span></h2><p class=\"qb-align--end\"><span>r</span></p><p class=\"qb-align--start\"><span>l</span></p><p><span>block</span></p>",
+            Body("""
+                {"type":"heading","attrs":{"level":2,"align":"center"},"content":[{"type":"text","text":"t"}]},
+                {"type":"paragraph","attrs":{"align":"end"},"content":[{"type":"text","text":"r"}]},
+                {"type":"paragraph","attrs":{"align":"start"},"content":[{"type":"text","text":"l"}]},
+                {"type":"paragraph","content":[{"type":"text","text":"block"}]}
+                """));
+
+    [Fact]
+    public void An_alignment_the_contract_does_not_have_is_left_out() =>
+        Assert.Equal(
+            "<p><span>x</span></p>",
+            Body("""{"type":"paragraph","attrs":{"align":"justify\" onclick=\"x"},"content":[{"type":"text","text":"x"}]}"""));
 }

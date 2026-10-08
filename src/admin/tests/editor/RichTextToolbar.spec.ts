@@ -212,3 +212,19 @@ describe('RichTextToolbar: inline styles (035 US2)', () => {
   })
 })
 
+describe('RichTextToolbar: alignment (035 US6)', () => {
+  it.each([
+    [en.editor.richText.align.start, 'start'],
+    [en.editor.richText.align.center, 'center'],
+    [en.editor.richText.align.end, 'end'],
+  ])('%s aligns the block and shows it as pressed', async (name, align) => {
+    mount()
+    const button = screen.getByRole('button', { name })
+
+    await fireEvent.click(button)
+
+    expect(editor!.getJSON().content![0]!.attrs?.textAlign).toBe(align)
+    expect(button.getAttribute('aria-pressed')).toBe('true')
+  })
+})
+

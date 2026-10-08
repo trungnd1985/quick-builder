@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "root": {
+    "id": "root",
+    "type": "root",
+    "props": {},
+    "children": [
+      {
+        "id": "s",
+        "type": "section",
+        "props": {},
+        "children": [
+          {
+            "id": "rt",
+            "type": "rich-text",
+            "props": {
+              "content": {
+                "type": "doc",
+                "content": [
+                  {
+                    "type": "heading",
+                    "attrs": {
+                      "level": 2,
+                      "align": "center"
+                    },
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": "Centred heading"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "paragraph",
+                    "attrs": {
+                      "align": "end"
+                    },
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": "Right-aligned paragraph"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "paragraph",
+                    "attrs": {
+                      "align": "start"
+                    },
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": "Left-aligned, inside a block that may be centred"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "paragraph",
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": "Follows the block"
+                      }
+                    ]
+                  }
+                ]
+              }
+            },
+            "children": []
+          }
+        ]
+      }
+    ]
+  }
+}
