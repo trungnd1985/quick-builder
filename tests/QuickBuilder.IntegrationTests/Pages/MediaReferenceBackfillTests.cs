@@ -83,12 +83,22 @@ public sealed class MediaReferenceBackfillTests(DatabaseFixture database) : IAsy
         await db.Database.GetService<IMigrator>().MigrateAsync(target).ConfigureAwait(false);
     }
 
+    /// <summary>
+    /// The valid examples a database of the migration's time could hold: rich text with 035's
+    /// formats, rich text images among them, did not exist then, and nothing stored was rewritten
+    /// when it came (035 FR-004), so the migration never meets one.
+    /// </summary>
     private static IEnumerable<(string Name, string Document)> ValidExamples()
     {
         var directory = Path.Combine(RepositoryRoot(), "docs", "contracts", "page-schema", "examples", "valid");
         return Directory.EnumerateFiles(directory, "*.json")
             .Order(StringComparer.Ordinal)
-            .Select(file => (Path.GetFileName(file), File.ReadAllText(file)));
+            .Select(file => (Path.GetFileName(file), File.ReadAllText(file)))
+            .Where(example =>
+            {
+                using var document = System.Text.Json.JsonDocument.Parse(example.Item2);
+                return !QuickBuilder.Pages.Contracts.RichTextRules.DocumentUsesExtendedFormats(document.RootElement);
+            });
     }
 
     private static string RepositoryRoot()
