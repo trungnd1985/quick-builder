@@ -7,6 +7,12 @@ namespace QuickBuilder.UnitTests.Rendering;
 /// A rich text at every limit at once — 50 images, 20 tables, one of 200 rows × 20 columns,
 /// 20,000 characters — renders well within the page render budget (035 SC-006, research RT-15).
 /// </summary>
+/// <remarks>
+/// A wall-clock budget, so CI runs it in a report-only step, as it does every other budget:
+/// shared runners have measured it at 26 ms and, on a degraded one, 257 ms with nothing
+/// changed (PR #31's decision). It is asserted on a development machine and in the quickstart run.
+/// </remarks>
+[Trait("Category", "Performance")]
 public sealed class RichTextRenderPerformanceTests(ITestOutputHelper output)
 {
     private const int Runs = 100;

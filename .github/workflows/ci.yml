@@ -45,9 +45,34 @@ jobs:
           dotnet test QuickBuilder.slnx
           --no-build
           --configuration Release
-          --filter "FullyQualifiedName!~SmokeTests"
+          --filter "FullyQualifiedName!~SmokeTests&Category!=Performance"
           --collect:"XPlat Code Coverage"
           --results-directory ./TestResults
+
+      # In-process timing budgets (035 rich text rendering) are report-only here, like the
+      # performance job below: a shared runner, busy with the integration tests, has run the
+      # same render 6–60x slower than a development machine with nothing changed.
+      - name: Performance budgets (report only)
+        id: unit-perf
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          dotnet test tests/QuickBuilder.UnitTests --no-build --configuration Release \
+            --filter "Category=Performance" --logger "console;verbosity=detailed" | tee unit-perf.log
+
+      - name: Report the in-process numbers
+        if: always() && steps.unit-perf.outcome != 'skipped'
+        run: |
+          {
+            echo "## In-process performance (report only)"
+            echo
+            echo '```'
+            grep -E "ms per render|budget|Passed!|Failed!" unit-perf.log | sed -E 's/^\[xUnit.net [0-9:.]+\] +//' | sort -u || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [ "${{ steps.unit-perf.outcome }}" != "success" ]; then
+            echo "::warning title=Performance budgets::An in-process budget was missed on this runner. See the run summary."
+          fi
 
       # Principle X requires >=80% line coverage on the critical paths.
       #
