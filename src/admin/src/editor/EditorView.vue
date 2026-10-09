@@ -5,7 +5,7 @@
 // right. Every change goes through the editor store as an operation; history, autosave and
 // the recovery copy all follow from there. Keyboard commands are bound here, on the editor's
 // root.
-import { computed, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, provide, ref, shallowRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { onBeforeRouteLeave } from 'vue-router'
 import { pagesApi } from '../api/pages'
@@ -25,7 +25,7 @@ import type { ContentDocument, ContentNode, DocumentKind } from './schema/schema
 import { CURRENT_SCHEMA_VERSION } from './schema/limits'
 import { createAutosave, type Autosave } from './state/autosave'
 import { useEditorStore } from './state/editorStore'
-import { createHistory, type History } from './state/history'
+import { createHistory, pageHistoryKey, type History } from './state/history'
 import { handleEditorKey } from './state/keyboard'
 import { PREVIEW_WIDTHS, usePreviewWidth } from './state/usePreviewWidth'
 import PreviewWidthSwitch from './PreviewWidthSwitch.vue'
@@ -48,6 +48,24 @@ const announcement = ref('')
 const notice = ref('')
 const saveState = ref<Autosave['state']['value']>('saved')
 const history = shallowRef<History | null>(null)
+
+/**
+ * 035 FR-014: publishing was refused for these places — rich text images without alternative
+ * text. Selects the block that holds the first one, so the member can fix it.
+ */
+function selectRefused(pointers: string[]): void {
+  const first = pointers[0]
+  if (!first || !store.root) return
+  let node: ContentNode = store.root
+  const steps = first.split('/').slice(2)
+  for (let i = 0; i + 1 < steps.length && steps[i] === 'children'; i += 2) {
+    const child: ContentNode | undefined = node.children[Number(steps[i + 1])]
+    if (!child) break
+    node = child
+  }
+  if (node !== store.root) store.select(node.id)
+}
+provide(pageHistoryKey, history)
 const offer = shallowRef<RecoveryOffer | null>(null)
 const reloading = ref(false)
 let autosave: Autosave | null = null
@@ -293,6 +311,7 @@ defineExpose({ autosave: () => autosave, history })
         :can-publish="canPublish && !store.readOnly"
         :before-publish="saveBeforePublish"
         @changed="(next) => (publication = next)"
+        @refused="selectRefused"
       />
       <PreviewWidthSwitch v-model="previewWidth" />
       <button

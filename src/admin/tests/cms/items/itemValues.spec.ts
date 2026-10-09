@@ -21,7 +21,15 @@ describe('item values against the golden files', () => {
 
     const problems = checkItem(schema, 'example', document.values, 'self', knowsNothing)
 
-    expect(problems.map(({ fieldId, problem, limit }) => (limit === undefined || limit === null ? { fieldId, problem } : { fieldId, problem, limit }))).toEqual(
+    // Only the properties a problem has: limit, format (035) and path (035) are optional.
+    const shown = (p: { fieldId: string; problem: string; limit?: number | null; format?: string; path?: string }) => ({
+      fieldId: p.fieldId,
+      problem: p.problem,
+      ...(p.limit === undefined || p.limit === null ? {} : { limit: p.limit }),
+      ...(p.format === undefined ? {} : { format: p.format }),
+      ...(p.path === undefined ? {} : { path: p.path }),
+    })
+    expect(problems.map(shown)).toEqual(
       want.problems,
     )
   })

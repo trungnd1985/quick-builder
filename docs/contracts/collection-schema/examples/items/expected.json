@@ -224,5 +224,58 @@
         "problem": "unknown_field"
       }
     ]
+  },
+  "rich-text-image-without-alt.json": {
+    "problems": [
+      {
+        "fieldId": "f3",
+        "problem": "image_alt_missing",
+        "path": "/content/1"
+      }
+    ]
+  },
+  "rich-text-image-missing.json": {
+    "problems": [
+      {
+        "fieldId": "f3",
+        "problem": "media_missing",
+        "path": "/content/0"
+      }
+    ]
+  },
+  "rich-text-format-not-allowed.json": {
+    "problems": [
+      {
+        "fieldId": "f14",
+        "problem": "format_not_allowed",
+        "format": "headings"
+      }
+    ]
+  },
+  "rich-text-allowed-formats.json": {
+    "problems": [
+      {
+        "fieldId": "f14",
+        "problem": "media_missing",
+        "path": "/content/1"
+      }
+    ]
+  },
+  "rich-text-too-long.json": {
+    "problems": [
+      {
+        "fieldId": "f3",
+        "problem": "rich_text_too_long",
+        "limit": 20000
+      }
+    ]
+  },
+  "rich-text-table-not-rectangular.json": {
+    "problems": [
+      {
+        "fieldId": "f3",
+        "problem": "table_not_rectangular"
+      }
+    ]
   }
 }

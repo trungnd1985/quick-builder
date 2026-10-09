@@ -7,6 +7,7 @@
 // server's unit tests use.
 
 import type { ChangeRule, FieldType, SchemaDocument, SchemaField } from '../../api/cms'
+import { allowedFormats, narrows } from '../../editor/richtext/formats'
 
 const TYPE_CHANGES: Record<string, ChangeRule> = {
   'text>richText': 'lossless',
@@ -56,6 +57,13 @@ function settingRules(before: SchemaField, after: SchemaField): ChangeRule[] {
     case 'file':
       if (differs('accept')) rules.push(after.accept === 'any' ? 'free' : 'reported')
       break
+    case 'richText': {
+      // 035 FR-025: turning a group off is reported; turning one on, or dropping the setting, is free.
+      const was = allowedFormats(before.formats)
+      const now = allowedFormats(after.formats)
+      if (was.headings !== now.headings || was.images !== now.images || was.tables !== now.tables) rules.push(narrows(was, now) ? 'reported' : 'free')
+      break
+    }
     case 'reference':
     case 'multiReference':
       if (differs('target')) rules.push('forbidden')

@@ -60,9 +60,11 @@ Deferred by 015 (collection items; see specs/015-cms-items/plan.md):
 - Bulk actions in the item list (publish, unpublish or delete many at once)
 - Keyset paging and per-field indexes for collections far beyond 10,000 items
 - Autosave and local recovery for the item form
-- **Richer rich text, next after #15**: headings (2–4) and quotes; underline, strikethrough,
-  inline code and undo and redo buttons; images from the media library with alt text (counted
-  in media usage); simple tables and text alignment. Extend the page schema's `rtDoc` with
-  TipTap extensions, shared by the page editor, item fields, both validators and the renderer.
-  TinyMCE and CKEditor were considered and rejected: they store HTML (Principle IX) and are
-  GPL-licensed (Principle XI)
+
+Deferred by 035 (richer rich text; see specs/035-rich-text-formats/plan.md):
+
+- An alternative-text check at publish for the Image block, as rich text images have
+- Code blocks; captions, links, sizes and floats on rich text images; table captions, column
+  widths and cell alignment; justified text
+- Right-to-left support beyond storing alignment as start and end
+- Word desktop lists, which arrive as paragraphs because Word sends them as styled paragraphs

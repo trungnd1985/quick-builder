@@ -97,7 +97,7 @@ internal sealed class ItemReads(CmsDbContext database, CmsAccess access)
     public static ReportResponse Report(ItemReport report)
     {
         ArgumentNullException.ThrowIfNull(report);
-        return new ReportResponse(report.Problems.Select(p => new ProblemResponse(p.FieldId, p.Problem, p.Limit)).ToList());
+        return new ReportResponse(report.Problems.Select(p => new ProblemResponse(p.FieldId, p.Problem, p.Limit, p.Format, p.Path)).ToList());
     }
 
     public static ItemRefResponse Ref(Item item)

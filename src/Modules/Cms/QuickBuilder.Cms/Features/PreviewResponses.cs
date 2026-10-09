@@ -76,6 +76,7 @@ public sealed record PreviewResponse(
         Settings.WithTime => field.WithTime ? "true" : "false",
         Settings.Accept => field.Accept,
         Settings.Target => field.Target?.ToString(),
+        Settings.Formats => field.Formats.ToString(),
         _ => null,
     };
 }

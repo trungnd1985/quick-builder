@@ -80,4 +80,36 @@ describe('ItemField', () => {
     expect(input.getAttribute('aria-describedby')).toContain('item-field-f1-error')
     expect(screen.getByText(en.cms.items.problems.missing_required)).toBeTruthy()
   })
+
+  it('rich text: shows headings and quotes, and keeps them in the value it emits (035 US1)', async () => {
+    const body: SchemaField = { id: 'f20', key: 'body', name: 'Body', help: '', required: false, type: 'richText' }
+    const value = {
+      type: 'doc',
+      content: [
+        { type: 'heading', attrs: { level: 3 }, content: [{ type: 'text', text: 'Title' }] },
+        { type: 'blockquote', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Quoted' }] }] },
+      ],
+    }
+    const { container, emitted } = render(ItemField, {
+      props: { field: body, value, siteId: SITE, itemId: null, problem: null },
+      global: { plugins: [i18n] },
+    })
+
+    expect(container.querySelector('[role="textbox"] h3')?.textContent).toBe('Title')
+    expect(container.querySelector('[role="textbox"] blockquote p')?.textContent).toBe('Quoted')
+
+    await fireEvent.update(await screen.findByRole('combobox', { name: en.editor.richText.blockStyle }), 'heading-4')
+
+    expect(lastValue(emitted())).toEqual({ ...value, content: [{ ...value.content[0], attrs: { level: 4 } }, value.content[1]] })
+  })
+
+  it('rich text: says when an image needs alternative text (035 FR-014)', async () => {
+    const body: SchemaField = { id: 'f20', key: 'body', name: 'Body', help: '', required: false, type: 'richText' }
+    render(ItemField, {
+      props: { field: body, value: { type: 'doc', content: [] }, siteId: SITE, itemId: null, problem: { fieldId: 'f20', problem: 'image_alt_missing', path: '/content/0' } },
+      global: { plugins: [i18n] },
+    })
+
+    expect(screen.getByText(en.cms.items.problems.image_alt_missing)).toBeTruthy()
+  })
 })

@@ -3,6 +3,7 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/vue
 import axe from 'axe-core'
 import PublishMenu from '../../src/features/publishing/PublishMenu.vue'
 import type { Publication } from '../../src/api/publishing'
+import en from '../../src/i18n/en.json'
 import { i18n } from '../editor/harness'
 
 // 012 FR-039, research PR-20: the publishing actions every page, component and the editor offer.
@@ -132,6 +133,17 @@ describe('PublishMenu', () => {
     await fireEvent.click(screen.getByRole('button', { name: 'Publish' }))
 
     expect(await screen.findByRole('alert')).toHaveProperty('textContent', '2 shared component(s) this uses are not published. Publish them first.')
+  })
+
+  it('names how many images need alternative text and reports where they are (035 FR-014)', async () => {
+    const pointers = ['/root/children/0/children/1/props/content/content/0', '/root/children/0/children/1/props/content/content/3']
+    stubFetch({ status: 422, body: { title: 'x', status: 422, errorCode: 'pages.image_alt_missing', problems: pointers.map((pointer) => ({ pointer })) } })
+    const { emitted } = mount()
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Publish' }))
+
+    expect(await screen.findByRole('alert')).toHaveProperty('textContent', en.publishing.errors.pages.image_alt_missing.replace('{count}', '2'))
+    expect(emitted().refused).toEqual([[pointers]])
   })
 
   it('offers publishing only to publishers, and the live page once published', () => {

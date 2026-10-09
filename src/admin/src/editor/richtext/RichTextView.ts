@@ -6,6 +6,7 @@
 // that no longer exists is marked, with the given label as its title (spec Edge Cases).
 
 import { defineComponent, h, type PropType, type VNode } from 'vue'
+import RichTextImage from './RichTextImage'
 import { isObject, type Json } from '../schema/subsetValidator'
 
 type Children = (VNode | string)[]
@@ -29,6 +30,9 @@ function renderInline(node: Json, key: number, links: LinkMarking): VNode | stri
     if (!isObject(mark)) continue
     if (mark.type === 'bold') content = h('strong', null, [content])
     else if (mark.type === 'italic') content = h('em', null, [content])
+    else if (mark.type === 'underline') content = h('u', null, [content])
+    else if (mark.type === 'strike') content = h('del', null, [content])
+    else if (mark.type === 'code') content = h('code', null, [content])
     else if (mark.type === 'link') {
       const to = isObject(mark.attrs) ? mark.attrs.to : undefined
       content = links.isBroken(to)
@@ -42,13 +46,45 @@ function renderInline(node: Json, key: number, links: LinkMarking): VNode | stri
   return typeof content === 'string' ? h('span', { key }, content) : h(content, { key })
 }
 
-function renderBlock(node: Json, key: number, links: LinkMarking): VNode | null {
+/** A paragraph's or heading's own alignment, as the class a published page uses (035 US6). */
+function alignClass(node: { [key: string]: Json }): string | undefined {
+  const align = isObject(node.attrs) ? node.attrs.align : undefined
+  return align === 'start' || align === 'center' || align === 'end' ? `qb-align--${align}` : undefined
+}
+
+function renderBlock(node: Json, key: number, links: LinkMarking, siteId = ''): VNode | null {
   if (!isObject(node)) return null
   const content = Array.isArray(node.content) ? node.content : []
 
   switch (node.type) {
     case 'paragraph':
-      return h('p', { key }, content.map((c, i) => renderInline(c, i, links)).filter((c): c is VNode | string => c !== null) as Children)
+      return h('p', { key, class: alignClass(node) }, content.map((c, i) => renderInline(c, i, links)).filter((c): c is VNode | string => c !== null) as Children)
+    case 'heading': {
+      // Levels 2 to 4, as the renderer draws them (035 US1).
+      const level = isObject(node.attrs) && typeof node.attrs.level === 'number' ? Math.min(4, Math.max(2, node.attrs.level)) : 2
+      return h(`h${level}`, { key, class: alignClass(node) }, content.map((c, i) => renderInline(c, i, links)).filter((c): c is VNode | string => c !== null) as Children)
+    }
+    case 'blockquote':
+      return h('blockquote', { key }, content.map((c, i) => renderBlock(c, i, links)).filter((c): c is VNode => c !== null))
+    case 'table': {
+      // As published: a focusable area that scrolls sideways, header cells only in the first row (035).
+      const rows = content.map((row, r) => {
+        const cells = isObject(row) && Array.isArray(row.content) ? row.content : []
+        return h('tr', { key: r }, cells.map((cell, c) => {
+          const header = isObject(cell) && cell.type === 'tableHeader'
+          const blocks = isObject(cell) && Array.isArray(cell.content) ? cell.content : []
+          return h(header ? 'th' : 'td', { key: c, scope: header ? 'col' : undefined }, blocks.map((b, i) => renderBlock(b, i, links, siteId)).filter((b): b is VNode => b !== null))
+        }))
+      })
+      return h('div', { key, class: 'qb-rt-table', tabindex: 0 }, [h('table', null, [h('tbody', null, rows)])])
+    }
+    case 'image': {
+      const attrs = isObject(node.attrs) ? node.attrs : {}
+      const mediaId = isObject(attrs.media) && typeof attrs.media.mediaId === 'string' ? attrs.media.mediaId : null
+      if (!mediaId) return null
+      const alt = attrs.decorative === true ? '' : typeof attrs.alt === 'string' ? attrs.alt : ''
+      return h(RichTextImage, { key, siteId, mediaId, alt })
+    }
     case 'bulletList':
       return h('ul', { key }, content.map((c, i) => renderBlock(c, i, links)).filter((c): c is VNode => c !== null))
     case 'orderedList': {
@@ -67,12 +103,14 @@ export default defineComponent({
   props: {
     doc: { type: [Object, null] as PropType<Json>, default: null },
     links: { type: Object as PropType<LinkMarking>, default: () => NO_MARKING },
+    /** For images: the site whose media library they come from (035). */
+    siteId: { type: String, default: '' },
   },
   setup(props) {
     return () => {
       const links = props.links
       const content = isObject(props.doc) && Array.isArray(props.doc.content) ? props.doc.content : []
-      return h('div', { class: 'qb-rich-text__body' }, content.map((c, i) => renderBlock(c, i, links)).filter((c): c is VNode => c !== null))
+      return h('div', { class: 'qb-rich-text__body' }, content.map((c, i) => renderBlock(c, i, links, props.siteId)).filter((c): c is VNode => c !== null))
     }
   },
 })

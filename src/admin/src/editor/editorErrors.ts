@@ -16,6 +16,10 @@ export const OP_REFUSALS: readonly (OpRefusalCode | 'needs_section' | 'clipboard
   'invalid_value',
   'required',
   'rich_text_too_long',
+  'rich_text_too_many_images',
+  'rich_text_too_many_tables',
+  'table_not_rectangular',
+  'table_header_misplaced',
   'cannot_change_root',
   'into_itself',
   'read_only',
@@ -41,11 +45,16 @@ export const DOCUMENT_RULES: readonly string[] = [
   'unknown_component',
   'unsupported_schema_version',
   'rich_text_too_long',
+  'rich_text_too_many_images',
+  'rich_text_too_many_tables',
+  'table_not_rectangular',
+  'table_header_misplaced',
 ]
 
 /** Server error codes the editor and the design screen can receive. */
 export const SERVER_CODES: readonly string[] = [
   'pages.out_of_date',
+  'pages.admin_outdated',
   'pages.not_found',
   'pages.component_not_found',
   'pages.invalid_document',

@@ -777,7 +777,8 @@
         "conflict": "Not saved — changed elsewhere",
         "forbidden": "Not saved — no permission",
         "gone": "Not saved — the page is gone",
-        "invalid": "Not saved — the page could not be checked"
+        "invalid": "Not saved — the page could not be checked",
+        "outdated": "Not saved — this page of the admin is out of date"
       }
     },
     "readOnly": {
@@ -786,7 +787,8 @@
       "gone": "This page no longer exists. Your changes were not saved.",
       "invalid": "This page cannot be edited here because its stored content does not pass the page schema check.",
       "invalidRule": "This page cannot be edited here: {reason}",
-      "recovery": "You are viewing unsaved changes from an earlier visit, read-only. Copy the blocks you want to keep."
+      "recovery": "You are viewing unsaved changes from an earlier visit, read-only. Copy the blocks you want to keep.",
+      "outdated": "This page of the admin is out of date, so your last change was not saved. Reload the page to keep editing."
     },
     "announce": {
       "inserted": "{name} added",
@@ -811,7 +813,11 @@
         "into_itself": "A block cannot be moved inside itself.",
         "read_only": "This page is read-only right now.",
         "needs_section": "Add a Section first: headings, text and images go inside one.",
-        "clipboard_empty": "Nothing has been copied from this site yet."
+        "clipboard_empty": "Nothing has been copied from this site yet.",
+        "rich_text_too_many_images": "A rich text holds at most 50 images.",
+        "rich_text_too_many_tables": "A rich text holds at most 20 tables.",
+        "table_not_rectangular": "Every row of a table needs the same number of cells.",
+        "table_header_misplaced": "Header cells can only make up the whole first row of a table."
       },
       "rules": {
         "malformed_json": "The page content is not well-formed.",
@@ -829,7 +835,11 @@
         "component_ref_not_allowed": "A shared component cannot contain another shared component.",
         "unknown_component": "The page uses a shared component that no longer exists.",
         "unsupported_schema_version": "The page was written by a newer version of QuickBuilder.",
-        "rich_text_too_long": "A rich text block holds more than 20,000 characters."
+        "rich_text_too_long": "A rich text block holds more than 20,000 characters.",
+        "rich_text_too_many_images": "A rich text block shows more than 50 images.",
+        "rich_text_too_many_tables": "A rich text block holds more than 20 tables.",
+        "table_not_rectangular": "A table has rows with different numbers of cells.",
+        "table_header_misplaced": "A table has header cells outside its first row."
       },
       "server": {
         "unexpected": "Something went wrong. Try again in a moment.",
@@ -850,7 +860,8 @@
         "editor_content_widths_order": "The content widths must go from narrowest to widest: Narrow, then Normal, then Wide.",
         "editor_token_required": "Keep at least one colour, one text size and one spacing step.",
         "editor_tokens_too_large": "The design tokens are larger than 64 KB.",
-        "editor_unsupported_schema_version": "These design tokens were written by a newer version of QuickBuilder."
+        "editor_unsupported_schema_version": "These design tokens were written by a newer version of QuickBuilder.",
+        "pages_admin_outdated": "This page of the admin is out of date. Reload it to keep editing."
       }
     },
     "richText": {
@@ -859,7 +870,55 @@
       "italic": "Italic",
       "bulletList": "Bulleted list",
       "orderedList": "Numbered list",
-      "link": "Link"
+      "link": "Link",
+      "undo": "Undo",
+      "redo": "Redo",
+      "blockStyle": "Text style",
+      "paragraph": "Paragraph",
+      "heading2": "Heading 2",
+      "heading3": "Heading 3",
+      "heading4": "Heading 4",
+      "quote": "Quote",
+      "underline": "Underline",
+      "strike": "Strikethrough",
+      "code": "Code",
+      "image": {
+        "insert": "Image",
+        "settings": "Image settings",
+        "alt": "Alternative text",
+        "altHelp": "Describe what the image shows, for people who cannot see it.",
+        "decorative": "Decorative: adds nothing a description would say",
+        "replace": "Replace image",
+        "remove": "Remove image",
+        "missing": "Missing image",
+        "uploading": "Uploading…",
+        "addAlt": "Add alternative text"
+      },
+      "notice": {
+        "imagesLeftOut": "One image was left out. Add images from the media library. | {count} images were left out. Add images from the media library.",
+        "uploadFailed": "A pasted image could not be uploaded: {reason}",
+        "rowsLimit": "A table holds at most 200 rows.",
+        "columnsLimit": "A table holds at most 20 columns.",
+        "tablesLimit": "A rich text holds at most 20 tables.",
+        "charactersLimit": "A rich text holds at most 20,000 characters, so that change was not made."
+      },
+      "table": {
+        "insert": "Table",
+        "group": "Table",
+        "rowAbove": "Add row above",
+        "rowBelow": "Add row below",
+        "columnBefore": "Add column before",
+        "columnAfter": "Add column after",
+        "deleteRow": "Delete row",
+        "deleteColumn": "Delete column",
+        "headerRow": "Header row",
+        "deleteTable": "Delete table"
+      },
+      "align": {
+        "start": "Align left",
+        "center": "Align centre",
+        "end": "Align right"
+      }
     },
     "panel": {
       "title": "Properties",
@@ -996,7 +1055,8 @@
       "reload": "Reload latest",
       "reloading": "Reloading…",
       "reloaded": "The latest saved version is now open.",
-      "confirmReload": "Reload the latest saved version? Changes you have not copied will be lost. Blocks you copied stay on the clipboard, ready to paste."
+      "confirmReload": "Reload the latest saved version? Changes you have not copied will be lost. Blocks you copied stay on the clipboard, ready to paste.",
+      "reloadPage": "Reload the page"
     },
     "recovery": {
       "title": "Unsaved changes found",
@@ -1110,7 +1170,8 @@
         "unpublished_components": "A shared component it uses was not published by then.",
         "not_published": "It was no longer published.",
         "invalid_document": "Its content no longer passes the page checks.",
-        "unknown": "The schedule could not run."
+        "unknown": "The schedule could not run.",
+        "image_alt_missing": "An image in its rich text had no alternative text."
       },
       "scheduled": {
         "publish": "Publishes {when}",
@@ -1246,7 +1307,8 @@
         "schedule_not_found": "Nothing is scheduled.",
         "not_found": "This page no longer exists.",
         "component_not_found": "This component no longer exists.",
-        "unknown": "The schedule could not run."
+        "unknown": "The schedule could not run.",
+        "image_alt_missing": "{count} image(s) in rich text need alternative text, or to be marked decorative, before publishing. The first one is selected."
       },
       "editor": {
         "out_of_date": "Someone changed the design since you opened it. Reload and try again.",
@@ -1375,7 +1437,14 @@
       "fillInHelp": "Written to every existing item that has no value yet.",
       "fillInNone": "No value",
       "fillInTrue": "Yes",
-      "fillInFalse": "No"
+      "fillInFalse": "No",
+      "formats": "Allowed formats",
+      "formatsHelp": "Paragraphs, lists, bold, italic, links and alignment are always allowed.",
+      "formatGroups": {
+        "headings": "Headings and quotes",
+        "images": "Images",
+        "tables": "Tables"
+      }
     },
     "options": {
       "legend": "Options",
@@ -1593,7 +1662,9 @@
         "fieldChanged": "This field changed.",
         "reload": "Reload",
         "timeZone": "Times are in {zone}.",
-        "loading": "Loading the item…"
+        "loading": "Loading the item…",
+        "outdated": "This page of the admin is out of date, so your last change was not saved. Reload the page to keep editing.",
+        "reloadPage": "Reload the page"
       },
       "inputs": {
         "pickImage": "Choose an image…",
@@ -1603,8 +1674,8 @@
         "pickItem": "Choose…",
         "pickItems": "Add items…",
         "moveUp": "Move {name} up",
-          "upSymbol": "↑",
-          "downSymbol": "↓",
+        "upSymbol": "↑",
+        "downSymbol": "↓",
         "moveDown": "Move {name} down",
         "remove": "Remove {name}",
         "moved": "{name} moved to position {position}.",
@@ -1752,7 +1823,19 @@
         "too_many_decimals": "At most {limit} decimal places.",
         "file_kind": "This kind of file is not allowed here.",
         "media_missing": "The file was deleted from the media library.",
-          "schedule_failed": "A scheduled action failed. See the history."
+        "schedule_failed": "A scheduled action failed. See the history.",
+        "image_alt_missing": "An image needs alternative text, or to be marked decorative, before publishing.",
+        "format_not_allowed": "This field does not allow {format}. Remove them before publishing.",
+        "formats": {
+          "headings": "headings or quotes",
+          "images": "images",
+          "tables": "tables"
+        },
+        "rich_text_too_long": "At most {limit} characters of text. Shorten it to save.",
+        "rich_text_too_many_images": "At most {limit} images. Remove some to save.",
+        "rich_text_too_many_tables": "At most {limit} tables. Remove some to save.",
+        "table_not_rectangular": "Every row of a table needs the same number of cells.",
+        "table_header_misplaced": "Header cells can only make up the whole first row of a table."
       }
     }
   }

@@ -17,6 +17,13 @@ internal static class ItemProblems
     public const string TooManyReferences = "too_many_references";
     public const string InvalidSlug = "invalid_slug";
 
+    // A rich text over one of its limits (page-schema.md §3 rules 9 to 12; 035 FR-005).
+    public const string RichTextTooLong = "rich_text_too_long";
+    public const string RichTextTooManyImages = "rich_text_too_many_images";
+    public const string RichTextTooManyTables = "rich_text_too_many_tables";
+    public const string TableNotRectangular = "table_not_rectangular";
+    public const string TableHeaderMisplaced = "table_header_misplaced";
+
     // Reported: stored in a draft, refused at publish (FR-014, FR-020).
     public const string MissingRequired = "missing_required";
     public const string TooLong = "too_long";
@@ -26,6 +33,12 @@ internal static class ItemProblems
     public const string FileKind = "file_kind";
     public const string MediaMissing = "media_missing";
 
+    /// <summary>A rich text image with neither alternative text nor "decorative" (035 FR-014), with its path.</summary>
+    public const string ImageAltMissing = "image_alt_missing";
+
+    /// <summary>Rich text using a format group the field does not allow (035 FR-024), with the format.</summary>
+    public const string FormatNotAllowed = "format_not_allowed";
+
     /// <summary>A scheduled action failed after the item last changed (FR-026); field id <c>schedule</c>.</summary>
     public const string ScheduleFailed = "schedule_failed";
 
@@ -33,6 +46,7 @@ internal static class ItemProblems
     [
         Malformed, UnknownField, UnknownOption, ReferenceMissing, ReferenceWrongCollection,
         ReferenceSelf, DuplicateReference, TooManyReferences, InvalidSlug,
+        RichTextTooLong, RichTextTooManyImages, RichTextTooManyTables, TableNotRectangular, TableHeaderMisplaced,
     ];
 
     /// <summary>Whether a value with this problem may not be stored at all.</summary>
@@ -41,7 +55,9 @@ internal static class ItemProblems
 
 /// <summary>One thing wrong with one field of an item, or with its slug (field id <c>slug</c>).</summary>
 /// <param name="Limit">The setting broken, when there is one: the maximum length, the bound, the decimals.</param>
-internal sealed record ItemProblem(string FieldId, string Problem, decimal? Limit = null);
+/// <param name="Format">For <c>format_not_allowed</c>: the format group, <c>headings</c>, <c>images</c> or <c>tables</c> (035).</param>
+/// <param name="Path">For a problem inside a rich text value: a JSON pointer into the value (035).</param>
+internal sealed record ItemProblem(string FieldId, string Problem, decimal? Limit = null, string? Format = null, string? Path = null);
 
 /// <summary>
 /// Everything wrong with one copy of an item, measured against its schema (015 research IT-05).
@@ -89,6 +105,16 @@ internal sealed class ItemReport
                 entry["limit"] = limit;
             }
 
+            if (problem.Format is { } format)
+            {
+                entry["format"] = format;
+            }
+
+            if (problem.Path is { } path)
+            {
+                entry["path"] = path;
+            }
+
             problems.Add(entry);
         }
 
@@ -109,7 +135,9 @@ internal sealed class ItemReport
             .Select(p => new ItemProblem(
                 p.GetProperty("fieldId").GetString()!,
                 p.GetProperty("problem").GetString()!,
-                p.TryGetProperty("limit", out var limit) && limit.ValueKind == JsonValueKind.Number ? limit.GetDecimal() : null))
+                p.TryGetProperty("limit", out var limit) && limit.ValueKind == JsonValueKind.Number ? limit.GetDecimal() : null,
+                p.TryGetProperty("format", out var format) && format.ValueKind == JsonValueKind.String ? format.GetString() : null,
+                p.TryGetProperty("path", out var path) && path.ValueKind == JsonValueKind.String ? path.GetString() : null))
             .ToList();
         return new ItemReport(problems);
     }

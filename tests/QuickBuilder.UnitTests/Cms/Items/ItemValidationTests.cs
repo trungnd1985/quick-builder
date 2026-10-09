@@ -132,6 +132,20 @@ public sealed class ItemValidationTests
             report.Problems);
     }
 
+    [Fact]
+    public async Task A_required_rich_text_with_no_text_and_no_images_is_missing()
+    {
+        var schema = SchemaTestKit.Doc(new Field { Id = "f1", Key = "body", Name = "n", Type = FieldType.RichText, Required = true });
+        var empty = new JsonObject { ["f1"] = JsonNode.Parse("""{"type":"doc","content":[{"type":"paragraph"},{"type":"paragraph"}]}""") };
+        var filled = new JsonObject { ["f1"] = JsonNode.Parse("""{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"x"}]}]}""") };
+
+        var emptyReport = await Validation.ValidateAsync(Site, Self, schema, "hello", Values(empty), CancellationToken.None);
+        var filledReport = await Validation.ValidateAsync(Site, Self, schema, "hello", Values(filled), CancellationToken.None);
+
+        Assert.Equal([new ItemProblem("f1", ItemProblems.MissingRequired)], emptyReport.Problems);
+        Assert.Empty(filledReport.Problems);
+    }
+
     [Theory]
     [InlineData("f1", "\"Far too long a title\"", ItemProblems.TooLong, 10)]
     [InlineData("f1", "\"two\\nlines\"", ItemProblems.NotSingleLine, null)]

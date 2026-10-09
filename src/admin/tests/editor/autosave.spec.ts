@@ -93,6 +93,7 @@ describe('autosave', () => {
 
   it.each([
     [409, 'pages.out_of_date', 'conflict'],
+    [409, 'pages.admin_outdated', 'outdated'],
     [403, 'identity.forbidden', 'forbidden'],
     [404, 'pages.not_found', 'gone'],
   ])('stops on %i %s and makes the editor read-only (FR-028, FR-029)', async (status, code, state) => {

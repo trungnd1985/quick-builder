@@ -117,7 +117,18 @@ No other type changes (constitution Principle VI).
   exist.
 - **Rich text**: a ProseMirror `doc` limited to:
   - paragraphs, bulleted and ordered lists, and hard breaks;
-  - the marks bold, italic and link (`{ "type": "link", "attrs": { "to": <link> } }`).
+  - headings of levels 2 to 4 (`{ "type": "heading", "attrs": { "level": 2 } }`) and
+    quotes (`blockquote`), at the top level only; a quote holds paragraphs and lists (035);
+  - images (`{ "type": "image", "attrs": { "media": { "mediaId": uuid }, "alt"?, "decorative"? } }`)
+    and tables of rows of cells (`tableCell`, or `tableHeader` in the first row only) holding
+    paragraphs, at the top level only (035);
+  - an alignment on paragraphs and headings (`"attrs": { "align": "start" | "center" | "end" }`),
+    which, when absent, is the block's own (035);
+  - the marks bold, italic, underline, strike and code (035), and link
+    (`{ "type": "link", "attrs": { "to": <link> } }`), at most 6 on one text.
+
+  The top level (`rtBlock`) admits every block; list items and quotes admit only paragraphs
+  and lists (`rtListBlock`).
 
   There is never HTML.
 - **Defaults**: a property's `default` in the schema is its value when it is missing. A
@@ -143,6 +154,16 @@ binding.
    (Principle IX). A block type whose props include an HTML string is refused in review.
 9. A Rich Text block holds at most **20,000** characters of text, counted in code points
    over all its `text` nodes (`rich_text_too_long`, at `…/props/content`).
+10. A rich text shows at most **50** images (`rich_text_too_many_images`) and holds at most
+    **20** tables (`rich_text_too_many_tables`), reported at `…/props/content` (035).
+11. Every row of a table has as many cells as its first row (`table_not_rectangular`, at
+    the first row that differs). Cells never span rows or columns (035).
+12. Header cells appear only in the first row, and a first row with a header cell holds
+    only header cells (`table_header_misplaced`, at the first misplaced cell) (035).
+
+Rules 10–12 apply to rich text item values too (collection-schema.md §3), where a value that
+breaks one is malformed. Rows beyond 200 and cells beyond 20 per row fail the schema's
+`maxItems` (`props_invalid`, with the limit in the message), as every size limit does.
 
 Validation stops at the first failure and reports a `rule` and a JSON `pointer` (RFC 6901)
 into the submitted document. The checks run in this order, so a given document always
@@ -161,7 +182,8 @@ fails the same way:
      a children list that doesn't admit it, at its `/type`;
    - `unknown_type` for any other `type`, at its `/type`;
    - `children_not_allowed` for children under a type that takes none;
-6. the code rules: the component rules (rules 6–7), then rich text length (rule 9).
+6. the code rules: the component rules (rules 6–7), then rich text length (rule 9) for
+   every Rich Text block, then rules 10–12 for every Rich Text block, in document order.
 
 Depth and count come before the schema on purpose. They bound the work the schema check
 does, and they give an oversized document its own reason rather than a generic one.
@@ -222,6 +244,13 @@ neither listed here nor impossible to produce.
   build when `page-schema/` holds a `vN.schema.json` the renderer does not list, so a new
   version cannot merge without rendering support (012; Principle VI).
 
+**Additions in 035 (still version 1)**: rich text gained headings (levels 2–4), quotes,
+images, tables, the marks underline, strikethrough and code, and an alignment on paragraphs
+and headings. List items now refer to `rtListBlock`, which holds exactly what `rtBlock` held
+before, so list items accept the same content as ever; `rtBlock` is the top level only. A
+text node may carry up to 6 marks instead of 3. Every document valid before stays valid and
+renders the same (035 SC-001).
+
 ## 7. The schema file
 
 [`page-schema/v1.schema.json`](page-schema/v1.schema.json), JSON Schema 2020-12. It uses
@@ -270,6 +299,14 @@ Every validator of this schema runs the same files:
 | `valid/tokens-missing.json` | passes: token references to ids no token set holds |
 | `valid/widths-and-columns.json` | passes: every Section width, Container maximum width and column pattern |
 | `valid/rich-text-lists.json` | passes: nested lists, every mark, both link kinds |
+| `valid/rich-text-inline-marks.json` | passes: underline, strikethrough and code, and all six marks on one text (035) |
+| `valid/rich-text-image.json` | passes: an image with alternative text and a decorative one (035) |
+| `valid/rich-text-image-without-alt.json` | passes: an image without alternative text is valid; publishing refuses it (035 FR-014) |
+| `valid/rich-text-table.json` | passes: tables with and without a header row, cells with several paragraphs (035) |
+| `valid/rich-text-limits.json` | passes: every rich text limit at once — 50 images, 20 tables, one of 200 rows × 20 columns, 20,000 characters (035); written without indentation to stay under 1 MiB |
+| `valid/rich-text-align.json` | passes: aligned headings and paragraphs, and one that follows its block (035) |
+| `valid/rich-text-every-format.json` | passes: every 035 format together, with links inside a heading, a quote and a table cell (035) |
+| `valid/rich-text-headings-quotes.json` | passes: headings 2–4, quotes holding paragraphs and lists, empty heading and quote (035) |
 | `valid/component-page.json` | passes as a component document: Sections only |
 | `invalid/nesting_not_allowed--section-in-section.json` | at `/root/children/0/children/0/type` |
 | `invalid/nesting_not_allowed--heading-at-root.json` | at `/root/children/0/type` |
@@ -289,6 +326,28 @@ Every validator of this schema runs the same files:
 | `invalid/props_invalid--container-max-width.json` | at `…/props/maxWidth` |
 | `invalid/props_invalid--container-columns.json` | at `…/props/columns` |
 | `invalid/rich_text_too_long--20001.json` | at `…/props/content` |
+| `invalid/props_invalid--rich-text-heading-level-1.json` | at `…/attrs/level` (035) |
+| `invalid/props_invalid--rich-text-heading-level-5.json` | at `…/attrs/level` (035) |
+| `invalid/props_invalid--rich-text-quote-in-quote.json` | at the inner quote's `/type` (035) |
+| `invalid/props_invalid--rich-text-table-in-quote.json` | at the table's `/type` (035) |
+| `invalid/props_invalid--rich-text-heading-in-list.json` | at the heading's `/type` (035) |
+| `invalid/props_invalid--rich-text-seven-marks.json` | at `…/marks`: at most 6 (035) |
+| `invalid/props_invalid--rich-text-image-in-list.json` | at the image's `/type` (035) |
+| `invalid/props_invalid--rich-text-image-src.json` | at `…/attrs/src`: images name a media file only (035) |
+| `invalid/props_invalid--rich-text-image-media-not-uuid.json` | at `…/attrs/media/mediaId` (035) |
+| `invalid/props_invalid--rich-text-image-alt-301.json` | at `…/attrs/alt`: at most 300 characters (035) |
+| `invalid/rich_text_too_many_images--51.json` | at `…/props/content` (035, rule 10) |
+| `invalid/props_invalid--rich-text-align-justify.json` | at `…/attrs/align`: start, center or end only (035) |
+| `invalid/props_invalid--rich-text-paragraph-style.json` | at `…/attrs/style`: no styles, ever (035) |
+| `invalid/props_invalid--rich-text-align-on-quote.json` | at the quote's `/attrs`: quotes take no alignment (035) |
+| `invalid/rich_text_too_many_tables--21.json` | at `…/props/content` (035, rule 10) |
+| `invalid/table_not_rectangular.json` | at the first row that differs (035, rule 11) |
+| `invalid/table_header_misplaced.json` | at the header cell in row 2 (035, rule 12) |
+| `invalid/props_invalid--rich-text-table-in-list.json` | at the table's `/type` (035) |
+| `invalid/props_invalid--rich-text-image-in-cell.json` | at the image's `/type`: cells hold paragraphs only (035) |
+| `invalid/props_invalid--rich-text-cell-colspan.json` | at the cell's `/attrs`: cells never span (035) |
+| `invalid/props_invalid--rich-text-table-201-rows.json` | at the table's `/content`: at most 200 rows (035) |
+| `invalid/props_invalid--rich-text-table-21-columns.json` | at the row's `/content`: at most 20 cells (035) |
 
 Documents too deep or with too many nodes are generated by the tests rather than stored.
 Every block type has at least one valid and one invalid example (011 SC-009);
@@ -357,7 +416,17 @@ visitors at `/_assets/blocks.{hash}.css`.
 - **Rich text**: rendered through an allow-list:
   - `paragraph` → `p`, `bulletList` → `ul`, `orderedList` → `ol`, `listItem` → `li`;
   - `hardBreak` → `br`;
-  - `bold` → `strong`, `italic` → `em`, `link` → `a`.
+  - `bold` → `strong`, `italic` → `em`, `link` → `a`;
+  - added by 035:
+    - `heading` → `h2`, `h3`, `h4`, and `blockquote` → `blockquote`;
+    - an `align` → `class="qb-align--start|center|end"` on the `p` or `h*`, never a style;
+    - `underline` → `u`, `strike` → `del`, `code` → `code`;
+    - `table` → `div.qb-rt-table[tabindex=0] > table > tbody`, `tableRow` → `tr`,
+      `tableHeader` → `th[scope=col]`, `tableCell` → `td`;
+    - `image` → `figure.qb-rt-image > img`, with `src`, `srcset`, `sizes` (the text's width,
+      capped by the file's own), `width`, `height`, `alt` (empty when decorative),
+      `loading="lazy"` and `decoding="async"`. A file that is gone, or another site's,
+      renders nothing.
 
   Nothing else is ever emitted.
 - **Adding a block type** also means adding one renderer class, which

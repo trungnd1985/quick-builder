@@ -57,4 +57,26 @@ describe('FieldEditor', () => {
     expect(screen.queryByRole('button', { name: en.cms.field.remove })).toBeNull()
     expect(screen.queryByRole('button', { name: en.cms.field.makeTitle })).toBeNull()
   })
+
+  it('offers a rich text field’s format groups, all on by default; turning one off writes false (035 FR-022)', async () => {
+    const body: SchemaField = { id: 'f3', key: 'body', name: 'Body', help: '', required: false, type: 'richText' }
+    const { emitted, container } = renderEditor(body, { stored: body })
+
+    const groups = [en.cms.field.formatGroups.headings, en.cms.field.formatGroups.images, en.cms.field.formatGroups.tables]
+    for (const name of groups) expect((screen.getByLabelText(name) as HTMLInputElement).checked).toBe(true)
+
+    await fireEvent.click(screen.getByLabelText(en.cms.field.formatGroups.tables))
+    const updated = (emitted().update as SchemaField[][]).at(-1)![0]!
+    expect(updated.formats).toEqual({ headings: true, images: true, tables: false })
+    expect(await violations(container)).toEqual([])
+  })
+
+  it('drops the setting when every group is on again', async () => {
+    const body: SchemaField = { id: 'f3', key: 'body', name: 'Body', help: '', required: false, type: 'richText', formats: { headings: true, images: true, tables: false } }
+    const { emitted } = renderEditor(body, { stored: body })
+
+    await fireEvent.click(screen.getByLabelText(en.cms.field.formatGroups.tables))
+
+    expect((emitted().update as SchemaField[][]).at(-1)![0]!.formats).toBeUndefined()
+  })
 })

@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
+using QuickBuilder.Pages.Contracts;
 using QuickBuilder.Pages.Infrastructure;
 using QuickBuilder.Shared.Infrastructure.Dispatch;
 using QuickBuilder.Shared.Kernel.Authorization;
@@ -12,7 +13,7 @@ namespace QuickBuilder.Pages.Features.SavePageDraft;
 /// <summary>The whole new document, and the draft <see cref="Version"/> the caller last saw.</summary>
 public sealed record SaveDraftRequest(JsonElement Document, uint Version);
 
-internal sealed record SavePageDraftCommand(Guid SiteId, Guid PageId, JsonElement Document, uint Version)
+internal sealed record SavePageDraftCommand(Guid SiteId, Guid PageId, JsonElement Document, uint Version, bool ClientKeepsEveryFormat)
     : ICommand<Result<DraftResponse>>;
 
 internal sealed class SavePageDraftValidator : IValidator<SavePageDraftCommand>
@@ -40,7 +41,7 @@ internal sealed class SavePageDraftHandler(DraftWrites drafts, PagesAccess acces
             return Result.Failure<DraftResponse>(PagesErrors.SiteNotFound);
         }
 
-        return await drafts.SavePageDraftAsync(command.SiteId, command.PageId, command.Document, command.Version, cancellationToken)
+        return await drafts.SavePageDraftAsync(command.SiteId, command.PageId, command.Document, command.Version, command.ClientKeepsEveryFormat, cancellationToken)
             .ConfigureAwait(false);
     }
 }
@@ -63,7 +64,7 @@ public sealed class SavePageDraftController(IDispatcher dispatcher) : Controller
         ArgumentNullException.ThrowIfNull(request);
 
         var result = await dispatcher.SendAsync(
-            new SavePageDraftCommand(siteId, pageId, request.Document, request.Version),
+            new SavePageDraftCommand(siteId, pageId, request.Document, request.Version, RichTextRules.KnowsEveryFormat(Request.Headers[RichTextRules.ClientHeader].FirstOrDefault())),
             cancellationToken).ConfigureAwait(false);
 
         return result.IsFailure ? PagesErrorResults.ToActionResult(result.Error) : Ok(result.Value);

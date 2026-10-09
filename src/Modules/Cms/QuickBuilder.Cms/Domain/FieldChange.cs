@@ -29,6 +29,7 @@ internal static class Settings
     public const string WithTime = "withTime";
     public const string Accept = "accept";
     public const string Target = "target";
+    public const string Formats = "formats";
 }
 
 /// <summary>

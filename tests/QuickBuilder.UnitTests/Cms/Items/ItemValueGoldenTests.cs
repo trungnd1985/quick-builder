@@ -54,7 +54,9 @@ public sealed class ItemValueGoldenTests
             .Select(p => new ItemProblem(
                 p.GetProperty("fieldId").GetString()!,
                 p.GetProperty("problem").GetString()!,
-                p.TryGetProperty("limit", out var limit) ? limit.GetDecimal() : null))
+                p.TryGetProperty("limit", out var limit) ? limit.GetDecimal() : null,
+                p.TryGetProperty("format", out var format) ? format.GetString() : null,
+                p.TryGetProperty("path", out var path) ? path.GetString() : null))
             .ToList();
 
         using var document = JsonDocument.Parse(File.ReadAllText(Path.Combine(Directory, file)));

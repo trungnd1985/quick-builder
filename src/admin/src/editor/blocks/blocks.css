@@ -160,6 +160,72 @@
     text-decoration: underline;
   }
 
+  /* 035: headings and quotes inside rich text, sized like Heading blocks of the same level. */
+  .qb-rich-text :is(h2, h3, h4) {
+    margin: 0;
+    font-family: var(--qb-font-heading);
+    font-weight: 700;
+    line-height: 1.2;
+  }
+
+  .qb-rich-text h2 { font-size: var(--qb-text-text-2xl, 1.5em); }
+  .qb-rich-text h3 { font-size: var(--qb-text-text-xl, 1.25em); }
+  .qb-rich-text h4 { font-size: var(--qb-text-text-lg, 1.125em); }
+
+  .qb-rich-text blockquote {
+    margin: 0;
+    padding-inline-start: 1em;
+    border-inline-start: 4px solid var(--qb-color-color-brand-light, currentColor);
+  }
+
+  .qb-rich-text code {
+    padding: 0.1em 0.3em;
+    border-radius: 3px;
+    background: var(--qb-color-color-brand-light, rgba(0, 0, 0, 0.06));
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 0.9em;
+  }
+
+  .qb-rt-image {
+    margin: 0;
+  }
+
+  .qb-rt-image img {
+    display: block;
+    max-width: 100%;
+    height: auto;
+  }
+
+  /* A table scrolls sideways inside its own area rather than widening the page (035 US5). */
+  .qb-rt-table {
+    max-width: 100%;
+    overflow-x: auto;
+  }
+
+  .qb-rt-table table {
+    border-collapse: collapse;
+  }
+
+  .qb-rt-table :is(th, td) {
+    padding: 0.4em 0.75em;
+    border: 1px solid var(--qb-color-color-brand-light, rgba(0, 0, 0, 0.2));
+    text-align: start;
+    vertical-align: top;
+  }
+
+  .qb-rt-table th {
+    background: var(--qb-color-color-brand-light, rgba(0, 0, 0, 0.06));
+    font-weight: 700;
+  }
+
+  .qb-rt-table :is(th, td) > * + * {
+    margin-top: 0.5em;
+  }
+
+  .qb-rich-text blockquote > * + * {
+    margin-top: calc(var(--qb-base-size) * 0.75);
+  }
+
   .qb-image img {
     display: block;
     max-width: 100%;

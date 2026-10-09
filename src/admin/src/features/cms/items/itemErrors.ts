@@ -24,7 +24,8 @@ export function itemErrorMessage(t: Composer['t'], te: Composer['te'], caught: u
 /** The message for one problem of a report, with its limit when it has one. */
 export function problemMessage(t: Composer['t'], te: Composer['te'], problem: Problem): string {
   const key = `cms.items.problems.${problem.problem}`
-  return te(key) ? t(key, { limit: problem.limit ?? '' }) : t('cms.items.problems.malformed')
+  const format = problem.format ? t(`cms.items.problems.formats.${problem.format}`) : ''
+  return te(key) ? t(key, { limit: problem.limit ?? '', format }) : t('cms.items.problems.malformed')
 }
 
 export const errorCodeOf = (caught: unknown): string | undefined => (caught instanceof ApiError ? caught.errorCode : undefined)

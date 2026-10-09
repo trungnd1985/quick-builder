@@ -137,6 +137,8 @@ public sealed partial class DesignTokenContractTests
         Assert.Equal(QuickBuilder.Pages.Contracts.PageSchema.MaxNodes, constants["MAX_NODES"]);
         Assert.Equal(QuickBuilder.Pages.Contracts.PageSchema.MaxNodeDepth, constants["MAX_NODE_DEPTH"]);
         Assert.Equal(QuickBuilder.Pages.Contracts.PageSchema.MaxRichTextChars, constants["MAX_RICH_TEXT_CHARS"]);
+        Assert.Equal(QuickBuilder.Pages.Contracts.PageSchema.MaxRichTextImages, constants["MAX_RICH_TEXT_IMAGES"]);
+        Assert.Equal(QuickBuilder.Pages.Contracts.PageSchema.MaxRichTextTables, constants["MAX_RICH_TEXT_TABLES"]);
         Assert.Equal(QuickBuilder.Pages.Contracts.PageSchema.CurrentVersion, constants["CURRENT_SCHEMA_VERSION"]);
     }
 

@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
+using QuickBuilder.Pages.Contracts;
 using QuickBuilder.Pages.Features.SavePageDraft;
 using QuickBuilder.Pages.Infrastructure;
 using QuickBuilder.Shared.Infrastructure.Dispatch;
@@ -10,7 +11,7 @@ using QuickBuilder.Shared.Kernel.Validation;
 
 namespace QuickBuilder.Pages.Features.SaveComponentDraft;
 
-internal sealed record SaveComponentDraftCommand(Guid SiteId, Guid ComponentId, JsonElement Document, uint Version)
+internal sealed record SaveComponentDraftCommand(Guid SiteId, Guid ComponentId, JsonElement Document, uint Version, bool ClientKeepsEveryFormat)
     : ICommand<Result<DraftResponse>>;
 
 internal sealed class SaveComponentDraftValidator : IValidator<SaveComponentDraftCommand>
@@ -39,7 +40,7 @@ internal sealed class SaveComponentDraftHandler(DraftWrites drafts, PagesAccess 
         }
 
         return await drafts
-            .SaveComponentDraftAsync(command.SiteId, command.ComponentId, command.Document, command.Version, cancellationToken)
+            .SaveComponentDraftAsync(command.SiteId, command.ComponentId, command.Document, command.Version, command.ClientKeepsEveryFormat, cancellationToken)
             .ConfigureAwait(false);
     }
 }
@@ -62,7 +63,7 @@ public sealed class SaveComponentDraftController(IDispatcher dispatcher) : Contr
         ArgumentNullException.ThrowIfNull(request);
 
         var result = await dispatcher.SendAsync(
-            new SaveComponentDraftCommand(siteId, componentId, request.Document, request.Version),
+            new SaveComponentDraftCommand(siteId, componentId, request.Document, request.Version, RichTextRules.KnowsEveryFormat(Request.Headers[RichTextRules.ClientHeader].FirstOrDefault())),
             cancellationToken).ConfigureAwait(false);
 
         return result.IsFailure ? PagesErrorResults.ToActionResult(result.Error) : Ok(result.Value);

@@ -22,10 +22,10 @@
                     "content": [
                       {
                         "type": "text",
-                        "text": "Under",
+                        "text": "Marked",
                         "marks": [
                           {
-                            "type": "underline"
+                            "type": "highlight"
                           }
                         ]
                       }

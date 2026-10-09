@@ -56,7 +56,57 @@ internal sealed class ItemValueValidator(CollectionSchemaValidator schemas)
             return ValueState.Malformed;
         }
 
+        // A rich text with no text and no images is no value (035 spec edge case "Empty structures").
+        if (field.Type == FieldType.RichText && RichTextRules.IsEmpty(JsonSerializer.SerializeToElement(value)))
+        {
+            return field.Required ? ValueState.MissingRequired : ValueState.Empty;
+        }
+
         return MeetsSettings(field, value) ? ValueState.Valid : ValueState.NeedsAttention;
+    }
+
+    /// <summary>
+    /// The first format group a rich text value uses that its field does not allow, in document
+    /// order: <c>headings</c>, <c>images</c> or <c>tables</c> (035 FR-024); null when it uses none.
+    /// </summary>
+    public static string? FormatNotAllowed(Field field, JsonNode value)
+    {
+        ArgumentNullException.ThrowIfNull(field);
+        return field.Formats == RichTextFormats.All
+            ? null
+            : RichTextRules.FirstFormatOutside(JsonSerializer.SerializeToElement(value), field.Formats.Headings, field.Formats.Images, field.Formats.Tables);
+    }
+
+    /// <summary>
+    /// Which limit a rich text value breaks, when it has the contract's shape but not its limits:
+    /// at most 20,000 characters, 50 images and 20 tables, rectangular tables with header cells
+    /// in the first row only (page-schema.md §3 rules 9 to 12). Length comes first: one pasted line
+    /// over the limit also breaks the schema's cap on a single text node. Null when the value breaks
+    /// none, or is not even a rich text document.
+    /// </summary>
+    public (string Rule, int? Limit)? RichTextLimit(JsonNode value)
+    {
+        ArgumentNullException.ThrowIfNull(value);
+
+        var element = JsonSerializer.SerializeToElement(value);
+        if (RichText.CharacterCount(element) > PageSchema.MaxRichTextChars)
+        {
+            return ("rich_text_too_long", PageSchema.MaxRichTextChars);
+        }
+
+        if (_pageSchema.ValidateDefinition("rtDoc", element) is not null)
+        {
+            return null;
+        }
+
+        return RichTextRules.Check(element, string.Empty) is { } broken
+            ? (broken.Rule, broken.Rule switch
+            {
+                "rich_text_too_many_images" => PageSchema.MaxRichTextImages,
+                "rich_text_too_many_tables" => PageSchema.MaxRichTextTables,
+                _ => null,
+            })
+            : null;
     }
 
     public bool IsWellFormed(Field field, JsonNode value)
@@ -69,7 +119,8 @@ internal sealed class ItemValueValidator(CollectionSchemaValidator schemas)
         if (field.Type == FieldType.RichText)
         {
             return _pageSchema.ValidateDefinition("rtDoc", element) is null
-                && RichText.CharacterCount(element) <= PageSchema.MaxRichTextChars;
+                && RichText.CharacterCount(element) <= PageSchema.MaxRichTextChars
+                && RichTextRules.Check(element, string.Empty) is null;
         }
 
         if (schemas.SchemaFor(CollectionSchema.CurrentVersion).ValidateDefinition(field.Type.ValueDefinition(field.WithTime), element) is not null)
@@ -103,6 +154,8 @@ internal sealed class ItemValueValidator(CollectionSchemaValidator schemas)
             case FieldType.MultiReference:
                 var ids = value.AsArray().Select(n => n!.GetValue<string>()).ToList();
                 return ids.Distinct(StringComparer.OrdinalIgnoreCase).Count() == ids.Count;
+            case FieldType.RichText:
+                return FormatNotAllowed(field, value) is null;
             default:
                 return true;
         }

@@ -1,10 +1,11 @@
 import { pageSchema, propNames, propSchema, requiredProps, type ContentNode } from '../schema/schema'
 import { MAX_RICH_TEXT_CHARS } from '../schema/limits'
 import { richTextChars } from '../schema/documentValidator'
+import { checkRichTextRules } from '../schema/richTextRules'
 import type { Json } from '../schema/subsetValidator'
 import { checkSize } from './limits'
 import { locate, rebuild } from './tree'
-import { done, refuse, type OpResult } from './types'
+import { done, refuse, type OpRefusalCode, type OpResult } from './types'
 
 /**
  * Sets one property of a block to `value`, or removes it when `value` is undefined so the
@@ -28,6 +29,11 @@ export function setProp(root: ContentNode, nodeId: string, prop: string, value: 
   if (failure) return refuse('invalid_value', { keyword: failure.keyword, pointer: failure.location })
   if (found.node.type === 'rich-text' && prop === 'content' && richTextChars(value) > MAX_RICH_TEXT_CHARS) {
     return refuse('rich_text_too_long')
+  }
+  if (found.node.type === 'rich-text' && prop === 'content') {
+    // Contract §3 rules 10–12 (035): image and table counts, rectangular tables, header row.
+    const broken = checkRichTextRules(value, '')
+    if (broken) return refuse(broken.rule as OpRefusalCode)
   }
 
   const next = rebuild(root, found.path, (node) => ({ ...node, props: { ...node.props, [prop]: value } }))

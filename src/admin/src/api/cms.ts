@@ -36,6 +36,8 @@ export interface SchemaField {
   max?: number
   withTime?: boolean
   accept?: 'any' | 'documents' | 'images'
+  /** Rich text: the format groups it allows; a missing one is allowed (035 FR-022). */
+  formats?: { headings?: boolean; images?: boolean; tables?: boolean }
   options?: FieldOption[]
   target?: string
 }

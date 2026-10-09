@@ -1,23 +1,49 @@
 <script setup lang="ts">
 // A rich text field: the editor's TipTap set-up, standalone (015 FR-009, research IT-19). It
 // edits and emits the contract's structured document only, so pasted content keeps only what
-// rtDoc allows (Principle IX). An editor with no text is no value.
-import { onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue'
+// rtDoc allows (Principle IX). An editor with no text and no images is no value. It has its own
+// undo history, since the item form has no other (035 FR-009, research RT-14).
+import { computed, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import type { Editor, JSONContent } from '@tiptap/core'
+import { UndoRedo } from '@tiptap/extensions'
 import type { SchemaField } from '../../../../api/cms'
-import RichTextToolbar from '../../../../editor/richtext/RichTextToolbar.vue'
+import RichTextToolbar, { type RichTextHistory } from '../../../../editor/richtext/RichTextToolbar.vue'
+import { allowedFormats } from '../../../../editor/richtext/formats'
+import { noticeText } from '../../../../editor/richtext/notices'
 import { createRichTextEditor } from '../../../../editor/richtext/tiptap'
 import { fromContractRichText, toContractRichText, type RichTextDoc } from '../../../../editor/richtext/toContractRichText'
-import { richTextChars } from '../../../../editor/schema/documentValidator'
+import { isEmptyRichText } from '../../../../editor/schema/richTextRules'
 import type { Json } from '../../../../editor/schema/subsetValidator'
 
 const props = defineProps<{ field: SchemaField; value: unknown; id: string; describedBy: string; invalid: boolean; siteId: string; label: string }>()
 const emit = defineEmits<{ 'update:value': [value: unknown] }>()
+const { t, te } = useI18n()
+
+// The toolbar's status line: what the last paste or drop left out (035 FR-012).
+const notice = ref('')
 
 const host = ref<HTMLElement | null>(null)
 const editor = shallowRef<Editor | null>(null)
 
-const isEmpty = (doc: RichTextDoc): boolean => richTextChars(doc as unknown as Json) === 0
+const isEmpty = (doc: RichTextDoc): boolean => isEmptyRichText(doc as unknown as Json)
+
+// The formats this field allows (035 FR-022): its toolbar, paste and uploads follow them.
+const allowed = computed(() => allowedFormats(props.field.formats))
+
+// Count transactions, so the undo and redo buttons follow the editor's history.
+const changes = ref(0)
+const history = computed<RichTextHistory | undefined>(() => {
+  void changes.value
+  const open = editor.value
+  if (!open) return undefined
+  return {
+    undo: () => open.chain().focus().undo().run(),
+    redo: () => open.chain().focus().redo().run(),
+    canUndo: open.can().undo(),
+    canRedo: open.can().redo(),
+  }
+})
 
 onMounted(() => {
   if (!host.value) return
@@ -25,7 +51,21 @@ onMounted(() => {
     element: host.value,
     content: props.value ?? null,
     label: props.label,
+    siteId: props.siteId,
+    onNotice: (next) => {
+      notice.value = noticeText(t, te, next)
+    },
+    imageLabels: {
+      missing: t('editor.richText.image.missing'),
+      uploading: t('editor.richText.image.uploading'),
+      addAlt: t('editor.richText.image.addAlt'),
+    },
+    extensions: [UndoRedo],
+    allowed: allowed.value,
     onChange: (doc) => emit('update:value', isEmpty(doc) ? undefined : doc),
+  })
+  editor.value.on('transaction', () => {
+    changes.value++
   })
   const body = host.value.querySelector<HTMLElement>('[role="textbox"]')
   body?.setAttribute('id', props.id)
@@ -37,7 +77,8 @@ watch(() => props.value, (next) => {
   const open = editor.value
   if (!open) return
   if (JSON.stringify(toContractRichText(open.getJSON())) !== JSON.stringify(fromContractRichText(next ?? null))) {
-    open.commands.setContent(fromContractRichText(next ?? null) as JSONContent, { emitUpdate: false })
+    // Not an edit of the member's: no undo step.
+    open.chain().setMeta('addToHistory', false).setContent(fromContractRichText(next ?? null) as JSONContent, { emitUpdate: false }).run()
   }
 })
 
@@ -54,6 +95,9 @@ onBeforeUnmount(() => editor.value?.destroy())
       v-if="editor"
       :editor="editor"
       :site-id="siteId"
+      :history="history"
+      :notice="notice"
+      :allowed="allowed"
     />
     <div
       ref="host"

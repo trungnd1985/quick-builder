@@ -128,6 +128,18 @@
       "required": false,
       "type": "multiReference",
       "target": "0192f5a0-1b2c-7d3e-8f40-5a6b7c8d9e0f"
+    },
+    {
+      "id": "f14",
+      "key": "teaser",
+      "name": "Teaser",
+      "help": "",
+      "required": false,
+      "type": "richText",
+      "formats": {
+        "headings": false,
+        "tables": false
+      }
     }
   ]
 }

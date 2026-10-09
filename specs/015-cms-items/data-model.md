@@ -147,6 +147,12 @@ Append-only. No values, names or slugs (FR-032).
   { "fieldId": "f4", "problem": "media_missing" } ] }
 ```
 
+Added by 035: `image_alt_missing` (a rich text image with neither alternative text nor
+`decorative`, with `path`) and `format_not_allowed` (rich text using a format group the field
+does not allow, with `format`); both are stored and block publishing. For a rich text field,
+`media_missing` and `file_kind` also carry the image's `path`. A rich text with no text and no
+images is no value (`missing_required` when the field is required).
+
 Problem codes: research IT-05, plus `not_single_line` (line breaks in a single-line text),
 `invalid_slug` (field id `slug`), and `schedule_failed` (field id `schedule`: a scheduled action
 failed after the item last changed, FR-026; it clears with the item's next write). Every value

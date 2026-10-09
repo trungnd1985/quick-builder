@@ -58,6 +58,7 @@ internal static class PagesErrorResults
             or "pages.has_children"
             or "pages.home_page"
             or "pages.out_of_date"
+            or "pages.admin_outdated"
             or "pages.duplicate_component_name"
             or "pages.component_in_use"
             // 012 data-model §6.
@@ -67,6 +68,7 @@ internal static class PagesErrorResults
             or "pages.component_in_use_by_published_pages"
             or "pages.version_missing_components" => StatusCodes.Status409Conflict,
         "pages.document_too_large" => StatusCodes.Status413PayloadTooLarge,
+        "pages.image_alt_missing" => StatusCodes.Status422UnprocessableEntity,
         _ when code.EndsWith("not_found", StringComparison.Ordinal) => StatusCodes.Status404NotFound,
         _ => StatusCodes.Status400BadRequest,
     };

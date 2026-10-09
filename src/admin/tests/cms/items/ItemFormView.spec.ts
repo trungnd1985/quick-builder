@@ -138,6 +138,18 @@ describe('ItemFormView', () => {
     expect((screen.getByLabelText(/Title/) as HTMLInputElement).value).toBe('Mine')
   })
 
+  it('asks an out-of-date admin to reload the page (035 FR-020)', async () => {
+    await renderAt(ItemFormView, EDIT, server((call) => (call.method === 'PUT' ? problem(409, 'cms.admin_outdated') : undefined)))
+    await loaded(en.cms.items.form.loading)
+
+    await fireEvent.update(screen.getByLabelText(/Title/), 'Mine')
+    await fireEvent.click(screen.getByRole('button', { name: en.cms.items.form.saveDraft }))
+
+    await waitFor(() => expect(screen.getByRole('button', { name: en.cms.items.form.reloadPage })).toBeTruthy())
+    expect(screen.getByText(en.cms.items.form.outdated)).toBeTruthy()
+    expect(screen.queryByRole('button', { name: en.cms.items.form.reload })).toBeNull()
+  })
+
   it('asks before leaving with unsaved changes', async () => {
     const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false)
     stubFetch(server())

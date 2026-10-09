@@ -26,6 +26,11 @@ internal static class PagesErrors
         "pages.out_of_date",
         "This was changed by someone else since you opened it. Reload and try again.");
 
+    /// <summary>035 FR-020: an admin from before 035 would drop rich text formats it does not know.</summary>
+    internal static Error AdminOutdated { get; } = Error.Conflict(
+        "pages.admin_outdated",
+        "This page of the admin is out of date. Reload it to keep editing; your last change was not saved.");
+
     internal static Error NotFound { get; } = Error.NotFound("pages.not_found", "No such page on this site.");
 
     internal static Error ComponentNotFound { get; } =
@@ -151,6 +156,16 @@ internal static class PagesErrors
             "pages.unpublished_components",
             $"{componentIds.Count} component(s) this uses are not published. Publish them first."),
         ("componentIds", componentIds.ToArray()));
+
+    /// <summary>
+    /// 035 FR-014: rich text images that need alternative text, or to be marked decorative,
+    /// before publishing; <c>problems</c> gives each one's JSON pointer.
+    /// </summary>
+    internal static Error ImageAltMissing(IReadOnlyCollection<string> pointers) => With(
+        Error.Validation(
+            "pages.image_alt_missing",
+            $"{pointers.Count} image(s) in rich text need alternative text, or to be marked decorative, before this is published."),
+        ("problems", pointers.Select(p => new Dictionary<string, string> { ["pointer"] = p }).ToArray()));
 
     internal static Error ComponentInUseByPublishedPages(int pageCount) => With(
         Error.Conflict(

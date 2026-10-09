@@ -188,6 +188,28 @@ describe('EditorView — building a page (US1)', () => {
     expect(locate(store.root!, 'h')).toBeNull()
   })
 
+  it('undoes from the Rich Text toolbar with the one history of the page (035 FR-009)', async () => {
+    const before = { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Hello' }] }] }
+    stubServer(documentWith({ id: 's', type: 'section', props: {}, children: [{ id: 'r', type: 'rich-text', props: { content: before }, children: [] }] }))
+    const { container } = await mountEditor()
+    const store = useEditorStore()
+
+    await fireEvent.dblClick(container.querySelector('[data-node-id="r"] .qb-rich-text')!)
+    const toolbar = await screen.findByRole('toolbar', { name: en.editor.richText.toolbar })
+    const undo = await within(toolbar).findByRole('button', { name: en.editor.richText.undo })
+    expect((undo as HTMLButtonElement).disabled).toBe(true)
+
+    const textbox = container.querySelector<HTMLElement & { editor: import('@tiptap/core').Editor }>('[data-node-id="r"] [role="textbox"]')!
+    textbox.editor.commands.insertContentAt(6, ' world')
+    expect(locate(store.root!, 'r')!.node.props.content).not.toEqual(before)
+
+    await waitFor(() => expect((undo as HTMLButtonElement).disabled).toBe(false))
+    await fireEvent.click(undo)
+
+    expect(locate(store.root!, 'r')!.node.props.content).toEqual(before)
+    await waitFor(() => expect((within(toolbar).getByRole('button', { name: en.editor.richText.redo }) as HTMLButtonElement).disabled).toBe(false))
+  })
+
   it('on a conflict: read-only, no overwrite, copy, Reload latest, paste back (FR-028)', async () => {
     const server = stubServer(documentWith({ id: 's', type: 'section', props: {}, children: [{ id: 'h', type: 'heading', props: { text: 'Mine' }, children: [] }] }))
     const { container, editorRoot } = await mountEditor()

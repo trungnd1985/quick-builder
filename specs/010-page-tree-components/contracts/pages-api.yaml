@@ -271,7 +271,9 @@ paths:
           description: '`pages.not_found`.'
         '409':
           $ref: '#/components/responses/Problem'
-          description: '`pages.out_of_date`.'
+          description: |
+            `pages.out_of_date`, or `pages.admin_outdated` (added by 035): the request does not
+            carry `X-QB-Rich-Text: 2` while the stored draft uses a 035 rich text format.
         '413':
           $ref: '#/components/responses/Problem'
           description: '`pages.document_too_large`.'
@@ -443,7 +445,9 @@ paths:
           description: '`pages.component_not_found`.'
         '409':
           $ref: '#/components/responses/Problem'
-          description: '`pages.out_of_date`.'
+          description: |
+            `pages.out_of_date`, or `pages.admin_outdated` (added by 035): the request does not
+            carry `X-QB-Rich-Text: 2` while the stored draft uses a 035 rich text format.
         '413':
           $ref: '#/components/responses/Problem'
           description: '`pages.document_too_large`.'

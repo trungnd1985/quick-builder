@@ -211,7 +211,7 @@ public sealed class PageDocumentValidatorTests
     [Fact]
     public void An_unknown_rich_text_mark_is_a_props_failure_at_its_type()
     {
-        var content = RichText(new JsonObject { ["type"] = "text", ["text"] = "u", ["marks"] = new JsonArray(new JsonObject { ["type"] = "underline" }) });
+        var content = RichText(new JsonObject { ["type"] = "text", ["text"] = "u", ["marks"] = new JsonArray(new JsonObject { ["type"] = "highlight" }) });
 
         var result = Validate(Envelope(new JsonArray(Section("s", content))), DocumentKind.Page);
 

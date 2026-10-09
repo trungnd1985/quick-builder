@@ -175,6 +175,52 @@ public sealed class FieldConversionTests
     }
 
     [Fact]
+    public void Each_table_row_becomes_a_line_of_its_cells_text()
+    {
+        const string document = """
+            {"type":"doc","content":[{"type":"table","content":[
+              {"type":"tableRow","content":[
+                {"type":"tableHeader","content":[{"type":"paragraph","content":[{"type":"text","text":"Day"}]}]},
+                {"type":"tableHeader","content":[{"type":"paragraph","content":[{"type":"text","text":"Hours"}]}]}]},
+              {"type":"tableRow","content":[
+                {"type":"tableCell","content":[{"type":"paragraph","content":[{"type":"text","text":"Mon"}]}]},
+                {"type":"tableCell","content":[{"type":"paragraph"},{"type":"paragraph","content":[{"type":"text","text":"7-18"}]}]}]}]}]}
+            """;
+
+        Assert.Equal(("PartlyLost", "\"Day Hours\\nMon 7-18\""), Run(Of(FieldType.RichText, "f1"), Text("f1", multiline: true, maxLength: 5000), document));
+        Assert.Equal(("PartlyLost", "\"Day Hours Mon 7-18\""), Run(Of(FieldType.RichText, "f1"), Text("f1"), document));
+    }
+
+    [Fact]
+    public void Images_are_dropped_without_their_alternative_text()
+    {
+        const string document = """
+            {"type":"doc","content":[
+              {"type":"paragraph","content":[{"type":"text","text":"Shop"}]},
+              {"type":"image","attrs":{"media":{"mediaId":"0192f5a1-0000-7000-8000-000000000010"},"alt":"Front"}}]}
+            """;
+
+        Assert.Equal(("PartlyLost", "\"Shop\""), Run(Of(FieldType.RichText, "f1"), Text("f1"), document));
+        Assert.Equal(("Cleared", null), Run(Of(FieldType.RichText, "f1"), Text("f1"), """{"type":"doc","content":[{"type":"image","attrs":{"media":{"mediaId":"0192f5a1-0000-7000-8000-000000000010"}}}]}"""));
+    }
+
+    [Fact]
+    public void Headings_and_quoted_paragraphs_become_lines_and_their_formatting_is_lost()
+    {
+        const string document = """
+            {"type":"doc","content":[
+              {"type":"heading","attrs":{"level":2},"content":[{"type":"text","text":"Title"}]},
+              {"type":"blockquote","content":[
+                {"type":"paragraph","content":[{"type":"text","text":"Said"}]},
+                {"type":"bulletList","content":[{"type":"listItem","content":[{"type":"paragraph","content":[{"type":"text","text":"Item"}]}]}]}]},
+              {"type":"paragraph","content":[{"type":"text","text":"End"}]}]}
+            """;
+
+        Assert.Equal(("PartlyLost", "\"Title\\nSaid\\nItem\\nEnd\""), Run(Of(FieldType.RichText, "f1"), Text("f1", multiline: true, maxLength: 5000), document));
+        Assert.Equal(("PartlyLost", "\"Title Said Item End\""), Run(Of(FieldType.RichText, "f1"), Text("f1"), document));
+    }
+
+    [Fact]
     public void Several_lines_become_one_joined_with_spaces()
     {
         Assert.Equal(("Converted", "\"a b c\""), Run(Text("f1", multiline: true), Text("f1"), "\"a\\nb\\r\\nc\""));

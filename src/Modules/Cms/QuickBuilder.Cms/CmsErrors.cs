@@ -112,6 +112,11 @@ internal static class CmsErrors
         Error.Conflict("cms.item_slug_taken", "Another item of this collection already uses this slug."),
         ("suggestion", suggestion));
 
+    /// <summary>035 FR-020: an admin from before 035 would drop rich text formats it does not know.</summary>
+    internal static Error AdminOutdated { get; } = Error.Conflict(
+        "cms.admin_outdated",
+        "This page of the admin is out of date. Reload it to keep editing; your last change was not saved.");
+
     internal static Error ItemConflict(int currentRevision) => With(
         Error.Conflict("cms.item_conflict", "This item was changed by someone else since you opened it. Reload and try again."),
         ("currentRevision", currentRevision));

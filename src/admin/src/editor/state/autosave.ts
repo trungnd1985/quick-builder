@@ -18,9 +18,9 @@ import { CURRENT_SCHEMA_VERSION } from '../schema/limits'
 import type { ContentDocument, ContentNode } from '../schema/schema'
 import type { useEditorStore } from './editorStore'
 
-export type SaveState = 'saved' | 'dirty' | 'saving' | 'retrying' | 'conflict' | 'forbidden' | 'gone' | 'invalid'
+export type SaveState = 'saved' | 'dirty' | 'saving' | 'retrying' | 'conflict' | 'forbidden' | 'gone' | 'invalid' | 'outdated'
 
-export const STOPPED_STATES: ReadonlySet<SaveState> = new Set(['conflict', 'forbidden', 'gone', 'invalid'])
+export const STOPPED_STATES: ReadonlySet<SaveState> = new Set(['conflict', 'forbidden', 'gone', 'invalid', 'outdated'])
 
 /** How a document reaches the server. */
 export type SaveDraft = (document: ContentDocument, version: number) => Promise<{ version: number }>
@@ -95,7 +95,7 @@ export function createAutosave(
     clearTimer()
     state.value = next
     reason.value = code
-    const readOnlyReason = next === 'conflict' || next === 'forbidden' || next === 'gone' || next === 'invalid' ? next : null
+    const readOnlyReason = next === 'conflict' || next === 'forbidden' || next === 'gone' || next === 'invalid' || next === 'outdated' ? next : null
     if (readOnlyReason) store.setReadOnly({ reason: readOnlyReason, ...detail })
   }
 
@@ -148,6 +148,8 @@ export function createAutosave(
   function handleFailure(error: unknown): void {
     if (error instanceof ApiError) {
       const code = error.errorCode ?? null
+      // 035 FR-020: this tab's admin is older than the content it would save over.
+      if (error.status === 409 && code === 'pages.admin_outdated') return stop('outdated', code)
       if (error.status === 409) return stop('conflict', code)
       if (error.status === 403) return stop('forbidden', code)
       if (error.status === 404) return stop('gone', code)

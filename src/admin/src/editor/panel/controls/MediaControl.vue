@@ -5,9 +5,7 @@
 import { computed, nextTick, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ApiError, mediaApi, type MediaFile, type MediaKind } from '../../../api/media'
-import { useAuthStore } from '../../../app/authStore'
-import MediaBrowser from '../../../features/media/MediaBrowser.vue'
-import * as lastFolder from '../../../features/media/lastFolder'
+import MediaPickerDialog from '../../../features/media/MediaPickerDialog.vue'
 import { isObject, type Json } from '../../schema/subsetValidator'
 
 const props = withDefaults(
@@ -29,18 +27,14 @@ const emit = defineEmits<{
   choose: [value: Json, altText: string | null]
 }>()
 const { t } = useI18n()
-const auth = useAuthStore()
 
 const open = ref(false)
 const missing = ref(false)
 const fileName = ref<string | null>(null)
 const isImage = ref(true)
-const initialFolderId = ref<string | null>(null)
 const trigger = ref<HTMLButtonElement | null>(null)
-const dialog = ref<HTMLElement | null>(null)
 
 const mediaId = computed(() => (isObject(props.value) && typeof props.value.mediaId === 'string' ? props.value.mediaId : null))
-const userId = computed(() => auth.user?.id ?? 'anonymous')
 
 // Marked when the chosen file is gone, or its bytes are.
 watch(mediaId, async (id) => {
@@ -58,11 +52,8 @@ watch(mediaId, async (id) => {
   }
 }, { immediate: true })
 
-async function show(): Promise<void> {
-  initialFolderId.value = lastFolder.get(userId.value, props.siteId)
+function show(): void {
   open.value = true
-  await nextTick()
-  dialog.value?.querySelector<HTMLElement>('input, button, select, [tabindex="0"]')?.focus()
 }
 
 async function close(): Promise<void> {
@@ -76,34 +67,6 @@ function choose(file: MediaFile): void {
   void close()
 }
 
-function rememberFolder(folderId: string | null): void {
-  lastFolder.set(userId.value, props.siteId, folderId)
-}
-
-/** Keeps keyboard focus inside the dialog, and Escape closes it. */
-function onKeydown(event: KeyboardEvent): void {
-  if (event.key === 'Escape') {
-    event.preventDefault()
-    void close()
-    return
-  }
-
-  if (event.key !== 'Tab' || !dialog.value) return
-  const focusable = Array.from(dialog.value.querySelectorAll<HTMLElement>(
-    'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex="0"]',
-  )).filter((el) => el.getAttribute('tabindex') !== '-1' && !el.closest('[hidden], [aria-hidden="true"]'))
-  const first = focusable[0]
-  const last = focusable.at(-1)
-  if (!first || !last) return
-
-  if (event.shiftKey && document.activeElement === first) {
-    event.preventDefault()
-    last.focus()
-  } else if (!event.shiftKey && document.activeElement === last) {
-    event.preventDefault()
-    first.focus()
-  }
-}
 </script>
 
 <template>
@@ -157,43 +120,13 @@ function onKeydown(event: KeyboardEvent): void {
       {{ error }}
     </p>
 
-    <Teleport
+    <MediaPickerDialog
       v-if="open"
-      to="body"
-    >
-      <div
-        class="dialog-backdrop"
-        @click.self="close"
-      >
-        <div
-          ref="dialog"
-          class="card dialog dialog--wide editor-media__dialog"
-          role="dialog"
-          aria-modal="true"
-          :aria-labelledby="`${id}-dialog-title`"
-          @keydown="onKeydown"
-        >
-          <header class="page-header">
-            <h2 :id="`${id}-dialog-title`">
-              {{ t('editor.panel.media.dialogTitle') }}
-            </h2>
-            <button
-              type="button"
-              @click="close"
-            >
-              {{ t('editor.panel.media.close') }}
-            </button>
-          </header>
-          <MediaBrowser
-            :site-id="siteId"
-            mode="picker"
-            :initial-kind="kind"
-            :initial-folder-id="initialFolderId"
-            @folder-change="rememberFolder"
-            @choose="choose"
-          />
-        </div>
-      </div>
-    </Teleport>
+      :id="id"
+      :site-id="siteId"
+      :kind="kind"
+      @choose="choose"
+      @close="close"
+    />
   </div>
 </template>

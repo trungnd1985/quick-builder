@@ -225,7 +225,10 @@ internal static partial class FieldConversion
         {
             switch (block["type"]?.GetValue<string>())
             {
+                case "heading":
                 case "paragraph":
+                    // A heading is a line like a paragraph, and its being a heading is lost (035 RT-12).
+                    lost |= block["type"]!.GetValue<string>() == "heading";
                     var line = new StringBuilder();
                     foreach (var inline in block["content"]?.AsArray() ?? [])
                     {
@@ -241,6 +244,33 @@ internal static partial class FieldConversion
                     }
 
                     blocks.Add(line.ToString());
+                    break;
+                case "table":
+                    // Each row becomes a line of its cells' text, joined by spaces (035 RT-12).
+                    lost = true;
+                    foreach (var row in block["content"]?.AsArray() ?? [])
+                    {
+                        var cells = (row!["content"]?.AsArray() ?? [])
+                            .Select(cell => string.Join(" ", (cell!["content"]?.AsArray() ?? [])
+                                .Select(paragraph => string.Concat((paragraph!["content"]?.AsArray() ?? [])
+                                    .Select(inline => inline!["type"]!.GetValue<string>() == "text" ? inline["text"]!.GetValue<string>() : " ")))
+                                .Where(text => text.Length > 0)));
+                        blocks.Add(string.Join(" ", cells.Where(text => text.Length > 0)));
+                    }
+
+                    break;
+                case "image":
+                    // An image has no text to keep, and its alternative text is not added (035 RT-12).
+                    lost = true;
+                    break;
+                case "blockquote":
+                    // A quote's paragraphs and lists become lines; the quote itself is dropped (035 RT-12).
+                    lost = true;
+                    foreach (var child in block["content"]?.AsArray() ?? [])
+                    {
+                        Block(child!);
+                    }
+
                     break;
                 default:
                     // A list: its items' blocks become lines, and the list itself is dropped.

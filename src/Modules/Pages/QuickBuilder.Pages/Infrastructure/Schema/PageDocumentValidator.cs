@@ -145,6 +145,11 @@ internal sealed class PageDocumentValidator : IPageDocumentValidator
             return richTextFailure;
         }
 
+        if (CheckRichTextRules(root.GetProperty("root"), "/root") is { } richTextRuleFailure)
+        {
+            return richTextRuleFailure;
+        }
+
         return DocumentValidationResult.Valid(version, referenced);
     }
 
@@ -249,6 +254,42 @@ internal sealed class PageDocumentValidator : IPageDocumentValidator
 
         return null;
     }
+
+    /// <summary>
+    /// Contract §3 rules 10–12 (035): image and table counts, rectangular tables, and header
+    /// cells in the first row only, for every Rich Text block in document order.
+    /// </summary>
+    private static DocumentValidationResult? CheckRichTextRules(JsonElement node, string pointer)
+    {
+        if (node.GetProperty("type").GetString() == RichTextType
+            && RichTextRules.Check(node.GetProperty("props").GetProperty("content"), $"{pointer}/props/content") is { } broken)
+        {
+            return Invalid(broken.Rule, broken.Location, RuleMessage(broken.Rule));
+        }
+
+        var index = 0;
+        foreach (var child in node.GetProperty("children").EnumerateArray())
+        {
+            if (CheckRichTextRules(child, $"{pointer}/children/{index}") is { } failure)
+            {
+                return failure;
+            }
+
+            index++;
+        }
+
+        return null;
+    }
+
+    /// <summary>The message for a rule of <see cref="RichTextRules"/>.</summary>
+    internal static string RuleMessage(string rule) => rule switch
+    {
+        "rich_text_too_many_images" => $"A rich text may show at most {PageSchema.MaxRichTextImages} images.",
+        "rich_text_too_many_tables" => $"A rich text may hold at most {PageSchema.MaxRichTextTables} tables.",
+        "table_not_rectangular" => "Every row of a table must have the same number of cells.",
+        "table_header_misplaced" => "Header cells may only make up the whole first row of a table.",
+        _ => "The rich text breaks a rule of the page schema.",
+    };
 
     /// <summary>Adds the code points of every <c>text</c> node under a validated rich-text value.</summary>
     private static void CountText(JsonElement richText, ref long length)

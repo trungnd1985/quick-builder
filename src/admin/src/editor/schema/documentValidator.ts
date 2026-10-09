@@ -9,8 +9,9 @@
 // built or parsed, where neither can occur.
 
 import { codePointLength, isObject, type Json } from './subsetValidator'
-import { MAX_DOCUMENT_BYTES, MAX_NODE_DEPTH, MAX_NODES, MAX_RICH_TEXT_CHARS, SUPPORTED_SCHEMA_VERSIONS } from './limits'
+import { MAX_DOCUMENT_BYTES, MAX_NODE_DEPTH, MAX_NODES, MAX_RICH_TEXT_CHARS, MAX_RICH_TEXT_IMAGES, MAX_RICH_TEXT_TABLES, SUPPORTED_SCHEMA_VERSIONS } from './limits'
 import { nodeTypes, pageSchema, type DocumentKind } from './schema'
+import { checkRichTextRules } from './richTextRules'
 
 export type DocumentValidation =
   | { valid: true }
@@ -43,7 +44,7 @@ export function validateDocument(document: unknown, kind: DocumentKind): Documen
   if (failure) return fromSchema(failure.location, failure.keyword, failure.message, document)
 
   const root = (document as { root: Json }).root
-  return componentRules(root, '/root', kind) ?? richTextLength(root, '/root') ?? { valid: true }
+  return componentRules(root, '/root', kind) ?? richTextLength(root, '/root') ?? richTextRules(root, '/root') ?? { valid: true }
 }
 
 /** Depth, count and id uniqueness, over whatever node-shaped values exist. */
@@ -117,6 +118,28 @@ function richTextLength(node: Json, pointer: string): DocumentValidation | null 
   const children = Array.isArray(node.children) ? node.children : []
   for (let i = 0; i < children.length; i++) {
     const failure = richTextLength(children[i], `${pointer}/children/${i}`)
+    if (failure) return failure
+  }
+  return null
+}
+
+const RULE_MESSAGES: Record<string, string> = {
+  rich_text_too_many_images: `A rich text may show at most ${MAX_RICH_TEXT_IMAGES} images.`,
+  rich_text_too_many_tables: `A rich text may hold at most ${MAX_RICH_TEXT_TABLES} tables.`,
+  table_not_rectangular: 'Every row of a table must have the same number of cells.',
+  table_header_misplaced: 'Header cells may only make up the whole first row of a table.',
+}
+
+/** Contract §3 rules 10–12 (035), for every Rich Text block in document order. */
+function richTextRules(node: Json, pointer: string): DocumentValidation | null {
+  if (!isObject(node)) return null
+  if (node.type === 'rich-text' && isObject(node.props)) {
+    const broken = checkRichTextRules(node.props.content, `${pointer}/props/content`)
+    if (broken) return invalid(broken.rule, broken.pointer, RULE_MESSAGES[broken.rule] ?? 'The rich text breaks a rule of the page schema.')
+  }
+  const children = Array.isArray(node.children) ? node.children : []
+  for (let i = 0; i < children.length; i++) {
+    const failure = richTextRules(children[i], `${pointer}/children/${i}`)
     if (failure) return failure
   }
   return null

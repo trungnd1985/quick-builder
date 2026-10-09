@@ -11,7 +11,9 @@ import type { Problem } from '../../../api/items'
 import { codePointLength, type Json } from '../../../editor/schema/subsetValidator'
 import { pageSchema } from '../../../editor/schema/schema'
 import { richTextChars } from '../../../editor/schema/documentValidator'
-import { MAX_RICH_TEXT_CHARS } from '../../../editor/schema/limits'
+import { checkRichTextRules, firstFormatOutside, imageMedia, imagesWithoutAlt, isEmptyRichText } from '../../../editor/schema/richTextRules'
+import { allowedFormats } from '../../../editor/richtext/formats'
+import { MAX_RICH_TEXT_CHARS, MAX_RICH_TEXT_IMAGES, MAX_RICH_TEXT_TABLES } from '../../../editor/schema/limits'
 import { collectionSchema } from '../collectionSchema'
 
 export const MAX_REFERENCES = 100
@@ -21,6 +23,12 @@ export const MAX_SLUG_LENGTH = 100
 /** Problems that mean a value can never be stored (015 data-model §3.2). */
 export const MALFORMED = new Set([
   'malformed',
+  // A rich text over one of its limits (page-schema.md §3 rules 9 to 12; 035 FR-005).
+  'rich_text_too_long',
+  'rich_text_too_many_images',
+  'rich_text_too_many_tables',
+  'table_not_rectangular',
+  'table_header_misplaced',
   'unknown_field',
   'unknown_option',
   'reference_missing',
@@ -77,9 +85,25 @@ function isRealDate(value: string, withTime: boolean): boolean {
   )
 }
 
+/**
+ * Which limit a rich text breaks, when it has the contract's shape but not its limits; null otherwise.
+ * Length comes first: one pasted line over the limit also breaks the schema's cap on a single text node.
+ */
+export function richTextLimit(value: Json): { problem: string; limit?: number } | null {
+  if (richTextChars(value) > MAX_RICH_TEXT_CHARS) return { problem: 'rich_text_too_long', limit: MAX_RICH_TEXT_CHARS }
+  if (pageSchema.validateDefinition('rtDoc', value) !== null) return null
+  const broken = checkRichTextRules(value, '')
+  if (!broken) return null
+  if (broken.rule === 'rich_text_too_many_images') return { problem: broken.rule, limit: MAX_RICH_TEXT_IMAGES }
+  if (broken.rule === 'rich_text_too_many_tables') return { problem: broken.rule, limit: MAX_RICH_TEXT_TABLES }
+  return { problem: broken.rule }
+}
+
 function isWellFormed(field: SchemaField, value: Json): boolean {
   if (field.type === 'richText') {
-    return pageSchema.validateDefinition('rtDoc', value) === null && richTextChars(value) <= MAX_RICH_TEXT_CHARS
+    return pageSchema.validateDefinition('rtDoc', value) === null
+      && richTextChars(value) <= MAX_RICH_TEXT_CHARS
+      && checkRichTextRules(value, '') === null
   }
 
   if (collectionSchema.validateDefinition(definitionOf(field), value) !== null) return false
@@ -106,6 +130,10 @@ function settingProblem(field: SchemaField, value: Json): Problem | null {
     }
     case 'option':
       return field.options?.some((o) => o.id === value) ? null : { fieldId: field.id, problem: 'unknown_option' }
+    case 'richText': {
+      const format = firstFormatOutside(value, allowedFormats(field.formats))
+      return format ? { fieldId: field.id, problem: 'format_not_allowed', format } : null
+    }
     case 'multiReference': {
       const ids = (value as string[]).map((id) => id.toLowerCase())
       return new Set(ids).size === ids.length ? null : { fieldId: field.id, problem: 'duplicate_reference' }
@@ -124,7 +152,29 @@ function checkField(field: SchemaField, value: Json | undefined, itemId: string 
     return { fieldId: field.id, problem: 'too_many_references', limit: MAX_REFERENCES }
   }
 
-  if (!isWellFormed(field, value)) return { fieldId: field.id, problem: 'malformed' }
+  if (!isWellFormed(field, value)) {
+    // A rich text over a limit says which one (035 FR-005); it is never stored either.
+    const limit = field.type === 'richText' ? richTextLimit(value) : null
+    return limit ? { fieldId: field.id, ...limit } : { fieldId: field.id, problem: 'malformed' }
+  }
+
+  // A rich text with no text and no images is no value (035 spec edge case "Empty structures").
+  if (field.type === 'richText' && isEmptyRichText(value)) {
+    return field.required ? { fieldId: field.id, problem: 'missing_required' } : null
+  }
+
+  // 035 FR-014: an image needs alternative text, or to be decorative; then its file must exist.
+  if (field.type === 'richText') {
+    const withoutAlt = imagesWithoutAlt(value, '')[0]
+    if (withoutAlt !== undefined) return { fieldId: field.id, problem: 'image_alt_missing', path: withoutAlt }
+    if (lookups.mediaKind) {
+      for (const image of imageMedia(value, '')) {
+        const kind = lookups.mediaKind(image.mediaId)
+        if (kind === 'missing') return { fieldId: field.id, problem: 'media_missing', path: image.pointer }
+        if (kind === 'document') return { fieldId: field.id, problem: 'file_kind', path: image.pointer }
+      }
+    }
+  }
 
   const setting = settingProblem(field, value)
   if (setting) return setting

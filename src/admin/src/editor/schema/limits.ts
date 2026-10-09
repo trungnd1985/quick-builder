@@ -8,6 +8,8 @@ export const MAX_DOCUMENT_BYTES = 1_048_576
 export const MAX_NODES = 5000
 export const MAX_NODE_DEPTH = 32
 export const MAX_RICH_TEXT_CHARS = 20_000
+export const MAX_RICH_TEXT_IMAGES = 50
+export const MAX_RICH_TEXT_TABLES = 20
 
 /** The schema versions this editor can read and write. */
 export const SUPPORTED_SCHEMA_VERSIONS: ReadonlySet<number> = new Set([1])

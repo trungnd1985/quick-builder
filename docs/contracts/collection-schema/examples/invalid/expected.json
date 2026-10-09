@@ -129,5 +129,15 @@
     "code": "cms.invalid_schema",
     "rule": "temporary_id_in_stored",
     "pointer": "/fields/0/options/0/id"
+  },
+  "schema_violation--rich-text-formats-unknown-group.json": {
+    "code": "cms.invalid_schema",
+    "rule": "schema_violation",
+    "pointer": "/fields/1/formats/lists"
+  },
+  "schema_violation--rich-text-formats-not-boolean.json": {
+    "code": "cms.invalid_schema",
+    "rule": "schema_violation",
+    "pointer": "/fields/1/formats/images"
   }
 }

@@ -68,6 +68,14 @@ paths:
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
+        '422':
+          description: |
+            Added by 035: `pages.image_alt_missing`. A rich text image has neither alternative
+            text nor `decorative`; `problems` gives each one as `{ "pointer": … }`. Scheduled
+            publishes fail with the same code.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
 
   /api/v1/pages/sites/{siteId}/pages/{pageId}/unpublish:
     parameters:

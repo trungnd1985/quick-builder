@@ -7,9 +7,10 @@ namespace QuickBuilder.Rendering.Rendering;
 /// Stored rich text as HTML, through an allow-list (012 research PR-11; constitution Principle IX).
 /// </summary>
 /// <remarks>
-/// The same elements the canvas draws (RichTextView.ts): paragraph → <c>p</c>, bullet list →
-/// <c>ul</c>, ordered list → <c>ol</c>, list item → <c>li</c>, hard break → <c>br</c>, and the
-/// marks bold → <c>strong</c>, italic → <c>em</c>, link → <c>a</c>. Nothing else is ever
+/// The same elements the canvas draws (RichTextView.ts): paragraph → <c>p</c>, heading →
+/// <c>h2</c>–<c>h4</c> and quote → <c>blockquote</c> (035), bullet list → <c>ul</c>, ordered list →
+/// <c>ol</c>, list item → <c>li</c>, hard break → <c>br</c>, and the marks bold → <c>strong</c>,
+/// italic → <c>em</c>, underline → <c>u</c>, strike → <c>del</c>, code → <c>code</c> (035), link → <c>a</c>. Nothing else is ever
 /// written; a node or mark of another kind is skipped. Unmarked text sits in a <c>span</c>, as
 /// on the canvas. A link to a page that is not live keeps its text and loses the link.
 /// </remarks>
@@ -43,13 +44,42 @@ internal static class RichTextRenderer
         switch (type.GetString())
         {
             case "paragraph":
-                writer.Markup("<p>");
+                writer.Markup($"<p{AlignClass(node)}>");
                 foreach (var inline in Children(node))
                 {
                     RenderInline(inline, context, writer);
                 }
 
                 writer.Markup("</p>");
+                break;
+
+            case "heading":
+                var level = HeadingLevel(node);
+                writer.Markup($"<h{level}{AlignClass(node)}>");
+                foreach (var inline in Children(node))
+                {
+                    RenderInline(inline, context, writer);
+                }
+
+                writer.Markup($"</h{level}>");
+                break;
+
+            case "blockquote":
+                writer.Markup("<blockquote>");
+                foreach (var child in Children(node))
+                {
+                    RenderBlock(child, context, writer);
+                }
+
+                writer.Markup("</blockquote>");
+                break;
+
+            case "image":
+                RenderImage(node, context, writer);
+                break;
+
+            case "table":
+                RenderTable(node, context, writer);
                 break;
 
             case "bulletList":
@@ -131,6 +161,19 @@ internal static class RichTextRenderer
                         content = $"<em>{content}</em>";
                         wrapped = true;
                         break;
+                    case "underline":
+                        content = $"<u>{content}</u>";
+                        wrapped = true;
+                        break;
+                    case "strike":
+                        // Struck-through text is deleted text, and is announced as such (035 US2).
+                        content = $"<del>{content}</del>";
+                        wrapped = true;
+                        break;
+                    case "code":
+                        content = $"<code>{content}</code>";
+                        wrapped = true;
+                        break;
                     case "link":
                         var to = mark.TryGetProperty("attrs", out var attrs) && attrs.ValueKind == JsonValueKind.Object && attrs.TryGetProperty("to", out var target)
                             ? target
@@ -152,6 +195,92 @@ internal static class RichTextRenderer
         // Both pieces were produced by HtmlWriter: the text encoded, the tags constant.
         writer.Markup(wrapped ? content : $"<span>{content}</span>");
     }
+
+    /// <summary>
+    /// A rich text image (035 FR-015): the Image block's pipeline at the text's width, never
+    /// wider than the file itself. A file that is gone, or another site's, shows nothing (FR-017).
+    /// </summary>
+    private static void RenderImage(JsonElement node, RenderContext context, HtmlWriter writer)
+    {
+        if (!node.TryGetProperty("attrs", out var attrs) || attrs.ValueKind != JsonValueKind.Object
+            || !attrs.TryGetProperty("media", out var media) || media.ValueKind != JsonValueKind.Object
+            || !media.TryGetProperty("mediaId", out var id) || id.ValueKind != JsonValueKind.String
+            || !Guid.TryParse(id.GetString(), out var mediaId)
+            || !context.Inputs.Media.TryGetValue(mediaId, out var file))
+        {
+            return;
+        }
+
+        var decorative = attrs.TryGetProperty("decorative", out var flag) && flag.ValueKind == JsonValueKind.True;
+        var alt = !decorative && attrs.TryGetProperty("alt", out var text) && text.ValueKind == JsonValueKind.String ? text.GetString()! : string.Empty;
+        var basePath = PageShell.TrimBase(context.Inputs.BasePath);
+        var source = file.Variants.LastOrDefault(v => v.Width <= Blocks.ImageRenderer.DefaultSourceWidth)?.PublicPath ?? file.PublicPath;
+
+        writer.Open("figure").Attribute("class", "qb-rt-image").EndTag();
+        writer.Open("img");
+        writer.SitePath("src", basePath + source);
+
+        if (file.Variants.Count > 0)
+        {
+            writer.Attribute("srcset", Blocks.ImageRenderer.SourceSet(file, basePath));
+            writer.Attribute("sizes", Blocks.ImageRenderer.Sizes(context.SectionWidth, file.Width));
+        }
+
+        if (file.Width is { } w && file.Height is { } h)
+        {
+            writer.Attribute("width", w.ToString(System.Globalization.CultureInfo.InvariantCulture))
+                .Attribute("height", h.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        }
+
+        writer.Attribute("alt", alt).Attribute("loading", "lazy").Attribute("decoding", "async").EndTag();
+        writer.Close("figure");
+    }
+
+    /// <summary>
+    /// A table (035 FR-015): in an area that scrolls sideways, focusable so keyboards can scroll
+    /// it; header cells, which only the first row has, are the headers of their columns.
+    /// </summary>
+    private static void RenderTable(JsonElement node, RenderContext context, HtmlWriter writer)
+    {
+        writer.Markup("<div class=\"qb-rt-table\" tabindex=\"0\"><table><tbody>");
+        foreach (var row in Children(node))
+        {
+            writer.Markup("<tr>");
+            foreach (var cell in Children(row))
+            {
+                var header = cell.TryGetProperty("type", out var type) && type.GetString() == "tableHeader";
+                writer.Markup(header ? "<th scope=\"col\">" : "<td>");
+                foreach (var block in Children(cell))
+                {
+                    RenderBlock(block, context, writer);
+                }
+
+                writer.Markup(header ? "</th>" : "</td>");
+            }
+
+            writer.Markup("</tr>");
+        }
+
+        writer.Markup("</tbody></table></div>");
+    }
+
+    /// <summary>
+    /// A paragraph's or heading's own alignment, as one of the fixed classes blocks use (035
+    /// FR-016): never an inline style, and nothing for a value the contract does not have.
+    /// </summary>
+    private static string AlignClass(JsonElement node) =>
+        node.TryGetProperty("attrs", out var attrs) && attrs.ValueKind == JsonValueKind.Object
+            && attrs.TryGetProperty("align", out var align) && align.ValueKind == JsonValueKind.String
+            && align.GetString() is "start" or "center" or "end"
+            ? $" class=\"qb-align--{align.GetString()}\""
+            : string.Empty;
+
+    /// <summary>A heading's level, 2 to 4; anything else is drawn as the nearest of those (035).</summary>
+    private static int HeadingLevel(JsonElement node) =>
+        node.TryGetProperty("attrs", out var attrs) && attrs.ValueKind == JsonValueKind.Object
+            && attrs.TryGetProperty("level", out var level) && level.TryGetInt32(out var value)
+            ? Math.Clamp(value, 2, 4)
+            : 2;
 
     private static List<JsonElement> Children(JsonElement node) =>
         node.TryGetProperty("content", out var content) && content.ValueKind == JsonValueKind.Array

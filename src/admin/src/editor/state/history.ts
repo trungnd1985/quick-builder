@@ -6,13 +6,16 @@
 // until a second passes without typing, a word ends, or anything else happens, so undo takes
 // back words, not keystrokes. History lasts for one editing session of one document.
 
-import { computed, ref, type ComputedRef } from 'vue'
+import { computed, ref, type ComputedRef, type InjectionKey, type ShallowRef } from 'vue'
 import { locate } from '../ops/tree'
 import type { Snapshot, useEditorStore } from './editorStore'
 
 const LIMIT = 200
 const PAUSE_MS = 1000
 const WORD_END = /[\s.,;:!?)\]}"'…]$/
+
+/** The page editor's one history, for blocks that offer undo and redo themselves (035 FR-009). */
+export const pageHistoryKey: InjectionKey<ShallowRef<History | null>> = Symbol('pageHistory')
 
 export interface History {
   undo: () => void

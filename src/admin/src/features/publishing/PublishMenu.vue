@@ -7,6 +7,7 @@ import { useI18n } from 'vue-i18n'
 import { routerKey } from 'vue-router'
 import { pagesApi } from '../../api/pages'
 import { publishingApi, type Publication, type SubjectKind } from '../../api/publishing'
+import { ApiError } from '../../api/request'
 import ConfirmDialog from '../sites/ConfirmDialog.vue'
 import PublicationBadge from './PublicationBadge.vue'
 import ScheduleDialog from './ScheduleDialog.vue'
@@ -26,7 +27,11 @@ const props = defineProps<{
   beforePublish?: () => Promise<number | null>
 }>()
 
-const emit = defineEmits<{ changed: [publication: Publication] }>()
+const emit = defineEmits<{
+  changed: [publication: Publication]
+  /** 035: publishing was refused because of these places in the document (JSON pointers). */
+  refused: [pointers: string[]]
+}>()
 
 const { t, te, d } = useI18n()
 
@@ -70,6 +75,11 @@ async function run(action: () => Promise<Publication>, message: (p: Publication)
     emit('changed', publication)
   } catch (caught) {
     error.value = publishingErrorMessage(t, te, caught)
+    const problems = caught instanceof ApiError && Array.isArray((caught.problem as unknown as Record<string, unknown> | undefined)?.problems)
+      ? ((caught.problem as unknown as { problems: { pointer?: unknown }[] }).problems)
+      : []
+    const pointers = problems.map((p) => p.pointer).filter((p): p is string => typeof p === 'string')
+    if (pointers.length > 0) emit('refused', pointers)
   } finally {
     busy.value = false
   }
