@@ -460,7 +460,7 @@ Shorthand used below:
 - [X] T099 Run `UpgradeFrom015Tests` (T002): every baseline page and item validates and renders byte-identically (SC-001).
 - [X] T100 Run everything in Release: `dotnet test` (unit, architecture, integration), `dotnet format --verify-no-changes`, the per-package coverage gate (Pages and Rendering stay at 80 % or more on the publish and render paths), and `npm run lint`, `npm run type-check`, `npm test` and `npm run build` in `src/admin`. Fix any failures.
 - [ ] T101 By hand: walk [quickstart.md](./quickstart.md) §1–§12 in a browser (SC-002 timing, SC-006 typing latency, the keyboard-only walk, a screen reader on a published table, the outdated-tab check). Record the results in `specs/035-rich-text-formats/quickstart-results.md`.
-- [ ] T102 Push the branch and open the PR closing #35, with the plan's Operator impact in its description.
+- [X] T102 Push the branch and open the PR closing #35, with the plan's Operator impact in its description.
 
 ---
 
