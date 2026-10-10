@@ -45,6 +45,14 @@ public sealed record DocumentValidationResult
     public IReadOnlySet<Guid> ReferencedComponentIds { get; private init; } = new HashSet<Guid>();
 
     /// <summary>
+    /// Every distinct collection a Collection list block names as its source, with the pointer
+    /// of the first <c>source</c> that names it (016, contract §3 rule 14). Whether each is a
+    /// collection of the caller's site is the caller's to check, as for components. Empty on
+    /// failure.
+    /// </summary>
+    public IReadOnlyDictionary<Guid, string> ReferencedCollections { get; private init; } = new Dictionary<Guid, string>();
+
+    /// <summary>
     /// The error code: <c>pages.invalid_document</c>, <c>pages.unsupported_schema_version</c>
     /// or <c>pages.document_too_large</c>. Null when valid.
     /// </summary>
@@ -67,6 +75,10 @@ public sealed record DocumentValidationResult
 
     public static DocumentValidationResult Valid(int schemaVersion, IReadOnlySet<Guid> referencedComponentIds) =>
         new() { SchemaVersion = schemaVersion, ReferencedComponentIds = referencedComponentIds };
+
+    public static DocumentValidationResult Valid(
+        int schemaVersion, IReadOnlySet<Guid> referencedComponentIds, IReadOnlyDictionary<Guid, string> referencedCollections) =>
+        new() { SchemaVersion = schemaVersion, ReferencedComponentIds = referencedComponentIds, ReferencedCollections = referencedCollections };
 
     public static DocumentValidationResult Invalid(string code, string rule, string location, string message) =>
         new() { Code = code, Rule = rule, Location = location, Message = message };

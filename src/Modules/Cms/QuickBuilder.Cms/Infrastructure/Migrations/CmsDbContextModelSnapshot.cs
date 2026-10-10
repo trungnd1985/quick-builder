@@ -172,6 +172,10 @@ namespace QuickBuilder.Cms.Infrastructure.Migrations
                         .HasColumnType("jsonb")
                         .HasColumnName("draft");
 
+                    b.Property<DateTimeOffset?>("FirstPublishedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("first_published_at_utc");
+
                     b.Property<int>("IndexVersion")
                         .HasColumnType("integer")
                         .HasColumnName("index_version");
@@ -204,6 +208,10 @@ namespace QuickBuilder.Cms.Infrastructure.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)")
                         .HasColumnName("published_slug");
+
+                    b.Property<long>("RenderStamp")
+                        .HasColumnType("bigint")
+                        .HasColumnName("render_stamp");
 
                     b.Property<int>("Revision")
                         .IsConcurrencyToken()
@@ -248,6 +256,10 @@ namespace QuickBuilder.Cms.Infrastructure.Migrations
 
                     b.HasIndex("CollectionId", "Id")
                         .HasDatabaseName("ix_items_collection_id_id");
+
+                    b.HasIndex("CollectionId", "PublishedSlug")
+                        .HasDatabaseName("ix_items_collection_id_published_slug")
+                        .HasFilter("published_slug IS NOT NULL");
 
                     b.HasIndex("CollectionId", "Slug")
                         .HasDatabaseName("ix_items_collection_id_slug");

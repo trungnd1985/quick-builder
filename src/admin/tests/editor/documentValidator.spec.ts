@@ -3,7 +3,7 @@ import { join } from 'node:path'
 import { readFileSync } from 'node:fs'
 import { validateDocument } from '../../src/editor/schema/documentValidator'
 import { SchemaSubsetValidator } from '../../src/editor/schema/subsetValidator'
-import { expectedFailures, jsonFiles, pageExamples, readJson } from './contractFiles'
+import { contractsDir, expectedFailures, jsonFiles, pageExamples, readJson } from './contractFiles'
 
 // 011 research ED-08, SC-009: the editor's validator gives exactly the server's answer for
 // every golden file of the page schema — same rule, same pointer. The files are the shared
@@ -51,6 +51,48 @@ describe('document validator against the golden files', () => {
     const document = { schemaVersion: 1, root: { id: 'root', type: 'root', props: {}, children: [node] } }
 
     expect(validateDocument(document, 'page')).toMatchObject({ valid: false, rule: 'too_deep' })
+  })
+})
+
+// 016 research TB-06: the binding contract's golden documents, run through the same validator.
+// PageSchemaBindingTests runs them on the server side.
+const bindingExamples = join(contractsDir, 'binding-expression', 'examples')
+
+describe('document validator against the binding golden files', () => {
+  it.each(jsonFiles(join(bindingExamples, 'valid')))('accepts valid/%s', (file) => {
+    expect(validateDocument(readJson(join(bindingExamples, 'valid', file)), 'page')).toEqual({ valid: true })
+  })
+
+  const expected = expectedFailures(join(bindingExamples, 'invalid'))
+
+  it.each(Object.entries(expected))('refuses invalid/%s with its rule and pointer', (file, { rule, pointer }) => {
+    const result = validateDocument(readJson(join(bindingExamples, 'invalid', file)), 'page')
+
+    expect(result.valid).toBe(false)
+    if (!result.valid) expect({ rule: result.rule, pointer: result.pointer }).toEqual({ rule, pointer })
+    expect(file.startsWith(rule!)).toBe(true)
+  })
+
+  it('lists every invalid binding example in the manifest', () => {
+    for (const file of jsonFiles(join(bindingExamples, 'invalid'))) expect(expected).toHaveProperty([file])
+  })
+
+  it('refuses a binding to the page item in a component (rule 16)', () => {
+    const result = validateDocument(readJson(join(bindingExamples, 'valid', 'bindings-every-prop.json')), 'component')
+
+    expect(result).toMatchObject({ valid: false, rule: 'page_scope_not_allowed', pointer: '/root/children/0/children/0/props/bind/text/value' })
+  })
+
+  it('refuses a list of a collection the site does not have, last (rule 14)', () => {
+    const document = readJson(join(bindingExamples, 'valid', 'collection-list-nested.json'))
+    const known = new Set(['0192f5a0-0000-7000-8000-00000000c002'])
+
+    expect(validateDocument(document, 'page', { collectionIds: known })).toMatchObject({
+      valid: false,
+      rule: 'unknown_collection',
+      pointer: '/root/children/0/children/0/props/source',
+    })
+    expect(validateDocument(document, 'page', { collectionIds: new Set([...known, '0192f5a0-0000-7000-8000-00000000c001']) })).toEqual({ valid: true })
   })
 })
 

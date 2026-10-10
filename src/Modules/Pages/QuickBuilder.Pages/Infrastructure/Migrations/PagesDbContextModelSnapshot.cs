@@ -24,6 +24,49 @@ namespace QuickBuilder.Pages.Infrastructure.Migrations
             NpgsqlModelBuilderExtensions.HasPostgresExtension(modelBuilder, "citext");
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("QuickBuilder.Pages.Domain.CollectionUsage", b =>
+                {
+                    b.Property<Guid>("SiteId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("site_id");
+
+                    b.Property<string>("SubjectKind")
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("subject_kind");
+
+                    b.Property<Guid>("SubjectId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("subject_id");
+
+                    b.Property<string>("State")
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("state");
+
+                    b.Property<Guid>("CollectionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("collection_id");
+
+                    b.PrimitiveCollection<string[]>("FieldIds")
+                        .IsRequired()
+                        .HasColumnType("text[]")
+                        .HasColumnName("field_ids");
+
+                    b.HasKey("SiteId", "SubjectKind", "SubjectId", "State", "CollectionId")
+                        .HasName("pk_collection_uses");
+
+                    b.HasIndex("SiteId", "CollectionId")
+                        .HasDatabaseName("ix_collection_uses_collection");
+
+                    b.ToTable("collection_uses", "pages", t =>
+                        {
+                            t.HasCheckConstraint("ck_collection_uses_state", "state IN ('draft', 'live', 'scheduled')");
+
+                            t.HasCheckConstraint("ck_collection_uses_subject_kind", "subject_kind IN ('page', 'component')");
+                        });
+                });
+
             modelBuilder.Entity("QuickBuilder.Pages.Domain.Component", b =>
                 {
                     b.Property<Guid>("Id")
@@ -208,7 +251,7 @@ namespace QuickBuilder.Pages.Infrastructure.Migrations
                         {
                             t.HasCheckConstraint("ck_live_dependencies_subject_kind", "subject_kind IN ('page', 'component')");
 
-                            t.HasCheckConstraint("ck_live_dependencies_target_kind", "target_kind IN ('component', 'page', 'media')");
+                            t.HasCheckConstraint("ck_live_dependencies_target_kind", "target_kind IN ('component', 'page', 'media', 'collection', 'template')");
                         });
                 });
 
@@ -260,6 +303,10 @@ namespace QuickBuilder.Pages.Infrastructure.Migrations
                         .HasColumnType("character varying(100)")
                         .HasColumnName("slug");
 
+                    b.Property<Guid?>("TemplateCollectionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("template_collection_id");
+
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(200)
@@ -295,6 +342,11 @@ namespace QuickBuilder.Pages.Infrastructure.Migrations
                     b.HasIndex("SiteId", "Path")
                         .IsUnique()
                         .HasDatabaseName("ux_pages_site_path");
+
+                    b.HasIndex("SiteId", "TemplateCollectionId")
+                        .IsUnique()
+                        .HasDatabaseName("ux_pages_site_template_collection")
+                        .HasFilter("template_collection_id IS NOT NULL");
 
                     b.HasIndex("SiteId", "ParentId", "Position")
                         .HasDatabaseName("ix_pages_site_parent_position");
@@ -416,6 +468,13 @@ namespace QuickBuilder.Pages.Infrastructure.Migrations
                     b.Property<int>("NextNumber")
                         .HasColumnType("integer")
                         .HasColumnName("next_number");
+
+                    b.PrimitiveCollection<string[]>("PageParamNames")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("text[]")
+                        .HasColumnName("page_param_names")
+                        .HasDefaultValueSql("'{}'::text[]");
 
                     b.Property<long?>("PublishedFromDraftVersion")
                         .HasColumnType("bigint")

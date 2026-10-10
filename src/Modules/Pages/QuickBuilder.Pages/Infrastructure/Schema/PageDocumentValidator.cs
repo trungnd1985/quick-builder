@@ -64,7 +64,10 @@ internal sealed class PageDocumentValidator : IPageDocumentValidator
 
         _nodeTypes = _schemas.ToDictionary(
             s => s.Key,
-            s => (IReadOnlySet<string>)s.Value.BranchTypes("rootChild").Union(s.Value.BranchTypes("contentChild")).ToHashSet(StringComparer.Ordinal));
+            s => (IReadOnlySet<string>)s.Value.BranchTypes("rootChild")
+                .Union(s.Value.BranchTypes("contentChild"))
+                .Union(s.Value.BranchTypes("listChild"))
+                .ToHashSet(StringComparer.Ordinal));
     }
 
     public DocumentValidationResult Validate(ReadOnlySpan<byte> utf8Json, DocumentKind kind)
@@ -134,6 +137,13 @@ internal sealed class PageDocumentValidator : IPageDocumentValidator
             return FromSchema(failure, root, _nodeTypes[version]);
         }
 
+        // Rule 20 (016): a list's children are its card and its empty state, a structural
+        // rule the schema's placement lists cannot state on their own.
+        if (BindingDocumentRules.CheckListChildren(root.GetProperty("root"), "/root") is { } listChildren)
+        {
+            return Invalid(listChildren.Rule, listChildren.Pointer, listChildren.Message);
+        }
+
         var referenced = new HashSet<Guid>();
         if (CheckComponentRules(root.GetProperty("root"), "/root", kind, referenced) is { } componentFailure)
         {
@@ -150,7 +160,14 @@ internal sealed class PageDocumentValidator : IPageDocumentValidator
             return richTextRuleFailure;
         }
 
-        return DocumentValidationResult.Valid(version, referenced);
+        // Rules 13, 15–19 (016). Rule 14 is the caller's, against its site, like rule 6.
+        var collections = new Dictionary<Guid, string>();
+        if (BindingDocumentRules.Check(root, kind, collections) is { } bindingFailure)
+        {
+            return Invalid(bindingFailure.Rule, bindingFailure.Pointer, bindingFailure.Message);
+        }
+
+        return DocumentValidationResult.Valid(version, referenced, collections);
     }
 
     /// <summary>Turns a schema failure into the contract's rule names (pages-api.yaml, DocumentProblem).</summary>

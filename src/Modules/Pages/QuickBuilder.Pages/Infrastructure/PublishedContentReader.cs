@@ -14,14 +14,26 @@ namespace QuickBuilder.Pages.Infrastructure;
 /// </remarks>
 internal sealed class PublishedContentReader(PublishedReadDbContext database) : IPublishedContentReader
 {
+    // 016 research TB-02: a template has no address of its own, so it is never found by path.
     private static readonly Func<PublishedReadDbContext, Guid, string, CancellationToken, Task<LivePageRef?>> LiveByPath =
         EF.CompileAsyncQuery((PublishedReadDbContext db, Guid siteId, string path, CancellationToken _) =>
             (from page in db.Pages
-             where page.SiteId == siteId && page.Path == path
+             where page.SiteId == siteId && page.Path == path && page.TemplateCollectionId == null
              join publication in db.Publications
                  on new { Kind = SubjectKinds.Page, Id = page.Id } equals new { Kind = publication.SubjectKind, Id = publication.SubjectId }
              where publication.LiveVersionId != null
-             select new LivePageRef(page.Id, publication.Generation))
+             select new LivePageRef(page.Id, publication.Generation, publication.PageParamNames))
+            .FirstOrDefault());
+
+    // 016 research TB-03: the template under a parent is the one whose path is the pattern.
+    private static readonly Func<PublishedReadDbContext, Guid, string, CancellationToken, Task<LiveTemplateRef?>> LiveTemplateByPattern =
+        EF.CompileAsyncQuery((PublishedReadDbContext db, Guid siteId, string pattern, CancellationToken _) =>
+            (from page in db.Pages
+             where page.SiteId == siteId && page.Path == pattern && page.TemplateCollectionId != null
+             join publication in db.Publications
+                 on new { Kind = SubjectKinds.Page, Id = page.Id } equals new { Kind = publication.SubjectKind, Id = publication.SubjectId }
+             where publication.LiveVersionId != null
+             select new LiveTemplateRef(page.Id, publication.Generation, page.TemplateCollectionId!.Value, publication.PageParamNames))
             .FirstOrDefault());
 
     public Task<LivePageRef?> FindLiveByPathAsync(Guid siteId, string path, CancellationToken cancellationToken = default)
@@ -29,6 +41,42 @@ internal sealed class PublishedContentReader(PublishedReadDbContext database) : 
         ArgumentNullException.ThrowIfNull(path);
         return LiveByPath(database, siteId, path, cancellationToken);
     }
+
+    public Task<LiveTemplateRef?> FindLiveTemplateAsync(Guid siteId, string parentPath, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(parentPath);
+
+        // A template's pattern always has a fixed segment before {slug}: the tree refuses a
+        // template at the top level or under the home page, whose address is "/" (TB-02).
+        return LiveTemplateByPattern(database, siteId, TemplatePattern(parentPath), cancellationToken);
+    }
+
+    public async Task<IReadOnlyDictionary<Guid, string>> GetLiveTemplatePatternsAsync(
+        Guid siteId, IReadOnlyCollection<Guid> collectionIds, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(collectionIds);
+
+        if (collectionIds.Count == 0)
+        {
+            return new Dictionary<Guid, string>();
+        }
+
+        var templates = await (
+                from page in database.Pages
+                where page.SiteId == siteId && page.TemplateCollectionId != null && collectionIds.Contains(page.TemplateCollectionId.Value)
+                join publication in database.Publications
+                    on new { Kind = SubjectKinds.Page, Id = page.Id } equals new { Kind = publication.SubjectKind, Id = publication.SubjectId }
+                where publication.LiveVersionId != null
+                select new { CollectionId = page.TemplateCollectionId!.Value, page.Path })
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        return templates.ToDictionary(t => t.CollectionId, t => t.Path);
+    }
+
+    /// <summary>The pattern of a template under <paramref name="parentPath"/>: the parent's address, then <c>/{slug}</c>.</summary>
+    internal static string TemplatePattern(string parentPath) =>
+        (parentPath == "/" ? string.Empty : parentPath) + "/" + QuickBuilder.Pages.Contracts.TemplateInfo.SlugPlaceholder;
 
     public async Task<LivePageVersion?> GetLivePageAsync(Guid siteId, Guid pageId, CancellationToken cancellationToken = default)
     {
@@ -74,7 +122,9 @@ internal sealed class PublishedContentReader(PublishedReadDbContext database) : 
                 from publication in database.Publications
                     .Where(p => p.SubjectKind == SubjectKinds.Page && p.SubjectId == page.Id)
                     .DefaultIfEmpty()
-                select new { page.Id, page.Path, IsLive = publication != null && publication.LiveVersionId != null })
+                // 016 research TB-02: a link to a template page itself goes nowhere, so it is
+                // never live as a link target and renders as plain text (012 FR-026).
+                select new { page.Id, page.Path, IsLive = publication != null && publication.LiveVersionId != null && page.TemplateCollectionId == null })
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
 

@@ -84,6 +84,9 @@ internal sealed class PageRow : ISiteOwned
     public string Path { get; set; } = string.Empty;
 
     public bool IsHome { get; set; }
+
+    /// <summary>The collection a template page shows; null for an ordinary page (016 research TB-02).</summary>
+    public Guid? TemplateCollectionId { get; set; }
 }
 
 /// <summary>The columns of <c>pages.publications</c> the public path reads.</summary>
@@ -98,6 +101,9 @@ internal sealed class PublicationRow : ISiteOwned
     public Guid? LiveVersionId { get; set; }
 
     public long Generation { get; set; }
+
+    /// <summary>The live version's page parameters (016 data-model §1.2a).</summary>
+    public string[] PageParamNames { get; set; } = [];
 }
 
 /// <summary>The columns of <c>pages.published_versions</c> the public path reads.</summary>

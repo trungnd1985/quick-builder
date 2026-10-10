@@ -102,6 +102,19 @@ internal sealed class Item : AggregateRoot, ISiteOwned, IDisposable
 
     public Guid? PublishedBy { get; private set; }
 
+    /// <summary>
+    /// When the item was first published, kept across unpublishing; the built-in value
+    /// <c>firstPublishedAt</c> of bindings and lists (016 binding-expression.md §2).
+    /// </summary>
+    public DateTimeOffset? FirstPublishedAtUtc { get; private set; }
+
+    /// <summary>
+    /// Moves on with every change to what the item's page shows (016 research TB-10, data-model
+    /// §1.4): its own publishes and unpublishes here, and changes to items it refers to and to
+    /// media it shows through <c>RenderStampBump</c>. The page's cache key carries it.
+    /// </summary>
+    public long RenderStamp { get; private set; } = 1;
+
     /// <summary>The number of the live version; null when unpublished.</summary>
     public int? LiveVersion { get; private set; }
 
@@ -195,6 +208,8 @@ internal sealed class Item : AggregateRoot, ISiteOwned, IDisposable
         LiveVersion = version.Number;
         PublishedAtUtc = now;
         PublishedBy = actor;
+        FirstPublishedAtUtc ??= now;
+        RenderStamp++;
         Status = ItemStatuses.Compute(DraftValues(), Slug, values, slug);
         Touch(actor, now);
 
@@ -223,6 +238,7 @@ internal sealed class Item : AggregateRoot, ISiteOwned, IDisposable
         LiveVersion = null;
         PublishedAtUtc = null;
         PublishedBy = null;
+        RenderStamp++;
         Status = ItemStatuses.Draft;
         Touch(actor, now);
 

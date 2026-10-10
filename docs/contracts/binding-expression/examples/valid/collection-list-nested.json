@@ -1,0 +1,88 @@
+{
+  "schemaVersion": 1,
+  "bindingVersion": 1,
+  "root": {
+    "id": "root",
+    "type": "root",
+    "props": {},
+    "children": [
+      {
+        "id": "s1",
+        "type": "section",
+        "props": {},
+        "children": [
+          {
+            "id": "related",
+            "type": "collection-list",
+            "props": {
+              "source": { "collectionId": "0192f5a0-0000-7000-8000-00000000c001" },
+              "filters": [
+                { "field": "f10", "op": "eq", "value": { "field": "f10", "scope": "page" } },
+                { "item": "slug", "op": "ne", "value": { "current": true } }
+              ],
+              "limit": 3
+            },
+            "children": [
+              { "id": "related-card", "type": "list-card", "props": {}, "children": [
+                { "id": "related-title", "type": "heading", "props": { "text": "", "bind": { "text": { "value": { "field": "f1" } } } }, "children": [] }
+              ] },
+              { "id": "related-empty", "type": "list-empty", "props": {}, "children": [] }
+            ]
+          },
+          {
+            "id": "linked",
+            "type": "collection-list",
+            "props": { "source": { "field": "f11", "scope": "page" } },
+            "children": [
+              { "id": "linked-card", "type": "list-card", "props": {}, "children": [] },
+              { "id": "linked-empty", "type": "list-empty", "props": {}, "children": [] }
+            ]
+          },
+          {
+            "id": "team",
+            "type": "collection-list",
+            "props": { "source": { "collectionId": "0192f5a0-0000-7000-8000-00000000c002" } },
+            "children": [
+              {
+                "id": "team-card",
+                "type": "list-card",
+                "props": {},
+                "children": [
+                  { "id": "team-name", "type": "heading", "props": { "text": "", "bind": { "text": { "value": { "field": "f1" } } } }, "children": [] },
+                  {
+                    "id": "authored",
+                    "type": "collection-list",
+                    "props": {
+                      "source": { "collectionId": "0192f5a0-0000-7000-8000-00000000c001" },
+                      "filters": [ { "field": "f5", "op": "eq", "value": { "field": "f1", "scope": "team" } } ],
+                      "sort": [ { "field": "f7", "dir": "desc" } ],
+                      "limit": 2
+                    },
+                    "children": [
+                      { "id": "authored-card", "type": "list-card", "props": {}, "children": [
+                        { "id": "authored-title", "type": "text", "props": { "text": "", "bind": { "text": { "value": { "parts": [
+                          { "field": "f1" }, " by ", { "field": "f1", "scope": "team" }
+                        ] } } } }, "children": [] }
+                      ] },
+                      { "id": "authored-empty", "type": "list-empty", "props": {}, "children": [] }
+                    ]
+                  },
+                  {
+                    "id": "own-links",
+                    "type": "collection-list",
+                    "props": { "source": { "field": "f3" } },
+                    "children": [
+                      { "id": "own-links-card", "type": "list-card", "props": {}, "children": [] },
+                      { "id": "own-links-empty", "type": "list-empty", "props": {}, "children": [] }
+                    ]
+                  }
+                ]
+              },
+              { "id": "team-empty", "type": "list-empty", "props": {}, "children": [] }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -15,6 +15,19 @@ namespace QuickBuilder.Rendering.Rendering;
 /// </remarks>
 internal static class LinkResolver
 {
+    /// <summary>
+    /// Where a block's link property goes: its bound value when it is bound and has one (016:
+    /// an item's page, a file, an address held by a field), else the link the block holds.
+    /// </summary>
+    public static ResolvedLink? Resolve(JsonElement node, string prop, RenderContext context)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+
+        return context.Bound(node, prop) is { State: Binding.BoundState.Value, Link: { } bound }
+            ? bound
+            : Resolve(context.Prop(node, prop), context);
+    }
+
     /// <summary>The address to link to, or null when the link must not be written.</summary>
     public static ResolvedLink? Resolve(JsonElement? link, RenderContext context)
     {

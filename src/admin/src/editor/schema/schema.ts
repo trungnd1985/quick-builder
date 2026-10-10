@@ -28,17 +28,24 @@ export const pageSchema = SchemaSubsetValidator.load(rawSchema as unknown as Jso
 
 const branchTypes = (name: string): ReadonlySet<string> => new Set(pageSchema.branchTypes(name))
 
-/** The placement lists: what may sit under the root, and inside a section or container. */
+/**
+ * The placement lists: what may sit under the root, inside a section or container, and inside
+ * a Collection list (its card and empty state, 016).
+ */
 export const placement = {
   rootChild: branchTypes('rootChild'),
   contentChild: branchTypes('contentChild'),
+  listChild: branchTypes('listChild'),
 } as const
 
 /** Every node type other than `root`, in schema order. */
-export const nodeTypes: readonly string[] = [...placement.rootChild, ...placement.contentChild]
+export const nodeTypes: readonly string[] = [...placement.rootChild, ...placement.contentChild, ...placement.listChild]
 
-/** The content block types a palette offers: every node type but the component reference. */
-export const blockTypes: readonly string[] = nodeTypes.filter((type) => type !== 'component-ref')
+/**
+ * The content block types: every node type but the component reference and a list's card and
+ * empty state, which exist only inside their list.
+ */
+export const blockTypes: readonly string[] = [...placement.rootChild, ...placement.contentChild].filter((type) => type !== 'component-ref')
 
 const nodeDefinition = (type: string): JsonObject => {
   if (type !== 'root' && !nodeTypes.includes(type)) throw new Error(`Unknown node type '${type}'.`)
@@ -107,6 +114,7 @@ const listFor = (parentType: string): ReadonlySet<string> | null => {
     const name = items.$ref.slice('#/$defs/'.length)
     if (name === 'rootChild') return placement.rootChild
     if (name === 'contentChild') return placement.contentChild
+    if (name === 'listChild') return placement.listChild
   }
   return null
 }

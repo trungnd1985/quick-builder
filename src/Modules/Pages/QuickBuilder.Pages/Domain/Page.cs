@@ -76,6 +76,16 @@ internal sealed class Page : ISiteOwned
     public bool IsHome { get; private set; }
 
     /// <summary>
+    /// The collection this page is the template of, or null for an ordinary page (016 research
+    /// TB-02). A template's <see cref="Path"/> is its address pattern, its parent's address
+    /// followed by <c>/{slug}</c>; its own <see cref="Slug"/> is kept, unused, as the home
+    /// page keeps its own, so it has an address again if it stops being a template.
+    /// </summary>
+    public Guid? TemplateCollectionId { get; private set; }
+
+    public bool IsTemplate => TemplateCollectionId is not null;
+
+    /// <summary>
     /// Moves when <em>this</em> page is changed: its title, slug, parent, place or home flag
     /// (research P-05). A change to another page — renumbering the siblings around a move,
     /// or an ancestor's new slug changing this page's address — does not move it, so it
@@ -118,6 +128,8 @@ internal sealed class Page : ISiteOwned
     }
 
     internal void SetHome(bool isHome) => IsHome = isHome;
+
+    internal void SetTemplate(Guid? collectionId) => TemplateCollectionId = collectionId;
 
     /// <summary>Records that this page was the subject of a change.</summary>
     internal void Touch(Guid actor, DateTimeOffset now)

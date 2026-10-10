@@ -21,7 +21,8 @@ const store = useEditorStore()
 const items = computed(() =>
   blockTypes
     .map((type) => ({ type, definition: definitionOf(type) }))
-    .filter((item): item is { type: string; definition: NonNullable<typeof item.definition> } => item.definition !== undefined),
+    .filter((item): item is { type: string; definition: NonNullable<typeof item.definition> } => item.definition !== undefined)
+    .filter((item) => item.definition.palette !== false),
 )
 const active = ref(0)
 const list = ref<HTMLElement | null>(null)

@@ -18,7 +18,8 @@ describe('block registry against the schema', () => {
   it.each(blockTypes)('covers every property of %s with a control, and invents none', (type) => {
     const definition = registry[type]
     const controlled = definition.groups.flatMap((g) => g.props.map((p) => p.prop)).sort()
-    const schemaProps = propNames(type).filter((p) => p !== 'layerLabel').sort()
+    // `bind` is edited through the binding control beside each bindable property (016 TB-14).
+    const schemaProps = propNames(type).filter((p) => p !== 'layerLabel' && p !== 'bind').sort()
 
     expect(controlled).toEqual(schemaProps)
   })

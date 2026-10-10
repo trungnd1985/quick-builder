@@ -1,4 +1,5 @@
 using System.Text.Json;
+using QuickBuilder.Rendering.Binding;
 using QuickBuilder.Rendering.Domain;
 
 namespace QuickBuilder.Rendering.Rendering.Blocks;
@@ -30,7 +31,7 @@ internal sealed class HeadingRenderer : IBlockRenderer
         context.Style(writer, scope, node,
             ("--qb-heading-color", context.Token(node, "color", TokenKind.Color)),
             ("--qb-heading-size", context.Tokens.Value(size.RootElement, TokenKind.Text, MediumSize)));
-        writer.EndTag().Text(context.String(node, "text")).Close(tag);
+        writer.EndTag().Text(context.BoundText(node, "text")).Close(tag);
     }
 }
 
@@ -50,7 +51,7 @@ internal sealed class TextRenderer : IBlockRenderer
         context.Style(writer, scope, node,
             ("--qb-text-color", context.Token(node, "color", TokenKind.Color)),
             ("--qb-text-size", context.Token(node, "size", TokenKind.Text)));
-        writer.EndTag().Text(context.String(node, "text")).Close("p");
+        writer.EndTag().Text(context.BoundText(node, "text")).Close("p");
     }
 }
 
@@ -69,7 +70,8 @@ internal sealed class RichTextBlockRenderer : IBlockRenderer
         writer.Open("div").Attribute("class", $"qb-rich-text qb-align--{context.Choice(node, "align", Alignments)}");
         context.Style(writer, scope, node, ("--qb-text-color", context.Token(node, "color", TokenKind.Color)));
         writer.EndTag();
-        RichTextRenderer.Render(context.Prop(node, "content"), context, writer);
+        var bound = context.Bound(node, "content");
+        RichTextRenderer.Render(bound is { State: BoundState.Value, RichText: { } content } ? content : context.Prop(node, "content"), context, writer);
         writer.Close("div");
     }
 }

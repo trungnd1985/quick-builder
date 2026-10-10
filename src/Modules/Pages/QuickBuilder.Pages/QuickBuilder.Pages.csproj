@@ -21,6 +21,11 @@
     <ProjectReference Include="..\..\Identity\QuickBuilder.Identity.Contracts\QuickBuilder.Identity.Contracts.csproj" />
     <ProjectReference Include="..\..\Editor\QuickBuilder.Editor.Contracts\QuickBuilder.Editor.Contracts.csproj" />
     <ProjectReference Include="..\..\Media\QuickBuilder.Media.Contracts\QuickBuilder.Media.Contracts.csproj" />
+    <!--
+      016 research TB-02, TB-10, TB-12: collection checks for templates and lists, item counts
+      for address warnings, and Cms events that refresh pages.
+    -->
+    <ProjectReference Include="..\..\Cms\QuickBuilder.Cms.Contracts\QuickBuilder.Cms.Contracts.csproj" />
   </ItemGroup>
 
   <ItemGroup>

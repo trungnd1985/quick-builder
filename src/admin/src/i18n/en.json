@@ -749,7 +749,11 @@
         "youtube": "YouTube video",
         "vimeo": "Vimeo video"
       },
-      "componentRef": "Shared component"
+      "componentRef": "Shared component",
+      "collectionList": "Collection list",
+      "listCard": "Card",
+      "listEmpty": "When nothing is listed",
+      "listEmptyText": "Nothing to show yet."
     },
     "canvas": {
       "label": "Page canvas",

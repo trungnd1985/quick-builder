@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "bindingVersion": 1,
+  "root": {
+    "id": "root",
+    "type": "root",
+    "props": {},
+    "children": [
+      {
+        "id": "s1",
+        "type": "section",
+        "props": {},
+        "children": [
+          {
+            "id": "l1",
+            "type": "collection-list",
+            "props": {
+              "source": {
+                "collectionId": "0192f5a0-0000-7000-8000-00000000c001"
+              },
+              "paging": {
+                "pageSize": 5
+              }
+            },
+            "children": [
+              {
+                "id": "l1-card",
+                "type": "list-card",
+                "props": {},
+                "children": []
+              },
+              {
+                "id": "l1-empty",
+                "type": "list-empty",
+                "props": {},
+                "children": []
+              }
+            ]
+          },
+          {
+            "id": "l2",
+            "type": "collection-list",
+            "props": {
+              "source": {
+                "collectionId": "0192f5a0-0000-7000-8000-00000000c001"
+              },
+              "paging": {
+                "pageSize": 5
+              }
+            },
+            "children": [
+              {
+                "id": "l2-card",
+                "type": "list-card",
+                "props": {},
+                "children": []
+              },
+              {
+                "id": "l2-empty",
+                "type": "list-empty",
+                "props": {},
+                "children": []
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

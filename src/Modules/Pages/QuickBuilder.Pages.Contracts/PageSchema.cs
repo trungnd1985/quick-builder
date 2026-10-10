@@ -38,6 +38,15 @@ public static class PageSchema
     /// <summary>The most tables one rich text may hold (contract §3 rule 10, added by 035).</summary>
     public const int MaxRichTextTables = 20;
 
+    /// <summary>The most Collection list blocks one document may hold (contract §3 rule 18, added by 016).</summary>
+    public const int MaxListsPerDocument = 20;
+
+    /// <summary>How deep Collection list blocks may nest: a list inside a list's card (rule 17, 016).</summary>
+    public const int MaxListDepth = 2;
+
+    /// <summary>The binding expression format version documents are written in (binding-expression.md §7, 016).</summary>
+    public const int CurrentBindingVersion = 1;
+
     private const string ResourcePrefix = "QuickBuilder.Pages.Contracts.PageSchema.v";
 
     /// <summary>Every version the product can validate and store.</summary>

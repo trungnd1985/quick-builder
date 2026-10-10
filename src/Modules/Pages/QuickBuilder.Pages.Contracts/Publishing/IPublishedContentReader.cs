@@ -14,9 +14,24 @@ public interface IPublishedContentReader
 {
     /// <summary>
     /// The live page at a normalised, lower-case address, with its render generation; null
-    /// when no page has that address or it is not live. One indexed lookup.
+    /// when no page has that address or it is not live. One indexed lookup. Template pages
+    /// have no address of their own and are never found here (016 research TB-02).
     /// </summary>
     Task<LivePageRef?> FindLiveByPathAsync(Guid siteId, string path, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// The live template page whose parent has the normalised, lower-case address
+    /// <paramref name="parentPath"/>; null when there is none (016 research TB-03). One indexed
+    /// lookup, on the template's pattern.
+    /// </summary>
+    Task<LiveTemplateRef?> FindLiveTemplateAsync(Guid siteId, string parentPath, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// The address patterns of the live templates of <paramref name="collectionIds"/>, for links
+    /// to item pages; collections without a live template are absent (016 research TB-09).
+    /// </summary>
+    Task<IReadOnlyDictionary<Guid, string>> GetLiveTemplatePatternsAsync(
+        Guid siteId, IReadOnlyCollection<Guid> collectionIds, CancellationToken cancellationToken = default);
 
     /// <summary>The live version of a page, or null when it is not live.</summary>
     Task<LivePageVersion?> GetLivePageAsync(Guid siteId, Guid pageId, CancellationToken cancellationToken = default);
@@ -37,7 +52,23 @@ public interface IPublishedContentReader
 }
 
 /// <summary>A live page found by address, with the generation its cache key carries (PR-05).</summary>
-public sealed record LivePageRef(Guid PageId, long Generation);
+/// <param name="PageParamNames">
+/// The page parameters of the live version's paginated lists, so the cache key can name the
+/// pages visitors asked for before the document is read (016 research TB-11).
+/// </param>
+public sealed record LivePageRef(Guid PageId, long Generation, IReadOnlyList<string>? PageParamNames = null)
+{
+    /// <summary>The page parameters, none when the page has no paginated list.</summary>
+    public IReadOnlyList<string> Params => PageParamNames ?? [];
+}
+
+/// <summary>A live template page found by its parent's address (016 research TB-03).</summary>
+/// <param name="CollectionId">The collection whose items the template shows.</param>
+public sealed record LiveTemplateRef(Guid PageId, long Generation, Guid CollectionId, IReadOnlyList<string>? PageParamNames = null)
+{
+    /// <summary>The page parameters, none when the template has no paginated list.</summary>
+    public IReadOnlyList<string> Params => PageParamNames ?? [];
+}
 
 /// <summary>A live component document.</summary>
 public sealed record LiveDocument(int SchemaVersion, JsonElement Document);

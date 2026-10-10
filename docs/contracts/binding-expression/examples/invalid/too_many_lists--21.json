@@ -1,0 +1,501 @@
+{
+  "schemaVersion": 1,
+  "bindingVersion": 1,
+  "root": {
+    "id": "root",
+    "type": "root",
+    "props": {},
+    "children": [
+      {
+        "id": "s1",
+        "type": "section",
+        "props": {},
+        "children": [
+          {
+            "id": "l1",
+            "type": "collection-list",
+            "props": {
+              "source": {
+                "collectionId": "0192f5a0-0000-7000-8000-00000000c001"
+              }
+            },
+            "children": [
+              {
+                "id": "l1-card",
+                "type": "list-card",
+                "props": {},
+                "children": []
+              },
+              {
+                "id": "l1-empty",
+                "type": "list-empty",
+                "props": {},
+                "children": []
+              }
+            ]
+          },
+          {
+            "id": "l2",
+            "type": "collection-list",
+            "props": {
+              "source": {
+                "collectionId": "0192f5a0-0000-7000-8000-00000000c001"
+              }
+            },
+            "children": [
+              {
+                "id": "l2-card",
+                "type": "list-card",
+                "props": {},
+                "children": []
+              },
+              {
+                "id": "l2-empty",
+                "type": "list-empty",
+                "props": {},
+                "children": []
+              }
+            ]
+          },
+          {
+            "id": "l3",
+            "type": "collection-list",
+            "props": {
+              "source": {
+                "collectionId": "0192f5a0-0000-7000-8000-00000000c001"
+              }
+            },
+            "children": [
+              {
+                "id": "l3-card",
+                "type": "list-card",
+                "props": {},
+                "children": []
+              },
+              {
+                "id": "l3-empty",
+                "type": "list-empty",
+                "props": {},
+                "children": []
+              }
+            ]
+          },
+          {
+            "id": "l4",
+            "type": "collection-list",
+            "props": {
+              "source": {
+                "collectionId": "0192f5a0-0000-7000-8000-00000000c001"
+              }
+            },
+            "children": [
+              {
+                "id": "l4-card",
+                "type": "list-card",
+                "props": {},
+                "children": []
+              },
+              {
+                "id": "l4-empty",
+                "type": "list-empty",
+                "props": {},
+                "children": []
+              }
+            ]
+          },
+          {
+            "id": "l5",
+            "type": "collection-list",
+            "props": {
+              "source": {
+                "collectionId": "0192f5a0-0000-7000-8000-00000000c001"
+              }
+            },
+            "children": [
+              {
+                "id": "l5-card",
+                "type": "list-card",
+                "props": {},
+                "children": []
+              },
+              {
+                "id": "l5-empty",
+                "type": "list-empty",
+                "props": {},
+                "children": []
+              }
+            ]
+          },
+          {
+            "id": "l6",
+            "type": "collection-list",
+            "props": {
+              "source": {
+                "collectionId": "0192f5a0-0000-7000-8000-00000000c001"
+              }
+            },
+            "children": [
+              {
+                "id": "l6-card",
+                "type": "list-card",
+                "props": {},
+                "children": []
+              },
+              {
+                "id": "l6-empty",
+                "type": "list-empty",
+                "props": {},
+                "children": []
+              }
+            ]
+          },
+          {
+            "id": "l7",
+            "type": "collection-list",
+            "props": {
+              "source": {
+                "collectionId": "0192f5a0-0000-7000-8000-00000000c001"
+              }
+            },
+            "children": [
+              {
+                "id": "l7-card",
+                "type": "list-card",
+                "props": {},
+                "children": []
+              },
+              {
+                "id": "l7-empty",
+                "type": "list-empty",
+                "props": {},
+                "children": []
+              }
+            ]
+          },
+          {
+            "id": "l8",
+            "type": "collection-list",
+            "props": {
+              "source": {
+                "collectionId": "0192f5a0-0000-7000-8000-00000000c001"
+              }
+            },
+            "children": [
+              {
+                "id": "l8-card",
+                "type": "list-card",
+                "props": {},
+                "children": []
+              },
+              {
+                "id": "l8-empty",
+                "type": "list-empty",
+                "props": {},
+                "children": []
+              }
+            ]
+          },
+          {
+            "id": "l9",
+            "type": "collection-list",
+            "props": {
+              "source": {
+                "collectionId": "0192f5a0-0000-7000-8000-00000000c001"
+              }
+            },
+            "children": [
+              {
+                "id": "l9-card",
+                "type": "list-card",
+                "props": {},
+                "children": []
+              },
+              {
+                "id": "l9-empty",
+                "type": "list-empty",
+                "props": {},
+                "children": []
+              }
+            ]
+          },
+          {
+            "id": "l10",
+            "type": "collection-list",
+            "props": {
+              "source": {
+                "collectionId": "0192f5a0-0000-7000-8000-00000000c001"
+              }
+            },
+            "children": [
+              {
+                "id": "l10-card",
+                "type": "list-card",
+                "props": {},
+                "children": []
+              },
+              {
+                "id": "l10-empty",
+                "type": "list-empty",
+                "props": {},
+                "children": []
+              }
+            ]
+          },
+          {
+            "id": "l11",
+            "type": "collection-list",
+            "props": {
+              "source": {
+                "collectionId": "0192f5a0-0000-7000-8000-00000000c001"
+              }
+            },
+            "children": [
+              {
+                "id": "l11-card",
+                "type": "list-card",
+                "props": {},
+                "children": []
+              },
+              {
+                "id": "l11-empty",
+                "type": "list-empty",
+                "props": {},
+                "children": []
+              }
+            ]
+          },
+          {
+            "id": "l12",
+            "type": "collection-list",
+            "props": {
+              "source": {
+                "collectionId": "0192f5a0-0000-7000-8000-00000000c001"
+              }
+            },
+            "children": [
+              {
+                "id": "l12-card",
+                "type": "list-card",
+                "props": {},
+                "children": []
+              },
+              {
+                "id": "l12-empty",
+                "type": "list-empty",
+                "props": {},
+                "children": []
+              }
+            ]
+          },
+          {
+            "id": "l13",
+            "type": "collection-list",
+            "props": {
+              "source": {
+                "collectionId": "0192f5a0-0000-7000-8000-00000000c001"
+              }
+            },
+            "children": [
+              {
+                "id": "l13-card",
+                "type": "list-card",
+                "props": {},
+                "children": []
+              },
+              {
+                "id": "l13-empty",
+                "type": "list-empty",
+                "props": {},
+                "children": []
+              }
+            ]
+          },
+          {
+            "id": "l14",
+            "type": "collection-list",
+            "props": {
+              "source": {
+                "collectionId": "0192f5a0-0000-7000-8000-00000000c001"
+              }
+            },
+            "children": [
+              {
+                "id": "l14-card",
+                "type": "list-card",
+                "props": {},
+                "children": []
+              },
+              {
+                "id": "l14-empty",
+                "type": "list-empty",
+                "props": {},
+                "children": []
+              }
+            ]
+          },
+          {
+            "id": "l15",
+            "type": "collection-list",
+            "props": {
+              "source": {
+                "collectionId": "0192f5a0-0000-7000-8000-00000000c001"
+              }
+            },
+            "children": [
+              {
+                "id": "l15-card",
+                "type": "list-card",
+                "props": {},
+                "children": []
+              },
+              {
+                "id": "l15-empty",
+                "type": "list-empty",
+                "props": {},
+                "children": []
+              }
+            ]
+          },
+          {
+            "id": "l16",
+            "type": "collection-list",
+            "props": {
+              "source": {
+                "collectionId": "0192f5a0-0000-7000-8000-00000000c001"
+              }
+            },
+            "children": [
+              {
+                "id": "l16-card",
+                "type": "list-card",
+                "props": {},
+                "children": []
+              },
+              {
+                "id": "l16-empty",
+                "type": "list-empty",
+                "props": {},
+                "children": []
+              }
+            ]
+          },
+          {
+            "id": "l17",
+            "type": "collection-list",
+            "props": {
+              "source": {
+                "collectionId": "0192f5a0-0000-7000-8000-00000000c001"
+              }
+            },
+            "children": [
+              {
+                "id": "l17-card",
+                "type": "list-card",
+                "props": {},
+                "children": []
+              },
+              {
+                "id": "l17-empty",
+                "type": "list-empty",
+                "props": {},
+                "children": []
+              }
+            ]
+          },
+          {
+            "id": "l18",
+            "type": "collection-list",
+            "props": {
+              "source": {
+                "collectionId": "0192f5a0-0000-7000-8000-00000000c001"
+              }
+            },
+            "children": [
+              {
+                "id": "l18-card",
+                "type": "list-card",
+                "props": {},
+                "children": []
+              },
+              {
+                "id": "l18-empty",
+                "type": "list-empty",
+                "props": {},
+                "children": []
+              }
+            ]
+          },
+          {
+            "id": "l19",
+            "type": "collection-list",
+            "props": {
+              "source": {
+                "collectionId": "0192f5a0-0000-7000-8000-00000000c001"
+              }
+            },
+            "children": [
+              {
+                "id": "l19-card",
+                "type": "list-card",
+                "props": {},
+                "children": []
+              },
+              {
+                "id": "l19-empty",
+                "type": "list-empty",
+                "props": {},
+                "children": []
+              }
+            ]
+          },
+          {
+            "id": "l20",
+            "type": "collection-list",
+            "props": {
+              "source": {
+                "collectionId": "0192f5a0-0000-7000-8000-00000000c001"
+              }
+            },
+            "children": [
+              {
+                "id": "l20-card",
+                "type": "list-card",
+                "props": {},
+                "children": []
+              },
+              {
+                "id": "l20-empty",
+                "type": "list-empty",
+                "props": {},
+                "children": []
+              }
+            ]
+          },
+          {
+            "id": "l21",
+            "type": "collection-list",
+            "props": {
+              "source": {
+                "collectionId": "0192f5a0-0000-7000-8000-00000000c001"
+              }
+            },
+            "children": [
+              {
+                "id": "l21-card",
+                "type": "list-card",
+                "props": {},
+                "children": []
+              },
+              {
+                "id": "l21-empty",
+                "type": "list-empty",
+                "props": {},
+                "children": []
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

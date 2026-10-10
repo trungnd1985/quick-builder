@@ -20,6 +20,10 @@ namespace QuickBuilder.Rendering.Domain;
 /// <param name="Media">Media files by id; a deleted file is absent.</param>
 /// <param name="Language">The site's default language, for <c>lang</c>.</param>
 /// <param name="BasePath">The installation's base path, prefixed to every address on the site.</param>
+/// <param name="Data">
+/// The published items, schemas and list results the page's bindings and lists read (016
+/// research TB-09); empty for a page with neither.
+/// </param>
 internal sealed record RenderInputs(
     string Title,
     JsonElement Document,
@@ -28,4 +32,5 @@ internal sealed record RenderInputs(
     IReadOnlyDictionary<Guid, PageLinkTarget> LinkTargets,
     IReadOnlyDictionary<Guid, PublicMediaFile> Media,
     string Language,
-    string BasePath);
+    string BasePath,
+    Binding.ResolvedData? Data = null);

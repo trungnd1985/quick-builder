@@ -60,9 +60,14 @@ public sealed partial class PageSchemaContractTests
     {
         // 011 SC-009: a golden file per block type on each side, so no type is added without
         // one. A type counts as covered by any example that uses it.
+        // 016: the Collection list and its slots are covered by the binding contract's examples,
+        // which every validator runs with these.
         var examples = Path.Combine(Contracts, "page-schema", "examples");
-        var valid = TypesUsed(Directory.GetFiles(Path.Combine(examples, "valid"), "*.json"));
-        var invalid = TypesUsed(Directory.GetFiles(Path.Combine(examples, "invalid"), "*--*.json"));
+        var bindingExamples = Path.Combine(Contracts, "binding-expression", "examples");
+        var valid = TypesUsed(Directory.GetFiles(Path.Combine(examples, "valid"), "*.json")
+            .Concat(Directory.GetFiles(Path.Combine(bindingExamples, "valid"), "*.json")));
+        var invalid = TypesUsed(Directory.GetFiles(Path.Combine(examples, "invalid"), "*--*.json")
+            .Concat(Directory.GetFiles(Path.Combine(bindingExamples, "invalid"), "*--*.json")));
 
         Assert.All(NodeTypes().Keys, type =>
         {
@@ -78,7 +83,7 @@ public sealed partial class PageSchemaContractTests
         var defs = schema.RootElement.GetProperty("$defs");
 
         var types = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
-        foreach (var list in new[] { "rootChild", "contentChild" })
+        foreach (var list in new[] { "rootChild", "contentChild", "listChild" })
         {
             foreach (var branch in defs.GetProperty(list).GetProperty("oneOf").EnumerateArray())
             {
@@ -125,6 +130,8 @@ public sealed partial class PageSchemaContractTests
             ["Address length"] = PageAddresses.MaxPathLength,
             ["Page nesting"] = PageAddresses.MaxDepth,
             ["Pages per site"] = PageAddresses.MaxPagesPerSite,
+            ["Collection lists per document"] = PageSchema.MaxListsPerDocument,
+            ["Collection list nesting"] = PageSchema.MaxListDepth,
         };
 
         Assert.Equal(enforced.OrderBy(e => e.Key), documented.OrderBy(e => e.Key));

@@ -140,6 +140,9 @@ public sealed partial class DesignTokenContractTests
         Assert.Equal(QuickBuilder.Pages.Contracts.PageSchema.MaxRichTextImages, constants["MAX_RICH_TEXT_IMAGES"]);
         Assert.Equal(QuickBuilder.Pages.Contracts.PageSchema.MaxRichTextTables, constants["MAX_RICH_TEXT_TABLES"]);
         Assert.Equal(QuickBuilder.Pages.Contracts.PageSchema.CurrentVersion, constants["CURRENT_SCHEMA_VERSION"]);
+        Assert.Equal(QuickBuilder.Pages.Contracts.PageSchema.MaxListsPerDocument, constants["MAX_LISTS_PER_DOCUMENT"]);
+        Assert.Equal(QuickBuilder.Pages.Contracts.PageSchema.MaxListDepth, constants["MAX_LIST_DEPTH"]);
+        Assert.Equal(QuickBuilder.Pages.Contracts.PageSchema.CurrentBindingVersion, constants["CURRENT_BINDING_VERSION"]);
     }
 
     // ['system-ui', "system-ui, sans-serif"] — the id in single quotes, the family in double.

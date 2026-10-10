@@ -30,6 +30,12 @@ internal static class DependencyKinds
     public const string Page = "page";
 
     public const string Media = "media";
+
+    /// <summary>A Collection list's source collection (016 data-model §1.2).</summary>
+    public const string Collection = "collection";
+
+    /// <summary>A template page's own collection (016 data-model §1.2).</summary>
+    public const string Template = "template";
 }
 
 /// <summary>What a schedule does (012 data-model §1.4).</summary>

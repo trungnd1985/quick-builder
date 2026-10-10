@@ -12,6 +12,10 @@
     "schemaVersion": {
       "const": 1
     },
+    "bindingVersion": {
+      "description": "The binding expression format version (binding-expression.md). Required when the document holds a bind or a collection-list (rule 13).",
+      "const": 1
+    },
     "root": {
       "$ref": "#/$defs/root"
     }
@@ -90,6 +94,20 @@
         },
         {
           "$ref": "#/$defs/embed"
+        },
+        {
+          "$ref": "#/$defs/collection-list"
+        }
+      ]
+    },
+    "listChild": {
+      "description": "What may sit directly inside a collection-list: its card, then its empty state (rule 20).",
+      "oneOf": [
+        {
+          "$ref": "#/$defs/list-card"
+        },
+        {
+          "$ref": "#/$defs/list-empty"
         }
       ]
     },
@@ -406,6 +424,15 @@
             },
             "layerLabel": {
               "$ref": "#/$defs/layerLabel"
+            },
+            "bind": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "text": {
+                  "$ref": "#/$defs/binding"
+                }
+              }
             }
           }
         },
@@ -458,6 +485,15 @@
             },
             "layerLabel": {
               "$ref": "#/$defs/layerLabel"
+            },
+            "bind": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "text": {
+                  "$ref": "#/$defs/binding"
+                }
+              }
             }
           }
         },
@@ -503,6 +539,15 @@
             },
             "layerLabel": {
               "$ref": "#/$defs/layerLabel"
+            },
+            "bind": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "content": {
+                  "$ref": "#/$defs/binding"
+                }
+              }
             }
           }
         },
@@ -564,6 +609,21 @@
             },
             "layerLabel": {
               "$ref": "#/$defs/layerLabel"
+            },
+            "bind": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "media": {
+                  "$ref": "#/$defs/binding"
+                },
+                "alt": {
+                  "$ref": "#/$defs/binding"
+                },
+                "link": {
+                  "$ref": "#/$defs/binding"
+                }
+              }
             }
           }
         },
@@ -620,6 +680,18 @@
             },
             "layerLabel": {
               "$ref": "#/$defs/layerLabel"
+            },
+            "bind": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "label": {
+                  "$ref": "#/$defs/binding"
+                },
+                "link": {
+                  "$ref": "#/$defs/binding"
+                }
+              }
             }
           }
         },
@@ -758,6 +830,384 @@
         },
         "children": {
           "$ref": "#/$defs/noChildren"
+        }
+      }
+    },
+    "fieldId": {
+      "description": "A collection field, by its stable id (collection-schema.md §2).",
+      "type": "string",
+      "pattern": "^f[1-9][0-9]{0,5}$"
+    },
+    "builtInValue": {
+      "description": "An item value that is not a field (binding-expression.md §2).",
+      "enum": [
+        "url",
+        "slug",
+        "firstPublishedAt",
+        "lastPublishedAt"
+      ]
+    },
+    "itemOrderValue": {
+      "description": "The built-in item values a list can filter and sort on (binding-expression.md §5).",
+      "enum": [
+        "slug",
+        "firstPublishedAt",
+        "lastPublishedAt"
+      ]
+    },
+    "valueFormat": {
+      "description": "How a date, number or boolean is shown. A format that does not fit the value is ignored.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "date": {
+          "enum": [
+            "short",
+            "medium",
+            "long",
+            "iso"
+          ]
+        },
+        "number": {
+          "type": "object",
+          "required": [
+            "decimals"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "decimals": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 6
+            }
+          }
+        },
+        "yes": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "no": {
+          "type": "string",
+          "maxLength": 100
+        }
+      }
+    },
+    "bindingPart": {
+      "description": "A part of a text template: fixed text, or a value with exactly one of field and item (checked in code).",
+      "type": [
+        "string",
+        "object"
+      ],
+      "maxLength": 500,
+      "additionalProperties": false,
+      "properties": {
+        "field": {
+          "$ref": "#/$defs/fieldId"
+        },
+        "item": {
+          "$ref": "#/$defs/builtInValue"
+        },
+        "via": {
+          "$ref": "#/$defs/fieldId"
+        },
+        "scope": {
+          "$ref": "#/$defs/nodeId"
+        },
+        "format": {
+          "$ref": "#/$defs/valueFormat"
+        }
+      }
+    },
+    "binding": {
+      "description": "Fills one block property from an item (binding-expression.md §2). The value holds exactly one of field, item and parts (checked in code).",
+      "type": "object",
+      "required": [
+        "value"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "value": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "field": {
+              "$ref": "#/$defs/fieldId"
+            },
+            "item": {
+              "$ref": "#/$defs/builtInValue"
+            },
+            "via": {
+              "$ref": "#/$defs/fieldId"
+            },
+            "scope": {
+              "$ref": "#/$defs/nodeId"
+            },
+            "format": {
+              "$ref": "#/$defs/valueFormat"
+            },
+            "parts": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 20,
+              "items": {
+                "$ref": "#/$defs/bindingPart"
+              }
+            }
+          }
+        },
+        "empty": {
+          "enum": [
+            "fallback",
+            "hide"
+          ],
+          "default": "fallback"
+        }
+      }
+    },
+    "listSource": {
+      "description": "A collection of the site, or a multi-reference field of a scope's item; exactly one of collectionId and field (checked in code).",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "collectionId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "field": {
+          "$ref": "#/$defs/fieldId"
+        },
+        "scope": {
+          "$ref": "#/$defs/nodeId"
+        }
+      }
+    },
+    "listOperand": {
+      "description": "A filter's value: a literal, a field of an enclosing scope's item, or the current item (binding-expression.md §5).",
+      "type": [
+        "string",
+        "number",
+        "boolean",
+        "object"
+      ],
+      "maxLength": 500,
+      "additionalProperties": false,
+      "properties": {
+        "field": {
+          "$ref": "#/$defs/fieldId"
+        },
+        "scope": {
+          "$ref": "#/$defs/nodeId"
+        },
+        "current": {
+          "const": true
+        }
+      }
+    },
+    "listFilter": {
+      "description": "One condition; exactly one of field and item (checked in code).",
+      "type": "object",
+      "required": [
+        "op"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "field": {
+          "$ref": "#/$defs/fieldId"
+        },
+        "item": {
+          "$ref": "#/$defs/itemOrderValue"
+        },
+        "op": {
+          "enum": [
+            "eq",
+            "ne",
+            "contains",
+            "gt",
+            "lt",
+            "empty",
+            "notEmpty"
+          ]
+        },
+        "value": {
+          "$ref": "#/$defs/listOperand"
+        }
+      }
+    },
+    "listSort": {
+      "description": "One sort key; exactly one of field and item (checked in code).",
+      "type": "object",
+      "required": [
+        "dir"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "field": {
+          "$ref": "#/$defs/fieldId"
+        },
+        "item": {
+          "$ref": "#/$defs/itemOrderValue"
+        },
+        "dir": {
+          "enum": [
+            "asc",
+            "desc"
+          ]
+        }
+      }
+    },
+    "listPaging": {
+      "type": "object",
+      "required": [
+        "pageSize"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "pageSize": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100
+        },
+        "param": {
+          "type": "string",
+          "maxLength": 32,
+          "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+          "default": "page"
+        }
+      }
+    },
+    "collection-list": {
+      "type": "object",
+      "required": [
+        "id",
+        "type",
+        "props",
+        "children"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/nodeId"
+        },
+        "type": {
+          "const": "collection-list"
+        },
+        "props": {
+          "type": "object",
+          "required": [
+            "source"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "source": {
+              "$ref": "#/$defs/listSource"
+            },
+            "filters": {
+              "type": "array",
+              "maxItems": 10,
+              "items": {
+                "$ref": "#/$defs/listFilter"
+              }
+            },
+            "sort": {
+              "type": "array",
+              "maxItems": 3,
+              "items": {
+                "$ref": "#/$defs/listSort"
+              }
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 12
+            },
+            "paging": {
+              "$ref": "#/$defs/listPaging"
+            },
+            "columns": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 4,
+              "default": 3
+            },
+            "gap": {
+              "$ref": "#/$defs/spaceRef",
+              "default": {
+                "token": "space-md"
+              }
+            },
+            "layerLabel": {
+              "$ref": "#/$defs/layerLabel"
+            }
+          }
+        },
+        "children": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/listChild"
+          }
+        }
+      }
+    },
+    "list-card": {
+      "description": "Repeated once per listed item; its blocks bind to that item (scope named by the list's id).",
+      "type": "object",
+      "required": [
+        "id",
+        "type",
+        "props",
+        "children"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/nodeId"
+        },
+        "type": {
+          "const": "list-card"
+        },
+        "props": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "layerLabel": {
+              "$ref": "#/$defs/layerLabel"
+            }
+          }
+        },
+        "children": {
+          "$ref": "#/$defs/contentChildren"
+        }
+      }
+    },
+    "list-empty": {
+      "description": "Shown instead of cards when the list has no item to show.",
+      "type": "object",
+      "required": [
+        "id",
+        "type",
+        "props",
+        "children"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/nodeId"
+        },
+        "type": {
+          "const": "list-empty"
+        },
+        "props": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "layerLabel": {
+              "$ref": "#/$defs/layerLabel"
+            }
+          }
+        },
+        "children": {
+          "$ref": "#/$defs/contentChildren"
         }
       }
     },

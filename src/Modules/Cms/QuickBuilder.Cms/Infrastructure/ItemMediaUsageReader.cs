@@ -68,4 +68,13 @@ internal sealed class ItemMediaUsageReader(CmsDbContext database) : IItemMediaUs
                 r.Row.Id, r.Row.Name, r.Row.Slug, r.Row.CollectionId, r.CollectionName, r.Row.InDraft, r.Row.InLive, r.Row.InScheduled, r.Row.InHistory))
             .ToList();
     }
+
+    public async Task<IReadOnlyList<Guid>> CollectionsShowingPublishedAsync(Guid siteId, Guid mediaId, CancellationToken cancellationToken = default) =>
+        await database.ForSite<ItemMediaUse>(siteId)
+            .AsNoTracking()
+            .Where(m => m.MediaId == mediaId && m.InLive)
+            .Join(database.ForSite<Item>(siteId), m => m.ItemId, i => i.Id, (m, i) => i.CollectionId)
+            .Distinct()
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
 }
