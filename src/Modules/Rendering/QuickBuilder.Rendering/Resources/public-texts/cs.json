@@ -3,5 +3,11 @@
     "title": "Stránka nenalezena",
     "message": "Stránku, kterou hledáte, se nepodařilo najít.",
     "home": "Přejít na úvodní stránku"
+  },
+  "pager": {
+    "label": "Stránky",
+    "previous": "Předchozí",
+    "next": "Další",
+    "first": "Zpět na první stránku"
   }
 }

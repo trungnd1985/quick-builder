@@ -37,6 +37,9 @@ internal sealed class ResolvedData
     /// </summary>
     public IReadOnlyDictionary<string, int> PageNumbers { get; init; } = new Dictionary<string, int>(StringComparer.Ordinal);
 
+    /// <summary>The address being rendered, base path removed, for pager links (TB-11).</summary>
+    public string ListPath { get; init; } = "/";
+
     /// <summary>
     /// The key of a list's result in one place on the page: the list's node id and the items of
     /// every scope around it, so a list inside a card has a result per card.

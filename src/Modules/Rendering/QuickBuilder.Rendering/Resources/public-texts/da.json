@@ -3,5 +3,11 @@
     "title": "Siden blev ikke fundet",
     "message": "Vi kunne ikke finde den side, du leder efter.",
     "home": "Gå til forsiden"
+  },
+  "pager": {
+    "label": "Sider",
+    "previous": "Forrige",
+    "next": "Næste",
+    "first": "Tilbage til første side"
   }
 }

@@ -44,7 +44,13 @@ public sealed class CollectionListRenderTests
         Post("weaving", "Weaving <basics>") with { Id = Guid.Parse("0192f5a0-0000-7000-8000-0000000a0003") },
     ];
 
-    private static string Render(string document, IReadOnlyList<PublishedItem>? items, bool withTemplate = true, bool onTemplatePage = false)
+    private static string Render(
+        string document,
+        IReadOnlyList<PublishedItem>? items,
+        bool withTemplate = true,
+        bool onTemplatePage = false,
+        int total = -1,
+        IReadOnlyDictionary<string, int>? pageNumbers = null)
     {
         using var parsed = JsonDocument.Parse(document);
         var inputs = World.Inputs();
@@ -58,7 +64,9 @@ public sealed class CollectionListRenderTests
             TemplatePatterns = withTemplate ? inputs.Data.TemplatePatterns : new Dictionary<Guid, string>(),
             Lists = items is null
                 ? new Dictionary<string, PublishedItemPage>(StringComparer.Ordinal)
-                : new Dictionary<string, PublishedItemPage>(StringComparer.Ordinal) { [key] = new(items, items.Count) },
+                : new Dictionary<string, PublishedItemPage>(StringComparer.Ordinal) { [key] = new(items, total < 0 ? items.Count : total) },
+            PageNumbers = pageNumbers ?? new Dictionary<string, int>(StringComparer.Ordinal),
+            ListPath = "/blog",
         };
 
         return Encoding.UTF8.GetString(
@@ -133,5 +141,37 @@ public sealed class CollectionListRenderTests
 
         var pageTitle = World.Root.GetProperty("pageItem").GetProperty("values").GetProperty("values").GetProperty("f1").GetString()!;
         Assert.Contains($"Caring for linen, from {System.Net.WebUtility.HtmlEncode(pageTitle)}</h3>", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_paginated_list_writes_its_pager_with_links_that_keep_other_lists()
+    {
+        var html = Render(
+            Document($$$"""{"source":{"collectionId":"{{{Posts}}}"},"paging":{"pageSize":3},"layerLabel":"Latest posts"}"""),
+            ThreePosts,
+            total: 60,
+            pageNumbers: new Dictionary<string, int>(StringComparer.Ordinal) { ["page"] = 10, ["people"] = 2 });
+
+        Golden("paged", html);
+        Assert.Contains("<nav class=\"qb-pager\" aria-label=\"Latest posts\">", html, StringComparison.Ordinal);
+        Assert.Contains("href=\"/site/blog?page=9&amp;people=2\" rel=\"prev\"", html, StringComparison.Ordinal);
+        Assert.Contains("href=\"/site/blog?page=10&amp;people=2\" aria-current=\"page\">10</a>", html, StringComparison.Ordinal);
+        Assert.Contains("href=\"/site/blog?people=2\">1</a>", html, StringComparison.Ordinal);
+        Assert.Contains("href=\"/site/blog?page=20&amp;people=2\">20</a>", html, StringComparison.Ordinal);
+        Assert.Equal(2, html.Split("qb-pager__gap").Length - 1);
+    }
+
+    [Fact]
+    public void Past_the_last_page_the_empty_state_shows_with_the_way_back()
+    {
+        var html = Render(
+            Document($$$"""{"source":{"collectionId":"{{{Posts}}}"},"paging":{"pageSize":3}}"""),
+            [],
+            total: 6,
+            pageNumbers: new Dictionary<string, int>(StringComparer.Ordinal) { ["page"] = 5 });
+
+        Golden("past-the-end", html);
+        Assert.Contains("Nothing to show yet.", html, StringComparison.Ordinal);
+        Assert.Contains("<nav class=\"qb-pager\" aria-label=\"Pages\"><a class=\"qb-pager__step\" href=\"/site/blog\">Back to the first page</a></nav>", html, StringComparison.Ordinal);
     }
 }

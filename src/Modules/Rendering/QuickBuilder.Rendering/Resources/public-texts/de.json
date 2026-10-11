@@ -3,5 +3,11 @@
     "title": "Seite nicht gefunden",
     "message": "Die gesuchte Seite konnte nicht gefunden werden.",
     "home": "Zur Startseite"
+  },
+  "pager": {
+    "label": "Seiten",
+    "previous": "Zurück",
+    "next": "Weiter",
+    "first": "Zur ersten Seite"
   }
 }

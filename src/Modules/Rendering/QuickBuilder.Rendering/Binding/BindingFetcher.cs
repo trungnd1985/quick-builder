@@ -28,6 +28,8 @@ internal sealed class BindingFetcher(IPublishedItemReader items, IPublishedConte
         Guid siteId,
         IReadOnlyList<JsonElement> documents,
         PublishedItem? pageItem,
+        IReadOnlyDictionary<string, int>? pageNumbers,
+        string listPath,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(documents);
@@ -70,7 +72,7 @@ internal sealed class BindingFetcher(IPublishedItemReader items, IPublishedConte
         var lists = new Dictionary<string, PublishedItemPage>(StringComparer.Ordinal);
         foreach (var node in listNodes)
         {
-            var planned = ListQueries.Plan(node, pageItem, pageSchemas);
+            var planned = ListQueries.Plan(node, pageItem, pageSchemas, pageNumbers);
             var result = planned.Query is { } query
                 ? await items.QueryAsync(siteId, query, cancellationToken).ConfigureAwait(false)
                 : PublishedItemPage.Empty;
@@ -119,6 +121,8 @@ internal sealed class BindingFetcher(IPublishedItemReader items, IPublishedConte
             PageItem = pageItem,
             Items = referenced,
             Lists = lists,
+            PageNumbers = pageNumbers ?? new Dictionary<string, int>(StringComparer.Ordinal),
+            ListPath = listPath,
             Schemas = schemas.ToDictionary(s => s.Key, s => CollectionSchemaInfo.Parse(s.Key, s.Value)),
             TemplatePatterns = patterns,
         };

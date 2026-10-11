@@ -3,8 +3,11 @@ using System.Text.Json;
 
 namespace QuickBuilder.Rendering.Features.NotFound;
 
-/// <summary>The words visitors read on the not-found page, in one language (012 FR-030).</summary>
-internal sealed record PublicTexts(string Title, string Message, string Home)
+/// <summary>
+/// The words visitors read on the not-found page (012 FR-030) and on a list's pager (016
+/// public-rendering.md §3), in one language.
+/// </summary>
+internal sealed record PublicTexts(string Title, string Message, string Home, PagerTexts Pager)
 {
     /// <summary>The language every site falls back to.</summary>
     public const string Fallback = "en";
@@ -45,9 +48,18 @@ internal sealed record PublicTexts(string Title, string Message, string Home)
         }
 
         var notFound = document.RootElement.GetProperty("notFound");
+        var pager = document.RootElement.GetProperty("pager");
         return new PublicTexts(
             notFound.GetProperty("title").GetString()!,
             notFound.GetProperty("message").GetString()!,
-            notFound.GetProperty("home").GetString()!);
+            notFound.GetProperty("home").GetString()!,
+            new PagerTexts(
+                pager.GetProperty("label").GetString()!,
+                pager.GetProperty("previous").GetString()!,
+                pager.GetProperty("next").GetString()!,
+                pager.GetProperty("first").GetString()!));
     }
 }
+
+/// <summary>A pager's words: its name for screen readers, its two step links, and the way back from past the end.</summary>
+internal sealed record PagerTexts(string Label, string Previous, string Next, string First);

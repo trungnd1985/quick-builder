@@ -3,5 +3,11 @@
     "title": "Lapa nav atrasta",
     "message": "Mēs nevarējām atrast meklēto lapu.",
     "home": "Doties uz sākumlapu"
+  },
+  "pager": {
+    "label": "Lapas",
+    "previous": "Iepriekšējā",
+    "next": "Nākamā",
+    "first": "Atpakaļ uz pirmo lapu"
   }
 }

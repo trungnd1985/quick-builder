@@ -318,6 +318,36 @@
     min-width: 0;
   }
 
+  /* A paginated list's pages (016 public-rendering.md §3): plain links, wrapping on narrow screens. */
+  .qb-pager {
+    display: flex;
+    flex-wrap: wrap;
+    gap: calc(var(--qb-base-size) * 0.5);
+    align-items: center;
+    margin-block-start: calc(var(--qb-base-size) * 1.5);
+  }
+
+  .qb-pager a {
+    display: inline-block;
+    min-width: 2.75em;
+    padding: calc(var(--qb-base-size) * 0.5) calc(var(--qb-base-size) * 0.75);
+    border: 1px solid var(--qb-color-color-border, currentColor);
+    border-radius: 4px;
+    color: var(--qb-color-color-text);
+    text-align: center;
+    text-decoration: none;
+  }
+
+  .qb-pager a[aria-current='page'] {
+    background: var(--qb-color-color-brand);
+    border-color: var(--qb-color-color-brand);
+    color: var(--qb-color-color-background);
+  }
+
+  .qb-pager__gap {
+    padding-inline: calc(var(--qb-base-size) * 0.25);
+  }
+
   /* Tablet: sections breathe less, horizontal containers may wrap. */
   @container page (max-width: 767px) {
     .qb-section {

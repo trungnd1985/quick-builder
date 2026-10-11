@@ -28,7 +28,7 @@ public sealed class ListQueriesTests
         JsonDocument.Parse("""{"id":"l1","type":"collection-list","props":""" + props + ""","children":[]}""").RootElement.Clone();
 
     private static PlannedList Plan(string props, PublishedItem? pageItem = null, int pageNumber = 1) =>
-        ListQueries.Plan(List(props), pageItem, Schemas, pageNumber);
+        ListQueries.Plan(List(props), pageItem, Schemas, new Dictionary<string, int> { ["page"] = pageNumber });
 
     [Fact]
     public void A_list_shows_twelve_items_by_default_and_at_most_a_hundred()

@@ -48,7 +48,12 @@ internal sealed class PageResponder(
     /// visitor's copy is current, else the page from the cache or freshly rendered.
     /// </summary>
     public async Task<PublicResponse> RespondAsync(
-        SiteDto site, string path, string basePath, string? ifNoneMatch, CancellationToken cancellationToken)
+        SiteDto site,
+        string path,
+        string basePath,
+        string? ifNoneMatch,
+        IReadOnlyDictionary<string, string?>? query,
+        CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(site);
 
@@ -56,11 +61,13 @@ internal sealed class PageResponder(
         var live = await pages.FindLiveByPathAsync(site.Id, path, cancellationToken).ConfigureAwait(false);
         if (live is null)
         {
-            return await RespondItemAsync(site, path, basePath, ifNoneMatch, cancellationToken).ConfigureAwait(false);
+            return await RespondItemAsync(site, path, basePath, ifNoneMatch, query, cancellationToken).ConfigureAwait(false);
         }
 
+        // 016 TB-11: the page numbers its lists show are part of the key; other parameters are not.
+        var request = new ListRequest(path, PageParams.From(live.Params, query));
         var designNumber = await designs.GetLiveNumberAsync(site.Id, cancellationToken).ConfigureAwait(false);
-        var key = new RenderKey(site.Id, live.PageId, live.Generation, designNumber, site.Version, basePath);
+        var key = new RenderKey(site.Id, live.PageId, live.Generation, designNumber, site.Version, basePath, request.Params.Key);
         var headers = Headers(key.ETag);
 
         if (key.IsMatchedBy(ifNoneMatch))
@@ -68,7 +75,7 @@ internal sealed class PageResponder(
             return NotModified(headers);
         }
 
-        var rendered = await CachedAsync(key.CacheKey, live.PageId, site, ct => RenderAsync(site, live.PageId, basePath, ct), cancellationToken)
+        var rendered = await CachedAsync(key.CacheKey, live.PageId, site, ct => RenderAsync(site, live.PageId, basePath, request, ct), cancellationToken)
             .ConfigureAwait(false);
         return rendered is null
             ? await notFound.RenderAsync(site, cancellationToken).ConfigureAwait(false)
@@ -77,7 +84,12 @@ internal sealed class PageResponder(
 
     /// <summary>An item's page, when the address is a live template's with a published item's slug (016 TB-03).</summary>
     private async Task<PublicResponse> RespondItemAsync(
-        SiteDto site, string path, string basePath, string? ifNoneMatch, CancellationToken cancellationToken)
+        SiteDto site,
+        string path,
+        string basePath,
+        string? ifNoneMatch,
+        IReadOnlyDictionary<string, string?>? query,
+        CancellationToken cancellationToken)
     {
         if (TemplateMatcher.Split(path) is not { } split
             || await pages.FindLiveTemplateAsync(site.Id, split.ParentPath, cancellationToken).ConfigureAwait(false) is not { } template
@@ -86,9 +98,10 @@ internal sealed class PageResponder(
             return await notFound.RenderAsync(site, cancellationToken).ConfigureAwait(false);
         }
 
+        var request = new ListRequest(path, PageParams.From(template.Params, query));
         var designNumber = await designs.GetLiveNumberAsync(site.Id, cancellationToken).ConfigureAwait(false);
         var key = new ItemRenderKey(
-            site.Id, template.PageId, template.Generation, item.ItemId, item.RenderStamp, designNumber, site.Version, basePath, PageParams: string.Empty);
+            site.Id, template.PageId, template.Generation, item.ItemId, item.RenderStamp, designNumber, site.Version, basePath, request.Params.Key);
         var headers = Headers(key.ETag);
 
         if (key.IsMatchedBy(ifNoneMatch))
@@ -100,7 +113,7 @@ internal sealed class PageResponder(
                 key.CacheKey,
                 template.PageId,
                 site,
-                ct => RenderItemAsync(site, template.PageId, item.ItemId, basePath, ct),
+                ct => RenderItemAsync(site, template.PageId, item.ItemId, basePath, request, ct),
                 cancellationToken)
             .ConfigureAwait(false);
         return rendered is null
@@ -149,21 +162,22 @@ internal sealed class PageResponder(
     private sealed class PageGoneException : Exception;
 
     /// <summary>Renders a live page; null when it stopped being live since it was found.</summary>
-    public async Task<RenderedPage?> RenderAsync(SiteDto site, Guid pageId, string basePath, CancellationToken cancellationToken)
+    public async Task<RenderedPage?> RenderAsync(SiteDto site, Guid pageId, string basePath, ListRequest request, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(site);
 
         var version = await pages.GetLivePageAsync(site.Id, pageId, cancellationToken).ConfigureAwait(false);
         return version is null
             ? null
-            : await RenderVersionAsync(site, pageId, version, basePath, pageItem: null, cancellationToken).ConfigureAwait(false);
+            : await RenderVersionAsync(site, pageId, version, basePath, pageItem: null, request, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
     /// Renders an item's page from its template's live version; null when the template or the
     /// item stopped being live since they were found (016 FR-030).
     /// </summary>
-    public async Task<RenderedPage?> RenderItemAsync(SiteDto site, Guid templatePageId, Guid itemId, string basePath, CancellationToken cancellationToken)
+    public async Task<RenderedPage?> RenderItemAsync(
+        SiteDto site, Guid templatePageId, Guid itemId, string basePath, ListRequest request, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(site);
 
@@ -176,11 +190,11 @@ internal sealed class PageResponder(
         var item = (await items.GetAsync(site.Id, [itemId], cancellationToken).ConfigureAwait(false)).GetValueOrDefault(itemId);
         return item is null
             ? null
-            : await RenderVersionAsync(site, templatePageId, version, basePath, item, cancellationToken).ConfigureAwait(false);
+            : await RenderVersionAsync(site, templatePageId, version, basePath, item, request, cancellationToken).ConfigureAwait(false);
     }
 
     private async Task<RenderedPage> RenderVersionAsync(
-        SiteDto site, Guid pageId, LivePageVersion version, string basePath, PublishedItem? pageItem, CancellationToken cancellationToken)
+        SiteDto site, Guid pageId, LivePageVersion version, string basePath, PublishedItem? pageItem, ListRequest request, CancellationToken cancellationToken)
     {
         var design = await designs.GetLiveAsync(site.Id, cancellationToken).ConfigureAwait(false);
 
@@ -195,7 +209,7 @@ internal sealed class PageResponder(
 
         // 016 TB-09: what the bindings read, and what their values show and link to.
         var fetched = await bindings.FetchAsync(
-                site.Id, [version.Document, .. components.Values.Select(c => c.Document)], pageItem, cancellationToken)
+                site.Id, [version.Document, .. components.Values.Select(c => c.Document)], pageItem, request.Params.Pages, request.Path, cancellationToken)
             .ConfigureAwait(false);
         references.Pages.UnionWith(fetched.Pages);
         references.Media.UnionWith(fetched.Media);
@@ -274,3 +288,9 @@ internal sealed class PageResponder(
         "form-action 'none'; " +
         "frame-ancestors 'self'";
 }
+
+/// <summary>
+/// What a render needs of the request for its lists (016 TB-11): the address its pager links
+/// keep, and the page each paginated list shows.
+/// </summary>
+internal sealed record ListRequest(string Path, PageParams Params);

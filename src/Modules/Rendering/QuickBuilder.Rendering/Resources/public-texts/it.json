@@ -3,5 +3,11 @@
     "title": "Pagina non trovata",
     "message": "Non siamo riusciti a trovare la pagina che cerchi.",
     "home": "Vai alla home page"
+  },
+  "pager": {
+    "label": "Pagine",
+    "previous": "Precedente",
+    "next": "Successiva",
+    "first": "Torna alla prima pagina"
   }
 }

@@ -3,5 +3,11 @@
     "title": "Halaman tidak ditemui",
     "message": "Kami tidak dapat menemui halaman yang anda cari.",
     "home": "Pergi ke halaman utama"
+  },
+  "pager": {
+    "label": "Halaman",
+    "previous": "Sebelumnya",
+    "next": "Seterusnya",
+    "first": "Kembali ke halaman pertama"
   }
 }

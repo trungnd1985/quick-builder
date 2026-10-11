@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text.Json;
+using QuickBuilder.Cms.Contracts.Publishing;
 using QuickBuilder.Rendering.Binding;
 using QuickBuilder.Rendering.Domain;
 
@@ -30,7 +31,9 @@ internal sealed class CollectionListRenderer : IBlockRenderer
 
         var (card, empty) = Slots(node);
         var key = ResolvedData.ListKey(RenderContext.IdOf(node), context.Scopes.ItemIds());
-        var items = context.Data.Lists.TryGetValue(key, out var page) ? page.Items : [];
+        var result = context.Data.Lists.TryGetValue(key, out var page) ? page : null;
+        var items = result?.Items ?? [];
+        var paging = Paging(node, context);
 
         if (items.Count == 0 || card is not { } cardNode)
         {
@@ -38,6 +41,12 @@ internal sealed class CollectionListRenderer : IBlockRenderer
             if (empty is { } emptyNode)
             {
                 context.RenderNode(emptyNode, scope, writer);
+            }
+
+            // US5 scenario 3: past the last page, the way back to the first.
+            if (paging is { } pastEnd && pastEnd.Current > 1 && result is { Total: > 0 })
+            {
+                Pager.WriteBackToFirst(writer, context, pastEnd.Param, LayerLabel(node));
             }
 
             return;
@@ -61,7 +70,32 @@ internal sealed class CollectionListRenderer : IBlockRenderer
         }
 
         writer.Close("ul");
+
+        if (paging is { } pages && result is not null)
+        {
+            Pager.Write(writer, context, pages.Param, LayerLabel(node), pages.Current, Pager.LastPage(result.Total, pages.PageSize));
+        }
     }
+
+    /// <summary>A paginated list's parameter, page size and current page; null for a list without paging.</summary>
+    private static (string Param, int PageSize, int Current)? Paging(JsonElement node, RenderContext context)
+    {
+        if (!node.TryGetProperty("props", out var props) || !props.TryGetProperty("paging", out var paging) || paging.ValueKind != JsonValueKind.Object)
+        {
+            return null;
+        }
+
+        var param = ListQueries.PageParam(props);
+        var pageSize = Math.Clamp(paging.TryGetProperty("pageSize", out var size) && size.TryGetInt32(out var s) ? s : ListQueryBuilder.DefaultLimit, 1, ListQueryBuilder.MaxLimit);
+        return (param, pageSize, context.Data.PageNumbers.TryGetValue(param, out var current) ? current : 1);
+    }
+
+    /// <summary>The list's layer label, which names its pager for screen readers when set.</summary>
+    private static string? LayerLabel(JsonElement node) =>
+        node.TryGetProperty("props", out var props) && props.TryGetProperty("layerLabel", out var label)
+        && label.ValueKind == JsonValueKind.String && !string.IsNullOrWhiteSpace(label.GetString())
+            ? label.GetString()
+            : null;
 
     /// <summary>The list's card and empty state; rule 20 guarantees both, in that order.</summary>
     internal static (JsonElement? Card, JsonElement? Empty) Slots(JsonElement node)

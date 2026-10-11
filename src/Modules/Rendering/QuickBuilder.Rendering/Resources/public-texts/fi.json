@@ -3,5 +3,11 @@
     "title": "Sivua ei löytynyt",
     "message": "Etsimääsi sivua ei löytynyt.",
     "home": "Siirry etusivulle"
+  },
+  "pager": {
+    "label": "Sivut",
+    "previous": "Edellinen",
+    "next": "Seuraava",
+    "first": "Takaisin ensimmäiselle sivulle"
   }
 }

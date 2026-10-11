@@ -3,5 +3,11 @@
     "title": "Lehte ei leitud",
     "message": "Me ei leidnud lehte, mida otsite.",
     "home": "Mine avalehele"
+  },
+  "pager": {
+    "label": "Lehed",
+    "previous": "Eelmine",
+    "next": "Järgmine",
+    "first": "Tagasi esimesele lehele"
   }
 }

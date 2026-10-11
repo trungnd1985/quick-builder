@@ -56,15 +56,27 @@ internal static class ListQueries
         }
     }
 
+    /// <summary>The query parameter a paginated list reads its page from: its own, or <c>page</c> (TB-11).</summary>
+    public static string PageParam(JsonElement listProps) =>
+        listProps.ValueKind == JsonValueKind.Object
+        && listProps.TryGetProperty("paging", out var paging) && paging.ValueKind == JsonValueKind.Object
+        && paging.TryGetProperty("param", out var param) && param.GetString() is { Length: > 0 } name
+            ? name
+            : "page";
+
     /// <summary>The query of one top-level list, read through <see cref="ListQueryBuilder"/>.</summary>
-    /// <param name="pageNumber">The page a paginated list shows, from 1.</param>
+    /// <param name="pageNumbers">The page each paginated list shows, by its parameter; 1 when absent.</param>
     public static PlannedList Plan(
-        JsonElement list, PublishedItem? pageItem, IReadOnlyDictionary<Guid, CollectionSchemaInfo> schemas, int pageNumber = 1)
+        JsonElement list,
+        PublishedItem? pageItem,
+        IReadOnlyDictionary<Guid, CollectionSchemaInfo> schemas,
+        IReadOnlyDictionary<string, int>? pageNumbers = null)
     {
         var id = list.TryGetProperty("id", out var nodeId) ? nodeId.GetString() ?? string.Empty : string.Empty;
         var key = ResolvedData.ListKey(id, pageItem is null ? [] : [pageItem.Id]);
         var props = list.TryGetProperty("props", out var p) ? p : default;
         IReadOnlyList<ListScope> scopes = pageItem is null ? [] : [Scope(ListScope.Page, pageItem, schemas)];
+        var pageNumber = pageNumbers is not null && pageNumbers.TryGetValue(PageParam(props), out var page) ? page : 1;
         return new PlannedList(key, ListQueryBuilder.Build(props, scopes, pageNumber));
     }
 

@@ -133,6 +133,32 @@ describe('the list controls', () => {
     await waitFor(() => expect(store.root!.children[0].children[0].props.paging).toEqual({ pageSize: 12 }))
   })
 
+  it('gives a second paginated list its own name in the address, and refuses a taken one (rule 19)', async () => {
+    const server = stubServer({
+      ...documentWith({
+        id: 's1', type: 'section', props: {}, children: [
+          { id: 'first', type: 'collection-list', props: { source: { collectionId: COLLECTION }, paging: { pageSize: 10 } }, children: [{ id: 'c1', type: 'list-card', props: {}, children: [] }, { id: 'e1', type: 'list-empty', props: {}, children: [] }] },
+          { id: 'list', type: 'collection-list', props: { source: { collectionId: COLLECTION } }, children: [{ id: 'c2', type: 'list-card', props: {}, children: [] }, { id: 'e2', type: 'list-empty', props: {}, children: [] }] },
+        ],
+      }),
+      bindingVersion: 1,
+    })
+    serveSchema(server)
+    await mountEditor()
+    const store = useEditorStore()
+    store.select('list')
+    await waitFor(() => expect(within(panel()).getByLabelText(en.editor.list.paging.on)).toBeTruthy())
+
+    await fireEvent.click(within(panel()).getByLabelText(en.editor.list.paging.on))
+    await waitFor(() => expect(store.root!.children[0].children[1].props.paging).toEqual({ pageSize: 12, param: 'page-2' }))
+
+    const name = within(panel()).getByLabelText(en.editor.list.paging.param) as HTMLInputElement
+    await fireEvent.update(name, 'page')
+    await fireEvent.change(name)
+    expect(within(panel()).getByText(en.editor.list.paging.clash)).toBeTruthy()
+    expect(store.root!.children[0].children[1].props.paging).toEqual({ pageSize: 12, param: 'page-2' })
+  })
+
   it('passes axe checks', async () => {
     await openList({ filters: [{ field: 'f3', op: 'gt', value: 5 }], sort: [{ field: 'f1', dir: 'asc' }] })
     await waitFor(() => expect(within(panel()).getByRole('group', { name: en.editor.list.filterN.replace('{n}', '1') })).toBeTruthy())

@@ -442,12 +442,12 @@ scripts.
 
 ### Tests for User Story 5 ⚠️
 
-- [ ] T071 [P] [US5] Create `UTESTS/Rendering/PageParamsTests.cs`:
+- [X] T071 [P] [US5] Create `UTESTS/Rendering/PageParamsTests.cs`:
   - only declared parameters are kept;
   - only values 2–10,000, so `1` and malformed values are dropped;
   - sorted pairs;
   - the same key for `/blog`, `/blog?page=1` and `/blog?utm=x`.
-- [ ] T072 [P] [US5] Create `ITESTS/Rendering/PagingTests.cs`:
+- [X] T072 [P] [US5] Create `ITESTS/Rendering/PagingTests.cs`:
   - 40 items at 10 per page and 2 lists;
   - every item on exactly one page, including for a list whose `limit` is 12 (paging ignores `limit`);
   - links keep the other list's parameter;
@@ -459,9 +459,9 @@ scripts.
 
 ### Implementation for User Story 5
 
-- [ ] T073 [US5] Create `RENDER/Features/RenderPage/PageParams.cs` (TB-11). `RenderPageController.cs` passes `Request.Query` to `RenderPageQuery.cs`. `PageResponder.cs` reads the live document's paginated lists' parameters. The key needs the document's list parameters before the content is read, so `PublishingWrites.cs` stores them at publish in `publications.page_param_names` (T011), and `LivePageRef` and `LiveTemplateRef` carry them as `PageParamNames`. Add `PageParams` to `RenderKey.cs` and `ItemRenderKey.cs`. Make T071 pass.
-- [ ] T074 [US5] Create `RENDER/Rendering/Blocks/Pager.cs` (contracts/public-rendering.md §3), and apply paging in `CollectionListRenderer.cs` and `BindingFetcher.cs`: the offset comes from the list's parameter, the count is `pageSize`, `limit` is ignored when paging is set (FR-024), and past-the-end renders the empty state with a first-page link. Add the pager labels to `RENDER/Features/NotFound/PublicTexts.cs`, and pager styles to `BlockStylesheet.cs`. Make T072 pass.
-- [ ] T075 [P] [US5] Create `EDITOR/panel/controls/ListPagingControl.vue` (on or off, page size, parameter name with slug validation, rule 19 shown inline). The canvas shows the first page and a static pager.
+- [X] T073 [US5] Create `RENDER/Features/RenderPage/PageParams.cs` (TB-11). `RenderPageController.cs` passes `Request.Query` to `RenderPageQuery.cs`. `PageResponder.cs` reads the live document's paginated lists' parameters. The key needs the document's list parameters before the content is read, so `PublishingWrites.cs` stores them at publish in `publications.page_param_names` (T011), and `LivePageRef` and `LiveTemplateRef` carry them as `PageParamNames`. Add `PageParams` to `RenderKey.cs` and `ItemRenderKey.cs`. Make T071 pass.
+- [X] T074 [US5] Create `RENDER/Rendering/Blocks/Pager.cs` (contracts/public-rendering.md §3), and apply paging in `CollectionListRenderer.cs` and `BindingFetcher.cs`: the offset comes from the list's parameter, the count is `pageSize`, `limit` is ignored when paging is set (FR-024), and past-the-end renders the empty state with a first-page link. Add the pager labels to `RENDER/Features/NotFound/PublicTexts.cs`, and pager styles to `BlockStylesheet.cs`. Make T072 pass.
+- [X] T075 [P] [US5] Create `EDITOR/panel/controls/ListPagingControl.vue` (on or off, page size, parameter name with slug validation, rule 19 shown inline). The canvas shows the first page and a static pager.
 
 **Checkpoint**: quickstart §5 passes.
 

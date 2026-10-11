@@ -1261,7 +1261,10 @@
         "on": "Split into pages",
         "pageSize": "Items per page",
         "param": "Name in the address",
-        "paramHelp": "Visitors see ?page=2 by default. Give each list on a page its own name, such as people."
+        "paramHelp": "Visitors see ?page=2 by default. Give each list on a page its own name, such as people.",
+        "next": "Next",
+        "canvasHint": "Visitors see the first page here, and can go through all {pages}.",
+        "clash": "Another list on this page uses the same name in the address, so the two would turn pages together. Give one of them its own name."
       },
       "itemPageTitle": "Opens {address} on the site"
     }

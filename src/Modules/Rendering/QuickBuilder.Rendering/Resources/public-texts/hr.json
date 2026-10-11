@@ -3,5 +3,11 @@
     "title": "Stranica nije pronađena",
     "message": "Nismo pronašli stranicu koju tražite.",
     "home": "Idi na početnu stranicu"
+  },
+  "pager": {
+    "label": "Stranice",
+    "previous": "Prethodna",
+    "next": "Sljedeća",
+    "first": "Natrag na prvu stranicu"
   }
 }

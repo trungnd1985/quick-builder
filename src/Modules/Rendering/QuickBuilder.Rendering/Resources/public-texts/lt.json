@@ -3,5 +3,11 @@
     "title": "Puslapis nerastas",
     "message": "Neradome ieškomo puslapio.",
     "home": "Eiti į pradžios puslapį"
+  },
+  "pager": {
+    "label": "Puslapiai",
+    "previous": "Ankstesnis",
+    "next": "Kitas",
+    "first": "Grįžti į pirmą puslapį"
   }
 }

@@ -3,5 +3,11 @@
     "title": "Page introuvable",
     "message": "Nous n'avons pas trouvé la page que vous cherchez.",
     "home": "Aller à la page d'accueil"
+  },
+  "pager": {
+    "label": "Pages",
+    "previous": "Précédent",
+    "next": "Suivant",
+    "first": "Revenir à la première page"
   }
 }
