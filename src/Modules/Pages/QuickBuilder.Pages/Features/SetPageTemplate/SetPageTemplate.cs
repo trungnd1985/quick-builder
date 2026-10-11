@@ -64,6 +64,12 @@ internal sealed class SetPageTemplateHandler(
             return Result.Failure<PageWithWarningsResponse>(PagesErrors.SiteNotFound);
         }
 
+        // Another site's page is not found, whatever collection is named (FR-037).
+        if (await reads.PageAsync(command.SiteId, command.PageId, cancellationToken).ConfigureAwait(false) is null)
+        {
+            return Result.Failure<PageWithWarningsResponse>(PagesErrors.NotFound);
+        }
+
         if (command.CollectionId is { } collectionId
             && !(await collections.ExistingAsync(command.SiteId, [collectionId], cancellationToken).ConfigureAwait(false)).Contains(collectionId))
         {
