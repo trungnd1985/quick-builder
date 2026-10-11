@@ -49,6 +49,9 @@ public interface ICollectionSchemaReader   // new; Cms.Contracts has only the st
     Task<IReadOnlySet<Guid>> ExistingAsync(Guid siteId, IReadOnlyCollection<Guid> collectionIds, CancellationToken ct = default);
     Task<IReadOnlyDictionary<Guid, CollectionSchemaDocument>> GetSchemasAsync(Guid siteId, IReadOnlyCollection<Guid> collectionIds, CancellationToken ct = default);
     Task<IReadOnlyList<Guid>> CollectionsReferencingAsync(Guid siteId, Guid collectionId, CancellationToken ct = default);
+    // Address warnings on the admin surface (TB-12), which resolves no site.
+    Task<int> CountPublishedItemsAsync(Guid siteId, Guid collectionId, CancellationToken ct = default);
+    Task<Guid?> PublishedItemWithSlugAsync(Guid siteId, Guid collectionId, string slug, CancellationToken ct = default);
 }
 ```
 
@@ -62,6 +65,9 @@ public interface ITemplateReader
 {
     Task<TemplateInfo?> GetTemplateAsync(Guid siteId, Guid collectionId, CancellationToken ct = default);
     Task<IReadOnlyDictionary<Guid, TemplateInfo>> GetTemplatesAsync(Guid siteId, IReadOnlyCollection<Guid> collectionIds, CancellationToken ct = default);
+    // Whether a live ordinary page has the address, for an item's "hidden_by_page" reason (TB-12):
+    // the admin surface resolves no site, so the public reader cannot answer there.
+    Task<bool> LivePageAtAsync(Guid siteId, string path, CancellationToken ct = default);
 }
 public sealed record TemplateInfo(Guid PageId, string Pattern, bool IsLive);   // Pattern like "/blog/{slug}"
 

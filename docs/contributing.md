@@ -295,6 +295,15 @@ version 1, so no stored document needs migrating:
    write the files, then review each one; `CanvasMarkupParity.spec.ts` compares the canvas
    with the same files.
 
+8. **Bindable props** (016): if a prop can take an item's value, list it in the type's
+   `bind` object in the schema (a `$ref` to `binding`), say which kind it is (`text`,
+   `richText`, `image` or `link`) in both `BindingRules.cs` (`KindOf`) and
+   `editor/bindings/bindingRules.ts` (`kindOf`), and read it in the renderer through
+   `context.Bound(...)` or `context.BoundText(...)`, so a bound value is encoded exactly
+   like the block's own. The panel then offers the binding control beside the prop, and
+   `BindingRulesSchemaTests` fails while the two sides or the schema disagree. A prop that
+   is not listed is never bound.
+
 Anything that would make a stored document invalid — removing or renaming a type or a prop,
 making a prop required — is a **breaking** change: it needs `v2.schema.json`, a forward
 migration of stored drafts and the other steps in §6, in the same pull request.

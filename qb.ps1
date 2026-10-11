@@ -17,6 +17,10 @@
     ./qb.ps1 seed-items -Collection <address name> [-Count 300] [-Publish 0] [-Site name]
                               Add generated items to a collection through the item API
                               (development only), publishing the given percentage of them.
+    ./qb.ps1 seed-template -Collection <address name> -Parent <path> [-Site name]
+                              Make a published template of a collection under a page, with a
+                              heading and an image bound to the item's title and first image,
+                              so every published item has its own page (development only).
 
     Needs Docker. `dev` and `test` also need the .NET 10 SDK and Node 24.
     On macOS and Linux run it with PowerShell 7: `pwsh ./qb.ps1`.
@@ -24,7 +28,7 @@
 #Requires -Version 7
 param(
     [Parameter(Position = 0)]
-    [ValidateSet('start', 'stop', 'code', 'logs', 'dev', 'cloud', 'test', 'reset', 'seed', 'seed-items')]
+    [ValidateSet('start', 'stop', 'code', 'logs', 'dev', 'cloud', 'test', 'reset', 'seed', 'seed-items', 'seed-template')]
     [string] $Command = 'start',
 
     # cloud: Azure Blob (Azurite) instead of S3 (LocalStack).
@@ -43,11 +47,14 @@ param(
     [ValidateRange(1, 10000)]
     [int] $Count = 1000,
 
-    # seed, seed-items: the site's name; asked for when there is more than one.
+    # seed, seed-items, seed-template: the site's name; asked for when there is more than one.
     [string] $Site,
 
-    # seed-items: the collection's address name.
+    # seed-items, seed-template: the collection's address name.
     [string] $Collection,
+
+    # seed-template: the address of the page the template goes under, such as /blog.
+    [string] $Parent,
 
     # seed-items: the percentage of the new items to publish (default 0).
     [ValidateRange(0, 100)]
@@ -144,6 +151,36 @@ function New-Png([int] $Width, [int] $Height, [byte] $Red, [byte] $Green, [byte]
     & $chunk 'IEND' ([byte[]]@())
     # The comma keeps the bytes one array: a function otherwise returns them one by one.
     return , $png.ToArray()
+}
+
+# The seed commands: sign in as an administrator through the API. QB_EMAIL and QB_PASSWORD skip
+# the questions, for scripted runs.
+function Connect-QuickBuilder([string] $Api) {
+    try { $null = Invoke-WebRequest "http://127.0.0.1:$Port/health/ready" -UseBasicParsing -TimeoutSec 3 }
+    catch { throw "QuickBuilder is not running on port $Port. Start it with ./qb.ps1 first." }
+
+    if (-not ($env:QB_EMAIL -and $env:QB_PASSWORD)) { Say "Sign in as an administrator." }
+    $email = if ($env:QB_EMAIL) { $env:QB_EMAIL } else { Read-Host 'Email' }
+    $password = if ($env:QB_PASSWORD) { $env:QB_PASSWORD } else { Read-Host 'Password' -MaskInput }
+    try {
+        $null = Invoke-RestMethod "$Api/identity/sign-in" -Method Post -Headers @{ 'X-QuickBuilder-Request' = '1' } -SessionVariable session `
+            -ContentType 'application/json' -Body (@{ email = $email; password = $password } | ConvertTo-Json)
+    } catch { throw 'Sign-in failed. Check the email and password.' }
+    $session
+}
+
+# The site to seed: the one named by -Site, the only one, or the one chosen.
+function Select-Site([string] $Api, $Session) {
+    $sites = @(Invoke-RestMethod "$Api/sites" -WebSession $Session)
+    if ($sites.Count -eq 0) { throw 'There are no sites yet. Create one in the admin first.' }
+    $target = if ($Site) { $sites | Where-Object { $_.name -eq $Site } | Select-Object -First 1 }
+              elseif ($sites.Count -eq 1) { $sites[0] }
+              else {
+                  for ($i = 0; $i -lt $sites.Count; $i++) { Write-Host "  [$($i + 1)] $($sites[$i].name)" }
+                  $sites[[int](Read-Host 'Which site') - 1]
+              }
+    if (-not $target) { throw "No site is named '$Site'." }
+    $target
 }
 
 function Show-Tips {
@@ -271,28 +308,9 @@ switch ($Command) {
 
     'seed' {
         $api = "http://127.0.0.1:$Port/api/v1"
-        try { $null = Invoke-WebRequest "http://127.0.0.1:$Port/health/ready" -UseBasicParsing -TimeoutSec 3 }
-        catch { throw "QuickBuilder is not running on port $Port. Start it with ./qb.ps1 first." }
-
-        # QB_EMAIL and QB_PASSWORD skip the questions, for scripted runs.
-        if (-not ($env:QB_EMAIL -and $env:QB_PASSWORD)) { Say "Sign in as an administrator." }
-        $email = if ($env:QB_EMAIL) { $env:QB_EMAIL } else { Read-Host 'Email' }
-        $password = if ($env:QB_PASSWORD) { $env:QB_PASSWORD } else { Read-Host 'Password' -MaskInput }
+        $session = Connect-QuickBuilder $api
+        $target = Select-Site $api $session
         $headers = @{ 'X-QuickBuilder-Request' = '1' }
-        try {
-            $null = Invoke-RestMethod "$api/identity/sign-in" -Method Post -Headers $headers -SessionVariable session `
-                -ContentType 'application/json' -Body (@{ email = $email; password = $password } | ConvertTo-Json)
-        } catch { throw 'Sign-in failed. Check the email and password.' }
-
-        $sites = @(Invoke-RestMethod "$api/sites" -WebSession $session)
-        if ($sites.Count -eq 0) { throw 'There are no sites yet. Create one in the admin first.' }
-        $target = if ($Site) { $sites | Where-Object { $_.name -eq $Site } | Select-Object -First 1 }
-                  elseif ($sites.Count -eq 1) { $sites[0] }
-                  else {
-                      for ($i = 0; $i -lt $sites.Count; $i++) { Write-Host "  [$($i + 1)] $($sites[$i].name)" }
-                      $sites[[int](Read-Host 'Which site') - 1]
-                  }
-        if (-not $target) { throw "No site is named '$Site'." }
         $files = "$api/media/sites/$($target.id)/files"
 
         # A handful of folders, so folder browsing and searching inside a folder have work to do.
@@ -356,26 +374,8 @@ switch ($Command) {
         if (-not $PSBoundParameters.ContainsKey('Count')) { $Count = 300 }
 
         $api = "http://127.0.0.1:$Port/api/v1"
-        try { $null = Invoke-WebRequest "http://127.0.0.1:$Port/health/ready" -UseBasicParsing -TimeoutSec 3 }
-        catch { throw "QuickBuilder is not running on port $Port. Start it with ./qb.ps1 first." }
-
-        if (-not ($env:QB_EMAIL -and $env:QB_PASSWORD)) { Say "Sign in as an administrator." }
-        $email = if ($env:QB_EMAIL) { $env:QB_EMAIL } else { Read-Host 'Email' }
-        $password = if ($env:QB_PASSWORD) { $env:QB_PASSWORD } else { Read-Host 'Password' -MaskInput }
-        try {
-            $null = Invoke-RestMethod "$api/identity/sign-in" -Method Post -Headers @{ 'X-QuickBuilder-Request' = '1' } -SessionVariable session `
-                -ContentType 'application/json' -Body (@{ email = $email; password = $password } | ConvertTo-Json)
-        } catch { throw 'Sign-in failed. Check the email and password.' }
-
-        $sites = @(Invoke-RestMethod "$api/sites" -WebSession $session)
-        if ($sites.Count -eq 0) { throw 'There are no sites yet. Create one in the admin first.' }
-        $target = if ($Site) { $sites | Where-Object { $_.name -eq $Site } | Select-Object -First 1 }
-                  elseif ($sites.Count -eq 1) { $sites[0] }
-                  else {
-                      for ($i = 0; $i -lt $sites.Count; $i++) { Write-Host "  [$($i + 1)] $($sites[$i].name)" }
-                      $sites[[int](Read-Host 'Which site') - 1]
-                  }
-        if (-not $target) { throw "No site is named '$Site'." }
+        $session = Connect-QuickBuilder $api
+        $target = Select-Site $api $session
 
         $found = (Invoke-RestMethod "$api/cms/sites/$($target.id)/collections" -WebSession $session).collections |
             Where-Object { $_.slug -eq $Collection } | Select-Object -First 1
@@ -424,5 +424,56 @@ switch ($Command) {
         Write-Progress -Activity 'Adding items' -Completed
 
         Say "Done: $($Count - $failed) added, $published published, $failed refused (a required field this script cannot fill, such as an image)."
+    }
+
+    'seed-template' {
+        # 016 tasks T095: a published template of a collection under a page, made through the
+        # API as the admin does it, so every published item has its own page to look at. A
+        # development tool: it is never part of the product.
+        if (-not $Collection) { throw 'Name the collection by its address name: ./qb.ps1 seed-template -Collection blog-posts -Parent /blog' }
+        if (-not $Parent -or -not $Parent.StartsWith('/') -or $Parent -eq '/') { throw 'Name the page it goes under by its address, such as -Parent /blog (not the home page).' }
+
+        $api = "http://127.0.0.1:$Port/api/v1"
+        $session = Connect-QuickBuilder $api
+        $target = Select-Site $api $session
+        $headers = @{ 'X-QuickBuilder-Request' = '1' }
+        $pagesApi = "$api/pages/sites/$($target.id)/pages"
+
+        $found = (Invoke-RestMethod "$api/cms/sites/$($target.id)/collections" -WebSession $session).collections |
+            Where-Object { $_.slug -eq $Collection } | Select-Object -First 1
+        if (-not $found) { throw "Site '$($target.name)' has no collection with the address name '$Collection'." }
+        $schema = (Invoke-RestMethod "$api/cms/sites/$($target.id)/collections/$($found.id)" -WebSession $session).schema
+
+        $parentPage = (Invoke-RestMethod $pagesApi -WebSession $session).pages | Where-Object { $_.path -eq $Parent.TrimEnd('/') } | Select-Object -First 1
+        if (-not $parentPage) { throw "Site '$($target.name)' has no page at '$Parent'. Create it first." }
+
+        # The heading reads the title field (or the first text field); the image the first image field.
+        $title = if ($schema.titleFieldId) { $schema.titleFieldId } else { ($schema.fields | Where-Object { $_.type -eq 'text' } | Select-Object -First 1).id }
+        $image = ($schema.fields | Where-Object { $_.type -eq 'image' } | Select-Object -First 1).id
+        $blocks = @(@{ id = 'title'; type = 'heading'; props = @{ text = $found.name; level = 1 }; children = @() })
+        if ($title) { $blocks[0].props.bind = @{ text = @{ value = @{ field = $title } } } }
+        if ($image) {
+            $blocks += @{ id = 'cover'; type = 'image'; props = @{ alt = ''; decorative = $true; bind = @{ media = @{ value = @{ field = $image }; empty = 'hide' } } }; children = @() }
+        }
+
+        $page = Invoke-RestMethod $pagesApi -Method Post -WebSession $session -Headers $headers -ContentType 'application/json' `
+            -Body (@{ title = "$($found.name) page"; slug = "$($found.slug)-page"; parentId = $parentPage.id } | ConvertTo-Json)
+        $made = Invoke-RestMethod "$pagesApi/$($page.id)/template" -Method Put -WebSession $session -Headers $headers -ContentType 'application/json' `
+            -Body (@{ collectionId = $found.id; version = $page.version } | ConvertTo-Json)
+
+        $document = @{
+            schemaVersion = 1
+            bindingVersion = 1
+            root = @{ id = 'root'; type = 'root'; props = @{}; children = @(@{ id = 'section'; type = 'section'; props = @{}; children = $blocks }) }
+        }
+        $draft = Invoke-RestMethod "$pagesApi/$($page.id)/draft" -WebSession $session
+        $saved = Invoke-RestMethod "$pagesApi/$($page.id)/draft" -Method Put -WebSession $session -Headers $headers -ContentType 'application/json' `
+            -Body (@{ version = $draft.version; document = $document } | ConvertTo-Json -Depth 20)
+        $null = Invoke-RestMethod "$pagesApi/$($page.id)/publish" -Method Post -WebSession $session -Headers $headers -ContentType 'application/json' `
+            -Body (@{ draftVersion = $saved.version } | ConvertTo-Json)
+
+        Say "Published a template of '$($found.name)' at $($made.page.path)."
+        Write-Host "  Every published item is now at that address with its slug in place of {slug}."
+        Write-Host "  Publish some with: ./qb.ps1 seed-items -Collection $Collection -Publish 50"
     }
 }

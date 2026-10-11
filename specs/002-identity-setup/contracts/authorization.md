@@ -149,6 +149,23 @@ renaming a shipped capability. See
 - **Media in live use**: a file a published item uses counts as in live use, so deleting or
   replacing it still needs `pages.publishing.manage` (013 rule, unchanged; 015 IT-15).
 
+### Notes from 016
+
+Collection templates and data binding register no capability; they reuse existing ones
+([016 research TB-17](../../016-collection-templates-binding/research.md)):
+
+- **Making a page a template**, changing its collection or turning it back, and the impact
+  check before it: `pages.structure.manage` (Administrators and Designers), like every
+  other change to the page tree.
+- **Binding blocks and placing collection lists** are part of the page or component
+  document: `pages.page_drafts.edit` or `pages.components.manage`, as before.
+- **The list preview** (`POST /api/v1/cms/sites/{siteId}/list-preview`), which the editor
+  canvas calls, is a Cms endpoint that asks for `pages.page_drafts.edit`, named in
+  `Pages.Contracts.PageContentCapabilities.DraftsEdit`: only people editing a page or a
+  component need it, and Designers, the only role that edits components, hold it.
+- **Deleting a collection** still needs `cms.collections.manage`; it is now also refused
+  while pages or components use the collection.
+
 ## 3. What a caller sees
 
 | Situation | Status | `errorCode` |

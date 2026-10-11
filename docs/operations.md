@@ -584,7 +584,8 @@ Each site can define collections: structured, repeatable content such as blog po
 products, managed under **Sites → a site → Collections**. Administrators and designers
 define a collection's fields; editors can see them. Every site role, editors included,
 writes, publishes and schedules a collection's **items** (feature 015), from the
-collection's **Items** link. Showing items on pages comes with #16.
+collection's **Items** link. Pages show items through templates and collection lists (016,
+below).
 
 ### Changing fields after items exist
 
@@ -668,6 +669,68 @@ be deleted until that field is removed or changed.
 
 - The upgrade adds a `cms` schema with its own migration history. Nothing else changes.
 - Sites have no collections after the upgrade.
+- No configuration changes are needed.
+
+## Templates and collection lists
+
+Feature 016 puts collection items on the site.
+
+### Item pages and addresses
+
+- A designer makes a page the **template** of a collection, under **Pages → a page → Use as
+  template**. Every **published** item then has a page at the template's parent address
+  followed by its slug: a template under `/blog` answers `/blog/{slug}`. A collection has
+  at most one template, and a parent holds at most one.
+- Addresses are matched in this order: the platform's own paths (`/_media`, `/_assets`,
+  `/api`, `/admin`), then a live page at that address, then a live template with a
+  published item of that slug, then the site's not-found page. So a page created at
+  `/blog/archive` hides the item whose slug is `archive`; the admin warns when that
+  happens.
+- An item's page exists while the item is published and the template is live. Changing an
+  item's slug, moving the template or an ancestor, or unpublishing the template changes or
+  removes item addresses; the admin says how many. Old addresses are not redirected: they
+  answer with the not-found page (redirects come with #17).
+
+### Lists, paging and caching
+
+- A **collection list** block shows published items with filters, a sort and a limit, or
+  page by page with `?page=N` (each list on a page has its own parameter name). Paging
+  links are plain links: they work without JavaScript and can be shared.
+- Only a page's own list parameters, with page numbers from 2 to 10,000, become part of the
+  cache key; every other query parameter is ignored, so tracking parameters cannot fill the
+  page cache.
+- Pages refresh exactly when what they show changes: publishing an item re-renders its own
+  page and the pages that list its collection, or a collection that refers to it; a
+  collection's schema change re-renders every page that shows the collection, item pages
+  included. Re-rendering happens at the next request.
+- **Over-refresh on busy collections**: a template that holds a list of its own collection
+  ("related posts") re-renders every item page whenever any item of that collection is
+  published. This is correct, and each page re-renders only when next visited, but on a site
+  that publishes often it lowers the cache hit rate. Lists on the home page of a busy
+  collection behave the same way.
+- One page render makes at most 200 list queries; lists beyond that show their empty state,
+  and a warning naming the page and list ids is logged.
+
+### Deleting collections and changing fields
+
+- A collection that a page or component uses, in its draft, live version or a scheduled
+  publish, **cannot be deleted**. The refusal lists them (up to 50) and says where each uses
+  it; remove the lists, bindings or template first.
+- A schema change's preview says how many pages and components read each field it removes or
+  retypes. After the change, live pages show the new data at their next request, and a
+  binding to a removed field shows the block's own value (or hides the block, if the
+  designer chose that).
+- Nothing a collection change does can make a page fail: broken bindings fall back, broken
+  filters match nothing, and the page still answers.
+
+### Upgrading to templates and lists (016)
+
+- Three migrations run at start-up: Pages `AddTemplates`, Cms `AddRenderStamp` and Cms
+  `AddPublishedText`. They add columns and one table; nothing existing is rewritten.
+- Shortly after start-up, a background step folds each published item's text for list
+  filters. Until it finishes, a list filter that searches text misses items not yet folded.
+- The block stylesheet changes, so every cached page renders once more after the upgrade;
+  existing pages render exactly as before.
 - No configuration changes are needed.
 
 ## Upgrading from the foundation release (feature 001)

@@ -166,8 +166,11 @@ this section).*
 
 **Operator impact**:
 - **New configuration keys**: none.
-- **Migrations**: 2, additive and automatic: Pages `AddTemplates` and Cms
-  `AddRenderStamp`. No backfill.
+- **Migrations**: 3, additive and automatic: Pages `AddTemplates`, Cms `AddRenderStamp`
+  (which fills each published item's first publication time) and Cms `AddPublishedText`.
+  The item index backfill runs once after start-up to fill the folded text that list
+  filters search (TB-08); until it finishes, `contains` filters miss the items not yet
+  indexed.
 - **New dependencies**: none.
 - **Upgrade notes**:
   1. Designers can make a page the template of a collection. Its items are then served at

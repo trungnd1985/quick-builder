@@ -43,6 +43,23 @@ public sealed record LivePageVersion(int SchemaVersion, JsonElement Document, st
 public sealed record PageLinkTarget(string Path, bool IsLive);
 ```
 
+**016 additions** (collection templates and data binding,
+[module-surface.md](../../016-collection-templates-binding/contracts/module-surface.md)):
+
+- `FindLiveByPathAsync` never returns a template page: `/blog/{slug}` typed by a visitor is
+  not a page.
+- `FindLiveTemplateAsync(siteId, parentPath)` returns the live template under a parent, as
+  `LiveTemplateRef(PageId, Generation, CollectionId, PageParamNames)`, for item addresses.
+- `GetLiveTemplatePatternsAsync(siteId, collectionIds)` returns the address patterns of the
+  live templates of those collections, for links to item pages.
+- `LivePageRef` and `LiveTemplateRef` carry `PageParamNames`: the query parameters of the
+  page's paginated lists, read before the content so they can be part of the cache key.
+- `GetLinkTargetsAsync` reports template pages as not live, so a page link to a template
+  renders as plain text.
+- Published collection items are read through Cms's
+  `QuickBuilder.Cms.Contracts.Publishing.IPublishedItemReader`, on its own read-only
+  connection.
+
 ### 1.2 `QuickBuilder.Editor.Contracts.IPublishedDesignReader`
 
 ```csharp
