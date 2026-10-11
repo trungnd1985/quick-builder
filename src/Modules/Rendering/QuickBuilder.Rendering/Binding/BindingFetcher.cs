@@ -2,6 +2,7 @@ using System.Text.Json;
 using QuickBuilder.Cms.Contracts.Publishing;
 using QuickBuilder.Pages.Contracts;
 using QuickBuilder.Pages.Contracts.Publishing;
+using QuickBuilder.Rendering.Domain;
 
 namespace QuickBuilder.Rendering.Binding;
 
@@ -68,16 +69,67 @@ internal sealed class BindingFetcher(IPublishedItemReader items, IPublishedConte
             }
         }
 
-        var pageSchemas = schemas.ToDictionary(s => s.Key, s => CollectionSchemaInfo.Parse(s.Key, s.Value));
+        var parsed = schemas.ToDictionary(s => s.Key, s => CollectionSchemaInfo.Parse(s.Key, s.Value));
         var lists = new Dictionary<string, PublishedItemPage>(StringComparer.Ordinal);
-        foreach (var node in listNodes)
+        var byQuery = new Dictionary<string, PublishedItemPage>(StringComparer.Ordinal);
+        var skipped = new List<string>();
+
+        // Level by level (TB-09): the top-level lists in the page item's scope, then the lists in
+        // their cards, once per listed item, with that item's scope open. Identical queries, such
+        // as cards with the same outer value, run once.
+        IReadOnlyList<ScopedItem> pageScopes = pageItem is null ? [] : [new(ListQueries.Scope(ListScope.Page, pageItem, parsed), pageItem.Id)];
+        var level = listNodes.Select(node => (Node: node, Scopes: pageScopes)).ToList();
+        for (var depth = 1; depth <= PageSchema.MaxListDepth && level.Count > 0; depth++)
         {
-            var planned = ListQueries.Plan(node, pageItem, pageSchemas, pageNumbers);
-            var result = planned.Query is { } query
-                ? await items.QueryAsync(siteId, query, cancellationToken).ConfigureAwait(false)
-                : PublishedItemPage.Empty;
-            lists[planned.Key] = result;
-            fetched.AddRange(result.Items);
+            var listed = new List<(JsonElement Node, IReadOnlyList<ScopedItem> Scopes, IReadOnlyList<PublishedItem> Items)>();
+            foreach (var (node, scopes) in level)
+            {
+                var id = RenderContext.IdOf(node);
+                var key = ResolvedData.ListKey(id, scopes.Select(s => s.ItemId));
+                var props = node.TryGetProperty("props", out var p) ? p : default;
+                var pageNumber = pageNumbers is not null && pageNumbers.TryGetValue(ListQueries.PageParam(props), out var number) ? number : 1;
+                var query = ListQueryBuilder.Build(props, [.. scopes.Select(s => s.Scope)], pageNumber);
+
+                PublishedItemPage result;
+                if (query is null)
+                {
+                    result = PublishedItemPage.Empty;
+                }
+                else if (byQuery.TryGetValue(ListQueries.Identity(query), out var same))
+                {
+                    result = same;
+                }
+                else if (byQuery.Count >= ListQueries.MaxQueriesPerRender)
+                {
+                    // TB-09: past the budget, a list shows its empty state; the responder logs which.
+                    skipped.Add(id);
+                    result = PublishedItemPage.Empty;
+                }
+                else
+                {
+                    result = await items.QueryAsync(siteId, query, cancellationToken).ConfigureAwait(false);
+                    byQuery[ListQueries.Identity(query)] = result;
+                }
+
+                lists[key] = result;
+                fetched.AddRange(result.Items);
+                listed.Add((node, scopes, result.Items));
+            }
+
+            // The next level's scopes need their items' schemas, for multi-reference sources.
+            var unknown = listed.SelectMany(l => l.Items).Select(i => i.CollectionId).Where(c => !schemas.ContainsKey(c)).ToHashSet();
+            if (unknown.Count > 0 && depth < PageSchema.MaxListDepth)
+            {
+                foreach (var (collection, schema) in await items.GetSchemasAsync(siteId, unknown, cancellationToken).ConfigureAwait(false))
+                {
+                    schemas[collection] = schema;
+                    parsed[collection] = CollectionSchemaInfo.Parse(collection, schema);
+                }
+            }
+
+            level = [.. listed.SelectMany(l => ListQueries.InCard(l.Node).SelectMany(inner => l.Items.Select(item => (
+                Node: inner,
+                Scopes: (IReadOnlyList<ScopedItem>)[.. l.Scopes, new ScopedItem(ListQueries.Scope(RenderContext.IdOf(l.Node), item, parsed), item.Id)]))))];
         }
 
         var referenced = new Dictionary<Guid, PublishedItem>();
@@ -127,8 +179,11 @@ internal sealed class BindingFetcher(IPublishedItemReader items, IPublishedConte
             TemplatePatterns = patterns,
         };
 
-        return new FetchedBindings(data, media, links);
+        return new FetchedBindings(data, media, links, skipped);
     }
+
+    /// <summary>A scope a list can read, and the id of its item, for the list's key.</summary>
+    private sealed record ScopedItem(ListScope Scope, Guid ItemId);
 
     /// <summary>The reference fields that bindings follow, anywhere in a document.</summary>
     private static void CollectVia(JsonElement node, HashSet<string> fields)
@@ -203,7 +258,8 @@ internal sealed class BindingFetcher(IPublishedItemReader items, IPublishedConte
 }
 
 /// <summary>What a page's bindings read, and the media files and pages its bound values need.</summary>
-internal sealed record FetchedBindings(ResolvedData Data, IReadOnlySet<Guid> Media, IReadOnlySet<Guid> Pages)
+/// <param name="SkippedLists">The ids of lists left empty because the render's query budget was spent (TB-09).</param>
+internal sealed record FetchedBindings(ResolvedData Data, IReadOnlySet<Guid> Media, IReadOnlySet<Guid> Pages, IReadOnlyList<string>? SkippedLists = null)
 {
     public static FetchedBindings None { get; } = new(ResolvedData.Empty, new HashSet<Guid>(), new HashSet<Guid>());
 }

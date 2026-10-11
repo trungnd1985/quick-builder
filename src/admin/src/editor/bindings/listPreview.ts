@@ -3,12 +3,13 @@
 // list settings for the open document, so editing a card never asks again and editing a filter
 // asks once it settles.
 
-import { onBeforeUnmount, shallowRef, watch, type ShallowRef } from 'vue'
+import { inject, onBeforeUnmount, shallowRef, watch, type ShallowRef } from 'vue'
 import { cmsApi, type ListPreviewItem, type ListPreviewRequest } from '../../api/cms'
 import type { ContentNode } from '../schema/schema'
 import { isObject, type Json } from '../schema/subsetValidator'
 import { useEditorStore } from '../state/editorStore'
-import type { BoundItem } from './resolve'
+import { CANVAS_SCOPES } from './canvasBindings'
+import type { BoundItem, OpenScope } from './resolve'
 
 /** How long a list's settings must stay still before the canvas asks for its items. */
 export const PREVIEW_DELAY_MS = 300
@@ -71,7 +72,7 @@ export function viaFields(node: ContentNode): string[] {
 }
 
 /** The preview request for a list, or null when it has no source to ask about. */
-export function previewRequest(list: ContentNode, sampleItemId: string | null): ListPreviewRequest | null {
+export function previewRequest(list: ContentNode, sampleItemId: string | null, cards: readonly OpenScope[] = []): ListPreviewRequest | null {
   const source = list.props.source
   if (!isObject(source) || (typeof source.collectionId !== 'string' && typeof source.field !== 'string')) return null
 
@@ -80,10 +81,14 @@ export function previewRequest(list: ContentNode, sampleItemId: string | null): 
     if (list.props[prop] !== undefined) props[prop] = list.props[prop]
   }
 
+  // US6: the page's sample item, and the item of each card the list sits in.
+  const scopes: Record<string, string> = sampleItemId ? { page: sampleItemId } : {}
+  for (const card of cards) scopes[card.name] = card.item.id
+
   const via = viaFields(list)
   return {
     list: props,
-    ...(sampleItemId ? { scopes: { page: sampleItemId } } : {}),
+    ...(Object.keys(scopes).length > 0 ? { scopes } : {}),
     ...(via.length > 0 ? { via } : {}),
   }
 }
@@ -91,13 +96,14 @@ export function previewRequest(list: ContentNode, sampleItemId: string | null): 
 /** The published items `list()` shows, kept current as its settings and the sample item change. */
 export function useListPreview(list: () => ContentNode): ShallowRef<ListPreviewState> {
   const store = useEditorStore()
+  const cards = inject(CANVAS_SCOPES, () => [])
   const state = shallowRef<ListPreviewState>(IDLE)
   let timer: ReturnType<typeof setTimeout> | undefined
   let asked = 0
 
   const cache = store.bindings.previews
   const key = () => {
-    const request = previewRequest(list(), store.bindings.sampleItem?.id ?? null)
+    const request = previewRequest(list(), store.bindings.sampleItem?.id ?? null, cards())
     return request ? JSON.stringify([store.bindings.siteId, request]) : null
   }
 

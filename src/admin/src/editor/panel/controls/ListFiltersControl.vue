@@ -7,6 +7,7 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { FieldInfo } from '../../bindings/bindingRules'
+import { operandChoices, scopesAt, type OperandChoice } from '../../bindings/scopes'
 import {
   ITEM_VALUES, MAX_FILTERS, MAX_TEXT_LITERAL, filterProblem, literalFor, operatorsFor, targetOf,
   type ListOperator, type ListTarget,
@@ -32,30 +33,34 @@ const targets = computed(() => [
   ...ITEM_VALUES.map((item) => ({ key: `item:${item}`, label: t(`editor.list.itemValues.${item}`) })),
 ])
 
-/** The page item's fields, on a template page, for values read from it. */
-const pageFields = computed<FieldInfo[]>(() => {
-  const template = store.bindings.templateCollectionId
-  const pageSchema = template ? store.bindings.schemas[template] : undefined
-  return pageSchema ? pageSchema.order.map((id) => pageSchema.fields[id]) : []
-})
-
-const sourceIsPageCollection = computed(() =>
-  !!schema.value && schema.value.collectionId === store.bindings.templateCollectionId)
-
 const keyOf = (filter: JsonObject): string =>
   typeof filter.field === 'string' ? `field:${filter.field}` : typeof filter.item === 'string' ? `item:${filter.item}` : ''
 
 const targetFor = (filter: JsonObject): ListTarget | null => targetOf(filter, schema.value)
 
-/** The page item's fields whose values fit a filter's literal: same type, same target collection. */
-function pageValuesFor(target: ListTarget, op: ListOperator): FieldInfo[] {
-  if (!('field' in target)) return []
-  const kind = literalFor(target, op)
-  if (kind === 'none') return []
-  return pageFields.value.filter((f) =>
-    kind === 'item'
-      ? (f.type === 'reference') && f.target === target.field.target
-      : f.type === target.field.type && (kind !== 'option' || f.id === target.field.id))
+/**
+ * The values a filter can read from the scopes around the list (016 US6): a field of the page's
+ * item or of an enclosing card's item, and "that item" for the slug's `ne`. Nearest first.
+ */
+function choicesFor(target: ListTarget, op: ListOperator): OperandChoice[] {
+  const node = list.value
+  if (!node || !store.root || literalFor(target, op) === 'none') return []
+  const described = 'field' in target
+    ? { type: target.field.type, referenceTarget: target.field.target, optionsOf: target.field.id }
+    : { type: target.item === 'slug' ? 'slug' : 'date' }
+  return operandChoices(store.root, node, store.bindings.templateCollectionId, store.bindings.schemas, described, op)
+}
+
+const choiceKey = (choice: OperandChoice['value']): string =>
+  'current' in choice ? `current:${choice.scope}` : `scope:${choice.scope}:${choice.field}`
+
+function choiceLabel(choice: OperandChoice): string {
+  const where = choice.scope.name === 'page'
+    ? t('editor.list.scopePage')
+    : t('editor.list.scopeCard', { list: choice.scope.label ?? choice.scope.name })
+  return 'current' in choice.value
+    ? t('editor.list.valueCurrentOf', { where })
+    : t('editor.list.valueFieldOf', { field: choice.fieldName ?? '', where })
 }
 
 function emitWith(index: number, next: JsonObject | null): void {
@@ -106,19 +111,23 @@ function onValue(index: number, value: Json): void {
   emitWith(index, { ...filters.value[index], value })
 }
 
-/** Which kind of value a filter holds: typed, the page item's field, or "this item". */
+/** Which kind of value a filter holds: typed, or read from a scope (keyed as its choice). */
 function valueSource(filter: JsonObject): string {
   const value = filter.value
-  if (isObject(value) && value.current === true) return 'current'
-  if (isObject(value) && typeof value.field === 'string') return `page:${value.field}`
+  if (!isObject(value)) return 'literal'
+  // A value stored before scopes were named reads the nearest scope.
+  const scope = typeof value.scope === 'string' ? value.scope : (list.value && store.root ? scopesAt(store.root, list.value.id, store.bindings.templateCollectionId, store.bindings.schemas)[0]?.name : undefined) ?? 'page'
+  if (value.current === true) return `current:${scope}`
+  if (typeof value.field === 'string') return `scope:${scope}:${value.field}`
   return 'literal'
 }
 
 function onValueSource(index: number, event: Event): void {
-  const choice = (event.target as HTMLSelectElement).value
+  const key = (event.target as HTMLSelectElement).value
   const filter = filters.value[index]
-  if (choice === 'current') emitWith(index, { ...filter, value: { current: true } })
-  else if (choice.startsWith('page:')) emitWith(index, { ...filter, value: { field: choice.slice(5), scope: 'page' } })
+  const target = targetFor(filter)
+  const choice = target ? choicesFor(target, filter.op as ListOperator).find((c) => choiceKey(c.value) === key) : undefined
+  if (choice) emitWith(index, { ...filter, value: { ...choice.value } })
   else {
     const rest = { ...filter }
     delete rest.value
@@ -203,7 +212,7 @@ const rowId = (index: number, part: string) => `${props.id}-${index}-${part}`
         </select>
 
         <template v-if="literalFor(targetFor(filter)!, filter.op as ListOperator) !== 'none'">
-          <template v-if="pageValuesFor(targetFor(filter)!, filter.op as ListOperator).length > 0 || (sourceIsPageCollection && filter.op === 'ne' && filter.item === 'slug')">
+          <template v-if="choicesFor(targetFor(filter)!, filter.op as ListOperator).length > 0">
             <label :for="rowId(index, 'from')">{{ t('editor.list.valueFrom') }}</label>
             <select
               :id="rowId(index, 'from')"
@@ -214,17 +223,11 @@ const rowId = (index: number, part: string) => `${props.id}-${index}-${part}`
                 {{ t('editor.list.valueTyped') }}
               </option>
               <option
-                v-for="field in pageValuesFor(targetFor(filter)!, filter.op as ListOperator)"
-                :key="field.id"
-                :value="`page:${field.id}`"
+                v-for="choice in choicesFor(targetFor(filter)!, filter.op as ListOperator)"
+                :key="choiceKey(choice.value)"
+                :value="choiceKey(choice.value)"
               >
-                {{ t('editor.list.valuePageField', { field: field.name }) }}
-              </option>
-              <option
-                v-if="sourceIsPageCollection && filter.op === 'ne' && filter.item === 'slug'"
-                value="current"
-              >
-                {{ t('editor.list.valueCurrent') }}
+                {{ choiceLabel(choice) }}
               </option>
             </select>
           </template>

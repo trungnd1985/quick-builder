@@ -1,5 +1,6 @@
 using System.Text.Json;
 using QuickBuilder.Cms.Contracts.Publishing;
+using QuickBuilder.Rendering.Domain;
 using QuickBuilder.Rendering.Rendering.Blocks;
 
 namespace QuickBuilder.Rendering.Binding;
@@ -19,6 +20,55 @@ internal sealed record PlannedList(string Key, PublishedListQuery? Query);
 /// </remarks>
 internal static class ListQueries
 {
+    /// <summary>The most list queries one render makes (TB-09); identical queries count once.</summary>
+    public const int MaxQueriesPerRender = 200;
+
+    /// <summary>
+    /// The lists in <paramref name="list"/>'s card, outside any further list: the next level,
+    /// rendered once per listed item with that item's scope open.
+    /// </summary>
+    public static List<JsonElement> InCard(JsonElement list)
+    {
+        var found = new List<JsonElement>();
+        if (!list.TryGetProperty("children", out var children) || children.ValueKind != JsonValueKind.Array)
+        {
+            return found;
+        }
+
+        foreach (var child in children.EnumerateArray())
+        {
+            if (RenderContext.TypeOf(child) == BindingNodeTypes.Card)
+            {
+                Visit(child);
+            }
+        }
+
+        return found;
+
+        void Visit(JsonElement node)
+        {
+            if (!node.TryGetProperty("children", out var inner) || inner.ValueKind != JsonValueKind.Array)
+            {
+                return;
+            }
+
+            foreach (var child in inner.EnumerateArray())
+            {
+                if (RenderContext.TypeOf(child) == BindingNodeTypes.List)
+                {
+                    found.Add(child);
+                }
+                else
+                {
+                    Visit(child);
+                }
+            }
+        }
+    }
+
+    /// <summary>What makes two queries the same, so identical ones run once in a render.</summary>
+    public static string Identity(PublishedListQuery query) => JsonSerializer.Serialize(query);
+
     /// <summary>The page's top-level lists, in document order, at most <paramref name="maxLists"/>.</summary>
     public static List<JsonElement> TopLevel(IEnumerable<JsonElement> documents, int maxLists)
     {

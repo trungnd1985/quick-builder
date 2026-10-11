@@ -72,3 +72,67 @@ export function scopesAt(
   }
   return outermostFirst.reverse()
 }
+
+/** A value a list filter can read from an enclosing scope (016 US6, binding-expression.md §5). */
+export interface OperandChoice {
+  /** What is stored as the filter's value: `{ field, scope }` or `{ current: true, scope }`. */
+  value: { field: string; scope: string } | { current: true; scope: string }
+  /** The scope, nearest first. */
+  scope: ScopeOption
+  /** The field read, for `{ field }` choices. */
+  fieldName: string | null
+}
+
+/**
+ * The values a filter of `list` on a target of type `type` (a field type, or `slug` for the
+ * item's slug) can take from the scopes around the list, nearest first:
+ * - a field of a scope's item of the same type (for references, targeting the same collection);
+ * - "that item" (`current`), for `ne` on the slug, when the list shows the scope's collection.
+ */
+export function operandChoices(
+  root: ContentNode,
+  list: ContentNode,
+  pageCollectionId: string | null,
+  schemas: Readonly<Record<string, SchemaInfo>>,
+  target: { type: string; referenceTarget?: string | null; optionsOf?: string | null },
+  op: string,
+): OperandChoice[] {
+  const scopes = scopesAt(root, list.id, pageCollectionId, schemas)
+  const shown = listCollection(list, scopes, schemas)
+  const choices: OperandChoice[] = []
+  for (const scope of scopes) {
+    const schema = scope.collectionId ? schemas[scope.collectionId] : undefined
+    if (target.type === 'slug') {
+      if (op === 'ne' && scope.collectionId && scope.collectionId === shown) {
+        choices.push({ value: { current: true, scope: scope.name }, scope, fieldName: null })
+      }
+      continue
+    }
+    if (!schema) continue
+    for (const id of schema.order) {
+      const field = schema.fields[id]
+      const fits = target.type === 'reference' || target.type === 'multiReference'
+        ? field.type === 'reference' && field.target === target.referenceTarget
+        : target.type === 'option'
+          ? field.type === 'option' && scope.collectionId === shown && field.id === target.optionsOf
+          : field.type === target.type
+      if (fits) choices.push({ value: { field: field.id, scope: scope.name }, scope, fieldName: field.name })
+    }
+  }
+  return choices
+}
+
+/** The multi-reference fields of the scopes around `list`, as list sources, nearest first. */
+export function fieldSources(
+  root: ContentNode,
+  list: ContentNode,
+  pageCollectionId: string | null,
+  schemas: Readonly<Record<string, SchemaInfo>>,
+): { scope: ScopeOption; fieldId: string; fieldName: string }[] {
+  return scopesAt(root, list.id, pageCollectionId, schemas).flatMap((scope) => {
+    const schema = scope.collectionId ? schemas[scope.collectionId] : undefined
+    return schema
+      ? schema.order.filter((id) => schema.fields[id].type === 'multiReference').map((id) => ({ scope, fieldId: id, fieldName: schema.fields[id].name }))
+      : []
+  })
+}

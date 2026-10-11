@@ -478,19 +478,20 @@ nesting is refused on both sides.
 
 ### Tests for User Story 6 ⚠️
 
-- [ ] T076 [P] [US6] Create `ITESTS/Rendering/NestedScopeTests.cs`:
+- [X] T076 [P] [US6] Create `ITESTS/Rendering/NestedScopeTests.cs`:
   - a list on a template filtered by the page item's option and by `ne current`;
   - a list in a list filtered by the outer card's item, with a binding inside it reading the outer scope by id;
   - a multi-reference source in stored order, skipping unpublished items, with filters and limit applied after;
   - inner queries made once per distinct outer value (counted);
   - a render needing more than 200 queries renders the rest as empty states and logs ids only.
-- [ ] T077 [P] [US6] Extend `ADMINTESTS/editor/bindings/scopes.spec.ts`: the scopes offered at each depth, nearest first, named by list label; filter operands from enclosing scopes; `current` offered only when the source collection matches an enclosing scope's collection.
+- [X] T077 [P] [US6] Extend `ADMINTESTS/editor/bindings/scopes.spec.ts`: the scopes offered at each depth, nearest first, named by list label; filter operands from enclosing scopes; `current` offered only when the source collection matches an enclosing scope's collection.
 
 ### Implementation for User Story 6
 
-- [ ] T078 [US6] Extend `RENDER/Binding/BindingPlanner.cs` and `BindingFetcher.cs` for nested lists (TB-09): after the outer lists are fetched, group the inner list's operand values per outer item and run one `QueryAsync` per distinct combination. Store the results in `ResolvedData` keyed by `(listId, operandKey)`. Enforce the 200-query cap with a warning log of ids. Resolve `{ "current": true }` to an id `ne` filter.
-- [ ] T079 [US6] Implement multi-reference sources: read the field's published ids from the scope item, call `QueryAsync` with `ItemIds` (the order is kept in `PublishedListTranslation.cs` when no sort is set), then apply filters and limit. Make T076 pass.
-- [ ] T080 [US6] Extend `EDITOR/bindings/scopes.ts`, `BindingPicker.vue` and `ListFiltersControl.vue` for scope choice and outer operands. Extend `ListSourceControl.vue` with "a multi-reference field of …" sources, and `listPreview.ts` to pass enclosing item ids (`scopes`). Make T077 pass.
+- [X] T078 [US6] Extend `RENDER/Binding/BindingPlanner.cs` and `BindingFetcher.cs` for nested lists (TB-09): after the outer lists are fetched, group the inner list's operand values per outer item and run one `QueryAsync` per distinct combination. Store the results in `ResolvedData` keyed by `(listId, operandKey)`. Enforce the 200-query cap with a warning log of ids. Resolve `{ "current": true }` to an id `ne` filter.
+  *Done as*: `{ "current": true }` becomes "slug is not that item's" in the shared `ListQueryBuilder` (slugs are unique within the collection the rule requires), and query counting and the budget are unit-tested in `UTESTS/Rendering/Lists/NestedListFetchTests.cs`.
+- [X] T079 [US6] Implement multi-reference sources: read the field's published ids from the scope item, call `QueryAsync` with `ItemIds` (the order is kept in `PublishedListTranslation.cs` when no sort is set), then apply filters and limit. Make T076 pass.
+- [X] T080 [US6] Extend `EDITOR/bindings/scopes.ts`, `BindingPicker.vue` and `ListFiltersControl.vue` for scope choice and outer operands. Extend `ListSourceControl.vue` with "a multi-reference field of …" sources, and `listPreview.ts` to pass enclosing item ids (`scopes`). Make T077 pass.
 
 **Checkpoint**: quickstart §6 passes.
 

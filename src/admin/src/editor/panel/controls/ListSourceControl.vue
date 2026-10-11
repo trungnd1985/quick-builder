@@ -6,6 +6,7 @@ import { computed, onMounted, shallowRef } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { cmsApi, type CollectionSummary } from '../../../api/cms'
 import { isObject, type Json } from '../../schema/subsetValidator'
+import { fieldSources } from '../../bindings/scopes'
 import { useEditorStore } from '../../state/editorStore'
 import FieldShell from './FieldShell.vue'
 import { describedBy, type ControlProps } from './types'
@@ -24,31 +25,39 @@ onMounted(async () => {
   }
 })
 
-/** The page item's multi-reference fields, on a template page. */
-const fieldSources = computed(() => {
-  const template = store.bindings.templateCollectionId
-  const schema = template ? store.bindings.schemas[template] : undefined
-  return schema ? schema.order.map((id) => schema.fields[id]).filter((f) => f.type === 'multiReference') : []
-})
+/** The multi-reference fields of the scopes around the list, nearest first (016 US6). */
+const sources = computed(() =>
+  store.selectedNode && store.root
+    ? fieldSources(store.root, store.selectedNode, store.bindings.templateCollectionId, store.bindings.schemas)
+    : [])
+
+const sourceKey = (scope: string, fieldId: string) => `field:${scope}:${fieldId}`
 
 const current = computed(() => {
   const source = props.value
   if (!isObject(source)) return ''
   if (typeof source.collectionId === 'string') return `collection:${source.collectionId}`
-  if (typeof source.field === 'string') return `field:${source.field}`
+  if (typeof source.field === 'string') {
+    // A source stored without a scope reads the nearest one.
+    const scope = typeof source.scope === 'string' ? source.scope : sources.value[0]?.scope.name ?? 'page'
+    return sourceKey(scope, source.field)
+  }
   return ''
 })
+
+const scopeLabel = (name: string, label: string | null) =>
+  name === 'page' ? t('editor.list.scopePage') : t('editor.list.scopeCard', { list: label ?? name })
 
 /** A source no longer offered: a deleted collection or field. */
 const unknown = computed(() =>
   current.value !== ''
   && !collections.value.some((c) => current.value === `collection:${c.id}`)
-  && !fieldSources.value.some((f) => current.value === `field:${f.id}`))
+  && !sources.value.some((s) => current.value === sourceKey(s.scope.name, s.fieldId)))
 
 function onChange(event: Event): void {
-  const [kind, id] = (event.target as HTMLSelectElement).value.split(':')
-  if (kind === 'collection') emit('change', { collectionId: id })
-  else if (kind === 'field') emit('change', { field: id })
+  const [kind, first, second] = (event.target as HTMLSelectElement).value.split(':')
+  if (kind === 'collection') emit('change', { collectionId: first })
+  else if (kind === 'field') emit('change', { field: second, scope: first })
   else emit('change', {})
 }
 </script>
@@ -86,15 +95,15 @@ function onChange(event: Event): void {
         </option>
       </optgroup>
       <optgroup
-        v-if="fieldSources.length > 0"
-        :label="t('editor.list.source.pageItem')"
+        v-if="sources.length > 0"
+        :label="t('editor.list.source.scopeItems')"
       >
         <option
-          v-for="field in fieldSources"
-          :key="field.id"
-          :value="`field:${field.id}`"
+          v-for="source in sources"
+          :key="sourceKey(source.scope.name, source.fieldId)"
+          :value="sourceKey(source.scope.name, source.fieldId)"
         >
-          {{ field.name }}
+          {{ t('editor.list.source.fieldOf', { field: source.fieldName, where: scopeLabel(source.scope.name, source.scope.label) }) }}
         </option>
       </optgroup>
     </select>

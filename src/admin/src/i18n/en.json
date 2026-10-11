@@ -1213,7 +1213,8 @@
         "none": "Choose a collection…",
         "unknown": "A collection or field that no longer exists",
         "collections": "Collections",
-        "pageItem": "This page's item"
+        "scopeItems": "Items an item refers to",
+        "fieldOf": "{field} of {where}"
       },
       "itemValues": {
         "slug": "Slug",
@@ -1236,8 +1237,6 @@
       "filterValue": "Value",
       "valueFrom": "Compare with",
       "valueTyped": "A value you type",
-      "valuePageField": "This page's {field}",
-      "valueCurrent": "This page's item (leave it out)",
       "yes": "Yes",
       "no": "No",
       "unknownField": "A field that no longer exists",
@@ -1266,7 +1265,11 @@
         "canvasHint": "Visitors see the first page here, and can go through all {pages}.",
         "clash": "Another list on this page uses the same name in the address, so the two would turn pages together. Give one of them its own name."
       },
-      "itemPageTitle": "Opens {address} on the site"
+      "itemPageTitle": "Opens {address} on the site",
+      "scopePage": "this page's item",
+      "scopeCard": "the card’s item in {list}",
+      "valueFieldOf": "{field} of {where}",
+      "valueCurrentOf": "Leave out {where}"
     }
   },
   "design": {

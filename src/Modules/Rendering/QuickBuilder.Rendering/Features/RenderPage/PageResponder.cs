@@ -211,6 +211,17 @@ internal sealed class PageResponder(
         var fetched = await bindings.FetchAsync(
                 site.Id, [version.Document, .. components.Values.Select(c => c.Document)], pageItem, request.Params.Pages, request.Path, cancellationToken)
             .ConfigureAwait(false);
+        if (fetched.SkippedLists is { Count: > 0 } skipped)
+        {
+            // TB-09: ids only, never values (FR-038).
+            logger.LogWarning(
+                "Page {PageId} of site {SiteId} needed more than {Budget} list queries; lists {ListIds} show their empty state.",
+                pageId,
+                site.Id,
+                ListQueries.MaxQueriesPerRender,
+                string.Join(", ", skipped.Distinct(StringComparer.Ordinal)));
+        }
+
         references.Pages.UnionWith(fetched.Pages);
         references.Media.UnionWith(fetched.Media);
 
