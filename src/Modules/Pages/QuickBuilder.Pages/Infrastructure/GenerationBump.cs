@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using QuickBuilder.Cms.Contracts;
 using QuickBuilder.Pages.Domain;
 
 namespace QuickBuilder.Pages.Infrastructure;
@@ -20,8 +21,39 @@ namespace QuickBuilder.Pages.Infrastructure;
 /// (<c>GenerationBumpSiteFilterTests</c>).
 /// </para>
 /// </remarks>
-internal sealed class GenerationBump(PagesDbContext database)
+internal sealed class GenerationBump(PagesDbContext database, ICollectionSchemaReader collections)
 {
+    /// <summary>
+    /// Increments the generation of the live pages that list <paramref name="collectionIds"/>, or
+    /// a collection whose items can show theirs through a reference, directly or through a
+    /// component; with <paramref name="includeTemplates"/>, also of their templates, which
+    /// refreshes every item page (016 research TB-10).
+    /// </summary>
+    /// <remarks>
+    /// "A collection whose items can show theirs" is one with a reference field targeting it: a
+    /// card may show "Author → Name". Refreshing a list page that does not show that reference
+    /// costs one render; missing one would show stale content.
+    /// </remarks>
+    public async Task<int> BumpForCollectionsAsync(
+        Guid siteId, IReadOnlyCollection<Guid> collectionIds, bool includeTemplates, Guid? exceptPageId, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(collectionIds);
+
+        var affected = new HashSet<Guid>(collectionIds);
+        foreach (var collectionId in collectionIds)
+        {
+            affected.UnionWith(await collections.CollectionsReferencingAsync(siteId, collectionId, cancellationToken).ConfigureAwait(false));
+        }
+
+        var targets = affected.Select(id => (DependencyKinds.Collection, id)).ToList();
+        if (includeTemplates)
+        {
+            targets.AddRange(affected.Select(id => (DependencyKinds.Template, id)));
+        }
+
+        return await BumpForTargetsAsync(siteId, targets, exceptPageId, cancellationToken).ConfigureAwait(false);
+    }
+
     /// <summary>
     /// Increments the generation of every live page that depends on any of <paramref name="targets"/>,
     /// except <paramref name="exceptPageId"/> (the subject, whose own row the caller saves).

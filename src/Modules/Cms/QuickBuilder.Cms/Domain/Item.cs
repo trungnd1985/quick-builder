@@ -224,6 +224,12 @@ internal sealed class Item : AggregateRoot, ISiteOwned, IDisposable
         return version;
     }
 
+    /// <summary>
+    /// A media file the published values show was deleted or changed (016 data-model §1.4 case 3):
+    /// the item's page shows something new, so its cache key moves on.
+    /// </summary>
+    public void ShownMediaChanged() => RenderStamp++;
+
     /// <summary>Removes the published values, keeping the draft and every version (FR-021).</summary>
     public void Unpublish(string? scheduleAction, Guid actor, DateTimeOffset now)
     {

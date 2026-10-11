@@ -103,7 +103,7 @@ internal sealed class PageTreeWrites(PagesDbContext database, PagesAccess access
         }, cancellationToken);
     }
 
-    private Task<int> BumpLinkersAsync(Guid siteId, PageTree tree, CancellationToken cancellationToken)
+    private async Task BumpLinkersAsync(Guid siteId, PageTree tree, CancellationToken cancellationToken)
     {
         var moved = tree.DomainEvents
             .SelectMany(e => e switch
@@ -116,6 +116,48 @@ internal sealed class PageTreeWrites(PagesDbContext database, PagesAccess access
             .Select(id => (DependencyKinds.Page, id))
             .ToList();
 
-        return bump.BumpForTargetsAsync(siteId, moved, exceptPageId: null, cancellationToken);
+        await bump.BumpForTargetsAsync(siteId, moved, exceptPageId: null, cancellationToken).ConfigureAwait(false);
+
+        // 016 TB-10 row 3: a template assigned, removed or moved changes the item links of every
+        // list of its collection, and the item pages themselves.
+        var templateChanges = tree.DomainEvents.OfType<PageTemplateChangedEvent>().ToList();
+        var templates = tree.Pages.Where(p => p.TemplateCollectionId is not null).ToDictionary(p => p.Id, p => p.TemplateCollectionId!.Value);
+        var collections = templateChanges
+            .SelectMany(e => new[] { e.CollectionId, e.PreviousCollectionId })
+            .OfType<Guid>()
+            .Concat(moved.Where(m => templates.ContainsKey(m.id)).Select(m => templates[m.id]))
+            .ToHashSet();
+
+        if (collections.Count > 0)
+        {
+            await bump.BumpForCollectionsAsync(siteId, collections, includeTemplates: true, exceptPageId: null, cancellationToken).ConfigureAwait(false);
+        }
+
+        foreach (var change in templateChanges)
+        {
+            await RetargetTemplateDependencyAsync(siteId, change, cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    /// <summary>A live template depends on its collection; the row follows the page's template (TB-10).</summary>
+    private async Task RetargetTemplateDependencyAsync(Guid siteId, PageTemplateChangedEvent change, CancellationToken cancellationToken)
+    {
+        await database.ForSite<LiveDependency>(siteId)
+            .Where(d => d.SubjectKind == SubjectKinds.Page && d.SubjectId == change.PageId && d.TargetKind == DependencyKinds.Template)
+            .ExecuteDeleteAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        if (change.CollectionId is not { } collectionId)
+        {
+            return;
+        }
+
+        var live = await database.ForSite<Publication>(siteId)
+            .AnyAsync(p => p.SubjectKind == SubjectKinds.Page && p.SubjectId == change.PageId && p.LiveVersionId != null, cancellationToken)
+            .ConfigureAwait(false);
+        if (live)
+        {
+            database.LiveDependencies.Add(new LiveDependency(siteId, SubjectKinds.Page, change.PageId, DependencyKinds.Template, collectionId));
+        }
     }
 }

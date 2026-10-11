@@ -37,6 +37,63 @@ internal static class DependencyExtractor
     public static IReadOnlyList<Guid> Media(string document) =>
         [.. Extract(document).Where(t => t.Kind == DependencyKinds.Media).Select(t => t.Id)];
 
+    /// <summary>
+    /// The multi-reference fields that lists take their items from (016 FR-025): their target
+    /// collections are known only from a schema, so the publisher resolves them.
+    /// </summary>
+    public static IReadOnlySet<string> ListSourceFields(string document) =>
+        CollectLists(document, (props, found) =>
+        {
+            if (props.TryGetProperty("source", out var source) && source.TryGetProperty("field", out var field) && field.GetString() is { } id)
+            {
+                found.Add(id);
+            }
+        });
+
+    /// <summary>
+    /// The page parameters of a document's paginated lists, <c>page</c> when one names none
+    /// (016 research TB-11): the public path reads them before the document, for the cache key.
+    /// </summary>
+    public static IReadOnlySet<string> PageParamNames(string document) =>
+        CollectLists(document, (props, found) =>
+        {
+            if (props.TryGetProperty("paging", out var paging) && paging.ValueKind == JsonValueKind.Object)
+            {
+                found.Add(paging.TryGetProperty("param", out var param) && param.GetString() is { } name ? name : "page");
+            }
+        });
+
+    private static HashSet<string> CollectLists(string document, Action<JsonElement, HashSet<string>> read)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(document);
+
+        using var parsed = JsonDocument.Parse(document);
+        var found = new HashSet<string>(StringComparer.Ordinal);
+        if (parsed.RootElement.TryGetProperty("root", out var root))
+        {
+            Visit(root);
+        }
+
+        return found;
+
+        void Visit(JsonElement node)
+        {
+            if (node.TryGetProperty("type", out var type) && type.GetString() == "collection-list"
+                && node.TryGetProperty("props", out var props) && props.ValueKind == JsonValueKind.Object)
+            {
+                read(props, found);
+            }
+
+            if (node.TryGetProperty("children", out var children) && children.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var child in children.EnumerateArray())
+                {
+                    Visit(child);
+                }
+            }
+        }
+    }
+
     private static void Walk(JsonElement node, HashSet<(string, Guid)> found)
     {
         if (node.TryGetProperty("props", out var props) && props.ValueKind == JsonValueKind.Object)
@@ -63,6 +120,14 @@ internal static class DependencyExtractor
                     if (props.TryGetProperty("content", out var content))
                     {
                         WalkRichText(content, found);
+                    }
+
+                    break;
+                case "collection-list":
+                    // 016 data-model §1.2: a list depends on the collection it shows.
+                    if (props.TryGetProperty("source", out var source) && source.ValueKind == JsonValueKind.Object)
+                    {
+                        AddGuid(found, DependencyKinds.Collection, source, "collectionId");
                     }
 
                     break;

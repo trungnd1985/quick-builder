@@ -64,4 +64,27 @@ public sealed class DependencyExtractorTests
 
         Assert.Equal([Header], DependencyExtractor.Components(document));
     }
+
+    [Fact]
+    public void A_list_depends_on_its_collection_and_a_field_source_is_left_to_the_publisher()
+    {
+        var document = Document($$$"""
+            [{"id":"l1","type":"collection-list","props":{"source":{"collectionId":"{{{Header}}}"},"paging":{"pageSize":5}},"children":[
+               {"id":"l1-card","type":"list-card","props":{},"children":[
+                 {"id":"l2","type":"collection-list","props":{"source":{"field":"f10"},"paging":{"pageSize":2,"param":"people"}},"children":[]}]}]}]
+            """);
+
+        Assert.Equal([(DependencyKinds.Collection, Header)], DependencyExtractor.Extract(document));
+        Assert.Equal(["f10"], DependencyExtractor.ListSourceFields(document));
+        Assert.Equal(["page", "people"], DependencyExtractor.PageParamNames(document).Order(StringComparer.Ordinal));
+    }
+
+    [Fact]
+    public void A_document_without_lists_has_no_list_fields_or_page_parameters()
+    {
+        var document = Document("""[{"id":"h","type":"heading","props":{"text":"Hi","level":1},"children":[]}]""");
+
+        Assert.Empty(DependencyExtractor.ListSourceFields(document));
+        Assert.Empty(DependencyExtractor.PageParamNames(document));
+    }
 }

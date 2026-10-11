@@ -36,22 +36,21 @@ internal sealed class ReindexItemsForMediaHandler(IServiceScopeFactory scopes)
 
     private async Task ReindexAsync(Guid siteId, Guid fileId, CancellationToken cancellationToken)
     {
-        List<(Guid ItemId, Guid CollectionId)> users;
+        List<(Guid ItemId, Guid CollectionId, bool Live)> users;
         await using (var scope = scopes.CreateAsyncScope())
         {
             var database = scope.ServiceProvider.GetRequiredService<CmsDbContext>();
-            var itemIds = database.ForSite<ItemMediaUse>(siteId).Where(m => m.MediaId == fileId).Select(m => m.ItemId);
-            users = (await database.ForSite<Item>(siteId)
+            users = (await database.ForSite<ItemMediaUse>(siteId)
                     .AsNoTracking()
-                    .Where(i => itemIds.Contains(i.Id))
-                    .Select(i => new { i.Id, i.CollectionId })
+                    .Where(m => m.MediaId == fileId)
+                    .Join(database.ForSite<Item>(siteId), m => m.ItemId, i => i.Id, (m, i) => new { i.Id, i.CollectionId, m.InLive })
                     .ToListAsync(cancellationToken)
                     .ConfigureAwait(false))
-                .Select(i => (i.Id, i.CollectionId))
+                .Select(i => (i.Id, i.CollectionId, i.InLive))
                 .ToList();
         }
 
-        foreach (var (itemId, collectionId) in users)
+        foreach (var (itemId, collectionId, live) in users)
         {
             await using var scope = scopes.CreateAsyncScope();
             var writes = scope.ServiceProvider.GetRequiredService<ItemWrites>();
@@ -59,6 +58,12 @@ internal sealed class ReindexItemsForMediaHandler(IServiceScopeFactory scopes)
                     new ItemWriteRequest(siteId, collectionId, itemId, null, null, Guid.Empty),
                     context =>
                     {
+                        // 016 TB-10: an item page showing the file renders it anew.
+                        if (live)
+                        {
+                            context.Item!.ShownMediaChanged();
+                        }
+
                         context.Changed(context.Item!);
                         return Task.FromResult(Result.Success<Item?>(context.Item));
                     },

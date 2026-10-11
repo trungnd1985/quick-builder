@@ -129,6 +129,46 @@ internal sealed class TemplatesWorld : IDisposable
             .ToList();
     }
 
+    /// <summary>A Collection list of <paramref name="source"/> (a list source object), with its card and empty state.</summary>
+    public static string List(string id, string source) =>
+        "{\"id\":\"" + id + "\",\"type\":\"collection-list\",\"props\":{\"source\":" + source
+        + "},\"children\":[{\"id\":\"" + id + "-card\",\"type\":\"list-card\",\"props\":{},\"children\":[]},{\"id\":\"" + id
+        + "-empty\",\"type\":\"list-empty\",\"props\":{},\"children\":[]}]}";
+
+    /// <summary>A Collection list of the collection <paramref name="collectionId"/>.</summary>
+    public static string ListOf(string id, Guid collectionId) => List(id, "{\"collectionId\":\"" + collectionId + "\"}");
+
+    /// <summary>The page's render generation, or null when it was never published.</summary>
+    public Task<long?> GenerationAsync(Guid pageId) =>
+        ScalarAsync("SELECT generation AS \"Value\" FROM pages.publications WHERE subject_kind = 'page' AND subject_id = {0}", pageId);
+
+    /// <summary>The item's render stamp.</summary>
+    public Task<long?> RenderStampAsync(Guid itemId) =>
+        ScalarAsync("SELECT render_stamp AS \"Value\" FROM cms.items WHERE id = {0}", itemId);
+
+    /// <summary>The page's live dependency rows, as (kind, target).</summary>
+    public async Task<List<(string Kind, Guid Target)>> LiveDependenciesAsync(Guid pageId)
+    {
+        await using var scope = App.Services.CreateAsyncScope();
+        var database = scope.ServiceProvider.GetRequiredService<QuickBuilder.Pages.Infrastructure.PagesDbContext>();
+        var rows = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.ToListAsync(
+                Microsoft.EntityFrameworkCore.RelationalDatabaseFacadeExtensions.SqlQueryRaw<string>(
+                    database.Database,
+                    "SELECT target_kind || ':' || target_id AS \"Value\" FROM pages.live_dependencies WHERE subject_kind = 'page' AND subject_id = {0}",
+                    pageId))
+            .ConfigureAwait(false);
+        return rows.Select(r => r.Split(':')).Select(r => (r[0], Guid.Parse(r[1]))).ToList();
+    }
+
+    private async Task<long?> ScalarAsync(string sql, Guid id)
+    {
+        await using var scope = App.Services.CreateAsyncScope();
+        var database = scope.ServiceProvider.GetRequiredService<QuickBuilder.Pages.Infrastructure.PagesDbContext>();
+        return await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.SingleOrDefaultAsync(
+                Microsoft.EntityFrameworkCore.RelationalDatabaseFacadeExtensions.SqlQueryRaw<long?>(database.Database, sql, id))
+            .ConfigureAwait(false);
+    }
+
     /// <summary>Runs <paramref name="work"/> with the public path's item reader, as site A's visitors read it.</summary>
     public async Task<T> WithItemReaderAsync<T>(Func<IPublishedItemReader, Task<T>> work, Guid? site = null)
     {

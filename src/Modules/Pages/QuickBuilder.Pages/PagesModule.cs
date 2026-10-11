@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using QuickBuilder.Cms.Contracts.Events;
 using QuickBuilder.Editor.Contracts.Events;
 using QuickBuilder.Media.Contracts.Events;
 using QuickBuilder.Pages.Contracts;
@@ -26,7 +27,9 @@ using QuickBuilder.Pages.Features.MovePage;
 using QuickBuilder.Pages.Features.Publish;
 using QuickBuilder.Pages.Features.PublishingHistory;
 using QuickBuilder.Pages.Features.RecordDesignPublish;
+using QuickBuilder.Pages.Features.RefreshPagesListingItems;
 using QuickBuilder.Pages.Features.RefreshPagesShowingMedia;
+using QuickBuilder.Pages.Features.RefreshPagesUsingCollection;
 using QuickBuilder.Pages.Features.RenameComponent;
 using QuickBuilder.Pages.Features.Rollback;
 using QuickBuilder.Pages.Features.RunDueSchedule;
@@ -179,6 +182,13 @@ public static class PagesModule
         services.AddScoped<IIntegrationEventHandler<FileDeleted>, RefreshPagesShowingMediaHandler>();
         // 013 MV-17: a replaced file, recorded dimensions or withdrawn variants refresh them too.
         services.AddScoped<IIntegrationEventHandler<FileChanged>, RefreshPagesShowingMediaHandler>();
+
+        // 016 research TB-10: pages listing or showing a collection refresh with its items and fields.
+        services.AddScoped<IIntegrationEventHandler<ItemPublished>, RefreshPagesListingItemsHandler>();
+        services.AddScoped<IIntegrationEventHandler<ItemUnpublished>, RefreshPagesListingItemsHandler>();
+        services.AddScoped<IIntegrationEventHandler<ItemDeleted>, RefreshPagesListingItemsHandler>();
+        services.AddScoped<IIntegrationEventHandler<CollectionChanged>, RefreshPagesUsingCollectionHandler>();
+        services.AddScoped<IIntegrationEventHandler<CollectionDeleted>, RefreshPagesUsingCollectionHandler>();
 
         // 011 research ED-16: the token usage count the admin asks before deleting a token.
         services.AddScoped<IQueryHandler<GetTokenUsageQuery, Result<TokenUsageResponse>>, GetTokenUsageHandler>();
