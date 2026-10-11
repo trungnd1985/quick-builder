@@ -393,7 +393,7 @@ expected published items in order, and the empty state appears when nothing matc
   - the empty state;
   - an item-page button, with and without a live template;
   - a list inside a component on two pages.
-- [ ] T062 [P] [US4] Create `ITESTS/Cms/ListPreviewTests.cs` for `POST …/list-preview`:
+- [X] T062 [P] [US4] Create `ITESTS/Cms/ListPreviewTests.cs` for `POST …/list-preview`:
   - capabilities (page drafts or components: allowed; no role: `404`);
   - published data only;
   - `referenced` for the `via` ids;
@@ -422,7 +422,7 @@ expected published items in order, and the empty state appears when nothing matc
 - [X] T066a [US4] Extend `ITESTS/Rendering/ItemPageInvalidationTests.cs` now that lists render:
   - the list pages re-render (through `RenderMetrics`) exactly when their generation moves, and are otherwise served from the cache;
   - two scenarios (item publish, template move) repeat in `ITESTS/Rendering/RenderingAcrossInstancesTests.cs` with two hosts and a shared cache (SC-005, SC-006).
-- [ ] T067 [US4] Create `CMS/Features/ListPreview/ListPreview.cs`: `POST api/v1/cms/sites/{siteId}/list-preview`, under `[RequireCapability(pages.page_drafts.edit)]` (Designers, Editors and Administrators hold it, and Designers are the only role that edits components, research TB-17). It validates like rules 14–16 and returns the published items, `referenced` and the schemas, through `IPublishedItemReader`. Add it to `ITESTS/Infrastructure/EndpointCatalog.cs`. Make T062 pass.
+- [X] T067 [US4] Create `CMS/Features/ListPreview/ListPreview.cs`: `POST api/v1/cms/sites/{siteId}/list-preview`, under `[RequireCapability(pages.page_drafts.edit)]` (Designers, Editors and Administrators hold it, and Designers are the only role that edits components, research TB-17). It validates like rules 14–16 and returns the published items, `referenced` and the schemas, through `IPublishedItemReader`. Add it to `ITESTS/Infrastructure/EndpointCatalog.cs`. Make T062 pass.
 - [ ] T068 [P] [US4] Extend the existing `collection-list`, `list-card` and `list-empty` definitions in `EDITOR/blocks/`; create `EDITOR/blocks/collection-list/CollectionListBlock.vue` and `EDITOR/bindings/listPreview.ts`; enable the list in the palette (`EDITOR/blocks/registry.ts`). Insertion creates the card and an empty state holding a Text block ("Nothing to show yet.", translated). The canvas renders preview items from `EDITOR/bindings/listPreview.ts`, which calls the endpoint, debounced and cached per list settings. Drag and drop and the keyboard equivalents admit content only into the card and the empty state.
 - [ ] T069 [US4] Create `EDITOR/panel/controls/ListSourceControl.vue` (collection), `ListFiltersControl.vue` (up to 10; operators per type from binding-expression.md §5; literal inputs reusing the item form's inputs where possible) and `ListSortControl.vue` (up to 3). Add limit, columns and gap controls to the list definition's groups. Mark broken filters. Make T063 pass.
 - [ ] T070 [US4] Add the "Item page" choice for link props of blocks inside a card (`item: "url"`, and `via`) to `EDITOR/panel/controls/BindingPicker.vue`. Its canvas preview links to `#` with the address in the title.

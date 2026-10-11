@@ -35,6 +35,14 @@ public sealed record PublishedListQuery(Guid CollectionId, IReadOnlyList<Guid>? 
     IReadOnlyList<ListFilter> Filters, IReadOnlyList<ListSort> Sorts, int Offset, int Count);
 // ListFilter / ListSort: field id or built-in, operator, typed operand (binding-expression.md §5).
 
+// The one reading of the list format, for the renderer and the editor's preview alike: every
+// scope value resolved to a literal, a value that cannot be read becoming a broken condition.
+public sealed record ListScope(string Name, string Slug, Func<string, JsonElement?> Read, Func<string, Guid?> MultiReferenceTarget);
+public static class ListQueryBuilder
+{
+    public static PublishedListQuery? Build(JsonElement listProps, IReadOnlyList<ListScope> scopes, int pageNumber = 1);
+}
+
 // Admin side, normal connection.
 public interface ICollectionSchemaReader   // new; Cms.Contracts has only the static CollectionSchema today
 {

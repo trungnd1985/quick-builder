@@ -18,6 +18,7 @@ using QuickBuilder.Cms.Features.Items.GetItemHistory;
 using QuickBuilder.Cms.Features.Items.ListItemReferrers;
 using QuickBuilder.Cms.Features.Items.ListItems;
 using QuickBuilder.Cms.Features.Items.LookupItems;
+using QuickBuilder.Cms.Features.ListPreview;
 using QuickBuilder.Cms.Features.Items.PublishItem;
 using QuickBuilder.Cms.Features.Items.ReindexItemsForMedia;
 using QuickBuilder.Cms.Features.Items.RollbackItem;
@@ -146,6 +147,10 @@ public static class CmsModule
         services.AddScoped<ICommandHandler<DeleteItemCommand, Result>, DeleteItemHandler>();
         services.AddScoped<ICommandHandler<DuplicateItemCommand, Result<ItemResponse>>, DuplicateItemHandler>();
         services.AddScoped<IQueryHandler<LookupItemsQuery, Result<ItemLookupResponse>>, LookupItemsHandler>();
+
+        // 016 research TB-14: the editor's list preview, over published data of the named site.
+        services.AddScoped<SitePublishedItems>();
+        services.AddScoped<IQueryHandler<ListPreviewQuery, Result<ListPreviewResponse>>, ListPreviewHandler>();
         services.AddScoped<IQueryHandler<GetItemHistoryQuery, Result<ItemHistoryResponse>>, GetItemHistoryHandler>();
         services.AddScoped<ICommandHandler<RollbackItemCommand, Result<ItemResponse>>, RollbackItemHandler>();
         services.AddScoped<ICommandHandler<CopyVersionToDraftCommand, Result<ItemResponse>>, CopyVersionToDraftHandler>();
