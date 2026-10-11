@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
+using QuickBuilder.Pages.Features.SetPageTemplate;
 using QuickBuilder.Pages.Features.UpdatePage;
 using QuickBuilder.Pages.Infrastructure;
-using QuickBuilder.Pages.Features.SetPageTemplate;
 using QuickBuilder.Shared.Infrastructure.Dispatch;
 using QuickBuilder.Shared.Kernel.Authorization;
 using QuickBuilder.Shared.Kernel.Dispatch;

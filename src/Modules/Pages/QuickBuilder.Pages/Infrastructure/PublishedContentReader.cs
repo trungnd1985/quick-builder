@@ -122,8 +122,8 @@ internal sealed class PublishedContentReader(PublishedReadDbContext database) : 
                 from publication in database.Publications
                     .Where(p => p.SubjectKind == SubjectKinds.Page && p.SubjectId == page.Id)
                     .DefaultIfEmpty()
-                // 016 research TB-02: a link to a template page itself goes nowhere, so it is
-                // never live as a link target and renders as plain text (012 FR-026).
+                    // 016 research TB-02: a link to a template page itself goes nowhere, so it is
+                    // never live as a link target and renders as plain text (012 FR-026).
                 select new { page.Id, page.Path, IsLive = publication != null && publication.LiveVersionId != null && page.TemplateCollectionId == null })
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);

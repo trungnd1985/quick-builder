@@ -118,22 +118,22 @@ internal static class PublishedListTranslation
         switch (field.Type)
         {
             case ListFieldTypes.Text when value.ValueKind == JsonValueKind.String && value.GetString()!.Length <= MaxTextLiteral:
-            {
-                var text = value.GetString()!;
-                switch (op)
                 {
-                    case ListOperator.Eq:
-                        return i => i.Published!.RootElement.GetProperty("values").GetProperty(id).GetString() == text;
-                    case ListOperator.Ne:
-                        return i => i.Published!.RootElement.GetProperty("values").GetProperty(id).GetString() == null
-                            || i.Published!.RootElement.GetProperty("values").GetProperty(id).GetString() != text;
-                    case ListOperator.Contains:
-                        var pattern = SearchText.LikePattern(text);
-                        return i => EF.Functions.Like(i.PublishedText!.RootElement.GetProperty(id).GetString()!, pattern, "\\");
-                    default:
-                        return null;
+                    var text = value.GetString()!;
+                    switch (op)
+                    {
+                        case ListOperator.Eq:
+                            return i => i.Published!.RootElement.GetProperty("values").GetProperty(id).GetString() == text;
+                        case ListOperator.Ne:
+                            return i => i.Published!.RootElement.GetProperty("values").GetProperty(id).GetString() == null
+                                || i.Published!.RootElement.GetProperty("values").GetProperty(id).GetString() != text;
+                        case ListOperator.Contains:
+                            var pattern = SearchText.LikePattern(text);
+                            return i => EF.Functions.Like(i.PublishedText!.RootElement.GetProperty(id).GetString()!, pattern, "\\");
+                        default:
+                            return null;
+                    }
                 }
-            }
 
             case ListFieldTypes.Number when value.ValueKind == JsonValueKind.Number && value.TryGetDecimal(out var number):
                 return op switch
@@ -150,19 +150,19 @@ internal static class PublishedListTranslation
                 };
 
             case ListFieldTypes.Date when Day(value) is { } day:
-            {
-                var start = day.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
-                var next = day.AddDays(1).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
-                return op switch
                 {
-                    // [start, next): the day itself, with or without a time.
-                    ListOperator.Eq => i => string.Compare(i.Published!.RootElement.GetProperty("values").GetProperty(id).GetString(), start) >= 0
-                        && string.Compare(i.Published!.RootElement.GetProperty("values").GetProperty(id).GetString(), next) < 0,
-                    ListOperator.Gt => i => string.Compare(i.Published!.RootElement.GetProperty("values").GetProperty(id).GetString(), next) >= 0,
-                    ListOperator.Lt => i => string.Compare(i.Published!.RootElement.GetProperty("values").GetProperty(id).GetString(), start) < 0,
-                    _ => null,
-                };
-            }
+                    var start = day.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+                    var next = day.AddDays(1).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+                    return op switch
+                    {
+                        // [start, next): the day itself, with or without a time.
+                        ListOperator.Eq => i => string.Compare(i.Published!.RootElement.GetProperty("values").GetProperty(id).GetString(), start) >= 0
+                            && string.Compare(i.Published!.RootElement.GetProperty("values").GetProperty(id).GetString(), next) < 0,
+                        ListOperator.Gt => i => string.Compare(i.Published!.RootElement.GetProperty("values").GetProperty(id).GetString(), next) >= 0,
+                        ListOperator.Lt => i => string.Compare(i.Published!.RootElement.GetProperty("values").GetProperty(id).GetString(), start) < 0,
+                        _ => null,
+                    };
+                }
 
             case ListFieldTypes.Boolean when op == ListOperator.Eq && value.ValueKind is JsonValueKind.True or JsonValueKind.False:
                 // ->> gives the text "true" or "false"; no value counts as false (014 FR-010).
@@ -172,16 +172,16 @@ internal static class PublishedListTranslation
                         || i.Published!.RootElement.GetProperty("values").GetProperty(id).GetString() == "false";
 
             case ListFieldTypes.Option when value.ValueKind == JsonValueKind.String && field.Options.Contains(value.GetString()!):
-            {
-                var option = value.GetString()!;
-                return op switch
                 {
-                    ListOperator.Eq => i => i.Published!.RootElement.GetProperty("values").GetProperty(id).GetString() == option,
-                    ListOperator.Ne => i => i.Published!.RootElement.GetProperty("values").GetProperty(id).GetString() == null
-                        || i.Published!.RootElement.GetProperty("values").GetProperty(id).GetString() != option,
-                    _ => null,
-                };
-            }
+                    var option = value.GetString()!;
+                    return op switch
+                    {
+                        ListOperator.Eq => i => i.Published!.RootElement.GetProperty("values").GetProperty(id).GetString() == option,
+                        ListOperator.Ne => i => i.Published!.RootElement.GetProperty("values").GetProperty(id).GetString() == null
+                            || i.Published!.RootElement.GetProperty("values").GetProperty(id).GetString() != option,
+                        _ => null,
+                    };
+                }
 
             case ListFieldTypes.Reference when value.ValueKind == JsonValueKind.String && Guid.TryParse(value.GetString(), out var target):
                 return op switch
@@ -211,32 +211,32 @@ internal static class PublishedListTranslation
         switch (filter.Target.BuiltIn)
         {
             case ListBuiltIn.Slug when value.ValueKind == JsonValueKind.String:
-            {
-                var slug = value.GetString()!;
-                return filter.Operator switch
                 {
-                    ListOperator.Eq => i => i.PublishedSlug == slug,
-                    ListOperator.Ne => i => i.PublishedSlug != slug,
-                    _ => null,
-                };
-            }
+                    var slug = value.GetString()!;
+                    return filter.Operator switch
+                    {
+                        ListOperator.Eq => i => i.PublishedSlug == slug,
+                        ListOperator.Ne => i => i.PublishedSlug != slug,
+                        _ => null,
+                    };
+                }
 
             case ListBuiltIn.FirstPublishedAt or ListBuiltIn.LastPublishedAt when Day(value) is { } day:
-            {
-                var start = new DateTimeOffset(day.ToDateTime(TimeOnly.MinValue), TimeSpan.Zero);
-                var next = start.AddDays(1);
-                var first = filter.Target.BuiltIn == ListBuiltIn.FirstPublishedAt;
-                return filter.Operator switch
                 {
-                    ListOperator.Eq when first => i => i.FirstPublishedAtUtc >= start && i.FirstPublishedAtUtc < next,
-                    ListOperator.Gt when first => i => i.FirstPublishedAtUtc >= next,
-                    ListOperator.Lt when first => i => i.FirstPublishedAtUtc < start,
-                    ListOperator.Eq => i => i.LastPublishedAtUtc >= start && i.LastPublishedAtUtc < next,
-                    ListOperator.Gt => i => i.LastPublishedAtUtc >= next,
-                    ListOperator.Lt => i => i.LastPublishedAtUtc < start,
-                    _ => null,
-                };
-            }
+                    var start = new DateTimeOffset(day.ToDateTime(TimeOnly.MinValue), TimeSpan.Zero);
+                    var next = start.AddDays(1);
+                    var first = filter.Target.BuiltIn == ListBuiltIn.FirstPublishedAt;
+                    return filter.Operator switch
+                    {
+                        ListOperator.Eq when first => i => i.FirstPublishedAtUtc >= start && i.FirstPublishedAtUtc < next,
+                        ListOperator.Gt when first => i => i.FirstPublishedAtUtc >= next,
+                        ListOperator.Lt when first => i => i.FirstPublishedAtUtc < start,
+                        ListOperator.Eq => i => i.LastPublishedAtUtc >= start && i.LastPublishedAtUtc < next,
+                        ListOperator.Gt => i => i.LastPublishedAtUtc >= next,
+                        ListOperator.Lt => i => i.LastPublishedAtUtc < start,
+                        _ => null,
+                    };
+                }
 
             default:
                 return null;
