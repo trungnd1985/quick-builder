@@ -2,8 +2,10 @@ namespace QuickBuilder.SmokeTests;
 
 /// <summary>
 /// One SQL statement that inserts many collection items as the product stores them (015
-/// data-model §1.2): with slugs, status, revision and the derived columns already indexed, so the
-/// start-up backfill has nothing to do and timings measure only the operation under test.
+/// data-model §1.2, 016 §1.4): with slugs, status, revision, first publication and the derived
+/// columns already indexed at the current index version (2), so the start-up backfill has nothing
+/// to do and timings measure only the operation under test. The folded text that a list's
+/// <c>contains</c> filter reads is not seeded.
 /// </summary>
 internal static class ItemSeedSql
 {
@@ -17,10 +19,10 @@ internal static class ItemSeedSql
         var published = publishEvery > 0 ? $"g.n % {publishEvery} = 0" : "false";
         return
             "INSERT INTO cms.items (id, site_id, collection_id, draft, published, created_at_utc, updated_at_utc, slug, published_slug, status, revision, " +
-            "name, search_text, attention, index_version, created_by, updated_by, published_at_utc, published_by, live_version, next_version_number) " +
+            "name, search_text, attention, index_version, created_by, updated_by, published_at_utc, first_published_at_utc, published_by, live_version, next_version_number) " +
             "SELECT g.id, s.site, s.coll, v.doc, CASE WHEN p.pub THEN v.doc END, now(), now() - (g.n || ' seconds')::interval, 'item-' || g.n, " +
             "CASE WHEN p.pub THEN 'item-' || g.n END, CASE WHEN p.pub THEN 'published' ELSE 'draft' END, 1, " +
-            "'Item ' || g.n, 'item ' || g.n || ' item-' || g.n, NULL, 1, s.nobody, s.nobody, CASE WHEN p.pub THEN now() END, " +
+            "'Item ' || g.n, 'item ' || g.n || ' item-' || g.n, NULL, 2, s.nobody, s.nobody, CASE WHEN p.pub THEN now() END, CASE WHEN p.pub THEN now() END, " +
             "CASE WHEN p.pub THEN s.nobody END, CASE WHEN p.pub THEN 1 END, CASE WHEN p.pub THEN 2 ELSE 1 END " +
             $"FROM (SELECT gen_random_uuid() AS id, n FROM generate_series(1, {count}) AS n) g " +
             $"CROSS JOIN (SELECT '{siteId}'::uuid AS site, '{collectionId}'::uuid AS coll, '00000000-0000-0000-0000-000000000000'::uuid AS nobody) s " +
