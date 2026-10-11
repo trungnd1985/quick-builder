@@ -30,6 +30,16 @@
     z-index: 1;
   }
 
+  /* 016 FR-019: a block its binding hides on the site, still drawn here so it can be selected. */
+  .qb-node--hidden-by-binding > :not(.qb-node__bar) {
+    opacity: 0.4;
+  }
+
+  /* 016 FR-018: a block with a broken binding; the panel says why. */
+  .qb-node--broken-binding {
+    outline: 1px dashed #b45309;
+  }
+
   .qb-node__bar {
     position: absolute;
     top: -1.5rem;

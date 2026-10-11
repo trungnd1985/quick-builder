@@ -114,7 +114,7 @@ export function createAutosave(
     }
 
     const document: ContentDocument = { schemaVersion: CURRENT_SCHEMA_VERSION, root: sending }
-    const check = validateDocument(document, store.kind)
+    const check = validateDocument(document, store.kind, store.validationContext)
     if (!check.valid) {
       // An editor bug, not the member's: nothing is sent (research ED-13).
       stop('invalid', check.rule, { rule: check.rule, pointer: check.pointer })

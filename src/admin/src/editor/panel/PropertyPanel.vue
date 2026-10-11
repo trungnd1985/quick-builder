@@ -20,6 +20,8 @@ import RichTextControl from './controls/RichTextControl.vue'
 import TextControl from './controls/TextControl.vue'
 import ToggleControl from './controls/ToggleControl.vue'
 import TokenControl from './controls/TokenControl.vue'
+import BindingControl from './controls/BindingControl.vue'
+import { kindOf } from '../bindings/bindingRules'
 
 const { t, te } = useI18n()
 const store = useEditorStore()
@@ -229,6 +231,13 @@ const tokenKind = (control: ControlKind) => (control === 'colorToken' ? 'color' 
             :label="field.label"
             :node-id="node.id"
             :error="errors[field.prop]"
+          />
+          <!-- 016 FR-017: a bindable property inside a template or a list card can take an item's value. -->
+          <BindingControl
+            v-if="kindOf(node.type, field.prop)"
+            :node="node"
+            :prop="field.prop"
+            :label="field.label"
           />
         </template>
       </fieldset>

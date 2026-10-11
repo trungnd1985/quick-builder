@@ -78,6 +78,17 @@ export interface Item extends ItemSummary {
   report: Report
   scheduledDiffersFromDraft: boolean
   unpublishedReferences: ItemRef[]
+  /** Where visitors find the item, or why they cannot (016 FR-007). */
+  address?: ItemAddress
+}
+
+/**
+ * An item's address under its collection's template (016 FR-007). `path` is set when the item
+ * has an address; `reason` says why visitors cannot open it, if they cannot.
+ */
+export interface ItemAddress {
+  path: string | null
+  reason: 'no_template' | 'template_not_live' | 'not_published' | 'hidden_by_page' | null
 }
 
 export interface Referrer {

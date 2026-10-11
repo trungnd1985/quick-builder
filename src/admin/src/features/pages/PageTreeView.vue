@@ -3,6 +3,7 @@ import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
 import { pagesApi, type PageDetail, type PageNode, type PageTree } from '../../api/pages'
+import { cmsApi, type CollectionSummary } from '../../api/cms'
 import { useSitesStore } from '../../app/sitesStore'
 import PublicationBadge from '../publishing/PublicationBadge.vue'
 import PublishMenu from '../publishing/PublishMenu.vue'
@@ -10,6 +11,7 @@ import { liveAddressCount } from '../publishing/addressWarning'
 import ConfirmDialog from '../sites/ConfirmDialog.vue'
 import MoveDialog from './MoveDialog.vue'
 import PageFormDialog from './PageFormDialog.vue'
+import TemplateDialog from './TemplateDialog.vue'
 import { isOutOfDate, pageErrorMessage } from './pageErrors'
 
 // 010 US1, US2, US3 and US5: one site's page structure. The tree is a table in site order;
@@ -24,6 +26,7 @@ type Dialog =
   | { kind: 'move'; page: PageNode }
   | { kind: 'makeHome'; page: PageNode }
   | { kind: 'delete'; page: PageNode }
+  | { kind: 'template'; page: PageNode; mode: 'set' | 'remove' }
 
 const { t, te, d } = useI18n()
 const route = useRoute()
@@ -44,6 +47,9 @@ const actionError = ref<string | null>(null)
 const outOfDate = ref(false)
 const status = ref('')
 const toolbarHeading = ref<HTMLElement | null>(null)
+/** The site's collections, for templates (016); read when first needed. */
+const collections = ref<CollectionSummary[]>([])
+
 
 const pages = computed(() => tree.value?.pages ?? [])
 const canManage = computed(() => tree.value?.permissions.canManageStructure === true)
@@ -77,6 +83,10 @@ async function load(): Promise<void> {
   try {
     show(await pagesApi.tree(siteId.value))
     outOfDate.value = false
+    // 016: template badges name their collection.
+    if (collections.value.length === 0 && pages.value.some((p) => p.templateCollectionId)) {
+      collections.value = await cmsApi.list(siteId.value).then((list) => list.collections, () => [])
+    }
   } catch (caught) {
     loadError.value = pageErrorMessage(t, te, caught)
   } finally {
@@ -236,6 +246,47 @@ async function confirm(): Promise<void> {
       selectedId.value = previous
       await focusRow(previous)
     }
+  }
+}
+
+/** 016 US1: opens the template dialog, with the site's collections to choose from. */
+async function openTemplate(page: PageNode, mode: 'set' | 'remove'): Promise<void> {
+  if (collections.value.length === 0) {
+    try {
+      collections.value = (await cmsApi.list(siteId.value)).collections
+    } catch {
+      collections.value = []
+    }
+  }
+
+  open({ kind: 'template', page, mode })
+}
+
+function collectionName(id: string | null | undefined): string {
+  return collections.value.find((c) => c.id === id)?.name ?? ''
+}
+
+async function submitTemplate(collectionId: string | null): Promise<void> {
+  const current = dialog.value
+  if (current?.kind !== 'template') {
+    return
+  }
+
+  const message = collectionId
+    ? t('pages.status.templateSet', { title: current.page.title, collection: collectionName(collectionId) })
+    : t('pages.status.templateRemoved', { title: current.page.title })
+
+  if (await run(
+    async () => {
+      if (collectionId) {
+        await pagesApi.setTemplate(siteId.value, current.page.id, collectionId, current.page.version)
+      } else {
+        await pagesApi.removeTemplate(siteId.value, current.page.id, current.page.version)
+      }
+    },
+    message,
+    true)) {
+    await close()
   }
 }
 
@@ -399,7 +450,9 @@ function whoSaved(value: PageDetail): string {
             v-if="selected && canManage"
             class="page-toolbar"
           >
+            <!-- 016 TB-02: nothing goes under a template; its address holds each item's slug. -->
             <button
+              v-if="!selected.templateCollectionId"
               type="button"
               @click="open({ kind: 'create', parent: selected })"
             >
@@ -437,6 +490,20 @@ function whoSaved(value: PageDetail): string {
               @click="open({ kind: 'makeHome', page: selected })"
             >
               {{ t('pages.actions.makeHome') }}
+            </button>
+            <button
+              v-if="!selected.isHome"
+              type="button"
+              @click="openTemplate(selected, 'set')"
+            >
+              {{ selected.templateCollectionId ? t('pages.actions.changeTemplate') : t('pages.actions.useAsTemplate') }}
+            </button>
+            <button
+              v-if="selected.templateCollectionId"
+              type="button"
+              @click="openTemplate(selected, 'remove')"
+            >
+              {{ t('pages.actions.stopTemplate') }}
             </button>
             <button
               type="button"
@@ -514,6 +581,10 @@ function whoSaved(value: PageDetail): string {
                     v-if="page.isHome"
                     class="badge"
                   >{{ t('pages.table.home') }}</span>
+                  <span
+                    v-if="page.templateCollectionId"
+                    class="badge"
+                  >{{ t('pages.table.template', { collection: collectionName(page.templateCollectionId) }) }}</span>
                   <PublicationBadge :publication="page.publication" />
                 </span>
               </th>
@@ -551,6 +622,19 @@ function whoSaved(value: PageDetail): string {
       :busy="busy"
       :error="dialogError"
       @submit="submitMove"
+      @cancel="close"
+    />
+
+    <TemplateDialog
+      v-if="dialog?.kind === 'template'"
+      dialog-id="page-template"
+      :site-id="siteId"
+      :page="dialog.page"
+      :collections="collections"
+      :mode="dialog.mode"
+      :busy="busy"
+      :error="dialogError"
+      @submit="submitTemplate"
       @cancel="close"
     />
 

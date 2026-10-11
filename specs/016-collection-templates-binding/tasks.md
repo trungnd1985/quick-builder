@@ -124,7 +124,7 @@ Shorthand used below:
 - [X] T007 [P] Create `UTESTS/Pages/PageSchemaBindingTests.cs`. It runs every `valid/` and `invalid/` example through `PAGES/Infrastructure/Schema/PageDocumentValidator.cs` and expects the listed rule and pointer. Also check that a `"page"` scope in a non-template page document is accepted (TB-06). It must fail first.
 - [X] T008 [P] Extend `ADMINTESTS/editor/documentValidator.spec.ts` to run the same `valid/` and `invalid/` examples through `EDITOR/schema/documentValidator.ts`. It must fail first.
 - [X] T009 Implement rules 13 and 15–20 in `PAGES/Infrastructure/Schema/PageDocumentValidator.cs`, in data-model §2 order. Implement rule 14 through `ICollectionSchemaReader.ExistingAsync` (T013): an unknown id and another site's id give the same failure. Component documents also get rule 16. Make T007 pass.
-- [ ] T010 Mirror rules 13–20 in `EDITOR/schema/documentValidator.ts` and `EDITOR/schema/limits.ts`. Rule 14 checks against the site's collection ids, which the editor store passes in (`EDITOR/state/editorStore.ts` loads them through `ADMIN/api/cms.ts`). Make T008 pass.
+- [X] T010 Mirror rules 13–20 in `EDITOR/schema/documentValidator.ts` and `EDITOR/schema/limits.ts`. Rule 14 checks against the site's collection ids, which the editor store passes in (`EDITOR/state/editorStore.ts` loads them through `ADMIN/api/cms.ts`). Make T008 pass.
 
 ### Database
 
@@ -241,7 +241,7 @@ get the identical not-found page, and a static page at a matching address wins.
   - publishing the item changes its ETag and content at the next request;
   - publishing another item of the collection leaves this item's cache entry and ETag unchanged;
   - `304` on a matching `If-None-Match`.
-- [ ] T029 [P] [US1] Create `ADMINTESTS/features/pages/TemplateDialog.spec.ts` (collection choice, impact text, refusal messages, keyboard-only, axe) and `ADMINTESTS/editor/SampleItemPicker.spec.ts` (the choice is kept per page in `localStorage`, draft badge, fallback when the item is deleted).
+- [X] T029 [P] [US1] Create `ADMINTESTS/features/pages/TemplateDialog.spec.ts` (collection choice, impact text, refusal messages, keyboard-only, axe) and `ADMINTESTS/editor/SampleItemPicker.spec.ts` (the choice is kept per page in `localStorage`, draft badge, fallback when the item is deleted).
 
 ### Implementation for User Story 1
 
@@ -256,10 +256,10 @@ get the identical not-found page, and a static page at a matching address wins.
 - [X] T033 [US1] In `CMS/Domain/Item.cs` and `CMS/Infrastructure/ItemPublishing.cs`, increment `RenderStamp` in the same transaction as every publish, scheduled publish, rollback and unpublish of the item itself (data-model §1.4, case 1). Add a case to `UTESTS/Cms/Items/ItemTests.cs`.
 - [X] T034 [US1] Create `RENDER/Features/RenderPage/TemplateMatcher.cs` (TB-03) and `ItemRenderKey.cs` (data-model §6; same ETag and `IsMatchedBy` as `RenderKey`, with the `item` prefix). Extend `RENDER/Features/RenderPage/PageResponder.cs`: after a static miss, match the template, find the item, build the key first, then render. The render fetches the template's live version, the item (`GetAsync`) and the schemas into `ResolvedData` under the `"page"` scope. The title is the item's name, else the template's title. Any miss goes to `notFound`. Make T027 and T028 pass.
 - [X] T035 [US1] Add `BindingPlanner.cs` and `BindingFetcher.cs` to `RENDER/Binding/`. For US1, the planner finds the page scope and the media files and page links inside bound values (images, files, rich text). The fetcher calls `IPublicMediaReader` and `GetLinkTargetsAsync` for them, so they render like fixed values. `RENDER/Domain/RenderReferences.cs` collects from resolved values too.
-- [ ] T036 [US1] Extend `CMS/Features/Items/GetItem/GetItem.cs` and `CMS/Features/Items/ItemResponses.cs` with `address` (`path`, `reason`) through `ITemplateReader` and `IPublishedContentReader.FindLiveByPathAsync` (FR-007, TB-12). Add the cases to `ITESTS/Cms/Items/ItemApiTests.cs`. Show it in `ADMIN/features/cms/items/ItemFormView.vue`, with a link to the live address and the reason text.
-- [ ] T037 [P] [US1] Add `getTemplateImpact`, `setTemplate` and `removeTemplate` to `ADMIN/api/pages.ts`. Create `ADMIN/features/pages/TemplateDialog.vue` (collection list from `ADMIN/api/cms.ts`, impact, confirm). In the page tree under `ADMIN/features/pages/`, add a "Use as template…" and "Stop using as template…" action, a template badge and the pattern; hide "Add child page" on templates. Exclude template pages from the link page picker (`EDITOR/panel/controls/`).
-- [ ] T038 [US1] Create `EDITOR/SampleItemPicker.vue`, reusing 015's `ReferencePicker` against the template's collection. Place it in `EDITOR/EditorTopBar.vue` on template pages only, and keep the choice in `localStorage` under `qb.sample.<siteId>.<pageId>`. The editor store loads the item's draft values through `ADMIN/api/items.ts` into the `"page"` scope. `EDITOR/canvas/CanvasNode.vue` shows bound values through `EDITOR/bindings/resolve.ts`, with a "Draft" badge (clarification 2026-10-10). Make T029 pass.
-- [ ] T039 [US1] In `EDITOR/panel/PropertyPanel.vue`, add a minimal "Bind to field" listbox for each bindable prop when a page scope exists. It lists the compatible fields of `bindingRules.ts`, writes `props.bind.<prop>.value.field`, sets `bindingVersion: 1` on the document, and offers "Unbind". US2 replaces it with the full control.
+- [X] T036 [US1] Extend `CMS/Features/Items/GetItem/GetItem.cs` and `CMS/Features/Items/ItemResponses.cs` with `address` (`path`, `reason`) through `ITemplateReader` and `IPublishedContentReader.FindLiveByPathAsync` (FR-007, TB-12). Add the cases to `ITESTS/Cms/Items/ItemApiTests.cs`. Show it in `ADMIN/features/cms/items/ItemFormView.vue`, with a link to the live address and the reason text.
+- [X] T037 [P] [US1] Add `getTemplateImpact`, `setTemplate` and `removeTemplate` to `ADMIN/api/pages.ts`. Create `ADMIN/features/pages/TemplateDialog.vue` (collection list from `ADMIN/api/cms.ts`, impact, confirm). In the page tree under `ADMIN/features/pages/`, add a "Use as template…" and "Stop using as template…" action, a template badge and the pattern; hide "Add child page" on templates. Exclude template pages from the link page picker (`EDITOR/panel/controls/`).
+- [X] T038 [US1] Create `EDITOR/SampleItemPicker.vue`, reusing 015's `ReferencePicker` against the template's collection. Place it in `EDITOR/EditorTopBar.vue` on template pages only, and keep the choice in `localStorage` under `qb.sample.<siteId>.<pageId>`. The editor store loads the item's draft values through `ADMIN/api/items.ts` into the `"page"` scope. `EDITOR/canvas/CanvasNode.vue` shows bound values through `EDITOR/bindings/resolve.ts`, with a "Draft" badge (clarification 2026-10-10). Make T029 pass.
+- [X] T039 [US1] In `EDITOR/panel/PropertyPanel.vue`, add a minimal "Bind to field" listbox for each bindable prop when a page scope exists. It lists the compatible fields of `bindingRules.ts`, writes `props.bind.<prop>.value.field`, sets `bindingVersion: 1` on the document, and offers "Unbind". US2 replaces it with the full control.
 
 **Checkpoint**: quickstart §1 passes. A Designer can make a template, bind fields and serve
 every published item.
@@ -292,7 +292,7 @@ be done with the keyboard, and the stored binding uses ids.
   - a rich text value limited by its field's `formats`;
   - link values: item page, a referenced item's page, a file, a text URL with an allowed and a refused scheme;
   - broken bindings render as fallback (SC-003).
-- [ ] T042 [P] [US2] Create `ADMINTESTS/editor/panel/BindingControl.spec.ts` and `TextTemplateEditor.spec.ts`:
+- [X] T042 [P] [US2] Create `ADMINTESTS/editor/panel/BindingControl.spec.ts` and `TextTemplateEditor.spec.ts`:
   - only compatible fields are offered, grouped by scope;
   - references expand one step;
   - format options per type;
@@ -307,7 +307,7 @@ be done with the keyboard, and the stored binding uses ids.
 - [ ] T043 [US2] Complete `RENDER/Binding/ValueFormatter.cs` (dates and numbers with the site's default-language `CultureInfo`, booleans, multi-line to paragraphs) and text templates in `BindingResolver.cs` (data-model §3.3 step 4). Make T040 pass, and T018 for every case.
 - [ ] T044 [US2] Implement `via` in `RENDER/Binding/BindingPlanner.cs` and `BindingFetcher.cs`: collect the reference ids from fetched items for every `via` binding, then make one batched `IPublishedItemReader.GetAsync`. A reference without published data is empty. Implement the link values in `RENDER/Rendering/LinkResolver.cs`: item URLs from `GetLiveTemplatePatternsAsync` under the base path, file URLs from the media reader, and text URLs only with the 011 schemes; anything else renders as text. Make T041 pass.
 - [ ] T045 [US2] Mirror T043 and T044 in `EDITOR/bindings/format.ts` (using `Intl` with the site language) and `EDITOR/bindings/resolve.ts`. Make T019 pass for every case.
-- [ ] T046 [US2] Create `EDITOR/panel/controls/BindingControl.vue` and `BindingPicker.vue` (TB-14):
+- [X] T046 [US2] Create `EDITOR/panel/controls/BindingControl.vue` and `BindingPicker.vue` (TB-14):
   - a listbox of compatible fields and built-in values, grouped by scope, nearest first, with references expandable one step;
   - format options;
   - the empty-value choice;
@@ -316,7 +316,7 @@ be done with the keyboard, and the stored binding uses ids.
   - unbind.
 
   Replace T039's minimal control in `EDITOR/panel/PropertyPanel.vue`.
-- [ ] T047 [US2] Create `EDITOR/panel/controls/TextTemplateEditor.vue` for text props. It holds chips for values and typed text between them, up to 20 parts and 10 values, with the keyboard behaviour of TB-14, and announces chips to assistive technology. Make T042 pass.
+- [X] T047 [US2] Create `EDITOR/panel/controls/TextTemplateEditor.vue` for text props. It holds chips for values and typed text between them, up to 20 parts and 10 values, with the keyboard behaviour of TB-14, and announces chips to assistive technology. Make T042 pass.
 - [ ] T048 [P] [US2] Mark the bindable props in each block definition (`EDITOR/blocks/heading/definition.ts`, `text/`, `button/`, `image/`, `rich-text/`) with `bindable: true`, and extend `EDITOR/blocks/registry.ts`'s `BlockDefinition` type. Add a check in `ADMINTESTS/editor/` that the bindable props equal the schema's `bind` keys per type (Principle VI).
 - [ ] T049 [US2] Show broken bindings in the layer view (`EDITOR/layers/`) and on the canvas node (a warning outline and an accessible label). Saving and publishing stay allowed (FR-018).
 

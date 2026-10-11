@@ -207,7 +207,7 @@ function richTextOf(type: string, stored: Json): Bound {
   if (type === 'richText') return hasContent(stored) ? { state: 'value', richText: stored } : EMPTY
   if (typeof stored !== 'string' || !stored.trim()) return EMPTY
   // Multi-line text: one paragraph per line, an empty line an empty paragraph.
-  const content = stored.replace(/\r\n|\r/g, '\n').split('\n').map((line) =>
+  const content: Json[] = stored.replace(/\r\n|\r/g, '\n').split('\n').map((line): Json =>
     line.length > 0 ? { type: 'paragraph', content: [{ type: 'text', text: line }] } : { type: 'paragraph' })
   return { state: 'value', richText: { type: 'doc', content } }
 }

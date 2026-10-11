@@ -374,7 +374,8 @@
       "level": "Level {level}",
       "select": "Select {title}",
       "selected": "selected",
-      "home": "Home"
+      "home": "Home",
+      "template": "Template: {collection}"
     },
     "actions": {
       "heading": "Selected page: {title}",
@@ -387,7 +388,10 @@
       "moveTo": "Move to…",
       "makeHome": "Make home page",
       "delete": "Delete",
-      "editContent": "Edit content"
+      "editContent": "Edit content",
+      "useAsTemplate": "Use as template…",
+      "changeTemplate": "Change template collection…",
+      "stopTemplate": "Stop using as template…"
     },
     "details": {
       "heading": "Draft",
@@ -437,7 +441,9 @@
       "renamed": "{title} saved.",
       "moved": "{title} moved.",
       "madeHome": "{title} is now the home page.",
-      "deleted": "{title} deleted."
+      "deleted": "{title} deleted.",
+      "templateSet": "{title} is now the template of {collection}.",
+      "templateRemoved": "{title} is an ordinary page again."
     },
     "outOfDate": "Someone else changed this page while you were working. Reload to see their changes, then try again.",
     "reload": "Reload",
@@ -463,7 +469,30 @@
       "component_not_found": "That component no longer exists. Reload and try again.",
       "invalid_component_name": "A component name must be between 1 and 100 characters.",
       "duplicate_component_name": "This site already has a component with that name.",
-      "component_in_use": "This component is used by {count} page(s). Remove it from them first."
+      "component_in_use": "This component is used by {count} page(s). Remove it from them first.",
+      "template_needs_parent": "A template needs a parent page other than the home page, so its items’ addresses start with that page’s address.",
+      "template_has_children": "A template cannot have pages under it, because its address holds each item’s slug.",
+      "unknown_collection": "That collection is not one of this site’s.",
+      "collection_has_template": "That collection already has a template page. A collection has one template.",
+      "template_parent_taken": "That page already holds a template. A page holds at most one."
+    },
+    "template": {
+      "setTitle": "Use {title} as a template",
+      "removeTitle": "Stop using {title} as a template",
+      "intro": "Every published item of the collection gets its own page from this one, at this page’s parent’s address followed by the item’s slug.",
+      "collection": "Collection",
+      "noCollections": "This site has no collections yet.",
+      "assessing": "Working out what this changes…",
+      "impactFailed": "What this changes could not be worked out. You can still go ahead.",
+      "pattern": "Item pages will be at {pattern}.",
+      "liveAddressLost": "This page is published: {address} will stop showing it.",
+      "itemsGaining": "{count} published item will get an address once the template is published. | {count} published items will get an address once the template is published.",
+      "itemsLosing": "{count} published item will lose its address. | {count} published items will lose their address.",
+      "bindingsBreaking": "{count} binding in the draft will no longer find its field. | {count} bindings in the draft will no longer find their field.",
+      "set": "Use as template",
+      "remove": "Stop using as template",
+      "working": "Saving…",
+      "cancel": "Cancel"
     }
   },
   "components": {
@@ -1089,6 +1118,66 @@
       "loading": "Loading the shared component…",
       "missing": "This shared component could not be shown.",
       "nested": "A shared component cannot contain another one, so this one is not shown."
+    },
+    "sample": {
+      "label": "Preview with",
+      "draft": "Draft",
+      "none": "no item: bound blocks show their own values",
+      "missing": "that item is gone: choose another",
+      "choose": "Choose an item…",
+      "clear": "Show without an item",
+      "dialogTitle": "Preview the template with"
+    },
+    "binding": {
+      "label": "{prop} from an item",
+      "field": "Item value for {prop}",
+      "notBound": "Not bound: use the value above",
+      "unknownField": "A field that no longer exists",
+      "pageScope": "This page’s item",
+      "listScope": "Item of {list}",
+      "builtIn": {
+        "url": "Item page",
+        "slug": "Slug",
+        "firstPublishedAt": "First published",
+        "lastPublishedAt": "Last published"
+      },
+      "useTemplate": "Combine text and values…",
+      "noScope": "This block is bound, but it is no longer inside a template or a list card.",
+      "refused": "This binding could not be saved.",
+      "broken": {
+        "field_missing": "Broken: the field it reads no longer exists. Visitors see the block’s own value.",
+        "type_mismatch": "Broken: the field’s type no longer fits this property. Visitors see the block’s own value.",
+        "scope_missing": "Broken: there is no item here to read. Visitors see the block’s own value.",
+        "via_not_reference": "Broken: the field it goes through is no longer a reference. Visitors see the block’s own value."
+      },
+      "dateFormat": "Date format",
+      "dateStyles": {
+        "medium": "Medium (Oct 10, 2026)",
+        "short": "Short (10/10/2026)",
+        "long": "Long (October 10, 2026)",
+        "iso": "ISO (2026-10-10)"
+      },
+      "decimals": "Decimal places",
+      "yes": "Text when on",
+      "no": "Text when off",
+      "whenEmpty": "When the item has no value",
+      "showOwn": "Show the block’s own value",
+      "hideBlock": "Hide the block",
+      "unbind": "Stop binding",
+      "template": {
+        "parts": "Parts of the text",
+        "text": "Text part {n}",
+        "value": "Part {n}: {field}",
+        "moveUp": "Move part {n} up",
+        "moveDown": "Move part {n} down",
+        "remove": "Remove part {n}",
+        "addText": "Add text",
+        "chooseValue": "Choose a value to add",
+        "addValue": "Add value",
+        "up": "Up",
+        "down": "Down",
+        "removeShort": "Remove"
+      }
     }
   },
   "design": {
@@ -1840,6 +1929,13 @@
         "rich_text_too_many_tables": "At most {limit} tables. Remove some to save.",
         "table_not_rectangular": "Every row of a table needs the same number of cells.",
         "table_header_misplaced": "Header cells can only make up the whole first row of a table."
+      },
+      "address": {
+        "live": "Visitors find this item at {path}.",
+        "hidden_by_page": "This item’s address, {path}, shows a page instead: a page there comes first.",
+        "no_template": "This item has no page of its own: its collection has no template page.",
+        "template_not_live": "This item has no page yet: its collection’s template is not published.",
+        "not_published": "This item has no page until it is published."
       }
     }
   }

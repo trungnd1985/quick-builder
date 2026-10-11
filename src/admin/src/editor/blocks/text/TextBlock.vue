@@ -9,7 +9,7 @@ const props = defineProps<{ node: ContentNode }>()
 const { t } = useI18n()
 const { prop, token, editable } = useBlock(() => props.node)
 const element = ref<HTMLElement | null>(null)
-const { onInput, onKeydown } = useInlineText(element, () => props.node, 'text')
+const { onInput, onKeydown, bound } = useInlineText(element, () => props.node, 'text')
 
 const style = computed(() => ({
   '--qb-text-color': token('color', 'color'),
@@ -24,7 +24,7 @@ const empty = computed(() => !props.node.props.text)
     class="qb-text"
     :class="`qb-align--${prop('align')}`"
     :style="style"
-    :contenteditable="editable ? 'plaintext-only' : 'false'"
+    :contenteditable="editable && !bound ? 'plaintext-only' : 'false'"
     :data-placeholder="empty ? t('editor.blocks.placeholder.text') : undefined"
     spellcheck="true"
     @input="onInput"

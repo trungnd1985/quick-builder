@@ -64,7 +64,28 @@ public sealed record ItemResponse(
     int? LiveVersion,
     ReportResponse Report,
     bool ScheduledDiffersFromDraft,
-    IReadOnlyList<ItemRefResponse> UnpublishedReferences);
+    IReadOnlyList<ItemRefResponse> UnpublishedReferences,
+    ItemAddressResponse? Address = null);
+
+/// <summary>
+/// Where visitors find an item (016 FR-007): <see cref="Path"/> under its collection's live
+/// template, and <see cref="Reason"/> when they cannot: <c>no_template</c>, <c>template_not_live</c>,
+/// <c>not_published</c>, or <c>hidden_by_page</c> when a live page has that address (the path is
+/// then the hidden one).
+/// </summary>
+public sealed record ItemAddressResponse(string? Path, string? Reason);
+
+/// <summary>The reasons an item has no address visitors can open (016 FR-007).</summary>
+internal static class ItemAddressReasons
+{
+    public const string NoTemplate = "no_template";
+
+    public const string TemplateNotLive = "template_not_live";
+
+    public const string NotPublished = "not_published";
+
+    public const string HiddenByPage = "hidden_by_page";
+}
 
 /// <summary>An item named by id, for reference pickers and chips.</summary>
 public sealed record ItemRefResponse(Guid Id, Guid CollectionId, string? Name, string Slug, string Status);

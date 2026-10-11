@@ -14,7 +14,7 @@ const { store, prop, editable } = useBlock(() => props.node)
 const isBroken = useBrokenLinks(() => store.siteId)
 const broken = computed(() => isBroken.value(props.node.props.link))
 const element = ref<HTMLElement | null>(null)
-const { onInput, onKeydown } = useInlineText(element, () => props.node, 'label', { singleLine: true, minLength: 1 })
+const { onInput, onKeydown, bound } = useInlineText(element, () => props.node, 'label', { singleLine: true, minLength: 1 })
 
 const style = computed(() => ({
   '--qb-button-brand': tokenValue({ token: 'color-brand' }, 'color', store.tokens, { token: 'color-brand' }),
@@ -32,7 +32,7 @@ const style = computed(() => ({
       class="qb-button"
       :class="`qb-button--${prop('style')}`"
       :style="style"
-      :contenteditable="editable ? 'plaintext-only' : 'false'"
+      :contenteditable="editable && !bound ? 'plaintext-only' : 'false'"
       spellcheck="true"
       @input="onInput"
       @keydown="onKeydown"

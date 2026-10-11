@@ -8,6 +8,7 @@ import { defaultOf, type ContentNode } from '../schema/schema'
 import type { Json } from '../schema/subsetValidator'
 import { useEditorStore } from '../state/editorStore'
 import { tokenValue, type TokenKind } from '../tokens/tokenCss'
+import { isBound } from '../bindings/canvasBindings'
 
 export function useBlock(node: () => ContentNode) {
   const store = useEditorStore()
@@ -45,6 +46,8 @@ export function useInlineText(
 ) {
   const store = useEditorStore()
   const value = () => (typeof node().props[prop] === 'string' ? (node().props[prop] as string) : '')
+  /** 016: a bound property shows the item's value and is edited through its binding, not in place. */
+  const bound = computed(() => isBound(node(), prop))
 
   const sync = () => {
     const el = element.value
@@ -57,6 +60,10 @@ export function useInlineText(
   function onInput(): void {
     const el = element.value
     if (!el) return
+    if (bound.value) {
+      sync()
+      return
+    }
     let text = el.textContent ?? ''
     if (options.singleLine && /[\r\n]/.test(text)) text = text.replace(/[\r\n]+/g, ' ')
     if (options.minLength && text.length < options.minLength) return
@@ -77,5 +84,5 @@ export function useInlineText(
     if (!isEditorShortcutInText(event)) event.stopPropagation()
   }
 
-  return { onInput, onKeydown, sync }
+  return { onInput, onKeydown, sync, bound }
 }

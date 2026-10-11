@@ -21,6 +21,8 @@ export interface ContentNode {
 /** A content document: the envelope and its root. */
 export interface ContentDocument {
   readonly schemaVersion: number
+  /** The binding format version, present when the document holds bindings or lists (016 rule 13). */
+  readonly bindingVersion?: number
   readonly root: ContentNode
 }
 
