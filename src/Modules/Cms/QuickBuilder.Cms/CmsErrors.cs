@@ -75,6 +75,17 @@ internal static class CmsErrors
         Error.Conflict("cms.collection_referenced", "Other collections have reference fields that target this collection. Remove or change them first."),
         ("references", references));
 
+    /// <summary>016 FR-010: pages or components use the collection as a template, a list or in bindings.</summary>
+    internal static Error CollectionUsedByPages(IReadOnlyList<object> uses, int total) => With(
+        Error.Conflict("cms.collection_used_by_pages", "Pages or components use this collection. Remove it from them first."),
+        ("uses", uses),
+        ("total", total));
+
+    /// <summary>016: a list preview whose list is not one the site can show.</summary>
+    internal static Error InvalidList(string reason) => With(
+        Error.Validation("cms.invalid_list", "The list cannot be shown: its source is not a collection of this site."),
+        ("reason", reason));
+
     // Items (015 data-model §6).
 
     internal static Error ItemNotFound { get; } = Error.NotFound("cms.item_not_found", "No such item in this collection.");

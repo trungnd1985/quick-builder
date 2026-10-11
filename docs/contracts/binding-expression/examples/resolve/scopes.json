@@ -1,0 +1,69 @@
+{
+  "description": "Nested scopes: inside a card of the team list on a template page, the nearest scope is the card's item, and the page's item and the list are reached by name.",
+  "language": "en",
+  "basePath": "",
+  "schemas": {
+    "0192f5a0-0000-7000-8000-00000000c001": {
+      "schemaVersion": 1,
+      "titleFieldId": "f1",
+      "fields": [
+        { "id": "f1", "key": "title", "name": "Title", "help": "", "required": true, "type": "text", "multiline": false, "maxLength": 256 }
+      ]
+    },
+    "0192f5a0-0000-7000-8000-00000000c002": {
+      "schemaVersion": 1,
+      "titleFieldId": "f1",
+      "fields": [
+        { "id": "f1", "key": "name", "name": "Name", "help": "", "required": true, "type": "text", "multiline": false, "maxLength": 100 }
+      ]
+    }
+  },
+  "pageItem": {
+    "id": "0192f5a1-0000-7000-8000-00000000a001",
+    "collectionId": "0192f5a0-0000-7000-8000-00000000c001",
+    "slug": "hello-world",
+    "name": "Hello world",
+    "firstPublishedAt": "2026-01-05T09:00:00Z",
+    "lastPublishedAt": "2026-10-09T08:00:00Z",
+    "values": { "schemaVersion": 1, "values": { "f1": "Hello world" } }
+  },
+  "items": [
+    {
+      "id": "0192f5a1-0000-7000-8000-00000000b001",
+      "collectionId": "0192f5a0-0000-7000-8000-00000000c002",
+      "slug": "lan-nguyen",
+      "name": "Lan Nguyen",
+      "firstPublishedAt": "2026-01-01T00:00:00Z",
+      "lastPublishedAt": "2026-01-01T00:00:00Z",
+      "values": { "schemaVersion": 1, "values": { "f1": "Lan Nguyen" } }
+    }
+  ],
+  "templates": {},
+  "media": {},
+  "scopes": [ { "name": "team", "item": "0192f5a1-0000-7000-8000-00000000b001" } ],
+  "document": {
+    "schemaVersion": 1,
+    "bindingVersion": 1,
+    "root": { "id": "root", "type": "root", "props": {}, "children": [
+      { "id": "s1", "type": "section", "props": {}, "children": [
+        { "id": "team", "type": "collection-list", "props": { "source": { "collectionId": "0192f5a0-0000-7000-8000-00000000c002" } }, "children": [
+          { "id": "team-card", "type": "list-card", "props": {}, "children": [
+            { "id": "nearest", "type": "heading", "props": { "text": "", "bind": { "text": { "value": { "field": "f1" } } } }, "children": [] },
+            { "id": "named-list", "type": "heading", "props": { "text": "", "bind": { "text": { "value": { "field": "f1", "scope": "team" } } } }, "children": [] },
+            { "id": "named-page", "type": "heading", "props": { "text": "", "bind": { "text": { "value": { "field": "f1", "scope": "page" } } } }, "children": [] },
+            { "id": "unknown", "type": "heading", "props": { "text": "", "bind": { "text": { "value": { "field": "f1", "scope": "other" } } } }, "children": [] },
+            { "id": "mixed", "type": "text", "props": { "text": "", "bind": { "text": { "value": { "parts": [ { "field": "f1" }, " on ", { "field": "f1", "scope": "page" } ] } } } }, "children": [] }
+          ] },
+          { "id": "team-empty", "type": "list-empty", "props": {}, "children": [] }
+        ] }
+      ] }
+    ] }
+  },
+  "expected": {
+    "nearest.text": { "text": "Lan Nguyen" },
+    "named-list.text": { "text": "Lan Nguyen" },
+    "named-page.text": { "text": "Hello world" },
+    "unknown.text": { "fallback": true, "broken": "scope_missing" },
+    "mixed.text": { "text": "Lan Nguyen on Hello world" }
+  }
+}

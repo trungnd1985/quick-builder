@@ -21,6 +21,7 @@ using QuickBuilder.Pages.Features.GetTokenUsage;
 using QuickBuilder.Pages.Features.ListComponents;
 using QuickBuilder.Pages.Features.ListComponentUsages;
 using QuickBuilder.Pages.Features.MakeHomePage;
+using QuickBuilder.Pages.Features.SetPageTemplate;
 using QuickBuilder.Pages.Features.MovePage;
 using QuickBuilder.Pages.Features.Publish;
 using QuickBuilder.Pages.Features.PublishingHistory;
@@ -84,6 +85,9 @@ public static class PagesModule
         // 013 research MV-05: where media files are used, for the Media module.
         services.AddScoped<QuickBuilder.Pages.Contracts.Media.IMediaUsageReader, MediaUsageReader>();
 
+        // 016 research TB-12: which page is a collection's template, for Cms.
+        services.AddScoped<ITemplateReader, TemplateReader>();
+
         // What this module lets people do. Identity enforces them; this module only declares them.
         foreach (var capability in PagesCapabilities.All)
         {
@@ -128,6 +132,11 @@ public static class PagesModule
         services.AddScoped<IValidator<UpdatePageCommand>, UpdatePageValidator>();
         services.AddScoped<ICommandHandler<MovePageCommand, Result<PageTreeResponse>>, MovePageHandler>();
         services.AddScoped<ICommandHandler<MakeHomePageCommand, Result<PageTreeResponse>>, MakeHomePageHandler>();
+
+        // 016 research TB-02: a page as a collection's template.
+        services.AddScoped<TemplateImpact>();
+        services.AddScoped<ICommandHandler<SetPageTemplateCommand, Result<PageWithWarningsResponse>>, SetPageTemplateHandler>();
+        services.AddScoped<IQueryHandler<GetTemplateImpactQuery, Result<TemplateImpactResponse>>, GetTemplateImpactHandler>();
         services.AddScoped<ICommandHandler<DeletePageCommand, Result>, DeletePageHandler>();
 
         services.AddScoped<IQueryHandler<GetPageDraftQuery, Result<DraftResponse>>, GetPageDraftHandler>();

@@ -16,6 +16,12 @@ public interface ITemplateReader
     /// <summary>The templates of the collections among <paramref name="collectionIds"/> that have one.</summary>
     Task<IReadOnlyDictionary<Guid, TemplateInfo>> GetTemplatesAsync(
         Guid siteId, IReadOnlyCollection<Guid> collectionIds, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Whether a live ordinary page has the address <paramref name="path"/>, so an item address
+    /// there is hidden by it (FR-005, FR-007).
+    /// </summary>
+    Task<bool> LivePageAtAsync(Guid siteId, string path, CancellationToken cancellationToken = default);
 }
 
 /// <summary>A collection's template page.</summary>

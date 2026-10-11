@@ -25,4 +25,10 @@ public interface ICollectionSchemaReader
     /// collections whose items can show its items (TB-10).
     /// </summary>
     Task<IReadOnlyList<Guid>> CollectionsReferencingAsync(Guid siteId, Guid collectionId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// How many items of the collection have published data, for the admin's address warnings
+    /// (TB-12). The public path's reader cannot answer on the admin surface, which resolves no site.
+    /// </summary>
+    Task<int> CountPublishedItemsAsync(Guid siteId, Guid collectionId, CancellationToken cancellationToken = default);
 }

@@ -43,24 +43,26 @@ internal sealed record RenderKey(
             SiteId, "page", $"{PageId:N}:{Generation}:{DesignNumber}:{SiteVersion}:{BasePath}:{RendererStamp}");
 
     /// <summary>A strong validator: the same key always renders the same bytes.</summary>
-    public string ETag
-    {
-        get
-        {
-            var hash = SHA256.HashData(Encoding.UTF8.GetBytes(CacheKey));
-            return "\"" + Convert.ToBase64String(hash, 0, 16).TrimEnd('=').Replace('+', '-').Replace('/', '_') + "\"";
-        }
-    }
+    public string ETag => ETagOf(CacheKey);
 
     /// <summary>Whether an <c>If-None-Match</c> header names this key's ETag.</summary>
-    public bool IsMatchedBy(string? ifNoneMatch)
+    public bool IsMatchedBy(string? ifNoneMatch) => Matches(ETag, ifNoneMatch);
+
+    /// <summary>The validator of a cache key (also used by item pages, 016).</summary>
+    public static string ETagOf(string cacheKey)
+    {
+        var hash = SHA256.HashData(Encoding.UTF8.GetBytes(cacheKey));
+        return "\"" + Convert.ToBase64String(hash, 0, 16).TrimEnd('=').Replace('+', '-').Replace('/', '_') + "\"";
+    }
+
+    /// <summary>Whether an <c>If-None-Match</c> header names <paramref name="etag"/>.</summary>
+    public static bool Matches(string etag, string? ifNoneMatch)
     {
         if (string.IsNullOrWhiteSpace(ifNoneMatch))
         {
             return false;
         }
 
-        var etag = ETag;
         foreach (var candidate in ifNoneMatch.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
         {
             // Weak comparison, as RFC 9110 §13.1.2 asks of If-None-Match.

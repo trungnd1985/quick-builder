@@ -85,8 +85,8 @@ Shorthand used below:
 
 **Purpose**: the feature's documents and the new project references. No behaviour.
 
-- [ ] T001 Commit `specs/016-collection-templates-binding/` (spec, plan, research, data model, contracts, quickstart, checklist, tasks) as the first commit on branch `016-collection-templates-binding`, referencing #16.
-- [ ] T002 Add project references from `PAGES/QuickBuilder.Pages.csproj` and `RENDER/QuickBuilder.Rendering.csproj` to `CMSC/QuickBuilder.Cms.Contracts.csproj`. In `ATESTS/ModuleBoundaryTests.cs`, allow `QuickBuilder.Pages` → `QuickBuilder.Cms.Contracts` and `QuickBuilder.Rendering` → `QuickBuilder.Cms.Contracts`, keep every other rule, and assert that no Contracts project references another module's Contracts (module-surface.md §1).
+- [X] T001 Commit `specs/016-collection-templates-binding/` (spec, plan, research, data model, contracts, quickstart, checklist, tasks) as the first commit on branch `016-collection-templates-binding`, referencing #16.
+- [X] T002 Add project references from `PAGES/QuickBuilder.Pages.csproj` and `RENDER/QuickBuilder.Rendering.csproj` to `CMSC/QuickBuilder.Cms.Contracts.csproj`. In `ATESTS/ModuleBoundaryTests.cs`, allow `QuickBuilder.Pages` → `QuickBuilder.Cms.Contracts` and `QuickBuilder.Rendering` → `QuickBuilder.Cms.Contracts`, keep every other rule, and assert that no Contracts project references another module's Contracts (module-surface.md §1).
 
 ---
 
@@ -105,47 +105,47 @@ Shorthand used below:
 
 ### Binding contract (FR-013, TB-04 … TB-07)
 
-- [ ] T003 Create `CONTRACTS/binding-expression.md` from `specs/016-collection-templates-binding/contracts/binding-expression.md`, dropping the "(draft)" mark and the implementation note. Add it to `CONTRACTS/README.md`.
-- [ ] T004 Extend `CONTRACTS/page-schema/v1.schema.json`, staying at version 1:
+- [X] T003 Create `CONTRACTS/binding-expression.md` from `specs/016-collection-templates-binding/contracts/binding-expression.md`, dropping the "(draft)" mark and the implementation note. Add it to `CONTRACTS/README.md`.
+- [X] T004 Extend `CONTRACTS/page-schema/v1.schema.json`, staying at version 1:
   - an optional envelope `bindingVersion` (`const: 1`);
   - `$defs` `binding`, `bindingValue`, `textTemplate`, `valueFormat`, `listSource`, `listFilter`, `listSort` and `listPaging`, exactly as binding-expression.md §2 and §5;
   - an optional `bind` prop on `heading`, `text`, `button`, `image` and `rich-text`, whose object allows only the TB-05 keys (`additionalProperties: false`);
   - the node types `collection-list` (in `contentChild`) and `list-card` and `list-empty` (in a new `listChild` placement, admitted only under `collection-list`), with the props of data-model §2.
 
   Use only the vocabulary in page-schema.md §7. `PageSchemaSubsetTests` must pass.
-- [ ] T005 Update `CONTRACTS/page-schema.md`: the §2 table and placements for the three node types, `bind` in the props column, rules 13–20 in §3 with their order (rule 20 with the structural checks, then 13–19 after rule 12), and an "Additions in 016 (still version 1)" paragraph in §6. Run `ITESTS/Pages/PageSchemaContractTests.cs`; it must pass.
-- [ ] T006 [P] Create golden examples in `CONTRACTS/binding-expression/examples/`:
+- [X] T005 Update `CONTRACTS/page-schema.md`: the §2 table and placements for the three node types, `bind` in the props column, rules 13–20 in §3 with their order (rule 20 with the structural checks, then 13–19 after rule 12), and an "Additions in 016 (still version 1)" paragraph in §6. Run `ITESTS/Pages/PageSchemaContractTests.cs`; it must pass.
+- [X] T006 [P] Create golden examples in `CONTRACTS/binding-expression/examples/`:
   - `valid/`: one document per bindable prop, a text template, `via`, every format, `empty: hide`, a list with every filter operator, sort, paging, a nested list and a multi-reference source;
   - `invalid/`: one per rule 13–20 and per schema failure in a `bind`, each with `expected.json` listing `rule` and `pointer`;
   - `resolve/`: cases holding a collection schema, published items and a document, with the expected value per node (`text`, `hidden`, `fallback`, `broken:<reason>`), covering every row of binding-expression.md §4 and every empty case.
 
 ### Validators, server and admin (TB-06)
 
-- [ ] T007 [P] Create `UTESTS/Pages/PageSchemaBindingTests.cs`. It runs every `valid/` and `invalid/` example through `PAGES/Infrastructure/Schema/PageDocumentValidator.cs` and expects the listed rule and pointer. Also check that a `"page"` scope in a non-template page document is accepted (TB-06). It must fail first.
-- [ ] T008 [P] Extend `ADMINTESTS/editor/documentValidator.spec.ts` to run the same `valid/` and `invalid/` examples through `EDITOR/schema/documentValidator.ts`. It must fail first.
-- [ ] T009 Implement rules 13 and 15–20 in `PAGES/Infrastructure/Schema/PageDocumentValidator.cs`, in data-model §2 order. Implement rule 14 through `ICollectionSchemaReader.ExistingAsync` (T013): an unknown id and another site's id give the same failure. Component documents also get rule 16. Make T007 pass.
+- [X] T007 [P] Create `UTESTS/Pages/PageSchemaBindingTests.cs`. It runs every `valid/` and `invalid/` example through `PAGES/Infrastructure/Schema/PageDocumentValidator.cs` and expects the listed rule and pointer. Also check that a `"page"` scope in a non-template page document is accepted (TB-06). It must fail first.
+- [X] T008 [P] Extend `ADMINTESTS/editor/documentValidator.spec.ts` to run the same `valid/` and `invalid/` examples through `EDITOR/schema/documentValidator.ts`. It must fail first.
+- [X] T009 Implement rules 13 and 15–20 in `PAGES/Infrastructure/Schema/PageDocumentValidator.cs`, in data-model §2 order. Implement rule 14 through `ICollectionSchemaReader.ExistingAsync` (T013): an unknown id and another site's id give the same failure. Component documents also get rule 16. Make T007 pass.
 - [ ] T010 Mirror rules 13–20 in `EDITOR/schema/documentValidator.ts` and `EDITOR/schema/limits.ts`. Rule 14 checks against the site's collection ids, which the editor store passes in (`EDITOR/state/editorStore.ts` loads them through `ADMIN/api/cms.ts`). Make T008 pass.
 
 ### Database
 
-- [ ] T011 Extend `PAGES/Infrastructure/PagesDbContext.cs` and `PAGES/Domain/Page.cs`:
+- [X] T011 Extend `PAGES/Infrastructure/PagesDbContext.cs` and `PAGES/Domain/Page.cs`:
   - `Page.TemplateCollectionId` (`Guid?`, private setter);
   - the unique partial index on `(site_id, template_collection_id)`;
   - a new `CollectionUse` entity in `PAGES/Domain/CollectionUse.cs` mapped to `collection_uses`, with the key and index of data-model §1.3 and the global site filter;
   - `publications.page_param_names` (`text[]`, default empty), the paging parameters of the live version (data-model §1.2a, used by T073).
 
   Add `DependencyKinds.Collection = "collection"` and `DependencyKinds.Template = "template"` to `PAGES/Domain/PublishingTerms.cs`. Generate `PAGES/Infrastructure/Migrations/<ts>_AddTemplates.cs` with `dotnet ef migrations add AddTemplates` and check it against data-model §1.1 and §1.3.
-- [ ] T012 [P] Add `RenderStamp` (`long`, starts at 1) to `CMS/Domain/Item.cs` and map it in `CMS/Infrastructure/CmsDbContext.cs`, with the partial index `ix_items_collection_id_published_slug`. Generate `CMS/Infrastructure/Migrations/<ts>_AddRenderStamp.cs` and check it against data-model §1.4.
+- [X] T012 [P] Add `RenderStamp` (`long`, starts at 1) to `CMS/Domain/Item.cs` and map it in `CMS/Infrastructure/CmsDbContext.cs`, with the partial index `ix_items_collection_id_published_slug`. Generate `CMS/Infrastructure/Migrations/<ts>_AddRenderStamp.cs` and check it against data-model §1.4.
 
 ### Contracts interfaces (module-surface.md §2, §3)
 
-- [ ] T013 [P] Create, in `CMSC`:
+- [X] T013 [P] Create, in `CMSC`:
   - `Publishing/IPublishedItemReader.cs`, `Publishing/PublishedItem.cs` (the records `PublishedItemRef`, `PublishedItem`, `PublishedItemPage`) and `Publishing/PublishedListQuery.cs` (`PublishedListQuery`, `ListFilter`, `ListSort`, `ListOperand`, operator and built-in enums matching binding-expression.md §5);
   - `ICollectionSchemaReader.cs`;
   - `CollectionsShowingPublishedAsync` on `Media/IItemMediaUsageReader.cs`.
 
   XML docs name TB-08 and say that only published data is visible.
-- [ ] T014 [P] Create, in `PAGESC`:
+- [X] T014 [P] Create, in `PAGESC`:
   - `ITemplateReader.cs` (`TemplateInfo`);
   - `ICollectionUsageReader.cs` (`CollectionUse`, `CollectionUses`);
   - `Events/PageTemplateChanged.cs`, with event type `Pages.PageTemplateChanged`.
@@ -154,44 +154,44 @@ Shorthand used below:
 
 ### Published item reader, Cms (TB-08)
 
-- [ ] T015 Create `CMS/Infrastructure/CmsPublishedReadDbContext.cs`, following `PAGES/Infrastructure/PublishedReadDbContext.cs`:
+- [X] T015 Create `CMS/Infrastructure/CmsPublishedReadDbContext.cs`, following `PAGES/Infrastructure/PublishedReadDbContext.cs`:
   - the read-only connection helper;
   - `NoTracking`;
   - `SaveChanges` that throws;
   - row types for `items` (published columns only), `item_references` (location `published` only) and `collections` (id, site, schema).
 
   Register it in `CMS/CmsModule.cs`.
-- [ ] T016 [P] Create `ITESTS/Cms/PublishedItemReaderTests.cs`. It must fail first, and covers:
+- [X] T016 [P] Create `ITESTS/Cms/PublishedItemReaderTests.cs`. It must fail first, and covers:
   - `FindBySlugAsync` finds only published slugs, ignores draft-only items and is exact on the lower-case slug;
   - `GetAsync` returns published values, never draft values;
   - `GetSchemasAsync` returns the current schemas;
   - `CountPublishedAsync`;
   - every method returns nothing for another site's ids;
   - a write through the context fails with SQLSTATE `25006`.
-- [ ] T017 Implement `CMS/Infrastructure/PublishedItemReader.cs`: `FindBySlugAsync`, `GetAsync`, `GetSchemasAsync` and `CountPublishedAsync`. `QueryAsync` throws `NotImplementedException` until T064. Also implement `CMS/Infrastructure/CollectionSchemaReader.cs` (`ExistingAsync`, `GetSchemasAsync`, `CollectionsReferencingAsync`, which scans the site's schemas for `reference` and `multiReference` fields targeting the id). Register both in `CMS/CmsModule.cs`. Make T016 pass for the implemented methods.
+- [X] T017 Implement `CMS/Infrastructure/PublishedItemReader.cs`: `FindBySlugAsync`, `GetAsync`, `GetSchemasAsync` and `CountPublishedAsync`. `QueryAsync` throws `NotImplementedException` until T064. Also implement `CMS/Infrastructure/CollectionSchemaReader.cs` (`ExistingAsync`, `GetSchemasAsync`, `CollectionsReferencingAsync`, which scans the site's schemas for `reference` and `multiReference` fields targeting the id). Register both in `CMS/CmsModule.cs`. Make T016 pass for the implemented methods.
 
 ### Binding resolver core, Rendering (TB-09)
 
-- [ ] T018 [P] Create `UTESTS/Rendering/Binding/BindingRulesGoldenTests.cs`. It must fail first, and runs every `CONTRACTS/binding-expression/examples/resolve/` case through `BindingRules` and `BindingResolver`, expecting the listed values.
-- [ ] T019 [P] Create `ADMINTESTS/editor/bindings/bindingRules.spec.ts`, which runs the same `resolve/` cases through `EDITOR/bindings/bindingRules.ts` and `EDITOR/bindings/resolve.ts`. It must fail first.
-- [ ] T020 Create in `RENDER/Binding/`:
+- [X] T018 [P] Create `UTESTS/Rendering/Binding/BindingRulesGoldenTests.cs`. It must fail first, and runs every `CONTRACTS/binding-expression/examples/resolve/` case through `BindingRules` and `BindingResolver`, expecting the listed values.
+- [X] T019 [P] Create `ADMINTESTS/editor/bindings/bindingRules.spec.ts`, which runs the same `resolve/` cases through `EDITOR/bindings/bindingRules.ts` and `EDITOR/bindings/resolve.ts`. It must fail first.
+- [X] T020 Create in `RENDER/Binding/`:
   - `BindingRules.cs`: the compatibility table of binding-expression.md §4 and broken reasons `field_missing`, `type_mismatch`, `scope_missing`, `via_not_reference`;
   - `ScopeStack.cs`: `"page"` and list scopes, nearest first;
   - `ResolvedData.cs`: items, schemas, list results keyed by list node and outer-item key, and referenced items;
   - `BindingResolver.cs`: `Resolve(node, prop, context)` → `Value | Fallback | Hide`, following data-model §3.3.
 
   `ValueFormatter.cs` starts with plain values only (text, option label, reference name, slug); formats and text templates come in US2. Make T018 pass for the non-format cases.
-- [ ] T021 Create `EDITOR/bindings/bindingRules.ts`, `EDITOR/bindings/scopes.ts` and `EDITOR/bindings/resolve.ts`, mirroring T020. Make T019 pass for the same cases.
-- [ ] T022 Extend `RENDER/Domain/RenderContext.cs` and `RENDER/Domain/RenderInputs.cs` with `ResolvedData`, the scope stack (push and pop around list cards) and `Resolve(...)`. Change the renderers of the bindable props, `heading`, `text` and `button` in `RENDER/Rendering/Blocks/TextRenderers.cs` and `image` and `rich-text` in `MediaRenderers.cs` and `TextRenderers.cs`: each asks `context.Resolve` for each bindable prop, renders the value through its existing encoding path, and skips the whole block on `Hide`. A document with no `bind` renders byte for byte as before: run `UTESTS/Rendering/RendererGoldenTests.cs` unchanged.
+- [X] T021 Create `EDITOR/bindings/bindingRules.ts`, `EDITOR/bindings/scopes.ts` and `EDITOR/bindings/resolve.ts`, mirroring T020. Make T019 pass for the same cases.
+- [X] T022 Extend `RENDER/Domain/RenderContext.cs` and `RENDER/Domain/RenderInputs.cs` with `ResolvedData`, the scope stack (push and pop around list cards) and `Resolve(...)`. Change the renderers of the bindable props, `heading`, `text` and `button` in `RENDER/Rendering/Blocks/TextRenderers.cs` and `image` and `rich-text` in `MediaRenderers.cs` and `TextRenderers.cs`: each asks `context.Resolve` for each bindable prop, renders the value through its existing encoding path, and skips the whole block on `Hide`. A document with no `bind` renders byte for byte as before: run `UTESTS/Rendering/RendererGoldenTests.cs` unchanged.
 
 ### Errors, events, isolation
 
-- [ ] T023 [P] Add the data-model §4 codes:
+- [X] T023 [P] Add the data-model §4 codes:
   - to `PAGES/PagesErrors.cs` and `PAGES/PagesErrorResults.cs`: `pages.template_needs_parent`, `template_has_children`, `unknown_collection`, `collection_has_template`, `template_parent_taken`, and the warning codes;
   - to `CMS/CmsErrors.cs` and `CMS/CmsErrorResults.cs`: `cms.collection_used_by_pages` and `cms.invalid_list`.
 
   Add the new event and subscriptions to `specs/001-foundation-skeleton/contracts/integration-events.md`.
-- [ ] T024 [P] Add helpers to `ITESTS/Infrastructure/` (existing fixture files): create a collection with items in given published states; create a template page; publish a document with bindings; read a public address with a query string; and count renders through `RenderMetrics`. Every story's tests use them.
+- [X] T024 [P] Add helpers to `ITESTS/Infrastructure/` (existing fixture files): create a collection with items in given published states; create a template page; publish a document with bindings; read a public address with a query string; and count renders through `RenderMetrics`. Every story's tests use them.
 
 **Checkpoint**: contract, validators, migrations, readers and the resolver core are in place.
 The existing suites are green.
@@ -210,21 +210,21 @@ get the identical not-found page, and a static page at a matching address wins.
 
 ### Tests for User Story 1 ⚠️
 
-- [ ] T025 [P] [US1] Create `UTESTS/Pages/TemplateTreeTests.cs` for the TB-02 rules in `PageTree`:
+- [X] T025 [P] [US1] Create `UTESTS/Pages/TemplateTreeTests.cs` for the TB-02 rules in `PageTree`:
   - the pattern is the parent's address plus `/{slug}`;
   - a template at the top level or as home is refused;
   - a page with children cannot become a template, and no child can be added under or moved into a template;
   - one template per parent, through the address uniqueness rule;
   - a template's pattern follows moves and ancestor slug changes;
   - turning it back restores `parent/slug`.
-- [ ] T026 [P] [US1] Create `ITESTS/Pages/SetPageTemplateTests.cs` for `GET`, `PUT` and `DELETE …/template`:
+- [X] T026 [P] [US1] Create `ITESTS/Pages/SetPageTemplateTests.cs` for `GET`, `PUT` and `DELETE …/template`:
   - every refusal code;
   - one template per collection;
   - `409` version conflict;
   - Editor `403`, no role `404`;
   - the impact counts (published items gaining or losing an address; live static address lost);
   - `Pages.PageTemplateChanged` and `PageAddressesChanged` in the outbox.
-- [ ] T027 [P] [US1] Create `ITESTS/Rendering/RouteMatchingTests.cs` for contracts/public-rendering.md §1:
+- [X] T027 [P] [US1] Create `ITESTS/Rendering/RouteMatchingTests.cs` for contracts/public-rendering.md §1:
   - static, then template, then not found;
   - the item's published values in the response;
   - letter case ignored;
@@ -236,7 +236,7 @@ get the identical not-found page, and a static page at a matching address wins.
   - publishing and then unpublishing a static page `/blog/archive` switches that address between the page and the item `archive` from the next request, and a list linking to that item keeps the same `href` (FR-005, FR-033);
   - a Button linking to the template page itself renders as plain text (TB-02);
   - changing the collection's address name leaves every item address unchanged (FR-012).
-- [ ] T028 [P] [US1] Create `ITESTS/Rendering/ItemPageCacheTests.cs`:
+- [X] T028 [P] [US1] Create `ITESTS/Rendering/ItemPageCacheTests.cs`:
   - a second request is a cache hit;
   - publishing the item changes its ETag and content at the next request;
   - publishing another item of the collection leaves this item's cache entry and ETag unchanged;
@@ -245,17 +245,17 @@ get the identical not-found page, and a static page at a matching address wins.
 
 ### Implementation for User Story 1
 
-- [ ] T030 [US1] Implement the template rules in `PAGES/Domain/PageTree.cs`: `SetTemplate(pageId, collectionId?)`, the pattern in `ComputeAddresses`, and refusals on create and move. Use `Page.SetTemplate` in `PAGES/Domain/Page.cs`. Make T025 pass.
-- [ ] T031 [US1] Create `PAGES/Features/SetPageTemplate/SetPageTemplate.cs` (PUT and DELETE, `pages.structure.manage`) and `GetTemplateImpact.cs` (GET).
+- [X] T030 [US1] Implement the template rules in `PAGES/Domain/PageTree.cs`: `SetTemplate(pageId, collectionId?)`, the pattern in `ComputeAddresses`, and refusals on create and move. Use `Page.SetTemplate` in `PAGES/Domain/Page.cs`. Make T025 pass.
+- [X] T031 [US1] Create `PAGES/Features/SetPageTemplate/SetPageTemplate.cs` (PUT and DELETE, `pages.structure.manage`) and `GetTemplateImpact.cs` (GET).
   - Check the collection through `ICollectionSchemaReader.ExistingAsync`, and count through `IPublishedItemReader.CountPublishedAsync` and a draft scan for page-scope bindings.
   - Write through `PageTreeWrites` in one transaction: the page `version`, the publication `generation`, and the outbox events `PageTemplateChanged` and `PageAddressesChanged`.
   - Responses follow `PageWithWarnings`, and `templateCollectionId` is added to `PAGES/Features/PageResponses.cs`.
 
   Make T026 pass.
-- [ ] T032 [P] [US1] Implement `PAGES/Infrastructure/TemplateReader.cs` (`ITemplateReader`) and, in `PAGES/Infrastructure/PublishedContentReader.cs`, `FindLiveTemplateAsync`, `GetLiveTemplatePatternsAsync`, `FindLiveByPathAsync` ignoring template pages, and `GetLinkTargetsAsync` returning template pages with `IsLive = false`. Update `PAGES/Infrastructure/PublishedReadDbContext.cs` to map `template_collection_id`. Register the reader in `PAGES/PagesModule.cs`.
-- [ ] T033 [US1] In `CMS/Domain/Item.cs` and `CMS/Infrastructure/ItemPublishing.cs`, increment `RenderStamp` in the same transaction as every publish, scheduled publish, rollback and unpublish of the item itself (data-model §1.4, case 1). Add a case to `UTESTS/Cms/Items/ItemTests.cs`.
-- [ ] T034 [US1] Create `RENDER/Features/RenderPage/TemplateMatcher.cs` (TB-03) and `ItemRenderKey.cs` (data-model §6; same ETag and `IsMatchedBy` as `RenderKey`, with the `item` prefix). Extend `RENDER/Features/RenderPage/PageResponder.cs`: after a static miss, match the template, find the item, build the key first, then render. The render fetches the template's live version, the item (`GetAsync`) and the schemas into `ResolvedData` under the `"page"` scope. The title is the item's name, else the template's title. Any miss goes to `notFound`. Make T027 and T028 pass.
-- [ ] T035 [US1] Add `BindingPlanner.cs` and `BindingFetcher.cs` to `RENDER/Binding/`. For US1, the planner finds the page scope and the media files and page links inside bound values (images, files, rich text). The fetcher calls `IPublicMediaReader` and `GetLinkTargetsAsync` for them, so they render like fixed values. `RENDER/Domain/RenderReferences.cs` collects from resolved values too.
+- [X] T032 [P] [US1] Implement `PAGES/Infrastructure/TemplateReader.cs` (`ITemplateReader`) and, in `PAGES/Infrastructure/PublishedContentReader.cs`, `FindLiveTemplateAsync`, `GetLiveTemplatePatternsAsync`, `FindLiveByPathAsync` ignoring template pages, and `GetLinkTargetsAsync` returning template pages with `IsLive = false`. Update `PAGES/Infrastructure/PublishedReadDbContext.cs` to map `template_collection_id`. Register the reader in `PAGES/PagesModule.cs`.
+- [X] T033 [US1] In `CMS/Domain/Item.cs` and `CMS/Infrastructure/ItemPublishing.cs`, increment `RenderStamp` in the same transaction as every publish, scheduled publish, rollback and unpublish of the item itself (data-model §1.4, case 1). Add a case to `UTESTS/Cms/Items/ItemTests.cs`.
+- [X] T034 [US1] Create `RENDER/Features/RenderPage/TemplateMatcher.cs` (TB-03) and `ItemRenderKey.cs` (data-model §6; same ETag and `IsMatchedBy` as `RenderKey`, with the `item` prefix). Extend `RENDER/Features/RenderPage/PageResponder.cs`: after a static miss, match the template, find the item, build the key first, then render. The render fetches the template's live version, the item (`GetAsync`) and the schemas into `ResolvedData` under the `"page"` scope. The title is the item's name, else the template's title. Any miss goes to `notFound`. Make T027 and T028 pass.
+- [X] T035 [US1] Add `BindingPlanner.cs` and `BindingFetcher.cs` to `RENDER/Binding/`. For US1, the planner finds the page scope and the media files and page links inside bound values (images, files, rich text). The fetcher calls `IPublicMediaReader` and `GetLinkTargetsAsync` for them, so they render like fixed values. `RENDER/Domain/RenderReferences.cs` collects from resolved values too.
 - [ ] T036 [US1] Extend `CMS/Features/Items/GetItem/GetItem.cs` and `CMS/Features/Items/ItemResponses.cs` with `address` (`path`, `reason`) through `ITemplateReader` and `IPublishedContentReader.FindLiveByPathAsync` (FR-007, TB-12). Add the cases to `ITESTS/Cms/Items/ItemApiTests.cs`. Show it in `ADMIN/features/cms/items/ItemFormView.vue`, with a link to the live address and the reason text.
 - [ ] T037 [P] [US1] Add `getTemplateImpact`, `setTemplate` and `removeTemplate` to `ADMIN/api/pages.ts`. Create `ADMIN/features/pages/TemplateDialog.vue` (collection list from `ADMIN/api/cms.ts`, impact, confirm). In the page tree under `ADMIN/features/pages/`, add a "Use as template…" and "Stop using as template…" action, a template badge and the pattern; hide "Add child page" on templates. Exclude template pages from the link page picker (`EDITOR/panel/controls/`).
 - [ ] T038 [US1] Create `EDITOR/SampleItemPicker.vue`, reusing 015's `ReferencePicker` against the template's collection. Place it in `EDITOR/EditorTopBar.vue` on template pages only, and keep the choice in `localStorage` under `qb.sample.<siteId>.<pageId>`. The editor store loads the item's draft values through `ADMIN/api/items.ts` into the `"page"` scope. `EDITOR/canvas/CanvasNode.vue` shows bound values through `EDITOR/bindings/resolve.ts`, with a "Draft" badge (clarification 2026-10-10). Make T029 pass.

@@ -1,0 +1,25 @@
+{
+  "description": "An ordinary page, or a template turned back into one: there is no page item, so a page-scope binding is broken and shows the block's own value.",
+  "language": "en",
+  "basePath": "",
+  "schemas": {},
+  "pageItem": null,
+  "items": [],
+  "templates": {},
+  "media": {},
+  "scopes": [],
+  "document": {
+    "schemaVersion": 1,
+    "bindingVersion": 1,
+    "root": { "id": "root", "type": "root", "props": {}, "children": [
+      { "id": "s1", "type": "section", "props": {}, "children": [
+        { "id": "h1", "type": "heading", "props": { "text": "Fallback title", "bind": { "text": { "value": { "field": "f1", "scope": "page" } } } }, "children": [] },
+        { "id": "h2", "type": "heading", "props": { "text": "Own", "bind": { "text": { "value": { "field": "f1" }, "empty": "hide" } } }, "children": [] }
+      ] }
+    ] }
+  },
+  "expected": {
+    "h1.text": { "fallback": true, "broken": "scope_missing" },
+    "h2.text": { "hide": true, "broken": "scope_missing" }
+  }
+}

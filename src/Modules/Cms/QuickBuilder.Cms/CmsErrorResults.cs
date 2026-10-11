@@ -61,7 +61,8 @@ internal static class CmsErrorResults
             or "cms.version_not_publishable"
             or "cms.item_not_published"
             or "cms.item_referenced"
-            or "cms.schedule_pending" => StatusCodes.Status409Conflict,
+            or "cms.schedule_pending"
+            or "cms.collection_used_by_pages" => StatusCodes.Status409Conflict,
         "cms.proposal_too_large" or "cms.item_too_large" => StatusCodes.Status413PayloadTooLarge,
         _ when code.EndsWith("not_found", StringComparison.Ordinal) => StatusCodes.Status404NotFound,
         _ => StatusCodes.Status400BadRequest,

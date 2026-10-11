@@ -25,8 +25,34 @@ internal sealed class DraftWrites(
     IPageDocumentValidator validator,
     PagesAccess access,
     PageReads reads,
+    QuickBuilder.Cms.Contracts.ICollectionSchemaReader collections,
     TimeProvider clock)
 {
+    /// <summary>
+    /// Contract §3 rule 14 (016): every Collection list names a collection of this site. Like
+    /// rule 6 for components it needs the site, so it is checked here, after every other rule;
+    /// an unknown id and another site's id fail alike.
+    /// </summary>
+    private async Task<Error?> CheckCollectionsAsync(Guid siteId, DocumentValidationResult checkedDocument, CancellationToken cancellationToken)
+    {
+        if (checkedDocument.ReferencedCollections.Count == 0)
+        {
+            return null;
+        }
+
+        var known = await collections.ExistingAsync(siteId, [.. checkedDocument.ReferencedCollections.Keys], cancellationToken).ConfigureAwait(false);
+        // The validator collected them in document order, so the first unknown is the first in the document.
+        var unknown = checkedDocument.ReferencedCollections
+            .Where(c => !known.Contains(c.Key))
+            .Select(c => c.Value)
+            .FirstOrDefault();
+
+        return unknown is null
+            ? null
+            : PagesErrors.InvalidDocument(DocumentValidationResult.Invalid(
+                "pages.invalid_document", "unknown_collection", unknown, "The list names a collection this site does not have."));
+    }
+
     /// <summary>
     /// Whether a stored draft uses a rich text format an admin from before 035 would drop
     /// (035 FR-020, research RT-13). Such a client gets <c>pages.admin_outdated</c> instead.
@@ -85,6 +111,11 @@ internal sealed class DraftWrites(
             }
         }
 
+        if (await CheckCollectionsAsync(siteId, checkedDocument, cancellationToken).ConfigureAwait(false) is { } unknownCollection)
+        {
+            return Result.Failure<DraftResponse>(unknownCollection);
+        }
+
         if (draft.Version != version)
         {
             return Result.Failure<DraftResponse>(PagesErrors.OutOfDate);
@@ -129,6 +160,11 @@ internal sealed class DraftWrites(
         if (draft is null)
         {
             return Result.Failure<DraftResponse>(PagesErrors.ComponentNotFound);
+        }
+
+        if (await CheckCollectionsAsync(siteId, checkedDocument, cancellationToken).ConfigureAwait(false) is { } unknownCollection)
+        {
+            return Result.Failure<DraftResponse>(unknownCollection);
         }
 
         if (!clientKeepsEveryFormat && UsesExtendedFormats(draft.Document))

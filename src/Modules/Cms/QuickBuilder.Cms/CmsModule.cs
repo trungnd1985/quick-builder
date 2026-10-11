@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using QuickBuilder.Shared.Infrastructure.Data;
 using QuickBuilder.Cms.Contracts.Events;
 using QuickBuilder.Cms.Features;
 using QuickBuilder.Cms.Features.CreateCollection;
@@ -109,6 +110,14 @@ public static class CmsModule
         services.AddScoped<ItemWrites>();
         services.AddScoped<ItemReads>();
         services.AddScoped<QuickBuilder.Cms.Contracts.Media.IItemMediaUsageReader, ItemMediaUsageReader>();
+
+        // 016 research TB-08: published items for the public path, over a read-only connection,
+        // and schemas for other modules' admin-side checks.
+        services.AddDbContext<CmsPublishedReadDbContext>(options => options
+            .UseNpgsql(ReadOnlyConnection.From(connectionString))
+            .UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking));
+        services.AddScoped<QuickBuilder.Cms.Contracts.Publishing.IPublishedItemReader, PublishedItemReader>();
+        services.AddScoped<QuickBuilder.Cms.Contracts.ICollectionSchemaReader, CollectionSchemaReader>();
 
         // Research IT-11, IT-22: indexes items stored before 015, and any after a future indexer change.
         services.AddSingleton<ItemIndexBackfillService>();

@@ -16,7 +16,7 @@ public sealed record PermissionsResponse(
     bool CanViewPublishLog);
 
 /// <summary>One page in the flat, depth-first tree (research P-16).</summary>
-/// <remarks>012 adds <see cref="Publication"/>.</remarks>
+/// <remarks>012 adds <see cref="Publication"/>; 016 adds <see cref="TemplateCollectionId"/>: the collection a template page shows, else null.</remarks>
 public sealed record PageNodeResponse(
     Guid Id,
     Guid? ParentId,
@@ -28,7 +28,8 @@ public sealed record PageNodeResponse(
     bool IsHome,
     int ChildCount,
     int Version,
-    PublicationResponse Publication);
+    PublicationResponse Publication,
+    Guid? TemplateCollectionId = null);
 
 /// <summary>A site's whole page tree: parents before children, siblings by position.</summary>
 public sealed record PageTreeResponse(IReadOnlyList<PageNodeResponse> Pages, PermissionsResponse Permissions);
@@ -55,7 +56,8 @@ public sealed record PageDetailResponse(
     DateTimeOffset CreatedAtUtc,
     DateTimeOffset UpdatedAtUtc,
     PermissionsResponse Permissions,
-    PublicationResponse Publication);
+    PublicationResponse Publication,
+    Guid? TemplateCollectionId = null);
 
 /// <summary>A draft and its document, equal as JSON to what was saved (FR-020).</summary>
 public sealed record DraftResponse(

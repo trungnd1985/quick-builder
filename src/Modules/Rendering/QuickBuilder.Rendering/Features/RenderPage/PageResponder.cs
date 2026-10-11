@@ -1,8 +1,10 @@
 using System.Text;
 using Microsoft.Extensions.Logging;
+using QuickBuilder.Cms.Contracts.Publishing;
 using QuickBuilder.Editor.Contracts;
 using QuickBuilder.Media.Contracts;
 using QuickBuilder.Pages.Contracts.Publishing;
+using QuickBuilder.Rendering.Binding;
 using QuickBuilder.Rendering.Contracts;
 using QuickBuilder.Rendering.Domain;
 using QuickBuilder.Rendering.Rendering;
@@ -12,18 +14,26 @@ using QuickBuilder.Sites.Contracts;
 namespace QuickBuilder.Rendering.Features.RenderPage;
 
 /// <summary>
-/// Answers a visitor's request for a page: the live page as complete HTML, or the site's
-/// not-found page (012 FR-022, research PR-05, PR-09, PR-12; public-rendering.md §3).
+/// Answers a visitor's request for a page: the live page as complete HTML, an item's page from
+/// its collection's template, or the site's not-found page (012 FR-022, research PR-05, PR-09,
+/// PR-12; 016 FR-005, research TB-03, TB-10; public-rendering.md §3).
 /// </summary>
 /// <remarks>
 /// Everything is read through read-only readers of other modules (PR-06). The page's key —
-/// its generation, the design number — is read first and the content after, so anything
-/// published in between gets a newer key (PR-05).
+/// its generation, the design number, for an item page the item's render stamp — is read
+/// first and the content after, so anything published in between gets a newer key (PR-05).
+/// <para>
+/// Addresses are matched in the contract's order: a live static page first, then a live
+/// template under the address's parent with a published item of that slug, then the not-found
+/// page, the same bytes whatever the reason (016 FR-005, FR-006).
+/// </para>
 /// </remarks>
 internal sealed class PageResponder(
     IPublishedContentReader pages,
     IPublishedDesignReader designs,
     IPublicMediaReader media,
+    IPublishedItemReader items,
+    BindingFetcher bindings,
     PageRenderer renderer,
     IPublicNotFoundPage notFound,
     ICacheProvider cache,
@@ -46,40 +56,80 @@ internal sealed class PageResponder(
         var live = await pages.FindLiveByPathAsync(site.Id, path, cancellationToken).ConfigureAwait(false);
         if (live is null)
         {
-            return await notFound.RenderAsync(site, cancellationToken).ConfigureAwait(false);
+            return await RespondItemAsync(site, path, basePath, ifNoneMatch, cancellationToken).ConfigureAwait(false);
         }
 
         var designNumber = await designs.GetLiveNumberAsync(site.Id, cancellationToken).ConfigureAwait(false);
         var key = new RenderKey(site.Id, live.PageId, live.Generation, designNumber, site.Version, basePath);
-        var headers = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-        {
-            ["ETag"] = key.ETag,
-            // Stored, but checked with the server every time: a publish shows at once.
-            ["Cache-Control"] = "public, no-cache",
-        };
+        var headers = Headers(key.ETag);
 
         if (key.IsMatchedBy(ifNoneMatch))
         {
-            return new PublicResponse(StatusCodes.Status304NotModified, "text/html; charset=utf-8", headers, ReadOnlyMemory<byte>.Empty);
+            return NotModified(headers);
         }
 
-        var rendered = await CachedAsync(key, site, live.PageId, basePath, cancellationToken).ConfigureAwait(false);
+        var rendered = await CachedAsync(key.CacheKey, live.PageId, site, ct => RenderAsync(site, live.PageId, basePath, ct), cancellationToken)
+            .ConfigureAwait(false);
         return rendered is null
             ? await notFound.RenderAsync(site, cancellationToken).ConfigureAwait(false)
             : ToResponse(rendered, headers);
     }
 
+    /// <summary>An item's page, when the address is a live template's with a published item's slug (016 TB-03).</summary>
+    private async Task<PublicResponse> RespondItemAsync(
+        SiteDto site, string path, string basePath, string? ifNoneMatch, CancellationToken cancellationToken)
+    {
+        if (TemplateMatcher.Split(path) is not { } split
+            || await pages.FindLiveTemplateAsync(site.Id, split.ParentPath, cancellationToken).ConfigureAwait(false) is not { } template
+            || await items.FindBySlugAsync(site.Id, template.CollectionId, split.Slug, cancellationToken).ConfigureAwait(false) is not { } item)
+        {
+            return await notFound.RenderAsync(site, cancellationToken).ConfigureAwait(false);
+        }
+
+        var designNumber = await designs.GetLiveNumberAsync(site.Id, cancellationToken).ConfigureAwait(false);
+        var key = new ItemRenderKey(
+            site.Id, template.PageId, template.Generation, item.ItemId, item.RenderStamp, designNumber, site.Version, basePath, PageParams: string.Empty);
+        var headers = Headers(key.ETag);
+
+        if (key.IsMatchedBy(ifNoneMatch))
+        {
+            return NotModified(headers);
+        }
+
+        var rendered = await CachedAsync(
+                key.CacheKey,
+                template.PageId,
+                site,
+                ct => RenderItemAsync(site, template.PageId, item.ItemId, basePath, ct),
+                cancellationToken)
+            .ConfigureAwait(false);
+        return rendered is null
+            ? await notFound.RenderAsync(site, cancellationToken).ConfigureAwait(false)
+            : ToResponse(rendered, headers);
+    }
+
+    private static Dictionary<string, string> Headers(string etag) => new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["ETag"] = etag,
+        // Stored, but checked with the server every time: a publish shows at once.
+        ["Cache-Control"] = "public, no-cache",
+    };
+
+    private static PublicResponse NotModified(Dictionary<string, string> headers) =>
+        new(StatusCodes.Status304NotModified, "text/html; charset=utf-8", headers, ReadOnlyMemory<byte>.Empty);
+
     /// <summary>
     /// The page under its key, rendered once however many ask at once. A cache that fails is
     /// a slower page, never a wrong or missing one (FR-034).
     /// </summary>
-    private async Task<RenderedPage?> CachedAsync(RenderKey key, SiteDto site, Guid pageId, string basePath, CancellationToken cancellationToken)
+    private async Task<RenderedPage?> CachedAsync(
+        string cacheKey, Guid pageId, SiteDto site, Func<CancellationToken, Task<RenderedPage?>> render, CancellationToken cancellationToken)
     {
         try
         {
             return await cache.GetOrCreateAsync(
-                    key.CacheKey,
-                    async ct => await RenderAsync(site, pageId, basePath, ct).ConfigureAwait(false) ?? throw new PageGoneException(),
+                    cacheKey,
+                    async ct => await render(ct).ConfigureAwait(false) ?? throw new PageGoneException(),
                     page => new CacheEntrySettings(page.Html.Length, Sliding),
                     cancellationToken)
                 .ConfigureAwait(false);
@@ -91,7 +141,7 @@ internal sealed class PageResponder(
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             logger.LogWarning(ex, "The page cache failed; page {PageId} of site {SiteId} was rendered without it.", pageId, site.Id);
-            return await RenderAsync(site, pageId, basePath, cancellationToken).ConfigureAwait(false);
+            return await render(cancellationToken).ConfigureAwait(false);
         }
     }
 
@@ -104,11 +154,34 @@ internal sealed class PageResponder(
         ArgumentNullException.ThrowIfNull(site);
 
         var version = await pages.GetLivePageAsync(site.Id, pageId, cancellationToken).ConfigureAwait(false);
+        return version is null
+            ? null
+            : await RenderVersionAsync(site, pageId, version, basePath, pageItem: null, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Renders an item's page from its template's live version; null when the template or the
+    /// item stopped being live since they were found (016 FR-030).
+    /// </summary>
+    public async Task<RenderedPage?> RenderItemAsync(SiteDto site, Guid templatePageId, Guid itemId, string basePath, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(site);
+
+        var version = await pages.GetLivePageAsync(site.Id, templatePageId, cancellationToken).ConfigureAwait(false);
         if (version is null)
         {
             return null;
         }
 
+        var item = (await items.GetAsync(site.Id, [itemId], cancellationToken).ConfigureAwait(false)).GetValueOrDefault(itemId);
+        return item is null
+            ? null
+            : await RenderVersionAsync(site, templatePageId, version, basePath, item, cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task<RenderedPage> RenderVersionAsync(
+        SiteDto site, Guid pageId, LivePageVersion version, string basePath, PublishedItem? pageItem, CancellationToken cancellationToken)
+    {
         var design = await designs.GetLiveAsync(site.Id, cancellationToken).ConfigureAwait(false);
 
         var references = new RenderReferences();
@@ -120,16 +193,40 @@ internal sealed class PageResponder(
             references.Collect(component.Document);
         }
 
+        // 016 TB-09: what the bindings read, and what their values show and link to.
+        var fetched = await bindings.FetchAsync(
+                site.Id, [version.Document, .. components.Values.Select(c => c.Document)], pageItem, cancellationToken)
+            .ConfigureAwait(false);
+        references.Pages.UnionWith(fetched.Pages);
+        references.Media.UnionWith(fetched.Media);
+
         var targets = await pages.GetLinkTargetsAsync(site.Id, references.Pages, cancellationToken).ConfigureAwait(false);
         var files = await media.GetAsync(site.Id, references.Media, cancellationToken).ConfigureAwait(false);
 
-        var inputs = new RenderInputs(version.Title, version.Document, design.Document, components, targets, files, site.DefaultLanguage, basePath);
+        // 016 FR-030: an item page is titled by the item's name, else by the template's title.
+        var title = string.IsNullOrWhiteSpace(pageItem?.Name) ? version.Title : pageItem.Name;
+
+        var inputs = new RenderInputs(title, version.Document, design.Document, components, targets, files, site.DefaultLanguage, basePath, fetched.Data);
         metrics.Rendered();
-        return Render(inputs, renderer);
+        return Render(inputs, renderer, context => LogBroken(context, site.Id, pageId));
+    }
+
+    /// <summary>One warning per render that met broken bindings: node ids and reasons, never values (016 FR-038).</summary>
+    private void LogBroken(RenderContext context, Guid siteId, Guid pageId)
+    {
+        if (context.BrokenBindings.Count > 0)
+        {
+            logger.LogWarning(
+                "Page {PageId} of site {SiteId} rendered with {Count} broken binding(s): {Bindings}.",
+                pageId,
+                siteId,
+                context.BrokenBindings.Count,
+                string.Join(", ", context.BrokenBindings.Select(b => $"{b.NodeId}:{b.Reason}")));
+        }
     }
 
     /// <summary>A page from its inputs: the body, the shell, and the style hash its policy allows.</summary>
-    public static RenderedPage Render(RenderInputs inputs, PageRenderer renderer)
+    public static RenderedPage Render(RenderInputs inputs, PageRenderer renderer, Action<RenderContext>? afterRender = null)
     {
         ArgumentNullException.ThrowIfNull(inputs);
         ArgumentNullException.ThrowIfNull(renderer);
@@ -137,6 +234,7 @@ internal sealed class PageResponder(
         var context = new RenderContext(inputs, BlockDefaults.Current);
         var body = new HtmlWriter();
         renderer.RenderDocument(inputs.Document, PageRenderer.PageScope, context, body);
+        afterRender?.Invoke(context);
 
         var document = PageShell.Write(inputs.Title, inputs.Language, inputs.BasePath, context.Tokens, context.NodeRules, body.ToString());
         return new RenderedPage(Encoding.UTF8.GetBytes(document.Html), document.StyleHash);

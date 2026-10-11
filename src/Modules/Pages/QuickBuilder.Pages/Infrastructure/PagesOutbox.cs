@@ -39,6 +39,9 @@ internal static class PagesOutbox
                 case HomePageChangedEvent e:
                     Add(database, new HomePageChanged(Guid.CreateVersion7(), e.OccurredAtUtc, e.SiteId, e.PageId, e.PreviousPageId, actorUserId));
                     break;
+                case PageTemplateChangedEvent e:
+                    Add(database, new PageTemplateChanged(Guid.CreateVersion7(), e.OccurredAtUtc, e.SiteId, e.PageId, e.CollectionId, e.PreviousCollectionId, actorUserId));
+                    break;
                 case ComponentCreatedEvent e:
                     Add(database, new ComponentCreated(Guid.CreateVersion7(), e.OccurredAtUtc, e.SiteId, e.ComponentId, actorUserId));
                     break;

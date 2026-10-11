@@ -1,0 +1,50 @@
+{
+  "description": "Dates and numbers in German: the language's pattern, month names and separators, from formats.json.",
+  "language": "de",
+  "basePath": "",
+  "schemas": {
+    "0192f5a0-0000-7000-8000-00000000c001": {
+      "schemaVersion": 1,
+      "titleFieldId": "f1",
+      "fields": [
+        { "id": "f1", "key": "title", "name": "Title", "help": "", "required": true, "type": "text", "multiline": false, "maxLength": 256 },
+        { "id": "f5", "key": "price", "name": "Price", "help": "", "required": false, "type": "number", "decimals": 2 },
+        { "id": "f6", "key": "published-on", "name": "Published on", "help": "", "required": false, "type": "date", "withTime": false },
+        { "id": "f19", "key": "change", "name": "Change", "help": "", "required": false, "type": "number", "decimals": 1 }
+      ]
+    }
+  },
+  "pageItem": {
+    "id": "0192f5a1-0000-7000-8000-00000000a001",
+    "collectionId": "0192f5a0-0000-7000-8000-00000000c001",
+    "slug": "hallo-welt",
+    "name": "Hallo Welt",
+    "firstPublishedAt": "2026-01-05T09:00:00Z",
+    "lastPublishedAt": "2026-10-09T08:00:00Z",
+    "values": { "schemaVersion": 1, "values": { "f1": "Hallo Welt", "f5": 1234567.5, "f6": "2026-03-04", "f19": -2.5 } }
+  },
+  "items": [],
+  "templates": {},
+  "media": {},
+  "scopes": [],
+  "document": {
+    "schemaVersion": 1,
+    "bindingVersion": 1,
+    "root": { "id": "root", "type": "root", "props": {}, "children": [
+      { "id": "s1", "type": "section", "props": {}, "children": [
+        { "id": "price", "type": "text", "props": { "text": "", "bind": { "text": { "value": { "field": "f5" } } } }, "children": [] },
+        { "id": "change", "type": "text", "props": { "text": "", "bind": { "text": { "value": { "field": "f19" } } } }, "children": [] },
+        { "id": "date", "type": "text", "props": { "text": "", "bind": { "text": { "value": { "field": "f6" } } } }, "children": [] },
+        { "id": "date-short", "type": "text", "props": { "text": "", "bind": { "text": { "value": { "field": "f6", "format": { "date": "short" } } } } }, "children": [] },
+        { "id": "date-long", "type": "text", "props": { "text": "", "bind": { "text": { "value": { "field": "f6", "format": { "date": "long" } } } } }, "children": [] }
+      ] }
+    ] }
+  },
+  "expected": {
+    "price.text": { "text": "1.234.567,50" },
+    "change.text": { "text": "-2,5" },
+    "date.text": { "text": "4. März 2026" },
+    "date-short.text": { "text": "04.03.2026" },
+    "date-long.text": { "text": "4. März 2026" }
+  }
+}
