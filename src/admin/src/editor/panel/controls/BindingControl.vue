@@ -16,6 +16,7 @@ import type { ContentNode } from '../../schema/schema'
 import { isObject, type Json, type JsonObject } from '../../schema/subsetValidator'
 import { useEditorStore } from '../../state/editorStore'
 import TextTemplateEditor from './TextTemplateEditor.vue'
+import { propBroken } from '../../bindings/brokenBindings'
 
 const props = defineProps<{ node: ContentNode; prop: string; label: string }>()
 const { t } = useI18n()
@@ -127,41 +128,8 @@ const boundField = computed<FieldInfo | null>(() => {
   return schema?.fields[current.field] ?? null
 })
 
-/**
- * Why the binding is broken, from the scopes and schemas alone, so it shows whether or not an
- * item is at hand (FR-018): the scope gone, the field or the reference step gone, or a type
- * that no longer fits.
- */
-function brokenReason(reader: JsonObject, readerKind: NonNullable<typeof kind.value>): string | null {
-  const scope = typeof reader.scope === 'string' ? scopes.value.find((s) => s.name === reader.scope) : scopes.value[0]
-  if (!scope) return 'scope_missing'
-  let schema = scope.collectionId ? store.bindings.schemas[scope.collectionId] : undefined
-  if (!schema) return null
-  if (typeof reader.via === 'string') {
-    const reference = schema.fields[reader.via]
-    if (!reference) return 'field_missing'
-    if (reference.type !== 'reference') return 'via_not_reference'
-    schema = reference.target ? store.bindings.schemas[reference.target] : undefined
-    if (!schema) return null
-  }
-  if (typeof reader.item === 'string') return fitsBuiltIn(readerKind, reader.item) ? null : 'type_mismatch'
-  const field = typeof reader.field === 'string' ? schema.fields[reader.field] : undefined
-  if (!field) return 'field_missing'
-  return fits(readerKind, field) ? null : 'type_mismatch'
-}
-
-const broken = computed(() => {
-  const current = value.value
-  if (!current || !kind.value) return null
-  if (Array.isArray(current.parts)) {
-    for (const part of current.parts) {
-      const reason = isObject(part) ? brokenReason(part, 'text') : null
-      if (reason) return reason
-    }
-    return null
-  }
-  return brokenReason(current, kind.value)
-})
+// Why the binding is broken, from the scopes and schemas alone (FR-018).
+const broken = computed(() => propBroken(props.node, props.prop, scopes.value, store.bindings.schemas))
 const noScope = computed(() => !!binding.value && scopes.value.length === 0)
 
 const errorMessage = ref<string | null>(null)

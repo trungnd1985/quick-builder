@@ -1103,7 +1103,8 @@
     "layers": {
       "title": "Layers",
       "empty": "The page has no blocks yet.",
-      "rename": "Layer name"
+      "rename": "Layer name",
+      "brokenBinding": "Broken binding"
     },
     "preview": {
       "label": "Preview width",

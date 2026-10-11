@@ -278,13 +278,13 @@ be done with the keyboard, and the stored binding uses ids.
 
 ### Tests for User Story 2 ⚠️
 
-- [ ] T040 [P] [US2] Create `UTESTS/Rendering/Binding/ValueFormatterTests.cs`:
+- [X] T040 [P] [US2] Create `UTESTS/Rendering/Binding/ValueFormatterTests.cs`:
   - date formats `short`, `medium`, `long` and `iso`, for date and date-time values, in `en` and `vi`, with times in UTC;
   - number decimals and grouping;
   - boolean yes and no;
   - multi-line text to paragraphs;
   - a format that does not fit the value is ignored.
-- [ ] T041 [P] [US2] Add binding cases to `UTESTS/Rendering/RendererGoldenTests.cs`, with golden HTML in `FIX/rendering/bindings/`:
+- [X] T041 [P] [US2] Add binding cases to `UTESTS/Rendering/RendererGoldenTests.cs`, with golden HTML in `FIX/rendering/bindings/`:
   - every bindable prop × every compatible field type;
   - text templates;
   - `via` to a published and to an unpublished reference;
@@ -304,9 +304,9 @@ be done with the keyboard, and the stored binding uses ids.
 
 ### Implementation for User Story 2
 
-- [ ] T043 [US2] Complete `RENDER/Binding/ValueFormatter.cs` (dates and numbers with the site's default-language `CultureInfo`, booleans, multi-line to paragraphs) and text templates in `BindingResolver.cs` (data-model §3.3 step 4). Make T040 pass, and T018 for every case.
-- [ ] T044 [US2] Implement `via` in `RENDER/Binding/BindingPlanner.cs` and `BindingFetcher.cs`: collect the reference ids from fetched items for every `via` binding, then make one batched `IPublishedItemReader.GetAsync`. A reference without published data is empty. Implement the link values in `RENDER/Rendering/LinkResolver.cs`: item URLs from `GetLiveTemplatePatternsAsync` under the base path, file URLs from the media reader, and text URLs only with the 011 schemes; anything else renders as text. Make T041 pass.
-- [ ] T045 [US2] Mirror T043 and T044 in `EDITOR/bindings/format.ts` (using `Intl` with the site language) and `EDITOR/bindings/resolve.ts`. Make T019 pass for every case.
+- [X] T043 [US2] Complete `RENDER/Binding/ValueFormatter.cs` (dates and numbers with the site's default-language `CultureInfo`, booleans, multi-line to paragraphs) and text templates in `BindingResolver.cs` (data-model §3.3 step 4). Make T040 pass, and T018 for every case.
+- [X] T044 [US2] Implement `via` in `RENDER/Binding/BindingPlanner.cs` and `BindingFetcher.cs`: collect the reference ids from fetched items for every `via` binding, then make one batched `IPublishedItemReader.GetAsync`. A reference without published data is empty. Implement the link values in `RENDER/Rendering/LinkResolver.cs`: item URLs from `GetLiveTemplatePatternsAsync` under the base path, file URLs from the media reader, and text URLs only with the 011 schemes; anything else renders as text. Make T041 pass.
+- [X] T045 [US2] Mirror T043 and T044 in `EDITOR/bindings/format.ts` (using `Intl` with the site language) and `EDITOR/bindings/resolve.ts`. Make T019 pass for every case.
 - [X] T046 [US2] Create `EDITOR/panel/controls/BindingControl.vue` and `BindingPicker.vue` (TB-14):
   - a listbox of compatible fields and built-in values, grouped by scope, nearest first, with references expandable one step;
   - format options;
@@ -317,8 +317,8 @@ be done with the keyboard, and the stored binding uses ids.
 
   Replace T039's minimal control in `EDITOR/panel/PropertyPanel.vue`.
 - [X] T047 [US2] Create `EDITOR/panel/controls/TextTemplateEditor.vue` for text props. It holds chips for values and typed text between them, up to 20 parts and 10 values, with the keyboard behaviour of TB-14, and announces chips to assistive technology. Make T042 pass.
-- [ ] T048 [P] [US2] Mark the bindable props in each block definition (`EDITOR/blocks/heading/definition.ts`, `text/`, `button/`, `image/`, `rich-text/`) with `bindable: true`, and extend `EDITOR/blocks/registry.ts`'s `BlockDefinition` type. Add a check in `ADMINTESTS/editor/` that the bindable props equal the schema's `bind` keys per type (Principle VI).
-- [ ] T049 [US2] Show broken bindings in the layer view (`EDITOR/layers/`) and on the canvas node (a warning outline and an accessible label). Saving and publishing stay allowed (FR-018).
+- [X] T048 [P] [US2] Mark the bindable props in each block definition (`EDITOR/blocks/heading/definition.ts`, `text/`, `button/`, `image/`, `rich-text/`) with `bindable: true`, and extend `EDITOR/blocks/registry.ts`'s `BlockDefinition` type. Add a check in `ADMINTESTS/editor/` that the bindable props equal the schema's `bind` keys per type (Principle VI).
+- [X] T049 [US2] Show broken bindings in the layer view (`EDITOR/layers/`) and on the canvas node (a warning outline and an accessible label). Saving and publishing stay allowed (FR-018).
 
 **Checkpoint**: quickstart §2 passes. Every binding the contract allows can be made in the
 panel, and the canvas matches the site.

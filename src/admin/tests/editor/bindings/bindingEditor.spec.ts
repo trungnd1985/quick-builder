@@ -136,6 +136,7 @@ describe('binding on a template page', () => {
     expect(await within(panel()).findByText(en.editor.binding.broken.field_missing)).toBeTruthy()
     await waitFor(() => expect(container.querySelector('[data-node-id="h1"] h1')?.textContent).toBe('Own heading'))
     expect(container.querySelector('[data-node-id="h1"]')!.classList.contains('qb-node--broken-binding')).toBe(true)
+    expect(container.querySelector('.editor-layer[data-node-id="h1"] .editor-layer__broken')?.textContent).toBe(en.editor.layers.brokenBinding)
     expect(store.readOnly).toBeNull()
   })
 })
