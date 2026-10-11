@@ -209,6 +209,10 @@ namespace QuickBuilder.Cms.Infrastructure.Migrations
                         .HasColumnType("character varying(100)")
                         .HasColumnName("published_slug");
 
+                    b.Property<JsonDocument>("PublishedText")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("published_text");
+
                     b.Property<long>("RenderStamp")
                         .HasColumnType("bigint")
                         .HasColumnName("render_stamp");

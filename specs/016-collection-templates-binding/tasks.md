@@ -378,7 +378,7 @@ expected published items in order, and the empty state appears when nothing matc
 
 ### Tests for User Story 4 ⚠️
 
-- [ ] T060 [P] [US4] Create `ITESTS/Cms/PublishedListQueryTests.cs` for `IPublishedItemReader.QueryAsync`:
+- [X] T060 [P] [US4] Create `ITESTS/Cms/PublishedListQueryTests.cs` for `IPublishedItemReader.QueryAsync`:
   - every operator × type of binding-expression.md §5, including `contains` ignoring case and accents, reference `eq` and multi-reference `contains` through `item_references`;
   - up to 3 sorts with values-last;
   - a stable order by id;
@@ -409,7 +409,7 @@ expected published items in order, and the empty state appears when nothing matc
 
 ### Implementation for User Story 4
 
-- [ ] T064 [US4] Implement `QueryAsync` in `CMS/Infrastructure/PublishedItemReader.cs`, with the translation in `CMS/Infrastructure/PublishedListTranslation.cs`, following 015's `ItemListQuery` approach on the published columns (TB-08):
+- [X] T064 [US4] Implement `QueryAsync` in `CMS/Infrastructure/PublishedItemReader.cs`, with the translation in `CMS/Infrastructure/PublishedListTranslation.cs`, following 015's `ItemListQuery` approach on the published columns (TB-08):
   - filters through EF Core `jsonb` translation;
   - reference operators as `EXISTS` over published `item_references`;
   - sorts with values last, then id;

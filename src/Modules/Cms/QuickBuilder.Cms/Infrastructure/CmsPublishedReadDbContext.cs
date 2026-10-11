@@ -49,6 +49,7 @@ internal sealed class CmsPublishedReadDbContext(DbContextOptions<CmsPublishedRea
             entity.ToTable("items");
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Published).HasColumnName("published").HasColumnType("jsonb");
+            entity.Property(e => e.PublishedText).HasColumnName("published_text").HasColumnType("jsonb");
             entity.Property(e => e.LastPublishedAtUtc).HasColumnName("published_at_utc");
 
             // Only items with published data exist for the public path (Principle VII).
@@ -95,13 +96,20 @@ internal sealed class PublishedItemRow : ISiteOwned, IDisposable
     /// <summary>The published values document; never null for a row this context returns.</summary>
     public JsonDocument? Published { get; set; }
 
+    /// <summary>The published text values, folded for <c>contains</c> (016 research TB-08).</summary>
+    public JsonDocument? PublishedText { get; set; }
+
     public DateTimeOffset? FirstPublishedAtUtc { get; set; }
 
     public DateTimeOffset? LastPublishedAtUtc { get; set; }
 
     public long RenderStamp { get; set; }
 
-    public void Dispose() => Published?.Dispose();
+    public void Dispose()
+    {
+        Published?.Dispose();
+        PublishedText?.Dispose();
+    }
 }
 
 /// <summary>A reference held by an item's published values (015 <c>item_references</c>).</summary>

@@ -31,7 +31,8 @@ internal sealed class ItemIndexer(CmsDbContext database, ItemValidation validati
     /// Raised whenever what is derived, or how, changes: items below it are refreshed by
     /// <c>ItemIndexBackfillService</c> at start-up.
     /// </summary>
-    public const int CurrentVersion = 1;
+    /// <remarks>2 (016): the folded published text, for Collection lists.</remarks>
+    public const int CurrentVersion = 2;
 
     public Task RefreshAsync(Item item, CollectionSchemaDocument schema, bool versionsChanged, CancellationToken cancellationToken) =>
         RefreshManyAsync([item], schema, versionsChanged, cancellationToken);
@@ -113,7 +114,7 @@ internal sealed class ItemIndexer(CmsDbContext database, ItemValidation validati
                 ? text
                 : null;
             var searchText = name is null ? SearchText.Normalise(item.Slug) : SearchText.Combine(name, item.Slug);
-            item.ApplyIndex(name, searchText, report, CurrentVersion);
+            item.ApplyIndex(name, searchText, PublishedText(schema, copy.Published), report, CurrentVersion);
 
             database.ItemSlugs.Add(new ItemSlug(siteId, item.CollectionId, item.Slug, item.Id));
             if (item.PublishedSlug is { } publishedSlug && !string.Equals(publishedSlug, item.Slug, StringComparison.OrdinalIgnoreCase))
@@ -124,6 +125,29 @@ internal sealed class ItemIndexer(CmsDbContext database, ItemValidation validati
             database.ItemReferences.AddRange(References(item, schema, copy, collectionOf));
             database.ItemMedia.AddRange(Media(item, schema, copy, history.GetValueOrDefault(item.Id) ?? []));
         }
+    }
+
+    /// <summary>
+    /// The published text values, folded as search folds them (016 research TB-08): a list's
+    /// <c>contains</c> matches ignoring case and accents through <c>LIKE</c> on these.
+    /// </summary>
+    private static JsonDocument? PublishedText(CollectionSchemaDocument schema, ItemValues? published)
+    {
+        if (published is null)
+        {
+            return null;
+        }
+
+        var folded = new JsonObject();
+        foreach (var field in schema.Fields.Where(f => f.Type == FieldType.Text))
+        {
+            if (published.Get(field.Id) is JsonValue value && value.TryGetValue<string>(out var text) && text.Length > 0)
+            {
+                folded[field.Id] = SearchText.Normalise(text);
+            }
+        }
+
+        return JsonDocument.Parse(folded.ToJsonString());
     }
 
     private static IEnumerable<ItemReference> References(Item item, CollectionSchemaDocument schema, Copies copy, IReadOnlyDictionary<Guid, Guid> collectionOf)

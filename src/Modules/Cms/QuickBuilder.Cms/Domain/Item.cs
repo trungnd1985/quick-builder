@@ -84,6 +84,12 @@ internal sealed class Item : AggregateRoot, ISiteOwned, IDisposable
     /// <summary>Name and slug, normalised for search (research IT-13).</summary>
     public string SearchText { get; private set; }
 
+    /// <summary>
+    /// The published text field values, lower-cased and accent-folded, keyed by field id, for
+    /// Collection lists' <c>contains</c> (016 research TB-08); null when nothing is published.
+    /// </summary>
+    public JsonDocument? PublishedText { get; private set; }
+
     /// <summary>The draft's report when it has any problem, otherwise null (research IT-05).</summary>
     public JsonDocument? Attention { get; private set; }
 
@@ -296,12 +302,14 @@ internal sealed class Item : AggregateRoot, ISiteOwned, IDisposable
     }
 
     /// <summary>What <c>ItemIndexer</c> derived from the item (research IT-11).</summary>
-    public void ApplyIndex(string? name, string searchText, ItemReport draftReport, int indexVersion)
+    public void ApplyIndex(string? name, string searchText, JsonDocument? publishedText, ItemReport draftReport, int indexVersion)
     {
         ArgumentNullException.ThrowIfNull(draftReport);
 
         Name = name;
         SearchText = searchText;
+        PublishedText?.Dispose();
+        PublishedText = publishedText;
         Attention?.Dispose();
         Attention = draftReport.ToAttention();
         Status = ItemStatuses.Compute(DraftValues(), Slug, PublishedValues(), PublishedSlug);
@@ -327,6 +335,7 @@ internal sealed class Item : AggregateRoot, ISiteOwned, IDisposable
     {
         Draft?.Dispose();
         Published?.Dispose();
+        PublishedText?.Dispose();
         Attention?.Dispose();
     }
 
