@@ -289,6 +289,16 @@ Core's `jsonb` translation for values, `item_references` with location `publishe
 reference equality and contains, and the item id as the last sort key so the order is
 stable. Only items whose status has published data are visible.
 
+**Text `contains` ignoring case and accents**: PostgreSQL offers no accent folding here, and
+the public path uses no raw SQL. So `cms.items` gains `published_text jsonb null`: the
+item's published text-field values, folded by `SearchText.Normalise` (the function 013 and
+015 admin search use) and keyed by field id. `ItemIndexer` writes it on every refresh, in
+the transaction of the write; it is null when nothing is published. `contains` becomes
+`LIKE SearchText.LikePattern(term)` on that value. `ItemIndexer.CurrentVersion` goes to 2,
+so `ItemIndexBackfillService` fills it for existing items at start-up. Rejected: the
+`unaccent` extension (a new required database extension, against Principle IV), and
+case-insensitive matching only (fails the contract).
+
 **Rationale**: the public path stays read-only by construction (Principle VII), and queries
 on Cms tables stay inside Cms (Principle I).
 

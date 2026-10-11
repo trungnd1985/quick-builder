@@ -65,6 +65,7 @@ There are no new columns. `target_kind` gains two values (`DependencyKinds`):
 | Column | Type | Rule |
 |---|---|---|
 | **+** `render_stamp` | `bigint not null default 1` | Incremented in the transaction of every change to what the item's page shows (TB-10). Never decreases. |
+| **+** `published_text` | `jsonb null` | Folded published text values by field id, for `contains` (TB-08). Derived and rebuilt by `ItemIndexer`; null when nothing is published. |
 
 | Index | Purpose |
 |---|---|

@@ -140,6 +140,18 @@ nothing):
 | multi-reference | `contains`, `empty`, `notEmpty` | item id, or a scope value |
 | rich text, image, file | `empty`, `notEmpty` | |
 | `item: "slug"` | `eq`, `ne` | slug |
+| `item: "firstPublishedAt"`, `item: "lastPublishedAt"` | `eq`, `gt`, `lt` | `YYYY-MM-DD` |
+
+**Missing values.** A field with no value (absent, `null`, `""`, or `[]` for a
+multi-reference):
+- matches `empty`, and never `eq`, `contains`, `gt` or `lt`;
+- matches `ne`: a post with no category is "not News";
+- counts as `false` for a boolean (014 FR-010), so `eq false` matches it.
+
+**Dates.** A `YYYY-MM-DD` literal is compared with the day of the value, read in UTC:
+`eq` matches any time that day, `gt` matches from the next day, and `lt` matches before
+that day. This holds for date fields with or without a time, and for the built-in
+publication dates.
 
 - `{ "current": true }` is allowed only with `ne`, in a list whose source collection is the
   collection of an enclosing scope's item. It means "not that item".

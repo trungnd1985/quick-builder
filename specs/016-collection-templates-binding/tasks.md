@@ -345,7 +345,7 @@ expected pages and keeps the others cached, also with two instances.
 
   Two of the scenarios repeat in `ITESTS/Rendering/RenderingAcrossInstancesTests.cs` with two hosts and a shared cache (SC-005, SC-006).
 
-  *Implementation note*: until list queries exist (US4), list pages are checked through their generations and item pages through what visitors get; the world has 3 item pages, not 100. T061 adds the rendered list checks and the two-host repeat.
+  *Implementation note*: until list queries exist (US4), list pages are checked through their generations and item pages through what visitors get; the world has 3 item pages, not 100. T066a adds the rendered list checks and the two-host repeat.
 - [X] T051 [P] [US3] Create `ITESTS/Cms/RenderStampTests.cs`:
   - the stamp moves for the item itself (cases 1–3 of data-model §1.4);
   - it moves for the items whose published values reference a published or unpublished item;
@@ -384,7 +384,8 @@ expected published items in order, and the empty state appears when nothing matc
   - a stable order by id;
   - offset and count, and the total;
   - only published items, with published values, never another site's;
-  - a broken filter matches nothing.
+  - a broken filter matches nothing;
+  - missing values as binding-expression.md §5 "Missing values" says (`ne` and boolean `eq false` include them), a date field with a time against a day literal, and filters on the publication dates.
 - [ ] T061 [P] [US4] Create `ITESTS/Rendering/CollectionListRenderTests.cs` with golden HTML in `FIX/rendering/lists/`:
   - cards bound per item;
   - columns and gap;
@@ -392,7 +393,6 @@ expected published items in order, and the empty state appears when nothing matc
   - the empty state;
   - an item-page button, with and without a live template;
   - a list inside a component on two pages.
-  - *Carried over from T050*: the list pages of `ItemPageInvalidationTests` re-render (through `RenderMetrics`) exactly when their generation moves, and two of its scenarios repeat in `ITESTS/Rendering/RenderingAcrossInstancesTests.cs` with two hosts and a shared cache (SC-005, SC-006).
 - [ ] T062 [P] [US4] Create `ITESTS/Cms/ListPreviewTests.cs` for `POST …/list-preview`:
   - capabilities (page drafts or components: allowed; no role: `404`);
   - published data only;
@@ -404,7 +404,8 @@ expected published items in order, and the empty state appears when nothing matc
   - the source, filter and sort controls offer only valid operators per type;
   - broken filters are marked;
   - the canvas shows preview items;
-  - keyboard and axe checks pass.
+  - keyboard and axe checks pass;
+  - every rule code the page schema can return (`BindingDocumentRules.cs`, `bindingDocumentRules.ts`, `documentValidator.ts`) is in `DOCUMENT_RULES` and has a message under `editor.errors.rules` in en.json, so no rule falls back to the generic "does not follow the page schema" message.
 
 ### Implementation for User Story 4
 
@@ -412,13 +413,17 @@ expected published items in order, and the empty state appears when nothing matc
   - filters through EF Core `jsonb` translation;
   - reference operators as `EXISTS` over published `item_references`;
   - sorts with values last, then id;
-  - `count(*)` with the same filter.
+  - `count(*)` with the same filter;
+  - `published_text` (migration `AddPublishedText`), written by `ItemIndexer`, with `CurrentVersion` raised to 2; `contains` on text uses `LIKE` on it (TB-08).
 
   Literals are checked against the field type, and a misfit makes the filter broken (matches nothing). No raw SQL: if a translation is missing, stop and record it in this task. Make T060 pass.
-- [ ] T065 [US4] Extend `RENDER/Binding/BindingPlanner.cs` and `BindingFetcher.cs` for top-level lists: one `QueryAsync` per list, with filter operands from the page scope, then the `via` batch and the schemas. Store the results in `ResolvedData` by list node id.
-- [ ] T066 [US4] Create `RENDER/Rendering/Blocks/CollectionListRenderer.cs` for `collection-list` (markup from contracts/public-rendering.md §5, cards pushing the list scope) and renderers for `list-card` and `list-empty`. Add the list rules (`--qb-cols`, gap, mobile stacking) to `RENDER/Rendering/BlockStylesheet.cs`, mirroring `EDITOR/blocks/blocks.css`. `UTESTS/Rendering/BlockRendererCoverageTests.cs` must pass. Make T061 pass.
+- [ ] T065 [US4] Extend `RENDER/Binding/BindingFetcher.cs` (which plans and fetches) for top-level lists: one `QueryAsync` per list, with filter operands from the page scope, then the `via` batch and the schemas. Store the results in `ResolvedData` by list node id.
+- [ ] T066 [US4] Complete `CollectionListRenderer`, `ListCardRenderer` and `ListEmptyRenderer` in `RENDER/Rendering/Blocks/ListRenderers.cs` (markup from contracts/public-rendering.md §5, cards pushing the list scope). Add the list rules (`--qb-cols`, gap, mobile stacking) to `RENDER/Rendering/BlockStylesheet.cs`, mirroring `EDITOR/blocks/blocks.css`. `UTESTS/Rendering/BlockRendererCoverageTests.cs` must pass. Make T061 pass.
+- [ ] T066a [US4] Extend `ITESTS/Rendering/ItemPageInvalidationTests.cs` now that lists render:
+  - the list pages re-render (through `RenderMetrics`) exactly when their generation moves, and are otherwise served from the cache;
+  - two scenarios (item publish, template move) repeat in `ITESTS/Rendering/RenderingAcrossInstancesTests.cs` with two hosts and a shared cache (SC-005, SC-006).
 - [ ] T067 [US4] Create `CMS/Features/ListPreview/ListPreview.cs`: `POST api/v1/cms/sites/{siteId}/list-preview`, under `[RequireCapability(pages.page_drafts.edit)]` (Designers, Editors and Administrators hold it, and Designers are the only role that edits components, research TB-17). It validates like rules 14–16 and returns the published items, `referenced` and the schemas, through `IPublishedItemReader`. Add it to `ITESTS/Infrastructure/EndpointCatalog.cs`. Make T062 pass.
-- [ ] T068 [P] [US4] Create `EDITOR/blocks/collection-list/definition.ts` and `CollectionListBlock.vue`, plus `EDITOR/blocks/list-card/definition.ts` and `EDITOR/blocks/list-empty/definition.ts`; register them in `EDITOR/blocks/registry.ts`. Insertion creates the card and an empty state holding a Text block ("Nothing to show yet.", translated). The canvas renders preview items from `EDITOR/bindings/listPreview.ts`, which calls the endpoint, debounced and cached per list settings. Drag and drop and the keyboard equivalents admit content only into the card and the empty state.
+- [ ] T068 [P] [US4] Extend the existing `collection-list`, `list-card` and `list-empty` definitions in `EDITOR/blocks/`; create `EDITOR/blocks/collection-list/CollectionListBlock.vue` and `EDITOR/bindings/listPreview.ts`; enable the list in the palette (`EDITOR/blocks/registry.ts`). Insertion creates the card and an empty state holding a Text block ("Nothing to show yet.", translated). The canvas renders preview items from `EDITOR/bindings/listPreview.ts`, which calls the endpoint, debounced and cached per list settings. Drag and drop and the keyboard equivalents admit content only into the card and the empty state.
 - [ ] T069 [US4] Create `EDITOR/panel/controls/ListSourceControl.vue` (collection), `ListFiltersControl.vue` (up to 10; operators per type from binding-expression.md §5; literal inputs reusing the item form's inputs where possible) and `ListSortControl.vue` (up to 3). Add limit, columns and gap controls to the list definition's groups. Mark broken filters. Make T063 pass.
 - [ ] T070 [US4] Add the "Item page" choice for link props of blocks inside a card (`item: "url"`, and `via`) to `EDITOR/panel/controls/BindingPicker.vue`. Its canvas preview links to `#` with the address in the title.
 
