@@ -31,4 +31,10 @@ public interface ICollectionSchemaReader
     /// (TB-12). The public path's reader cannot answer on the admin surface, which resolves no site.
     /// </summary>
     Task<int> CountPublishedItemsAsync(Guid siteId, Guid collectionId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// The item of the collection whose published slug is <paramref name="slug"/>, if any: a new
+    /// page at that address hides the item's page (TB-12, "item_address_hidden").
+    /// </summary>
+    Task<Guid?> PublishedItemWithSlugAsync(Guid siteId, Guid collectionId, string slug, CancellationToken cancellationToken = default);
 }

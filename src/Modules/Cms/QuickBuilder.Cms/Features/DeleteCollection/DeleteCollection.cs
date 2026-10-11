@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using QuickBuilder.Cms.Domain;
 using QuickBuilder.Cms.Infrastructure;
+using QuickBuilder.Pages.Contracts;
 using QuickBuilder.Shared.Infrastructure.Dispatch;
 using QuickBuilder.Shared.Kernel.Authorization;
 using QuickBuilder.Shared.Kernel.Dispatch;
@@ -27,8 +28,12 @@ internal sealed class DeleteCollectionHandler(
     CmsDbContext database,
     CollectionLocks locks,
     CmsAccess access,
+    ICollectionUsageReader pageUses,
     TimeProvider clock) : ICommandHandler<DeleteCollectionCommand, Result>
 {
+    /// <summary>How many of the pages and components using a collection the refusal names.</summary>
+    public const int ListedUses = 50;
+
     public async Task<Result> HandleAsync(DeleteCollectionCommand command, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(command);
@@ -54,6 +59,16 @@ internal sealed class DeleteCollectionHandler(
         if (await ReferencesAsync(command.SiteId, command.CollectionId, cancellationToken).ConfigureAwait(false) is { Count: > 0 } references)
         {
             return Result.Failure(CmsErrors.CollectionReferenced(references));
+        }
+
+        // 016 FR-010: refused while a page or component uses it, in a draft, live or scheduled.
+        // Checked after 014's reference refusal, which is returned first and unchanged. A draft
+        // saved in between is refused by page-schema rule 14 at its next save (TB-13).
+        var used = await pageUses.ListUsesAsync(command.SiteId, command.CollectionId, ListedUses, cancellationToken).ConfigureAwait(false);
+        if (used.Total > 0)
+        {
+            return Result.Failure(CmsErrors.CollectionUsedByPages(
+                [.. used.Uses.Select(u => (object)new { kind = u.Kind, id = u.Id, title = u.Title, states = u.States })], used.Total));
         }
 
         var collection = await database.ForSite<Collection>(command.SiteId)

@@ -30,6 +30,7 @@ internal sealed class PublishingWrites(
     PublicationReads reads,
     GenerationBump bump,
     ICollectionSchemaReader collections,
+    CollectionUseRows uses,
     TimeProvider clock,
     ILogger<PublishingWrites> logger)
 {
@@ -208,6 +209,10 @@ internal sealed class PublishingWrites(
 
         await ReplaceDependenciesAsync(siteId, subject, content.Document, cancellationToken).ConfigureAwait(false);
 
+        // 016 TB-13: the collections the live version uses.
+        await uses.StageAsync(siteId, subject.Kind, subject.Id, CollectionUsageStates.Live, content.Document, subject.TemplateCollectionId, cancellationToken)
+            .ConfigureAwait(false);
+
         if (scheduleOwner is null)
         {
             // FR-019: a manual publish or rollback supersedes a pending scheduled publish.
@@ -256,6 +261,7 @@ internal sealed class PublishingWrites(
         }
 
         publication.Unpublish(scheduled: scheduleOwner is not null, subject.Path, now);
+        await uses.StageAsync(siteId, subject.Kind, subject.Id, CollectionUsageStates.Live, null, null, cancellationToken).ConfigureAwait(false);
 
         await database.ForSite<LiveDependency>(siteId)
             .Where(d => d.SubjectKind == subject.Kind && d.SubjectId == subject.Id)
@@ -294,6 +300,8 @@ internal sealed class PublishingWrites(
     {
         ArgumentNullException.ThrowIfNull(subject);
         var siteId = subject.SiteId;
+
+        await uses.ForgetAsync(siteId, subject.Kind, subject.Id, cancellationToken).ConfigureAwait(false);
 
         await database.ForSite<LiveDependency>(siteId)
             .Where(d => d.SubjectKind == subject.Kind && d.SubjectId == subject.Id)
@@ -431,6 +439,12 @@ internal sealed class PublishingWrites(
         {
             schedule.Cancel(now);
             Log(siteId, subject, LogActions.ScheduleCancelled, now, actor, reasonCode: LogReasons.SupersededByManualAction);
+        }
+
+        // 016 TB-13: a cancelled scheduled publish no longer uses anything.
+        if (pending.Exists(s => s.Action == ScheduleActions.Publish))
+        {
+            await uses.StageAsync(siteId, subject.Kind, subject.Id, CollectionUsageStates.Scheduled, null, null, cancellationToken).ConfigureAwait(false);
         }
 
         // A failure is shown until someone acts on the subject; the log keeps it.

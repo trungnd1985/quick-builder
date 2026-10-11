@@ -119,6 +119,9 @@ public static class PagesModule
         services.AddScoped<PageReads>();
         services.AddScoped<PageTreeWrites>();
         services.AddScoped<DraftWrites>();
+        services.AddScoped<CollectionUseRows>();
+        services.AddScoped<AddressWarnings>();
+        services.AddScoped<ICollectionUsageReader, CollectionUsageReader>();
         services.AddScoped<ComponentReads>();
 
         // 012: publishing — the reads every response shares, the dependency bump and the writes.

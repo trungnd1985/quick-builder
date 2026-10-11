@@ -26,6 +26,7 @@ internal sealed class DraftWrites(
     PagesAccess access,
     PageReads reads,
     QuickBuilder.Cms.Contracts.ICollectionSchemaReader collections,
+    CollectionUseRows uses,
     TimeProvider clock)
 {
     /// <summary>
@@ -135,6 +136,14 @@ internal sealed class DraftWrites(
 
         await ReplaceMediaReferencesAsync(siteId, SubjectKinds.Page, pageId, text, cancellationToken).ConfigureAwait(false);
 
+        // 016 TB-13: the collections the draft uses, and the page's template, saved with it.
+        var template = await database.ForSite<Page>(siteId)
+            .Where(p => p.Id == pageId)
+            .Select(p => p.TemplateCollectionId)
+            .FirstOrDefaultAsync(cancellationToken)
+            .ConfigureAwait(false);
+        await uses.StageAsync(siteId, SubjectKinds.Page, pageId, CollectionUsageStates.Draft, text, template, cancellationToken).ConfigureAwait(false);
+
         return await SaveAsync(draft, cancellationToken).ConfigureAwait(false);
     }
 
@@ -179,6 +188,7 @@ internal sealed class DraftWrites(
 
         draft.Replace(text, checkedDocument.SchemaVersion, access.Actor, clock);
         await ReplaceMediaReferencesAsync(siteId, SubjectKinds.Component, componentId, text, cancellationToken).ConfigureAwait(false);
+        await uses.StageAsync(siteId, SubjectKinds.Component, componentId, CollectionUsageStates.Draft, text, null, cancellationToken).ConfigureAwait(false);
         return await SaveAsync(draft, cancellationToken).ConfigureAwait(false);
     }
 

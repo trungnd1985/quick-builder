@@ -63,4 +63,20 @@ describe('SchemaPreviewDialog', () => {
     await fireEvent.keyDown(screen.getByRole('alertdialog'), { key: 'Escape' })
     expect(emitted().cancel).toHaveLength(1)
   })
+
+  it('says how many pages read a field the change removes or retypes (016 FR-011)', () => {
+    renderDialog({
+      revision: 2,
+      itemCount: 4,
+      requiresConfirmation: true,
+      digest: 'd'.repeat(64),
+      changes: [change({}), change({ kind: 'fieldRemoved', fieldId: 'f3', name: 'Summary' }), change({ kind: 'fieldRemoved', fieldId: 'f4', name: 'Unused' })],
+      boundPages: { f2: 1, f3: 4, f4: 0 },
+    })
+
+    const notes = screen.getAllByRole('note').map((n) => n.textContent?.trim()).filter((n) => n?.includes('this field'))
+    expect(notes).toContain('One page or component shows or filters on this field; it will show its own value there instead.')
+    expect(notes).toContain('4 pages or components show or filter on this field; they will show their own values there instead.')
+    expect(notes).toHaveLength(2)
+  })
 })

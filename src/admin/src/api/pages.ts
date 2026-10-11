@@ -49,6 +49,8 @@ export interface PageNode {
 export interface PageTree {
   pages: PageNode[]
   permissions: PagePermissions
+  /** 016: what a move did to item addresses. */
+  warnings?: TemplateWarning[]
 }
 
 export interface UserReference {
@@ -64,6 +66,8 @@ export interface DraftSummary {
 }
 
 export interface PageDetail extends PageNode {
+  /** 016: what a create or rename did to item addresses. */
+  warnings?: TemplateWarning[]
   draft: DraftSummary
   createdAtUtc: string
   updatedAtUtc: string

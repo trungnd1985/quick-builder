@@ -493,6 +493,11 @@
       "remove": "Stop using as template",
       "working": "Saving…",
       "cancel": "Cancel"
+    },
+    "addresses": {
+      "changed": "One published item now has a new address. | {count} published items now have new addresses.",
+      "lost": "One published item no longer has a page. | {count} published items no longer have pages.",
+      "hidden": "This page now answers an address an item’s page had, so visitors see this page there instead."
     }
   },
   "components": {
@@ -1677,7 +1682,8 @@
         "missing": "{count} point to deleted files or items",
         "filled": "{count} filled in",
         "stillMissing": "{count} still missing a required value"
-      }
+      },
+      "boundPages": "One page or component shows or filters on this field; it will show its own value there instead. | {count} pages or components show or filter on this field; they will show their own values there instead."
     },
     "history": {
       "heading": "History",
@@ -1710,7 +1716,18 @@
       "deleting": "Deleting…",
       "cancel": "Cancel",
       "referenced": "Other collections refer to this one. Remove or change these fields first:",
-      "reference": "{field} in {collection}"
+      "reference": "{field} in {collection}",
+      "use": {
+        "page": "Page: {title}",
+        "component": "Component: {title}"
+      },
+      "state": {
+        "draft": "draft",
+        "live": "live",
+        "scheduled": "scheduled"
+      },
+      "untitled": "Untitled",
+      "moreUses": "and one more | and {count} more"
     },
     "errors": {
       "invalid_schema": "The definition is not valid: {reason}",
@@ -1732,7 +1749,8 @@
       "too_many_collections": "A site can have at most 100 collections.",
       "collection_not_found": "This collection no longer exists.",
       "forbidden": "You cannot change collections on this site.",
-      "unknown": "Something went wrong. Try again."
+      "unknown": "Something went wrong. Try again.",
+      "collection_used_by_pages": "Pages or components use this collection. Remove it from them first."
     },
     "rules": {
       "duplicate_key": "Two fields have the same key.",

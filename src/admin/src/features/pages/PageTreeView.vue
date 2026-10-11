@@ -2,7 +2,7 @@
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
-import { pagesApi, type PageDetail, type PageNode, type PageTree } from '../../api/pages'
+import { pagesApi, type PageDetail, type PageNode, type PageTree, type TemplateWarning } from '../../api/pages'
 import { cmsApi, type CollectionSummary } from '../../api/cms'
 import { useSitesStore } from '../../app/sitesStore'
 import PublicationBadge from '../publishing/PublicationBadge.vue'
@@ -46,6 +46,13 @@ const dialogError = ref<string | null>(null)
 const actionError = ref<string | null>(null)
 const outOfDate = ref(false)
 const status = ref('')
+/** 016 TB-12: what the last change did to item addresses, as visible notes. */
+const notices = ref<string[]>([])
+
+function noticesOf(warnings: TemplateWarning[] | undefined): string[] {
+  return (warnings ?? []).map((w) =>
+    w.code === 'item_address_hidden' ? t('pages.addresses.hidden') : t(`pages.addresses.${w.code === 'items_change_address' ? 'changed' : 'lost'}`, { count: w.count ?? 0 }, w.count ?? 0))
+}
 const toolbarHeading = ref<HTMLElement | null>(null)
 /** The site's collections, for templates (016); read when first needed. */
 const collections = ref<CollectionSummary[]>([])
@@ -140,6 +147,7 @@ async function run(action: () => Promise<PageTree | void>, message: string, inDi
   dialogError.value = null
   actionError.value = null
   status.value = ''
+  notices.value = []
 
   try {
     const result = await action()
@@ -174,6 +182,7 @@ async function submitForm(value: { title: string; slug: string; isHome: boolean 
         isHome: value.isHome,
       })
       createdId = created.id
+      notices.value = noticesOf(created.warnings)
     }, t('pages.status.created', { title: value.title.trim() }), true)
 
     if (ok) {
@@ -183,7 +192,7 @@ async function submitForm(value: { title: string; slug: string; isHome: boolean 
     }
   } else if (current?.kind === 'rename') {
     const ok = await run(
-      async () => { await pagesApi.update(siteId.value, current.page.id, { ...value, version: current.page.version }) },
+      async () => { notices.value = noticesOf((await pagesApi.update(siteId.value, current.page.id, { ...value, version: current.page.version })).warnings) },
       t('pages.status.renamed', { title: value.title.trim() }),
       true)
 
@@ -200,7 +209,11 @@ async function submitMove(value: { parentId: string | null; afterPageId: string 
   }
 
   if (await run(
-    () => pagesApi.move(siteId.value, current.page.id, { ...value, version: current.page.version }),
+    async () => {
+      const tree = await pagesApi.move(siteId.value, current.page.id, { ...value, version: current.page.version })
+      notices.value = noticesOf(tree.warnings)
+      return tree
+    },
     t('pages.status.moved', { title: current.page.title }),
     true)) {
     await close()
@@ -220,7 +233,11 @@ async function moveBy(offset: -1 | 1): Promise<void> {
     : siblings.value[index + 1]?.id ?? null
 
   await run(
-    () => pagesApi.move(siteId.value, page.id, { parentId: page.parentId, afterPageId: after, version: page.version }),
+    async () => {
+      const tree = await pagesApi.move(siteId.value, page.id, { parentId: page.parentId, afterPageId: after, version: page.version })
+      notices.value = noticesOf(tree.warnings)
+      return tree
+    },
     t('pages.status.moved', { title: page.title }),
     false)
   await focusRow(page.id)
@@ -351,6 +368,15 @@ function whoSaved(value: PageDetail): string {
       aria-live="polite"
     >
       {{ status }}
+    </p>
+
+    <p
+      v-for="(notice, index) in notices"
+      :key="index"
+      class="warning"
+      role="note"
+    >
+      {{ notice }}
     </p>
 
     <p

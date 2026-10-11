@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ApiError, cmsApi, type CollectionReference } from '../../api/cms'
+import { ApiError, cmsApi, type CollectionReference, type CollectionUse } from '../../api/cms'
 import { cmsErrorMessage } from './cmsErrors'
 
 // 014 US5, FR-004: deleting a collection is permanent (clarification Q5), so the dialog says
@@ -22,6 +22,9 @@ const typed = ref('')
 const busy = ref(false)
 const error = ref<string | null>(null)
 const references = ref<CollectionReference[]>([])
+/** 016 FR-010: the pages and components that use the collection, when they keep it. */
+const uses = ref<CollectionUse[]>([])
+const usesTotal = ref(0)
 const input = ref<HTMLInputElement | null>(null)
 
 const matches = computed(() => typed.value.trim() === props.name)
@@ -37,6 +40,7 @@ async function confirm(): Promise<void> {
   busy.value = true
   error.value = null
   references.value = []
+  uses.value = []
 
   try {
     await cmsApi.remove(props.siteId, props.collectionId, props.revision)
@@ -45,6 +49,11 @@ async function confirm(): Promise<void> {
     error.value = cmsErrorMessage(t, te, caught)
     if (caught instanceof ApiError && caught.errorCode === 'cms.collection_referenced') {
       references.value = ((caught.problem as unknown as { references?: CollectionReference[] })?.references) ?? []
+    }
+    if (caught instanceof ApiError && caught.errorCode === 'cms.collection_used_by_pages') {
+      const problem = caught.problem as unknown as { uses?: CollectionUse[]; total?: number }
+      uses.value = problem?.uses ?? []
+      usesTotal.value = problem?.total ?? uses.value.length
     }
   } finally {
     busy.value = false
@@ -89,6 +98,18 @@ async function confirm(): Promise<void> {
         role="alert"
       >
         <p>{{ references.length > 0 ? t('cms.delete.referenced') : error }}</p>
+        <ul v-if="uses.length > 0">
+          <li
+            v-for="use in uses"
+            :key="use.id"
+          >
+            {{ t(`cms.delete.use.${use.kind}`, { title: use.title || t('cms.delete.untitled') }) }}
+            <span class="help">({{ use.states.map((s) => t(`cms.delete.state.${s}`)).join(', ') }})</span>
+          </li>
+          <li v-if="usesTotal > uses.length">
+            {{ t('cms.delete.moreUses', { count: usesTotal - uses.length }, usesTotal - uses.length) }}
+          </li>
+        </ul>
         <ul v-if="references.length > 0">
           <li
             v-for="reference in references"

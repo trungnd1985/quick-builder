@@ -507,13 +507,13 @@ the site never fails.
 
 ### Tests for User Story 7 ⚠️
 
-- [ ] T081 [P] [US7] Create `UTESTS/Pages/CollectionUseExtractorTests.cs` and `ITESTS/Pages/CollectionUsesTests.cs`. The rows must be correct after each of: draft save, publish, rollback, schedule set or cancel, template set or remove, page or component delete, and copy-to-draft, for each state (`draft`, `live`, `scheduled`), with the field ids read.
-- [ ] T082 [P] [US7] Create `ITESTS/Cms/CollectionDeleteGuardTests.cs`:
+- [X] T081 [P] [US7] Create `UTESTS/Pages/CollectionUseExtractorTests.cs` and `ITESTS/Pages/CollectionUsesTests.cs`. The rows must be correct after each of: draft save, publish, rollback, schedule set or cancel, template set or remove, page or component delete, and copy-to-draft, for each state (`draft`, `live`, `scheduled`), with the field ids read.
+- [X] T082 [P] [US7] Create `ITESTS/Cms/CollectionDeleteGuardTests.cs`:
   - refused with `cms.collection_used_by_pages`, listing up to 50 uses with states and the total, for a template, a list source in a draft only, in a live version only, and in a scheduled version only;
   - allowed after the uses are removed;
   - when another collection also references it, 014's `cms.collection_referenced` refusal is returned first, unchanged, and the page check runs only after it passes;
   - `POST …/collections/{id}/preview` returns `boundPages` with counts per removed or retyped field across draft, live and scheduled uses, zero for fields no page uses, and no entries for details-only changes (FR-011).
-- [ ] T083 [P] [US7] Create `ITESTS/Rendering/BindingFailureTests.cs` (SC-007). After each of these, every affected address returns `200` with fallback or hidden blocks, never `5xx`:
+- [X] T083 [P] [US7] Create `ITESTS/Rendering/BindingFailureTests.cs` (SC-007). After each of these, every affected address returns `200` with fallback or hidden blocks, never `5xx`:
   - a bound field removed;
   - a bound field retyped (number to text);
   - a list's filter option deleted;
@@ -522,24 +522,28 @@ the site never fails.
   - a collection deleted between a draft save and its next render (the race in TB-13, simulated by deleting through the database).
 
   The next save of that draft is refused with rule 14.
-- [ ] T084 [P] [US7] Extend `ITESTS/Pages/MovePageTests.cs` (or the existing move tests) and `SetPageTemplateTests.cs`:
+- [X] T084 [P] [US7] Extend `ITESTS/Pages/MovePageTests.cs` (or the existing move tests) and `SetPageTemplateTests.cs`:
   - the `items_change_address` count on moving a template or an ancestor;
   - `items_lose_address` on unpublish and remove;
   - `item_address_hidden` when creating `/blog/archive` while an item has the slug `archive`.
 
 ### Implementation for User Story 7
 
-- [ ] T085 [US7] Create `PAGES/Domain/CollectionUseExtractor.cs`: collections and field ids from a document (list sources, filters, sorts, bindings, with `via` fields counted against the scope's collection) and from a page row (template). Create `PAGES/Infrastructure/CollectionUses.cs`, which rewrites the rows for one subject and state. Call it from `DraftWrites.cs`, `PublishingWrites.cs`, `ScheduleWrites.cs`, `SetPageTemplate.cs` and the delete slices, in their transactions. Make T081 pass.
-- [ ] T086 [US7] Implement `PAGES/Infrastructure/CollectionUsageReader.cs` (`ICollectionUsageReader`) and register it. In `CMS/Features/DeleteCollection/DeleteCollection.cs`, call `ListUsesAsync` and refuse with `cms.collection_used_by_pages`. In `CMS/Features/PreviewCollection/PreviewCollection.cs` and `CMS/Features/PreviewResponses.cs`, add `boundPages` for fields that the change removes or retypes, through `CountFieldUsesAsync`. Make T082 pass.
-- [ ] T087 [US7] Add the address warnings: `items_change_address` in the move warning of `PAGES/Features/MovePage/MovePage.cs` and `UpdatePage/` (slug changes of ancestors), and `items_lose_address` in unpublish and remove, through `IPublishedItemReader.CountPublishedAsync`. Add `item_address_hidden` on create and move, through `IPublishedItemReader.FindBySlugAsync`. Make T084 pass.
-- [ ] T088 [US7] Admin:
+- [X] T085 [US7] Create `PAGES/Domain/CollectionUseExtractor.cs`: collections and field ids from a document (list sources, filters, sorts, bindings, with `via` fields counted against the scope's collection) and from a page row (template). Create `PAGES/Infrastructure/CollectionUses.cs`, which rewrites the rows for one subject and state. Call it from `DraftWrites.cs`, `PublishingWrites.cs`, `ScheduleWrites.cs`, `SetPageTemplate.cs` and the delete slices, in their transactions. Make T081 pass.
+  *Done as*: `CollectionUseRows` (the contract already names a `CollectionUses` record) stages one subject and state in the caller's unit of work; template changes restage every state from `PageTreeWrites`, and schedule runs, failures and manual supersedes clear the scheduled rows too.
+- [X] T086 [US7] Implement `PAGES/Infrastructure/CollectionUsageReader.cs` (`ICollectionUsageReader`) and register it. In `CMS/Features/DeleteCollection/DeleteCollection.cs`, call `ListUsesAsync` and refuse with `cms.collection_used_by_pages`. In `CMS/Features/PreviewCollection/PreviewCollection.cs` and `CMS/Features/PreviewResponses.cs`, add `boundPages` for fields that the change removes or retypes, through `CountFieldUsesAsync`. Make T082 pass.
+- [X] T087 [US7] Add the address warnings: `items_change_address` in the move warning of `PAGES/Features/MovePage/MovePage.cs` and `UpdatePage/` (slug changes of ancestors), and `items_lose_address` in unpublish and remove, through `IPublishedItemReader.CountPublishedAsync`. Add `item_address_hidden` on create and move, through `IPublishedItemReader.FindBySlugAsync`. Make T084 pass.
+  *Done as*: the warnings come back as an additive `warnings` list on the move, rename, create and unpublish responses; `item_address_hidden` uses a new `ICollectionSchemaReader.PublishedItemWithSlugAsync`, since the public reader needs a resolved site.
+- [X] T088 [US7] Admin:
+  *Done as*: `TemplateDialog.vue` already showed the remove flow and its broken-binding count (US2), so no change there; the page tree shows the address notes after a create, rename or move.
   - show `boundPages` in the schema builder's change preview (`ADMIN/features/cms/CollectionBuilderView.vue`);
   - show the uses list in the delete refusal (`ADMIN/features/cms/CollectionsView.vue`);
   - show the item-address warnings in the page tree's move and rename confirmations (`ADMIN/features/pages/`);
   - in `TemplateDialog.vue`, show the remove flow and its broken-binding count.
 
   Add vitest cases next to the existing specs.
-- [ ] T089 [US7] Make T083 pass: fix any path that throws, logging warnings with ids only (FR-038), in `RENDER/Binding/` or `RENDER/Rendering/`.
+- [X] T089 [US7] Make T083 pass: fix any path that throws, logging warnings with ids only (FR-038), in `RENDER/Binding/` or `RENDER/Rendering/`.
+  *Result*: `BindingFailureTests` passed without a code change: no render path threw for any of the six breaking changes.
 
 **Checkpoint**: quickstart §7 passes.
 

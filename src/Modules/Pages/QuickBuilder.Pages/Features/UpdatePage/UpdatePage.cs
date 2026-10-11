@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using QuickBuilder.Pages.Infrastructure;
+using QuickBuilder.Pages.Features.SetPageTemplate;
 using QuickBuilder.Shared.Infrastructure.Dispatch;
 using QuickBuilder.Shared.Kernel.Authorization;
 using QuickBuilder.Shared.Kernel.Dispatch;
@@ -30,7 +31,7 @@ internal sealed class UpdatePageValidator : IValidator<UpdatePageCommand>
 /// Changes a page's title and slug (FR-008). A new slug recomputes every descendant's
 /// address in the same change, or the whole change is refused.
 /// </summary>
-internal sealed class UpdatePageHandler(PageTreeWrites writes, PageReads reads, PagesAccess access)
+internal sealed class UpdatePageHandler(PageTreeWrites writes, PageReads reads, PagesAccess access, AddressWarnings addresses)
     : ICommandHandler<UpdatePageCommand, Result<PageDetailResponse>>
 {
     public async Task<Result<PageDetailResponse>> HandleAsync(UpdatePageCommand command, CancellationToken cancellationToken)
@@ -42,6 +43,7 @@ internal sealed class UpdatePageHandler(PageTreeWrites writes, PageReads reads, 
             return Result.Failure<PageDetailResponse>(PagesErrors.SiteNotFound);
         }
 
+        var before = (await reads.PageAsync(command.SiteId, command.PageId, cancellationToken).ConfigureAwait(false))?.Path;
         var renamed = await writes.ChangeAsync(
             command.SiteId,
             startIfMissing: false,
@@ -54,7 +56,16 @@ internal sealed class UpdatePageHandler(PageTreeWrites writes, PageReads reads, 
             return Result.Failure<PageDetailResponse>(renamed.Error);
         }
 
-        return Result.Success((await reads.PageAsync(command.SiteId, command.PageId, cancellationToken).ConfigureAwait(false))!);
+        // 016 TB-12: a new slug moves the item pages of templates beneath, and may hide an item's.
+        var page = (await reads.PageAsync(command.SiteId, command.PageId, cancellationToken).ConfigureAwait(false))!;
+        var warnings = new List<TemplateWarningResponse>();
+        if (!string.Equals(before, page.Path, StringComparison.Ordinal))
+        {
+            warnings.AddRange(await addresses.AddressesChangedAsync(command.SiteId, [command.PageId], cancellationToken).ConfigureAwait(false));
+            warnings.AddRange(await addresses.AddressHiddenAsync(command.SiteId, command.PageId, cancellationToken).ConfigureAwait(false));
+        }
+
+        return Result.Success(page with { Warnings = warnings });
     }
 
     internal static Result<bool> ToUnit(Result result) =>

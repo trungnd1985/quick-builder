@@ -173,6 +173,20 @@ internal sealed class TemplatesWorld : IDisposable
         return rows.Select(r => r.Split(':')).Select(r => (r[0], Guid.Parse(r[1]))).ToList();
     }
 
+    /// <summary>A subject's <c>collection_uses</c> rows as <c>state:collection:field,field</c>, sorted.</summary>
+    public async Task<List<string>> CollectionUsesAsync(Guid subjectId)
+    {
+        await using var scope = App.Services.CreateAsyncScope();
+        var database = scope.ServiceProvider.GetRequiredService<QuickBuilder.Pages.Infrastructure.PagesDbContext>();
+        var rows = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.ToListAsync(
+                Microsoft.EntityFrameworkCore.RelationalDatabaseFacadeExtensions.SqlQueryRaw<string>(
+                    database.Database,
+                    "SELECT state || ':' || collection_id || ':' || array_to_string(field_ids, ',') AS \"Value\" FROM pages.collection_uses WHERE subject_id = {0}",
+                    subjectId))
+            .ConfigureAwait(false);
+        return [.. rows.Order(StringComparer.Ordinal)];
+    }
+
     private async Task<long?> ScalarAsync(string sql, Guid id)
     {
         await using var scope = App.Services.CreateAsyncScope();

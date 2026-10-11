@@ -130,6 +130,16 @@ export interface Preview {
   requiresConfirmation: boolean
   digest: string
   changes: PreviewChange[]
+  /** 016 FR-011: pages and components reading each field the change removes or retypes. */
+  boundPages?: Record<string, number>
+}
+
+/** 016: a page or component that keeps a collection from being deleted. */
+export interface CollectionUse {
+  kind: 'page' | 'component'
+  id: string
+  title: string
+  states: ('draft' | 'live' | 'scheduled')[]
 }
 
 export interface HistoryChange {

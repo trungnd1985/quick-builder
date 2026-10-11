@@ -77,4 +77,11 @@ internal sealed class CollectionSchemaReader(CmsDbContext database) : ICollectio
 
     public Task<int> CountPublishedItemsAsync(Guid siteId, Guid collectionId, CancellationToken cancellationToken = default) =>
         database.ForSite<Item>(siteId).CountAsync(i => i.CollectionId == collectionId && i.PublishedSlug != null, cancellationToken);
+
+    public Task<Guid?> PublishedItemWithSlugAsync(Guid siteId, Guid collectionId, string slug, CancellationToken cancellationToken = default) =>
+        database.ForSite<Item>(siteId)
+            .AsNoTracking()
+            .Where(i => i.CollectionId == collectionId && i.PublishedSlug == slug)
+            .Select(i => (Guid?)i.Id)
+            .FirstOrDefaultAsync(cancellationToken);
 }

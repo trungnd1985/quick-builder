@@ -15,7 +15,7 @@ namespace QuickBuilder.Pages.Infrastructure;
 /// changed (which is what makes concurrent changes serialise) or to add the tree's events
 /// to the outbox in the same transaction.
 /// </remarks>
-internal sealed class PageTreeWrites(PagesDbContext database, PagesAccess access, GenerationBump bump, TimeProvider clock)
+internal sealed class PageTreeWrites(PagesDbContext database, PagesAccess access, GenerationBump bump, CollectionUseRows uses, TimeProvider clock)
 {
     /// <summary>
     /// Runs <paramref name="change"/> against the site's tree. <paramref name="startIfMissing"/>
@@ -136,6 +136,9 @@ internal sealed class PageTreeWrites(PagesDbContext database, PagesAccess access
         foreach (var change in templateChanges)
         {
             await RetargetTemplateDependencyAsync(siteId, change, cancellationToken).ConfigureAwait(false);
+
+            // 016 TB-13: a template uses its collection in every state of the page.
+            await uses.RestagePageAsync(siteId, change.PageId, change.CollectionId, cancellationToken).ConfigureAwait(false);
         }
     }
 
