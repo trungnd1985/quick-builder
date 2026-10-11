@@ -166,6 +166,38 @@ export interface CollectionReference {
   fieldName: string
 }
 
+/** One item of a list preview (016 contracts/templates-api.yaml, `list-preview`): published data. */
+export interface ListPreviewItem {
+  id: string
+  collectionId: string
+  slug: string
+  name: string | null
+  /** The published item values document. */
+  values: unknown
+  /** The item's page, when its collection's template is live. */
+  address: string | null
+  firstPublishedAt: string
+  lastPublishedAt: string
+}
+
+export interface ListPreviewRequest {
+  /** The collection-list props, without children. */
+  list: unknown
+  /** Enclosing scope items by name: the sample item for `page`, a card's item for a list id. */
+  scopes?: Record<string, string>
+  page?: number
+  /** Reference fields whose referenced items come back too. */
+  via?: string[]
+}
+
+export interface ListPreview {
+  items: ListPreviewItem[]
+  total: number
+  referenced: Record<string, ListPreviewItem>
+  /** Current schema documents by collection id. */
+  schemas: Record<string, unknown>
+}
+
 const root = (siteId: string) => `/cms/sites/${encodeURIComponent(siteId)}/collections`
 const one = (siteId: string, collectionId: string) => `${root(siteId)}/${encodeURIComponent(collectionId)}`
 
@@ -185,6 +217,10 @@ export const cmsApi = {
 
   remove: (siteId: string, collectionId: string, revision: number): Promise<void> =>
     request<void>(`${one(siteId, collectionId)}?revision=${revision}`, { method: 'DELETE' }),
+
+  /** 016: runs a Collection list against published data, for the editor's canvas. */
+  listPreview: (siteId: string, body: ListPreviewRequest): Promise<ListPreview> =>
+    request<ListPreview>(`/cms/sites/${encodeURIComponent(siteId)}/list-preview`, { method: 'POST', body: JSON.stringify(body) }),
 
   history: (siteId: string, collectionId: string, before?: number): Promise<SchemaHistory> =>
     request<SchemaHistory>(`${one(siteId, collectionId)}/history${before ? `?before=${before}` : ''}`),

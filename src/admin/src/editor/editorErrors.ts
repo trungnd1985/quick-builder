@@ -23,6 +23,8 @@ export const OP_REFUSALS: readonly (OpRefusalCode | 'needs_section' | 'clipboard
   'cannot_change_root',
   'into_itself',
   'read_only',
+  'no_collections',
+  'list_slot',
   'needs_section',
   'clipboard_empty',
 ]

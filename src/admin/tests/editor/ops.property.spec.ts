@@ -2,9 +2,10 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 import { duplicate, insert, move, paste, remove, setProp } from '../../src/editor/ops'
 import { walkNodes } from '../../src/editor/ops/tree'
+import { contentDocument } from '../../src/editor/schema/bindingDocumentRules'
 import { validateDocument } from '../../src/editor/schema/documentValidator'
 import { canDrop, type ContentNode } from '../../src/editor/schema/schema'
-import { insertableTypes as blockTypes, registry } from '../../src/editor/blocks/registry'
+import { insertableTypes as blockTypes, newBlock } from '../../src/editor/blocks/registry'
 import { createHistory } from '../../src/editor/state/history'
 import { useEditorStore } from '../../src/editor/state/editorStore'
 
@@ -22,6 +23,13 @@ function random(seed: number) {
 }
 
 const t = (key: string) => key
+
+/** A new block's props and children, as the palette makes it; lists take a fixed collection. */
+function newProps(type: string): [Record<string, never>, ContentNode[]] {
+  const block = newBlock(type, t, { collectionIds: ['0192f5a0-0000-7000-8000-00000000c001'] })
+  if ('refused' in block) throw new Error(block.refused)
+  return [block.props as Record<string, never>, block.children]
+}
 
 function start(): ContentNode {
   return {
@@ -53,7 +61,7 @@ function randomChange(store: ReturnType<typeof useEditorStore>, next: () => numb
   if (choice === 0) {
     const parent = pick(holders)
     const type = pick(blockTypes.filter((b) => canDrop(parent.type, b, 'page')))
-    if (type) store.apply(insert(root, parent.id, Math.floor(next() * (parent.children.length + 1)), type, 'page', registry[type].initialProps(t) as never))
+    if (type) store.apply(insert(root, parent.id, Math.floor(next() * (parent.children.length + 1)), type, 'page', ...newProps(type)))
   } else if (choice === 1) {
     const parent = pick(holders)
     store.apply(move(root, node.id, parent.id, Math.floor(next() * (parent.children.length + 1)), 'page'))
@@ -91,7 +99,7 @@ describe('undo and redo over random change sequences (SC-003)', () => {
       randomChange(store, next)
       const ids = [...walkNodes(store.root!)].map((n) => n.id)
       expect(new Set(ids).size, `duplicate id after step ${i}`).toBe(ids.length)
-      expect(validateDocument({ schemaVersion: 1, root: store.root! }, 'page'), `step ${i}`).toEqual({ valid: true })
+      expect(validateDocument(contentDocument(store.root!), 'page'), `step ${i}`).toEqual({ valid: true })
     }
     const final = store.root!
 

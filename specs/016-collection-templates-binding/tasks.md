@@ -399,7 +399,7 @@ expected published items in order, and the empty state appears when nothing matc
   - `referenced` for the `via` ids;
   - `cms.invalid_list` for an unknown collection;
   - broken filters match nothing.
-- [ ] T063 [P] [US4] Create `ADMINTESTS/editor/blocks/CollectionListBlock.spec.ts` and `ADMINTESTS/editor/panel/ListControls.spec.ts`:
+- [X] T063 [P] [US4] Create `ADMINTESTS/editor/blocks/CollectionListBlock.spec.ts` and `ADMINTESTS/editor/panel/ListControls.spec.ts`:
   - inserting a list creates a card and an empty state;
   - the source, filter and sort controls offer only valid operators per type;
   - broken filters are marked;
@@ -423,9 +423,9 @@ expected published items in order, and the empty state appears when nothing matc
   - the list pages re-render (through `RenderMetrics`) exactly when their generation moves, and are otherwise served from the cache;
   - two scenarios (item publish, template move) repeat in `ITESTS/Rendering/RenderingAcrossInstancesTests.cs` with two hosts and a shared cache (SC-005, SC-006).
 - [X] T067 [US4] Create `CMS/Features/ListPreview/ListPreview.cs`: `POST api/v1/cms/sites/{siteId}/list-preview`, under `[RequireCapability(pages.page_drafts.edit)]` (Designers, Editors and Administrators hold it, and Designers are the only role that edits components, research TB-17). It validates like rules 14–16 and returns the published items, `referenced` and the schemas, through `IPublishedItemReader`. Add it to `ITESTS/Infrastructure/EndpointCatalog.cs`. Make T062 pass.
-- [ ] T068 [P] [US4] Extend the existing `collection-list`, `list-card` and `list-empty` definitions in `EDITOR/blocks/`; create `EDITOR/blocks/collection-list/CollectionListBlock.vue` and `EDITOR/bindings/listPreview.ts`; enable the list in the palette (`EDITOR/blocks/registry.ts`). Insertion creates the card and an empty state holding a Text block ("Nothing to show yet.", translated). The canvas renders preview items from `EDITOR/bindings/listPreview.ts`, which calls the endpoint, debounced and cached per list settings. Drag and drop and the keyboard equivalents admit content only into the card and the empty state.
-- [ ] T069 [US4] Create `EDITOR/panel/controls/ListSourceControl.vue` (collection), `ListFiltersControl.vue` (up to 10; operators per type from binding-expression.md §5; literal inputs reusing the item form's inputs where possible) and `ListSortControl.vue` (up to 3). Add limit, columns and gap controls to the list definition's groups. Mark broken filters. Make T063 pass.
-- [ ] T070 [US4] Add the "Item page" choice for link props of blocks inside a card (`item: "url"`, and `via`) to `EDITOR/panel/controls/BindingPicker.vue`. Its canvas preview links to `#` with the address in the title.
+- [X] T068 [P] [US4] Extend the existing `collection-list`, `list-card` and `list-empty` definitions in `EDITOR/blocks/`; create `EDITOR/blocks/collection-list/CollectionListBlock.vue` and `EDITOR/bindings/listPreview.ts`; enable the list in the palette (`EDITOR/blocks/registry.ts`). Insertion creates the card and an empty state holding a Text block ("Nothing to show yet.", translated). The canvas renders preview items from `EDITOR/bindings/listPreview.ts`, which calls the endpoint, debounced and cached per list settings. Drag and drop and the keyboard equivalents admit content only into the card and the empty state.
+- [X] T069 [US4] Create `EDITOR/panel/controls/ListSourceControl.vue` (collection), `ListFiltersControl.vue` (up to 10; operators per type from binding-expression.md §5; literal inputs reusing the item form's inputs where possible) and `ListSortControl.vue` (up to 3). Add limit, columns and gap controls to the list definition's groups. Mark broken filters. Make T063 pass.
+- [X] T070 [US4] Add the "Item page" choice for link props of blocks inside a card (`item: "url"`, and `via`) to `EDITOR/panel/controls/BindingPicker.vue`. Its canvas preview links to `#` with the address in the title.
 
 **Checkpoint**: quickstart §4 passes.
 

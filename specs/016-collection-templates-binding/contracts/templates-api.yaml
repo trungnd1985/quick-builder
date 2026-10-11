@@ -114,9 +114,10 @@ paths:
                     type: array
                     items:
                       type: object
-                      required: [id, slug, name, values, address]
+                      required: [id, collectionId, slug, name, values, address]
                       properties:
                         id: { type: string, format: uuid }
+                        collectionId: { type: string, format: uuid }
                         slug: { type: string }
                         name: { type: [string, 'null'] }
                         values: { description: 'Published item values document (collection-schema.md §3).' }

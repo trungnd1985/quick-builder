@@ -3,7 +3,7 @@
 // sample item with the items it refers to. The canvas resolves bindings against it.
 
 import { computed, ref, shallowRef } from 'vue'
-import { cmsApi } from '../../api/cms'
+import { cmsApi, type ListPreview } from '../../api/cms'
 import { itemsApi, type Item } from '../../api/items'
 import { pagesApi } from '../../api/pages'
 import type { Json } from '../schema/subsetValidator'
@@ -56,12 +56,21 @@ export function useBindingContext() {
   const schemas = shallowRef<Record<string, SchemaInfo>>({})
   const sampleItem = shallowRef<BoundItem | null>(null)
   const referencedItems = shallowRef<Record<string, BoundItem>>({})
+  /** Items that list previews returned through a reference, for cards' one-step bindings (US4). */
+  const previewItems = shallowRef<Record<string, BoundItem>>({})
+  /**
+   * List previews by request, for this document only: opening a document starts afresh, so a
+   * list never shows items from before an edit made elsewhere.
+   */
+  const previews = new Map<string, Promise<ListPreview>>()
+  /** Live template patterns by collection, learnt from list previews' item addresses (T070). */
+  const templates = shallowRef<Record<string, string>>({})
 
   const data = computed<ResolveData>(() => ({
     pageItem: sampleItem.value,
-    items: referencedItems.value,
+    items: { ...previewItems.value, ...referencedItems.value },
     schemas: schemas.value,
-    templates: {},
+    templates: templates.value,
     media: ANY_MEDIA,
     language: language.value,
     basePath: '',
@@ -89,6 +98,9 @@ export function useBindingContext() {
     schemas.value = {}
     sampleItem.value = null
     referencedItems.value = {}
+    previewItems.value = {}
+    templates.value = {}
+    previews.clear()
     collectionIds.value = undefined
 
     const [page, list] = await Promise.all([
@@ -151,6 +163,24 @@ export function useBindingContext() {
     referencedItems.value = found
   }
 
+  /** What a list preview brought: the schemas of its collections and the items its cards refer to. */
+  function addPreview(
+    previewSchemas: Readonly<Record<string, Json>>,
+    referenced: Readonly<Record<string, BoundItem>>,
+    patterns: Readonly<Record<string, string>> = {},
+  ): void {
+    if (Object.entries(patterns).some(([id, pattern]) => templates.value[id] !== pattern)) {
+      templates.value = { ...templates.value, ...patterns }
+    }
+    const missing = Object.entries(previewSchemas).filter(([id]) => !schemas.value[id])
+    if (missing.length > 0) {
+      schemas.value = { ...schemas.value, ...Object.fromEntries(missing.map(([id, schema]) => [id, parseSchema(id, schema)])) }
+    }
+    if (Object.keys(referenced).some((id) => !previewItems.value[id])) {
+      previewItems.value = { ...previewItems.value, ...referenced }
+    }
+  }
+
   return {
     templateCollectionId,
     collectionIds,
@@ -160,5 +190,8 @@ export function useBindingContext() {
     load,
     chooseSample,
     schemaOf,
+    addPreview,
+    previews,
+    siteId,
   }
 }

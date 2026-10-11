@@ -136,6 +136,17 @@
     text-align: center;
   }
 
+  /* 016: what a Collection list on the canvas shows, and where its empty state is. */
+  .qb-editor-list-status {
+    margin: 0 0 0.5rem;
+    color: #53595f;
+    font: 0.8125rem/1.4 system-ui, sans-serif;
+  }
+
+  .qb-list-block > .qb-list + .qb-editor-list-status {
+    margin-top: 1rem;
+  }
+
   .qb-editor-empty-page {
     display: flex;
     flex-direction: column;

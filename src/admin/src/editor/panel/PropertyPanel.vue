@@ -17,6 +17,10 @@ import ChoiceControl from './controls/ChoiceControl.vue'
 import LinkControl from './controls/LinkControl.vue'
 import MediaControl from './controls/MediaControl.vue'
 import RichTextControl from './controls/RichTextControl.vue'
+import ListFiltersControl from './controls/ListFiltersControl.vue'
+import ListPagingControl from './controls/ListPagingControl.vue'
+import ListSortControl from './controls/ListSortControl.vue'
+import ListSourceControl from './controls/ListSourceControl.vue'
 import TextControl from './controls/TextControl.vue'
 import ToggleControl from './controls/ToggleControl.vue'
 import TokenControl from './controls/TokenControl.vue'
@@ -58,7 +62,8 @@ const groups = computed(() => {
     prop,
     control,
     id: `prop-${current.id}-${prop}`,
-    label: t(`editor.panel.props.${prop}`),
+    // A block type may name a property its own way: a list's "columns" is a count, not widths.
+    label: te(`editor.panel.typeProps.${current.type}.${prop}`) ? t(`editor.panel.typeProps.${current.type}.${prop}`) : t(`editor.panel.props.${prop}`),
     schema: resolvedPropSchema(current.type, prop),
     value: current.props[prop],
     defaultValue: defaultOf(current.type, prop),
@@ -223,6 +228,34 @@ const tokenKind = (control: ControlKind) => (control === 'colorToken' ? 'color' 
             :error="errors[field.prop]"
             @change="change(field, $event)"
             @choose="(value: Json, altText: string | null) => chooseMedia(field, value, altText)"
+          />
+          <ListSourceControl
+            v-else-if="field.control === 'listSource'"
+            v-bind="field"
+            :site-id="store.siteId"
+            :error="errors[field.prop]"
+            @change="change(field, $event)"
+          />
+          <ListFiltersControl
+            v-else-if="field.control === 'listFilters'"
+            v-bind="field"
+            :site-id="store.siteId"
+            :error="errors[field.prop]"
+            @change="change(field, $event)"
+          />
+          <ListSortControl
+            v-else-if="field.control === 'listSort'"
+            v-bind="field"
+            :site-id="store.siteId"
+            :error="errors[field.prop]"
+            @change="change(field, $event)"
+          />
+          <ListPagingControl
+            v-else-if="field.control === 'listPaging'"
+            v-bind="field"
+            :site-id="store.siteId"
+            :error="errors[field.prop]"
+            @change="change(field, $event)"
           />
           <RichTextControl
             v-else-if="field.control === 'richText'"

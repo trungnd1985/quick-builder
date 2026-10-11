@@ -7,7 +7,7 @@
 
 import type { Component } from 'vue'
 import type { Json } from '../schema/subsetValidator'
-import { blockTypes } from '../schema/schema'
+import { blockTypes, type ContentNode } from '../schema/schema'
 import section from './section/definition'
 import container from './container/definition'
 import heading from './heading/definition'
@@ -49,6 +49,11 @@ export interface PropGroup {
   props: { prop: string; control: ControlKind }[]
 }
 
+/** What a new block may start from beyond its type: the site's collections, in list order (016). */
+export interface InsertContext {
+  collectionIds: readonly string[]
+}
+
 export interface BlockDefinition {
   type: string
   /** An i18n key for the block's name in the palette, layer view and panel. */
@@ -58,14 +63,20 @@ export interface BlockDefinition {
   /** The property panel's groups. `layerLabel` is added to every block by the panel itself. */
   groups: PropGroup[]
   /** What a new block holds: its required properties only (data-model §1.2). */
-  initialProps: (t: (key: string) => string) => Record<string, Json>
+  initialProps: (t: (key: string) => string, context: InsertContext) => Record<string, Json> | null
+  /**
+   * The blocks a new block starts with, when it is never empty: a list's card and empty state
+   * (016). `initialProps` returns null when the block cannot be made here: a list on a site
+   * without collections.
+   */
+  initialChildren?: (t: (key: string) => string) => ContentNode[]
   /** The canvas component. It receives the node as its `node` prop. */
   component: Component
   /** The property edited in place on the canvas, if any (FR-019). */
   inlineText?: string
   /**
    * False for a type the palette never offers: the list's card and empty state, which exist
-   * only inside their list, and the list itself, which is inserted with them (016 TB-07).
+   * only inside their list and arrive with it (016 TB-07).
    */
   palette?: false
 }
@@ -84,3 +95,21 @@ export const insertableTypes: readonly string[] = blockTypes.filter((type) => re
 
 /** The definition for a type, or undefined for one the editor does not draw. */
 export const definitionOf = (type: string): BlockDefinition | undefined => registry[type]
+
+/**
+ * A new block of `type`: its initial properties and children, or why it cannot be made (a
+ * Collection list on a site with no collections). The palette, drag and drop and the keyboard
+ * all make blocks through here.
+ */
+export function newBlock(
+  type: string,
+  t: (key: string) => string,
+  context: InsertContext,
+  initialProps?: Record<string, Json>,
+): { props: Record<string, Json>; children: ContentNode[] } | { refused: 'no_collections' | 'not_found' } {
+  const definition = registry[type]
+  if (!definition) return { refused: 'not_found' }
+  const props = initialProps ?? definition.initialProps(t, context)
+  if (!props) return { refused: 'no_collections' }
+  return { props, children: definition.initialChildren?.(t) ?? [] }
+}

@@ -4,6 +4,7 @@ import { fireEvent, screen, waitFor, within } from '@testing-library/vue'
 import axe from 'axe-core'
 import en from '../../src/i18n/en.json'
 import { useEditorStore } from '../../src/editor/state/editorStore'
+import { contentDocument } from '../../src/editor/schema/bindingDocumentRules'
 import { validateDocument } from '../../src/editor/schema/documentValidator'
 import { insertableTypes as blockTypes } from '../../src/editor/blocks/registry'
 import { locate } from '../../src/editor/ops/tree'
@@ -106,7 +107,7 @@ describe('EditorView — building a page (US1)', () => {
       expect(locate(store.root!, copy), type).toBeNull()
     }
 
-    expect(validateDocument({ schemaVersion: 1, root: store.root! }, 'page')).toEqual({ valid: true })
+    expect(validateDocument(contentDocument(store.root!), 'page')).toEqual({ valid: true })
   })
 
   it('moves a block into and out of a Container with Alt+arrows', async () => {

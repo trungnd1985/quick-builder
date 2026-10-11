@@ -1,6 +1,6 @@
 import type { ContentNode } from '../schema/schema'
 import { locate, withChildren } from './tree'
-import { done, refuse, type OpResult } from './types'
+import { done, refuse, type OpResult, isListSlot } from './types'
 
 /**
  * Removes a block and everything inside it. Selects the next sibling, else the previous one,
@@ -10,6 +10,7 @@ export function remove(root: ContentNode, nodeId: string): OpResult {
   const found = locate(root, nodeId)
   if (!found) return refuse('not_found')
   if (found.path.length === 0) return refuse('cannot_change_root')
+  if (isListSlot(found.node.type)) return refuse('list_slot')
 
   const parent = found.ancestors[found.ancestors.length - 1]
   const index = found.path[found.path.length - 1]

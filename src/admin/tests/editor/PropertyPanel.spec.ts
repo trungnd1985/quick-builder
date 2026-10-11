@@ -6,7 +6,7 @@ import { insertableTypes as blockTypes, registry } from '../../src/editor/blocks
 import { useEditorStore } from '../../src/editor/state/editorStore'
 import { locate } from '../../src/editor/ops/tree'
 import { propNames } from '../../src/editor/schema/schema'
-import { documentWith, mountEditor, stubServer, PAGE } from './harness'
+import { COLLECTION, documentWith, mountEditor, stubServer, PAGE } from './harness'
 
 // 011 US2, FR-018 to FR-021: a property panel generated from each block's definition,
 // showing exactly its properties, applying valid changes and refusing invalid ones with the
@@ -34,7 +34,7 @@ describe('PropertyPanel (US2)', () => {
   })
 
   it.each(blockTypes)('shows exactly the properties of a %s, plus its layer label', async (type) => {
-    const initial = registry[type].initialProps((key) => key)
+    const initial = registry[type].initialProps((key) => key, { collectionIds: [COLLECTION] })!
     stubServer(type === 'section'
       ? documentWith({ id: 'x', type, props: initial, children: [] })
       : one({ id: 'x', type, props: initial, children: [] }))

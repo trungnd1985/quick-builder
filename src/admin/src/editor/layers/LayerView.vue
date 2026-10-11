@@ -219,7 +219,7 @@ function onDrop(event: DragEvent): void {
   endDrag()
   if (!source || !target || !store.root) return
   if (!target.allowed) return emit('refused', 'nesting_not_allowed')
-  const refused = store.apply(dropResult(store.root, source, target, store.kind, t))
+  const refused = store.apply(dropResult(store.root, source, target, store.kind, t, { collectionIds: [...(store.bindings.collectionIds ?? [])] }))
   if (refused) emit('refused', refused.code)
 }
 

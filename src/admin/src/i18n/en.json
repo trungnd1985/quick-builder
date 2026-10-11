@@ -850,7 +850,9 @@
         "rich_text_too_many_images": "A rich text holds at most 50 images.",
         "rich_text_too_many_tables": "A rich text holds at most 20 tables.",
         "table_not_rectangular": "Every row of a table needs the same number of cells.",
-        "table_header_misplaced": "Header cells can only make up the whole first row of a table."
+        "table_header_misplaced": "Header cells can only make up the whole first row of a table.",
+        "no_collections": "A collection list shows a collection’s items, and this site has none yet. Create a collection first.",
+        "list_slot": "A collection list keeps its card and its empty state. Edit what is inside them, or move or delete the whole list."
       },
       "rules": {
         "malformed_json": "The page content is not well-formed.",
@@ -1003,7 +1005,12 @@
         "url": "Video address",
         "title": "Accessible title",
         "aspectRatio": "Shape",
-        "layerLabel": "Layer name"
+        "layerLabel": "Layer name",
+        "source": "Show items from",
+        "filters": "Filters",
+        "sort": "Order",
+        "limit": "How many items",
+        "paging": "Pages"
       },
       "values": {
         "align": {
@@ -1082,6 +1089,12 @@
         "link": "An address must start with https://, http://, mailto: or tel:.",
         "url": "Only YouTube and Vimeo videos can be embedded, with an https:// address.",
         "text": "A heading is a single line."
+      },
+      "typeProps": {
+        "collection-list": {
+          "columns": "Columns",
+          "gap": "Space between cards"
+        }
       }
     },
     "history": {
@@ -1187,6 +1200,70 @@
         "down": "Down",
         "removeShort": "Remove"
       }
+    },
+    "list": {
+      "chooseSource": "Choose a collection to list its items.",
+      "loading": "Loading items…",
+      "previewFailed": "The items could not be loaded. The card is shown without them.",
+      "noItems": "No published items match. Visitors see the empty state below.",
+      "showing": "Showing {shown} of {total} published items.",
+      "emptyCaption": "Shown when nothing matches:",
+      "emptyText": "Nothing to show yet.",
+      "source": {
+        "none": "Choose a collection…",
+        "unknown": "A collection or field that no longer exists",
+        "collections": "Collections",
+        "pageItem": "This page's item"
+      },
+      "itemValues": {
+        "slug": "Slug",
+        "firstPublishedAt": "First published",
+        "lastPublishedAt": "Last published"
+      },
+      "operators": {
+        "eq": "is",
+        "ne": "is not",
+        "contains": "contains",
+        "gt": "is after or above",
+        "lt": "is before or below",
+        "empty": "is empty",
+        "notEmpty": "is not empty"
+      },
+      "noFilters": "Every published item is listed.",
+      "filterN": "Filter {n}",
+      "filterTarget": "Field",
+      "filterOperator": "Condition",
+      "filterValue": "Value",
+      "valueFrom": "Compare with",
+      "valueTyped": "A value you type",
+      "valuePageField": "This page's {field}",
+      "valueCurrent": "This page's item (leave it out)",
+      "yes": "Yes",
+      "no": "No",
+      "unknownField": "A field that no longer exists",
+      "filterBroken": {
+        "field_missing": "Broken: the field it reads no longer exists. On the site this list shows its empty state.",
+        "operator": "Broken: this condition no longer fits the field's type. On the site this list shows its empty state.",
+        "value": "Broken: the value no longer fits the field. On the site this list shows its empty state."
+      },
+      "addFilter": "Add a filter",
+      "removeFilter": "Remove filter {n}",
+      "noSort": "Without a sort, items are listed in the order they were created.",
+      "sortN": "Sort {n}",
+      "sortTarget": "Sort by",
+      "sortDirection": "Direction",
+      "ascending": "Ascending (A to Z, oldest first)",
+      "descending": "Descending (Z to A, newest first)",
+      "sortBroken": "This field no longer exists or cannot be sorted on; it is skipped.",
+      "addSort": "Add a sort",
+      "removeSort": "Remove sort {n}",
+      "paging": {
+        "on": "Split into pages",
+        "pageSize": "Items per page",
+        "param": "Name in the address",
+        "paramHelp": "Visitors see ?page=2 by default. Give each list on a page its own name, such as people."
+      },
+      "itemPageTitle": "Opens {address} on the site"
     }
   },
   "design": {

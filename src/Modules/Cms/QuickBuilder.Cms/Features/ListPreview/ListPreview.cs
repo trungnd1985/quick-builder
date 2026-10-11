@@ -24,6 +24,7 @@ internal sealed record ListPreviewQuery(Guid SiteId, ListPreviewRequest Request)
 /// <summary>One previewed item, with its address when its collection's template is live.</summary>
 public sealed record ListPreviewItemResponse(
     Guid Id,
+    Guid CollectionId,
     string Slug,
     string? Name,
     JsonElement Values,
@@ -131,6 +132,7 @@ internal sealed class ListPreviewHandler(
 
         ListPreviewItemResponse ToResponse(PublishedItem item) => new(
             item.Id,
+            item.CollectionId,
             item.Slug,
             item.Name,
             item.Values,
