@@ -11,15 +11,12 @@ import { pagesApi } from '../../api/pages'
 import { publishingApi } from '../../api/publishing'
 import { ApiError } from '../../api/request'
 import { validateDocument } from '../schema/documentValidator'
-import { CURRENT_SCHEMA_VERSION } from '../schema/limits'
 import type { ContentDocument, ContentNode, DocumentKind } from '../schema/schema'
 import { defaultTokens, type TokenSet } from '../tokens/defaultTokens'
 import type { OpRefusal, OpResult } from '../ops'
-import type { Json } from '../schema/subsetValidator'
 import { locate } from '../ops/tree'
 import { useBindingContext } from '../bindings/bindingContext'
-import { usesBindings } from '../schema/bindingDocumentRules'
-import { CURRENT_BINDING_VERSION } from '../schema/limits'
+import { contentDocument } from '../schema/bindingDocumentRules'
 import { useSitesStore } from '../../app/sitesStore'
 
 /** Why the document cannot be changed right now (FR-028, FR-029, ED-19). */
@@ -70,13 +67,7 @@ export const useEditorStore = defineStore('editor', () => {
   const bindings = useBindingContext()
 
   // 016 rule 13: a document with bindings or lists states its binding format version.
-  const document = computed<ContentDocument | null>(() =>
-    root.value
-      ? usesBindings(root.value as unknown as Json)
-        ? { schemaVersion: CURRENT_SCHEMA_VERSION, bindingVersion: CURRENT_BINDING_VERSION, root: root.value }
-        : { schemaVersion: CURRENT_SCHEMA_VERSION, root: root.value }
-      : null,
-  )
+  const document = computed<ContentDocument | null>(() => (root.value ? contentDocument(root.value) : null))
 
   /** What validation needs to know of the site: its collections, for rule 14 (016). */
   const validationContext = computed(() => ({ collectionIds: bindings.collectionIds.value }))

@@ -14,7 +14,7 @@
 import { ref, watch, type Ref } from 'vue'
 import { ApiError } from '../../api/request'
 import { validateDocument } from '../schema/documentValidator'
-import { CURRENT_SCHEMA_VERSION } from '../schema/limits'
+import { contentDocument } from '../schema/bindingDocumentRules'
 import type { ContentDocument, ContentNode } from '../schema/schema'
 import type { useEditorStore } from './editorStore'
 
@@ -113,7 +113,8 @@ export function createAutosave(
       return
     }
 
-    const document: ContentDocument = { schemaVersion: CURRENT_SCHEMA_VERSION, root: sending }
+    // 016 rule 13: a tree with bindings or lists states its binding format version.
+    const document: ContentDocument = contentDocument(sending)
     const check = validateDocument(document, store.kind, store.validationContext)
     if (!check.valid) {
       // An editor bug, not the member's: nothing is sent (research ED-13).

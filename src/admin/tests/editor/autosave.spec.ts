@@ -51,6 +51,28 @@ describe('autosave', () => {
     expect(store.baseVersion).toBe(4)
   })
 
+  it('saves a bound block with the binding format version, instead of stopping (016 rule 13)', async () => {
+    const save = vi.fn(async () => ({ version: 4 }))
+    const { store, autosave } = setup(save)
+
+    store.apply(setProp(store.root!, 'h', 'bind', { text: { value: { field: 'f1' } } }))
+    await vi.advanceTimersByTimeAsync(2100)
+
+    expect(autosave.state.value).toBe('saved')
+    expect(save).toHaveBeenCalledTimes(1)
+    expect(save.mock.calls[0][0]).toMatchObject({ schemaVersion: 1, bindingVersion: 1 })
+  })
+
+  it('saves a document without bindings without a binding format version', async () => {
+    const save = vi.fn(async () => ({ version: 4 }))
+    const { change } = setup(save)
+
+    change('A')
+    await vi.advanceTimersByTimeAsync(2100)
+
+    expect(save.mock.calls[0][0]).not.toHaveProperty('bindingVersion')
+  })
+
   it('keeps one save in flight and saves again after it for changes made meanwhile', async () => {
     let finish: (value: { version: number }) => void = () => undefined
     const save = vi.fn(() => new Promise<{ version: number }>((resolve) => (finish = resolve)))

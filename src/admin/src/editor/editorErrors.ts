@@ -49,6 +49,15 @@ export const DOCUMENT_RULES: readonly string[] = [
   'rich_text_too_many_tables',
   'table_not_rectangular',
   'table_header_misplaced',
+  // 016: bindings and collection lists (page-schema.md §3, rules 13–20).
+  'binding_version_required',
+  'unknown_collection',
+  'too_many_lists',
+  'list_too_deep',
+  'list_children_invalid',
+  'unknown_scope',
+  'page_scope_not_allowed',
+  'duplicate_page_param',
 ]
 
 /** Server error codes the editor and the design screen can receive. */

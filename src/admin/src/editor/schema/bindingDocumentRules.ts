@@ -6,8 +6,8 @@
 // (binding-expression.md §4). The same golden files run through both.
 
 import { isObject, type Json, type JsonObject } from './subsetValidator'
-import { MAX_LIST_DEPTH, MAX_LISTS_PER_DOCUMENT } from './limits'
-import type { DocumentKind } from './schema'
+import { CURRENT_BINDING_VERSION, CURRENT_SCHEMA_VERSION, MAX_LIST_DEPTH, MAX_LISTS_PER_DOCUMENT } from './limits'
+import type { ContentDocument, ContentNode, DocumentKind } from './schema'
 
 export type RuleFailure = { rule: string; pointer: string; message: string }
 
@@ -43,6 +43,17 @@ export function checkListChildren(node: Json, pointer: string): RuleFailure | nu
     if (failure) return failure
   }
   return null
+}
+
+/**
+ * The document saved for a tree: it states its binding format version exactly when it uses
+ * bindings or lists (rule 13). The one place documents are built, so a save never differs from
+ * what the editor checks.
+ */
+export function contentDocument(root: ContentNode): ContentDocument {
+  return usesBindings(root as unknown as Json)
+    ? { schemaVersion: CURRENT_SCHEMA_VERSION, bindingVersion: CURRENT_BINDING_VERSION, root }
+    : { schemaVersion: CURRENT_SCHEMA_VERSION, root }
 }
 
 /** Whether a document holds a binding or a Collection list anywhere. */

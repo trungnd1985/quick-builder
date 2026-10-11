@@ -872,7 +872,15 @@
         "rich_text_too_many_images": "A rich text block shows more than 50 images.",
         "rich_text_too_many_tables": "A rich text block holds more than 20 tables.",
         "table_not_rectangular": "A table has rows with different numbers of cells.",
-        "table_header_misplaced": "A table has header cells outside its first row."
+        "table_header_misplaced": "A table has header cells outside its first row.",
+        "binding_version_required": "The page uses bindings or collection lists but does not state their format version.",
+        "unknown_collection": "A collection list shows a collection this site does not have.",
+        "too_many_lists": "The page has more collection lists than allowed.",
+        "list_too_deep": "Collection lists are nested deeper than allowed.",
+        "list_children_invalid": "A collection list must hold exactly one card and one empty state.",
+        "unknown_scope": "A binding reads from a list it is not inside.",
+        "page_scope_not_allowed": "A component cannot read the item of the page it is shown on.",
+        "duplicate_page_param": "Two paginated lists use the same page parameter."
       },
       "server": {
         "unexpected": "Something went wrong. Try again in a moment.",
