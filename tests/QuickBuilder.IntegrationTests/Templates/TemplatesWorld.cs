@@ -129,14 +129,27 @@ internal sealed class TemplatesWorld : IDisposable
             .ToList();
     }
 
-    /// <summary>A Collection list of <paramref name="source"/> (a list source object), with its card and empty state.</summary>
-    public static string List(string id, string source) =>
+    /// <summary>
+    /// A Collection list of <paramref name="source"/> (a list source object) with more
+    /// <paramref name="props"/> (JSON members, without braces), its card holding
+    /// <paramref name="card"/> (node JSON) and an empty state saying "Nothing yet".
+    /// </summary>
+    public static string List(string id, string source, string? props = null, params string[] card) =>
         "{\"id\":\"" + id + "\",\"type\":\"collection-list\",\"props\":{\"source\":" + source
-        + "},\"children\":[{\"id\":\"" + id + "-card\",\"type\":\"list-card\",\"props\":{},\"children\":[]},{\"id\":\"" + id
-        + "-empty\",\"type\":\"list-empty\",\"props\":{},\"children\":[]}]}";
+        + (props is null ? string.Empty : "," + props)
+        + "},\"children\":[{\"id\":\"" + id + "-card\",\"type\":\"list-card\",\"props\":{},\"children\":[" + string.Join(',', card) + "]},{\"id\":\"" + id
+        + "-empty\",\"type\":\"list-empty\",\"props\":{},\"children\":[{\"id\":\"" + id + "-none\",\"type\":\"text\",\"props\":{\"text\":\"Nothing yet\"},\"children\":[]}]}]}";
 
     /// <summary>A Collection list of the collection <paramref name="collectionId"/>.</summary>
-    public static string ListOf(string id, Guid collectionId) => List(id, "{\"collectionId\":\"" + collectionId + "\"}");
+    public static string ListOf(string id, Guid collectionId, string? props = null, params string[] card) =>
+        List(id, "{\"collectionId\":\"" + collectionId + "\"}", props, card);
+
+    /// <summary>A card's title (a Heading bound to <c>f1</c>) and its "Read" button to the item page.</summary>
+    public static string[] TitleAndLink(string prefix = "c") =>
+    [
+        BoundHeading(prefix + "-title", """{"field":"f1"}"""),
+        "{\"id\":\"" + prefix + "-go\",\"type\":\"button\",\"props\":{\"label\":\"Read\",\"bind\":{\"link\":{\"value\":{\"item\":\"url\"}}}},\"children\":[]}",
+    ];
 
     /// <summary>The page's render generation, or null when it was never published.</summary>
     public Task<long?> GenerationAsync(Guid pageId) =>

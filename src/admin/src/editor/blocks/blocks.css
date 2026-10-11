@@ -296,6 +296,28 @@
     text-decoration: none;
   }
 
+  /*
+    Collection lists (016, public-rendering.md §5): one card per listed item, in columns.
+    --qb-cols and --qb-cols-tablet are per-list rules; a list steps down to at most two columns
+    at tablet width and one on phones.
+  */
+  .qb-list {
+    display: grid;
+    grid-template-columns: repeat(var(--qb-cols, 3), minmax(0, 1fr));
+    gap: var(--qb-list-gap, calc(var(--qb-base-size) * 1));
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .qb-list__card,
+  .qb-list__empty {
+    display: flex;
+    flex-direction: column;
+    gap: calc(var(--qb-base-size) * 0.5);
+    min-width: 0;
+  }
+
   /* Tablet: sections breathe less, horizontal containers may wrap. */
   @container page (max-width: 767px) {
     .qb-section {
@@ -309,6 +331,10 @@
 
     .qb-container--horizontal > * {
       flex-basis: 12rem;
+    }
+
+    .qb-list {
+      grid-template-columns: repeat(var(--qb-cols-tablet, 2), minmax(0, 1fr));
     }
   }
 
@@ -327,6 +353,10 @@
     }
 
     .qb-container--grid.qb-container--stack-on-mobile {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .qb-list {
       grid-template-columns: minmax(0, 1fr);
     }
   }

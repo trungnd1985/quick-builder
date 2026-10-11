@@ -19,8 +19,8 @@ namespace QuickBuilder.IntegrationTests.Rendering;
 /// <remarks>
 /// The world: a <c>/blog/{slug}</c> template of posts and three published posts; live pages
 /// <c>/news</c> (a list of posts, which reference people), <c>/team</c> (a list of people) and
-/// <c>/about</c> (no list). Lists render once their queries exist (US4); until then the list
-/// pages are checked through their generations, and the item pages through what visitors get.
+/// <c>/about</c> (no list). Generations say which pages a change refreshes; visits say that a
+/// refreshed page renders anew and every other page is served from the cache (T066a).
 /// </remarks>
 [Collection(DatabaseCollection.Name)]
 public sealed class ItemPageInvalidationTests(DatabaseFixture database)
@@ -56,7 +56,7 @@ public sealed class ItemPageInvalidationTests(DatabaseFixture database)
         }
 
         var news = await world.PageAsync("news");
-        await world.PublishDocumentAsync(news, TemplatesWorld.Document(TemplatesWorld.ListOf("l1", world.Posts)));
+        await world.PublishDocumentAsync(news, TemplatesWorld.Document(TemplatesWorld.ListOf("l1", world.Posts, null, TemplatesWorld.TitleAndLink())));
         var team = await world.PageAsync("team");
         await world.PublishDocumentAsync(team, TemplatesWorld.Document(TemplatesWorld.ListOf("l1", world.People)));
         var about = await world.PageAsync("about");
@@ -112,6 +112,30 @@ public sealed class ItemPageInvalidationTests(DatabaseFixture database)
         var rendered = Renders(t);
         Assert.Contains("Changed</h1>", (await t.VisitAsync("/blog/first")).Body, StringComparison.Ordinal);
         await WarmItemPagesAsync(t, "second", "third");
+        Assert.Equal(rendered + 1, Renders(t));
+    }
+
+    [Fact]
+    public async Task A_refreshed_list_page_renders_anew_with_the_new_item_and_the_others_stay_cached()
+    {
+        using var world = await WorldAsync("invalidate-list-render");
+        var t = world.Templates;
+        foreach (var path in new[] { "/news", "/team", "/about" })
+        {
+            Assert.Equal(HttpStatusCode.OK, (await t.VisitAsync(path)).Status);
+        }
+
+        Assert.DoesNotContain("Fourth</h1>", (await t.VisitAsync("/news")).Body, StringComparison.Ordinal);
+        var fourth = await t.PublishedPostAsync("fourth", new JsonObject { ["f1"] = $"{PagesApi.CanaryMarker}Fourth" });
+        await t.App.DeliverAsync(new ItemPublished(Guid.CreateVersion7(), DateTimeOffset.UtcNow, t.Site, t.Posts, ItemsApi.Id(fourth), 1, "manual", false, null));
+
+        var rendered = Renders(t);
+        var news = (await t.VisitAsync("/news")).Body;
+        await t.VisitAsync("/team");
+        await t.VisitAsync("/about");
+
+        Assert.Contains("Fourth</h1>", news, StringComparison.Ordinal);
+        Assert.Contains("href=\"/blog/fourth\"", news, StringComparison.Ordinal);
         Assert.Equal(rendered + 1, Renders(t));
     }
 

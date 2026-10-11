@@ -386,7 +386,7 @@ expected published items in order, and the empty state appears when nothing matc
   - only published items, with published values, never another site's;
   - a broken filter matches nothing;
   - missing values as binding-expression.md §5 "Missing values" says (`ne` and boolean `eq false` include them), a date field with a time against a day literal, and filters on the publication dates.
-- [ ] T061 [P] [US4] Create `ITESTS/Rendering/CollectionListRenderTests.cs` with golden HTML in `FIX/rendering/lists/`:
+- [X] T061 [P] [US4] Create `ITESTS/Rendering/CollectionListRenderTests.cs` with golden HTML in `FIX/rendering/lists/` (*done as*: markup goldens in `UTESTS/Rendering/Lists/CollectionListRenderTests.cs`, end to end in `ITESTS/Rendering/CollectionListPageTests.cs`):
   - cards bound per item;
   - columns and gap;
   - limit;
@@ -417,9 +417,9 @@ expected published items in order, and the empty state appears when nothing matc
   - `published_text` (migration `AddPublishedText`), written by `ItemIndexer`, with `CurrentVersion` raised to 2; `contains` on text uses `LIKE` on it (TB-08).
 
   Literals are checked against the field type, and a misfit makes the filter broken (matches nothing). No raw SQL: if a translation is missing, stop and record it in this task. Make T060 pass.
-- [ ] T065 [US4] Extend `RENDER/Binding/BindingFetcher.cs` (which plans and fetches) for top-level lists: one `QueryAsync` per list, with filter operands from the page scope, then the `via` batch and the schemas. Store the results in `ResolvedData` by list node id.
-- [ ] T066 [US4] Complete `CollectionListRenderer`, `ListCardRenderer` and `ListEmptyRenderer` in `RENDER/Rendering/Blocks/ListRenderers.cs` (markup from contracts/public-rendering.md §5, cards pushing the list scope). Add the list rules (`--qb-cols`, gap, mobile stacking) to `RENDER/Rendering/BlockStylesheet.cs`, mirroring `EDITOR/blocks/blocks.css`. `UTESTS/Rendering/BlockRendererCoverageTests.cs` must pass. Make T061 pass.
-- [ ] T066a [US4] Extend `ITESTS/Rendering/ItemPageInvalidationTests.cs` now that lists render:
+- [X] T065 [US4] Extend `RENDER/Binding/BindingFetcher.cs` (which plans and fetches) for top-level lists: one `QueryAsync` per list, with filter operands from the page scope, then the `via` batch and the schemas. Store the results in `ResolvedData` by list node id.
+- [X] T066 [US4] Complete `CollectionListRenderer`, `ListCardRenderer` and `ListEmptyRenderer` in `RENDER/Rendering/Blocks/ListRenderers.cs` (markup from contracts/public-rendering.md §5, cards pushing the list scope). Add the list rules (`--qb-cols`, gap, mobile stacking) to `RENDER/Rendering/BlockStylesheet.cs`, mirroring `EDITOR/blocks/blocks.css`. `UTESTS/Rendering/BlockRendererCoverageTests.cs` must pass. Make T061 pass.
+- [X] T066a [US4] Extend `ITESTS/Rendering/ItemPageInvalidationTests.cs` now that lists render:
   - the list pages re-render (through `RenderMetrics`) exactly when their generation moves, and are otherwise served from the cache;
   - two scenarios (item publish, template move) repeat in `ITESTS/Rendering/RenderingAcrossInstancesTests.cs` with two hosts and a shared cache (SC-005, SC-006).
 - [ ] T067 [US4] Create `CMS/Features/ListPreview/ListPreview.cs`: `POST api/v1/cms/sites/{siteId}/list-preview`, under `[RequireCapability(pages.page_drafts.edit)]` (Designers, Editors and Administrators hold it, and Designers are the only role that edits components, research TB-17). It validates like rules 14–16 and returns the published items, `referenced` and the schemas, through `IPublishedItemReader`. Add it to `ITESTS/Infrastructure/EndpointCatalog.cs`. Make T062 pass.

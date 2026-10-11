@@ -12,13 +12,14 @@ const { prop, token } = useBlock(() => props.node)
 
 const style = computed(() => ({
   '--qb-cols': String(prop('columns')),
+  '--qb-cols-tablet': String(Math.min(Number(prop('columns')) || 3, 2)),
   '--qb-list-gap': token('gap', 'space'),
 }))
 </script>
 
 <template>
   <div
-    class="qb-list"
+    class="qb-list-block"
     :style="style"
   >
     <CanvasChildren :node="node" />

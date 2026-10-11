@@ -58,9 +58,11 @@ For a `GET` or `HEAD` on a resolved, enabled site, after the path is normalised 
 
 ## 5. Lists
 
-- **Markup**: a list renders as `<ul class="qb-list" style="--qb-cols:N">` with one `<li>`
-  per card, then the pager when paging is on. The empty state renders in place of the
-  `<ul>`.
+- **Markup**: a list renders as `<ul class="qb-list" data-qb="…">` with one
+  `<li class="qb-list__card">` per card, then the pager when paging is on. Its columns and gap
+  are the node's rule, as for every block (`--qb-cols`, `--qb-cols-tablet` = min(columns, 2),
+  `--qb-list-gap`), never an inline style. The empty state renders in place of the `<ul>`, as
+  `<div class="qb-list__empty">`.
 - **Styling**: list rules are added to the block stylesheet (`/_assets`), so
   `RendererStamp` changes once with this release.
 - **Budget**: at most 200 list queries per render (TB-09). Lists beyond that show their

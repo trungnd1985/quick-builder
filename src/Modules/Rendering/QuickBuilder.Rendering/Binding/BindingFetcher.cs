@@ -1,5 +1,6 @@
 using System.Text.Json;
 using QuickBuilder.Cms.Contracts.Publishing;
+using QuickBuilder.Pages.Contracts;
 using QuickBuilder.Pages.Contracts.Publishing;
 
 namespace QuickBuilder.Rendering.Binding;
@@ -10,7 +11,8 @@ namespace QuickBuilder.Rendering.Binding;
 /// </summary>
 /// <remarks>
 /// <list type="number">
-/// <item>The documents are walked for the reference fields bindings follow (<c>via</c>).</item>
+/// <item>The documents are walked for the reference fields bindings follow (<c>via</c>) and for
+/// their Collection lists; each top-level list is one query (<see cref="ListQueries"/>).</item>
 /// <item>The items those fields name, on every item already fetched, are read in one batch.
 /// Only published items come back; a reference to anything else reads as empty.</item>
 /// <item>The schemas of every collection involved, and the live template patterns of those
@@ -45,10 +47,35 @@ internal sealed class BindingFetcher(IPublishedItemReader items, IPublishedConte
             fetched.Add(pageItem);
         }
 
-        // Nothing reads an item: a page with no bindings costs no query.
-        if (fetched.Count == 0)
+        var listNodes = ListQueries.TopLevel(documents, PageSchema.MaxListsPerDocument);
+
+        // Nothing reads an item: a page with no bindings and no lists costs no query.
+        if (fetched.Count == 0 && listNodes.Count == 0)
         {
             return FetchedBindings.None;
+        }
+
+        // The page item's schema first: a list over one of its multi-reference fields needs the
+        // field's target collection.
+        var schemas = new Dictionary<Guid, JsonElement>();
+        if (pageItem is not null)
+        {
+            foreach (var (id, schema) in await items.GetSchemasAsync(siteId, [pageItem.CollectionId], cancellationToken).ConfigureAwait(false))
+            {
+                schemas[id] = schema;
+            }
+        }
+
+        var pageSchemas = schemas.ToDictionary(s => s.Key, s => CollectionSchemaInfo.Parse(s.Key, s.Value));
+        var lists = new Dictionary<string, PublishedItemPage>(StringComparer.Ordinal);
+        foreach (var node in listNodes)
+        {
+            var planned = ListQueries.Plan(node, pageItem, pageSchemas);
+            var result = planned.Query is { } query
+                ? await items.QueryAsync(siteId, query, cancellationToken).ConfigureAwait(false)
+                : PublishedItemPage.Empty;
+            lists[planned.Key] = result;
+            fetched.AddRange(result.Items);
         }
 
         var referenced = new Dictionary<Guid, PublishedItem>();
@@ -69,7 +96,15 @@ internal sealed class BindingFetcher(IPublishedItemReader items, IPublishedConte
         var all = fetched.Concat(referenced.Values).ToList();
         var collections = all.Select(i => i.CollectionId).ToHashSet();
 
-        var schemas = await items.GetSchemasAsync(siteId, collections, cancellationToken).ConfigureAwait(false);
+        var missing = collections.Where(id => !schemas.ContainsKey(id)).ToList();
+        if (missing.Count > 0)
+        {
+            foreach (var (id, schema) in await items.GetSchemasAsync(siteId, missing, cancellationToken).ConfigureAwait(false))
+            {
+                schemas[id] = schema;
+            }
+        }
+
         var patterns = await pages.GetLiveTemplatePatternsAsync(siteId, collections, cancellationToken).ConfigureAwait(false);
 
         var media = new HashSet<Guid>();
@@ -83,6 +118,7 @@ internal sealed class BindingFetcher(IPublishedItemReader items, IPublishedConte
         {
             PageItem = pageItem,
             Items = referenced,
+            Lists = lists,
             Schemas = schemas.ToDictionary(s => s.Key, s => CollectionSchemaInfo.Parse(s.Key, s.Value)),
             TemplatePatterns = patterns,
         };

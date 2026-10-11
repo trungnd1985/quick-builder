@@ -9,8 +9,9 @@ namespace QuickBuilder.Rendering.Rendering.Blocks;
 // matches its canvas component in src/admin/src/editor/blocks/<type>/.
 
 /// <summary>
-/// A Collection list: its card once per listed item, each bound to that item, or its empty state
-/// when nothing is listed (FR-022).
+/// A Collection list: <c>&lt;ul class="qb-list"&gt;</c> with its card once per listed item, each
+/// bound to that item, or its empty state in place of the list when nothing is listed (FR-022;
+/// public-rendering.md §5).
 /// </summary>
 /// <remarks>
 /// The items were fetched before rendering (TB-09) and wait in <see cref="ResolvedData.Lists"/>
@@ -27,35 +28,39 @@ internal sealed class CollectionListRenderer : IBlockRenderer
         ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(writer);
 
-        var columns = Math.Clamp(context.Int(node, "columns", 3), 1, 4);
-        writer.Open("div").Attribute("class", "qb-list");
-        context.Style(writer, scope, node,
-            ("--qb-cols", columns.ToString(CultureInfo.InvariantCulture)),
-            ("--qb-list-gap", context.Token(node, "gap", TokenKind.Space)));
-        writer.EndTag();
-
         var (card, empty) = Slots(node);
         var key = ResolvedData.ListKey(RenderContext.IdOf(node), context.Scopes.ItemIds());
         var items = context.Data.Lists.TryGetValue(key, out var page) ? page.Items : [];
 
-        if (items.Count > 0 && card is { } cardNode)
+        if (items.Count == 0 || card is not { } cardNode)
         {
-            writer.Markup("<ul class=\"qb-list__items\">");
-            foreach (var item in items)
+            // public-rendering.md §5: the empty state renders in place of the list.
+            if (empty is { } emptyNode)
             {
-                context.Scopes.Push(RenderContext.IdOf(node), item);
-                context.RenderNode(cardNode, scope, writer);
-                context.Scopes.Pop();
+                context.RenderNode(emptyNode, scope, writer);
             }
 
-            writer.Markup("</ul>");
-        }
-        else if (empty is { } emptyNode)
-        {
-            context.RenderNode(emptyNode, scope, writer);
+            return;
         }
 
-        writer.Close("div");
+        // Columns step down to at most two at tablet width, and one on phones (blocks.css).
+        var columns = Math.Clamp(context.Int(node, "columns", 3), 1, 4);
+        writer.Open("ul").Attribute("class", "qb-list");
+        context.Style(writer, scope, node,
+            ("--qb-cols", columns.ToString(CultureInfo.InvariantCulture)),
+            ("--qb-cols-tablet", Math.Min(columns, 2).ToString(CultureInfo.InvariantCulture)),
+            ("--qb-list-gap", context.Token(node, "gap", TokenKind.Space)));
+        writer.EndTag();
+
+        var listId = RenderContext.IdOf(node);
+        foreach (var item in items)
+        {
+            context.Scopes.Push(listId, item);
+            context.RenderNode(cardNode, scope, writer);
+            context.Scopes.Pop();
+        }
+
+        writer.Close("ul");
     }
 
     /// <summary>The list's card and empty state; rule 20 guarantees both, in that order.</summary>
