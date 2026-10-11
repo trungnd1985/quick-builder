@@ -731,6 +731,10 @@ Feature 016 puts collection items on the site.
   filters. Until it finishes, a list filter that searches text misses items not yet folded.
 - The block stylesheet changes, so every cached page renders once more after the upgrade;
   existing pages render exactly as before.
+- **Log entries written while serving the public site no longer carry `RequestPath`.** A
+  public address is content (a page's address, or an item's slug), so it is kept out of the
+  logs; follow a public request by its `TraceId`, and by the page and site ids an entry carries.
+  Entries for `/api`, `/admin` and `/health` keep the path.
 - No configuration changes are needed.
 
 ## Upgrading from the foundation release (feature 001)

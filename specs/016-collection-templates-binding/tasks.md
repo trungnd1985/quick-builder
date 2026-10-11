@@ -585,7 +585,8 @@ the site never fails.
 - [X] T097 [P] Run `dotnet test` with coverage. The render path (`PageResponder`, `RENDER/Binding/`, `CollectionListRenderer`) and the publish path keep at least 80 % line coverage. Run `npm run lint`, `npm run type-check` and `npm test`, and check that the formatting and analyzer gates are clean.
   *Result* (2026-10-11, unit + integration, line coverage): PageResponder 92.4 %, Rendering/Binding 96.0 %, ListRenderers 100 %, Pager 97.8 %, PublishingWrites 98.2 %, Cms published list query 91.4 %, collection uses 94.2 %. 1,667 unit and 1,016 integration tests pass (3 skipped, as before); one timing-sensitive unit test failed once under coverage instrumentation and passed on rerun. Admin: lint, type-check and 960 tests clean. `dotnet format --verify-no-changes` failed on whitespace and using order in six files, fixed by `dotnet format`.
 - [ ] T098 Run the whole of `quickstart.md` by hand on the reference compose setup, including SC-001 and SC-002 with a stopwatch and SC-008 keyboard-only, and record the results in `specs/016-collection-templates-binding/quickstart-results.md`.
-- [ ] T099 Scan the logs of a full test run for item values, names and slugs: none may appear. Then open the PR closing #16, with the plan's operator impact and upgrade notes in the description.
+- [X] T099 Scan the logs of a full test run for item values, names and slugs: none may appear. Then open the PR closing #16, with the plan's operator impact and upgrade notes in the description.
+  *Done as*: the scan is a test, `ITESTS/Observability/TemplateContentNotLoggedTests.cs`, over every 016 path that logs. It found one leak: ASP.NET Core's `RequestPath` carried item slugs (and, since 012, page addresses) on public requests. A `PublicPathRedactor` enricher now removes it outside `/api`, `/admin` and `/health` (decided 2026-10-11; noted in operations.md).
 
 ---
 
