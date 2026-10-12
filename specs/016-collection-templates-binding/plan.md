@@ -135,12 +135,14 @@ this section).*
 | III | Upgrades Never Lose Data | **Complies.** <br>• `UpgradeFrom035Tests` proves every existing page renders the same body. <br>• No stored data is rewritten. <br>• Bindings and template state travel in page documents and page rows, which export and import (#20) already carry. |
 | IV | Pluggable Infrastructure, Minimal Required Dependencies | **Complies.** PostgreSQL only. The cache provider abstraction is unchanged, and the keys still live in `ICacheProvider`. Freshness across instances comes from keys read from the database, so no cache messages are needed (012 PR-05). |
 | V | Multi-Site Within One Installation | **Complies.** <br>• **Site ownership**: `collection_uses` and the new read context carry `site_id` with the global filter. <br>• **Explicit site predicates**: generation bumps keep them (`GenerationBumpSiteFilterTests` extended). <br>• **Cross-site ids**: rule 14 and `pages.unknown_collection` treat another site's collection as unknown. <br>• **Cache keys**: `ItemRenderKey` is under `CacheKey.ForSite`. <br>• **Isolation suite**: + `TemplateIsolationProbe`. <br>• **Raw SQL**: none new. |
-| VI | Content Schemas Are Versioned Contracts | **Complies.** <br>• **Binding contract**: `docs/contracts/binding-expression.md`, with `$defs` in the one embedded page schema file that both validators use. <br>• **Version**: `bindingVersion: 1` on the document. The page schema stays at v1 because every change is additive (page-schema.md §6). <br>• **Golden examples**: shared by server and admin. <br>• **Field ids, never names**: kept across renames. <br>• **Block types**: the new block types and `bind` keys are defined once, in the schema, the editor definition and the renderer. |
+| VI | Content Schemas Are Versioned Contracts | **Complies.** <br>• **Binding contract**: `docs/contracts/binding-expression.md`, with `$defs` in the one embedded page schema file that both validators use. <br>• **Version**: `bindingVersion: 1` on the document. The page schema stays at v1 because every change is additive (page-schema.md §6). <br>• **Golden examples**: shared by server and admin. <br>• **Field ids, never names**: kept across renames. <br>• **Block types**: the new block types and `bind` keys are defined once, in the schema, the editor definition and the renderer. <br>• **Later additive changes (2026-10-12)**: `paging.layout`, `heading.link` and rule 21 each came with the contract document, the schema and golden examples in the same change; they stay within v1. |
 | VII | Draft and Published Are Separate Worlds | **Complies; closes E-6.** <br>• **Read-only public path**: Rendering reads published items only, through `IPublishedItemReader` on a read-only connection. <br>• **Editor**: the canvas shows a sample item's draft only in the admin (clarification). <br>• **Publish**: bindings and lists are part of page versions, so they publish, roll back and schedule atomically with the page. <br>• **E-6**: schema changes that rewrite published values now refresh every live page that shows them (TB-10). |
-| VIII | Rendering Is Server-Side, Cached and Correctly Invalidated | **Complies.** <br>• **Server-side HTML**, including paging, with no script. <br>• **Dependency graph**: extended with page → collection and template → collection; template → items through render stamps. <br>• **Exact refresh**: proven by `ItemPageInvalidationTests` (SC-006), on two instances too. <br>• **Budgets**: measured by `ItemPagePerformanceTests`. <br>• **Cache keys**: bounded by ignoring unknown parameters and capping page numbers. |
+| VIII | Rendering Is Server-Side, Cached and Correctly Invalidated | **Complies.** <br>• **Server-side HTML**, including paging, with no script. <br>• **Dependency graph**: extended with page → collection and template → collection; template → items through render stamps. <br>• **Exact refresh**: proven by `ItemPageInvalidationTests` (SC-006), on two instances too. <br>• **Budgets**: measured by `ItemPagePerformanceTests`. <br>• **Cache keys**: bounded by ignoring unknown parameters and capping page numbers. <br>• **Lists in components** page from the address: their parameters are part of the page's key, so each page of a footer list is its own cached copy. <br>• **One more query per request**, cache hits included, reads the components' page parameters. It is measured by `ItemPagePerformanceTests`, with a recorded fallback (TB-11). |
 | IX | Secure by Default | **Complies.** <br>• **Encoding**: every bound value is encoded for its context by the existing writers. <br>• **Rich text** goes through the allow-list and field formats. <br>• **Link schemes** are checked, and anything else renders as text. <br>• **Authorization**: server-side on every endpoint, with no new capability (TB-17). <br>• **Input bounds**: page-number and parameter bounds, list query caps and the 1 MiB document limit. <br>• **Privacy**: no values, names or slugs in logs. |
 | X | Test-First for Behaviour, Tests Always for Contracts | **Complies.** <br>• **Endpoints**: integration tests for every changed endpoint. <br>• **Contract**: golden tests for the binding contract on both sides. <br>• **Rendering**: golden HTML for binding resolution and lists. <br>• **Coverage**: 80 % line coverage on the render and publish paths. <br>• **Smoke test**: the release smoke journey gains a template. |
 | XI | Simplicity and Incremental Delivery | **Complies.** <br>• **No new dependencies.** <br>• **Not built**: no expression language, no `LATERAL` SQL, no route table, no per-field indexes, no redirects. <br>• **Reuse**: the editor's panel, canvas, slot nodes and 015's picker are reused. <br>• **Delivery**: one PR. Templates (US1–US3) are useful before lists. There is no feature flag mechanism in the codebase yet, so the plan is one complete PR; if it must split, lists (US4–US6) come in a second PR, and the first PR must not register the `collection-list` block. |
+
+**Re-check 2026-10-12**: the pager and details-page clarifications were checked against every principle; only VI and VIII changed.
 
 **Technology Constraints**:
 - MVC controllers only; EF Core only, with no new raw SQL.
@@ -240,11 +242,13 @@ src/Modules/
 │       ~ QuickBuilder.Pages.csproj                    # + Cms.Contracts
 │       ~ Domain/Page.cs  PageTree.cs                  # TemplateCollectionId, template rules (TB-02)
 │       ~ Domain/PublishingTerms.cs                    # DependencyKinds.Collection, .Template
-│       ~ Domain/DependencyExtractor.cs                # list sources
+│       ~ Domain/DependencyExtractor.cs                # list sources, page parameter slots, heading links
 │       + Domain/CollectionUseExtractor.cs  CollectionUse.cs
 │       ~ Infrastructure/PagesDbContext.cs  PublishedReadDbContext.cs  PublishedContentReader.cs
 │       ~ Infrastructure/PublishingWrites.cs  DraftWrites.cs  ScheduleWrites.cs  PageTreeWrites.cs  GenerationBump.cs
 │       ~ Infrastructure/Schema/PageDocumentValidator.cs   # rules 13–20
+│       + Infrastructure/PageParamRules.cs             # rule 21, across a page and its components (FR-027)
+│       ~ Infrastructure/PublishedContentReader.cs     # + the components' page parameters (TB-11)
 │       + Infrastructure/TemplateReader.cs  CollectionUsageReader.cs  CollectionUses.cs
 │       + Infrastructure/Migrations/<ts>_AddTemplates.cs
 │       + Features/SetPageTemplate/SetPageTemplate.cs  GetTemplateImpact.cs
@@ -272,7 +276,7 @@ src/Modules/
     + Binding/BindingPlanner.cs  BindingFetcher.cs  BindingResolver.cs  BindingRules.cs
     +         ValueFormatter.cs  ScopeStack.cs  ResolvedData.cs
     + Rendering/Blocks/CollectionListRenderer.cs  Pager.cs
-    ~ Rendering/Blocks/TextRenderers.cs  MediaRenderers.cs  LayoutRenderers.cs   # resolve bound props, hide
+    ~ Rendering/Blocks/TextRenderers.cs  MediaRenderers.cs  LayoutRenderers.cs   # resolve bound props, hide; heading link (FR-014)
     ~ Rendering/BlockStylesheet.cs  RichTextRenderer.cs  LinkResolver.cs
     ~ Domain/RenderContext.cs  RenderInputs.cs  RenderReferences.cs  BlockDefaults.cs
     + Features/RenderPage/TemplateMatcher.cs  ItemRenderKey.cs  PageParams.cs
@@ -283,7 +287,11 @@ src/admin/src/
 + editor/bindings/scopes.ts  bindingRules.ts  resolve.ts  format.ts  listPreview.ts
 + editor/blocks/collection-list/definition.ts  CollectionListBlock.vue
 + editor/blocks/list-card/definition.ts  list-empty/definition.ts
-~ editor/blocks/registry.ts  heading/  text/  button/  image/  rich-text/   # bindable props
+~ editor/blocks/registry.ts  heading/  text/  button/  image/  rich-text/   # bindable props; heading link control
+~ editor/blocks/registry.ts                       # InsertContext.nameFieldOf, initialChildren(t, context, props)
+~ editor/blocks/blocks.css  canvas/canvas.css    # .qb-heading__link, .qb-pager--steps; stylesheet hash changes every golden
+~ editor/bindings/bindingContext.ts               # first collection's schema loaded when the editor opens (default card)
+~ editor/panel/controls/ListPagingControl.vue     # layout choice; names taken by the page's components
 + editor/panel/controls/BindingControl.vue  BindingPicker.vue  TextTemplateEditor.vue
 +                       ListSourceControl.vue  ListFiltersControl.vue  ListSortControl.vue  ListPagingControl.vue
 ~ editor/panel/PropertyPanel.vue

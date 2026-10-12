@@ -42,7 +42,7 @@ There are no new columns. `target_kind` gains two values (`DependencyKinds`):
 
 | Column | Type | Rule |
 |---|---|---|
-| **+** `page_param_names` | `text[] not null default '{}'` | The `paging.param` values of the live version's paginated lists, written at publish and rollback, so the public path can build the cache key before reading the document (TB-11). |
+| **+** `page_param_names` | `text[] not null default '{}'` | The `paging.param` values of the live version's own paginated lists, written at publish and rollback, for pages and components alike. The public path adds the names of the live components a page shows, read through `live_dependencies`, to build the cache key before reading any document (TB-11, FR-027). |
 
 ### 1.3 `pages.collection_uses` + (Pages, TB-13)
 
@@ -113,9 +113,11 @@ The full shapes are in [contracts/binding-expression.md](./contracts/binding-exp
 | 18 | at most 20 `collection-list` nodes | `too_many_lists` | the 21st list's `/type` |
 | 19 | paginated lists' `paging.param` values are distinct | `duplicate_page_param` | the second `…/paging/param` |
 | 20 | a `collection-list` has exactly `[list-card, list-empty]` | `list_children_invalid` | `…/children` |
+| 21 | the paginated lists of a page and of the components it shows use distinct `paging.param` values; checked by the server only, last: drafts on save, live versions on publish | `page_param_taken` (+ `param`, `with`) | the page's own list, the second `component-ref`, or the component's own list |
 
 Rule 20 runs with the structural rules (§3 step 5 of page-schema.md, after the schema), so a
-list missing its card fails before rules 13–19.
+list missing its card fails before rules 13–19. Rule 21 needs other documents, like rules 6 and 14, so
+`PageParamRules` checks it after every other rule.
 
 **Page row checks** (not part of the document, done by `SetPageTemplate`):
 - `pages.template_needs_parent`;

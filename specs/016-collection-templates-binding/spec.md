@@ -66,8 +66,8 @@ and template to items.
   pages on each side, with "…" for the gaps (at most 7 numbers)** (FR-027).
 - Q: How should each paginated list on a page get its own address parameter, such as
   `?page=3` or `?tags=2`? → **A: the member names it (default `page`), and the name must be
-  unique across the page and the components it uses; the editor and the server refuse a
-  duplicate** (FR-027).
+  unique across the page and the components it uses; the server refuses a duplicate, and
+  the page editor avoids one** (FR-027).
 - Q: Where should the pager appear around a paginated list, and should it show when every
   item fits on one page? → **A: always below the list, and hidden when there's only one
   page** (FR-027).
@@ -437,8 +437,8 @@ refusals, published output and editor marks against FR-008 to FR-012 and FR-031 
   items stays within the render budget (SC-004).
 - **A sample item that is deleted**: the editor picks another sample item, or shows the
   template with empty values and a message when the collection has none.
-- **Cache-busting**: only the page parameters of the page's own list blocks vary the cached
-  copy; other parameters are ignored (FR-027).
+- **Cache-busting**: only the page parameters of the paginated lists of the page and of the
+  components it shows vary the cached copy; other parameters are ignored (FR-027).
 - **Items scheduled to publish**: they appear on item pages and in lists when the schedule
   runs, through the same refresh as a manual publish.
 - **A component (header or footer) containing a list block**: allowed; every page using
@@ -591,11 +591,14 @@ refusals, published output and editor marks against FR-008 to FR-012 and FR-031 
   layout MUST show at most 7 page numbers: the first, the last, and the current page with
   up to 2 pages on each side, with a gap mark between numbers that are not consecutive.
   Each paginated list MUST have a page parameter name set by the member (default `page`).
-  The name MUST be unique among the paginated lists of a page and of the components it
-  uses; the editor and the server MUST refuse a save or publish that would give two such
-  lists the same name. Each paginated list on a
-  page MUST page independently. Only the page parameters of the page's own paginated lists
-  MUST vary the rendered and cached output; other parameters MUST be ignored. A malformed
+  The name (shown to members as "Name in the address") MUST be unique among the paginated
+  lists of a page and of the components it uses. The server MUST refuse a save or publish
+  that would give two such lists the same name, naming the other page or component. While
+  a member edits a page, the editor MUST NOT offer a name that the page's other lists or
+  its components' lists already use; a component's editor cannot see the pages that show
+  it, so there the server's refusal is shown. Each paginated list on a page MUST page
+  independently. Only the page parameters of the paginated lists of the page and of the
+  components it shows MUST vary the rendered and cached output; other parameters MUST be ignored. A malformed
   page number MUST show the first page; a page number beyond the last page MUST show the
   list's empty state with a link to the first page.
 

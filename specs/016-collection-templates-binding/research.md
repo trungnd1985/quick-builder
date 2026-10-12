@@ -237,10 +237,14 @@ rather than merely stale.
     not the current item" with `ne` (FR-023);
   - `sort`: 0–3 `{ "field" | "item", "dir": "asc" | "desc" }`;
   - `limit`: 1–100, default 12;
-  - `paging`: optional `{ "pageSize": 1–100, "param": slug-like, default "page" }`;
+  - `paging`: optional `{ "pageSize": 1–100, "param": slug-like, default "page", "layout": "numbers" | "steps", default "numbers" }`;
   - `columns` (1–4, default 3), `gap` (`spaceRef`) and `layerLabel`.
 - **`list-card`**: holds `contentChild`. It is repeated once per item and opens a binding
-  scope named by the parent list's id.
+  scope named by the parent list's id. A new list's card starts with one Heading: `bind.text`
+  set to the source collection's name field (or `item: "slug"` when it has none), and
+  `bind.link` set to `item: "url"` (FR-022). The editor loads the first collection's schema
+  when it opens, so the palette can make the card at once. A Heading's `link` is bindable like
+  a Button's or an Image's (FR-014).
 - **`list-empty`**: holds `contentChild` and is shown when no item is listed. A new list
   starts with a Text block reading "Nothing to show yet."
 
@@ -428,8 +432,10 @@ fields render as empty (FR-018).
 ## TB-11 Paging: a named parameter per list, plain links, bounded keys
 
 **Decision**:
-- A paginated list's `paging.param` (default `page`, slug grammar, unique within the
-  document by rule 19) names its query parameter: `/blog?page=3`.
+- A paginated list's `paging.param` (default `page`, slug grammar) names its query
+  parameter: `/blog?page=3`. It is unique within the document (rule 19), and across a page and
+  the components it shows (rule 21, checked by the server against drafts on save and live
+  versions on publish).
 - `RenderPageController` passes the query string to the handler. The handler keeps only the
   parameters of the document's paginated lists. Each value is normalised: a whole number
   from 2 to 10,000 is kept; anything else, including `1`, is dropped, which means the first
@@ -440,6 +446,13 @@ fields render as empty (FR-018).
 - Navigation is a `<nav aria-label>` holding previous, next and up to 7 numbered links,
   with `aria-current="page"` on the current one. Links keep the other lists' parameters, so
   lists page independently (FR-027). No script.
+- `paging.layout` is `numbers` (the default: Previous, at most 7 numbers, Next) or `steps`
+  (Previous and Next only, `qb-pager--steps`). The pager follows the list and is left out for
+  a single page. Its words are `PublicTexts` and can't be edited.
+- The parameters the key reads are the page's own, from `publications.page_param_names`, plus
+  those of the live components it shows. `PublishedContentReader` merges them in one extra
+  indexed query on `live_dependencies` and `publications`. A component publish already raises
+  the generation of every page that shows it, so a new name changes the key at once.
 
 **Rationale**: the issue wants paging that works without scripts and with shareable
 addresses. Capping the numbers bounds the number of cache keys an attacker can create per
@@ -448,6 +461,9 @@ page.
 **Alternatives considered**:
 - **A path segment** (`/blog/page/3`): collides with template patterns and the page tree.
 - **"Load more" with script**: breaks progressive enhancement (Principle VIII).
+- **Store the merged names on the page's publication**: saves the extra query, but a
+  component publish would have to rewrite every dependent page's row. Kept as the fallback if
+  `ItemPagePerformanceTests` shows the query costs too much.
 
 ---
 

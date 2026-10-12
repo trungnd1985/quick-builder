@@ -87,7 +87,8 @@ public sealed record CollectionUses(IReadOnlyList<CollectionUse> Uses, int Total
 Task<LiveTemplateRef?> FindLiveTemplateAsync(Guid siteId, string parentPath, CancellationToken ct = default);
 public sealed record LiveTemplateRef(Guid PageId, long Generation, Guid CollectionId, IReadOnlyList<string> PageParamNames);
 // LivePageRef (012) gains the same: LivePageRef(Guid PageId, long Generation, IReadOnlyList<string> PageParamNames).
-// PageParamNames come from publications.page_param_names (data-model §1.2a, TB-11).
+// PageParamNames: the page's own publications.page_param_names plus those of the live components
+// it shows (live_dependencies page → component), merged by the reader (data-model §1.2a, TB-11, FR-027).
 // GetLinkTargetsAsync reports template pages with IsLive = false (TB-02).
 // For item links (TB-09): the patterns of live templates by collection.
 Task<IReadOnlyDictionary<Guid, string>> GetLiveTemplatePatternsAsync(Guid siteId, IReadOnlyCollection<Guid> collectionIds, CancellationToken ct = default);
