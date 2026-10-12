@@ -5,7 +5,7 @@ import en from '../../src/i18n/en.json'
 import { filterProblem, operatorsFor, literalFor } from '../../src/editor/bindings/listRules'
 import { parseSchema } from '../../src/editor/bindings/bindingRules'
 import { useEditorStore } from '../../src/editor/state/editorStore'
-import { COLLECTION, SITE, documentWith, mountEditor, stubServer, type Server } from './harness'
+import { COLLECTION, COMPONENT, SITE, documentWith, mountEditor, stubServer, type Server } from './harness'
 
 // 016 US4 (tasks T063, T069): the list's source, filter, sort and paging controls offer only
 // what fits each field's type (binding-expression.md §5), and mark a filter that no longer fits.
@@ -159,9 +159,49 @@ describe('the list controls', () => {
     expect(store.root!.children[0].children[1].props.paging).toEqual({ pageSize: 12, param: 'page-2' })
   })
 
+  it('keeps a page’s list clear of the names its shared components page under (rule 21)', async () => {
+    const pagedList = (id: string, paging?: object) => ({
+      id, type: 'collection-list', props: { source: { collectionId: COLLECTION }, ...(paging ? { paging } : {}) }, children: [{ id: `${id}-c`, type: 'list-card', props: {}, children: [] }, { id: `${id}-e`, type: 'list-empty', props: {}, children: [] }],
+    })
+    const page = documentWith({ id: 's1', type: 'section', props: {}, children: [pagedList('list')] })
+    ;(page.root as { children: object[] }).children.push({ id: 'footer', type: 'component-ref', props: { componentId: COMPONENT }, children: [] })
+    const server = stubServer({ ...page, bindingVersion: 1 })
+    serveSchema(server)
+    server.script(`GET /api/v1/pages/sites/${SITE}/components/${COMPONENT}/draft`, {
+      status: 200,
+      body: { schemaVersion: 1, version: 1, updatedAtUtc: null, updatedBy: null, document: { ...documentWith({ id: 's1', type: 'section', props: {}, children: [pagedList('people', { pageSize: 2 })] }), bindingVersion: 1 } },
+    })
+    await mountEditor()
+    const store = useEditorStore()
+    await waitFor(() => expect(document.querySelector('.qb-component-ref__content')).not.toBeNull())
+    store.select('list')
+    await waitFor(() => expect(within(panel()).getByLabelText(en.editor.list.paging.on)).toBeTruthy())
+
+    // The footer pages under "page", so this list is given the next free name.
+    await fireEvent.click(within(panel()).getByLabelText(en.editor.list.paging.on))
+    await waitFor(() => expect(store.root!.children[0].children[0].props.paging).toEqual({ pageSize: 12, param: 'page-2' }))
+  })
+
+  it('chooses the pager’s layout with the keyboard, storing only "steps" (FR-027)', async () => {
+    const { store } = await openList({ paging: { pageSize: 10, param: 'people' } })
+
+    const group = await waitFor(() => within(panel()).getByRole('group', { name: en.editor.list.paging.layout }))
+    const numbers = within(group).getByRole('radio', { name: en.editor.list.paging.layoutNumbers }) as HTMLInputElement
+    const steps = within(group).getByRole('radio', { name: en.editor.list.paging.layoutSteps }) as HTMLInputElement
+    expect(numbers.checked).toBe(true)
+
+    steps.focus()
+    await fireEvent.click(steps)
+    await waitFor(() => expect(store.root!.children[0].children[0].props.paging).toEqual({ pageSize: 10, param: 'people', layout: 'steps' }))
+
+    await fireEvent.click(within(panel()).getByRole('radio', { name: en.editor.list.paging.layoutNumbers }))
+    await waitFor(() => expect(store.root!.children[0].children[0].props.paging).toEqual({ pageSize: 10, param: 'people' }))
+  })
+
   it('passes axe checks', async () => {
-    await openList({ filters: [{ field: 'f3', op: 'gt', value: 5 }], sort: [{ field: 'f1', dir: 'asc' }] })
+    await openList({ filters: [{ field: 'f3', op: 'gt', value: 5 }], sort: [{ field: 'f1', dir: 'asc' }], paging: { pageSize: 10, layout: 'steps' } })
     await waitFor(() => expect(within(panel()).getByRole('group', { name: en.editor.list.filterN.replace('{n}', '1') })).toBeTruthy())
+    await waitFor(() => expect(within(panel()).getByRole('group', { name: en.editor.list.paging.layout })).toBeTruthy())
 
     const results = await axe.run(panel(), { rules: { region: { enabled: false } } })
     expect(results.violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target).join(', ')}`)).toEqual([])

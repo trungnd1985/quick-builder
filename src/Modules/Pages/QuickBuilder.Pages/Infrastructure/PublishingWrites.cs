@@ -31,6 +31,7 @@ internal sealed class PublishingWrites(
     GenerationBump bump,
     ICollectionSchemaReader collections,
     CollectionUseRows uses,
+    PageParamRules pageParams,
     TimeProvider clock,
     ILogger<PublishingWrites> logger)
 {
@@ -194,6 +195,15 @@ internal sealed class PublishingWrites(
             {
                 return Result.Failure(PagesErrors.UnpublishedComponents(unpublished));
             }
+        }
+
+        // Rule 21 (016 FR-027): visitors never get two lists that turn pages together.
+        var pageParamTaken = subject.IsPage
+            ? await pageParams.CheckPageAsync(siteId, content.Document, live: true, cancellationToken).ConfigureAwait(false)
+            : await pageParams.CheckComponentAsync(siteId, subject.Id, content.Document, live: true, cancellationToken).ConfigureAwait(false);
+        if (pageParamTaken is not null)
+        {
+            return Result.Failure(pageParamTaken);
         }
 
         var publication = await PublicationAsync(siteId, subject, create: true, cancellationToken).ConfigureAwait(false);

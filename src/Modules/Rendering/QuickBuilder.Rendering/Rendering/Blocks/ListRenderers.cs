@@ -73,12 +73,15 @@ internal sealed class CollectionListRenderer : IBlockRenderer
 
         if (paging is { } pages && result is not null)
         {
-            Pager.Write(writer, context, pages.Param, LayerLabel(node), pages.Current, Pager.LastPage(result.Total, pages.PageSize));
+            Pager.Write(writer, context, pages.Param, LayerLabel(node), pages.Current, Pager.LastPage(result.Total, pages.PageSize), pages.Steps);
         }
     }
 
-    /// <summary>A paginated list's parameter, page size and current page; null for a list without paging.</summary>
-    private static (string Param, int PageSize, int Current)? Paging(JsonElement node, RenderContext context)
+    /// <summary>
+    /// A paginated list's parameter, page size, current page and whether its pager shows
+    /// Previous and Next only; null for a list without paging.
+    /// </summary>
+    private static (string Param, int PageSize, int Current, bool Steps)? Paging(JsonElement node, RenderContext context)
     {
         if (!node.TryGetProperty("props", out var props) || !props.TryGetProperty("paging", out var paging) || paging.ValueKind != JsonValueKind.Object)
         {
@@ -87,7 +90,8 @@ internal sealed class CollectionListRenderer : IBlockRenderer
 
         var param = ListQueries.PageParam(props);
         var pageSize = Math.Clamp(paging.TryGetProperty("pageSize", out var size) && size.TryGetInt32(out var s) ? s : ListQueryBuilder.DefaultLimit, 1, ListQueryBuilder.MaxLimit);
-        return (param, pageSize, context.Data.PageNumbers.TryGetValue(param, out var current) ? current : 1);
+        var steps = paging.TryGetProperty("layout", out var layout) && layout.ValueKind == JsonValueKind.String && layout.GetString() == "steps";
+        return (param, pageSize, context.Data.PageNumbers.TryGetValue(param, out var current) ? current : 1, steps);
     }
 
     /// <summary>The list's layer label, which names its pager for screen readers when set.</summary>

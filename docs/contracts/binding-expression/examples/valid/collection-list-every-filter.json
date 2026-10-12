@@ -65,7 +65,7 @@
             "type": "collection-list",
             "props": {
               "source": { "collectionId": "0192f5a0-0000-7000-8000-00000000c002" },
-              "paging": { "pageSize": 2, "param": "people" }
+              "paging": { "pageSize": 2, "param": "people", "layout": "steps" }
             },
             "children": [
               { "id": "people-card", "type": "list-card", "props": {}, "children": [] },

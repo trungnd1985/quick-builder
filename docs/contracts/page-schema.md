@@ -168,7 +168,7 @@ binding.
 12. Header cells appear only in the first row, and a first row with a header cell holds
     only header cells (`table_header_misplaced`, at the first misplaced cell) (035).
 
-Rules 13–20 come with bindings and Collection lists (016, [binding-expression.md](binding-expression.md)):
+Rules 13–21 come with bindings and Collection lists (016, [binding-expression.md](binding-expression.md)):
 
 13. A document holding a `bind` or a `collection-list` carries `bindingVersion: 1`
     (`binding_version_required`, at the document, pointer empty).
@@ -191,6 +191,13 @@ Rules 13–20 come with bindings and Collection lists (016, [binding-expression.
     when it names none).
 20. A `collection-list` holds exactly its `list-card` and then its `list-empty`
     (`list_children_invalid`, at its `…/children`).
+21. The paginated lists of a page and of the components it shows use distinct page
+    parameters, so each pages on its own (016 FR-027) (`page_param_taken`, with `param` and
+    `with`, the page or component it clashes with). In a page, it is reported at the page's
+    own list, or at the second `component-ref` when two components clash; in a component, at
+    its own list. Like rules 6 and 14 it needs other documents, so only the server checks it,
+    last: a draft save against the other drafts, a publish against the live versions. The
+    editor keeps a page's own lists clear of its components' names as they are set.
 
 A `"page"` scope in an ordinary page is not refused: it is a broken binding, shown as empty,
 so turning a template back into a page never makes its draft unsaveable. A binding to a field
@@ -296,8 +303,9 @@ neither listed here nor impossible to produce.
 **Additions in 016 (still version 1)**: an optional envelope `bindingVersion`; an optional
 `bind` prop on `heading`, `text`, `rich-text`, `image` and `button`; the node types
 `collection-list`, `list-card` and `list-empty` with the `listChild` placement; and rules
-13–20. Every addition is optional or a new type, so every document valid before stays valid
-and renders the same. Bindings have their own contract and version,
+13–21. Later in 016, the optional `paging.layout` of `collection-list` (`numbers` by
+default, or `steps`). Every addition is optional or a new type, so every document valid
+before stays valid and renders the same. Bindings have their own contract and version,
 [binding-expression.md](binding-expression.md).
 
 **Additions in 035 (still version 1)**: rich text gained headings (levels 2–4), quotes,

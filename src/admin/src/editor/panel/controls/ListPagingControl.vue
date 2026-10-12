@@ -7,6 +7,7 @@ import { useI18n } from 'vue-i18n'
 import type { ContentNode } from '../../schema/schema'
 import { isObject, type Json } from '../../schema/subsetValidator'
 import { useEditorStore } from '../../state/editorStore'
+import { useSharedComponent } from '../../state/componentCache'
 import type { ControlProps } from './types'
 
 const props = defineProps<ControlProps>()
@@ -24,16 +25,22 @@ const paramOf = (value: Json | undefined): string =>
   isObject(value) && typeof value.param === 'string' && value.param !== '' ? value.param : 'page'
 
 /**
- * The parameters the document's other paginated lists read. Rule 19 gives each list its own, and
- * a document that broke it could not be saved, so a clashing name is never set.
+ * The parameters the document's other paginated lists read, and on a page those of the shared
+ * components it shows. Rules 19 and 21 give each list its own, and a document that broke them
+ * could not be saved, so a clashing name is never set. A component cannot see the pages that
+ * show it; the server refuses a clash there (rule 21).
  */
 const taken = computed(() => {
   const names = new Set<string>()
-  const visit = (node: ContentNode): void => {
-    if (node.type === 'collection-list' && node.id !== store.selection && isObject(node.props.paging)) names.add(paramOf(node.props.paging))
-    node.children.forEach(visit)
+  const visit = (node: ContentNode, own: boolean): void => {
+    if (node.type === 'collection-list' && !(own && node.id === store.selection) && isObject(node.props.paging)) names.add(paramOf(node.props.paging))
+    if (own && node.type === 'component-ref' && typeof node.props.componentId === 'string') {
+      const shared = useSharedComponent(store.siteId, node.props.componentId)
+      if (shared.root) visit(shared.root, false)
+    }
+    node.children.forEach((child) => visit(child, own))
   }
-  if (store.root) visit(store.root)
+  if (store.root) visit(store.root, true)
   return names
 })
 
@@ -43,6 +50,14 @@ const clash = computed(() => refusedName.value !== null || (!!paging.value && ta
 
 const pageSize = computed(() => (typeof paging.value?.pageSize === 'number' ? paging.value.pageSize : DEFAULT_PAGE_SIZE))
 const param = computed(() => (typeof paging.value?.param === 'string' ? paging.value.param : ''))
+const layout = computed(() => (paging.value?.layout === 'steps' ? 'steps' : 'numbers'))
+
+/** FR-027: the pager's look; "numbers" is the default and is not stored. */
+function onLayout(value: 'numbers' | 'steps'): void {
+  const rest = { ...(paging.value ?? {}) }
+  delete rest.layout
+  emit('change', value === 'steps' ? { ...rest, layout: value } : rest)
+}
 
 function onToggle(event: Event): void {
   if (!(event.target as HTMLInputElement).checked) {
@@ -120,6 +135,22 @@ function onParam(event: Event): void {
       >
         {{ t('editor.list.paging.paramHelp') }}
       </p>
+      <fieldset>
+        <legend>{{ t('editor.list.paging.layout') }}</legend>
+        <label
+          v-for="option in (['numbers', 'steps'] as const)"
+          :key="option"
+        >
+          <input
+            type="radio"
+            :name="`${id}-layout`"
+            :value="option"
+            :checked="layout === option"
+            @change="onLayout(option)"
+          >
+          {{ t(option === 'numbers' ? 'editor.list.paging.layoutNumbers' : 'editor.list.paging.layoutSteps') }}
+        </label>
+      </fieldset>
     </template>
     <p
       v-if="clash"

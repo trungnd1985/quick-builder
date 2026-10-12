@@ -27,6 +27,7 @@ internal sealed class DraftWrites(
     PageReads reads,
     QuickBuilder.Cms.Contracts.ICollectionSchemaReader collections,
     CollectionUseRows uses,
+    PageParamRules pageParams,
     TimeProvider clock)
 {
     /// <summary>
@@ -117,6 +118,12 @@ internal sealed class DraftWrites(
             return Result.Failure<DraftResponse>(unknownCollection);
         }
 
+        // Rule 21 (016 FR-027): no page parameter shared with a component this page shows.
+        if (await pageParams.CheckPageAsync(siteId, text, live: false, cancellationToken).ConfigureAwait(false) is { } pageParamTaken)
+        {
+            return Result.Failure<DraftResponse>(pageParamTaken);
+        }
+
         if (draft.Version != version)
         {
             return Result.Failure<DraftResponse>(PagesErrors.OutOfDate);
@@ -174,6 +181,12 @@ internal sealed class DraftWrites(
         if (await CheckCollectionsAsync(siteId, checkedDocument, cancellationToken).ConfigureAwait(false) is { } unknownCollection)
         {
             return Result.Failure<DraftResponse>(unknownCollection);
+        }
+
+        // Rule 21 (016 FR-027): no page parameter shared with a page that shows this component.
+        if (await pageParams.CheckComponentAsync(siteId, componentId, text, live: false, cancellationToken).ConfigureAwait(false) is { } pageParamTaken)
+        {
+            return Result.Failure<DraftResponse>(pageParamTaken);
         }
 
         if (!clientKeepsEveryFormat && UsesExtendedFormats(draft.Document))

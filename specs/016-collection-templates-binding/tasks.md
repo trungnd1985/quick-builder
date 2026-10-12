@@ -690,3 +690,14 @@ the editor until US4 is complete (plan, Principle XI).
   - raw SQL for list queries (stop and record instead, T064);
   - values, names or slugs in logs and events;
   - refusing saves because of broken bindings.
+
+---
+
+## Phase 11: Convergence
+
+- [X] T100 Make a paginated list's public parameters include the paginated lists of the components the page or template uses. Record parameter names on component publications (`PublishingWrites.cs`, `Publication.SetPageParamNames`), merge them into `LivePageRef`/`LiveTemplateRef.Params` in `PublishedContentReader.cs` so `PageParams` and the cache key read them, and add an integration test in `tests/QuickBuilder.IntegrationTests/Rendering/PagingTests.cs` that pages a list in a footer component per FR-027, FR-029, FR-031 (partial)
+- [X] T101 Add the pager layout to the contracts as an additive, versioned change: `paging.layout` (`"numbers"` default, `"steps"` for Previous / Next only) in `docs/contracts/binding-expression.md`, `listPaging` in `docs/contracts/page-schema/v1.schema.json` with valid and invalid examples, and §3 of `specs/016-collection-templates-binding/contracts/public-rendering.md` (layouts, pager below the list, hidden for a single page, built-in texts) per FR-027, FR-035 (missing)
+- [X] T102 Render the "Previous / Next only" layout in `Pager.cs` and `ListRenderers.cs`, keeping "Previous, numbers, Next" as the default, with a golden file `tests/fixtures/rendering/lists/paged-steps.html` and unit tests in `CollectionListRenderTests.cs` per FR-027, US5/AC1 (missing)
+- [X] T103 Add the pager layout choice to the list's paging settings in the property panel and the canvas preview in `src/admin/src/editor/blocks/collection-list/CollectionListBlock.vue`, with `en.json` texts, keyboard-only use and an axe check per FR-027, SC-008 (missing)
+- [X] T104 Refuse page parameters that clash between a page and the components it uses: the server (`BindingDocumentRules.cs` or the save and publish handlers for pages and components) and the editor (`bindingDocumentRules.ts`) refuse saving or publishing a page whose list parameter equals one in a component it uses, and a component whose list parameter equals one in any page using it, naming the other list, with a machine-readable reason and translated message, plus unit and integration tests per FR-027, FR-039, Edge Cases (partial)
+

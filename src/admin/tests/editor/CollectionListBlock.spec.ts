@@ -115,6 +115,26 @@ describe('the Collection list on the canvas', () => {
     expect(remove(store.root!, 'list').ok).toBe(true)
   })
 
+  it('previews the pager below the list in the layout chosen, and none for a single page (FR-027)', async () => {
+    const server = stubServer(page(list({ paging: { pageSize: 3 } })))
+    server.script(`POST /api/v1/cms/sites/${SITE}/list-preview`, { status: 200, body: { items: [1, 2, 3].map(previewItem), total: 7, referenced: {}, schemas: { [COLLECTION]: postsSchema } } })
+    const { container } = await mountEditor()
+    await waitFor(() => expect(container.querySelector('.qb-pager--canvas')).not.toBeNull())
+
+    const pager = () => container.querySelector('.qb-pager--canvas')!
+    expect([...pager().querySelectorAll('.qb-pager__page')].map((n) => n.textContent)).toEqual(['1', '2', '3'])
+    expect(pager().previousElementSibling!.classList.contains('qb-list')).toBe(true)
+
+    const store = useEditorStore()
+    store.apply(setProp(store.root!, 'list', 'paging', { pageSize: 3, layout: 'steps' }))
+    await waitFor(() => expect(pager().classList.contains('qb-pager--steps')).toBe(true))
+    expect(pager().querySelectorAll('.qb-pager__page')).toHaveLength(0)
+    expect(pager().textContent).toContain(en.editor.list.paging.next)
+
+    store.apply(setProp(store.root!, 'list', 'paging', { pageSize: 10, layout: 'steps' }))
+    await waitFor(() => expect(container.querySelector('.qb-pager--canvas')).toBeNull())
+  })
+
   it('passes axe checks with items shown', async () => {
     const server = stubServer(page(list()))
     server.script(`POST /api/v1/cms/sites/${SITE}/list-preview`, { status: 200, body: { items: [1, 2].map(previewItem), total: 2, referenced: {}, schemas: { [COLLECTION]: postsSchema } } })

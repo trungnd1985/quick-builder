@@ -80,6 +80,26 @@ public sealed class DependencyExtractorTests
     }
 
     [Fact]
+    public void Page_parameter_slots_point_at_each_list_and_component_reference_in_document_order()
+    {
+        // Rule 21 (016 FR-027): a refusal points at the list's param, its paging without one, or the reference.
+        var document = Document($$$"""
+            [{"id":"l1","type":"collection-list","props":{"source":{"collectionId":"{{{Header}}}"},"paging":{"pageSize":5}},"children":[
+               {"id":"l1-card","type":"list-card","props":{},"children":[
+                 {"id":"l2","type":"collection-list","props":{"source":{"field":"f10"},"paging":{"pageSize":2,"param":"people"}},"children":[]}]}]},
+             {"id":"l3","type":"collection-list","props":{"source":{"collectionId":"{{{Header}}}"}},"children":[]},
+             {"id":"ref","type":"component-ref","props":{"componentId":"{{{Header}}}"},"children":[]}]
+            """);
+
+        var slots = DependencyExtractor.PageParamSlots(document);
+
+        Assert.Equal(
+            [("page", "/root/children/0/props/paging"), ("people", "/root/children/0/children/0/children/0/props/paging/param")],
+            slots.Lists);
+        Assert.Equal([(Header, "/root/children/2")], slots.Components);
+    }
+
+    [Fact]
     public void A_document_without_lists_has_no_list_fields_or_page_parameters()
     {
         var document = Document("""[{"id":"h","type":"heading","props":{"text":"Hi","level":1},"children":[]}]""");

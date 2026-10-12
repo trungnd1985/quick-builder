@@ -3,6 +3,7 @@ using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using QuickBuilder.IntegrationTests.Infrastructure;
 using QuickBuilder.IntegrationTests.Pages;
+using QuickBuilder.IntegrationTests.Publishing;
 using QuickBuilder.IntegrationTests.Templates;
 
 namespace QuickBuilder.IntegrationTests.Rendering;
@@ -117,6 +118,47 @@ public sealed partial class PagingTests(DatabaseFixture database) : IAsyncLifeti
         Assert.Empty(Titles(body, "Post "));
         Assert.Contains("href=\"/blog\">Back to the first page</a>", Pager(body, "Posts"), StringComparison.Ordinal);
         Assert.Equal(["Person 1", "Person 2"], Titles(body, "Person "));
+    }
+
+    [Fact]
+    public async Task A_list_in_a_component_pages_like_one_in_the_page()
+    {
+        // 016 FR-027, FR-029: the footer's people list pages under "people", next to the page's posts.
+        var footer = (await PagesApi.CreateComponentOkAsync(_world.Admin, _world.Site, "Footer")).GetProperty("id").GetGuid();
+        var footerPath = PagesApi.ComponentPath(_world.Site, footer);
+        await PublishingApi.SaveAsync(_world.Admin, footerPath, TemplatesWorld.Document(
+            TemplatesWorld.ListOf(
+                "people",
+                _world.People,
+                """ "sort":[{"item":"slug","dir":"asc"}],"paging":{"pageSize":2,"param":"people"} """,
+                TemplatesWorld.BoundHeading("n-title", """{"field":"f1"}"""))));
+        await PublishingApi.PublishCurrentAsync(_world.Admin, footerPath);
+
+        var team = await _world.PageAsync("team");
+        await _world.PublishDocumentAsync(team,
+            """{"schemaVersion":1,"bindingVersion":1,"root":{"id":"root","type":"root","props":{},"children":[{"id":"s1","type":"section","props":{},"children":["""
+            + TemplatesWorld.ListOf(
+                "posts",
+                _world.Posts,
+                """ "sort":[{"item":"slug","dir":"asc"}],"paging":{"pageSize":10},"layerLabel":"Posts" """,
+                TemplatesWorld.BoundHeading("p-title", """{"field":"f1"}"""))
+            + $$$"""]},{"id":"footer","type":"component-ref","props":{"componentId":"{{{footer}}}"},"children":[]}]}}""");
+
+        var body = (await _world.VisitAsync("/team?page=2&people=3")).Body;
+
+        Assert.Equal(["Person 5"], Titles(body, "Person "));
+        Assert.Equal("Post 11", Titles(body, "Post ")[0]);
+        Assert.Contains("href=\"/team?page=2&amp;people=2\" rel=\"prev\"", Pager(body, "Pages"), StringComparison.Ordinal);
+
+        using var visitor = _world.Visitor();
+        async Task<string> ETag(string path)
+        {
+            using var response = await visitor.GetAsync(new Uri(path, UriKind.Relative));
+            return response.Headers.ETag!.Tag;
+        }
+
+        // The component's parameter is part of the page's key, so each footer page is its own copy.
+        Assert.NotEqual(await ETag("/team"), await ETag("/team?people=2"));
     }
 
     [Fact]

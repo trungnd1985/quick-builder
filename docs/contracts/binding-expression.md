@@ -11,7 +11,7 @@ This document defines what bindings mean. Their shapes are `$defs` of
 `valueFormat`, `listSource`, `listFilter`, `listOperand`, `listSort`, `listPaging`, and the
 node types `collection-list`, `list-card` and `list-empty`), so the one schema file both
 validators embed stays the single definition of a valid document. The rules the schema
-cannot state are rules 13–20 of [page-schema.md](page-schema.md) §3. Changing any of it needs
+cannot state are rules 13–21 of [page-schema.md](page-schema.md) §3. Changing any of it needs
 this document, the schema file and the golden examples (§8) in the same pull request
 (constitution, Development Workflow).
 
@@ -117,7 +117,8 @@ collection-list.props = {
   "filters"?: [ listFilter ] (0–10),
   "sort"?: [ { ("field": fieldId | "item": "slug" | "firstPublishedAt" | "lastPublishedAt"), "dir": "asc" | "desc" } ] (0–3),
   "limit"?: 1–100 (default 12; ignored when paging is set),
-  "paging"?: { "pageSize": 1–100, "param"?: slug ≤32 (default "page") },
+  "paging"?: { "pageSize": 1–100, "param"?: slug ≤32 (default "page"),
+               "layout"?: "numbers" | "steps" (default "numbers") },
   "columns"?: 1–4 (default 3), "gap"?: spaceRef, "layerLabel"?: string
 }
 collection-list.children = [ list-card, list-empty ]
@@ -153,6 +154,11 @@ multi-reference):
 that day. This holds for date fields with or without a time, and for the built-in
 publication dates.
 
+**Paging.** `layout` is how the pager below a paginated list looks (016 FR-027): `numbers`
+shows Previous, page numbers and Next; `steps` shows Previous and Next only. Neither is
+shown when every item fits on one page. `param` must be unique among the paginated lists of
+a page and of the components it uses (rules 19 and 21, page-schema.md §3).
+
 - `{ "current": true }` is allowed only with `ne`, in a list whose source collection is the
   collection of an enclosing scope's item. It means "not that item".
 - The `field` source is a **multi-reference** field of the scope's item. It lists the
@@ -160,7 +166,7 @@ publication dates.
 
 ## 6. Rules beyond the schema
 
-Rules 13–20 of [page-schema.md](page-schema.md) §3. Two shapes the schema subset cannot say
+Rules 13–21 of [page-schema.md](page-schema.md) §3. Two shapes the schema subset cannot say
 are checked with them and reported as `props_invalid`: a binding value names exactly one of
 `field`, `item` and `parts`; a text-template value part, a filter and a sort key name exactly
 one of `field` and `item`; a list `source` names exactly one of `collectionId` and `field`; a

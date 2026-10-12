@@ -25,6 +25,8 @@ internal sealed class PublishedReadDbContext(DbContextOptions<PublishedReadDbCon
 
     internal DbSet<VersionRow> Versions => Set<VersionRow>();
 
+    internal DbSet<DependencyRow> Dependencies => Set<DependencyRow>();
+
     internal Guid CurrentSiteId => siteContext.SiteId ?? Guid.Empty;
 
     public override int SaveChanges() => throw ReadOnly();
@@ -62,6 +64,13 @@ internal sealed class PublishedReadDbContext(DbContextOptions<PublishedReadDbCon
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Document).HasColumnType("jsonb");
             entity.Property(e => e.SchemaVersion).HasColumnType("smallint");
+            entity.HasQueryFilter(e => e.SiteId == CurrentSiteId);
+        });
+
+        modelBuilder.Entity<DependencyRow>(entity =>
+        {
+            entity.ToTable("live_dependencies");
+            entity.HasKey(e => new { e.SiteId, e.SubjectKind, e.SubjectId, e.TargetKind, e.TargetId });
             entity.HasQueryFilter(e => e.SiteId == CurrentSiteId);
         });
 
@@ -104,6 +113,20 @@ internal sealed class PublicationRow : ISiteOwned
 
     /// <summary>The live version's page parameters (016 data-model §1.2a).</summary>
     public string[] PageParamNames { get; set; } = [];
+}
+
+/// <summary>The columns of <c>pages.live_dependencies</c> the public path reads (016 FR-027).</summary>
+internal sealed class DependencyRow : ISiteOwned
+{
+    public Guid SiteId { get; set; }
+
+    public string SubjectKind { get; set; } = string.Empty;
+
+    public Guid SubjectId { get; set; }
+
+    public string TargetKind { get; set; } = string.Empty;
+
+    public Guid TargetId { get; set; }
 }
 
 /// <summary>The columns of <c>pages.published_versions</c> the public path reads.</summary>

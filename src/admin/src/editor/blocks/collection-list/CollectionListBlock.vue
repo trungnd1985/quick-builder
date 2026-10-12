@@ -36,8 +36,11 @@ const pages = computed(() => {
   const size = typeof paging.pageSize === 'number' && paging.pageSize > 0 ? paging.pageSize : 12
   return Math.ceil(preview.value.total / size)
 })
+/** FR-027: the "steps" layout shows Previous and Next only; on the first page, that is Next. */
+const steps = computed(() => isObject(props.node.props.paging) && props.node.props.paging.layout === 'steps')
 const pagerNumbers = computed(() => {
   const last = pages.value
+  if (steps.value) return []
   return last <= 4 ? Array.from({ length: last }, (_, i) => i + 1) : [1, 2, 3, 0, last]
 })
 
@@ -76,6 +79,7 @@ const status = computed(() => {
     <div
       v-if="pages > 1"
       class="qb-pager qb-pager--canvas"
+      :class="{ 'qb-pager--steps': steps }"
       aria-hidden="true"
     >
       <span

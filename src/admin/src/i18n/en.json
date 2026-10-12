@@ -887,7 +887,8 @@
         "list_children_invalid": "A collection list must hold exactly one card and one empty state.",
         "unknown_scope": "A binding reads from a list it is not inside.",
         "page_scope_not_allowed": "A component cannot read the item of the page it is shown on.",
-        "duplicate_page_param": "Two paginated lists use the same page parameter."
+        "duplicate_page_param": "Two paginated lists use the same page parameter.",
+        "page_param_taken": "A paginated list here uses the same name in the address as a list on a page or shared component shown with it, so the two would turn pages together. Give one of them its own name."
       },
       "server": {
         "unexpected": "Something went wrong. Try again in a moment.",
@@ -1266,9 +1267,12 @@
         "pageSize": "Items per page",
         "param": "Name in the address",
         "paramHelp": "Visitors see ?page=2 by default. Give each list on a page its own name, such as people.",
+        "layout": "Links below the list",
+        "layoutNumbers": "Previous, page numbers and Next",
+        "layoutSteps": "Previous and Next only",
         "next": "Next",
         "canvasHint": "Visitors see the first page here, and can go through all {pages}.",
-        "clash": "Another list on this page uses the same name in the address, so the two would turn pages together. Give one of them its own name."
+        "clash": "Another list on this page, or in a shared component it shows, uses the same name in the address, so the two would turn pages together. Give one of them its own name."
       },
       "itemPageTitle": "Opens {address} on the site",
       "scopePage": "this page's item",

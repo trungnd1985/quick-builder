@@ -48,6 +48,10 @@
     "rule": "props_invalid",
     "pointer": "/root/children/0/children/0/props/paging/param"
   },
+  "props_invalid--list-paging-layout.json": {
+    "rule": "props_invalid",
+    "pointer": "/root/children/0/children/0/props/paging/layout"
+  },
   "unknown_scope--not-enclosing.json": {
     "rule": "unknown_scope",
     "pointer": "/root/children/0/children/0/props/bind/text/value/scope"

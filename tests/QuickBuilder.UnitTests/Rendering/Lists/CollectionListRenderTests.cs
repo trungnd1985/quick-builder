@@ -162,6 +162,53 @@ public sealed class CollectionListRenderTests
     }
 
     [Fact]
+    public void The_steps_layout_writes_previous_and_next_without_numbers()
+    {
+        var html = Render(
+            Document($$$"""{"source":{"collectionId":"{{{Posts}}}"},"paging":{"pageSize":3,"layout":"steps"},"layerLabel":"Latest posts"}"""),
+            ThreePosts,
+            total: 60,
+            pageNumbers: new Dictionary<string, int>(StringComparer.Ordinal) { ["page"] = 10 });
+
+        Golden("paged-steps", html);
+        Assert.Contains(
+            "<nav class=\"qb-pager qb-pager--steps\" aria-label=\"Latest posts\">"
+            + "<a class=\"qb-pager__step\" href=\"/site/blog?page=9\" rel=\"prev\">Previous</a>"
+            + "<a class=\"qb-pager__step\" href=\"/site/blog?page=11\" rel=\"next\">Next</a></nav>",
+            html,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain("qb-pager__page", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("qb-pager__gap", html, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("numbers")]
+    [InlineData("steps")]
+    public void Neither_layout_writes_a_pager_when_every_item_fits_on_one_page(string layout)
+    {
+        var html = Render(
+            Document($$$"""{"source":{"collectionId":"{{{Posts}}}"},"paging":{"pageSize":3,"layout":"{{{layout}}}"}}"""),
+            ThreePosts,
+            total: 3);
+
+        Assert.DoesNotContain("qb-pager", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_steps_layout_leaves_out_previous_on_the_first_page_and_next_on_the_last()
+    {
+        var steps = Document($$$"""{"source":{"collectionId":"{{{Posts}}}"},"paging":{"pageSize":3,"layout":"steps"}}""");
+
+        var first = Render(steps, ThreePosts, total: 9);
+        Assert.DoesNotContain("rel=\"prev\"", first, StringComparison.Ordinal);
+        Assert.Contains("href=\"/site/blog?page=2\" rel=\"next\"", first, StringComparison.Ordinal);
+
+        var last = Render(steps, ThreePosts, total: 9, pageNumbers: new Dictionary<string, int>(StringComparer.Ordinal) { ["page"] = 3 });
+        Assert.Contains("href=\"/site/blog?page=2\" rel=\"prev\"", last, StringComparison.Ordinal);
+        Assert.DoesNotContain("rel=\"next\"", last, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Past_the_last_page_the_empty_state_shows_with_the_way_back()
     {
         var html = Render(

@@ -11,6 +11,11 @@ namespace QuickBuilder.Pages.Domain;
 /// request the version. The document has passed the page schema, so every shape read here is
 /// the contract's; anything else is ignored rather than trusted.
 /// </remarks>
+/// <summary>A document's paginated lists and component references, each with its JSON Pointer.</summary>
+internal sealed record PageParamSlots(
+    IReadOnlyList<(string Name, string Pointer)> Lists,
+    IReadOnlyList<(Guid ComponentId, string Pointer)> Components);
+
 internal static class DependencyExtractor
 {
     /// <summary>The distinct targets of <paramref name="document"/>, as (kind, id).</summary>
@@ -62,6 +67,54 @@ internal static class DependencyExtractor
                 found.Add(paging.TryGetProperty("param", out var param) && param.GetString() is { } name ? name : "page");
             }
         });
+
+    /// <summary>
+    /// What a document brings to its page's page parameters (016 FR-027, contract rule 21): each
+    /// paginated list's parameter and each component reference, in document order, with the
+    /// JSON Pointer a refusal names (<c>…/props/paging/param</c>, or <c>…/props/paging</c> when
+    /// the list names none, and the reference node itself).
+    /// </summary>
+    public static PageParamSlots PageParamSlots(string document)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(document);
+
+        using var parsed = JsonDocument.Parse(document);
+        var lists = new List<(string Name, string Pointer)>();
+        var components = new List<(Guid ComponentId, string Pointer)>();
+        if (parsed.RootElement.TryGetProperty("root", out var root))
+        {
+            Visit(root, "/root");
+        }
+
+        return new PageParamSlots(lists, components);
+
+        void Visit(JsonElement node, string pointer)
+        {
+            var type = node.TryGetProperty("type", out var t) ? t.GetString() : null;
+            if (node.TryGetProperty("props", out var props) && props.ValueKind == JsonValueKind.Object)
+            {
+                if (type == "collection-list" && props.TryGetProperty("paging", out var paging) && paging.ValueKind == JsonValueKind.Object)
+                {
+                    lists.Add(paging.TryGetProperty("param", out var param) && param.GetString() is { } name
+                        ? (name, pointer + "/props/paging/param")
+                        : ("page", pointer + "/props/paging"));
+                }
+                else if (type == "component-ref" && props.TryGetProperty("componentId", out var id) && Guid.TryParse(id.GetString(), out var componentId))
+                {
+                    components.Add((componentId, pointer));
+                }
+            }
+
+            if (node.TryGetProperty("children", out var children) && children.ValueKind == JsonValueKind.Array)
+            {
+                var index = 0;
+                foreach (var child in children.EnumerateArray())
+                {
+                    Visit(child, $"{pointer}/children/{index++}");
+                }
+            }
+        }
+    }
 
     private static HashSet<string> CollectLists(string document, Action<JsonElement, HashSet<string>> read)
     {

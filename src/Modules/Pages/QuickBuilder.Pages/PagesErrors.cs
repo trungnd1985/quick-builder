@@ -201,6 +201,19 @@ internal static class PagesErrors
             $"This version uses {componentIds.Count} component(s) that no longer exist."),
         ("componentIds", componentIds.ToArray()));
 
+    /// <summary>
+    /// 016 FR-027, contract rule 21: a paginated list reads the same page parameter as a list of
+    /// a page or component shown with it. <c>with</c> names that page or component.
+    /// </summary>
+    internal static Error PageParamTaken(string param, string pointer, string with) => With(
+        Error.Validation(
+            "pages.invalid_document",
+            $"A paginated list here uses the page parameter \"{param}\", like a list in \"{with}\" shown with it. Give one of them its own name."),
+        ("rule", Infrastructure.PageParamRules.Rule),
+        ("pointer", pointer),
+        ("param", param),
+        ("with", with));
+
     /// <summary>A document refusal, carrying the failed rule and where it failed.</summary>
     internal static Error InvalidDocument(DocumentValidationResult result)
     {

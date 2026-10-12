@@ -10,6 +10,7 @@ namespace QuickBuilder.Rendering.Rendering.Blocks;
 /// </summary>
 /// <remarks>
 /// <list type="bullet">
+/// <item>The <c>steps</c> layout shows Previous and Next only; the default shows numbers too.</item>
 /// <item>At most 7 numbered links: the first, the last, and the current page with up to two
 /// neighbours on each side, with <c>…</c> between gaps.</item>
 /// <item>The current page has <c>aria-current="page"</c>; Previous and Next carry <c>rel</c>.</item>
@@ -76,8 +77,11 @@ internal static class Pager
         return query.Length == 0 ? path : $"{path}?{query}";
     }
 
-    /// <summary>The pager for page <paramref name="current"/> of <paramref name="last"/>; nothing for a single page.</summary>
-    public static void Write(HtmlWriter writer, RenderContext context, string param, string? label, int current, int last)
+    /// <summary>
+    /// The pager for page <paramref name="current"/> of <paramref name="last"/>; nothing for a
+    /// single page. With <paramref name="steps"/>, Previous and Next only, without numbers (FR-027).
+    /// </summary>
+    public static void Write(HtmlWriter writer, RenderContext context, string param, string? label, int current, int last, bool steps = false)
     {
         ArgumentNullException.ThrowIfNull(writer);
         ArgumentNullException.ThrowIfNull(context);
@@ -88,14 +92,14 @@ internal static class Pager
         }
 
         var texts = PublicTexts.For(context.Inputs.Language).Pager;
-        Open(writer, label ?? texts.Label);
+        Open(writer, label ?? texts.Label, steps);
 
         if (current > 1)
         {
             Link(writer, Href(context, param, current - 1), texts.Previous, rel: "prev");
         }
 
-        foreach (var page in Numbers(current, last))
+        foreach (var page in steps ? Array.Empty<int>() : Numbers(current, last))
         {
             if (page == 0)
             {
@@ -132,8 +136,8 @@ internal static class Pager
         writer.Close("nav");
     }
 
-    private static void Open(HtmlWriter writer, string label) =>
-        writer.Open("nav").Attribute("class", "qb-pager").Attribute("aria-label", label).EndTag();
+    private static void Open(HtmlWriter writer, string label, bool steps = false) =>
+        writer.Open("nav").Attribute("class", steps ? "qb-pager qb-pager--steps" : "qb-pager").Attribute("aria-label", label).EndTag();
 
     private static void Link(HtmlWriter writer, string href, string text, string? rel)
     {

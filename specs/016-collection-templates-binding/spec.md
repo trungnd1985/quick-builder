@@ -56,6 +56,25 @@ and template to items.
   single reference only.** Multi-reference fields are reached only as a list's source
   (FR-016, FR-025).
 
+### Session 2026-10-12
+
+- Q: Which pager layouts should a Designer be able to pick for a paginated list? → **A:
+  two layouts: "Previous, numbers, Next" (the default) or "Previous / Next only".** Both
+  are plain links that work without scripts (FR-027).
+- Q: When a list has many pages, which page numbers should the "Previous, numbers, Next"
+  pager show? → **A: the first page, the last page, and the current page with up to 2
+  pages on each side, with "…" for the gaps (at most 7 numbers)** (FR-027).
+- Q: How should each paginated list on a page get its own address parameter, such as
+  `?page=3` or `?tags=2`? → **A: the member names it (default `page`), and the name must be
+  unique across the page and the components it uses; the editor and the server refuse a
+  duplicate** (FR-027).
+- Q: Where should the pager appear around a paginated list, and should it show when every
+  item fits on one page? → **A: always below the list, and hidden when there's only one
+  page** (FR-027).
+- Q: Where should the pager's words ("Previous", "Next", "First page") come from? → **A:
+  built-in translated words in the site's default language; the Designer can't edit them**
+  (FR-027).
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - A Designer turns a page into a template and every item gets its own page (Priority: P1)
@@ -271,8 +290,9 @@ described, and the page works with scripts turned off.
 
 1. **Given** a list block with paging turned on and a page size,
    **When** more items match than the page size,
-   **Then** the list shows one page of items and navigation to the previous, next and
-   numbered pages, each a plain link with its own address.
+   **Then** the list shows one page of items and, below it, a pager in the layout the member chose:
+   links to the previous, next and numbered pages, or to the previous and next pages only,
+   each a plain link with its own address.
 2. **Given** a page with several paginated lists,
    **When** a visitor moves to another page of one list,
    **Then** the other lists stay on their current page.
@@ -414,6 +434,9 @@ refusals, published output and editor marks against FR-008 to FR-012 and FR-031 
 - **A component (header or footer) containing a list block**: allowed; every page using
   the component then depends on that collection. Components have no page item scope, so
   blocks in a component cannot bind to the item of the template page they appear on.
+- **The same page parameter in a page and in one of its components** (for example both
+  using `page`): refused when the page or the component is saved or published, naming the
+  other list, because the two lists could not page independently (FR-027).
 - **An item without a name field** (014, 015): the document title of its page is the
   template page's title.
 
@@ -544,8 +567,19 @@ refusals, published output and editor marks against FR-008 to FR-012 and FR-031 
 
 **Paging**
 
-- **FR-027**: A paginated list MUST render plain links to the previous, next and numbered
-  pages, each with its own address that works without scripts. Each paginated list on a
+- **FR-027**: A paginated list MUST render its pager in the layout the member chose:
+  "Previous, numbers, Next" (the default), with plain links to the previous, next and
+  numbered pages, or "Previous / Next only", with plain links to the previous and next
+  pages. The pager MUST be shown below the list and MUST NOT be shown when every matching
+  item fits on one page. Its words ("Previous", "Next", "First page") MUST be the product's
+  translated public texts in the site's default language (012), not editable per list.
+  Every link MUST have its own address that works without scripts. The numbered
+  layout MUST show at most 7 page numbers: the first, the last, and the current page with
+  up to 2 pages on each side, with a gap mark between numbers that are not consecutive.
+  Each paginated list MUST have a page parameter name set by the member (default `page`).
+  The name MUST be unique among the paginated lists of a page and of the components it
+  uses; the editor and the server MUST refuse a save or publish that would give two such
+  lists the same name. Each paginated list on a
   page MUST page independently. Only the page parameters of the page's own paginated lists
   MUST vary the rendered and cached output; other parameters MUST be ignored. A malformed
   page number MUST show the first page; a page number beyond the last page MUST show the
@@ -616,8 +650,8 @@ refusals, published output and editor marks against FR-008 to FR-012 and FR-031 
 - **Binding scope**: the item a binding reads: the page's item on a template page, or the
   card item of an enclosing list. Scopes nest.
 - **Collection list block**: a block type with a source (a collection, or a multi-reference
-  field of a scope's item), filters, sort keys, limit, optional paging, card content and
-  empty-state content.
+  field of a scope's item), filters, sort keys, limit, optional paging (page size and pager
+  layout), card content and empty-state content.
 - **Sample item**: the item a member picks to preview a template in the editor. Kept per
   member, not part of the page.
 - **Dependency record (extended)**: for each published page and component, the collections

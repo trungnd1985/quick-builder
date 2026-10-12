@@ -60,6 +60,8 @@ export const DOCUMENT_RULES: readonly string[] = [
   'unknown_scope',
   'page_scope_not_allowed',
   'duplicate_page_param',
+  // 016 FR-027: rule 21, across a page and the components it shows (server only).
+  'page_param_taken',
 ]
 
 /** Server error codes the editor and the design screen can receive. */

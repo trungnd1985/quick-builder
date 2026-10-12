@@ -36,19 +36,53 @@ internal sealed class PublishedContentReader(PublishedReadDbContext database) : 
              select new LiveTemplateRef(page.Id, publication.Generation, page.TemplateCollectionId!.Value, publication.PageParamNames))
             .FirstOrDefault());
 
-    public Task<LivePageRef?> FindLiveByPathAsync(Guid siteId, string path, CancellationToken cancellationToken = default)
+    // 016 FR-027: the page parameters of the live components a live page shows, so a list in a
+    // header or footer pages like one in the page itself.
+    private static readonly Func<PublishedReadDbContext, Guid, Guid, IAsyncEnumerable<string[]>> ComponentParams =
+        EF.CompileAsyncQuery((PublishedReadDbContext db, Guid siteId, Guid pageId) =>
+            from dependency in db.Dependencies
+            where dependency.SiteId == siteId
+                  && dependency.SubjectKind == SubjectKinds.Page
+                  && dependency.SubjectId == pageId
+                  && dependency.TargetKind == DependencyKinds.Component
+            join publication in db.Publications
+                on new { Kind = SubjectKinds.Component, Id = dependency.TargetId } equals new { Kind = publication.SubjectKind, Id = publication.SubjectId }
+            where publication.LiveVersionId != null && publication.PageParamNames.Length > 0
+            select publication.PageParamNames);
+
+    public async Task<LivePageRef?> FindLiveByPathAsync(Guid siteId, string path, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(path);
-        return LiveByPath(database, siteId, path, cancellationToken);
+
+        var live = await LiveByPath(database, siteId, path, cancellationToken).ConfigureAwait(false);
+        return live is null
+            ? null
+            : live with { PageParamNames = await WithComponentParamsAsync(siteId, live.PageId, live.Params, cancellationToken).ConfigureAwait(false) };
     }
 
-    public Task<LiveTemplateRef?> FindLiveTemplateAsync(Guid siteId, string parentPath, CancellationToken cancellationToken = default)
+    public async Task<LiveTemplateRef?> FindLiveTemplateAsync(Guid siteId, string parentPath, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(parentPath);
 
         // A template's pattern always has a fixed segment before {slug}: the tree refuses a
         // template at the top level or under the home page, whose address is "/" (TB-02).
-        return LiveTemplateByPattern(database, siteId, TemplatePattern(parentPath), cancellationToken);
+        var template = await LiveTemplateByPattern(database, siteId, TemplatePattern(parentPath), cancellationToken).ConfigureAwait(false);
+        return template is null
+            ? null
+            : template with { PageParamNames = await WithComponentParamsAsync(siteId, template.PageId, template.Params, cancellationToken).ConfigureAwait(false) };
+    }
+
+    /// <summary>The page's own page parameters and those of the live components it shows, without repeats.</summary>
+    private async Task<IReadOnlyList<string>> WithComponentParamsAsync(
+        Guid siteId, Guid pageId, IReadOnlyList<string> own, CancellationToken cancellationToken)
+    {
+        var names = new SortedSet<string>(own, StringComparer.Ordinal);
+        await foreach (var component in ComponentParams(database, siteId, pageId).WithCancellation(cancellationToken).ConfigureAwait(false))
+        {
+            names.UnionWith(component);
+        }
+
+        return names.Count == own.Count ? own : [.. names];
     }
 
     public async Task<IReadOnlyDictionary<Guid, string>> GetLiveTemplatePatternsAsync(

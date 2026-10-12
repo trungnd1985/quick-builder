@@ -21,8 +21,8 @@ For a `GET` or `HEAD` on a resolved, enabled site, after the path is normalised 
 
 ## 2. Query parameters (FR-027, TB-11)
 
-- Only the parameters named by the page's paginated lists (`paging.param`, default `page`)
-  are read. Every other parameter is ignored. It changes neither the output nor the cache
+- Only the parameters named by the paginated lists of the page and of the live components
+  it shows (`paging.param`, default `page`) are read. Every other parameter is ignored. It changes neither the output nor the cache
   key.
 - **Values**:
   - a whole number from 2 to 10,000 selects that page;
@@ -42,9 +42,19 @@ For a `GET` or `HEAD` on a resolved, enabled site, after the path is normalised 
 </nav>
 ```
 
-- At most 7 numbered links: the first, the last, and the current page with up to two
-  neighbours on each side, with `…` between gaps.
-- Labels come from the public texts in the site's default language (012 `PublicTexts`).
+- The pager follows the list, and is left out when every matching item fits on one page.
+- **`numbers` layout** (the default, shown above): at most 7 numbered links: the first, the
+  last, and the current page with up to two neighbours on each side, with `…` between gaps.
+- **`steps` layout**: Previous and Next only, without numbers:
+
+  ```html
+  <nav class="qb-pager qb-pager--steps" aria-label="{list layerLabel or 'Pages'}">
+    <a rel="prev" href="/blog">Previous</a> <a rel="next" href="/blog?page=3">Next</a>
+  </nav>
+  ```
+
+- Labels come from the public texts in the site's default language (012 `PublicTexts`);
+  members cannot change them.
 - There is no script.
 
 ## 4. Item pages

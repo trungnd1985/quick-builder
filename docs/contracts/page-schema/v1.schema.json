@@ -1072,6 +1072,14 @@
           "maxLength": 32,
           "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
           "default": "page"
+        },
+        "layout": {
+          "type": "string",
+          "enum": [
+            "numbers",
+            "steps"
+          ],
+          "default": "numbers"
         }
       }
     },

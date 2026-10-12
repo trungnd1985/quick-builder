@@ -120,6 +120,7 @@ public static class PagesModule
         services.AddScoped<PageTreeWrites>();
         services.AddScoped<DraftWrites>();
         services.AddScoped<CollectionUseRows>();
+        services.AddScoped<PageParamRules>();
         services.AddScoped<AddressWarnings>();
         services.AddScoped<ICollectionUsageReader, CollectionUsageReader>();
         services.AddScoped<ComponentReads>();
