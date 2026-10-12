@@ -32,7 +32,7 @@ internal static class BindingRules
         ("heading", "text") or ("text", "text") or ("button", "label") or ("image", "alt") => PropKind.Text,
         ("rich-text", "content") => PropKind.RichText,
         ("image", "media") => PropKind.Image,
-        ("button", "link") or ("image", "link") => PropKind.Link,
+        ("button", "link") or ("image", "link") or ("heading", "link") => PropKind.Link,
         _ => null,
     };
 

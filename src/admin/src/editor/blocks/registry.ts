@@ -52,6 +52,11 @@ export interface PropGroup {
 /** What a new block may start from beyond its type: the site's collections, in list order (016). */
 export interface InsertContext {
   collectionIds: readonly string[]
+  /**
+   * The name field of a collection whose schema the editor has loaded, null when it has none
+   * or is not loaded: a new list's card shows each item's name (016 FR-022).
+   */
+  nameFieldOf?: (collectionId: string) => string | null
 }
 
 export interface BlockDefinition {
@@ -69,7 +74,7 @@ export interface BlockDefinition {
    * (016). `initialProps` returns null when the block cannot be made here: a list on a site
    * without collections.
    */
-  initialChildren?: (t: (key: string) => string) => ContentNode[]
+  initialChildren?: (t: (key: string) => string, context: InsertContext, props: Record<string, Json>) => ContentNode[]
   /** The canvas component. It receives the node as its `node` prop. */
   component: Component
   /** The property edited in place on the canvas, if any (FR-019). */
@@ -111,5 +116,5 @@ export function newBlock(
   if (!definition) return { refused: 'not_found' }
   const props = initialProps ?? definition.initialProps(t, context)
   if (!props) return { refused: 'no_collections' }
-  return { props, children: definition.initialChildren?.(t) ?? [] }
+  return { props, children: definition.initialChildren?.(t, context, props) ?? [] }
 }

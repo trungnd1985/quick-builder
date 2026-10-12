@@ -74,6 +74,15 @@ and template to items.
 - Q: Where should the pager's words ("Previous", "Next", "First page") come from? → **A:
   built-in translated words in the site's default language; the Designer can't edit them**
   (FR-027).
+- Q: Which parts of a list card should a Designer be able to make open the item's details
+  page? → **A: a Button, an Image, and a Heading.** The Heading gains an optional link
+  (fixed or bound), and the whole card is never one link (FR-014).
+- Q: What should a new Collection list's card contain when the Designer drops the list onto
+  a page? → **A: a Heading showing the item's name, linked to the item's page** (the slug
+  when the collection has no name field) (FR-022).
+- Q: Should an item's details page show built-in "previous item" and "next item" links? →
+  **A: no.** Visitors use Back (every list page has its own address) or a list placed on the
+  template; previous/next item links are out of scope (Scope).
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -250,7 +259,8 @@ the item's page, and that an empty result shows the empty state.
 1. **Given** the editor,
    **When** a member places a Collection list block and chooses a collection of the site,
    **Then** the block repeats its card content once per listed item, and blocks inside the
-   card can be bound to that item's fields.
+   card can be bound to that item's fields; a new list's card starts with one Heading
+   showing the item's name, linked to the item's page.
 2. **Given** a list block,
    **When** the member adds filter conditions (FR-023),
    **Then** only published items meeting every condition are listed.
@@ -264,7 +274,7 @@ the item's page, and that an empty result shows the empty state.
 5. **Given** a list block whose filters match no published item,
    **When** the page is shown,
    **Then** the list's empty-state content is shown instead of cards.
-6. **Given** a Button or link inside a card,
+6. **Given** a Button, Image or Heading inside a card,
    **When** its link is bound to "Item page",
    **Then** it links to the item's address under the collection's published template, or is
    rendered as plain text when the collection has no published template.
@@ -511,8 +521,10 @@ refusals, published output and editor marks against FR-008 to FR-012 and FR-031 
     the member), the item's slug, and a single reference (the referenced item's name).
   - **Rich text content**: rich text and multi-line text fields.
   - **Image**: image fields.
-  - **Link** (the button's link; links inside rich text are not bound): the item's page, a single reference's item
-    page, a file field, and a text field holding an address.
+  - **Link** (the link of a Button, an Image or a Heading; links inside rich text are not
+    bound, and a card as a whole is never a link): the item's page, a single reference's
+    item page, a file field, and a text field holding an address. The Heading gains an
+    optional link of its own, fixed or bound, as an additive change of the page schema.
   - **Built-in item values**: page address, slug, first published time and last published
     time.
 - **FR-015**: A text property MUST be able to combine fixed text with any number of bound
@@ -547,7 +559,9 @@ refusals, published output and editor marks against FR-008 to FR-012 and FR-031 
 - **FR-022**: A Collection list block MUST be a block type (Principle VI) whose source is a
   collection of the same site, or a multi-reference field of an enclosing scope's item
   (FR-025). It MUST hold card content, repeated once per listed item with that item as the
-  card's binding scope, and empty-state content shown when no item is listed.
+  card's binding scope, and empty-state content shown when no item is listed. A new list's
+  card MUST start with one Heading bound to the item's name field (or its slug when the
+  collection has no name field) and linked to the item's page.
 - **FR-023**: A list MUST support up to 10 filter conditions, all of which must hold, with
   operators suited to each field type: equals and not equals (text, number, option,
   boolean, reference), contains (text, multi-reference), greater and less than (number,
@@ -724,6 +738,8 @@ refusals, published output and editor marks against FR-008 to FR-012 and FR-031 
   than those in FR-014 (for example colours or spacing).
 - Following more than one reference step in a binding; calculations, conditions and custom
   formulas in bindings.
+- Built-in "previous item" and "next item" links on item pages: one publish would refresh
+  neighbouring item pages (SC-006); a list on the template covers related items.
 - Rendered draft previews of item pages for visitors and preview links (#22).
 - Localisation of item content.
 

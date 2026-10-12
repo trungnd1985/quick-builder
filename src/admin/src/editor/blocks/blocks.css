@@ -134,6 +134,18 @@
     overflow-wrap: anywhere;
   }
 
+  /* 016 FR-014: a linked heading keeps its colour; the underline shows it can be followed. */
+  .qb-heading__link {
+    color: inherit;
+    text-decoration-thickness: 0.06em;
+    text-underline-offset: 0.15em;
+  }
+
+  .qb-heading__link:hover,
+  .qb-heading__link:focus-visible {
+    text-decoration-thickness: 0.12em;
+  }
+
   .qb-text {
     color: var(--qb-text-color);
     font-size: var(--qb-text-size);

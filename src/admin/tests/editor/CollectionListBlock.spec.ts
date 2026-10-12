@@ -53,6 +53,29 @@ describe('the Collection list on the canvas', () => {
     expect(added.props.source).toEqual({ collectionId: COLLECTION })
     expect(added.children.map((c) => c.type)).toEqual(['list-card', 'list-empty'])
     expect(added.children[1].children[0].props.text).toBe(en.editor.list.emptyText)
+
+    // FR-022: the card starts with the item's name, linked to the item's page.
+    const [title] = added.children[0].children
+    expect(title.type).toBe('heading')
+    expect(title.props.bind).toEqual({ text: { value: { field: 'f1' } }, link: { value: { item: 'url' } } })
+  })
+
+  it('starts the card with the item’s slug when the collection has no name field', async () => {
+    const server = stubServer(documentWith({ id: 's1', type: 'section', props: {}, children: [] }))
+    server.script(`GET /api/v1/cms/sites/${SITE}/collections/${COLLECTION}`, {
+      status: 200,
+      body: { id: COLLECTION, name: 'Posts', slug: 'posts', revision: 1, schemaRevision: 1, schema: { ...postsSchema, titleFieldId: null } },
+    })
+    const { container } = await mountEditor()
+    const store = useEditorStore()
+    store.select('s1')
+
+    const item = option(container, 'collection-list')
+    item.focus()
+    await fireEvent.keyDown(item, { key: 'Enter' })
+
+    const title = store.root!.children[0].children[0].children[0].children[0]
+    expect(title.props.bind).toEqual({ text: { value: { item: 'slug' } }, link: { value: { item: 'url' } } })
   })
 
   it('is refused, with a reason, on a site without collections', async () => {

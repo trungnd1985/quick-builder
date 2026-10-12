@@ -109,7 +109,7 @@ function onDrop(event: DragEvent): void {
     return
   }
 
-  const refused = store.apply(dropResult(store.root, source, target, store.kind, t, { collectionIds: [...(store.bindings.collectionIds ?? [])] }))
+  const refused = store.apply(dropResult(store.root, source, target, store.kind, t, { collectionIds: [...(store.bindings.collectionIds ?? [])], nameFieldOf: store.bindings.nameFieldOf }))
   if (refused) emit('refused', refused.code)
 }
 

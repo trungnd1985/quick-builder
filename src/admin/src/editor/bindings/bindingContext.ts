@@ -110,6 +110,9 @@ export function useBindingContext() {
     if (list) collectionIds.value = new Set(list.collections.map((c) => c.id))
     templateCollectionId.value = page?.templateCollectionId ?? null
 
+    // FR-022: a new list takes the first collection; its card shows each item's name field.
+    if (list?.collections[0]) await schemaOf(list.collections[0].id)
+
     if (templateCollectionId.value) {
       await schemaOf(templateCollectionId.value)
       const remembered = rememberedSample(site, id)
@@ -163,6 +166,11 @@ export function useBindingContext() {
     referencedItems.value = found
   }
 
+  /** A loaded collection's name field, null when it has none or its schema is not loaded (FR-022). */
+  function nameFieldOf(collectionId: string): string | null {
+    return schemas.value[collectionId]?.titleFieldId ?? null
+  }
+
   /** What a list preview brought: the schemas of its collections and the items its cards refer to. */
   function addPreview(
     previewSchemas: Readonly<Record<string, Json>>,
@@ -182,6 +190,7 @@ export function useBindingContext() {
   }
 
   return {
+    nameFieldOf,
     templateCollectionId,
     collectionIds,
     schemas,

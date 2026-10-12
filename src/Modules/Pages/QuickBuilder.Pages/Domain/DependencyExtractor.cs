@@ -159,6 +159,7 @@ internal static class DependencyExtractor
                     AddGuid(found, DependencyKinds.Component, props, "componentId");
                     break;
                 case "button":
+                case "heading":
                     AddPageLink(found, props, "link");
                     break;
                 case "image":

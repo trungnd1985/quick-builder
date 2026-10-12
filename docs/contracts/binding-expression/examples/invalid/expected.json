@@ -12,6 +12,10 @@
     "rule": "props_invalid",
     "pointer": "/root/children/0/children/0/props/bind/level"
   },
+  "props_invalid--binding-link-on-text.json": {
+    "rule": "props_invalid",
+    "pointer": "/root/children/0/children/0/props/bind/link"
+  },
   "props_invalid--binding-field-id.json": {
     "rule": "props_invalid",
     "pointer": "/root/children/0/children/0/props/bind/text/value/field"

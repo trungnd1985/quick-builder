@@ -241,3 +241,10 @@
     pointer-events: none;
   }
 }
+
+/* 016 FR-014: a linked heading looks as it does on the site (.qb-heading__link in blocks.css). */
+.qb-heading--linked {
+  text-decoration: underline;
+  text-decoration-thickness: 0.06em;
+  text-underline-offset: 0.15em;
+}

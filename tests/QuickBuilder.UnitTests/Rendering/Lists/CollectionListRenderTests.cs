@@ -133,6 +133,24 @@ public sealed class CollectionListRenderTests
     }
 
     [Fact]
+    public void A_heading_bound_to_the_item_page_links_its_text_and_is_plain_without_a_template()
+    {
+        // 016 FR-014, US4 scenario 6: the card's Heading opens the item's details page.
+        var card = """{"id":"title","type":"heading","props":{"text":"Fallback","level":3,"bind":{"text":{"value":{"field":"f1"}},"link":{"value":{"item":"url"}}}},"children":[]}""";
+        var document = Document($$$"""{"source":{"collectionId":"{{{Posts}}}"}}""", card);
+
+        var html = Render(document, ThreePosts);
+
+        Golden("heading-link", html);
+        Assert.Contains("<a class=\"qb-heading__link\" href=\"/site/blog/dyeing\">Natural dyes</a></h3>", html, StringComparison.Ordinal);
+        Assert.Contains("<a class=\"qb-heading__link\" href=\"/site/blog/weaving\">Weaving &lt;basics&gt;</a></h3>", html, StringComparison.Ordinal);
+
+        var plain = Render(document, ThreePosts, withTemplate: false);
+        Assert.DoesNotContain("qb-heading__link", plain, StringComparison.Ordinal);
+        Assert.Contains(">Natural dyes</h3>", plain, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Cards_read_the_page_item_through_the_page_scope_on_a_template_page()
     {
         var card = """{"id":"title","type":"heading","props":{"text":"Fallback","level":3,"bind":{"text":{"value":{"parts":[{"field":"f1"},", from ",{"field":"f1","scope":"page"}]}}}},"children":[]}""";

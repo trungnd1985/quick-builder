@@ -84,7 +84,7 @@ valueFormat  = { "date": "short" | "medium" | "long" | "iso" }
 | `heading.text`, `text.text`, `button.label`, `image.alt` | text (single or multi-line; line breaks become spaces in `heading`), number (with `number` format), date (with `date` format), option (its label), boolean (with yes and no texts), reference (the referenced item's name), `slug`, `firstPublishedAt`, `lastPublishedAt`; and text templates of these |
 | `rich-text.content` | rich text (limited to the field's `formats` and the block's allow-list), multi-line text (each line a paragraph) |
 | `image.media` | image |
-| `button.link`, `image.link` | `item: "url"` (this item's page), `item: "url"` with `via` (the referenced item's page), file (the file's address), single-line text holding an `https`, `http`, `mailto` or `tel` address |
+| `button.link`, `image.link`, `heading.link` | `item: "url"` (this item's page), `item: "url"` with `via` (the referenced item's page), file (the file's address), single-line text holding an `https`, `http`, `mailto` or `tel` address |
 
 Anything else is **broken**: the editor marks it with a reason (`field_missing`,
 `type_mismatch`, `scope_missing`, `via_not_reference`) and the renderer treats it as empty.

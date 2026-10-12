@@ -80,6 +80,17 @@ public sealed class DependencyExtractorTests
     }
 
     [Fact]
+    public void A_heading_link_to_a_page_is_a_dependency()
+    {
+        var page = Guid.Parse("0192f5a0-0000-7000-8000-0000000000aa");
+        var document = Document($$$"""
+            [{"id":"h","type":"heading","props":{"text":"Hi","level":2,"link":{"type":"page","pageId":"{{{page}}}"}},"children":[]}]
+            """);
+
+        Assert.Equal([(DependencyKinds.Page, page)], DependencyExtractor.Extract(document));
+    }
+
+    [Fact]
     public void Page_parameter_slots_point_at_each_list_and_component_reference_in_document_order()
     {
         // Rule 21 (016 FR-027): a refusal points at the list's param, its paging without one, or the reference.

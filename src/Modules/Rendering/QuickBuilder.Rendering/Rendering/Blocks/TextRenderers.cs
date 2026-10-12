@@ -31,7 +31,23 @@ internal sealed class HeadingRenderer : IBlockRenderer
         context.Style(writer, scope, node,
             ("--qb-heading-color", context.Token(node, "color", TokenKind.Color)),
             ("--qb-heading-size", context.Tokens.Value(size.RootElement, TokenKind.Text, MediumSize)));
-        writer.EndTag().Text(context.BoundText(node, "text")).Close(tag);
+        writer.EndTag();
+
+        // 016 FR-014: a heading may link (often to its card's item page); with nowhere visitors
+        // can go — no link, a page that is not live, no live template — it is plain text.
+        var link = LinkResolver.Resolve(node, "link", context);
+        if (link is not null && LinkResolver.IsWritable(link))
+        {
+            writer.Open("a").Attribute("class", "qb-heading__link");
+            LinkResolver.Write(writer, link, newTab: false);
+            writer.EndTag().Text(context.BoundText(node, "text")).Close("a");
+        }
+        else
+        {
+            writer.Text(context.BoundText(node, "text"));
+        }
+
+        writer.Close(tag);
     }
 }
 

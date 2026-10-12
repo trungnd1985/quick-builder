@@ -701,3 +701,11 @@ the editor until US4 is complete (plan, Principle XI).
 - [X] T103 Add the pager layout choice to the list's paging settings in the property panel and the canvas preview in `src/admin/src/editor/blocks/collection-list/CollectionListBlock.vue`, with `en.json` texts, keyboard-only use and an axe check per FR-027, SC-008 (missing)
 - [X] T104 Refuse page parameters that clash between a page and the components it uses: the server (`BindingDocumentRules.cs` or the save and publish handlers for pages and components) and the editor (`bindingDocumentRules.ts`) refuse saving or publishing a page whose list parameter equals one in a component it uses, and a component whose list parameter equals one in any page using it, naming the other list, with a machine-readable reason and translated message, plus unit and integration tests per FR-027, FR-039, Edge Cases (partial)
 
+---
+
+## Phase 12: Convergence
+
+- [X] T105 Add an optional `link` prop to `heading` in the contracts as an additive change: the same link shape as `button.link` in `docs/contracts/page-schema/v1.schema.json` and `page-schema.md` §2, `heading.link` with the same bindable values as `button.link` and `image.link` in `docs/contracts/binding-expression.md` §4, and valid and invalid golden examples per FR-014, FR-035 (missing)
+- [X] T106 Render and track a Heading's link on the server: `HeadingRenderer` in `TextRenderers.cs` writes the link inside the heading, and a plain heading when the link is empty or has no live target (US4/AC6); `DependencyExtractor` records a Heading's page link; the server binding rules accept `heading.link`; with golden files and unit tests per FR-014, FR-021, US4/AC6 (missing)
+- [X] T107 Offer the Heading's link in the editor: a link control in the heading definition with "Item page" among its bindings, the same rules in `bindingDocumentRules.ts`, the link shown on the canvas, and keyboard-only and axe tests per FR-014, FR-017, SC-008 (missing)
+- [X] T108 Start a new list's card with one Heading bound to the source collection's name field (its slug when the collection has none) and linked to the item's page, in `src/admin/src/editor/blocks/collection-list/definition.ts`, with tests in `CollectionListBlock.spec.ts` per FR-022, US4/AC1 (missing)

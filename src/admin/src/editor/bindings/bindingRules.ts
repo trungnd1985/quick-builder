@@ -84,6 +84,7 @@ export function kindOf(blockType: string, prop: string): PropKind | null {
       return 'image'
     case 'button.link':
     case 'image.link':
+    case 'heading.link':
       return 'link'
     default:
       return null

@@ -422,6 +422,9 @@
                 "token": "color-text"
               }
             },
+            "link": {
+              "$ref": "#/$defs/link"
+            },
             "layerLabel": {
               "$ref": "#/$defs/layerLabel"
             },
@@ -430,6 +433,9 @@
               "additionalProperties": false,
               "properties": {
                 "text": {
+                  "$ref": "#/$defs/binding"
+                },
+                "link": {
                   "$ref": "#/$defs/binding"
                 }
               }

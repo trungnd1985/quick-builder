@@ -63,7 +63,7 @@ whitespace. "Read back unchanged" means **equal as a JSON value**.
 | `component-ref` | `componentId`: UUID of a shared component of the **same site** | none | page documents, under `root` only |
 | `section` | `background`, `paddingY`, `width`, `layerLabel` | `contentChild` | under `root` |
 | `container` | `direction`, `columns`, `gap`, `padding`, `align`, `maxWidth`, `background`, `stackOnMobile`, `layerLabel` | `contentChild` | in `section` or `container` |
-| `heading` | `text`\*, `level`, `align`, `color`, `layerLabel`, `bind` | none | in `section` or `container` |
+| `heading` | `text`\*, `level`, `align`, `color`, `link`, `layerLabel`, `bind` | none | in `section` or `container` |
 | `text` | `text`\*, `align`, `color`, `size`, `layerLabel`, `bind` | none | in `section` or `container` |
 | `rich-text` | `content`\*, `align`, `color`, `layerLabel`, `bind` | none | in `section` or `container` |
 | `image` | `media`, `alt`, `decorative`, `width`, `link`, `layerLabel`, `bind` | none | in `section` or `container` |
@@ -304,7 +304,7 @@ neither listed here nor impossible to produce.
 `bind` prop on `heading`, `text`, `rich-text`, `image` and `button`; the node types
 `collection-list`, `list-card` and `list-empty` with the `listChild` placement; and rules
 13–21. Later in 016, the optional `paging.layout` of `collection-list` (`numbers` by
-default, or `steps`). Every addition is optional or a new type, so every document valid
+default, or `steps`), and an optional `link` on `heading`, bindable like a button's. Every addition is optional or a new type, so every document valid
 before stays valid and renders the same. Bindings have their own contract and version,
 [binding-expression.md](binding-expression.md).
 

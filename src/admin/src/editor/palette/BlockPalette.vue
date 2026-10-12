@@ -42,7 +42,7 @@ function add(type: string, initialProps?: Record<string, string>): void {
     return
   }
 
-  const block = newBlock(type, t, { collectionIds: [...(store.bindings.collectionIds ?? [])] }, initialProps)
+  const block = newBlock(type, t, { collectionIds: [...(store.bindings.collectionIds ?? [])], nameFieldOf: store.bindings.nameFieldOf }, initialProps)
   if ('refused' in block) {
     emit('refused', block.refused)
     return

@@ -126,6 +126,28 @@ describe('binding on a template page', () => {
     expect(results.violations).toEqual([])
   })
 
+  it('links a heading to the item’s page with the keyboard alone (FR-014)', async () => {
+    const server = stubServer(page(heading({ text: { value: { field: 'f1' } } })))
+    serveTemplate(server)
+    const { container } = await mountEditor()
+    const store = useEditorStore()
+    store.select('h1')
+
+    const select = await within(panel()).findByLabelText(en.editor.binding.field.replace('{prop}', en.editor.panel.props.link))
+    const itemPage = [...select.querySelectorAll('option')].find((o) => o.textContent?.trim() === 'Item page')!
+    expect(itemPage).toBeTruthy()
+    expect([...select.querySelectorAll('option')].map((o) => o.textContent?.trim())).not.toContain('Reading time')
+
+    select.focus()
+    await fireEvent.update(select, itemPage.value)
+
+    expect((store.root!.children[0].children[0].props.bind as Record<string, unknown>).link).toEqual({ value: { item: 'url' } })
+    await waitFor(() => expect(container.querySelector('[data-node-id="h1"] h1')!.classList.contains('qb-heading--linked')).toBe(true))
+
+    const results = await axe.run(panel(), { rules: { region: { enabled: false } } })
+    expect(results.violations.map((v) => v.id)).toEqual([])
+  })
+
   it('says when a binding is broken, and the page still saves', async () => {
     const server = stubServer(page(heading({ text: { value: { field: 'f99' } } })))
     serveTemplate(server)
