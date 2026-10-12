@@ -25,8 +25,36 @@ internal sealed class DraftWrites(
     IPageDocumentValidator validator,
     PagesAccess access,
     PageReads reads,
+    QuickBuilder.Cms.Contracts.ICollectionSchemaReader collections,
+    CollectionUseRows uses,
+    PageParamRules pageParams,
     TimeProvider clock)
 {
+    /// <summary>
+    /// Contract §3 rule 14 (016): every Collection list names a collection of this site. Like
+    /// rule 6 for components it needs the site, so it is checked here, after every other rule;
+    /// an unknown id and another site's id fail alike.
+    /// </summary>
+    private async Task<Error?> CheckCollectionsAsync(Guid siteId, DocumentValidationResult checkedDocument, CancellationToken cancellationToken)
+    {
+        if (checkedDocument.ReferencedCollections.Count == 0)
+        {
+            return null;
+        }
+
+        var known = await collections.ExistingAsync(siteId, [.. checkedDocument.ReferencedCollections.Keys], cancellationToken).ConfigureAwait(false);
+        // The validator collected them in document order, so the first unknown is the first in the document.
+        var unknown = checkedDocument.ReferencedCollections
+            .Where(c => !known.Contains(c.Key))
+            .Select(c => c.Value)
+            .FirstOrDefault();
+
+        return unknown is null
+            ? null
+            : PagesErrors.InvalidDocument(DocumentValidationResult.Invalid(
+                "pages.invalid_document", "unknown_collection", unknown, "The list names a collection this site does not have."));
+    }
+
     /// <summary>
     /// Whether a stored draft uses a rich text format an admin from before 035 would drop
     /// (035 FR-020, research RT-13). Such a client gets <c>pages.admin_outdated</c> instead.
@@ -85,6 +113,17 @@ internal sealed class DraftWrites(
             }
         }
 
+        if (await CheckCollectionsAsync(siteId, checkedDocument, cancellationToken).ConfigureAwait(false) is { } unknownCollection)
+        {
+            return Result.Failure<DraftResponse>(unknownCollection);
+        }
+
+        // Rule 21 (016 FR-027): no page parameter shared with a component this page shows.
+        if (await pageParams.CheckPageAsync(siteId, text, live: false, cancellationToken).ConfigureAwait(false) is { } pageParamTaken)
+        {
+            return Result.Failure<DraftResponse>(pageParamTaken);
+        }
+
         if (draft.Version != version)
         {
             return Result.Failure<DraftResponse>(PagesErrors.OutOfDate);
@@ -103,6 +142,14 @@ internal sealed class DraftWrites(
             .Select(id => new ComponentUsage(siteId, pageId, id)));
 
         await ReplaceMediaReferencesAsync(siteId, SubjectKinds.Page, pageId, text, cancellationToken).ConfigureAwait(false);
+
+        // 016 TB-13: the collections the draft uses, and the page's template, saved with it.
+        var template = await database.ForSite<Page>(siteId)
+            .Where(p => p.Id == pageId)
+            .Select(p => p.TemplateCollectionId)
+            .FirstOrDefaultAsync(cancellationToken)
+            .ConfigureAwait(false);
+        await uses.StageAsync(siteId, SubjectKinds.Page, pageId, CollectionUsageStates.Draft, text, template, cancellationToken).ConfigureAwait(false);
 
         return await SaveAsync(draft, cancellationToken).ConfigureAwait(false);
     }
@@ -131,6 +178,17 @@ internal sealed class DraftWrites(
             return Result.Failure<DraftResponse>(PagesErrors.ComponentNotFound);
         }
 
+        if (await CheckCollectionsAsync(siteId, checkedDocument, cancellationToken).ConfigureAwait(false) is { } unknownCollection)
+        {
+            return Result.Failure<DraftResponse>(unknownCollection);
+        }
+
+        // Rule 21 (016 FR-027): no page parameter shared with a page that shows this component.
+        if (await pageParams.CheckComponentAsync(siteId, componentId, text, live: false, cancellationToken).ConfigureAwait(false) is { } pageParamTaken)
+        {
+            return Result.Failure<DraftResponse>(pageParamTaken);
+        }
+
         if (!clientKeepsEveryFormat && UsesExtendedFormats(draft.Document))
         {
             return Result.Failure<DraftResponse>(PagesErrors.AdminOutdated);
@@ -143,6 +201,7 @@ internal sealed class DraftWrites(
 
         draft.Replace(text, checkedDocument.SchemaVersion, access.Actor, clock);
         await ReplaceMediaReferencesAsync(siteId, SubjectKinds.Component, componentId, text, cancellationToken).ConfigureAwait(false);
+        await uses.StageAsync(siteId, SubjectKinds.Component, componentId, CollectionUsageStates.Draft, text, null, cancellationToken).ConfigureAwait(false);
         return await SaveAsync(draft, cancellationToken).ConfigureAwait(false);
     }
 

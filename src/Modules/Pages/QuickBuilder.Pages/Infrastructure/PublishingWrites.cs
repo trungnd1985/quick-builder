@@ -3,6 +3,7 @@ using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Npgsql;
+using QuickBuilder.Cms.Contracts;
 using QuickBuilder.Pages.Contracts;
 using QuickBuilder.Pages.Domain;
 using QuickBuilder.Pages.Features;
@@ -28,6 +29,9 @@ internal sealed class PublishingWrites(
     PagesAccess access,
     PublicationReads reads,
     GenerationBump bump,
+    ICollectionSchemaReader collections,
+    CollectionUseRows uses,
+    PageParamRules pageParams,
     TimeProvider clock,
     ILogger<PublishingWrites> logger)
 {
@@ -42,7 +46,8 @@ internal sealed class PublishingWrites(
     /// <param name="SiteId">Its site.</param>
     /// <param name="Label">The page title or component name now, for the log.</param>
     /// <param name="Path">The page's address now; null for components.</param>
-    internal sealed record Subject(string Kind, Guid Id, Guid SiteId, string Label, string? Path)
+    /// <param name="TemplateCollectionId">The collection a template page shows (016).</param>
+    internal sealed record Subject(string Kind, Guid Id, Guid SiteId, string Label, string? Path, Guid? TemplateCollectionId = null)
     {
         public bool IsPage => Kind == SubjectKinds.Page;
     }
@@ -192,9 +197,19 @@ internal sealed class PublishingWrites(
             }
         }
 
+        // Rule 21 (016 FR-027): visitors never get two lists that turn pages together.
+        var pageParamTaken = subject.IsPage
+            ? await pageParams.CheckPageAsync(siteId, content.Document, live: true, cancellationToken).ConfigureAwait(false)
+            : await pageParams.CheckComponentAsync(siteId, subject.Id, content.Document, live: true, cancellationToken).ConfigureAwait(false);
+        if (pageParamTaken is not null)
+        {
+            return Result.Failure(pageParamTaken);
+        }
+
         var publication = await PublicationAsync(siteId, subject, create: true, cancellationToken).ConfigureAwait(false);
         var version = publication!.Publish(
             content.Document, content.SchemaVersion, title, fromDraftVersion, versionKind, restoredFromNumber, actor, subject.Path, now);
+        publication.SetPageParamNames(DependencyExtractor.PageParamNames(content.Document));
         database.PublishedVersions.Add(version);
 
         // 013 research MV-05: which files this version shows, for usage (live now, history
@@ -203,6 +218,10 @@ internal sealed class PublishingWrites(
             .Select(mediaId => new VersionMediaReference(siteId, version.Id, mediaId)));
 
         await ReplaceDependenciesAsync(siteId, subject, content.Document, cancellationToken).ConfigureAwait(false);
+
+        // 016 TB-13: the collections the live version uses.
+        await uses.StageAsync(siteId, subject.Kind, subject.Id, CollectionUsageStates.Live, content.Document, subject.TemplateCollectionId, cancellationToken)
+            .ConfigureAwait(false);
 
         if (scheduleOwner is null)
         {
@@ -252,6 +271,7 @@ internal sealed class PublishingWrites(
         }
 
         publication.Unpublish(scheduled: scheduleOwner is not null, subject.Path, now);
+        await uses.StageAsync(siteId, subject.Kind, subject.Id, CollectionUsageStates.Live, null, null, cancellationToken).ConfigureAwait(false);
 
         await database.ForSite<LiveDependency>(siteId)
             .Where(d => d.SubjectKind == subject.Kind && d.SubjectId == subject.Id)
@@ -290,6 +310,8 @@ internal sealed class PublishingWrites(
     {
         ArgumentNullException.ThrowIfNull(subject);
         var siteId = subject.SiteId;
+
+        await uses.ForgetAsync(siteId, subject.Kind, subject.Id, cancellationToken).ConfigureAwait(false);
 
         await database.ForSite<LiveDependency>(siteId)
             .Where(d => d.SubjectKind == subject.Kind && d.SubjectId == subject.Id)
@@ -340,11 +362,11 @@ internal sealed class PublishingWrites(
             var page = await database.ForSite<Page>(siteId)
                 .AsNoTracking()
                 .Where(p => p.Id == subjectId)
-                .Select(p => new { p.Title, p.Path })
+                .Select(p => new { p.Title, p.Path, p.TemplateCollectionId })
                 .FirstOrDefaultAsync(cancellationToken)
                 .ConfigureAwait(false);
 
-            return page is null ? null : new Subject(kind, subjectId, siteId, page.Title, page.Path);
+            return page is null ? null : new Subject(kind, subjectId, siteId, page.Title, page.Path, page.TemplateCollectionId);
         }
 
         var name = await database.ForSite<Component>(siteId)
@@ -427,6 +449,12 @@ internal sealed class PublishingWrites(
         {
             schedule.Cancel(now);
             Log(siteId, subject, LogActions.ScheduleCancelled, now, actor, reasonCode: LogReasons.SupersededByManualAction);
+        }
+
+        // 016 TB-13: a cancelled scheduled publish no longer uses anything.
+        if (pending.Exists(s => s.Action == ScheduleActions.Publish))
+        {
+            await uses.StageAsync(siteId, subject.Kind, subject.Id, CollectionUsageStates.Scheduled, null, null, cancellationToken).ConfigureAwait(false);
         }
 
         // A failure is shown until someone acts on the subject; the log keeps it.
@@ -529,8 +557,52 @@ internal sealed class PublishingWrites(
             .ExecuteDeleteAsync(cancellationToken)
             .ConfigureAwait(false);
 
-        database.LiveDependencies.AddRange(DependencyExtractor.Extract(document)
+        var targets = DependencyExtractor.Extract(document).ToHashSet();
+
+        // 016 TB-10: a template depends on its collection, and a list over a multi-reference
+        // field on the field's target collection, known only from the schemas.
+        if (subject.TemplateCollectionId is { } templateCollection)
+        {
+            targets.Add((DependencyKinds.Template, templateCollection));
+        }
+
+        var fields = DependencyExtractor.ListSourceFields(document);
+        if (fields.Count > 0)
+        {
+            var owners = targets.Where(t => t.Kind is DependencyKinds.Collection or DependencyKinds.Template).Select(t => t.Id).Distinct().ToList();
+            var schemas = await collections.GetSchemasAsync(siteId, owners, cancellationToken).ConfigureAwait(false);
+            foreach (var target in MultiReferenceTargets(schemas.Values, fields))
+            {
+                targets.Add((DependencyKinds.Collection, target));
+            }
+        }
+
+        database.LiveDependencies.AddRange(targets
             .Select(t => new LiveDependency(siteId, subject.Kind, subject.Id, t.Kind, t.Id)));
+    }
+
+    /// <summary>The target collections of the multi-reference fields named <paramref name="fieldIds"/>.</summary>
+    private static IEnumerable<Guid> MultiReferenceTargets(IEnumerable<JsonElement> schemas, IReadOnlySet<string> fieldIds)
+    {
+        foreach (var schema in schemas)
+        {
+            if (schema.ValueKind != JsonValueKind.Object
+                || !schema.TryGetProperty("fields", out var fields) || fields.ValueKind != JsonValueKind.Array)
+            {
+                continue;
+            }
+
+            foreach (var field in fields.EnumerateArray())
+            {
+                if (field.ValueKind == JsonValueKind.Object
+                    && field.TryGetProperty("id", out var id) && id.GetString() is { } fieldId && fieldIds.Contains(fieldId)
+                    && field.TryGetProperty("type", out var type) && type.GetString() == "multiReference"
+                    && field.TryGetProperty("target", out var target) && Guid.TryParse(target.GetString(), out var targetId))
+                {
+                    yield return targetId;
+                }
+            }
+        }
     }
 
     /// <summary>
@@ -543,6 +615,13 @@ internal sealed class PublishingWrites(
         var target = subject.IsPage ? (DependencyKinds.Page, subject.Id) : (DependencyKinds.Component, subject.Id);
         await bump.BumpForTargetsAsync(siteId, [target], exceptPageId: subject.IsPage ? subject.Id : null, cancellationToken)
             .ConfigureAwait(false);
+
+        // 016 TB-10 row 3: the item links of every list of the collection change with its template.
+        if (subject.TemplateCollectionId is { } templateCollection)
+        {
+            await bump.BumpForCollectionsAsync(siteId, [templateCollection], includeTemplates: true, exceptPageId: subject.Id, cancellationToken)
+                .ConfigureAwait(false);
+        }
 
         if (publication.LiveNumber is { } live && live > Publication.RetainedVersions)
         {

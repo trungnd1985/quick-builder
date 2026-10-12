@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "bindingVersion": 1,
+  "root": {
+    "id": "root",
+    "type": "root",
+    "props": {},
+    "children": [
+      {
+        "id": "s1",
+        "type": "section",
+        "props": {},
+        "children": [
+          { "id": "h1", "type": "heading", "props": { "text": "Untitled", "level": 1, "bind": { "text": { "value": { "field": "f1" } }, "link": { "value": { "item": "url" } } } }, "children": [] },
+          { "id": "t1", "type": "text", "props": { "text": "", "bind": { "text": { "value": { "field": "f2" }, "empty": "hide" } } }, "children": [] },
+          { "id": "r1", "type": "rich-text", "props": { "content": { "type": "doc", "content": [] }, "bind": { "content": { "value": { "field": "f3" } } } }, "children": [] },
+          { "id": "i1", "type": "image", "props": { "alt": "", "bind": { "media": { "value": { "field": "f4" } }, "alt": { "value": { "field": "f1" } }, "link": { "value": { "item": "url" } } } }, "children": [] },
+          { "id": "b1", "type": "button", "props": { "label": "Author", "bind": { "label": { "value": { "field": "f1", "via": "f5" }, "empty": "fallback" }, "link": { "value": { "item": "url", "via": "f5" } } } }, "children": [] },
+          { "id": "b2", "type": "button", "props": { "label": "Download", "bind": { "link": { "value": { "field": "f6", "scope": "page" } } } }, "children": [] }
+        ]
+      }
+    ]
+  }
+}

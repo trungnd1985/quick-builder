@@ -3,5 +3,11 @@
     "title": "Pagina niet gevonden",
     "message": "We konden de pagina die je zoekt niet vinden.",
     "home": "Naar de startpagina"
+  },
+  "pager": {
+    "label": "Pagina's",
+    "previous": "Vorige",
+    "next": "Volgende",
+    "first": "Terug naar de eerste pagina"
   }
 }

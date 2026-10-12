@@ -191,8 +191,10 @@ public sealed class ModuleBoundaryTests
 
     /// <summary>
     /// Cms reads other modules only through the contracts its plan names (014 module-surface.md §1).
-    /// Only Media depends on Cms, and only on its Contracts, to read items' media usage (015
-    /// module-surface.md §1-§2); nothing references the Cms implementation.
+    /// Only Media, Pages and Rendering depend on Cms, and only on its Contracts: Media to read
+    /// items' media usage (015 module-surface.md §1-§2), Pages for templates, lists and refreshes,
+    /// Rendering for published items (016 module-surface.md §1). Nothing references the Cms
+    /// implementation.
     /// </summary>
     [Fact]
     public void Cms_references_only_the_contracts_it_declares_and_only_media_references_cms_contracts()
@@ -224,7 +226,37 @@ public sealed class ModuleBoundaryTests
                 .Select(r => $"{a.GetName().Name} -> {r.Name}"))
             .ToList();
 
-        Assert.All(dependents, edge => Assert.Equal("QuickBuilder.Media -> QuickBuilder.Cms.Contracts", edge));
+        string[] allowedDependents =
+        [
+            "QuickBuilder.Media -> QuickBuilder.Cms.Contracts",
+            "QuickBuilder.Pages -> QuickBuilder.Cms.Contracts",
+            "QuickBuilder.Rendering -> QuickBuilder.Cms.Contracts",
+        ];
+
+        Assert.All(dependents, edge => Assert.Contains(edge, allowedDependents));
+    }
+
+    /// <summary>
+    /// No Contracts project references another module's Contracts (016 module-surface.md §1),
+    /// so the edges between modules can never form a cycle through their contracts.
+    /// </summary>
+    [Fact]
+    public void Contracts_do_not_reference_other_modules_contracts()
+    {
+        var contractNames = ModuleContracts.Select(a => a.GetName().Name!).ToHashSet(StringComparer.Ordinal);
+
+        // Sites.Contracts is the one shared vocabulary of site identity: Media and Rendering
+        // contracts name sites through it, as they always have (012 readers.md §1.4).
+        var offenders = ModuleContracts
+            .SelectMany(a => a.GetReferencedAssemblies()
+                .Where(r => contractNames.Contains(r.Name!) && r.Name is not ("QuickBuilder.Sites.Contracts" or "QuickBuilder.Identity.Contracts"))
+                .Select(r => $"{a.GetName().Name} -> {r.Name}"))
+            .ToList();
+
+        Assert.True(
+            offenders.Count == 0,
+            "Architecture rule broken — a Contracts project references another module's Contracts:\n  " +
+            string.Join("\n  ", offenders));
     }
 
     /// <summary>

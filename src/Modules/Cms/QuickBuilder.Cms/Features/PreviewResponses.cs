@@ -29,6 +29,20 @@ public sealed record PreviewResponse(
     string Digest,
     IReadOnlyList<PreviewChangeResponse> Changes)
 {
+    /// <summary>
+    /// 016 FR-011: for each field the change removes or retypes, how many pages and components
+    /// read it in a draft, live or scheduled version; zero for fields no page reads. Empty when
+    /// the change touches no field that way.
+    /// </summary>
+    public IReadOnlyDictionary<string, int> BoundPages { get; init; } = new Dictionary<string, int>();
+
+    /// <summary>The fields whose bindings, filters and sort keys the change can break.</summary>
+    internal static IReadOnlyList<string> FieldsBreakingBindings(ImpactSummary impact) =>
+        [.. impact.Changes
+            .Where(c => c.Change.Kind is ChangeKind.FieldRemoved or ChangeKind.TypeChanged && c.Change.Before is not null)
+            .Select(c => c.Change.Before!.Id)
+            .Distinct(StringComparer.Ordinal)];
+
     internal static PreviewResponse From(int revision, ImpactSummary impact) => new(
         revision,
         impact.ItemCount,

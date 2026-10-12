@@ -1,0 +1,76 @@
+{
+  "description": "Broken bindings — a field gone, a type that no longer fits, a reference step through a non-reference, a built-in value that does not fit — and empty values with fallback and hide.",
+  "language": "en",
+  "basePath": "",
+  "schemas": {
+    "0192f5a0-0000-7000-8000-00000000c001": {
+      "schemaVersion": 1,
+      "titleFieldId": "f1",
+      "fields": [
+        { "id": "f1", "key": "title", "name": "Title", "help": "", "required": true, "type": "text", "multiline": false, "maxLength": 256 },
+        { "id": "f2", "key": "summary", "name": "Summary", "help": "", "required": false, "type": "text", "multiline": true, "maxLength": 5000 },
+        { "id": "f10", "key": "cover", "name": "Cover", "help": "", "required": false, "type": "image" },
+        { "id": "f12", "key": "author", "name": "Author", "help": "", "required": false, "type": "reference", "target": "0192f5a0-0000-7000-8000-00000000c002" }
+      ]
+    },
+    "0192f5a0-0000-7000-8000-00000000c002": {
+      "schemaVersion": 1,
+      "titleFieldId": "f1",
+      "fields": [
+        { "id": "f1", "key": "name", "name": "Name", "help": "", "required": true, "type": "text", "multiline": false, "maxLength": 100 }
+      ]
+    }
+  },
+  "pageItem": {
+    "id": "0192f5a1-0000-7000-8000-00000000a001",
+    "collectionId": "0192f5a0-0000-7000-8000-00000000c001",
+    "slug": "hello-world",
+    "name": "Hello world",
+    "firstPublishedAt": "2026-01-05T09:00:00Z",
+    "lastPublishedAt": "2026-10-09T08:00:00Z",
+    "values": {
+      "schemaVersion": 1,
+      "values": {
+        "f1": "Hello world",
+        "f2": "   ",
+        "f12": "0192f5a1-0000-7000-8000-00000000b002"
+      }
+    }
+  },
+  "items": [],
+  "templates": {},
+  "media": {},
+  "scopes": [],
+  "document": {
+    "schemaVersion": 1,
+    "bindingVersion": 1,
+    "root": { "id": "root", "type": "root", "props": {}, "children": [
+      { "id": "s1", "type": "section", "props": {}, "children": [
+        { "id": "gone", "type": "heading", "props": { "text": "Own", "bind": { "text": { "value": { "field": "f99" } } } }, "children": [] },
+        { "id": "image-as-text", "type": "heading", "props": { "text": "Own", "bind": { "text": { "value": { "field": "f10" } } } }, "children": [] },
+        { "id": "via-text", "type": "heading", "props": { "text": "Own", "bind": { "text": { "value": { "item": "slug", "via": "f1" } } } }, "children": [] },
+        { "id": "url-as-text", "type": "heading", "props": { "text": "Own", "bind": { "text": { "value": { "item": "url" } } } }, "children": [] },
+        { "id": "unpublished-author", "type": "heading", "props": { "text": "Own", "bind": { "text": { "value": { "field": "f1", "via": "f12" } } } }, "children": [] },
+        { "id": "blank", "type": "text", "props": { "text": "Own", "bind": { "text": { "value": { "field": "f2" } } } }, "children": [] },
+        { "id": "blank-hidden", "type": "text", "props": { "text": "Own", "bind": { "text": { "value": { "field": "f2" }, "empty": "hide" } } }, "children": [] },
+        { "id": "gone-hidden", "type": "text", "props": { "text": "Own", "bind": { "text": { "value": { "field": "f99" }, "empty": "hide" } } }, "children": [] },
+        { "id": "template-empty", "type": "text", "props": { "text": "Own", "bind": { "text": { "value": { "parts": [ "By ", { "field": "f1", "via": "f12" } ] } } } }, "children": [] },
+        { "id": "template-broken", "type": "text", "props": { "text": "Own", "bind": { "text": { "value": { "parts": [ "By ", { "field": "f98" } ] }, "empty": "hide" } } }, "children": [] },
+        { "id": "template-partial", "type": "text", "props": { "text": "Own", "bind": { "text": { "value": { "parts": [ { "field": "f1" }, " by ", { "field": "f1", "via": "f12" } ] } } } }, "children": [] }
+      ] }
+    ] }
+  },
+  "expected": {
+    "gone.text": { "fallback": true, "broken": "field_missing" },
+    "image-as-text.text": { "fallback": true, "broken": "type_mismatch" },
+    "via-text.text": { "fallback": true, "broken": "via_not_reference" },
+    "url-as-text.text": { "fallback": true, "broken": "type_mismatch" },
+    "unpublished-author.text": { "fallback": true },
+    "blank.text": { "fallback": true },
+    "blank-hidden.text": { "hide": true },
+    "gone-hidden.text": { "hide": true, "broken": "field_missing" },
+    "template-empty.text": { "fallback": true },
+    "template-broken.text": { "hide": true, "broken": "field_missing" },
+    "template-partial.text": { "text": "Hello world by " }
+  }
+}

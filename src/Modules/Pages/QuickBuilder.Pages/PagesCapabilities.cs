@@ -22,7 +22,7 @@ internal static class PagesCapabilities
     public const string StructureManage = "pages.structure.manage";
 
     /// <summary>Save a page's draft. Designer and Editor.</summary>
-    public const string PageDraftsEdit = "pages.page_drafts.edit";
+    public const string PageDraftsEdit = QuickBuilder.Pages.Contracts.PageContentCapabilities.DraftsEdit;
 
     /// <summary>Create, rename and delete components, and save their drafts. Designer.</summary>
     public const string ComponentsManage = "pages.components.manage";

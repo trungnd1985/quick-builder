@@ -100,6 +100,12 @@ internal sealed class PageTree : AggregateRoot, ISiteOwned
             return Result.Failure<Page>(PagesErrors.ParentNotFound);
         }
 
+        // 016 TB-02: a template's address ends in its item's slug, so nothing sits under it.
+        if (parentId is { } templateKey && Find(templateKey)!.IsTemplate)
+        {
+            return Result.Failure<Page>(PagesErrors.TemplateHasChildren);
+        }
+
         if (isHome && parentId is not null)
         {
             return Result.Failure<Page>(PagesErrors.HomePageMustBeTopLevel);
@@ -231,6 +237,27 @@ internal sealed class PageTree : AggregateRoot, ISiteOwned
             {
                 return Result.Failure(PagesErrors.HomePageMustBeTopLevel);
             }
+
+            // 016 TB-02: nothing sits under a template.
+            if (Find(parentKey)!.IsTemplate)
+            {
+                return Result.Failure(PagesErrors.TemplateHasChildren);
+            }
+        }
+
+        if (page.IsTemplate)
+        {
+            // A template keeps a fixed segment before its items' slugs (TB-02), and its parent
+            // holds one template at most.
+            if (parentId is not { } newParent || Find(newParent)!.IsHome)
+            {
+                return Result.Failure(PagesErrors.TemplateNeedsParent);
+            }
+
+            if (_pages.Any(p => p.IsTemplate && p.ParentId == parentId && p.Id != pageId))
+            {
+                return Result.Failure(PagesErrors.TemplateParentTaken);
+            }
         }
 
         var sameParent = page.ParentId == parentId;
@@ -317,6 +344,13 @@ internal sealed class PageTree : AggregateRoot, ISiteOwned
         }
 
         var former = Home;
+
+        // 016 TB-02: the home page's children read as top-level pages, so a template under the
+        // new home page would lose its fixed segment.
+        if (Children(pageId).Any(c => c.IsTemplate))
+        {
+            return Result.Failure(PagesErrors.TemplateNeedsParent);
+        }
         var plan = Plan(p =>
             p.Id == pageId ? Shape.Of(p) with { IsHome = true }
             : p == former ? Shape.Of(p) with { IsHome = false }
@@ -339,6 +373,75 @@ internal sealed class PageTree : AggregateRoot, ISiteOwned
         UpdatedAtUtc = now;
 
         Raise(new HomePageChangedEvent(SiteId, page.Id, former?.Id, now));
+        RaiseAddressChanges(changes, now);
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// Makes a page the template of <paramref name="collectionId"/>, changes its collection, or,
+    /// with null, turns it back into an ordinary page (016 FR-002, FR-003, FR-009; research TB-02).
+    /// </summary>
+    /// <remarks>
+    /// A template's address is its parent's address followed by <c>/{slug}</c>; turning it back
+    /// gives it its own slug's address again, which must be free. Whether the collection is one
+    /// of the site's is the caller's to check first: it belongs to another module.
+    /// </remarks>
+    public Result SetTemplate(Guid pageId, Guid? collectionId, int version, Guid actor, TimeProvider clock)
+    {
+        ArgumentNullException.ThrowIfNull(clock);
+
+        if (Find(pageId) is not { } page)
+        {
+            return Result.Failure(PagesErrors.NotFound);
+        }
+
+        if (page.Version != version)
+        {
+            return Result.Failure(PagesErrors.OutOfDate);
+        }
+
+        if (page.TemplateCollectionId == collectionId)
+        {
+            return Result.Success();
+        }
+
+        if (collectionId is { } collection)
+        {
+            if (page.IsHome || page.ParentId is not { } parentId || Find(parentId)!.IsHome)
+            {
+                return Result.Failure(PagesErrors.TemplateNeedsParent);
+            }
+
+            if (_pages.Any(p => p.ParentId == pageId))
+            {
+                return Result.Failure(PagesErrors.TemplateHasChildren);
+            }
+
+            if (_pages.Find(p => p.TemplateCollectionId == collection && p.Id != pageId) is { } other)
+            {
+                return Result.Failure(PagesErrors.CollectionHasTemplate(other.Id));
+            }
+
+            if (_pages.Any(p => p.IsTemplate && p.ParentId == parentId && p.Id != pageId))
+            {
+                return Result.Failure(PagesErrors.TemplateParentTaken);
+            }
+        }
+
+        var plan = Plan(p => p.Id == pageId ? Shape.Of(p) with { IsTemplate = collectionId is not null } : Shape.Of(p));
+        if (plan.IsFailure)
+        {
+            return Result.Failure(plan.Error);
+        }
+
+        var now = clock.GetUtcNow();
+        var previous = page.TemplateCollectionId;
+        page.SetTemplate(collectionId);
+        page.Touch(actor, now);
+        var changes = Apply(plan.Value);
+        UpdatedAtUtc = now;
+
+        Raise(new PageTemplateChangedEvent(SiteId, pageId, collectionId, previous, now));
         RaiseAddressChanges(changes, now);
         return Result.Success();
     }
@@ -467,9 +570,11 @@ internal sealed class PageTree : AggregateRoot, ISiteOwned
         {
             foreach (var shape in children[parentId].OrderBy(s => s.Position))
             {
+                // 016 TB-02: a template's address is a pattern, its item's slug in place of its own.
+                var segment = shape.IsTemplate ? TemplateInfo.SlugPlaceholder : shape.Slug;
                 var path = shape.IsHome ? "/"
-                    : parentPath is null || parentIsHome ? "/" + shape.Slug
-                    : parentPath + "/" + shape.Slug;
+                    : parentPath is null || parentIsHome ? "/" + segment
+                    : parentPath + "/" + segment;
                 ordered.Add(new Planned(shape.Id, path, depth));
                 Walk(shape.Id, path, shape.IsHome, depth + 1);
             }
@@ -547,9 +652,9 @@ internal sealed class PageTree : AggregateRoot, ISiteOwned
     }
 
     /// <summary>A page as a proposed change sees it: only what addresses depend on.</summary>
-    private sealed record Shape(Guid Id, Guid? ParentId, string Slug, bool IsHome, int Position)
+    private sealed record Shape(Guid Id, Guid? ParentId, string Slug, bool IsHome, int Position, bool IsTemplate = false)
     {
-        public static Shape Of(Page page) => new(page.Id, page.ParentId, page.Slug, page.IsHome, page.Position);
+        public static Shape Of(Page page) => new(page.Id, page.ParentId, page.Slug, page.IsHome, page.Position, page.IsTemplate);
     }
 
     private sealed record Planned(Guid Id, string Path, int Depth);

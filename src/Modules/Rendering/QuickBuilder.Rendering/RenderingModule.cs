@@ -40,10 +40,16 @@ public static class RenderingModule
         services.AddSingleton<IBlockRenderer, DividerRenderer>();
         services.AddSingleton<IBlockRenderer, EmbedRenderer>();
         services.AddSingleton<IBlockRenderer, ComponentRefRenderer>();
+        services.AddSingleton<IBlockRenderer, CollectionListRenderer>();
+        services.AddSingleton<IBlockRenderer, ListCardRenderer>();
+        services.AddSingleton<IBlockRenderer, ListEmptyRenderer>();
         services.AddSingleton<PageRenderer>();
 
         services.AddSingleton<RenderMetrics>();
         services.AddScoped<PageResponder>();
+
+        // 016 research TB-09: what bindings read, fetched before rendering.
+        services.AddScoped<QuickBuilder.Rendering.Binding.BindingFetcher>();
         services.AddScoped<IQueryHandler<RenderPageQuery, PublicResponse>, RenderPageHandler>();
         services.AddScoped<IPublicNotFoundPage, NotFoundPage>();
 

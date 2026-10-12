@@ -3,5 +3,11 @@
     "title": "Strani ni mogoče najti",
     "message": "Strani, ki jo iščete, nismo našli.",
     "home": "Na domačo stran"
+  },
+  "pager": {
+    "label": "Strani",
+    "previous": "Prejšnja",
+    "next": "Naslednja",
+    "first": "Nazaj na prvo stran"
   }
 }

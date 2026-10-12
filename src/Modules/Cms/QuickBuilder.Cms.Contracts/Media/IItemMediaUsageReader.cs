@@ -17,6 +17,12 @@ public interface IItemMediaUsageReader
 
     /// <summary>Every item of the site that uses the file, by collection name, then item name.</summary>
     Task<IReadOnlyList<ItemMediaUsagePlace>> ListAsync(Guid siteId, Guid mediaId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// The collections whose items' published values show the file, so the pages listing them
+    /// can be refreshed when it changes (016 research TB-10).
+    /// </summary>
+    Task<IReadOnlyList<Guid>> CollectionsShowingPublishedAsync(Guid siteId, Guid mediaId, CancellationToken cancellationToken = default);
 }
 
 /// <summary>How many items use a file.</summary>

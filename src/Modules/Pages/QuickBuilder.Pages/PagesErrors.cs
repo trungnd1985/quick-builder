@@ -73,6 +73,28 @@ internal static class PagesErrors
         "pages.unknown_component",
         "The document refers to a component that is not a component of this site.");
 
+    // Templates (016 data-model §4).
+
+    internal static Error TemplateNeedsParent { get; } = Error.Validation(
+        "pages.template_needs_parent",
+        "A template needs a parent page other than the home page, so its items' addresses start with that page's address.");
+
+    internal static Error TemplateHasChildren { get; } = Error.Conflict(
+        "pages.template_has_children",
+        "A template cannot have pages under it, because its address holds the item's slug.");
+
+    internal static Error UnknownCollection { get; } = Error.Validation(
+        "pages.unknown_collection",
+        "That is not a collection of this site.");
+
+    internal static Error CollectionHasTemplate(Guid pageId) => With(
+        Error.Conflict("pages.collection_has_template", "That collection already has a template page. A collection has one template."),
+        ("pageId", pageId));
+
+    internal static Error TemplateParentTaken { get; } = Error.Conflict(
+        "pages.template_parent_taken",
+        "That page already holds a template. A page holds at most one.");
+
     internal static Error InvalidComponentName { get; } = Error.Validation(
         "pages.invalid_component_name",
         $"A component name must be between 1 and {Domain.Component.MaxNameLength} characters.");
@@ -178,6 +200,19 @@ internal static class PagesErrors
             "pages.version_missing_components",
             $"This version uses {componentIds.Count} component(s) that no longer exist."),
         ("componentIds", componentIds.ToArray()));
+
+    /// <summary>
+    /// 016 FR-027, contract rule 21: a paginated list reads the same page parameter as a list of
+    /// a page or component shown with it. <c>with</c> names that page or component.
+    /// </summary>
+    internal static Error PageParamTaken(string param, string pointer, string with) => With(
+        Error.Validation(
+            "pages.invalid_document",
+            $"A paginated list here uses the page parameter \"{param}\", like a list in \"{with}\" shown with it. Give one of them its own name."),
+        ("rule", Infrastructure.PageParamRules.Rule),
+        ("pointer", pointer),
+        ("param", param),
+        ("with", with));
 
     /// <summary>A document refusal, carrying the failed rule and where it failed.</summary>
     internal static Error InvalidDocument(DocumentValidationResult result)

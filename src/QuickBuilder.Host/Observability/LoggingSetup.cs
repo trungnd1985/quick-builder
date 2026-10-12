@@ -31,6 +31,7 @@ internal static class LoggingSetup
             .ReadFrom.Services(services)
             .Enrich.FromLogContext()
             .Enrich.With<TraceEnricher>()
+            .Enrich.With<PublicPathRedactor>()
             // CompactJsonFormatter: one JSON object per line, which is what log collectors
             // expect and what makes SC-008's "trace one request by its identifier" a grep.
             .WriteTo.Console(new CompactJsonFormatter());
@@ -63,5 +64,31 @@ internal sealed class TraceEnricher : ILogEventEnricher
             propertyFactory.CreateProperty("TraceId", activity.TraceId.ToString()));
         logEvent.AddPropertyIfAbsent(
             propertyFactory.CreateProperty("SpanId", activity.SpanId.ToString()));
+    }
+}
+
+/// <summary>
+/// Keeps visitors' addresses out of the logs (016 FR-038, constitution Principle IX).
+/// </summary>
+/// <remarks>
+/// ASP.NET Core adds the request path to every entry logged during a request. On the public
+/// surface that path is content: a page's address, or an item's slug in a template's address.
+/// So it is removed there, and kept only for the administrative surface (<c>/api</c>,
+/// <c>/admin</c>, <c>/health</c>), whose paths hold ids. The trace id and the page and site
+/// ids an entry carries still let an operator follow a public request.
+/// </remarks>
+internal sealed class PublicPathRedactor : ILogEventEnricher
+{
+    private const string RequestPath = "RequestPath";
+
+    public void Enrich(LogEvent logEvent, ILogEventPropertyFactory propertyFactory)
+    {
+        ArgumentNullException.ThrowIfNull(logEvent);
+
+        if (logEvent.Properties.TryGetValue(RequestPath, out var value)
+            && !(value is ScalarValue { Value: string path } && Routing.RoutePrefixes.IsReserved(new Microsoft.AspNetCore.Http.PathString(path))))
+        {
+            logEvent.RemovePropertyIfPresent(RequestPath);
+        }
     }
 }

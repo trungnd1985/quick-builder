@@ -45,4 +45,26 @@ describe('DeleteCollectionDialog', () => {
     expect(screen.getByText(en.cms.delete.referenced)).toBeTruthy()
     expect(emitted().deleted).toBeUndefined()
   })
+
+  it('names the pages and components that use the collection, with where, and how many more (016 FR-010)', async () => {
+    stubFetch(() => problem(409, 'cms.collection_used_by_pages', {
+      uses: [
+        { kind: 'page', id: 'p1', title: 'Openings', states: ['draft', 'live'] },
+        { kind: 'component', id: 'c1', title: 'Latest openings', states: ['scheduled'] },
+      ],
+      total: 5,
+    }))
+    const { emitted, container } = renderDialog()
+
+    await fireEvent.update(screen.getByLabelText(en.cms.delete.typeName.replace('{name}', 'Job openings')), 'Job openings')
+    await fireEvent.click(screen.getByRole('button', { name: en.cms.delete.confirm }))
+
+    expect(await screen.findByText(/Page: Openings/)).toBeTruthy()
+    expect(screen.getByText('(draft, live)')).toBeTruthy()
+    expect(screen.getByText(/Component: Latest openings/)).toBeTruthy()
+    expect(screen.getByText('and 3 more')).toBeTruthy()
+    expect(screen.getByText(en.cms.errors.collection_used_by_pages)).toBeTruthy()
+    expect(emitted().deleted).toBeUndefined()
+    expect(await violations(container)).toEqual([])
+  })
 })

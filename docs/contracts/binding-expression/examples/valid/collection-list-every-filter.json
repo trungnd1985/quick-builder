@@ -1,0 +1,79 @@
+{
+  "schemaVersion": 1,
+  "bindingVersion": 1,
+  "root": {
+    "id": "root",
+    "type": "root",
+    "props": {},
+    "children": [
+      {
+        "id": "s1",
+        "type": "section",
+        "props": {},
+        "children": [
+          {
+            "id": "posts",
+            "type": "collection-list",
+            "props": {
+              "source": { "collectionId": "0192f5a0-0000-7000-8000-00000000c001" },
+              "filters": [
+                { "field": "f1", "op": "contains", "value": "linen" },
+                { "field": "f8", "op": "gt", "value": 2 },
+                { "field": "f8", "op": "lt", "value": 30.5 },
+                { "field": "f9", "op": "eq", "value": true },
+                { "field": "f10", "op": "ne", "value": "o2" },
+                { "field": "f7", "op": "gt", "value": "2026-01-01" },
+                { "field": "f5", "op": "eq", "value": "0192f5a1-0000-7000-8000-000000000001" },
+                { "field": "f11", "op": "contains", "value": "0192f5a1-0000-7000-8000-000000000002" },
+                { "field": "f4", "op": "notEmpty" },
+                { "item": "slug", "op": "ne", "value": "hello-world" }
+              ],
+              "sort": [
+                { "field": "f7", "dir": "desc" },
+                { "item": "firstPublishedAt", "dir": "asc" },
+                { "item": "slug", "dir": "asc" }
+              ],
+              "limit": 100,
+              "paging": { "pageSize": 10, "param": "page" },
+              "columns": 4,
+              "gap": { "token": "space-lg" },
+              "layerLabel": "Latest posts"
+            },
+            "children": [
+              {
+                "id": "posts-card",
+                "type": "list-card",
+                "props": { "layerLabel": "Post card" },
+                "children": [
+                  { "id": "c-img", "type": "image", "props": { "bind": { "media": { "value": { "field": "f4" } } } }, "children": [] },
+                  { "id": "c-title", "type": "heading", "props": { "text": "", "level": 3, "bind": { "text": { "value": { "field": "f1", "scope": "posts" } } } }, "children": [] },
+                  { "id": "c-more", "type": "button", "props": { "label": "Read", "bind": { "link": { "value": { "item": "url" } } } }, "children": [] }
+                ]
+              },
+              {
+                "id": "posts-empty",
+                "type": "list-empty",
+                "props": {},
+                "children": [
+                  { "id": "e-text", "type": "text", "props": { "text": "Nothing to show yet." }, "children": [] }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "people",
+            "type": "collection-list",
+            "props": {
+              "source": { "collectionId": "0192f5a0-0000-7000-8000-00000000c002" },
+              "paging": { "pageSize": 2, "param": "people", "layout": "steps" }
+            },
+            "children": [
+              { "id": "people-card", "type": "list-card", "props": {}, "children": [] },
+              { "id": "people-empty", "type": "list-empty", "props": {}, "children": [] }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -21,7 +21,8 @@ namespace QuickBuilder.SmokeTests;
 /// reading the setup code from the container logs as an operator would, and runs every
 /// later step as the administrator it created. Feature 010 added "create page": a page, a
 /// child page and a saved draft. 012 added publish and view: a component and a page are
-/// published and read back from the site's host name, which closes plan exception E-3.
+/// published and read back from the site's host name, which closes plan exception E-3. 016
+/// added a template: a published item answers at its own address, its title bound in.
 /// Driving the editor in a browser still waits for #25 (exception E-5, unchanged).
 /// </para>
 /// <para>
@@ -398,6 +399,34 @@ public sealed class ReferenceDeploymentSmokeTests(ITestOutputHelper output) : IA
         var itemRead = await publishedItem.Content.ReadFromJsonAsync<JsonElement>().ConfigureAwait(true);
         Assert.Equal(("published", 1), (itemRead.GetProperty("status").GetString(), itemRead.GetProperty("liveVersion").GetInt32()));
         output.WriteLine($"item {itemId} created and published as version 1");
+
+        // 9i. 016 (plan, Principle X): a page becomes the collection's template, and the
+        //     published item answers at its own address with its title bound in.
+        using var blog = await client.PostAsJsonAsync(new Uri(pages, UriKind.Relative), new { title = "Blog", slug = "blog" }).ConfigureAwait(true);
+        Assert.Equal(HttpStatusCode.Created, blog.StatusCode);
+        var blogId = (await blog.Content.ReadFromJsonAsync<JsonElement>().ConfigureAwait(true)).GetProperty("id").GetGuid();
+        using var post = await client.PostAsJsonAsync(new Uri(pages, UriKind.Relative), new { title = "Post", slug = "post", parentId = blogId }).ConfigureAwait(true);
+        Assert.Equal(HttpStatusCode.Created, post.StatusCode);
+        var postRead = await post.Content.ReadFromJsonAsync<JsonElement>().ConfigureAwait(true);
+        var postPath = $"{pages}/{postRead.GetProperty("id").GetGuid()}";
+        using var template = await client.PutAsJsonAsync(
+            new Uri($"{postPath}/template", UriKind.Relative),
+            new { collectionId, version = postRead.GetProperty("version").GetInt32() }).ConfigureAwait(true);
+        Assert.Equal(HttpStatusCode.OK, template.StatusCode);
+
+        var templateDraft = await SaveDraftAsync(client, postPath, """
+            {"schemaVersion":1,"bindingVersion":1,"root":{"id":"root","type":"root","props":{},"children":[
+              {"id":"s","type":"section","props":{},"children":[
+                {"id":"h","type":"heading","props":{"text":"Untitled","level":1,"bind":{"text":{"value":{"field":"f1"}}}},"children":[]}]}]}}
+            """).ConfigureAwait(true);
+        await PublishAsync(client, postPath, templateDraft).ConfigureAwait(true);
+
+        using var itemPageRequest = new HttpRequestMessage(HttpMethod.Get, new Uri("/blog/hello-world", UriKind.Relative));
+        itemPageRequest.Headers.Host = "smoke.test";
+        using var itemPage = await publicClient.SendAsync(itemPageRequest).ConfigureAwait(true);
+        Assert.Equal(HttpStatusCode.OK, itemPage.StatusCode);
+        Assert.Contains(">Hello world</h1>", await itemPage.Content.ReadAsStringAsync().ConfigureAwait(true), StringComparison.Ordinal);
+        output.WriteLine("template /blog/{slug} published; /blog/hello-world shows the item's title");
 
         // 10. Operator recovery (002 US5): with command-line access to the container, the
         //     operator issues a set-password link for the administrator, sets a new password

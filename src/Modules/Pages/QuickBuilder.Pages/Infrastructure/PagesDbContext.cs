@@ -52,6 +52,8 @@ internal sealed class PagesDbContext(DbContextOptions<PagesDbContext> options, I
 
     internal DbSet<ProcessedEvent> ProcessedEvents => Set<ProcessedEvent>();
 
+    internal DbSet<CollectionUsage> CollectionUsages => Set<CollectionUsage>();
+
     /// <summary>
     /// The site the query filters compare against. A property on the context, referenced
     /// through <c>this</c>, for the reason <c>SiteQueryFilterGuidance</c> documents.
@@ -165,6 +167,17 @@ internal sealed class PagesDbContext(DbContextOptions<PagesDbContext> options, I
             entity
                 .HasIndex(e => new { e.SiteId, e.ParentId, e.Position })
                 .HasDatabaseName("ix_pages_site_parent_position");
+
+            // 016 FR-002: a collection has at most one template. One template per parent needs
+            // no index of its own: the template's path is its parent's address and /{slug},
+            // which ux_pages_site_path keeps unique (research TB-02).
+            entity
+                .HasIndex(e => new { e.SiteId, e.TemplateCollectionId })
+                .IsUnique()
+                .HasFilter("template_collection_id IS NOT NULL")
+                .HasDatabaseName("ux_pages_site_template_collection");
+
+            entity.Ignore(e => e.IsTemplate);
 
             entity.HasQueryFilter(e => e.SiteId == CurrentSiteId);
         });
@@ -286,6 +299,7 @@ internal sealed class PagesDbContext(DbContextOptions<PagesDbContext> options, I
             entity.Property(e => e.Version).IsRowVersion().HasColumnName("xmin").HasColumnType("xid");
             entity.Ignore(e => e.DomainEvents);
             entity.Ignore(e => e.IsLive);
+            entity.Property(e => e.PageParamNames).HasDefaultValueSql("'{}'::text[]");
 
             entity
                 .HasIndex(e => e.SiteId)
@@ -332,7 +346,8 @@ internal sealed class PagesDbContext(DbContextOptions<PagesDbContext> options, I
             entity.ToTable("live_dependencies", Schema, t =>
             {
                 t.HasCheckConstraint("ck_live_dependencies_subject_kind", subjectKinds);
-                t.HasCheckConstraint("ck_live_dependencies_target_kind", "target_kind IN ('component', 'page', 'media')");
+                // 016 data-model §1.2: list sources and a template's own collection.
+                t.HasCheckConstraint("ck_live_dependencies_target_kind", "target_kind IN ('component', 'page', 'media', 'collection', 'template')");
             });
 
             entity.HasKey(e => new { e.SiteId, e.SubjectKind, e.SubjectId, e.TargetKind, e.TargetId });
@@ -375,6 +390,25 @@ internal sealed class PagesDbContext(DbContextOptions<PagesDbContext> options, I
                 .OnDelete(DeleteBehavior.Cascade);
 
             entity.HasIndex(e => new { e.SiteId, e.MediaId }).HasDatabaseName("ix_version_media_references_media");
+
+            entity.HasQueryFilter(e => e.SiteId == CurrentSiteId);
+        });
+
+        // 016 data-model §1.3 (research TB-13): where collections are used.
+        modelBuilder.Entity<CollectionUsage>(entity =>
+        {
+            entity.ToTable("collection_uses", Schema, t =>
+            {
+                t.HasCheckConstraint("ck_collection_uses_subject_kind", subjectKinds);
+                t.HasCheckConstraint("ck_collection_uses_state", "state IN ('draft', 'live', 'scheduled')");
+            });
+
+            entity.HasKey(e => new { e.SiteId, e.SubjectKind, e.SubjectId, e.State, e.CollectionId });
+            entity.Property(e => e.SubjectKind).HasMaxLength(16);
+            entity.Property(e => e.State).HasMaxLength(16);
+
+            // "Who uses this collection?" is the question Cms asks before a delete.
+            entity.HasIndex(e => new { e.SiteId, e.CollectionId }).HasDatabaseName("ix_collection_uses_collection");
 
             entity.HasQueryFilter(e => e.SiteId == CurrentSiteId);
         });

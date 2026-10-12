@@ -146,6 +146,7 @@ internal sealed class CmsDbContext(DbContextOptions<CmsDbContext> options, ISite
             entity.Property(e => e.Name).HasColumnType("text");
             entity.Property(e => e.SearchText).HasColumnType("text").IsRequired();
             entity.Property(e => e.Attention).HasColumnType("jsonb");
+            entity.Property(e => e.PublishedText).HasColumnType("jsonb");
             entity.Ignore(e => e.NewHistory);
             entity.Ignore(e => e.IsPublished);
             entity.Ignore(e => e.DomainEvents);
@@ -155,6 +156,11 @@ internal sealed class CmsDbContext(DbContextOptions<CmsDbContext> options, ISite
             entity.HasIndex(e => new { e.CollectionId, e.UpdatedAtUtc, e.Id }).IsDescending(false, true, false);
             entity.HasIndex(e => new { e.CollectionId, e.Slug });
             entity.HasIndex(e => new { e.CollectionId, e.Status });
+
+            // 016 research TB-03: an item page is found by its published slug.
+            entity.HasIndex(e => new { e.CollectionId, e.PublishedSlug })
+                .HasDatabaseName("ix_items_collection_id_published_slug")
+                .HasFilter("published_slug IS NOT NULL");
             entity.HasIndex(e => e.CollectionId)
                 .HasDatabaseName("ix_items_collection_id_attention")
                 .HasFilter("attention IS NOT NULL");

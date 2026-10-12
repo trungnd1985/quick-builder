@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json;
+using QuickBuilder.Rendering.Binding;
 using QuickBuilder.Rendering.Rendering;
 
 namespace QuickBuilder.Rendering.Domain;
@@ -18,14 +19,76 @@ internal sealed class RenderContext(RenderInputs inputs, BlockDefaults defaults)
 {
     private readonly StringBuilder _rules = new();
 
+    // A card's blocks repeat once per item with the same rules: each key is written once.
+    private readonly HashSet<string> _styled = new(StringComparer.Ordinal);
+
+    private readonly HashSet<(string NodeId, string Reason)> _broken = [];
+
     public RenderInputs Inputs { get; } = inputs;
 
     public BlockDefaults Defaults { get; } = defaults;
 
     public TokenCss Tokens { get; } = TokenCss.For(inputs.Design);
 
+    /// <summary>What the page's bindings and lists read (016 research TB-09).</summary>
+    public ResolvedData Data { get; } = inputs.Data ?? ResolvedData.Empty;
+
+    /// <summary>The binding scopes around the node being rendered (016 FR-028).</summary>
+    public ScopeStack Scopes { get; } = new((inputs.Data ?? ResolvedData.Empty).PageItem);
+
+    /// <summary>
+    /// Bindings found broken in this render, by node id and reason, for one warning per render
+    /// (FR-038). Never values.
+    /// </summary>
+    public IReadOnlyCollection<(string NodeId, string Reason)> BrokenBindings => _broken;
+
     /// <summary>Renders a node's children; set by the page renderer.</summary>
     public Action<JsonElement, string, HtmlWriter> RenderChildren { get; set; } = (_, _, _) => { };
+
+    /// <summary>Renders one node with its type's renderer; set by the page renderer (016: a list renders its card per item).</summary>
+    public Action<JsonElement, string, HtmlWriter> RenderNode { get; set; } = (_, _, _) => { };
+
+    /// <summary>
+    /// What property <paramref name="prop"/> of <paramref name="node"/> shows when bound (016
+    /// research TB-09); <see cref="BoundValue.Unbound"/> when it is not. A broken binding is
+    /// recorded and shown as empty.
+    /// </summary>
+    public BoundValue Bound(JsonElement node, string prop)
+    {
+        var bound = BindingResolver.Resolve(node, prop, this);
+        if (bound.Broken is { } reason)
+        {
+            _broken.Add((IdOf(node), reason));
+        }
+
+        return bound;
+    }
+
+    /// <summary>
+    /// Whether any binding of <paramref name="node"/> leaves it out (FR-019): a bound property
+    /// with nothing to show, and "hide" chosen for it.
+    /// </summary>
+    public bool IsHidden(JsonElement node)
+    {
+        if (!node.TryGetProperty("props", out var props) || !props.TryGetProperty("bind", out var bind) || bind.ValueKind != JsonValueKind.Object)
+        {
+            return false;
+        }
+
+        foreach (var binding in bind.EnumerateObject())
+        {
+            if (Bound(node, binding.Name).State == BoundState.Hide)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>A text property: its bound value, or else its own value or default.</summary>
+    public string BoundText(JsonElement node, string prop) =>
+        Bound(node, prop) is { State: BoundState.Value, Text: { } text } ? text : String(node, prop);
 
     /// <summary>
     /// The content width, in pixels, of the Section being rendered; null inside a full-width
@@ -103,13 +166,16 @@ internal sealed class RenderContext(RenderInputs inputs, BlockDefaults defaults)
 
         var key = $"{scope}{IdOf(node)}";
 
-        _rules.Append("[data-qb=\"").Append(key).Append("\"]{");
-        foreach (var (property, value) in declarations)
+        if (_styled.Add(key))
         {
-            _rules.Append(property).Append(':').Append(value).Append(';');
-        }
+            _rules.Append("[data-qb=\"").Append(key).Append("\"]{");
+            foreach (var (property, value) in declarations)
+            {
+                _rules.Append(property).Append(':').Append(value).Append(';');
+            }
 
-        _rules.Append('}');
+            _rules.Append('}');
+        }
 
         writer.Attribute("data-qb", key);
     }

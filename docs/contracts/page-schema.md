@@ -63,17 +63,22 @@ whitespace. "Read back unchanged" means **equal as a JSON value**.
 | `component-ref` | `componentId`: UUID of a shared component of the **same site** | none | page documents, under `root` only |
 | `section` | `background`, `paddingY`, `width`, `layerLabel` | `contentChild` | under `root` |
 | `container` | `direction`, `columns`, `gap`, `padding`, `align`, `maxWidth`, `background`, `stackOnMobile`, `layerLabel` | `contentChild` | in `section` or `container` |
-| `heading` | `text`\*, `level`, `align`, `color`, `layerLabel` | none | in `section` or `container` |
-| `text` | `text`\*, `align`, `color`, `size`, `layerLabel` | none | in `section` or `container` |
-| `rich-text` | `content`\*, `align`, `color`, `layerLabel` | none | in `section` or `container` |
-| `image` | `media`, `alt`, `decorative`, `width`, `link`, `layerLabel` | none | in `section` or `container` |
-| `button` | `label`\*, `link`, `style`, `align`, `newTab`, `layerLabel` | none | in `section` or `container` |
+| `heading` | `text`\*, `level`, `align`, `color`, `link`, `layerLabel`, `bind` | none | in `section` or `container` |
+| `text` | `text`\*, `align`, `color`, `size`, `layerLabel`, `bind` | none | in `section` or `container` |
+| `rich-text` | `content`\*, `align`, `color`, `layerLabel`, `bind` | none | in `section` or `container` |
+| `image` | `media`, `alt`, `decorative`, `width`, `link`, `layerLabel`, `bind` | none | in `section` or `container` |
+| `button` | `label`\*, `link`, `style`, `align`, `newTab`, `layerLabel`, `bind` | none | in `section` or `container` |
 | `spacer` | `height`, `layerLabel` | none | in `section` or `container` |
 | `divider` | `color`, `thickness`, `spacing`, `layerLabel` | none | in `section` or `container` |
 | `embed` | `url`, `title`, `aspectRatio`, `layerLabel` | none | in `section` or `container` |
+| `collection-list` | `source`\*, `filters`, `sort`, `limit`, `paging`, `columns`, `gap`, `layerLabel` | `listChild`: its `list-card`, then its `list-empty` (rule 20) | in `section` or `container` (016) |
+| `list-card` | `layerLabel` | `contentChild` | in `collection-list` only (016) |
+| `list-empty` | `layerLabel` | `contentChild` | in `collection-list` only (016) |
 
 \* required. Values, limits and defaults are in the schema file, which is the single
 definition; this table is its index. `layerLabel` is an editor aid and is never rendered.
+`bind` holds a block's bindings to item fields, and only the properties
+[binding-expression.md](binding-expression.md) §4 names may be bound (016).
 
 **Widths** (added by 011, clarification 2026-09-29):
 - A Section's `width` caps its content, which is centred: `narrow`, `contained` (shown as
@@ -87,9 +92,11 @@ definition; this table is its index. `layerLabel` is an editor aid and is never 
   a new row with the same pattern. The pattern holds at desktop and tablet widths; at mobile
   width the row stacks when `stackOnMobile` is on. A vertical Container ignores it.
 
-The placement lists are two `$defs` in the schema:
+The placement lists are three `$defs` in the schema:
 - `rootChild` holds `section` and `component-ref`;
-- `contentChild` holds every other block type.
+- `contentChild` holds every other block type;
+- `listChild` holds `list-card` and `list-empty`, and only a `collection-list` admits it
+  (016).
 
 So every piece of content sits in a Section. A component document's root holds Sections
 only, because rule 7 refuses `component-ref` there.
@@ -161,6 +168,43 @@ binding.
 12. Header cells appear only in the first row, and a first row with a header cell holds
     only header cells (`table_header_misplaced`, at the first misplaced cell) (035).
 
+Rules 13–21 come with bindings and Collection lists (016, [binding-expression.md](binding-expression.md)):
+
+13. A document holding a `bind` or a `collection-list` carries `bindingVersion: 1`
+    (`binding_version_required`, at the document, pointer empty).
+14. Every list `source.collectionId` names a collection of the document's own site
+    (`unknown_collection`, at `…/props/source`). An unknown id and another site's id are the
+    same failure. Like rule 6, it needs the site, so the server checks it last, after every
+    other rule, and the editor checks it against the site's collections.
+15. Every `scope` names `"page"` or an enclosing `collection-list` whose card the reader sits
+    in (`unknown_scope`, at the `scope`). A list's own filters cannot read its own items, and
+    its empty state has no item.
+16. A component document never reads the page's item: no `"page"` scope, and nothing that
+    reads the nearest scope outside every list (`page_scope_not_allowed`, at the `scope` or
+    the reader).
+17. Collection lists nest at most **2** deep, in a card or in an empty state
+    (`list_too_deep`, at the third list's `/type`).
+18. A document holds at most **20** Collection lists (`too_many_lists`, at the 21st list's
+    `/type`).
+19. Paginated lists in one document use distinct page parameters, `page` when none is given
+    (`duplicate_page_param`, at the second list's `…/props/paging/param`, or `…/props/paging`
+    when it names none).
+20. A `collection-list` holds exactly its `list-card` and then its `list-empty`
+    (`list_children_invalid`, at its `…/children`).
+21. The paginated lists of a page and of the components it shows use distinct page
+    parameters, so each pages on its own (016 FR-027) (`page_param_taken`, with `param` and
+    `with`, the page or component it clashes with). In a page, it is reported at the page's
+    own list, or at the second `component-ref` when two components clash; in a component, at
+    its own list. Like rules 6 and 14 it needs other documents, so only the server checks it,
+    last: a draft save against the other drafts, a publish against the live versions. The
+    editor keeps a page's own lists clear of its components' names as they are set.
+
+A `"page"` scope in an ordinary page is not refused: it is a broken binding, shown as empty,
+so turning a template back into a page never makes its draft unsaveable. A binding to a field
+that no longer exists, or whose type does not fit, is broken in the same way. The shapes the
+schema subset cannot say — exactly one of `field`, `item` and `parts`, and the like
+(binding-expression.md §6) — are checked with rules 15–19 and reported as `props_invalid`.
+
 Rules 10–12 apply to rich text item values too (collection-schema.md §3), where a value that
 breaks one is malformed. Rows beyond 200 and cells beyond 20 per row fail the schema's
 `maxItems` (`props_invalid`, with the limit in the message), as every size limit does.
@@ -178,12 +222,16 @@ fails the same way:
    - `props_invalid` for any failure under a node's `props`. A failed `oneOf` there, such
      as an unknown rich-text mark, is reported at that object's `/type`;
    - `root_misplaced` for a `root` anywhere but the envelope;
-   - `nesting_not_allowed` for a node type (a member of `rootChild` or `contentChild`) in
-     a children list that doesn't admit it, at its `/type`;
+   - `nesting_not_allowed` for a node type (a member of `rootChild`, `contentChild` or
+     `listChild`) in a children list that doesn't admit it, at its `/type`;
    - `unknown_type` for any other `type`, at its `/type`;
    - `children_not_allowed` for children under a type that takes none;
-6. the code rules: the component rules (rules 6–7), then rich text length (rule 9) for
-   every Rich Text block, then rules 10–12 for every Rich Text block, in document order.
+6. the list's children (rule 20);
+7. the code rules: the component rules (rules 6–7), then rich text length (rule 9) for
+   every Rich Text block, then rules 10–12 for every Rich Text block, in document order;
+8. rule 13, then one walk in document order that checks each list (rules 18, 17, its
+   source, filters and sort keys, 19) and then each binding (rules 15–16) as it meets them;
+9. on the server, rule 14.
 
 Depth and count come before the schema on purpose. They bound the work the schema check
 does, and they give an oversized document its own reason rather than a generic one.
@@ -200,6 +248,8 @@ does, and they give an oversized document its own reason rather than a generic o
 | Address length | 1,024 |
 | Page nesting | 10 |
 | Pages per site | 2,000 |
+| Collection lists per document | 20 |
+| Collection list nesting | 2 |
 
 The limits are part of the contract, not operator settings: a document valid on one
 installation is valid on every installation, which site export and import (#20) rely on.
@@ -212,6 +262,12 @@ installation is valid on every installation, which site export and import (#20) 
   an address again if another page becomes the home page.
 - Addresses are unique per site. They never include the host name or base path; absolute
   addresses come from the site's base URL (009).
+- **Templates** (016): a page that is a collection's template has no address of its own.
+  Its stored address is a pattern, its parent's address followed by `/{slug}` (for example
+  `/blog/{slug}`), and each published item of the collection is served at the pattern with
+  its slug. `{` and `}` are outside the slug grammar, so no page can take a pattern's
+  address, and the uniqueness of addresses allows one template per parent. A template has a
+  parent other than the home page, and no children of its own.
 
 **Reserved first segments**: no address may begin with one of these, because the platform
 answers there before any page could.
@@ -243,6 +299,14 @@ neither listed here nor impossible to produce.
 - The renderer lists the schema versions it renders. `BlockRendererCoverageTests` fails the
   build when `page-schema/` holds a `vN.schema.json` the renderer does not list, so a new
   version cannot merge without rendering support (012; Principle VI).
+
+**Additions in 016 (still version 1)**: an optional envelope `bindingVersion`; an optional
+`bind` prop on `heading`, `text`, `rich-text`, `image` and `button`; the node types
+`collection-list`, `list-card` and `list-empty` with the `listChild` placement; and rules
+13–21. Later in 016, the optional `paging.layout` of `collection-list` (`numbers` by
+default, or `steps`), and an optional `link` on `heading`, bindable like a button's. Every addition is optional or a new type, so every document valid
+before stays valid and renders the same. Bindings have their own contract and version,
+[binding-expression.md](binding-expression.md).
 
 **Additions in 035 (still version 1)**: rich text gained headings (levels 2–4), quotes,
 images, tables, the marks underline, strikethrough and code, and an alignment on paragraphs

@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "bindingVersion": 1,
+  "root": {
+    "id": "root",
+    "type": "root",
+    "props": {},
+    "children": [
+      {
+        "id": "s1",
+        "type": "section",
+        "props": {},
+        "children": [
+          {
+            "id": "c1",
+            "type": "list-card",
+            "props": {},
+            "children": []
+          }
+        ]
+      }
+    ]
+  }
+}

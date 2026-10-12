@@ -13,6 +13,7 @@ import type { ContentNode } from '../schema/schema'
 import { useEditorStore } from '../state/editorStore'
 import { renderCount } from './renderProbe'
 import { STATIC_CANVAS } from './staticCanvas'
+import { CANVAS_SCOPES, displayNode } from '../bindings/canvasBindings'
 
 const props = defineProps<{ node: ContentNode }>()
 const { t } = useI18n()
@@ -22,6 +23,10 @@ const definition = computed(() => definitionOf(props.node.type))
 /** Inside a shared component shown on a page: drawn, but not part of this document. */
 const isStatic = inject(STATIC_CANVAS, false)
 const selected = computed(() => store.selection === props.node.id)
+
+// 016 FR-020: bound properties show the sample item's (or a listed item's) values.
+const scopes = inject(CANVAS_SCOPES, () => [])
+const display = computed(() => displayNode(props.node, store.bindings.data, scopes()))
 const label = computed(() =>
   typeof props.node.props.layerLabel === 'string' ? props.node.props.layerLabel : definition.value ? t(definition.value.labelKey) : props.node.type,
 )
@@ -44,12 +49,12 @@ onBeforeUpdate(() => renderCount(props.node.id))
   <component
     :is="definition.component"
     v-if="isStatic && definition"
-    :node="node"
+    :node="display.node"
   />
   <div
     v-else
     class="qb-node"
-    :class="{ 'qb-node--selected': selected }"
+    :class="{ 'qb-node--selected': selected, 'qb-node--hidden-by-binding': display.hidden, 'qb-node--broken-binding': display.broken.length > 0 }"
     :data-node-id="node.id"
     :data-node-type="node.type"
     @click="onClick"
@@ -72,7 +77,7 @@ onBeforeUpdate(() => renderCount(props.node.id))
     <component
       :is="definition.component"
       v-if="definition"
-      :node="node"
+      :node="display.node"
     />
     <div
       v-else

@@ -1,0 +1,103 @@
+{
+  "$comment": "What each invalid binding example must fail with: the rule (also the start of its file name) and the JSON Pointer of the first failure. Every validator of the page schema runs these with the page-schema examples (binding-expression.md §8).",
+  "binding_version_required--bind-without-version.json": {
+    "rule": "binding_version_required",
+    "pointer": ""
+  },
+  "props_invalid--binding-field-and-item.json": {
+    "rule": "props_invalid",
+    "pointer": "/root/children/0/children/0/props/bind/text/value"
+  },
+  "props_invalid--binding-unknown-prop.json": {
+    "rule": "props_invalid",
+    "pointer": "/root/children/0/children/0/props/bind/level"
+  },
+  "props_invalid--binding-link-on-text.json": {
+    "rule": "props_invalid",
+    "pointer": "/root/children/0/children/0/props/bind/link"
+  },
+  "props_invalid--binding-field-id.json": {
+    "rule": "props_invalid",
+    "pointer": "/root/children/0/children/0/props/bind/text/value/field"
+  },
+  "props_invalid--binding-template-and-field.json": {
+    "rule": "props_invalid",
+    "pointer": "/root/children/0/children/0/props/bind/text/value"
+  },
+  "props_invalid--binding-template-part-empty.json": {
+    "rule": "props_invalid",
+    "pointer": "/root/children/0/children/0/props/bind/text/value/parts/1"
+  },
+  "props_invalid--list-source-both.json": {
+    "rule": "props_invalid",
+    "pointer": "/root/children/0/children/0/props/source"
+  },
+  "props_invalid--list-filter-op.json": {
+    "rule": "props_invalid",
+    "pointer": "/root/children/0/children/0/props/filters/0/op"
+  },
+  "props_invalid--list-limit-101.json": {
+    "rule": "props_invalid",
+    "pointer": "/root/children/0/children/0/props/limit"
+  },
+  "props_invalid--list-eleven-filters.json": {
+    "rule": "props_invalid",
+    "pointer": "/root/children/0/children/0/props/filters"
+  },
+  "props_invalid--list-sort-field-and-item.json": {
+    "rule": "props_invalid",
+    "pointer": "/root/children/0/children/0/props/sort/0"
+  },
+  "props_invalid--list-page-param.json": {
+    "rule": "props_invalid",
+    "pointer": "/root/children/0/children/0/props/paging/param"
+  },
+  "props_invalid--list-paging-layout.json": {
+    "rule": "props_invalid",
+    "pointer": "/root/children/0/children/0/props/paging/layout"
+  },
+  "unknown_scope--not-enclosing.json": {
+    "rule": "unknown_scope",
+    "pointer": "/root/children/0/children/0/props/bind/text/value/scope"
+  },
+  "unknown_scope--from-empty-state.json": {
+    "rule": "unknown_scope",
+    "pointer": "/root/children/0/children/0/children/1/children/0/props/bind/text/value/scope"
+  },
+  "unknown_scope--own-filter.json": {
+    "rule": "unknown_scope",
+    "pointer": "/root/children/0/children/0/props/filters/0/value/scope"
+  },
+  "list_too_deep--three-levels.json": {
+    "rule": "list_too_deep",
+    "pointer": "/root/children/0/children/0/children/0/children/0/children/0/children/0/type"
+  },
+  "too_many_lists--21.json": {
+    "rule": "too_many_lists",
+    "pointer": "/root/children/0/children/20/type"
+  },
+  "duplicate_page_param--two-default.json": {
+    "rule": "duplicate_page_param",
+    "pointer": "/root/children/0/children/1/props/paging"
+  },
+  "duplicate_page_param--named.json": {
+    "rule": "duplicate_page_param",
+    "pointer": "/root/children/0/children/1/props/paging/param"
+  },
+  "list_children_invalid--missing-empty.json": {
+    "rule": "list_children_invalid",
+    "pointer": "/root/children/0/children/0/children"
+  },
+  "list_children_invalid--empty-first.json": {
+    "rule": "list_children_invalid",
+    "pointer": "/root/children/0/children/0/children"
+  },
+  "nesting_not_allowed--card-in-section.json": {
+    "rule": "nesting_not_allowed",
+    "pointer": "/root/children/0/children/0/type"
+  },
+  "nesting_not_allowed--heading-in-list.json": {
+    "rule": "nesting_not_allowed",
+    "pointer": "/root/children/0/children/0/children/0/type"
+  }
+}

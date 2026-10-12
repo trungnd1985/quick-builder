@@ -63,6 +63,20 @@ internal sealed partial class Publication : AggregateRoot, ISiteOwned
     /// <summary>The concurrency token, mapped to <c>xmin</c>.</summary>
     public uint Version { get; private set; }
 
+    /// <summary>
+    /// The page parameters of the live version's paginated lists (016 data-model §1.2a, research
+    /// TB-11), so the public path can build a page's cache key before reading its document.
+    /// Empty while unpublished, and for a version without paginated lists.
+    /// </summary>
+    public string[] PageParamNames { get; private set; } = [];
+
+    /// <summary>Records the live version's page parameters; called with every change of live version.</summary>
+    public void SetPageParamNames(IReadOnlyCollection<string> names)
+    {
+        ArgumentNullException.ThrowIfNull(names);
+        PageParamNames = [.. names.Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal)];
+    }
+
     public bool IsLive => LiveVersionId is not null;
 
     /// <summary>A publication for a subject that has never been published.</summary>

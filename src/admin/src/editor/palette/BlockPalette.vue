@@ -4,7 +4,7 @@
 // placementFor puts it (research ED-11).
 import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { definitionOf } from '../blocks/registry'
+import { definitionOf, newBlock } from '../blocks/registry'
 import { endDrag, startDrag } from '../dnd/useDragDrop'
 import { insert } from '../ops'
 import { placementFor } from '../ops/placement'
@@ -21,7 +21,8 @@ const store = useEditorStore()
 const items = computed(() =>
   blockTypes
     .map((type) => ({ type, definition: definitionOf(type) }))
-    .filter((item): item is { type: string; definition: NonNullable<typeof item.definition> } => item.definition !== undefined),
+    .filter((item): item is { type: string; definition: NonNullable<typeof item.definition> } => item.definition !== undefined)
+    .filter((item) => item.definition.palette !== false),
 )
 const active = ref(0)
 const list = ref<HTMLElement | null>(null)
@@ -41,7 +42,13 @@ function add(type: string, initialProps?: Record<string, string>): void {
     return
   }
 
-  const refused = store.apply(insert(root, at.parentId, at.index, type, store.kind, initialProps ?? definitionOf(type)!.initialProps(t)))
+  const block = newBlock(type, t, { collectionIds: [...(store.bindings.collectionIds ?? [])], nameFieldOf: store.bindings.nameFieldOf }, initialProps)
+  if ('refused' in block) {
+    emit('refused', block.refused)
+    return
+  }
+
+  const refused = store.apply(insert(root, at.parentId, at.index, type, store.kind, block.props, block.children))
   if (refused) emit('refused', refused.code)
   else emit('inserted', type)
 }

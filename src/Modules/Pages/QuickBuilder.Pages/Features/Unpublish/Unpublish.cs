@@ -15,12 +15,20 @@ internal sealed record UnpublishCommand(Guid SiteId, string SubjectKind, Guid Su
 /// Takes a page or component off the public site; its draft, versions and history stay
 /// (012 FR-004, FR-005).
 /// </summary>
-internal sealed class UnpublishHandler(PublishingWrites writes) : ICommandHandler<UnpublishCommand, Result<PublicationResponse>>
+internal sealed class UnpublishHandler(PublishingWrites writes, AddressWarnings addresses) : ICommandHandler<UnpublishCommand, Result<PublicationResponse>>
 {
-    public Task<Result<PublicationResponse>> HandleAsync(UnpublishCommand command, CancellationToken cancellationToken)
+    public async Task<Result<PublicationResponse>> HandleAsync(UnpublishCommand command, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(command);
-        return writes.UnpublishAsync(command.SiteId, command.SubjectKind, command.SubjectId, cancellationToken);
+        var result = await writes.UnpublishAsync(command.SiteId, command.SubjectKind, command.SubjectId, cancellationToken).ConfigureAwait(false);
+        if (result.IsFailure || command.SubjectKind != SubjectKinds.Page)
+        {
+            return result;
+        }
+
+        // 016 TB-12: a template taken off the site leaves its items without pages.
+        var warnings = await addresses.AddressesLostAsync(command.SiteId, command.SubjectId, cancellationToken).ConfigureAwait(false);
+        return Result.Success(result.Value with { Warnings = warnings });
     }
 }
 

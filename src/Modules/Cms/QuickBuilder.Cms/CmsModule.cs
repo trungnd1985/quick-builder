@@ -25,11 +25,13 @@ using QuickBuilder.Cms.Features.Items.SaveItemDraft;
 using QuickBuilder.Cms.Features.Items.ScheduleItem;
 using QuickBuilder.Cms.Features.Items.UnpublishItem;
 using QuickBuilder.Cms.Features.ListCollections;
+using QuickBuilder.Cms.Features.ListPreview;
 using QuickBuilder.Cms.Features.PreviewCollection;
 using QuickBuilder.Cms.Features.SaveCollection;
 using QuickBuilder.Cms.Infrastructure;
 using QuickBuilder.Cms.Infrastructure.Schema;
 using QuickBuilder.Media.Contracts.Events;
+using QuickBuilder.Shared.Infrastructure.Data;
 using QuickBuilder.Shared.Infrastructure.Modules;
 using QuickBuilder.Shared.Infrastructure.MultiSite;
 using QuickBuilder.Shared.Infrastructure.Outbox;
@@ -110,6 +112,14 @@ public static class CmsModule
         services.AddScoped<ItemReads>();
         services.AddScoped<QuickBuilder.Cms.Contracts.Media.IItemMediaUsageReader, ItemMediaUsageReader>();
 
+        // 016 research TB-08: published items for the public path, over a read-only connection,
+        // and schemas for other modules' admin-side checks.
+        services.AddDbContext<CmsPublishedReadDbContext>(options => options
+            .UseNpgsql(ReadOnlyConnection.From(connectionString))
+            .UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking));
+        services.AddScoped<QuickBuilder.Cms.Contracts.Publishing.IPublishedItemReader, PublishedItemReader>();
+        services.AddScoped<QuickBuilder.Cms.Contracts.ICollectionSchemaReader, CollectionSchemaReader>();
+
         // Research IT-11, IT-22: indexes items stored before 015, and any after a future indexer change.
         services.AddSingleton<ItemIndexBackfillService>();
         services.AddHostedService(sp => sp.GetRequiredService<ItemIndexBackfillService>());
@@ -137,6 +147,10 @@ public static class CmsModule
         services.AddScoped<ICommandHandler<DeleteItemCommand, Result>, DeleteItemHandler>();
         services.AddScoped<ICommandHandler<DuplicateItemCommand, Result<ItemResponse>>, DuplicateItemHandler>();
         services.AddScoped<IQueryHandler<LookupItemsQuery, Result<ItemLookupResponse>>, LookupItemsHandler>();
+
+        // 016 research TB-14: the editor's list preview, over published data of the named site.
+        services.AddScoped<SitePublishedItems>();
+        services.AddScoped<IQueryHandler<ListPreviewQuery, Result<ListPreviewResponse>>, ListPreviewHandler>();
         services.AddScoped<IQueryHandler<GetItemHistoryQuery, Result<ItemHistoryResponse>>, GetItemHistoryHandler>();
         services.AddScoped<ICommandHandler<RollbackItemCommand, Result<ItemResponse>>, RollbackItemHandler>();
         services.AddScoped<ICommandHandler<CopyVersionToDraftCommand, Result<ItemResponse>>, CopyVersionToDraftHandler>();

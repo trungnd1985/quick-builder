@@ -44,10 +44,9 @@ Deferred by 013 (media library, variants and remote storage; see specs/013-media
 
 Deferred by 014 (collections and the schema builder; see specs/014-cms-collections-schema/plan.md):
 
-- **Exception E-6, for #16**: schema changes rewrite published item data at once, and since
-  015 also the versions kept for rollback and scheduled content. Before items are rendered,
-  decide how a schema change reaches live pages (invalidate on `Cms.CollectionChanged`, or
-  require republishing the affected pages)
+- ~~**Exception E-6, for #16**~~: closed by 016. A schema change that rewrites values
+  refreshes every live page that lists or binds the collection, item pages included, through
+  `Cms.CollectionChanged` (016 research TB-10)
 - Unique field values (a "must be unique" setting on text and number fields)
 - Full schema snapshots per revision, and restoring a schema or a removed field
 - A background migration engine for collections far beyond 10,000 items
@@ -68,3 +67,13 @@ Deferred by 035 (richer rich text; see specs/035-rich-text-formats/plan.md):
   widths and cell alignment; justified text
 - Right-to-left support beyond storing alignment as start and end
 - Word desktop lists, which arrive as paragraphs because Word sends them as styled paragraphs
+
+## Deferred by 016 (collection templates and data binding)
+
+- Visitor filtering, sorting and search on lists; filters relative to the current time
+- Redirects from old item addresses, and SEO metadata templates (#17)
+- More than one reference step in a binding; binding style properties; components that read
+  the page's item
+- One `LATERAL` query per nested list, per-field expression indexes for sort keys, and
+  narrowing list refreshes by filter
+- Draft preview links for item pages (#22)

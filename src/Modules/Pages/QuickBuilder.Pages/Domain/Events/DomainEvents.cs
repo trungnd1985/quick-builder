@@ -27,6 +27,10 @@ internal sealed record PageAddressesChangedEvent(
 internal sealed record HomePageChangedEvent(Guid SiteId, Guid PageId, Guid? PreviousPageId, DateTimeOffset OccurredAtUtc)
     : IDomainEvent;
 
+/// <summary>A page became a collection's template, changed collection, or stopped being one (016 FR-036).</summary>
+internal sealed record PageTemplateChangedEvent(
+    Guid SiteId, Guid PageId, Guid? CollectionId, Guid? PreviousCollectionId, DateTimeOffset OccurredAtUtc) : IDomainEvent;
+
 internal sealed record ComponentCreatedEvent(Guid SiteId, Guid ComponentId, DateTimeOffset OccurredAtUtc) : IDomainEvent;
 
 internal sealed record ComponentDeletedEvent(Guid SiteId, Guid ComponentId, DateTimeOffset OccurredAtUtc) : IDomainEvent;

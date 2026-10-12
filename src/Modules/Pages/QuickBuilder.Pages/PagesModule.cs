@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using QuickBuilder.Cms.Contracts.Events;
 using QuickBuilder.Editor.Contracts.Events;
 using QuickBuilder.Media.Contracts.Events;
 using QuickBuilder.Pages.Contracts;
@@ -25,13 +26,16 @@ using QuickBuilder.Pages.Features.MovePage;
 using QuickBuilder.Pages.Features.Publish;
 using QuickBuilder.Pages.Features.PublishingHistory;
 using QuickBuilder.Pages.Features.RecordDesignPublish;
+using QuickBuilder.Pages.Features.RefreshPagesListingItems;
 using QuickBuilder.Pages.Features.RefreshPagesShowingMedia;
+using QuickBuilder.Pages.Features.RefreshPagesUsingCollection;
 using QuickBuilder.Pages.Features.RenameComponent;
 using QuickBuilder.Pages.Features.Rollback;
 using QuickBuilder.Pages.Features.RunDueSchedule;
 using QuickBuilder.Pages.Features.SaveComponentDraft;
 using QuickBuilder.Pages.Features.SavePageDraft;
 using QuickBuilder.Pages.Features.Schedules;
+using QuickBuilder.Pages.Features.SetPageTemplate;
 using QuickBuilder.Pages.Features.Unpublish;
 using QuickBuilder.Pages.Features.UpdatePage;
 using QuickBuilder.Pages.Infrastructure;
@@ -84,6 +88,9 @@ public static class PagesModule
         // 013 research MV-05: where media files are used, for the Media module.
         services.AddScoped<QuickBuilder.Pages.Contracts.Media.IMediaUsageReader, MediaUsageReader>();
 
+        // 016 research TB-12: which page is a collection's template, for Cms.
+        services.AddScoped<ITemplateReader, TemplateReader>();
+
         // What this module lets people do. Identity enforces them; this module only declares them.
         foreach (var capability in PagesCapabilities.All)
         {
@@ -112,6 +119,10 @@ public static class PagesModule
         services.AddScoped<PageReads>();
         services.AddScoped<PageTreeWrites>();
         services.AddScoped<DraftWrites>();
+        services.AddScoped<CollectionUseRows>();
+        services.AddScoped<PageParamRules>();
+        services.AddScoped<AddressWarnings>();
+        services.AddScoped<ICollectionUsageReader, CollectionUsageReader>();
         services.AddScoped<ComponentReads>();
 
         // 012: publishing — the reads every response shares, the dependency bump and the writes.
@@ -128,6 +139,11 @@ public static class PagesModule
         services.AddScoped<IValidator<UpdatePageCommand>, UpdatePageValidator>();
         services.AddScoped<ICommandHandler<MovePageCommand, Result<PageTreeResponse>>, MovePageHandler>();
         services.AddScoped<ICommandHandler<MakeHomePageCommand, Result<PageTreeResponse>>, MakeHomePageHandler>();
+
+        // 016 research TB-02: a page as a collection's template.
+        services.AddScoped<TemplateImpact>();
+        services.AddScoped<ICommandHandler<SetPageTemplateCommand, Result<PageWithWarningsResponse>>, SetPageTemplateHandler>();
+        services.AddScoped<IQueryHandler<GetTemplateImpactQuery, Result<TemplateImpactResponse>>, GetTemplateImpactHandler>();
         services.AddScoped<ICommandHandler<DeletePageCommand, Result>, DeletePageHandler>();
 
         services.AddScoped<IQueryHandler<GetPageDraftQuery, Result<DraftResponse>>, GetPageDraftHandler>();
@@ -170,6 +186,13 @@ public static class PagesModule
         services.AddScoped<IIntegrationEventHandler<FileDeleted>, RefreshPagesShowingMediaHandler>();
         // 013 MV-17: a replaced file, recorded dimensions or withdrawn variants refresh them too.
         services.AddScoped<IIntegrationEventHandler<FileChanged>, RefreshPagesShowingMediaHandler>();
+
+        // 016 research TB-10: pages listing or showing a collection refresh with its items and fields.
+        services.AddScoped<IIntegrationEventHandler<ItemPublished>, RefreshPagesListingItemsHandler>();
+        services.AddScoped<IIntegrationEventHandler<ItemUnpublished>, RefreshPagesListingItemsHandler>();
+        services.AddScoped<IIntegrationEventHandler<ItemDeleted>, RefreshPagesListingItemsHandler>();
+        services.AddScoped<IIntegrationEventHandler<CollectionChanged>, RefreshPagesUsingCollectionHandler>();
+        services.AddScoped<IIntegrationEventHandler<CollectionDeleted>, RefreshPagesUsingCollectionHandler>();
 
         // 011 research ED-16: the token usage count the admin asks before deleting a token.
         services.AddScoped<IQueryHandler<GetTokenUsageQuery, Result<TokenUsageResponse>>, GetTokenUsageHandler>();

@@ -17,6 +17,10 @@ export type OpRefusalCode =
   | 'cannot_change_root'
   | 'into_itself'
   | 'read_only'
+  /** 016: a Collection list needs a collection, and the site has none. */
+  | 'no_collections'
+  /** 016 rule 20: a list's card and empty state stay with their list, one of each, in order. */
+  | 'list_slot'
 
 export interface OpRefusal {
   code: OpRefusalCode
@@ -30,6 +34,9 @@ export interface OpRefusal {
 export type OpResult =
   | { ok: true; root: ContentNode; selection: string | null }
   | { ok: false; refusal: OpRefusal }
+
+/** A list's card or empty state: made and removed only with its list (016 rule 20). */
+export const isListSlot = (type: string): boolean => type === 'list-card' || type === 'list-empty'
 
 export const refuse = (code: OpRefusalCode, extra: Omit<OpRefusal, 'code'> = {}): OpResult => ({ ok: false, refusal: { code, ...extra } })
 

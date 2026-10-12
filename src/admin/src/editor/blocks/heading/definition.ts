@@ -11,6 +11,8 @@ const definition: BlockDefinition = {
       props: [
         { prop: 'text', control: 'text' },
         { prop: 'level', control: 'number' },
+        // 016 FR-014: a heading may link, often to its card's item page.
+        { prop: 'link', control: 'link' },
       ],
     },
     {

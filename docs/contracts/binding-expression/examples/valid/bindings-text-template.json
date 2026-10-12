@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "bindingVersion": 1,
+  "root": {
+    "id": "root",
+    "type": "root",
+    "props": {},
+    "children": [
+      {
+        "id": "s1",
+        "type": "section",
+        "props": {},
+        "children": [
+          { "id": "by", "type": "text", "props": { "text": "", "bind": { "text": { "value": { "parts": [
+            "By ", { "field": "f1", "via": "f5" }, ", ", { "field": "f7", "format": { "date": "long" } }
+          ] }, "empty": "hide" } } }, "children": [] },
+          { "id": "n1", "type": "text", "props": { "text": "", "bind": { "text": { "value": { "field": "f8", "format": { "number": { "decimals": 1 } } } } } }, "children": [] },
+          { "id": "y1", "type": "heading", "props": { "text": "", "bind": { "text": { "value": { "field": "f9", "format": { "yes": "Featured", "no": "" } } } } }, "children": [] },
+          { "id": "d1", "type": "text", "props": { "text": "", "bind": { "text": { "value": { "item": "lastPublishedAt", "format": { "date": "iso" } } } } }, "children": [] },
+          { "id": "d2", "type": "text", "props": { "text": "", "bind": { "text": { "value": { "parts": [
+            { "item": "slug" }, " · ", { "item": "firstPublishedAt", "format": { "date": "short" } }, { "field": "f7", "format": { "date": "medium" } }
+          ] } } } }, "children": [] }
+        ]
+      }
+    ]
+  }
+}

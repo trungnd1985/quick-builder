@@ -41,6 +41,7 @@ internal sealed class PageRenderer(IEnumerable<IBlockRenderer> renderers)
         }
 
         context.RenderChildren = (parent, childScope, output) => RenderChildren(parent, childScope, context, output);
+        context.RenderNode = (node, nodeScope, output) => RenderNode(node, nodeScope, context, output);
         RenderChildren(root, scope, context, writer);
     }
 
@@ -53,10 +54,16 @@ internal sealed class PageRenderer(IEnumerable<IBlockRenderer> renderers)
 
         foreach (var child in children.EnumerateArray())
         {
-            if (_renderers.TryGetValue(RenderContext.TypeOf(child), out var renderer))
-            {
-                renderer.Render(child, scope, context, writer);
-            }
+            RenderNode(child, scope, context, writer);
+        }
+    }
+
+    private void RenderNode(JsonElement node, string scope, RenderContext context, HtmlWriter writer)
+    {
+        // 016 FR-019: a block whose binding has nothing to show, with "hide" chosen, is left out.
+        if (_renderers.TryGetValue(RenderContext.TypeOf(node), out var renderer) && !context.IsHidden(node))
+        {
+            renderer.Render(node, scope, context, writer);
         }
     }
 }

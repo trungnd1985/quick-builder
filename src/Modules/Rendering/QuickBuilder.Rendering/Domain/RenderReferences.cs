@@ -38,6 +38,7 @@ internal sealed class RenderReferences
                     AddGuid(Components, props, "componentId");
                     break;
                 case "button":
+                case "heading":
                     AddLink(props, "link");
                     break;
                 case "image":

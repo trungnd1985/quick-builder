@@ -11,11 +11,13 @@ import { pagesApi } from '../../api/pages'
 import { publishingApi } from '../../api/publishing'
 import { ApiError } from '../../api/request'
 import { validateDocument } from '../schema/documentValidator'
-import { CURRENT_SCHEMA_VERSION } from '../schema/limits'
 import type { ContentDocument, ContentNode, DocumentKind } from '../schema/schema'
 import { defaultTokens, type TokenSet } from '../tokens/defaultTokens'
 import type { OpRefusal, OpResult } from '../ops'
 import { locate } from '../ops/tree'
+import { useBindingContext } from '../bindings/bindingContext'
+import { contentDocument } from '../schema/bindingDocumentRules'
+import { useSitesStore } from '../../app/sitesStore'
 
 /** Why the document cannot be changed right now (FR-028, FR-029, ED-19). */
 /** `version`: a published version, opened from the history (012 FR-013). */
@@ -61,9 +63,14 @@ export const useEditorStore = defineStore('editor', () => {
 
   const listeners = new Set<ChangeListener>()
 
-  const document = computed<ContentDocument | null>(() =>
-    root.value ? { schemaVersion: CURRENT_SCHEMA_VERSION, root: root.value } : null,
-  )
+  /** 016: the page's template state, the site's collections and the template's sample item. */
+  const bindings = useBindingContext()
+
+  // 016 rule 13: a document with bindings or lists states its binding format version.
+  const document = computed<ContentDocument | null>(() => (root.value ? contentDocument(root.value) : null))
+
+  /** What validation needs to know of the site: its collections, for rule 14 (016). */
+  const validationContext = computed(() => ({ collectionIds: bindings.collectionIds.value }))
 
   const selectedNode = computed(() => (root.value && selection.value ? locate(root.value, selection.value)?.node ?? null : null))
 
@@ -148,7 +155,10 @@ export const useEditorStore = defineStore('editor', () => {
       baseVersion.value = draft.version
       tokens.value = designTokens.document
 
-      const check = validateDocument(draft.document, documentKind)
+      const language = useSitesStore().sites.find((s) => s.id === site)?.defaultLanguage ?? 'en'
+      await bindings.load(site, documentKind, id, language)
+
+      const check = validateDocument(draft.document, documentKind, validationContext.value)
       if (!check.valid) readOnly.value = { reason: 'invalid', rule: check.rule, pointer: check.pointer }
 
       loadState.value = 'ready'
@@ -218,6 +228,8 @@ export const useEditorStore = defineStore('editor', () => {
     loadState,
     lastRefusal,
     document,
+    validationContext,
+    bindings,
     selectedNode,
     dirty,
     onChange,

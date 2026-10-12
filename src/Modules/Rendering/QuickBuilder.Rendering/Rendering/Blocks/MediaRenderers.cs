@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using QuickBuilder.Rendering.Binding;
 using QuickBuilder.Rendering.Domain;
 
 namespace QuickBuilder.Rendering.Rendering.Blocks;
@@ -39,18 +40,29 @@ internal sealed class ImageRenderer : IBlockRenderer
         ArgumentNullException.ThrowIfNull(writer);
 
         // A file that is gone takes the whole image with it: nothing broken is shown (FR-027).
-        if (context.Prop(node, "media") is not { ValueKind: JsonValueKind.Object } media
+        // 016: a bound image shows the item's file, or the block's own when it has none.
+        var boundMedia = context.Bound(node, "media");
+        Guid mediaId;
+        if (boundMedia is { State: BoundState.Value, MediaId: { } boundId })
+        {
+            mediaId = boundId;
+        }
+        else if (context.Prop(node, "media") is not { ValueKind: JsonValueKind.Object } media
             || !media.TryGetProperty("mediaId", out var id)
-            || !Guid.TryParse(id.GetString(), out var mediaId)
-            || !context.Inputs.Media.TryGetValue(mediaId, out var file))
+            || !Guid.TryParse(id.GetString(), out mediaId))
+        {
+            return;
+        }
+
+        if (!context.Inputs.Media.TryGetValue(mediaId, out var file))
         {
             return;
         }
 
         var basePath = PageShell.TrimBase(context.Inputs.BasePath);
         var width = context.Choice(node, "width", Widths);
-        var alt = context.Bool(node, "decorative") ? string.Empty : context.String(node, "alt");
-        var link = LinkResolver.Resolve(context.Prop(node, "link"), context);
+        var alt = context.Bool(node, "decorative") ? string.Empty : context.BoundText(node, "alt");
+        var link = LinkResolver.Resolve(node, "link", context);
         var linked = link is not null && LinkResolver.IsWritable(link);
 
         writer.Open("figure").Attribute("class", $"qb-image qb-image--{width}").EndTag();
@@ -147,7 +159,7 @@ internal sealed class ButtonRenderer : IBlockRenderer
         ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(writer);
 
-        var link = LinkResolver.Resolve(context.Prop(node, "link"), context);
+        var link = LinkResolver.Resolve(node, "link", context);
         var tag = link is not null && LinkResolver.IsWritable(link) ? "a" : "span";
 
         writer.Open("div").Attribute("class", $"qb-button-row qb-align--{context.Choice(node, "align", Alignments)}").EndTag();
@@ -161,7 +173,7 @@ internal sealed class ButtonRenderer : IBlockRenderer
             LinkResolver.Write(writer, link!, context.Bool(node, "newTab"));
         }
 
-        writer.EndTag().Text(context.String(node, "label")).Close(tag).Close("div");
+        writer.EndTag().Text(context.BoundText(node, "label")).Close(tag).Close("div");
     }
 }
 

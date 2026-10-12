@@ -4,6 +4,7 @@
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { ContentNode } from '../../schema/schema'
+import { isObject } from '../../schema/subsetValidator'
 import { tokenValue } from '../../tokens/tokenCss'
 import { useBrokenLinks } from '../brokenLinks'
 import { useBlock, useInlineText } from '../useBlock'
@@ -13,8 +14,15 @@ const { t } = useI18n()
 const { store, prop, editable } = useBlock(() => props.node)
 const isBroken = useBrokenLinks(() => store.siteId)
 const broken = computed(() => isBroken.value(props.node.props.link))
+
+// 016 T070: a link bound to an item's page goes nowhere on the canvas; its address shows on hover.
+const boundAddress = computed(() => {
+  const link = props.node.props.link
+  const bind = props.node.props.bind
+  return isObject(bind) && 'link' in bind && isObject(link) && link.type === 'url' && typeof link.href === 'string' ? link.href : null
+})
 const element = ref<HTMLElement | null>(null)
-const { onInput, onKeydown } = useInlineText(element, () => props.node, 'label', { singleLine: true, minLength: 1 })
+const { onInput, onKeydown, bound } = useInlineText(element, () => props.node, 'label', { singleLine: true, minLength: 1 })
 
 const style = computed(() => ({
   '--qb-button-brand': tokenValue({ token: 'color-brand' }, 'color', store.tokens, { token: 'color-brand' }),
@@ -31,8 +39,9 @@ const style = computed(() => ({
       ref="element"
       class="qb-button"
       :class="`qb-button--${prop('style')}`"
+      :title="boundAddress ? t('editor.list.itemPageTitle', { address: boundAddress }) : undefined"
       :style="style"
-      :contenteditable="editable ? 'plaintext-only' : 'false'"
+      :contenteditable="editable && !bound ? 'plaintext-only' : 'false'"
       spellcheck="true"
       @input="onInput"
       @keydown="onKeydown"

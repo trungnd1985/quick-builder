@@ -3,5 +3,11 @@
     "title": "Az oldal nem található",
     "message": "Nem találtuk a keresett oldalt.",
     "home": "Ugrás a kezdőlapra"
+  },
+  "pager": {
+    "label": "Oldalak",
+    "previous": "Előző",
+    "next": "Következő",
+    "first": "Vissza az első oldalra"
   }
 }

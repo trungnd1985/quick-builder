@@ -310,6 +310,21 @@ onBeforeUnmount(() => {
               :item="item"
             />
           </p>
+          <!-- 016 FR-007: where visitors find the item, or why they cannot. -->
+          <p
+            v-if="item?.address"
+            class="help item-address"
+          >
+            <template v-if="item.address.path && !item.address.reason">
+              {{ t('cms.items.address.live', { path: item.address.path }) }}
+            </template>
+            <template v-else-if="item.address.reason === 'hidden_by_page'">
+              {{ t('cms.items.address.hidden_by_page', { path: item.address.path }) }}
+            </template>
+            <template v-else-if="item.address.reason">
+              {{ t(`cms.items.address.${item.address.reason}`) }}
+            </template>
+          </p>
         </div>
         <div class="page-toolbar">
           <span

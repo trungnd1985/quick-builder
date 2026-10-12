@@ -30,6 +30,16 @@
     z-index: 1;
   }
 
+  /* 016 FR-019: a block its binding hides on the site, still drawn here so it can be selected. */
+  .qb-node--hidden-by-binding > :not(.qb-node__bar) {
+    opacity: 0.4;
+  }
+
+  /* 016 FR-018: a block with a broken binding; the panel says why. */
+  .qb-node--broken-binding {
+    outline: 1px dashed #b45309;
+  }
+
   .qb-node__bar {
     position: absolute;
     top: -1.5rem;
@@ -126,6 +136,37 @@
     text-align: center;
   }
 
+  /* 016: what a Collection list on the canvas shows, and where its empty state is. */
+  .qb-editor-list-status {
+    margin: 0 0 0.5rem;
+    color: #53595f;
+    font: 0.8125rem/1.4 system-ui, sans-serif;
+  }
+
+  /* The canvas pager draws like the site's, from spans that go nowhere. */
+  .qb-pager--canvas > span {
+    display: inline-block;
+    min-width: 2.75em;
+    padding: 0.4rem 0.6rem;
+    border: 1px solid #c3c8d0;
+    border-radius: 4px;
+    text-align: center;
+  }
+
+  .qb-pager--canvas > .qb-pager__gap {
+    border: 0;
+  }
+
+  .qb-pager--canvas > [aria-current='page'] {
+    background: #10489c;
+    border-color: #10489c;
+    color: #fff;
+  }
+
+  .qb-list-block > .qb-list + .qb-editor-list-status {
+    margin-top: 1rem;
+  }
+
   .qb-editor-empty-page {
     display: flex;
     flex-direction: column;
@@ -199,4 +240,11 @@
   .qb-component-ref__content {
     pointer-events: none;
   }
+}
+
+/* 016 FR-014: a linked heading looks as it does on the site (.qb-heading__link in blocks.css). */
+.qb-heading--linked {
+  text-decoration: underline;
+  text-decoration-thickness: 0.06em;
+  text-underline-offset: 0.15em;
 }

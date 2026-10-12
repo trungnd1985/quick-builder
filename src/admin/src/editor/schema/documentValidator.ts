@@ -12,6 +12,8 @@ import { codePointLength, isObject, type Json } from './subsetValidator'
 import { MAX_DOCUMENT_BYTES, MAX_NODE_DEPTH, MAX_NODES, MAX_RICH_TEXT_CHARS, MAX_RICH_TEXT_IMAGES, MAX_RICH_TEXT_TABLES, SUPPORTED_SCHEMA_VERSIONS } from './limits'
 import { nodeTypes, pageSchema, type DocumentKind } from './schema'
 import { checkRichTextRules } from './richTextRules'
+import { checkBindingRules, checkListChildren } from './bindingDocumentRules'
+import type { JsonObject } from './subsetValidator'
 
 export type DocumentValidation =
   | { valid: true }
@@ -24,7 +26,16 @@ const NODE_TYPES: ReadonlySet<string> = new Set(nodeTypes)
 /** The UTF-8 size of a value's JSON, as the server measures the saved document. */
 export const utf8Size = (value: unknown): number => new TextEncoder().encode(JSON.stringify(value)).length
 
-export function validateDocument(document: unknown, kind: DocumentKind): DocumentValidation {
+/** What the editor knows about the document's site, for the rules that need it. */
+export interface ValidationContext {
+  /**
+   * The site's collection ids, for rule 14 (016). When absent, rule 14 is not checked here and
+   * the server, which always checks it, decides.
+   */
+  collectionIds?: ReadonlySet<string>
+}
+
+export function validateDocument(document: unknown, kind: DocumentKind, context: ValidationContext = {}): DocumentValidation {
   if (utf8Size(document) > MAX_DOCUMENT_BYTES) {
     return invalid('too_large', '', `A document may be at most ${MAX_DOCUMENT_BYTES} bytes.`)
   }
@@ -44,7 +55,25 @@ export function validateDocument(document: unknown, kind: DocumentKind): Documen
   if (failure) return fromSchema(failure.location, failure.keyword, failure.message, document)
 
   const root = (document as { root: Json }).root
-  return componentRules(root, '/root', kind) ?? richTextLength(root, '/root') ?? richTextRules(root, '/root') ?? { valid: true }
+  const listChildren = checkListChildren(root, '/root')
+  if (listChildren) return { valid: false, ...listChildren }
+
+  const earlier = componentRules(root, '/root', kind) ?? richTextLength(root, '/root') ?? richTextRules(root, '/root')
+  if (earlier) return earlier
+
+  // Rules 13, 15–19, then rule 14 last, as the server orders them (page-schema.md §3).
+  const collections = new Map<string, string>()
+  const binding = checkBindingRules(document as JsonObject, kind, collections)
+  if (binding) return { valid: false, ...binding }
+
+  if (context.collectionIds) {
+    for (const [id, pointer] of collections) {
+      if (!context.collectionIds.has(id)) {
+        return invalid('unknown_collection', pointer, 'The list names a collection this site does not have.')
+      }
+    }
+  }
+  return { valid: true }
 }
 
 /** Depth, count and id uniqueness, over whatever node-shaped values exist. */

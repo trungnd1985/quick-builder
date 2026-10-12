@@ -27,6 +27,9 @@ public sealed record PublicationResponse(
 {
     /// <summary>Never published and nothing scheduled.</summary>
     public static PublicationResponse Draft { get; } = new("draft", null, null, null, false, null, [], null);
+
+    /// <summary>016 TB-12: what unpublishing did to item addresses; empty when nothing.</summary>
+    public IReadOnlyList<SetPageTemplate.TemplateWarningResponse> Warnings { get; init; } = [];
 }
 
 /// <summary>One publish log entry (FR-012, FR-017).</summary>

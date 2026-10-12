@@ -23,6 +23,8 @@ export const OP_REFUSALS: readonly (OpRefusalCode | 'needs_section' | 'clipboard
   'cannot_change_root',
   'into_itself',
   'read_only',
+  'no_collections',
+  'list_slot',
   'needs_section',
   'clipboard_empty',
 ]
@@ -49,6 +51,17 @@ export const DOCUMENT_RULES: readonly string[] = [
   'rich_text_too_many_tables',
   'table_not_rectangular',
   'table_header_misplaced',
+  // 016: bindings and collection lists (page-schema.md §3, rules 13–20).
+  'binding_version_required',
+  'unknown_collection',
+  'too_many_lists',
+  'list_too_deep',
+  'list_children_invalid',
+  'unknown_scope',
+  'page_scope_not_allowed',
+  'duplicate_page_param',
+  // 016 FR-027: rule 21, across a page and the components it shows (server only).
+  'page_param_taken',
 ]
 
 /** Server error codes the editor and the design screen can receive. */

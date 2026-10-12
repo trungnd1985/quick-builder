@@ -3,5 +3,11 @@
     "title": "Sayfa bulunamadı",
     "message": "Aradığınız sayfayı bulamadık.",
     "home": "Ana sayfaya git"
+  },
+  "pager": {
+    "label": "Sayfalar",
+    "previous": "Önceki",
+    "next": "Sonraki",
+    "first": "İlk sayfaya dön"
   }
 }

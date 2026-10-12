@@ -1,4 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using QuickBuilder.Cms.Contracts.Events;
+using QuickBuilder.IntegrationTests.Cms.Items;
 using QuickBuilder.IntegrationTests.Infrastructure;
 using QuickBuilder.IntegrationTests.Pages;
 using Xunit;
@@ -70,6 +72,32 @@ public sealed class GenerationBumpSiteFilterTests(DatabaseFixture database) : IA
         var node = await PagesApi.NodeAsync(_scenario.Admin, _scenario.SiteA, "/moving").ConfigureAwait(true);
         await PagesApi.OkAsync(await PagesApi.UpdateAsync(
             _scenario.Admin, _scenario.SiteA, page, node.GetProperty("title").GetString()!, "moved", node.GetProperty("version").GetInt32()).ConfigureAwait(true)).ConfigureAwait(true);
+
+        Assert.Equal(7, await GenerationAsync(foreignPage).ConfigureAwait(true));
+    }
+
+    [Fact]
+    public async Task A_cms_event_on_site_a_leaves_site_b_alone_even_with_the_same_collection_id()
+    {
+        // 016 TB-10: the collection id of a site A event, on a live site B page's rows.
+        var collection = Guid.NewGuid();
+        var foreignPage = Guid.NewGuid();
+        await _scenario.ReadAsync(db => db.Database.ExecuteSqlRawAsync(
+            """
+            INSERT INTO pages.publications (subject_kind, subject_id, site_id, next_number, generation) VALUES ('page', {0}, {1}, 1, 7);
+            INSERT INTO pages.live_dependencies (site_id, subject_kind, subject_id, target_kind, target_id) VALUES ({1}, 'page', {0}, 'collection', {2});
+            INSERT INTO pages.live_dependencies (site_id, subject_kind, subject_id, target_kind, target_id) VALUES ({1}, 'page', {0}, 'template', {2});
+            """,
+            foreignPage,
+            _scenario.SiteB,
+            collection)).ConfigureAwait(true);
+
+        await _scenario.App.DeliverAsync(new ItemPublished(
+            Guid.CreateVersion7(), DateTimeOffset.UtcNow, _scenario.SiteA, collection, Guid.NewGuid(), 1, "manual", false, null)).ConfigureAwait(true);
+        await _scenario.App.DeliverAsync(new CollectionChanged(
+            Guid.CreateVersion7(), DateTimeOffset.UtcNow, _scenario.SiteA, collection, 2, true, true, null)).ConfigureAwait(true);
+        await _scenario.App.DeliverAsync(new CollectionDeleted(
+            Guid.CreateVersion7(), DateTimeOffset.UtcNow, _scenario.SiteA, collection, null)).ConfigureAwait(true);
 
         Assert.Equal(7, await GenerationAsync(foreignPage).ConfigureAwait(true));
     }

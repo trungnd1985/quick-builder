@@ -1,10 +1,8 @@
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using Npgsql;
+using QuickBuilder.Cms.Contracts.Media;
 using QuickBuilder.Media.Contracts.Events;
 using QuickBuilder.Pages.Domain;
 using QuickBuilder.Pages.Infrastructure;
-using QuickBuilder.Shared.Infrastructure.Outbox;
 using QuickBuilder.Shared.Kernel.Events;
 
 namespace QuickBuilder.Pages.Features.RefreshPagesShowingMedia;
@@ -17,12 +15,8 @@ namespace QuickBuilder.Pages.Features.RefreshPagesShowingMedia;
 /// </summary>
 /// <remarks>
 /// <para>
-/// <b>Deduplication is this handler's own.</b> The dispatcher marks the event processed in
-/// Media's schema; the generations move here, in Pages'. So, like
-/// <c>RecordSiteSecurityEventsHandler</c> in Identity, the bump is saved together with a
-/// processed-event row in Pages' own <c>processed_events</c>, keyed by the event's id and a
-/// handler name per event type: a redelivery finds the row, and a duplicate key rolls the
-/// second bump back.
+/// <b>Deduplication is this handler's own</b>, through <see cref="RefreshOnce"/>: the
+/// dispatcher marks the event processed in Media's schema, the generations move in Pages'.
 /// </para>
 /// <para>
 /// Every <see cref="FileChanged"/> reason gets the same bump, including reasons added after
@@ -30,7 +24,7 @@ namespace QuickBuilder.Pages.Features.RefreshPagesShowingMedia;
 /// missing one would leave visitors with stale images.
 /// </para>
 /// </remarks>
-internal sealed class RefreshPagesShowingMediaHandler(IServiceScopeFactory scopes)
+internal sealed class RefreshPagesShowingMediaHandler(IServiceScopeFactory scopes, IItemMediaUsageReader media)
     : IIntegrationEventHandler<FileDeleted>, IIntegrationEventHandler<FileChanged>
 {
     private const string DeletedHandlerName = nameof(RefreshPagesShowingMediaHandler);
@@ -51,43 +45,24 @@ internal sealed class RefreshPagesShowingMediaHandler(IServiceScopeFactory scope
             integrationEvent.Id, integrationEvent.OccurredAtUtc, integrationEvent.SiteId, integrationEvent.FileId, ChangedHandlerName, cancellationToken);
     }
 
-    private async Task RefreshAsync(
-        Guid eventId, DateTimeOffset occurredAtUtc, Guid siteId, Guid fileId, string handlerName, CancellationToken cancellationToken)
-    {
-        await using var scope = scopes.CreateAsyncScope();
-        var database = scope.ServiceProvider.GetRequiredService<PagesDbContext>();
-        var bump = scope.ServiceProvider.GetRequiredService<GenerationBump>();
+    private Task RefreshAsync(
+        Guid eventId, DateTimeOffset occurredAtUtc, Guid siteId, Guid fileId, string handlerName, CancellationToken cancellationToken) =>
+        RefreshOnce.RunAsync(
+            scopes,
+            eventId,
+            occurredAtUtc,
+            handlerName,
+            async (bump, ct) =>
+            {
+                await bump.BumpForTargetsAsync(siteId, [(DependencyKinds.Media, fileId)], exceptPageId: null, ct).ConfigureAwait(false);
 
-        // Cheap check first, so an ordinary redelivery does not lean on an exception.
-        var alreadyDone = await database.ProcessedEvents
-            .AnyAsync(p => p.EventId == eventId && p.HandlerName == handlerName, cancellationToken)
-            .ConfigureAwait(false);
-        if (alreadyDone)
-        {
-            return;
-        }
-
-        await using var transaction = await database.Database.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
-
-        await bump.BumpForTargetsAsync(siteId, [(DependencyKinds.Media, fileId)], exceptPageId: null, cancellationToken)
-            .ConfigureAwait(false);
-
-        database.ProcessedEvents.Add(new ProcessedEvent
-        {
-            EventId = eventId,
-            HandlerName = handlerName,
-            ProcessedAtUtc = occurredAtUtc,
-        });
-
-        try
-        {
-            await database.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
-            await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
-        }
-        catch (DbUpdateException ex) when (ex.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation })
-        {
-            // Two deliveries raced past the check; the other one's bump stands, this one's goes.
-            await transaction.RollbackAsync(cancellationToken).ConfigureAwait(false);
-        }
-    }
+                // 016 TB-10: lists of collections whose published items show the file. Their item
+                // pages refresh through the render stamp Cms moves.
+                var collections = await media.CollectionsShowingPublishedAsync(siteId, fileId, ct).ConfigureAwait(false);
+                if (collections.Count > 0)
+                {
+                    await bump.BumpForCollectionsAsync(siteId, [.. collections], includeTemplates: false, exceptPageId: null, ct).ConfigureAwait(false);
+                }
+            },
+            cancellationToken);
 }

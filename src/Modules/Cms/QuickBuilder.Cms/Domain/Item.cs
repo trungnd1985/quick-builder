@@ -84,6 +84,12 @@ internal sealed class Item : AggregateRoot, ISiteOwned, IDisposable
     /// <summary>Name and slug, normalised for search (research IT-13).</summary>
     public string SearchText { get; private set; }
 
+    /// <summary>
+    /// The published text field values, lower-cased and accent-folded, keyed by field id, for
+    /// Collection lists' <c>contains</c> (016 research TB-08); null when nothing is published.
+    /// </summary>
+    public JsonDocument? PublishedText { get; private set; }
+
     /// <summary>The draft's report when it has any problem, otherwise null (research IT-05).</summary>
     public JsonDocument? Attention { get; private set; }
 
@@ -101,6 +107,19 @@ internal sealed class Item : AggregateRoot, ISiteOwned, IDisposable
     public DateTimeOffset? PublishedAtUtc { get; private set; }
 
     public Guid? PublishedBy { get; private set; }
+
+    /// <summary>
+    /// When the item was first published, kept across unpublishing; the built-in value
+    /// <c>firstPublishedAt</c> of bindings and lists (016 binding-expression.md §2).
+    /// </summary>
+    public DateTimeOffset? FirstPublishedAtUtc { get; private set; }
+
+    /// <summary>
+    /// Moves on with every change to what the item's page shows (016 research TB-10, data-model
+    /// §1.4): its own publishes and unpublishes here, and changes to items it refers to and to
+    /// media it shows through <c>RenderStampBump</c>. The page's cache key carries it.
+    /// </summary>
+    public long RenderStamp { get; private set; } = 1;
 
     /// <summary>The number of the live version; null when unpublished.</summary>
     public int? LiveVersion { get; private set; }
@@ -195,6 +214,8 @@ internal sealed class Item : AggregateRoot, ISiteOwned, IDisposable
         LiveVersion = version.Number;
         PublishedAtUtc = now;
         PublishedBy = actor;
+        FirstPublishedAtUtc ??= now;
+        RenderStamp++;
         Status = ItemStatuses.Compute(DraftValues(), Slug, values, slug);
         Touch(actor, now);
 
@@ -208,6 +229,12 @@ internal sealed class Item : AggregateRoot, ISiteOwned, IDisposable
         Raise(new ItemPublishedEvent(SiteId, CollectionId, Id, version.Number, kind, slugChanged, now));
         return version;
     }
+
+    /// <summary>
+    /// A media file the published values show was deleted or changed (016 data-model §1.4 case 3):
+    /// the item's page shows something new, so its cache key moves on.
+    /// </summary>
+    public void ShownMediaChanged() => RenderStamp++;
 
     /// <summary>Removes the published values, keeping the draft and every version (FR-021).</summary>
     public void Unpublish(string? scheduleAction, Guid actor, DateTimeOffset now)
@@ -223,6 +250,7 @@ internal sealed class Item : AggregateRoot, ISiteOwned, IDisposable
         LiveVersion = null;
         PublishedAtUtc = null;
         PublishedBy = null;
+        RenderStamp++;
         Status = ItemStatuses.Draft;
         Touch(actor, now);
 
@@ -274,12 +302,14 @@ internal sealed class Item : AggregateRoot, ISiteOwned, IDisposable
     }
 
     /// <summary>What <c>ItemIndexer</c> derived from the item (research IT-11).</summary>
-    public void ApplyIndex(string? name, string searchText, ItemReport draftReport, int indexVersion)
+    public void ApplyIndex(string? name, string searchText, JsonDocument? publishedText, ItemReport draftReport, int indexVersion)
     {
         ArgumentNullException.ThrowIfNull(draftReport);
 
         Name = name;
         SearchText = searchText;
+        PublishedText?.Dispose();
+        PublishedText = publishedText;
         Attention?.Dispose();
         Attention = draftReport.ToAttention();
         Status = ItemStatuses.Compute(DraftValues(), Slug, PublishedValues(), PublishedSlug);
@@ -305,6 +335,7 @@ internal sealed class Item : AggregateRoot, ISiteOwned, IDisposable
     {
         Draft?.Dispose();
         Published?.Dispose();
+        PublishedText?.Dispose();
         Attention?.Dispose();
     }
 

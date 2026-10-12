@@ -45,7 +45,8 @@ const excluded = computed(() => {
   return ids
 })
 
-const parents = computed(() => (props.page.isHome ? [] : props.pages.filter((p) => !excluded.value.has(p.id))))
+// 016 TB-02: nothing goes under a template, whose address holds each item's slug.
+const parents = computed(() => (props.page.isHome ? [] : props.pages.filter((p) => !excluded.value.has(p.id) && !p.templateCollectionId)))
 
 const parentId = ref<string>(props.page.parentId ?? TOP)
 

@@ -11,6 +11,8 @@ import { defaultTokens } from '../../src/editor/tokens/defaultTokens'
 export const SITE = '33333333-3333-3333-3333-333333333333'
 export const PAGE = '44444444-4444-4444-4444-444444444444'
 export const COMPONENT = '55555555-5555-5555-5555-555555555555'
+/** The site's one collection (016): posts with a title. */
+export const COLLECTION = '0192f5a0-0000-7000-8000-00000000c001'
 
 export type Json = unknown
 export type Reply = { status: number; body?: Json } | (() => Promise<never>)
@@ -68,6 +70,12 @@ export function stubServer(initial: Json = emptyDocument(), options: { version?:
         stored = body.document
         version += 1
         reply = { status: 200, body: { schemaVersion: 1, version, updatedAtUtc: '2026-09-28T08:01:00Z', updatedBy: { id: 'u', displayName: 'Dana' }, document: stored } }
+      } else if (path.endsWith('/collections') && method === 'GET') {
+        reply = { status: 200, body: { collections: [{ id: COLLECTION, name: 'Posts', slug: 'posts', fieldCount: 1, itemCount: 0, revision: 1 }], canManage: true } }
+      } else if (path.endsWith(`/collections/${COLLECTION}`) && method === 'GET') {
+        reply = { status: 200, body: { id: COLLECTION, name: 'Posts', slug: 'posts', revision: 1, schemaRevision: 1, schema: { schemaVersion: 1, titleFieldId: 'f1', fields: [{ id: 'f1', key: 'title', name: 'Title', type: 'text', required: true, help: '', multiline: false, maxLength: 200 }] } } }
+      } else if (path.endsWith('/list-preview') && method === 'POST') {
+        reply = { status: 200, body: { items: [], total: 0, referenced: {}, schemas: {} } }
       } else if (path.endsWith('/components')) {
         reply = { status: 200, body: { components: options.components ?? [], permissions: { canManageStructure: true, canEditPageDrafts: true, canManageComponents: true } } }
       } else if (path.includes('/components/')) {

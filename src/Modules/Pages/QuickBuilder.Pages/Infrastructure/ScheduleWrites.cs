@@ -26,6 +26,7 @@ internal sealed class ScheduleWrites(
     IPageDocumentValidator validator,
     PagesAccess access,
     PublishingWrites publishing,
+    CollectionUseRows uses,
     TimeProvider clock,
     ILogger<ScheduleWrites> logger)
 {
@@ -116,6 +117,12 @@ internal sealed class ScheduleWrites(
         }
 
         publishing.Log(siteId, subject, LogActions.ScheduleCancelled, now, access.Actor);
+        if (action == ScheduleActions.Publish)
+        {
+            // 016 TB-13: content that will no longer go live uses nothing.
+            await uses.StageAsync(siteId, subject.Kind, subject.Id, CollectionUsageStates.Scheduled, null, null, cancellationToken).ConfigureAwait(false);
+        }
+
         await database.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
         return Result.Success();
@@ -189,6 +196,13 @@ internal sealed class ScheduleWrites(
                     database.ChangeTracker.Clear();
                     await FailAsync(siteId, subject, scheduleId, revision, result.Error.Code, cancellationToken).ConfigureAwait(false);
                     return;
+                }
+
+                if (schedule.Action == ScheduleActions.Publish)
+                {
+                    // 016 TB-13: what was scheduled is live now, and no longer pending.
+                    await uses.StageAsync(siteId, subject.Kind, subject.Id, CollectionUsageStates.Scheduled, null, null, cancellationToken).ConfigureAwait(false);
+                    await database.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
                 }
 
                 await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
@@ -265,6 +279,13 @@ internal sealed class ScheduleWrites(
             publishing.Log(siteId, subject, LogActions.ScheduleChanged, now, actor);
         }
 
+        // 016 TB-13: the collections the captured content uses, pending with it.
+        if (draft is not null)
+        {
+            await uses.StageAsync(siteId, subject.Kind, subject.Id, CollectionUsageStates.Scheduled, draft.Document, subject.TemplateCollectionId, cancellationToken)
+                .ConfigureAwait(false);
+        }
+
         // A failed schedule is shown until someone acts on the subject; setting one is acting.
         await database.ForSite<PublishSchedule>(siteId)
             .Where(s => s.SubjectKind == subject.Kind && s.SubjectId == subject.Id && s.State == ScheduleStates.Failed)
@@ -298,6 +319,12 @@ internal sealed class ScheduleWrites(
             "Schedule {ScheduleId} of {SubjectKind} {SubjectId} on site {SiteId} failed: {FailureCode}.",
             scheduleId, subject.Kind, subject.Id, siteId, code);
         publishing.Log(siteId, subject, LogActions.ScheduleFailed, now, schedule.CreatedBy, scheduleOwner: schedule.CreatedBy, reasonCode: code);
+        if (schedule.Action == ScheduleActions.Publish)
+        {
+            // 016 TB-13: content that failed to go live is no longer pending.
+            await uses.StageAsync(siteId, subject.Kind, subject.Id, CollectionUsageStates.Scheduled, null, null, cancellationToken).ConfigureAwait(false);
+        }
+
         await database.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         database.ChangeTracker.Clear();
     }

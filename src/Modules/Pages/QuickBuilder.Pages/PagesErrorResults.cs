@@ -66,7 +66,11 @@ internal static class PagesErrorResults
             or "pages.not_published"
             or "pages.unpublished_components"
             or "pages.component_in_use_by_published_pages"
-            or "pages.version_missing_components" => StatusCodes.Status409Conflict,
+            or "pages.version_missing_components"
+            // 016 data-model §4.
+            or "pages.template_has_children"
+            or "pages.collection_has_template"
+            or "pages.template_parent_taken" => StatusCodes.Status409Conflict,
         "pages.document_too_large" => StatusCodes.Status413PayloadTooLarge,
         "pages.image_alt_missing" => StatusCodes.Status422UnprocessableEntity,
         _ when code.EndsWith("not_found", StringComparison.Ordinal) => StatusCodes.Status404NotFound,

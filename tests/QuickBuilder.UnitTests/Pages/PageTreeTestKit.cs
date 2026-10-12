@@ -104,8 +104,10 @@ internal sealed class PageTreeTestKit
             return "/" + page.Slug;
         }
 
+        // 016 TB-02: a template's address is a pattern, its items' slug in place of its own.
+        var segment = page.IsTemplate ? "{slug}" : page.Slug;
         var parent = byId[parentId];
-        return parent.IsHome ? "/" + page.Slug : ExpectedPath(parent, byId) + "/" + page.Slug;
+        return parent.IsHome ? "/" + segment : ExpectedPath(parent, byId) + "/" + segment;
     }
 
     public static string Title(string slug) => $"Title of {slug}";

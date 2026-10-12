@@ -1,0 +1,128 @@
+{
+  "description": "Every field type a text property takes, the built-in values, and formats, in English.",
+  "language": "en",
+  "basePath": "",
+  "schemas": {
+    "0192f5a0-0000-7000-8000-00000000c001": {
+      "schemaVersion": 1,
+      "titleFieldId": "f1",
+      "fields": [
+        { "id": "f1", "key": "title", "name": "Title", "help": "", "required": true, "type": "text", "multiline": false, "maxLength": 256 },
+        { "id": "f2", "key": "summary", "name": "Summary", "help": "", "required": false, "type": "text", "multiline": true, "maxLength": 5000 },
+        { "id": "f3", "key": "body", "name": "Body", "help": "", "required": false, "type": "richText" },
+        { "id": "f4", "key": "reading-time", "name": "Reading time", "help": "", "required": false, "type": "number", "decimals": 0 },
+        { "id": "f5", "key": "price", "name": "Price", "help": "", "required": false, "type": "number", "decimals": 2 },
+        { "id": "f6", "key": "published-on", "name": "Published on", "help": "", "required": false, "type": "date", "withTime": false },
+        { "id": "f7", "key": "starts-at", "name": "Starts at", "help": "", "required": false, "type": "date", "withTime": true },
+        { "id": "f8", "key": "featured", "name": "Featured", "help": "", "required": false, "type": "boolean" },
+        { "id": "f9", "key": "category", "name": "Category", "help": "", "required": false, "type": "option",
+          "options": [ { "id": "o1", "label": "News" }, { "id": "o2", "label": "Guides" } ] },
+        { "id": "f10", "key": "cover", "name": "Cover", "help": "", "required": false, "type": "image" },
+        { "id": "f12", "key": "author", "name": "Author", "help": "", "required": false, "type": "reference", "target": "0192f5a0-0000-7000-8000-00000000c002" },
+        { "id": "f15", "key": "archived", "name": "Archived", "help": "", "required": false, "type": "boolean" }
+      ]
+    },
+    "0192f5a0-0000-7000-8000-00000000c002": {
+      "schemaVersion": 1,
+      "titleFieldId": "f1",
+      "fields": [
+        { "id": "f1", "key": "name", "name": "Name", "help": "", "required": true, "type": "text", "multiline": false, "maxLength": 100 }
+      ]
+    }
+  },
+  "pageItem": {
+    "id": "0192f5a1-0000-7000-8000-00000000a001",
+    "collectionId": "0192f5a0-0000-7000-8000-00000000c001",
+    "slug": "hello-world",
+    "name": "Hello world",
+    "firstPublishedAt": "2026-01-05T09:00:00Z",
+    "lastPublishedAt": "2026-10-09T08:00:00Z",
+    "values": {
+      "schemaVersion": 1,
+      "values": {
+        "f1": "Hello world",
+        "f2": "Line one\nLine two",
+        "f4": 1234,
+        "f5": 1234.5,
+        "f6": "2026-10-10",
+        "f7": "2026-10-10T14:30:00Z",
+        "f8": true,
+        "f9": "o2",
+        "f12": "0192f5a1-0000-7000-8000-00000000b001"
+      }
+    }
+  },
+  "items": [
+    {
+      "id": "0192f5a1-0000-7000-8000-00000000b001",
+      "collectionId": "0192f5a0-0000-7000-8000-00000000c002",
+      "slug": "lan-nguyen",
+      "name": "Lan Nguyen",
+      "firstPublishedAt": "2026-01-01T00:00:00Z",
+      "lastPublishedAt": "2026-01-01T00:00:00Z",
+      "values": { "schemaVersion": 1, "values": { "f1": "Lan Nguyen" } }
+    }
+  ],
+  "templates": {},
+  "media": {},
+  "scopes": [],
+  "document": {
+    "schemaVersion": 1,
+    "bindingVersion": 1,
+    "root": { "id": "root", "type": "root", "props": {}, "children": [
+      { "id": "s1", "type": "section", "props": {}, "children": [
+        { "id": "title", "type": "heading", "props": { "text": "Fallback", "bind": { "text": { "value": { "field": "f1" } } } }, "children": [] },
+        { "id": "summary-heading", "type": "heading", "props": { "text": "", "bind": { "text": { "value": { "field": "f2" } } } }, "children": [] },
+        { "id": "summary-text", "type": "text", "props": { "text": "", "bind": { "text": { "value": { "field": "f2" } } } }, "children": [] },
+        { "id": "reading", "type": "text", "props": { "text": "", "bind": { "text": { "value": { "field": "f4" } } } }, "children": [] },
+        { "id": "price", "type": "text", "props": { "text": "", "bind": { "text": { "value": { "field": "f5" } } } }, "children": [] },
+        { "id": "price-whole", "type": "text", "props": { "text": "", "bind": { "text": { "value": { "field": "f5", "format": { "number": { "decimals": 0 } } } } } }, "children": [] },
+        { "id": "date", "type": "text", "props": { "text": "", "bind": { "text": { "value": { "field": "f6" } } } }, "children": [] },
+        { "id": "date-short", "type": "text", "props": { "text": "", "bind": { "text": { "value": { "field": "f6", "format": { "date": "short" } } } } }, "children": [] },
+        { "id": "date-long", "type": "text", "props": { "text": "", "bind": { "text": { "value": { "field": "f6", "format": { "date": "long" } } } } }, "children": [] },
+        { "id": "date-iso", "type": "text", "props": { "text": "", "bind": { "text": { "value": { "field": "f6", "format": { "date": "iso" } } } } }, "children": [] },
+        { "id": "moment", "type": "text", "props": { "text": "", "bind": { "text": { "value": { "field": "f7" } } } }, "children": [] },
+        { "id": "moment-iso", "type": "text", "props": { "text": "", "bind": { "text": { "value": { "field": "f7", "format": { "date": "iso" } } } } }, "children": [] },
+        { "id": "featured", "type": "text", "props": { "text": "", "bind": { "text": { "value": { "field": "f8", "format": { "yes": "Featured", "no": "Regular" } } } } }, "children": [] },
+        { "id": "featured-plain", "type": "text", "props": { "text": "Own text", "bind": { "text": { "value": { "field": "f8" } } } }, "children": [] },
+        { "id": "archived", "type": "text", "props": { "text": "", "bind": { "text": { "value": { "field": "f15", "format": { "yes": "Archived", "no": "Current" } } } } }, "children": [] },
+        { "id": "category", "type": "text", "props": { "text": "", "bind": { "text": { "value": { "field": "f9" } } } }, "children": [] },
+        { "id": "author", "type": "text", "props": { "text": "", "bind": { "text": { "value": { "field": "f12" } } } }, "children": [] },
+        { "id": "author-name", "type": "text", "props": { "text": "", "bind": { "text": { "value": { "field": "f1", "via": "f12" } } } }, "children": [] },
+        { "id": "slug", "type": "text", "props": { "text": "", "bind": { "text": { "value": { "item": "slug" } } } }, "children": [] },
+        { "id": "first", "type": "text", "props": { "text": "", "bind": { "text": { "value": { "item": "firstPublishedAt" } } } }, "children": [] },
+        { "id": "last", "type": "text", "props": { "text": "", "bind": { "text": { "value": { "item": "lastPublishedAt", "format": { "date": "long" } } } } }, "children": [] },
+        { "id": "byline", "type": "text", "props": { "text": "", "bind": { "text": { "value": { "parts": [
+          "By ", { "field": "f1", "via": "f12" }, ", ", { "field": "f6", "format": { "date": "long" } } ] } } } }, "children": [] },
+        { "id": "alt", "type": "image", "props": { "alt": "Own alt", "bind": { "alt": { "value": { "field": "f1" } } } }, "children": [] },
+        { "id": "label", "type": "button", "props": { "label": "Own label", "bind": { "label": { "value": { "field": "f9" } } } }, "children": [] }
+      ] }
+    ] }
+  },
+  "expected": {
+    "title.text": { "text": "Hello world" },
+    "summary-heading.text": { "text": "Line one Line two" },
+    "summary-text.text": { "text": "Line one\nLine two" },
+    "reading.text": { "text": "1,234" },
+    "price.text": { "text": "1,234.50" },
+    "price-whole.text": { "text": "1,235" },
+    "date.text": { "text": "Oct 10, 2026" },
+    "date-short.text": { "text": "10/10/2026" },
+    "date-long.text": { "text": "October 10, 2026" },
+    "date-iso.text": { "text": "2026-10-10" },
+    "moment.text": { "text": "Oct 10, 2026 14:30 UTC" },
+    "moment-iso.text": { "text": "2026-10-10" },
+    "featured.text": { "text": "Featured" },
+    "featured-plain.text": { "fallback": true },
+    "archived.text": { "text": "Current" },
+    "category.text": { "text": "Guides" },
+    "author.text": { "text": "Lan Nguyen" },
+    "author-name.text": { "text": "Lan Nguyen" },
+    "slug.text": { "text": "hello-world" },
+    "first.text": { "text": "Jan 5, 2026" },
+    "last.text": { "text": "October 9, 2026" },
+    "byline.text": { "text": "By Lan Nguyen, October 10, 2026" },
+    "alt.alt": { "text": "Hello world" },
+    "label.label": { "text": "Guides" }
+  }
+}

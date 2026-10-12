@@ -1,0 +1,176 @@
+openapi: 3.1.0
+info:
+  title: QuickBuilder admin API changes for templates and binding
+  version: v1
+  description: |
+    Admin API additions and changes for specs/016-collection-templates-binding (research
+    TB-02, TB-12, TB-13, TB-14). Every operation is site-scoped and declares one capability:
+    - `pages.structure.manage` (Designer): template impact, set or remove a template.
+    - `pages.page_drafts.edit` (Designer, Editor): list preview.
+    - Existing capabilities for the changed responses.
+    A user with no role on the site gets the same `404` as for a site that does not exist.
+    Errors are `application/problem+json` with `errorCode` (data-model.md §4).
+    Page draft saves (`PUT …/pages/{pageId}/draft`, `…/components/{componentId}/draft`) are
+    unchanged in shape; they now validate rules 13–20 (data-model.md §2).
+paths:
+  /api/v1/pages/sites/{siteId}/pages/{pageId}/template:
+    parameters:
+      - $ref: '#/components/parameters/SiteId'
+      - $ref: '#/components/parameters/PageId'
+    get:
+      summary: What making this page a template, changing or removing it would do
+      description: |
+        Requires `pages.structure.manage`. Pass `collectionId` for "make or change", omit it
+        for "remove". Nothing changes.
+      parameters:
+        - { name: collectionId, in: query, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: The impact.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [pattern, refusal, liveStaticAddressLost, itemsLosingAddress, itemsGainingAddress, brokenBindings]
+                properties:
+                  pattern: { type: [string, 'null'], description: 'The address pattern after the change, e.g. /blog/{slug}; null when removing.' }
+                  refusal: { type: [string, 'null'], description: 'The error code the change would be refused with, if any.' }
+                  liveStaticAddressLost: { type: boolean, description: 'The page is live and its own address stops serving.' }
+                  itemsLosingAddress: { type: integer, description: 'Published items of the old collection whose address stops working.' }
+                  itemsGainingAddress: { type: integer, description: 'Published items of the new collection that get an address once the template is live.' }
+                  brokenBindings: { type: integer, description: 'Bindings in the draft that would become broken.' }
+    put:
+      summary: Make the page a template of a collection, or change its collection
+      description: |
+        Requires `pages.structure.manage`. Refused with `pages.template_needs_parent`,
+        `pages.template_has_children`, `pages.unknown_collection`,
+        `pages.collection_has_template`, `pages.template_parent_taken`, or `409
+        pages.version_conflict`. Publishes `Pages.PageTemplateChanged` and
+        `Pages.PageAddressesChanged`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [collectionId, version]
+              additionalProperties: false
+              properties:
+                collectionId: { type: string, format: uuid }
+                version: { type: integer, description: 'The page version the change is based on (010 FR-010).' }
+      responses:
+        '200':
+          description: The page, as in the page tree, with `templateCollectionId` and `path` set to the pattern.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PageWithWarnings' }
+    delete:
+      summary: Turn a template back into an ordinary page
+      description: Requires `pages.structure.manage`. The address becomes the parent's address and the page's slug again.
+      parameters:
+        - { name: version, in: query, required: true, schema: { type: integer } }
+      responses:
+        '200':
+          description: The page.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PageWithWarnings' }
+
+  /api/v1/cms/sites/{siteId}/list-preview:
+    parameters:
+      - $ref: '#/components/parameters/SiteId'
+    post:
+      summary: Run a list against published data, for the editor canvas
+      description: |
+        Requires `pages.page_drafts.edit` on the site. Reads
+        published data only (TB-14). The list is validated like rules 14–16; an invalid one
+        is `400 cms.invalid_list`. Broken filters match nothing, as on the site.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [list]
+              additionalProperties: false
+              properties:
+                list: { description: 'The collection-list props (binding-expression.md §5), without children.' }
+                scopes:
+                  type: object
+                  description: 'Enclosing scope items, by scope name ("page" or a list id): the item id. For "page", the sample item; its draft values are used for scope values.'
+                  additionalProperties: { type: string, format: uuid }
+                page: { type: integer, minimum: 1, maximum: 10000, default: 1 }
+                via: { type: array, items: { type: string }, maxItems: 20, description: 'Reference field ids whose referenced items are returned too.' }
+      responses:
+        '200':
+          description: The items of the requested page, with published values.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items, total, referenced, schemas]
+                properties:
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      required: [id, collectionId, slug, name, values, address]
+                      properties:
+                        id: { type: string, format: uuid }
+                        collectionId: { type: string, format: uuid }
+                        slug: { type: string }
+                        name: { type: [string, 'null'] }
+                        values: { description: 'Published item values document (collection-schema.md §3).' }
+                        address: { type: [string, 'null'] }
+                        firstPublishedAt: { type: string, format: date-time }
+                        lastPublishedAt: { type: string, format: date-time }
+                  total: { type: integer }
+                  referenced: { type: object, additionalProperties: { description: 'Published referenced items by id, same shape as items[].' } }
+                  schemas: { type: object, additionalProperties: { description: 'Current schema documents by collection id.' } }
+
+  /api/v1/cms/sites/{siteId}/collections/{collectionId}:
+    delete:
+      summary: Delete a collection (014), now refused while pages or components use it
+      description: |
+        Unchanged, except for a new refusal: `409 cms.collection_used_by_pages` with
+        `uses` (up to 50 of `{ kind: page|component, id, title, states: [draft|live|scheduled] }`)
+        and `total` (FR-010).
+      responses:
+        '409':
+          description: Used by pages or components, or referenced by another collection (014).
+
+  /api/v1/cms/sites/{siteId}/collections/{collectionId}/preview:
+    post:
+      summary: Preview a schema change (014), now with bound page counts
+      description: |
+        The response gains `boundPages`: an object from field id to the number of pages and
+        components whose drafts, live versions or scheduled content bind to or filter on
+        that field, for fields that the change removes or retypes (FR-011).
+
+  /api/v1/cms/sites/{siteId}/collections/{collectionId}/items/{itemId}:
+    get:
+      summary: Get an item (015), now with its address
+      description: |
+        The response gains `address`:
+        `{ path: string|null, reason: null|no_template|template_not_live|not_published|hidden_by_page }`
+        (FR-007).
+
+components:
+  parameters:
+    SiteId: { name: siteId, in: path, required: true, schema: { type: string, format: uuid } }
+    PageId: { name: pageId, in: path, required: true, schema: { type: string, format: uuid } }
+  schemas:
+    PageWithWarnings:
+      type: object
+      required: [page, warnings]
+      properties:
+        page: { description: 'The page as in 010 responses, plus templateCollectionId (uuid or null).' }
+        warnings:
+          type: array
+          items:
+            type: object
+            required: [code]
+            properties:
+              code: { type: string, enum: [items_change_address, items_lose_address, item_address_hidden] }
+              count: { type: integer }
+              itemId: { type: string, format: uuid }

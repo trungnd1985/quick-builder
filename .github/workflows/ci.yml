@@ -22,6 +22,17 @@ jobs:
     name: Build and test (.NET)
     runs-on: ubuntu-latest
     steps:
+      # The hosted runner's disk ran out during the Test step (016, 2026-10-12: "No space left
+      # on device", twice, without logs). This job needs .NET, Docker and PostgreSQL images
+      # only, so the preinstalled toolchains it never uses are removed first (about 20 GB),
+      # and disk usage is printed around the tests so a future shortage leaves evidence.
+      - name: Free disk space
+        run: |
+          df -h /
+          sudo rm -rf /usr/local/lib/android /opt/ghc /usr/local/.ghcup /opt/hostedtoolcache/CodeQL /usr/local/share/boost /usr/share/swift
+          docker image prune --all --force > /dev/null
+          df -h /
+
       - uses: actions/checkout@v4
 
       - uses: actions/setup-dotnet@v4
@@ -48,6 +59,13 @@ jobs:
           --filter "FullyQualifiedName!~SmokeTests&Category!=Performance"
           --collect:"XPlat Code Coverage"
           --results-directory ./TestResults
+
+      - name: Disk usage after the tests
+        if: always()
+        run: |
+          df -h /
+          du -sh ./TestResults /tmp 2>/dev/null || true
+          docker system df || true
 
       # In-process timing budgets (035 rich text rendering) are report-only here, like the
       # performance job below: a shared runner, busy with the integration tests, has run the

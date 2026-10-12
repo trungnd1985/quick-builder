@@ -2,11 +2,11 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { fireEvent, screen, waitFor, within } from '@testing-library/vue'
 import axe from 'axe-core'
 import en from '../../src/i18n/en.json'
-import { registry } from '../../src/editor/blocks/registry'
+import { insertableTypes as blockTypes, registry } from '../../src/editor/blocks/registry'
 import { useEditorStore } from '../../src/editor/state/editorStore'
 import { locate } from '../../src/editor/ops/tree'
-import { blockTypes, propNames } from '../../src/editor/schema/schema'
-import { documentWith, mountEditor, stubServer, PAGE } from './harness'
+import { propNames } from '../../src/editor/schema/schema'
+import { COLLECTION, documentWith, mountEditor, stubServer, PAGE } from './harness'
 
 // 011 US2, FR-018 to FR-021: a property panel generated from each block's definition,
 // showing exactly its properties, applying valid changes and refusing invalid ones with the
@@ -34,7 +34,7 @@ describe('PropertyPanel (US2)', () => {
   })
 
   it.each(blockTypes)('shows exactly the properties of a %s, plus its layer label', async (type) => {
-    const initial = registry[type].initialProps((key) => key)
+    const initial = registry[type].initialProps((key) => key, { collectionIds: [COLLECTION] })!
     stubServer(type === 'section'
       ? documentWith({ id: 'x', type, props: initial, children: [] })
       : one({ id: 'x', type, props: initial, children: [] }))
@@ -44,7 +44,8 @@ describe('PropertyPanel (US2)', () => {
     await waitFor(() => expect(panel().querySelector('[data-prop]')).not.toBeNull())
     const shown = [...panel().querySelectorAll<HTMLElement>('[data-prop]')].map((e) => e.dataset.prop).sort()
 
-    expect(shown).toEqual(propNames(type).sort())
+    // `bind` is edited through the binding control beside each bindable property (016 TB-14).
+    expect(shown).toEqual(propNames(type).filter((p) => p !== 'bind').sort())
     expect(await violations(container)).toEqual([])
   })
 

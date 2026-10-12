@@ -108,6 +108,20 @@ For a scheduled action, `actorUserId` is the member who set the schedule. Cms al
 written to the Cms outbox with `available_at_utc` set to the due time, as Pages does below;
 only Cms handles it (015 research IT-09).
 
+### 016 Collection templates and data binding (#16)
+
+Pages now subscribes to the Cms events above that change what visitors see: `Cms.ItemPublished`,
+`Cms.ItemUnpublished` and `Cms.ItemDeleted` (with `wasPublished`) refresh the pages listing the
+item's collection; `Cms.CollectionChanged` (with `schemaChanged` or `itemsRewritten`) and
+`Cms.CollectionDeleted` refresh every page that binds to or lists the collection, item pages
+included. Each handler is idempotent through `pages.processed_events`. `Media.FileDeleted` and
+`Media.FileChanged` also refresh the pages listing collections whose published items show the
+file. See [016 research TB-10](../../016-collection-templates-binding/research.md#tb-10-caching-and-invalidation-generations-for-pages-render-stamps-for-items).
+
+| Event | Published by | Payload | When |
+|---|---|---|---|
+| `Pages.PageTemplateChanged` | Pages | `siteId`, `pageId`, `collectionId`, `previousCollectionId`, `actorUserId` | A page became a collection's template, changed collection, or stopped being one. Its address change is announced by `Pages.PageAddressesChanged`, which now also covers template patterns. |
+
 **Module-internal message**: `Pages.PublishScheduleDue` (`siteId`, `scheduleId`, `revision`)
 is written to the Pages outbox with `available_at_utc` set to the schedule's due time, and
 only Pages handles it (012 research PR-14). It is not a contract: no other module may

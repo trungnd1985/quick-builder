@@ -14,6 +14,8 @@ import { dragState, dropResult, endDrag, resolveTarget, setTarget, sourceOf, sta
 import { setLabel } from '../ops'
 import { propNames, takesChildren, type ContentNode } from '../schema/schema'
 import { useEditorStore } from '../state/editorStore'
+import { nodeBroken } from '../bindings/brokenBindings'
+import { scopesAt } from '../bindings/scopes'
 
 const emit = defineEmits<{ refused: [code: string] }>()
 const { t } = useI18n()
@@ -44,6 +46,21 @@ const rows = computed<Row[]>(() => {
   }
   if (store.root) visit(store.root.children, 1)
   return out
+})
+
+/** 016 FR-018: the blocks whose bindings are broken, by id, for a mark beside their name. */
+const brokenIds = computed(() => {
+  const ids = new Set<string>()
+  const root = store.root
+  if (!root) return ids
+  const visit = (node: ContentNode) => {
+    if (node.props.bind && nodeBroken(node, scopesAt(root, node.id, store.bindings.templateCollectionId, store.bindings.schemas), store.bindings.schemas).length > 0) {
+      ids.add(node.id)
+    }
+    node.children.forEach(visit)
+  }
+  visit(root)
+  return ids
 })
 
 const focusId = computed(() => (store.selection && rows.value.some((r) => r.node.id === store.selection) ? store.selection : rows.value[0]?.node.id ?? null))
@@ -202,7 +219,7 @@ function onDrop(event: DragEvent): void {
   endDrag()
   if (!source || !target || !store.root) return
   if (!target.allowed) return emit('refused', 'nesting_not_allowed')
-  const refused = store.apply(dropResult(store.root, source, target, store.kind, t))
+  const refused = store.apply(dropResult(store.root, source, target, store.kind, t, { collectionIds: [...(store.bindings.collectionIds ?? [])], nameFieldOf: store.bindings.nameFieldOf }))
   if (refused) emit('refused', refused.code)
 }
 
@@ -286,6 +303,10 @@ const dropClass = (row: Row) => {
           v-if="typeof row.node.props.layerLabel === 'string' && renaming !== row.node.id"
           class="editor-layer__type"
         >{{ typeOf(row.node) }}</span>
+        <span
+          v-if="brokenIds.has(row.node.id)"
+          class="editor-layer__broken"
+        >{{ t('editor.layers.brokenBinding') }}</span>
       </li>
     </ul>
   </section>

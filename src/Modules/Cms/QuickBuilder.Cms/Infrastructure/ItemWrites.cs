@@ -174,6 +174,9 @@ internal sealed class ItemWrites(
                 written.ClearNewHistory();
             }
 
+            // 016 TB-10: read before the outbox takes the items' events.
+            var publishedChanges = RenderStampBump.PublishedChanges(context.Written, context.Deleted);
+
             foreach (var touched in context.Written.Concat(context.Deleted).Distinct())
             {
                 CmsOutbox.AddFrom(database, touched, request.Actor);
@@ -184,6 +187,9 @@ internal sealed class ItemWrites(
             var toIndex = context.Written.Where(i => !context.Deleted.Contains(i)).ToList();
             await indexer.RefreshManyAsync(toIndex, entered.Value.Schema, context.VersionsChanged, cancellationToken).ConfigureAwait(false);
             await database.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+
+            // 016 TB-10: item pages that show a changed item through a reference refresh with it.
+            await RenderStampBump.BumpReferrersAsync(database, request.SiteId, publishedChanges, cancellationToken).ConfigureAwait(false);
 
             if (transaction is not null)
             {

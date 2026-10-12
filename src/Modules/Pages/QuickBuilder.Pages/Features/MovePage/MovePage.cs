@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using QuickBuilder.Pages.Features.SetPageTemplate;
 using QuickBuilder.Pages.Features.UpdatePage;
 using QuickBuilder.Pages.Infrastructure;
 using QuickBuilder.Shared.Infrastructure.Dispatch;
@@ -24,7 +25,7 @@ internal sealed record MovePageCommand(Guid SiteId, Guid PageId, Guid? ParentId,
 /// Returns the whole tree: positions change around both the old and the new place, and
 /// addresses anywhere in the moved subtree.
 /// </remarks>
-internal sealed class MovePageHandler(PageTreeWrites writes, PageReads reads, PagesAccess access)
+internal sealed class MovePageHandler(PageTreeWrites writes, PageReads reads, PagesAccess access, AddressWarnings addresses)
     : ICommandHandler<MovePageCommand, Result<PageTreeResponse>>
 {
     public async Task<Result<PageTreeResponse>> HandleAsync(MovePageCommand command, CancellationToken cancellationToken)
@@ -36,6 +37,7 @@ internal sealed class MovePageHandler(PageTreeWrites writes, PageReads reads, Pa
             return Result.Failure<PageTreeResponse>(PagesErrors.SiteNotFound);
         }
 
+        var before = (await reads.PageAsync(command.SiteId, command.PageId, cancellationToken).ConfigureAwait(false))?.Path;
         var moved = await writes.ChangeAsync(
             command.SiteId,
             startIfMissing: false,
@@ -44,9 +46,21 @@ internal sealed class MovePageHandler(PageTreeWrites writes, PageReads reads, Pa
             beforeSave: null,
             cancellationToken).ConfigureAwait(false);
 
-        return moved.IsFailure
-            ? Result.Failure<PageTreeResponse>(moved.Error)
-            : Result.Success(await reads.TreeAsync(command.SiteId, cancellationToken).ConfigureAwait(false));
+        if (moved.IsFailure)
+        {
+            return Result.Failure<PageTreeResponse>(moved.Error);
+        }
+
+        // 016 TB-12: item pages under a moved template change address; a page may hide an item's.
+        var after = (await reads.PageAsync(command.SiteId, command.PageId, cancellationToken).ConfigureAwait(false))?.Path;
+        var warnings = new List<TemplateWarningResponse>();
+        if (!string.Equals(before, after, StringComparison.Ordinal))
+        {
+            warnings.AddRange(await addresses.AddressesChangedAsync(command.SiteId, [command.PageId], cancellationToken).ConfigureAwait(false));
+            warnings.AddRange(await addresses.AddressHiddenAsync(command.SiteId, command.PageId, cancellationToken).ConfigureAwait(false));
+        }
+
+        return Result.Success(await reads.TreeAsync(command.SiteId, cancellationToken).ConfigureAwait(false) with { Warnings = warnings });
     }
 }
 

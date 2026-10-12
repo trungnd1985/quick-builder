@@ -39,11 +39,18 @@ export interface PageNode {
   version: number
   /** Whether and what visitors see (012). */
   publication: Publication
+  /**
+   * The collection this page is the template of (016); null for an ordinary page. A template's
+   * `path` is its address pattern, such as `/blog/{slug}`.
+   */
+  templateCollectionId?: string | null
 }
 
 export interface PageTree {
   pages: PageNode[]
   permissions: PagePermissions
+  /** 016: what a move did to item addresses. */
+  warnings?: TemplateWarning[]
 }
 
 export interface UserReference {
@@ -59,6 +66,8 @@ export interface DraftSummary {
 }
 
 export interface PageDetail extends PageNode {
+  /** 016: what a create or rename did to item addresses. */
+  warnings?: TemplateWarning[]
   draft: DraftSummary
   createdAtUtc: string
   updatedAtUtc: string
@@ -114,6 +123,30 @@ export interface PageReference {
   id: string
   title: string
   path: string
+}
+
+/** What a template change would do, nothing changed (016 contracts/templates-api.yaml). */
+export interface TemplateImpact {
+  /** The address pattern after the change; null when removing, or when refused. */
+  pattern: string | null
+  /** The error code the change would be refused with, if any. */
+  refusal: string | null
+  liveStaticAddressLost: boolean
+  itemsLosingAddress: number
+  itemsGainingAddress: number
+  brokenBindings: number
+}
+
+/** A warning about what a change did to item addresses (016 data-model §4). */
+export interface TemplateWarning {
+  code: 'items_change_address' | 'items_lose_address' | 'item_address_hidden'
+  count?: number
+  itemId?: string
+}
+
+export interface PageWithWarnings {
+  page: PageDetail
+  warnings: TemplateWarning[]
 }
 
 const root = (siteId: string) => `/pages/sites/${encodeURIComponent(siteId)}`
@@ -174,6 +207,20 @@ export const pagesApi = {
 
   getComponent: (siteId: string, componentId: string): Promise<Component> =>
     request<Component>(component(siteId, componentId)),
+
+  // --- Templates (016 contracts/templates-api.yaml) -------------------------------------
+
+  /** What making the page a template of `collectionId` (or, without one, removing it) would do. */
+  templateImpact: (siteId: string, pageId: string, collectionId: string | null): Promise<TemplateImpact> =>
+    request<TemplateImpact>(
+      `${page(siteId, pageId)}/template${collectionId ? `?collectionId=${encodeURIComponent(collectionId)}` : ''}`,
+    ),
+
+  setTemplate: (siteId: string, pageId: string, collectionId: string, version: number): Promise<PageWithWarnings> =>
+    request<PageWithWarnings>(`${page(siteId, pageId)}/template`, { method: 'PUT', body: JSON.stringify({ collectionId, version }) }),
+
+  removeTemplate: (siteId: string, pageId: string, version: number): Promise<PageWithWarnings> =>
+    request<PageWithWarnings>(`${page(siteId, pageId)}/template?version=${version}`, { method: 'DELETE' }),
 
   /** How many blocks in the site's drafts use a design token, counted now (011 ED-16). */
   tokenUsage: (siteId: string, tokenId: string): Promise<TokenUsage> =>

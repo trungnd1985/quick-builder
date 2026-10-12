@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using QuickBuilder.Cms.Domain;
 using QuickBuilder.Cms.Infrastructure;
+using QuickBuilder.Pages.Contracts;
 using QuickBuilder.Shared.Infrastructure.Dispatch;
 using QuickBuilder.Shared.Kernel.Authorization;
 using QuickBuilder.Shared.Kernel.Dispatch;
@@ -20,7 +21,7 @@ internal sealed record PreviewCollectionQuery(Guid SiteId, Guid CollectionId, Sa
 /// Read-only and takes no lock, so it never blocks a save; the save recomputes the same answer
 /// under the lock. Validation errors are the save's.
 /// </remarks>
-internal sealed class PreviewCollectionHandler(CmsDbContext database, ProposalEvaluator evaluator, CmsAccess access)
+internal sealed class PreviewCollectionHandler(CmsDbContext database, ProposalEvaluator evaluator, CmsAccess access, ICollectionUsageReader pageUses)
     : IQueryHandler<PreviewCollectionQuery, Result<PreviewResponse>>
 {
     public async Task<Result<PreviewResponse>> HandleAsync(PreviewCollectionQuery query, CancellationToken cancellationToken)
@@ -48,9 +49,18 @@ internal sealed class PreviewCollectionHandler(CmsDbContext database, ProposalEv
         }
 
         var evaluated = await evaluator.EvaluateAsync(collection, query.Request, cancellationToken).ConfigureAwait(false);
-        return evaluated.IsFailure
-            ? Result.Failure<PreviewResponse>(evaluated.Error)
-            : Result.Success(PreviewResponse.From(collection.Revision, evaluated.Value.Impact));
+        if (evaluated.IsFailure)
+        {
+            return Result.Failure<PreviewResponse>(evaluated.Error);
+        }
+
+        // 016 FR-011: what the change would break on pages, counted across drafts, live and scheduled.
+        var impact = evaluated.Value.Impact;
+        var breaking = PreviewResponse.FieldsBreakingBindings(impact);
+        var bound = breaking.Count == 0
+            ? new Dictionary<string, int>()
+            : await pageUses.CountFieldUsesAsync(query.SiteId, collection.Id, breaking, cancellationToken).ConfigureAwait(false);
+        return Result.Success(PreviewResponse.From(collection.Revision, impact) with { BoundPages = bound });
     }
 }
 

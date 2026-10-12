@@ -48,7 +48,8 @@ internal sealed class CreatePageHandler(
     PageReads reads,
     PagesAccess access,
     PagesDbContext database,
-    TimeProvider clock)
+    TimeProvider clock,
+    AddressWarnings addresses)
     : ICommandHandler<CreatePageCommand, Result<PageDetailResponse>>
 {
     public async Task<Result<PageDetailResponse>> HandleAsync(CreatePageCommand command, CancellationToken cancellationToken)
@@ -73,7 +74,9 @@ internal sealed class CreatePageHandler(
             return Result.Failure<PageDetailResponse>(created.Error);
         }
 
-        return Result.Success((await reads.PageAsync(command.SiteId, created.Value.Id, cancellationToken).ConfigureAwait(false))!);
+        // 016 TB-12: a page beside a template may take an item's address.
+        var page = (await reads.PageAsync(command.SiteId, created.Value.Id, cancellationToken).ConfigureAwait(false))!;
+        return Result.Success(page with { Warnings = await addresses.AddressHiddenAsync(command.SiteId, page.Id, cancellationToken).ConfigureAwait(false) });
     }
 }
 

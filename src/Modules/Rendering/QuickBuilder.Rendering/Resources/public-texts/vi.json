@@ -3,5 +3,11 @@
     "title": "Không tìm thấy trang",
     "message": "Chúng tôi không tìm thấy trang bạn đang tìm.",
     "home": "Về trang chủ"
+  },
+  "pager": {
+    "label": "Trang",
+    "previous": "Trước",
+    "next": "Tiếp",
+    "first": "Quay lại trang đầu"
   }
 }

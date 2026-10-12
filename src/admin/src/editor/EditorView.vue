@@ -19,6 +19,7 @@ import LayerView from './layers/LayerView.vue'
 import ConflictBanner from './ConflictBanner.vue'
 import RecoveryDialog from './RecoveryDialog.vue'
 import EditorTopBar from './EditorTopBar.vue'
+import SampleItemPicker from './SampleItemPicker.vue'
 import { refusalKey } from './editorErrors'
 import { definitionOf } from './blocks/registry'
 import type { ContentDocument, ContentNode, DocumentKind } from './schema/schema'
@@ -313,6 +314,7 @@ defineExpose({ autosave: () => autosave, history })
         @changed="(next) => (publication = next)"
         @refused="selectRefused"
       />
+      <SampleItemPicker v-if="store.loadState === 'ready' && kind === 'page'" />
       <PreviewWidthSwitch v-model="previewWidth" />
       <button
         type="button"

@@ -10,7 +10,7 @@ namespace QuickBuilder.Cms.Infrastructure;
 /// schedules and the names of the members involved.
 /// </summary>
 /// <remarks>Admin reads for a site named by the caller, always through <see cref="CmsDbContext.ForSite{T}"/>.</remarks>
-internal sealed class ItemReads(CmsDbContext database, CmsAccess access)
+internal sealed class ItemReads(CmsDbContext database, CmsAccess access, QuickBuilder.Pages.Contracts.ITemplateReader templates)
 {
     /// <summary>One item of a collection, or null when it does not exist there.</summary>
     public async Task<ItemResponse?> GetAsync(Guid siteId, Guid collectionId, Guid itemId, CancellationToken cancellationToken)
@@ -65,7 +65,36 @@ internal sealed class ItemReads(CmsDbContext database, CmsAccess access)
             item.LiveVersion,
             Report(report),
             differs,
-            unpublishedReferences);
+            unpublishedReferences,
+            await AddressAsync(item, cancellationToken).ConfigureAwait(false));
+    }
+
+    /// <summary>
+    /// Where visitors find the item, or why they cannot (016 FR-007, research TB-12): its
+    /// collection's live template with its published slug, unless a live page has that address.
+    /// </summary>
+    private async Task<ItemAddressResponse> AddressAsync(Item item, CancellationToken cancellationToken)
+    {
+        var template = await templates.GetTemplateAsync(item.SiteId, item.CollectionId, cancellationToken).ConfigureAwait(false);
+        if (template is null)
+        {
+            return new ItemAddressResponse(null, ItemAddressReasons.NoTemplate);
+        }
+
+        if (item.PublishedSlug is not { } slug)
+        {
+            return new ItemAddressResponse(null, ItemAddressReasons.NotPublished);
+        }
+
+        if (!template.IsLive)
+        {
+            return new ItemAddressResponse(null, ItemAddressReasons.TemplateNotLive);
+        }
+
+        var path = template.AddressOf(slug);
+        return await templates.LivePageAtAsync(item.SiteId, path, cancellationToken).ConfigureAwait(false)
+            ? new ItemAddressResponse(path, ItemAddressReasons.HiddenByPage)
+            : new ItemAddressResponse(path, null);
     }
 
     /// <summary>List rows for items already read, with their pending schedules and updaters' names.</summary>

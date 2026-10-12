@@ -226,6 +226,20 @@ describe('PageTreeView — reorganising (US2)', () => {
     expect(calls.find((c) => c.url.endsWith('/contact/move'))?.body).toEqual({ parentId: null, afterPageId: 'home', version: 1 })
   })
 
+  it('says what a change did to item addresses (016 TB-12)', async () => {
+    const tree = sampleTree()
+    stubFetch(tree, {
+      [`POST /api/v1/pages/sites/${SITE}/pages/contact/move`]: [{ status: 200, body: { ...tree, warnings: [{ code: 'items_change_address', count: 12 }, { code: 'item_address_hidden', itemId: 'i1' }] } }],
+    })
+    await renderView()
+
+    await fireEvent.click(selectButton('contact'))
+    await fireEvent.click(screen.getByRole('button', { name: en.pages.actions.moveUp }))
+
+    expect(await screen.findByText('12 published items now have new addresses.')).toBeTruthy()
+    expect(screen.getByText(en.pages.addresses.hidden)).toBeTruthy()
+  })
+
   it('disables moving past the ends of a sibling group', async () => {
     stubFetch(sampleTree())
     await renderView()

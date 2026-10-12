@@ -135,6 +135,29 @@
   width: 100%;
 }
 
+/* 016: a Collection list's filter and sort rows. */
+.editor-list-row {
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.5rem;
+  border: 1px solid #d4d8dd;
+  border-radius: 6px;
+  font-size: 0.875rem;
+}
+
+.editor-list-row--broken {
+  border-color: #b42318;
+}
+
+.editor-list-row input,
+.editor-list-row select {
+  width: 100%;
+}
+
+.editor-list-row > button {
+  justify-self: start;
+}
+
 .editor-field textarea {
   font: inherit;
   padding: 0.5rem;

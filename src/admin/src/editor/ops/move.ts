@@ -1,7 +1,7 @@
 import { canDrop, type ContentNode, type DocumentKind } from '../schema/schema'
 import { MAX_NODE_DEPTH } from '../schema/limits'
 import { contains, depthOf, heightOf, locate, withChildren } from './tree'
-import { done, refuse, type OpResult } from './types'
+import { done, refuse, type OpResult, isListSlot } from './types'
 
 /**
  * Moves a block, with everything inside it, to `index` among `parentId`'s children as they are
@@ -12,6 +12,7 @@ export function move(root: ContentNode, nodeId: string, parentId: string, index:
   const moving = locate(root, nodeId)
   if (!moving) return refuse('not_found')
   if (moving.path.length === 0) return refuse('cannot_change_root')
+  if (isListSlot(moving.node.type)) return refuse('list_slot')
 
   const target = locate(root, parentId)
   if (!target) return refuse('not_found')

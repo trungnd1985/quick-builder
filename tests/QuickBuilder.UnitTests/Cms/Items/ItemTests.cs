@@ -33,6 +33,25 @@ public sealed class ItemTests
     }
 
     [Fact]
+    public void Publishing_and_unpublishing_move_the_render_stamp_and_keep_the_first_publish_time()
+    {
+        // 016 research TB-10, data-model §1.4: the item page's cache key moves with what it shows.
+        var item = NewItem();
+        var stamp = item.RenderStamp;
+
+        item.SaveDraft("hello", Values("Draft only"), Ann, T0);
+        Assert.Equal(stamp, item.RenderStamp);
+
+        item.Publish(item.DraftValues(), item.Slug, ItemVersionKinds.Publish, null, null, Ann, T0);
+        item.Unpublish(null, Ann, T0.AddHours(1));
+        item.Publish(item.DraftValues(), item.Slug, ItemVersionKinds.Publish, null, null, Ann, T0.AddHours(2));
+
+        Assert.Equal(stamp + 3, item.RenderStamp);
+        Assert.Equal(T0, item.FirstPublishedAtUtc);
+        Assert.Equal(T0.AddHours(2), item.PublishedAtUtc);
+    }
+
+    [Fact]
     public void A_bad_slug_is_a_programming_error() =>
         Assert.Throws<ArgumentException>(() => Item.New(Site, Collection, "Not A Slug", Values("x"), Ann, T0));
 

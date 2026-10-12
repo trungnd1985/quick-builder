@@ -3,5 +3,11 @@
     "title": "Pagina nu a fost găsită",
     "message": "Nu am găsit pagina pe care o căutați.",
     "home": "Mergi la pagina principală"
+  },
+  "pager": {
+    "label": "Pagini",
+    "previous": "Anterioara",
+    "next": "Următoarea",
+    "first": "Înapoi la prima pagină"
   }
 }

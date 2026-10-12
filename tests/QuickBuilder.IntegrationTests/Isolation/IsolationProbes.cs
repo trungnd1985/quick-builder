@@ -16,6 +16,7 @@ public static class IsolationProbes
         new EditorIsolationProbe(),
         new PublishingIsolationProbe(),
         new CmsIsolationProbe(),
+        new TemplateIsolationProbe(),
     ];
 
     public static TheoryData<string> Names

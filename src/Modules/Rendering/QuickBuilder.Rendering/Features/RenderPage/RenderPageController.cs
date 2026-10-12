@@ -32,7 +32,14 @@ public sealed class RenderPageController(IDispatcher dispatcher, ICurrentSite cu
         }
 
         var response = await dispatcher
-            .QueryAsync(new RenderPageQuery(site, Request.Path.Value, Request.PathBase.Value ?? string.Empty, Request.Headers.IfNoneMatch.ToString()), cancellationToken)
+            .QueryAsync(
+                new RenderPageQuery(
+                    site,
+                    Request.Path.Value,
+                    Request.PathBase.Value ?? string.Empty,
+                    Request.Headers.IfNoneMatch.ToString(),
+                    Request.Query.ToDictionary(q => q.Key, q => (string?)q.Value.FirstOrDefault(), StringComparer.Ordinal)),
+                cancellationToken)
             .ConfigureAwait(false);
 
         return new PublicResponseResult(response);

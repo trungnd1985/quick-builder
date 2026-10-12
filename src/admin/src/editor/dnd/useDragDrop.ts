@@ -10,7 +10,9 @@ import { reactive } from 'vue'
 import { insert, move } from '../ops'
 import { contains, locate, parentOf } from '../ops/tree'
 import { canDrop, takesChildren, type ContentNode, type DocumentKind } from '../schema/schema'
-import { definitionOf } from '../blocks/registry'
+import { newBlock, type InsertContext } from '../blocks/registry'
+import { refuse } from '../ops/types'
+import type { Json } from '../schema/subsetValidator'
 
 export type DragSource = { source: 'palette'; type: string; initialProps?: Record<string, unknown> } | { source: 'node'; id: string }
 
@@ -109,11 +111,13 @@ export function setTarget(target: DropTarget | null): DropTarget | null {
 }
 
 /** Applies the drop: an insert from the palette or a move of a node. */
-export function dropResult(root: ContentNode, source: DragSource, target: DropTarget, kind: DocumentKind, t: (key: string) => string) {
+export function dropResult(
+  root: ContentNode, source: DragSource, target: DropTarget, kind: DocumentKind, t: (key: string) => string, context: InsertContext = { collectionIds: [] },
+) {
   if (source.source === 'palette') {
-    const definition = definitionOf(source.type)
-    const initialProps = (source.initialProps ?? definition?.initialProps(t) ?? {}) as Record<string, never>
-    return insert(root, target.parentId, target.index, source.type, kind, initialProps)
+    const block = newBlock(source.type, t, context, source.initialProps as Record<string, Json> | undefined)
+    if ('refused' in block) return refuse(block.refused)
+    return insert(root, target.parentId, target.index, source.type, kind, block.props, block.children)
   }
   return move(root, source.id, target.parentId, target.index, kind)
 }

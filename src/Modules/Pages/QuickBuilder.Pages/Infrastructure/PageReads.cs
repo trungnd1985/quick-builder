@@ -18,7 +18,7 @@ internal sealed class PageReads(PagesDbContext database, PagesAccess access, Pub
     {
         var rows = await database.ForSite<Page>(siteId)
             .AsNoTracking()
-            .Select(p => new Row(p.Id, p.ParentId, p.Position, p.Depth, p.Title, p.Slug, p.Path, p.IsHome, p.Version))
+            .Select(p => new Row(p.Id, p.ParentId, p.Position, p.Depth, p.Title, p.Slug, p.Path, p.IsHome, p.Version, p.TemplateCollectionId))
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
 
@@ -52,7 +52,7 @@ internal sealed class PageReads(PagesDbContext database, PagesAccess access, Pub
             .Where(p => p.Id == pageId)
             .Select(p => new
             {
-                Row = new Row(p.Id, p.ParentId, p.Position, p.Depth, p.Title, p.Slug, p.Path, p.IsHome, p.Version),
+                Row = new Row(p.Id, p.ParentId, p.Position, p.Depth, p.Title, p.Slug, p.Path, p.IsHome, p.Version, p.TemplateCollectionId),
                 p.CreatedAtUtc,
                 p.UpdatedAtUtc,
             })
@@ -89,7 +89,8 @@ internal sealed class PageReads(PagesDbContext database, PagesAccess access, Pub
             page.CreatedAtUtc,
             page.UpdatedAtUtc,
             await access.PermissionsAsync(siteId, cancellationToken).ConfigureAwait(false),
-            node.Publication);
+            node.Publication,
+            node.TemplateCollectionId);
     }
 
     /// <summary>The summary of the one draft <paramref name="query"/> selects.</summary>
@@ -130,9 +131,10 @@ internal sealed class PageReads(PagesDbContext database, PagesAccess access, Pub
         string Slug,
         string Path,
         bool IsHome,
-        int Version)
+        int Version,
+        Guid? TemplateCollectionId)
     {
         public PageNodeResponse ToNode(int childCount, PublicationResponse publication) =>
-            new(Id, ParentId, Position, Depth, Title, Slug, Path, IsHome, childCount, Version, publication);
+            new(Id, ParentId, Position, Depth, Title, Slug, Path, IsHome, childCount, Version, publication, TemplateCollectionId);
     }
 }

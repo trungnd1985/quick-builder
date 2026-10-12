@@ -12,6 +12,8 @@ const emit = defineEmits<{ change: [value: Json | undefined] }>()
 const { t } = useI18n()
 
 const pages = useSitePages(props.siteId)
+// 016 TB-02: a template page has no address of its own, so it is not a link target.
+const linkable = computed(() => pages.value.filter((p) => !p.templateCollectionId))
 const base = computed(() => props.id ?? `link-${Math.random().toString(36).slice(2, 8)}`)
 
 type Kind = 'none' | 'page' | 'url'
@@ -99,7 +101,7 @@ function onHref(event: Event): void {
           {{ t('editor.panel.link.choosePage') }}
         </option>
         <option
-          v-for="page in pages"
+          v-for="page in linkable"
           :key="page.id"
           :value="page.id"
         >

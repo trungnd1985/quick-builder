@@ -71,8 +71,13 @@ the file, IT-11). Both handlers are idempotent: re-indexing is a pure recomputat
 
 - **#16 renders only `items.published`** through a read path with no write access (Principle
   VII), and treats references to items without published values as absent (clarification Q4).
+  *Met by 016*: `IPublishedItemReader` reads `CmsPublishedReadDbContext`, on a read-only
+  connection that maps only published columns, and a reference to an item without published
+  values reads as empty.
 - **#16 closes E-6** (014 plan) before rendering items: schema changes rewrite published
-  values *and* kept versions (IT-12).
+  values *and* kept versions (IT-12). *Met by 016*: `Cms.CollectionChanged` with rewritten
+  values refreshes every live page that lists or binds the collection, item pages included
+  (016 research TB-10).
 - **#20 (export/import)** exports items with draft, published, versions and schedules;
   `item_slugs`, `item_references` and `item_media` are derived and rebuilt by the indexer.
 - **Every item write** goes through `ItemWrites` (IT-06); the architecture test

@@ -83,6 +83,13 @@ function counts(change: PreviewChange): { outcome: Outcome; count: number }[] {
             </li>
           </ul>
           <p
+            v-if="change.fieldId && (preview.boundPages?.[change.fieldId] ?? 0) > 0 && (change.kind === 'fieldRemoved' || change.kind === 'typeChanged')"
+            class="warning"
+            role="note"
+          >
+            {{ t('cms.preview.boundPages', { count: preview.boundPages![change.fieldId] }, preview.boundPages![change.fieldId]) }}
+          </p>
+          <p
             v-if="change.examples.length > 0"
             class="help"
           >
