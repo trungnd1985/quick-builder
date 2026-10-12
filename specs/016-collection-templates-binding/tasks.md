@@ -564,6 +564,7 @@ the site never fails.
   *Result*: `AuthorizationDeclarationTests` pass: every new action (template GET, PUT, DELETE; list preview) declares exactly one capability.
 - [X] T092 [P] Create `STESTS/ItemPagePerformanceTests.cs` (Performance category) for SC-004:
   *Result* (reference compose setup, 2026-10-11): item page 200 blocks + list of 20 (2 list queries) miss p95 31.2 ms, hit 8.2 ms; paginated list of 100, page 50 (1 query) miss 47.6 ms, hit 5.3 ms; nested 20 x 2 (1 + up to 20 queries) miss 138.4 ms, hit 5.0 ms. A first run measured one hit p95 of 54.6 ms right after seeding 10,000 rows; it did not recur in two later runs and the cache was confirmed to hold, so TB-20's fallback was not applied. `ItemSeedSql` now seeds at index version 2 with the first publication time.
+  *Re-run* (2026-10-12, after T100 added a query for components' page parameters to every public request): item page miss p95 26.0 ms, hit 6.4 ms; paginated list miss 42.4 ms, hit 4.7 ms; nested miss 134.4 ms, hit 4.1 ms. No slower than before, so TB-11's stored-names fallback was not applied.
   - an item page of 200 blocks with a list of 20;
   - a paginated list of 100 over 10,000 published items;
   - a nested list of 20 × 2;
