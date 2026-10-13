@@ -95,7 +95,7 @@ Shorthand used below:
 **Purpose**: the feature's documents. No new project references are needed
 (module-surface.md §1).
 
-- [ ] T001 Commit `specs/017-seo/` (spec, plan, research, data model, contracts, quickstart, checklist, tasks) as the first commit on branch `017-seo`, referencing #17.
+- [X] T001 Commit `specs/017-seo/` (spec, plan, research, data model, contracts, quickstart, checklist, tasks) as the first commit on branch `017-seo`, referencing #17.
 
 ---
 
@@ -112,25 +112,25 @@ Shorthand used below:
 
 ### Page schema (FR-001, FR-010, SE-02)
 
-- [ ] T002 Extend `CONTRACTS/page-schema/v1.schema.json`, staying at version 1:
+- [X] T002 Extend `CONTRACTS/page-schema/v1.schema.json`, staying at version 1:
   - an optional `seo` prop on `root` with `$defs` `seo`, `seoBind`, `seoFallback` and `structuredDataMapping`, with the keys and limits of data-model.md §2;
   - `seoBind` values reuse `$defs/binding`, with `empty` restricted to `"fallback"`;
   - `structuredDataMapping.type` is an enum of `Article`, `Product`, `Event`, and its `bind` is an object of `binding` values.
 
   Use only the vocabulary in page-schema.md §7. `PageSchemaSubsetTests` must pass.
-- [ ] T003 Update `CONTRACTS/page-schema.md` from `specs/017-seo/contracts/seo-metadata.md`: the §2 `root` row, rules 22–25 in §3 (after rule 21, with rule 23 as a broken-binding note, not a refusal), and an "Additions in 017 (still version 1)" paragraph in §6. Run `ITESTS/Pages/PageSchemaContractTests.cs`; it must pass.
-- [ ] T004 [P] Create golden examples in `CONTRACTS/page-schema/examples/`. Use the eight files in seo-metadata.md §5, each invalid one with `expected.json` listing `rule` and `pointer`.
+- [X] T003 Update `CONTRACTS/page-schema.md` from `specs/017-seo/contracts/seo-metadata.md`: the §2 `root` row, rules 22–25 in §3 (after rule 21, with rule 23 as a broken-binding note, not a refusal), and an "Additions in 017 (still version 1)" paragraph in §6. Run `ITESTS/Pages/PageSchemaContractTests.cs`; it must pass.
+- [X] T004 [P] Create golden examples in `CONTRACTS/page-schema/examples/`. Use the eight files in seo-metadata.md §5, each invalid one with `expected.json` listing `rule` and `pointer`.
 
 ### Validators, server and admin
 
-- [ ] T005 [P] Create `UTESTS/Pages/SeoSchemaGoldenTests.cs`. It runs T004's examples through `PAGES/Infrastructure/Schema/PageDocumentValidator.cs` and also checks:
+- [X] T005 [P] Create `UTESTS/Pages/SeoSchemaGoldenTests.cs`. It runs T004's examples through `PAGES/Infrastructure/Schema/PageDocumentValidator.cs` and also checks:
   - rule 22 for component documents;
   - that `seo.bind` on an ordinary page is accepted (rule 23).
 
   It must fail first.
-- [ ] T006 [P] Create `ADMINTESTS/editor/seoSchema.spec.ts`, running the same examples through `EDITOR/schema/documentValidator.ts`. It must fail first.
-- [ ] T007 Implement rules 22, 24 and 25 in `PAGES/Infrastructure/Schema/PageDocumentValidator.cs`. Rule 22 applies only to component documents. Rule 13 (`bindingVersion`) must also count `seo.bind` and `seo.structuredData.bind`. Make T005 pass.
-- [ ] T008 Mirror rules 22, 24 and 25 and the rule 13 extension in `EDITOR/schema/documentValidator.ts` and `EDITOR/schema/schema.ts`. Make T006 pass.
+- [X] T006 [P] Create `ADMINTESTS/editor/seoSchema.spec.ts`, running the same examples through `EDITOR/schema/documentValidator.ts`. It must fail first.
+- [X] T007 Implement rules 22, 24 and 25 in `PAGES/Infrastructure/Schema/PageDocumentValidator.cs`. Rule 22 applies only to component documents. Rule 13 (`bindingVersion`) must also count `seo.bind` and `seo.structuredData.bind`. Make T005 pass.
+- [X] T008 Mirror rules 22, 24 and 25 and the rule 13 extension in `EDITOR/schema/documentValidator.ts` and `EDITOR/schema/schema.ts`. Make T006 pass.
 
 ### Database (SE-23)
 

@@ -66,8 +66,11 @@ no transaction may span modules (Principle I).
     page document, but on a page that is not a template they are **broken**, as a `"page"`
     scope is (binding-expression.md §3), not refused. This keeps a template that is turned
     back into a page valid;
-  - 24 `canonical_scheme`: a `url` canonical is absolute `http` or `https`;
-  - 25 `seo_text`: metadata texts hold no control characters, line breaks included.
+  - 24: a `url` canonical is absolute `http` or `https` without user info;
+  - 25: metadata texts hold no control characters, line breaks included.
+
+  Rules 24 and 25 are schema patterns, so they fail as `props_invalid` like every other prop
+  (decided at implementation: no code is needed).
 - Lengths are hard maximums. The editor warns beyond 60 and 160 characters (FR-004).
 
 **Rationale**: the root already holds the page as a whole. One prop keeps every metadata

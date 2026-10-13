@@ -56,12 +56,37 @@ export function contentDocument(root: ContentNode): ContentDocument {
     : { schemaVersion: CURRENT_SCHEMA_VERSION, root }
 }
 
-/** Whether a document holds a binding or a Collection list anywhere. */
+/**
+ * Whether a document holds a binding or a Collection list anywhere, metadata bindings of
+ * `root.props.seo` included (017 rule 23).
+ */
 export function usesBindings(node: Json): boolean {
   if (!isObject(node)) return false
   const bind = propsOf(node).bind
   if (node.type === LIST_TYPE || (isObject(bind) && Object.keys(bind).length > 0)) return true
+  if (metadataBindings(node).length > 0) return true
   return childrenOf(node).some(usesBindings)
+}
+
+/**
+ * The value of every binding in `root.props.seo` (017, seo-metadata.md §1): the metadata fields,
+ * then the structured data properties, each with its pointer.
+ */
+export function metadataBindings(root: Json): { pointer: string; value: JsonObject }[] {
+  if (!isObject(root)) return []
+  const seo = propsOf(root).seo
+  if (!isObject(seo)) return []
+
+  const found: { pointer: string; value: JsonObject }[] = []
+  const collect = (bind: Json | undefined, base: string) => {
+    if (!isObject(bind)) return
+    for (const [name, binding] of Object.entries(bind)) {
+      if (isObject(binding) && isObject(binding.value)) found.push({ pointer: `${base}/${escape(name)}/value`, value: binding.value })
+    }
+  }
+  collect(seo.bind, '/root/props/seo/bind')
+  if (isObject(seo.structuredData)) collect(seo.structuredData.bind, '/root/props/seo/structuredData/bind')
+  return found
 }
 
 /**
@@ -73,7 +98,14 @@ export function checkBindingRules(document: JsonObject, kind: DocumentKind, coll
   if (usesBindings(root) && !has(document, 'bindingVersion')) {
     return fail('binding_version_required', '', 'A document with bindings or collection lists must state its binding format version.')
   }
-  return new Walk(kind, collections).visit(root, '/root')
+  const walk = new Walk(kind, collections)
+
+  // Metadata reads only the page's item: no list scope is open at the root (017 rule 23).
+  for (const { pointer, value } of metadataBindings(root)) {
+    const failure = walk.checkBindingValue(value, pointer)
+    if (failure) return failure
+  }
+  return walk.visit(root, '/root')
 }
 
 class Walk {
@@ -181,7 +213,7 @@ class Walk {
     return null
   }
 
-  private checkBindingValue(value: JsonObject, pointer: string): RuleFailure | null {
+  checkBindingValue(value: JsonObject, pointer: string): RuleFailure | null {
     const named = ['field', 'item', 'parts'].filter((key) => has(value, key)).length
     if (named !== 1) return propsInvalid(pointer, 'A binding names exactly one of a field, an item value or text parts.')
 

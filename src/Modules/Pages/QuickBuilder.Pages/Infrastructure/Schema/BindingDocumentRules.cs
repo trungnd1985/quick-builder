@@ -74,13 +74,54 @@ internal static class BindingDocumentRules
     {
         var root = document.GetProperty("root");
 
-        if (UsesBindings(root) && !document.TryGetProperty("bindingVersion", out _))
+        // 017 rule 23: metadata bindings count for rule 13 like any other.
+        if ((UsesBindings(root) || MetadataBindings(root).Any()) && !document.TryGetProperty("bindingVersion", out _))
         {
             return ("binding_version_required", string.Empty, "A document with bindings or collection lists must state its binding format version.");
         }
 
         var walk = new Walk(kind, collections);
+
+        // Metadata reads only the page's item: no list scope is open at the root (017 rule 23).
+        foreach (var (pointer, value) in MetadataBindings(root))
+        {
+            if (walk.CheckBindingValue(value, pointer) is { } metadataFailure)
+            {
+                return metadataFailure;
+            }
+        }
+
         return walk.Visit(root, "/root");
+    }
+
+    /// <summary>
+    /// The value of every binding in <c>root.props.seo</c> (017, seo-metadata.md §1): the
+    /// metadata fields, then the structured data properties, each with its pointer.
+    /// </summary>
+    public static IEnumerable<(string Pointer, JsonElement Value)> MetadataBindings(JsonElement root)
+    {
+        if (!root.GetProperty("props").TryGetProperty("seo", out var seo))
+        {
+            yield break;
+        }
+
+        if (seo.TryGetProperty("bind", out var bind))
+        {
+            foreach (var binding in bind.EnumerateObject())
+            {
+                yield return ($"/root/props/seo/bind/{SchemaSubsetValidator.Escape(binding.Name)}/value", binding.Value.GetProperty("value"));
+            }
+        }
+
+        if (seo.TryGetProperty("structuredData", out var structured) && structured.TryGetProperty("bind", out var properties))
+        {
+            foreach (var binding in properties.EnumerateObject())
+            {
+                yield return (
+                    $"/root/props/seo/structuredData/bind/{SchemaSubsetValidator.Escape(binding.Name)}/value",
+                    binding.Value.GetProperty("value"));
+            }
+        }
     }
 
     /// <summary>Whether a document holds a binding or a Collection list anywhere.</summary>
@@ -254,7 +295,7 @@ internal static class BindingDocumentRules
             return null;
         }
 
-        private (string, string, string)? CheckBindingValue(JsonElement value, string pointer)
+        public (string, string, string)? CheckBindingValue(JsonElement value, string pointer)
         {
             var named = (value.TryGetProperty("field", out _) ? 1 : 0)
                 + (value.TryGetProperty("item", out _) ? 1 : 0)

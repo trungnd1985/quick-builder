@@ -126,8 +126,8 @@ response (`history`, the last 20 entries).
 |---|---|---|
 | 22 | `seo_in_component` | component documents have no `root.props.seo` |
 | 23 | (broken, not refused) | `seo.bind` and `seo.structuredData` on a page that is not a template are broken bindings |
-| 24 | `canonical_scheme` | a `url` canonical is absolute `http`/`https` |
-| 25 | `seo_text` | metadata strings contain no control characters |
+| 24 | (schema, `props_invalid`) | a `url` canonical is absolute `http`/`https` without user info |
+| 25 | (schema, `props_invalid`) | metadata strings contain no control characters |
 
 A document with `seo.bind` or `seo.structuredData.bind` carries `bindingVersion: 1` (rule 13).
 
@@ -190,7 +190,7 @@ off.
 | Code | HTTP | When |
 |---|---|---|
 | `pages.seo_restricted` | 403 | an Editor changed `seo.canonical`, `seo.noindex` or its binding (SE-03) |
-| `seo_in_component`, `canonical_scheme`, `seo_text` | 400 | document rules 22, 24, 25 |
+| `seo_in_component` | 400 | document rule 22 (rules 24 and 25 fail the schema as `props_invalid`) |
 | `redirects.source_invalid` | 400 | bad path, reserved, home without query, query on prefix |
 | `redirects.target_invalid` | 400 | bad scheme, user info, prefix with `url`/`item`, unknown page or item |
 | `redirects.duplicate` | 409 | source already has a redirect (names it) |

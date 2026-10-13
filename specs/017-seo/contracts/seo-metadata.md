@@ -38,8 +38,8 @@ The `$defs` added to the schema file are `seo`, `seoBind`, `seoFallback` and
 |---|---|---|
 | 22 | `seo_in_component` | A component document's `root.props` has no `seo`. |
 | 23 | — | On a page that is not a template, `seo.bind` and `seo.structuredData` are broken bindings, shown as empty. They are kept and not refused. |
-| 24 | `canonical_scheme` | A `url` canonical is absolute `http` or `https`, with no user info. |
-| 25 | `seo_text` | `title`, `description`, `ogTitle`, `ogDescription` and `fallback` texts contain no control characters. |
+| 24 | (schema) | A `url` canonical is absolute `http` or `https`, with no user info: the `seoCanonical` pattern, so a failure is `props_invalid` at `…/canonical/href`. |
+| 25 | (schema) | `title`, `description`, `ogTitle`, `ogDescription` and `fallback` texts contain no control characters: a schema pattern, so a failure is `props_invalid` at the text. |
 
 Rule 13 applies: a document with any `seo.bind` or `seo.structuredData.bind` carries
 `bindingVersion: 1`.
@@ -76,14 +76,7 @@ Every document valid before stays valid and renders the same body (017 `UpgradeF
 
 ## 5. Golden examples
 
-| File | Expect |
-|---|---|
-| `valid/seo--page-all-fields.json` | valid |
-| `valid/seo--template-bound.json` | valid |
-| `valid/seo--bound-on-ordinary-page.json` | valid; bindings broken (rule 23) |
-| `invalid/seo_in_component--root.json` | `seo_in_component` |
-| `invalid/canonical_scheme--javascript.json` | `canonical_scheme` |
-| `invalid/seo_text--newline-in-title.json` | `seo_text` |
-| `invalid/schema_violation--title-too-long.json` | `schema_violation` at `/root/props/seo/title` |
-| `invalid/schema_violation--seo-bind-hide.json` | `schema_violation` (`empty: "hide"`) |
-| `binding-expression/examples/resolve/seo-*.json` | resolved metadata values: template, rich text, cutting, fallbacks, hide switch |
+Listed in `docs/contracts/page-schema.md` §8 (`valid/seo-*.json`, `invalid/*--seo-*.json`). The
+component rule (22) and the shapes no file can show run in `SeoSchemaGoldenTests` and
+`seoSchema.spec.ts`. Resolved metadata values are in `binding-expression/examples/resolve/seo-*.json`
+(US4).
