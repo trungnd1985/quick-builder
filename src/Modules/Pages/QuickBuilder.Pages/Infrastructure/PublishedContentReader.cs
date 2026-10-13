@@ -174,6 +174,10 @@ internal sealed class PublishedContentReader(PublishedReadDbContext database) : 
          select page.Id)
         .AnyAsync(cancellationToken);
 
+    /// <summary>Breadcrumb ancestors; built with structured data (017 tasks T099).</summary>
+    public Task<IReadOnlyList<LiveAncestor>> GetLiveAncestorsAsync(Guid siteId, Guid pageId, CancellationToken cancellationToken = default) =>
+        throw new NotImplementedException("017 T099: breadcrumb ancestors are not built yet.");
+
     private IQueryable<LiveVersion> LiveVersions(Guid siteId, string subjectKind, IReadOnlyCollection<Guid> subjectIds) =>
         from publication in database.Publications
         where publication.SiteId == siteId

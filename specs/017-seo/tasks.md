@@ -134,39 +134,40 @@ Shorthand used below:
 
 ### Database (SE-23)
 
-- [ ] T009 [P] Add `pages.redirects`, `pages.redirect_usage`, `pages.redirect_changes` and `pages.sitemap_state`, and `publish_schedules.redirect_to_page_id`, to `PAGES/Infrastructure/PagesDbContext.cs`:
+- [X] T009 [P] Add `pages.redirects`, `pages.redirect_usage`, `pages.redirect_changes` and `pages.sitemap_state`, and `publish_schedules.redirect_to_page_id`, to `PAGES/Infrastructure/PagesDbContext.cs`:
   - entities in `PAGES/Domain/Redirects/Redirect.cs` (state only for now), `PAGES/Domain/Redirects/RedirectChange.cs` and `PAGES/Domain/SitemapState.cs`, and the new property on `PAGES/Domain/PublishSchedule.cs`;
   - columns, check constraints and indexes exactly as data-model.md §1.1–§1.3, §1.6 and §1.7;
   - the site filter on all four tables.
 
   Create migration `PAGES/Infrastructure/Migrations/<ts>_AddSeo.cs`. It inserts one `sitemap_state` row (generation 1) per site that has pages.
-- [ ] T010 [P] Add the eight columns of data-model.md §1.4 (including `search_updated_by`) to `SITES/Domain/Site.cs` and `SITES/Infrastructure/SitesDbContext.cs`, and create migration `SITES/Infrastructure/Migrations/<ts>_AddSearchSettings.cs`. Defaults are null or false, so `redirect_other_hosts` is false for existing rows. In `SITES/Features/CreateSite/CreateSite.cs`, set `redirect_other_hosts = true` for new sites (SE-07).
-- [ ] T011 [P] Add `redirect_old_address boolean not null default false` to `cms.item_schedules` in `CMS/Infrastructure/CmsDbContext.cs` and its entity, and create migration `CMS/Infrastructure/Migrations/<ts>_AddScheduleRedirect.cs`. It also adds a nullable `redirect_to_page_id uuid` for scheduled unpublish (data-model.md §1.5).
+- [X] T010 [P] Add the eight columns of data-model.md §1.4 (including `search_updated_by`) to `SITES/Domain/Site.cs` and `SITES/Infrastructure/SitesDbContext.cs`, and create migration `SITES/Infrastructure/Migrations/<ts>_AddSearchSettings.cs`. Defaults are null or false, so `redirect_other_hosts` is false for existing rows. In `SITES/Features/CreateSite/CreateSite.cs`, set `redirect_other_hosts = true` for new sites (SE-07).
+- [X] T011 [P] Add `redirect_old_address boolean not null default false` to `cms.item_schedules` in `CMS/Infrastructure/CmsDbContext.cs` and its entity, and create migration `CMS/Infrastructure/Migrations/<ts>_AddScheduleRedirect.cs`. It also adds a nullable `redirect_to_page_id uuid` for scheduled unpublish (data-model.md §1.5).
 
 ### Contracts (module-surface.md §2–§5)
 
-- [ ] T012 [P] Create `PAGESC/Redirects/IRedirectReader.cs` (with `RedirectMatch` and `RedirectTargetKind`), `PAGESC/Redirects/IRedirectHits.cs` and `PAGESC/Publishing/ISitemapReader.cs` (with `SitemapPages`, `SitemapPage` and `SitemapTemplate`), exactly as module-surface.md §2. Add `GetLiveAncestorsAsync` and `LiveAncestor` to `PAGESC/Publishing/IPublishedContentReader.cs`.
-- [ ] T013 [P] Add `SiteSearchSettings` and the `Search` and `RedirectOtherHostNames` init properties to `SITESC/SiteDto.cs`. Fill them in `SITES/Infrastructure/SiteDtoMapper.cs` (projection included).
-- [ ] T014 [P] Add `ListAddressesAsync` and `PublishedItemAddress` to `CMSC/Publishing/IPublishedItemReader.cs`, and create `CMSC/Events/ItemRedirectRequested.cs` (module-surface.md §3). Add stub implementations that throw `NotImplementedException` in `CMS/Infrastructure/PublishedItemReader.cs`, to be completed in US3.
-- [ ] T015 [P] Add `string? AltText = null` to `PublicMediaFile` in `MEDIAC/IPublicMediaReader.cs`, and fill it from the file's alternative text in `MEDIA/Infrastructure/PublicMediaReader.cs`. Extend the existing public media reader test to assert it.
+- [X] T012 [P] Create `PAGESC/Redirects/IRedirectReader.cs` (with `RedirectMatch` and `RedirectTargetKind`), `PAGESC/Redirects/IRedirectHits.cs` and `PAGESC/Publishing/ISitemapReader.cs` (with `SitemapPages`, `SitemapPage` and `SitemapTemplate`), exactly as module-surface.md §2. Add `GetLiveAncestorsAsync` and `LiveAncestor` to `PAGESC/Publishing/IPublishedContentReader.cs`.
+- [X] T013 [P] Add `SiteSearchSettings` and the `Search` and `RedirectOtherHostNames` init properties to `SITESC/SiteDto.cs`. Fill them in `SITES/Infrastructure/SiteDtoMapper.cs` (projection included).
+- [X] T014 [P] Add `ListAddressesAsync` and `PublishedItemAddress` to `CMSC/Publishing/IPublishedItemReader.cs`, and create `CMSC/Events/ItemRedirectRequested.cs` (module-surface.md §3). Add stub implementations that throw `NotImplementedException` in `CMS/Infrastructure/PublishedItemReader.cs`, to be completed in US3.
+- [X] T015 [P] Add `string? AltText = null` to `PublicMediaFile` in `MEDIAC/IPublicMediaReader.cs`, and fill it from the file's alternative text in `MEDIA/Infrastructure/PublicMediaReader.cs`. Extend the existing public media reader test to assert it.
+  *Done as*: there is no direct public media reader test; `og:image:alt` in `PageMetadataRenderTests` (T021) asserts it through the published page.
 
 ### Capabilities and errors (SE-03, data-model §4)
 
-- [ ] T016 Add the capabilities:
+- [X] T016 Add the capabilities:
   - `pages.redirects.manage` (Designer) in `PAGES/PagesCapabilities.cs`;
   - `sites.search.manage` (Designer) and `sites.search_visibility.manage` (no role, so Administrator only) in `SITES/SitesCapabilities.cs`.
 
   Record all three in `specs/002-identity-setup/contracts/authorization.md` §2.
-- [ ] T017 [P] Add every error code of data-model.md §4 to `PAGES/PagesErrors.cs` and `PAGES/PagesErrorResults.cs` (HTTP statuses as listed), and `sites.search_invalid` to the Sites errors (`SITES/ErrorResults.cs`). Add admin messages for each in `ADMIN/features/seo/redirectErrors.ts` (new), `ADMIN/features/pages/pageErrors.ts` and `ADMIN/features/sites/siteErrors.ts`, with `ADMIN/i18n/en.json`.
+- [X] T017 [P] Add every error code of data-model.md §4 to `PAGES/PagesErrors.cs` and `PAGES/PagesErrorResults.cs` (HTTP statuses as listed), and `sites.search_invalid` to the Sites errors (`SITES/ErrorResults.cs`). Add admin messages for each in `ADMIN/features/seo/redirectErrors.ts` (new), `ADMIN/features/pages/pageErrors.ts` and `ADMIN/features/sites/siteErrors.ts`, with `ADMIN/i18n/en.json`.
 
 ### Rendering core
 
-- [ ] T018 [P] Create `UTESTS/Rendering/Seo/SeoDocumentTests.cs`. It must fail first. It checks that `RENDER/Seo/SeoDocument.cs`:
+- [X] T018 [P] Create `UTESTS/Rendering/Seo/SeoDocumentTests.cs`. It must fail first. It checks that `RENDER/Seo/SeoDocument.cs`:
   - parses `root.props.seo` from a live document into an immutable record;
   - tolerates an absent `seo`;
   - ignores unknown keys;
   - exposes `bind`, `fallback` and `structuredData` raw for the resolver.
-- [ ] T019 Implement `RENDER/Seo/SeoDocument.cs`. Add `Seo` (`SeoDocument?`) and `Site` (`SiteDto`) to `RENDER/Domain/RenderInputs.cs`, and pass them from `RENDER/Features/RenderPage/PageResponder.cs` without changing output yet. Make T018 pass. Existing golden HTML tests stay green.
+- [X] T019 Implement `RENDER/Seo/SeoDocument.cs`. Add `Seo` (`SeoDocument?`) and `Site` (`SiteDto`) to `RENDER/Domain/RenderInputs.cs`, and pass them from `RENDER/Features/RenderPage/PageResponder.cs` without changing output yet. Make T018 pass. Existing golden HTML tests stay green.
 
 **Checkpoint**: schema, migrations and contracts are in place. User stories can start.
 

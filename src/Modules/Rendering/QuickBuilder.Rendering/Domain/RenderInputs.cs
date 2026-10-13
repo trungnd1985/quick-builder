@@ -24,6 +24,11 @@ namespace QuickBuilder.Rendering.Domain;
 /// The published items, schemas and list results the page's bindings and lists read (016
 /// research TB-09); empty for a page with neither.
 /// </param>
+/// <param name="Seo">The live document's search metadata, or null when it has none (017 research SE-02).</param>
+/// <param name="Site">
+/// The site, for its name, base URL and search settings (017 research SE-05); null for renders
+/// that write no head metadata, such as the not-found page.
+/// </param>
 internal sealed record RenderInputs(
     string Title,
     JsonElement Document,
@@ -33,4 +38,6 @@ internal sealed record RenderInputs(
     IReadOnlyDictionary<Guid, PublicMediaFile> Media,
     string Language,
     string BasePath,
-    Binding.ResolvedData? Data = null);
+    Binding.ResolvedData? Data = null,
+    QuickBuilder.Rendering.Seo.SeoDocument? Seo = null,
+    QuickBuilder.Sites.Contracts.SiteDto? Site = null);

@@ -136,12 +136,51 @@ namespace QuickBuilder.Sites.Infrastructure.Migrations
                         .HasColumnType("citext")
                         .HasColumnName("primary_host_name");
 
+                    b.Property<bool>("RedirectOtherHosts")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("redirect_other_hosts");
+
                     b.Property<string>("Scheme")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
                         .HasColumnType("text")
                         .HasDefaultValue("https")
                         .HasColumnName("scheme");
+
+                    b.Property<Guid?>("SearchDefaultImage")
+                        .HasColumnType("uuid")
+                        .HasColumnName("search_default_image");
+
+                    b.Property<bool>("SearchDiscouraged")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("search_discouraged");
+
+                    b.Property<Guid?>("SearchOrganisationLogo")
+                        .HasColumnType("uuid")
+                        .HasColumnName("search_org_logo");
+
+                    b.Property<string>("SearchOrganisationName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("search_org_name");
+
+                    b.Property<string>("SearchRobotsRules")
+                        .HasMaxLength(10240)
+                        .HasColumnType("character varying(10240)")
+                        .HasColumnName("search_robots_rules");
+
+                    b.Property<string>("SearchTitleSuffix")
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)")
+                        .HasColumnName("search_title_suffix");
+
+                    b.Property<Guid?>("SearchUpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("search_updated_by");
 
                     b.Property<string>("Status")
                         .IsRequired()

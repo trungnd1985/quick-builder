@@ -8,6 +8,7 @@ using QuickBuilder.Rendering.Binding;
 using QuickBuilder.Rendering.Contracts;
 using QuickBuilder.Rendering.Domain;
 using QuickBuilder.Rendering.Rendering;
+using QuickBuilder.Rendering.Seo;
 using QuickBuilder.Shared.Infrastructure.Caching;
 using QuickBuilder.Sites.Contracts;
 
@@ -231,7 +232,9 @@ internal sealed class PageResponder(
         // 016 FR-030: an item page is titled by the item's name, else by the template's title.
         var title = string.IsNullOrWhiteSpace(pageItem?.Name) ? version.Title : pageItem.Name;
 
-        var inputs = new RenderInputs(title, version.Document, design.Document, components, targets, files, site.DefaultLanguage, basePath, fetched.Data);
+        var inputs = new RenderInputs(
+            title, version.Document, design.Document, components, targets, files, site.DefaultLanguage, basePath, fetched.Data,
+            SeoDocument.From(version.Document), site);
         metrics.Rendered();
         return Render(inputs, renderer, context => LogBroken(context, site.Id, pageId));
     }

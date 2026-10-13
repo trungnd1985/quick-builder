@@ -41,6 +41,34 @@ public sealed record SiteDto(
     public required uint Version { get; init; }
 
     public required DateTimeOffset UpdatedAtUtc { get; init; }
+
+    /// <summary>What the public site says to search engines and link previews (017 FR-006).</summary>
+    public SiteSearchSettings Search { get; init; } = SiteSearchSettings.None;
+
+    /// <summary>
+    /// Whether public requests on another host name are redirected to the primary one (017
+    /// FR-014). Off for sites created before 017, on for later ones.
+    /// </summary>
+    public bool RedirectOtherHostNames { get; init; }
+}
+
+/// <summary>A site's search settings (017 research SE-08). Texts are content: render them encoded.</summary>
+/// <param name="TitleSuffix">Appended to every document title, e.g. <c>" | Acme"</c>; null when none.</param>
+/// <param name="DefaultImageId">The sharing image of pages that set none; a media file id, possibly no longer existing.</param>
+/// <param name="OrganisationName">The organisation the home page describes; null when none.</param>
+/// <param name="OrganisationLogoId">Its logo; a media file id.</param>
+/// <param name="Discouraged">"Discourage search engines" (FR-027).</param>
+/// <param name="RobotsRules">The Administrator's robots.txt rules, <c>\n</c> line ends; null when none.</param>
+public sealed record SiteSearchSettings(
+    string? TitleSuffix,
+    Guid? DefaultImageId,
+    string? OrganisationName,
+    Guid? OrganisationLogoId,
+    bool Discouraged,
+    string? RobotsRules)
+{
+    /// <summary>No search settings: the defaults every page falls back to.</summary>
+    public static SiteSearchSettings None { get; } = new(null, null, null, null, false, null);
 }
 
 /// <summary>One host name mapped to one site.</summary>

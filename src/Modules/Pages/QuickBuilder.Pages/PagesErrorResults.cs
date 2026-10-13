@@ -70,7 +70,13 @@ internal static class PagesErrorResults
             // 016 data-model §4.
             or "pages.template_has_children"
             or "pages.collection_has_template"
-            or "pages.template_parent_taken" => StatusCodes.Status409Conflict,
+            or "pages.template_parent_taken"
+            // 017 data-model §4.
+            or "redirects.duplicate"
+            or "redirects.loop"
+            or "redirects.limit_reached" => StatusCodes.Status409Conflict,
+        "pages.seo_restricted" => StatusCodes.Status403Forbidden,
+        "redirects.import_too_large" => StatusCodes.Status413PayloadTooLarge,
         "pages.document_too_large" => StatusCodes.Status413PayloadTooLarge,
         "pages.image_alt_missing" => StatusCodes.Status422UnprocessableEntity,
         _ when code.EndsWith("not_found", StringComparison.Ordinal) => StatusCodes.Status404NotFound,
@@ -80,6 +86,7 @@ internal static class PagesErrorResults
     private static string TitleFor(int status) => status switch
     {
         StatusCodes.Status404NotFound => "Not found",
+        StatusCodes.Status403Forbidden => "Forbidden",
         StatusCodes.Status409Conflict => "Conflict",
         StatusCodes.Status413PayloadTooLarge => "Too large",
         _ => "The request could not be completed",

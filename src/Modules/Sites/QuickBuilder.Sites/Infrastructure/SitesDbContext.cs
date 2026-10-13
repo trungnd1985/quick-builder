@@ -91,6 +91,17 @@ internal sealed class SitesDbContext(DbContextOptions<SitesDbContext> options, I
                 .HasMaxLength(SiteHostName.MaxLength)
                 .IsRequired();
 
+            // 017 data-model §1.4 (research SE-07, SE-08). Columns on the site row, so a change
+            // moves xmin, which every public cache key carries as the site's version.
+            entity.Property(e => e.SearchTitleSuffix).HasMaxLength(SiteSearchRules.MaxTitleSuffixLength);
+            entity.Property(e => e.SearchDefaultImage);
+            entity.Property(e => e.SearchOrganisationName).HasColumnName("search_org_name").HasMaxLength(SiteSearchRules.MaxOrganisationNameLength);
+            entity.Property(e => e.SearchOrganisationLogo).HasColumnName("search_org_logo");
+            entity.Property(e => e.SearchDiscouraged).HasDefaultValue(false);
+            entity.Property(e => e.SearchRobotsRules).HasMaxLength(SiteSearchRules.MaxRobotsRulesBytes);
+            entity.Property(e => e.RedirectOtherHosts).HasDefaultValue(false);
+            entity.Property(e => e.SearchUpdatedBy);
+
             // PostgreSQL's xmin system column: no real column, no migration, and it moves on
             // every update of the row. Every aggregate change updates this row (Site.Touch),
             // so this one token guards the whole aggregate (research S-05).

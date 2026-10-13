@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using QuickBuilder.Pages.Contracts;
 using QuickBuilder.Pages.Domain;
+using QuickBuilder.Pages.Domain.Redirects;
 using QuickBuilder.Shared.Infrastructure.Data;
 using QuickBuilder.Shared.Infrastructure.MultiSite;
 using QuickBuilder.Shared.Infrastructure.Outbox;
@@ -53,6 +54,14 @@ internal sealed class PagesDbContext(DbContextOptions<PagesDbContext> options, I
     internal DbSet<ProcessedEvent> ProcessedEvents => Set<ProcessedEvent>();
 
     internal DbSet<CollectionUsage> CollectionUsages => Set<CollectionUsage>();
+
+    internal DbSet<Redirect> Redirects => Set<Redirect>();
+
+    internal DbSet<RedirectUsage> RedirectUsages => Set<RedirectUsage>();
+
+    internal DbSet<RedirectChange> RedirectChanges => Set<RedirectChange>();
+
+    internal DbSet<SitemapState> SitemapStates => Set<SitemapState>();
 
     /// <summary>
     /// The site the query filters compare against. A property on the context, referenced
@@ -434,6 +443,10 @@ internal sealed class PagesDbContext(DbContextOptions<PagesDbContext> options, I
             entity.Property(e => e.FailureCode).HasMaxLength(100);
             entity.Ignore(e => e.IsPending);
 
+            // 017 FR-032: no foreign key, as for a link target; a deleted page simply gets no
+            // redirect when the schedule runs.
+            entity.Property(e => e.RedirectToPageId);
+
             // FR-018: at most one pending schedule per subject and action.
             entity
                 .HasIndex(e => new { e.SubjectKind, e.SubjectId, e.Action })
@@ -443,6 +456,8 @@ internal sealed class PagesDbContext(DbContextOptions<PagesDbContext> options, I
 
             entity.HasQueryFilter(e => e.SiteId == CurrentSiteId);
         });
+
+        ConfigureRedirects(modelBuilder);
 
         modelBuilder.Entity<PublishLogEntry>(entity =>
         {
@@ -467,6 +482,112 @@ internal sealed class PagesDbContext(DbContextOptions<PagesDbContext> options, I
                 .IsDescending(false, false, false, true)
                 .HasDatabaseName("ix_publish_log_subject");
 
+            entity.HasQueryFilter(e => e.SiteId == CurrentSiteId);
+        });
+    }
+
+    /// <summary>017 data-model §1.1–§1.3 and §1.7: redirects, their usage and audit, and the sitemap generation.</summary>
+    private void ConfigureRedirects(ModelBuilder modelBuilder)
+    {
+        static string InList(IEnumerable<string> values) => string.Join(", ", values.Select(v => $"'{v}'"));
+
+        modelBuilder.Entity<Redirect>(entity =>
+        {
+            entity.ToTable("redirects", Schema, t =>
+            {
+                t.HasCheckConstraint("ck_redirects_match_kind", $"match_kind IN ({InList(RedirectMatchKinds.All)})");
+                t.HasCheckConstraint("ck_redirects_status_code", "status_code IN (301, 302)");
+                t.HasCheckConstraint("ck_redirects_origin", $"origin IN ({InList(RedirectOrigins.All)})");
+                t.HasCheckConstraint(
+                    "ck_redirects_target",
+                    "(target_kind = 'page' AND target_page_id IS NOT NULL AND target_item_id IS NULL AND target_path IS NULL AND target_url IS NULL)"
+                    + " OR (target_kind = 'item' AND target_collection_id IS NOT NULL AND target_item_id IS NOT NULL AND target_page_id IS NULL AND target_path IS NULL AND target_url IS NULL)"
+                    + " OR (target_kind = 'path' AND target_path IS NOT NULL AND target_page_id IS NULL AND target_item_id IS NULL AND target_url IS NULL)"
+                    + " OR (target_kind = 'url' AND target_url IS NOT NULL AND target_page_id IS NULL AND target_item_id IS NULL AND target_path IS NULL)");
+
+                // FR-017a, FR-033: only exact sources take a query; prefixes send to a page or a path.
+                t.HasCheckConstraint(
+                    "ck_redirects_prefix",
+                    "match_kind = 'exact' OR (source_query = '' AND target_kind IN ('page', 'path'))");
+            });
+
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).ValueGeneratedNever();
+            entity.Property(e => e.MatchKind).HasMaxLength(16);
+            entity.Property(e => e.SourcePath).HasMaxLength(PageAddresses.MaxPathLength);
+            entity.Property(e => e.SourceQuery).HasMaxLength(512);
+            entity.Property(e => e.StatusCode).HasColumnType("smallint");
+            entity.Property(e => e.TargetKind).HasMaxLength(16);
+            entity.Property(e => e.TargetPath).HasMaxLength(1600);
+            entity.Property(e => e.TargetUrl).HasMaxLength(2048);
+            entity.Property(e => e.Note).HasMaxLength(500);
+            entity.Property(e => e.Origin).HasMaxLength(16);
+            entity.Property(e => e.Version).IsRowVersion().HasColumnName("xmin").HasColumnType("xid");
+
+            // FR-017: one redirect per source. Also the index the public lookups use (SE-10).
+            entity
+                .HasIndex(e => new { e.SiteId, e.MatchKind, e.SourcePath, e.SourceQuery })
+                .IsUnique()
+                .HasDatabaseName("ux_redirects_source");
+
+            entity
+                .HasIndex(e => new { e.SiteId, e.TargetPageId })
+                .HasFilter("target_page_id IS NOT NULL")
+                .HasDatabaseName("ix_redirects_target_page");
+
+            entity
+                .HasIndex(e => new { e.SiteId, e.TargetPath })
+                .HasFilter("target_path IS NOT NULL")
+                .HasDatabaseName("ix_redirects_target_path");
+
+            entity.HasQueryFilter(e => e.SiteId == CurrentSiteId);
+        });
+
+        modelBuilder.Entity<RedirectUsage>(entity =>
+        {
+            entity.ToTable("redirect_usage", Schema);
+            entity.HasKey(e => e.RedirectId);
+            entity.Property(e => e.RedirectId).ValueGeneratedNever();
+            entity
+                .HasOne<Redirect>()
+                .WithOne()
+                .HasForeignKey<RedirectUsage>(e => e.RedirectId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasQueryFilter(e => e.SiteId == CurrentSiteId);
+        });
+
+        modelBuilder.Entity<RedirectChange>(entity =>
+        {
+            entity.ToTable("redirect_changes", Schema, t =>
+            {
+                t.HasCheckConstraint("ck_redirect_changes_action", $"action IN ({InList(RedirectChangeActions.All)})");
+                t.HasCheckConstraint("ck_redirect_changes_origin", $"origin IN ({InList(RedirectOrigins.All)})");
+            });
+
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).ValueGeneratedNever();
+            entity.Property(e => e.Action).HasMaxLength(16);
+            entity.Property(e => e.Origin).HasMaxLength(16);
+
+            // No foreign key: the record outlives the redirect (FR-021).
+            entity
+                .HasIndex(e => new { e.SiteId, e.RedirectId, e.AtUtc })
+                .IsDescending(false, false, true)
+                .HasDatabaseName("ix_redirect_changes_redirect");
+
+            entity
+                .HasIndex(e => new { e.SiteId, e.AtUtc })
+                .IsDescending(false, true)
+                .HasDatabaseName("ix_redirect_changes_site_time");
+
+            entity.HasQueryFilter(e => e.SiteId == CurrentSiteId);
+        });
+
+        modelBuilder.Entity<SitemapState>(entity =>
+        {
+            entity.ToTable("sitemap_state", Schema);
+            entity.HasKey(e => e.SiteId);
+            entity.Property(e => e.SiteId).ValueGeneratedNever();
             entity.HasQueryFilter(e => e.SiteId == CurrentSiteId);
         });
     }

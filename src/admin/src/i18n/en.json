@@ -144,7 +144,8 @@
       "out_of_date": "Someone else changed this site at the same time. Reload it and try again.",
       "not_found": "This site no longer exists, or you can no longer see it.",
       "forbidden": "You don't have permission to do that.",
-      "unknown": "Something went wrong. Try again."
+      "unknown": "Something went wrong. Try again.",
+      "search_invalid": "Check the search settings: the title suffix fits 60 characters on one line, the organisation name 200, and robots rules 10 KB with lines of at most 500 characters."
     }
   },
   "media": {
@@ -474,7 +475,8 @@
       "template_has_children": "A template cannot have pages under it, because its address holds each item’s slug.",
       "unknown_collection": "That collection is not one of this site’s.",
       "collection_has_template": "That collection already has a template page. A collection has one template.",
-      "template_parent_taken": "That page already holds a template. A page holds at most one."
+      "template_parent_taken": "That page already holds a template. A page holds at most one.",
+      "seo_restricted": "Only Designers and Administrators can change the canonical address or hide a page from search engines."
     },
     "template": {
       "setTitle": "Use {title} as a template",
@@ -2051,6 +2053,23 @@
         "template_not_live": "This item has no page yet: its collection’s template is not published.",
         "not_published": "This item has no page until it is published."
       }
+    }
+  },
+  "redirects": {
+    "errors": {
+      "invalid": "Check the redirect and try again.",
+      "forbidden": "You are not allowed to manage redirects on this site.",
+      "out_of_date": "Someone else changed this redirect while you were working. Reload and try again.",
+      "unknown": "Something went wrong. Try again.",
+      "not_found": "That redirect no longer exists. Reload and try again.",
+      "source_invalid": "That source address cannot be redirected. Use a path on this site that is not reserved, such as /old-page.",
+      "target_invalid": "That target cannot be used. Choose a page or an item, a path on this site, or an http or https address.",
+      "duplicate": "Another redirect already has this source address.",
+      "loop": "This redirect would send visitors round in a loop.",
+      "limit_reached": "This site already has the most redirects it can hold ({limit}).",
+      "import_encoding": "The file is not UTF-8 text. Save it as UTF-8 (CSV) and import it again.",
+      "import_too_large": "An import may hold at most 5,000 rows and 1 MB.",
+      "import_row_malformed": "This line does not have a source, a target and a kind."
     }
   }
 }

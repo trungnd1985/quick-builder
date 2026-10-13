@@ -118,6 +118,10 @@ public sealed class NestedListFetchTests
             Task.FromResult<PublishedItemRef?>(null);
 
         public Task<int> CountPublishedAsync(Guid siteId, Guid collectionId, CancellationToken cancellationToken = default) => Task.FromResult(0);
+
+        public Task<IReadOnlyList<PublishedItemAddress>> ListAddressesAsync(
+            Guid siteId, Guid collectionId, string? hideFieldId, Guid? afterId, int limit, CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
     }
 
     private sealed class FakePages : IPublishedContentReader
@@ -139,5 +143,8 @@ public sealed class NestedListFetchTests
             Guid siteId, IReadOnlyCollection<Guid> pageIds, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 
         public Task<bool> IsHomePageLiveAsync(Guid siteId, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+
+        public Task<IReadOnlyList<LiveAncestor>> GetLiveAncestorsAsync(Guid siteId, Guid pageId, CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
     }
 }

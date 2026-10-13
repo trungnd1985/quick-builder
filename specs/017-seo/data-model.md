@@ -17,7 +17,7 @@ are in [research.md](./research.md) (`SE-xx`). Symbols: **+** new, **~** changed
 | `site_id` | `uuid not null` | global site filter (Principle V) |
 | `match_kind` | `text not null` | `exact` or `prefix` |
 | `source_path` | `text not null` | normalised: lower-case, no trailing slash, ≤1,024 |
-| `source_query` | `text null` | canonical query (SE-09), ≤512; only when `match_kind = exact` |
+| `source_query` | `text not null` | canonical query (SE-09), ≤512; empty when the source has none (so one plain unique index works); non-empty only when `match_kind = exact` |
 | `status_code` | `smallint not null` | `301` or `302` |
 | `target_kind` | `text not null` | `page`, `item`, `path`, `url`; `prefix` allows `page` and `path` only |
 | `target_page_id` | `uuid null` | set when `target_kind = page` |
@@ -32,7 +32,7 @@ are in [research.md](./research.md) (`SE-xx`). Symbols: **+** new, **~** changed
 
 | Index | Purpose |
 |---|---|
-| unique `(site_id, match_kind, source_path, coalesce(source_query, ''))` | one redirect per source (FR-017) |
+| unique `(site_id, match_kind, source_path, source_query)` | one redirect per source (FR-017) |
 | `(site_id, target_page_id) where target_page_id is not null` | breaking and retargeting by page |
 | `(site_id, target_path) where target_path is not null` | retargeting after address changes (SE-11) |
 

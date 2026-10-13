@@ -131,6 +131,11 @@ internal sealed class PublishedItemReader(CmsPublishedReadDbContext database) : 
     public Task<int> CountPublishedAsync(Guid siteId, Guid collectionId, CancellationToken cancellationToken = default) =>
         database.Items.CountAsync(i => i.SiteId == siteId && i.CollectionId == collectionId, cancellationToken);
 
+    /// <summary>Sitemap addresses; built with the sitemap (017 tasks T058).</summary>
+    public Task<IReadOnlyList<PublishedItemAddress>> ListAddressesAsync(
+        Guid siteId, Guid collectionId, string? hideFieldId, Guid? afterId, int limit, CancellationToken cancellationToken = default) =>
+        throw new NotImplementedException("017 T058: sitemap addresses are not built yet.");
+
     /// <summary>Rows as contract items, each named by its collection's title field.</summary>
     internal async Task<Dictionary<Guid, PublishedItem>> ToItemsAsync(Guid siteId, IReadOnlyList<PublishedItemRow> rows, CancellationToken cancellationToken)
     {

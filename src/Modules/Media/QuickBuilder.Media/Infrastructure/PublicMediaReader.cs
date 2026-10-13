@@ -36,7 +36,7 @@ internal sealed class PublicMediaReader(
 
         var files = await database.Files
             .Where(f => f.SiteId == siteId && mediaIds.Contains(f.Id))
-            .Select(f => new { f.Id, f.Extension, f.ContentType, f.ContentVersion, f.Width, f.Height, f.IsAnimated, f.MetadataState, f.VariantsState })
+            .Select(f => new { f.Id, f.Extension, f.ContentType, f.ContentVersion, f.Width, f.Height, f.IsAnimated, f.MetadataState, f.VariantsState, f.AltText })
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
 
@@ -58,7 +58,8 @@ internal sealed class PublicMediaReader(
                     f.Width,
                     f.Height,
                     variants,
-                    OfferOriginal: eligible && VariantPlan.OfferOriginal(f.Width, widths));
+                    OfferOriginal: eligible && VariantPlan.OfferOriginal(f.Width, widths),
+                    AltText: f.AltText);
             });
     }
 }
@@ -132,4 +133,7 @@ internal sealed class PublicMediaRow : ISiteOwned
     public MediaMetadataState MetadataState { get; set; }
 
     public MediaVariantsState VariantsState { get; set; }
+
+    /// <summary>The file's alternative text, for <c>og:image:alt</c> (017 research SE-05).</summary>
+    public string? AltText { get; set; }
 }

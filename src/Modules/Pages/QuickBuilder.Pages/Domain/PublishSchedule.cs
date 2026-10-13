@@ -61,6 +61,12 @@ internal sealed partial class PublishSchedule : ISiteOwned
 
     public string? FailureCode { get; private set; }
 
+    /// <summary>
+    /// For a page unpublish: the page its address should redirect to once the schedule runs,
+    /// if the member accepted the offer (017 FR-032, research SE-11).
+    /// </summary>
+    public Guid? RedirectToPageId { get; private set; }
+
     public Guid CreatedBy { get; private set; }
 
     public DateTimeOffset CreatedAtUtc { get; private set; }

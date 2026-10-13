@@ -166,6 +166,31 @@ Collection templates and data binding register no capability; they reuse existin
 - **Deleting a collection** still needs `cms.collections.manage`; it is now also refused
   while pages or components use the collection.
 
+### Registered by 017
+
+SEO, sitemap and redirects (017) add three: one registered by Pages, two by Sites.
+Designers shape the site's addresses and how it presents itself. Only Administrators may
+take the whole site out of search or change where its host names lead, because a mistake
+there removes the site from search engines. See
+[017 research SE-03](../../017-seo/research.md#se-03-who-may-change-which-metadata).
+
+| Capability | Scope | Administrator | Designer | Editor |
+|---|---|---|---|---|
+| `pages.redirects.manage` | Site | ✓ | ✓ | — |
+| `sites.search.manage` | Site | ✓ | ✓ | — |
+| `sites.search_visibility.manage` | Site | ✓ | — | — |
+
+- **`pages.redirects.manage`**: list, create, change, turn on or off, delete, import and
+  export redirects.
+- **`sites.search.manage`**: title suffix, default sharing image, organisation name and logo.
+- **`sites.search_visibility.manage`**: "Discourage search engines", custom robots.txt rules,
+  "Redirect other host names to the primary one".
+- **Page metadata** is part of the draft (`pages.page_drafts.edit`). Changing the canonical
+  address or hiding a page from search engines also needs `pages.structure.manage`, checked on
+  the draft save (`403 pages.seo_restricted`).
+- **Redirect offers** that come with a change (a move, a slug change, an item publish) need only
+  the capability of that change, so an Editor publishing an item slug change may accept one.
+
 ## 3. What a caller sees
 
 | Situation | Status | `errorCode` |
@@ -196,6 +221,7 @@ can see it is told honestly that they may not do this particular thing.
 | `GET\|HEAD /_media/{file}` (public surface, 003 `ServePublicFile`) | Site visitors never authenticate; justified by 003 FR-026 |
 | `GET\|HEAD /{path}` and any other method on it (public surface, 012 `RenderPage`) | Published pages for site visitors, and `405` for other methods; justified by 012 FR-022 |
 | `GET\|HEAD /_assets/blocks.{hash}.css` (public surface, 012 `ServeBlockStylesheet`) | The published pages' stylesheet; justified by 012 research PR-10 |
+| `GET\|HEAD /sitemap.xml`, `/sitemap-{n}.xml`, `/robots.txt` (public surface, 017 `Sitemap`, `Robots`) | Crawlers never authenticate; justified by 017 FR-023, FR-025 |
 | `/admin/**` static assets and the SPA fallback | The shell has to load in order to show the sign-in screen |
 
 Adding to this list means changing this document, the list in the architecture test,

@@ -27,6 +27,12 @@ internal static class PagesCapabilities
     /// <summary>Create, rename and delete components, and save their drafts. Designer.</summary>
     public const string ComponentsManage = "pages.components.manage";
 
+    /// <summary>
+    /// List, create, change, delete, import and export the site's redirects. Designer (017
+    /// research SE-03). Offered redirects need only the capability of the change they come with.
+    /// </summary>
+    public const string RedirectsManage = "pages.redirects.manage";
+
     public static IEnumerable<CapabilityDefinition> All =>
     [
         new(ContentView, CapabilityScope.Site, [SystemRole.Designer, SystemRole.Editor]),
@@ -38,5 +44,8 @@ internal static class PagesCapabilities
         // Administrators only (clarification Q2 of clarify).
         new(PublishingCapabilities.Manage, CapabilityScope.Site, [SystemRole.Designer]),
         new(PublishingCapabilities.LogView, CapabilityScope.Site, []),
+
+        // 017: Designers shape the site's addresses, so they manage redirects.
+        new(RedirectsManage, CapabilityScope.Site, [SystemRole.Designer]),
     ];
 }
