@@ -1,0 +1,377 @@
+openapi: 3.1.0
+info:
+  title: QuickBuilder admin API changes for SEO, sitemap and redirects
+  version: v1
+  description: |
+    Admin API additions and changes for specs/017-seo (research SE-03, SE-08, SE-11, SE-13).
+    Every operation is site-scoped and declares one capability:
+    - `pages.redirects.manage` (Designer): every redirect operation.
+    - `sites.search.manage` (Designer): title suffix, default sharing image, organisation.
+    - `sites.search_visibility.manage` (Administrator only): discourage, robots rules,
+      host name redirect.
+    - Existing capabilities for the changed operations; the redirect offer needs nothing
+      more than the change it comes with (FR-030).
+    A user with no role on the site gets the same `404` as for a site that does not exist.
+    Errors are `application/problem+json` with `errorCode` (data-model.md §4).
+    Page draft saves (`PUT …/pages/{pageId}/draft`) are unchanged in shape; they now validate
+    rules 22–25 and refuse `403 pages.seo_restricted` (SE-03).
+paths:
+  /api/v1/pages/sites/{siteId}/redirects:
+    parameters:
+      - $ref: '#/components/parameters/SiteId'
+    get:
+      summary: List the site's redirects
+      parameters:
+        - { name: q, in: query, schema: { type: string, maxLength: 200 }, description: 'Matches source or target text, case-insensitive.' }
+        - { name: state, in: query, schema: { type: string, enum: [active, off, hidden, broken] } }
+        - { name: sort, in: query, schema: { type: string, enum: [source, hits, lastUsed, updated], default: source } }
+        - { name: dir, in: query, schema: { type: string, enum: [asc, desc], default: asc } }
+        - { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
+      responses:
+        '200':
+          description: One page of 50 redirects, and the totals.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items, total, limit]
+                properties:
+                  items: { type: array, items: { $ref: '#/components/schemas/Redirect' } }
+                  total: { type: integer }
+                  limit: { type: integer, const: 10000 }
+    post:
+      summary: Create a redirect
+      description: |
+        Refused with `redirects.source_invalid`, `redirects.target_invalid`,
+        `409 redirects.duplicate`, `409 redirects.loop` or `409 redirects.limit_reached`.
+        A target that is another redirect's source is replaced by the final target, and
+        `shortened` is true in the response.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RedirectInput' }
+      responses:
+        '201':
+          description: The redirect.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Redirect' }
+
+  /api/v1/pages/sites/{siteId}/redirects/{redirectId}:
+    parameters:
+      - $ref: '#/components/parameters/SiteId'
+      - { name: redirectId, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      summary: One redirect
+      responses:
+        '200':
+          description: The redirect.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Redirect' }
+    put:
+      summary: Change a redirect, including turning it on or off
+      description: Same refusals as create, plus `409 pages.version_conflict` for a stale `version`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/RedirectInput'
+                - type: object
+                  required: [version]
+                  properties:
+                    version: { type: integer, format: int64 }
+      responses:
+        '200':
+          description: The redirect.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Redirect' }
+    delete:
+      summary: Delete a redirect and its usage
+      parameters:
+        - { name: version, in: query, required: true, schema: { type: integer, format: int64 } }
+      responses:
+        '204': { description: Deleted. }
+
+  /api/v1/pages/sites/{siteId}/redirects/import:
+    parameters:
+      - $ref: '#/components/parameters/SiteId'
+    post:
+      summary: Import redirects from a CSV file
+      description: |
+        Columns `source,target,kind[,match][,note]`; a first row whose first cell is `source`
+        is a header. UTF-8 with or without BOM. At most 1 MiB and 5,000 rows
+        (`413 redirects.import_too_large`); not UTF-8 is `400 redirects.import_encoding`; a
+        file that would take the site over 10,000 is `409 redirects.limit_reached`. Otherwise
+        valid rows are added in one transaction and refused rows are reported.
+      requestBody:
+        required: true
+        content:
+          text/csv:
+            schema: { type: string, maxLength: 1048576 }
+      responses:
+        '200':
+          description: What was added and what was refused.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [added, refused]
+                properties:
+                  added: { type: integer }
+                  shortened: { type: integer, description: 'Added rows whose target was replaced by a chain''s final target.' }
+                  refused:
+                    type: array
+                    items:
+                      type: object
+                      required: [line, errorCode]
+                      properties:
+                        line: { type: integer, description: '1-based line in the file.' }
+                        errorCode: { type: string, examples: [redirects.duplicate, redirects.loop, redirects.import_row_malformed] }
+                        detail: { type: string, description: 'Names the conflicting redirect or the earlier line. Never echoes the row.' }
+
+  /api/v1/pages/sites/{siteId}/redirects/export:
+    parameters:
+      - $ref: '#/components/parameters/SiteId'
+    get:
+      summary: Export every redirect as CSV, in the import format
+      description: Page and item targets are written as their current address; cells starting with `=`, `+`, `-`, `@`, tab or CR get a leading `'`.
+      responses:
+        '200':
+          description: 'The file, with `Content-Disposition: attachment; filename="redirects.csv"`.'
+          content:
+            text/csv:
+              schema: { type: string }
+
+  /api/v1/sites/{siteId}/search-settings:
+    parameters:
+      - $ref: '#/components/parameters/SiteId'
+    put:
+      summary: Change the site's title suffix, default sharing image and organisation
+      description: Requires `sites.search.manage`. `409 sites.out_of_date` for a stale `version`; `400 sites.search_invalid`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [version]
+              additionalProperties: false
+              properties:
+                titleSuffix: { type: [string, 'null'], maxLength: 60 }
+                defaultImageId: { type: [string, 'null'], format: uuid }
+                organisationName: { type: [string, 'null'], maxLength: 200 }
+                organisationLogoId: { type: [string, 'null'], format: uuid }
+                version: { type: integer, description: 'The site version (009 S-06).' }
+      responses:
+        '200':
+          description: The site, with `search` and `searchVisibility`.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SiteSearch' }
+
+  /api/v1/sites/{siteId}/search-visibility:
+    parameters:
+      - $ref: '#/components/parameters/SiteId'
+    put:
+      summary: Change whether search engines are discouraged, the custom robots rules and the host name redirect
+      description: Requires `sites.search_visibility.manage` (Administrator). `409 sites.out_of_date`; `400 sites.search_invalid`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [discourageSearchEngines, redirectOtherHostNames, version]
+              additionalProperties: false
+              properties:
+                discourageSearchEngines: { type: boolean }
+                robotsRules: { type: [string, 'null'], maxLength: 10240 }
+                redirectOtherHostNames: { type: boolean }
+                version: { type: integer }
+      responses:
+        '200':
+          description: The site, with `search` and `searchVisibility`.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SiteSearch' }
+
+  # ---- Changed operations: the redirect offer (SE-11) --------------------------------------
+
+  /api/v1/pages/sites/{siteId}/pages/{pageId}:
+    parameters:
+      - $ref: '#/components/parameters/SiteId'
+      - $ref: '#/components/parameters/PageId'
+    put:
+      summary: (changed) Rename a page or change its slug
+      description: Body gains optional `redirectOldAddresses` (default false). Response gains `redirects`.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title, slug, version]
+              properties:
+                title: { type: string }
+                slug: { type: string }
+                version: { type: integer }
+                redirectOldAddresses: { type: boolean, default: false }
+      responses:
+        '200':
+          description: The page with warnings and `redirects` (RedirectOutcome).
+    delete:
+      summary: (changed) Delete a page
+      parameters:
+        - { name: version, in: query, required: true, schema: { type: integer } }
+        - { name: redirectToPageId, in: query, schema: { type: string, format: uuid }, description: 'Offer accepted: redirect the deleted live address to this page (FR-032).' }
+      responses:
+        '204': { description: Deleted. }
+
+  /api/v1/pages/sites/{siteId}/pages/{pageId}/move:
+    post:
+      summary: (changed) Move a page
+      description: Body gains optional `redirectOldAddresses`. Response gains `redirects`.
+      responses: { '200': { description: 'As before, plus `redirects`.' } }
+  /api/v1/pages/sites/{siteId}/pages/{pageId}/make-home:
+    post:
+      summary: (changed) Make a page the home page
+      description: Body gains optional `redirectOldAddresses`. Response gains `redirects`.
+      responses: { '200': { description: 'As before, plus `redirects`.' } }
+  /api/v1/pages/sites/{siteId}/pages/{pageId}/template:
+    put:
+      summary: (changed) Make the page a template, or change its collection
+      description: Body gains optional `redirectOldAddresses` (the page's own live address; a collection change offers nothing for items).
+      responses: { '200': { description: 'As before, plus `redirects`.' } }
+    delete:
+      summary: (changed) Turn a template back into a page
+      description: Query gains optional `redirectOldAddresses`; accepted, it adds a prefix redirect from the old pattern's prefix to the parent page.
+      responses: { '200': { description: 'As before, plus `redirects`.' } }
+  /api/v1/pages/sites/{siteId}/pages/{pageId}/unpublish:
+    post:
+      summary: (changed) Unpublish a page
+      description: Body gains optional `redirectToPageId` (FR-032).
+      responses: { '200': { description: 'As before, plus `redirects`.' } }
+  /api/v1/pages/sites/{siteId}/pages/{pageId}/schedules/unpublish:
+    put:
+      summary: (changed) Schedule a page unpublish
+      description: Body (`SetScheduleRequest`) gains optional `redirectToPageId`, kept on the schedule and applied when it runs if the page is live (FR-029, FR-032).
+      responses: { '200': { description: 'As before; the schedule shows the choice.' } }
+  /api/v1/pages/sites/{siteId}/pages/{pageId}/publish:
+    post:
+      summary: (changed) Publish a page
+      description: Response gains `warnings` with `redirect_hidden` when the page's live address is an enabled redirect's source (also on page create, slug change, move, home change and template removal).
+      responses: { '200': { description: 'As before, plus `warnings`.' } }
+
+  /api/v1/cms/sites/{siteId}/collections/{collectionId}/items/{itemId}/publish:
+    post:
+      summary: (changed) Publish an item
+      description: Body gains optional `redirectOldAddress` (default false). When the published slug changes, Cms writes `Cms.ItemRedirectRequested`; the redirect appears within the outbox delay.
+      responses: { '200': { description: 'As before, plus `redirectRequested` (boolean).' } }
+  /api/v1/cms/sites/{siteId}/collections/{collectionId}/items/{itemId}/versions/{number}/rollback:
+    post:
+      summary: (changed) Roll back an item
+      description: Body gains optional `redirectOldAddress`.
+      responses: { '200': { description: 'As before, plus `redirectRequested`.' } }
+  /api/v1/cms/sites/{siteId}/collections/{collectionId}/items/{itemId}/schedules/{scheduleAction}:
+    put:
+      summary: (changed) Schedule a publish or unpublish
+      description: Body gains optional `redirectOldAddress` (publish) or `redirectToPageId` (unpublish), kept on the schedule and applied when it runs.
+      responses: { '200': { description: 'As before; the schedule shows the choice.' } }
+  /api/v1/cms/sites/{siteId}/collections/{collectionId}/items/{itemId}/unpublish:
+    post:
+      summary: (changed) Unpublish an item
+      description: Body gains optional `redirectToPageId`.
+      responses: { '200': { description: 'As before, plus `redirectRequested`.' } }
+  /api/v1/cms/sites/{siteId}/collections/{collectionId}/items/{itemId}:
+    delete:
+      summary: (changed) Delete an item
+      description: Query gains optional `redirectToPageId`.
+      responses: { '204': { description: 'Deleted.' } }
+
+components:
+  parameters:
+    SiteId: { name: siteId, in: path, required: true, schema: { type: string, format: uuid } }
+    PageId: { name: pageId, in: path, required: true, schema: { type: string, format: uuid } }
+  schemas:
+    RedirectTarget:
+      oneOf:
+        - { type: object, required: [kind, pageId], additionalProperties: false, properties: { kind: { const: page }, pageId: { type: string, format: uuid } } }
+        - { type: object, required: [kind, collectionId, itemId], additionalProperties: false, properties: { kind: { const: item }, collectionId: { type: string, format: uuid }, itemId: { type: string, format: uuid } } }
+        - { type: object, required: [kind, path], additionalProperties: false, properties: { kind: { const: path }, path: { type: string, maxLength: 1600, description: 'Site path, optional query.' } } }
+        - { type: object, required: [kind, url], additionalProperties: false, properties: { kind: { const: url }, url: { type: string, format: uri, maxLength: 2048, description: 'Absolute http or https, no user info.' } } }
+    RedirectInput:
+      type: object
+      required: [source, match, target, statusCode, enabled]
+      additionalProperties: false
+      properties:
+        source: { type: string, maxLength: 1600, description: 'Path, optionally with a query (exact only). Normalised on save.' }
+        match: { type: string, enum: [exact, prefix] }
+        target: { $ref: '#/components/schemas/RedirectTarget' }
+        statusCode: { type: integer, enum: [301, 302] }
+        enabled: { type: boolean }
+        note: { type: [string, 'null'], maxLength: 500 }
+    Redirect:
+      type: object
+      required: [id, source, match, target, targetAddress, statusCode, enabled, state, origin, hits, version]
+      properties:
+        id: { type: string, format: uuid }
+        source: { type: string, description: 'Normalised path and canonical query.' }
+        match: { type: string, enum: [exact, prefix] }
+        target: { $ref: '#/components/schemas/RedirectTarget' }
+        targetAddress: { type: [string, 'null'], description: 'Where it sends visitors now; null when broken.' }
+        statusCode: { type: integer, enum: [301, 302] }
+        enabled: { type: boolean }
+        note: { type: [string, 'null'] }
+        state: { type: string, enum: [active, off, hidden, broken] }
+        hiddenBy: { type: [object, 'null'], properties: { kind: { enum: [page, item] }, id: { type: string, format: uuid } } }
+        shortened: { type: boolean, description: 'Create and update responses only.' }
+        warnings:
+          type: array
+          description: 'Create and update responses only (FR-017a, data-model §4).'
+          items: { type: string, enum: [source_holds_content, source_uses_page_param] }
+        history:
+          type: array
+          description: 'Get response only: the last 20 audit entries (research SE-13a). Ids, codes and times only.'
+          items:
+            type: object
+            required: [action, origin, at]
+            properties:
+              action: { type: string, enum: [created, changed, turned_on, turned_off, deleted, imported, offered, retargeted] }
+              origin: { type: string, enum: [manual, import, offer] }
+              actorUserId: { type: [string, 'null'], format: uuid }
+              at: { type: string, format: date-time }
+        origin: { type: string, enum: [manual, import, offer] }
+        hits: { type: integer, format: int64 }
+        lastUsedAt: { type: [string, 'null'], format: date-time }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+        version: { type: integer, format: int64 }
+    RedirectOutcome:
+      type: object
+      description: In responses of changes that took an offer.
+      properties:
+        created: { type: integer }
+        skipped: { type: integer, description: 'Old addresses now held by live content (FR-031).' }
+        retargeted: { type: integer }
+        turnedOff: { type: array, items: { type: string, format: uuid }, description: 'Redirects turned off because they would loop.' }
+    SiteSearch:
+      type: object
+      properties:
+        search:
+          type: object
+          properties:
+            titleSuffix: { type: [string, 'null'] }
+            defaultImageId: { type: [string, 'null'], format: uuid }
+            organisationName: { type: [string, 'null'] }
+            organisationLogoId: { type: [string, 'null'], format: uuid }
+        searchVisibility:
+          type: object
+          properties:
+            discourageSearchEngines: { type: boolean }
+            robotsRules: { type: [string, 'null'] }
+            redirectOtherHostNames: { type: boolean }
+        version: { type: integer }
