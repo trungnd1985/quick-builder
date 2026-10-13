@@ -67,6 +67,9 @@ public sealed record SiteSearchSettings(
     bool Discouraged,
     string? RobotsRules)
 {
+    /// <summary>Who last changed the search settings or visibility (017 FR-021); null when nobody has.</summary>
+    public Guid? UpdatedBy { get; init; }
+
     /// <summary>No search settings: the defaults every page falls back to.</summary>
     public static SiteSearchSettings None { get; } = new(null, null, null, null, false, null);
 }

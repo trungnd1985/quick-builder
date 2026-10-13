@@ -18,6 +18,8 @@ using QuickBuilder.Sites.Features.ListLanguages;
 using QuickBuilder.Sites.Features.ListSites;
 using QuickBuilder.Sites.Features.RemoveHostName;
 using QuickBuilder.Sites.Features.UpdateSettings;
+using QuickBuilder.Sites.Features.UpdateSearchSettings;
+using QuickBuilder.Sites.Features.UpdateSearchVisibility;
 using QuickBuilder.Sites.Infrastructure;
 
 namespace QuickBuilder.Sites;
@@ -92,6 +94,11 @@ public static class SitesModule
         services.AddScoped<IValidator<UpdateSettingsCommand>, UpdateSettingsValidator>();
 
         services.AddScoped<ICommandHandler<ChangeAvailabilityCommand, Result<SiteResponse>>, ChangeAvailabilityHandler>();
+
+        // 017: search settings and visibility, two slices by capability (research SE-03, SE-08).
+        services.AddScoped<SiteSettingsChange>();
+        services.AddScoped<ICommandHandler<UpdateSearchSettingsCommand, Result<SiteResponse>>, UpdateSearchSettingsHandler>();
+        services.AddScoped<ICommandHandler<UpdateSearchVisibilityCommand, Result<SiteResponse>>, UpdateSearchVisibilityHandler>();
 
         services.AddScoped<IQueryHandler<ListLanguagesQuery, ListLanguagesResponse>, ListLanguagesHandler>();
 

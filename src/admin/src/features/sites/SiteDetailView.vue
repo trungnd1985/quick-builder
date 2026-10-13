@@ -6,6 +6,7 @@ import { sitesApi, type Site, type SiteScheme } from '../../api/sites'
 import { useSitesStore } from '../../app/sitesStore'
 import { useAuthStore } from '../../app/authStore'
 import AvailabilityPanel from './AvailabilityPanel.vue'
+import SearchSettingsPanel from './SearchSettingsPanel.vue'
 import HostNameList from './HostNameList.vue'
 import LanguageSelect from './LanguageSelect.vue'
 import { isOutOfDate, siteErrorMessage } from './siteErrors'
@@ -324,6 +325,11 @@ watch(siteId, load)
       />
 
       <AvailabilityPanel
+        :site="site"
+        @updated="show"
+      />
+
+      <SearchSettingsPanel
         :site="site"
         @updated="show"
       />

@@ -60,8 +60,9 @@ Record results, timings and versions in `quickstart-results.md`.
 5. As `$EDITOR`, try "Hide from search engines". The control is disabled, and a crafted
    draft save gets `403 pages.seo_restricted`. As `$DESIGNER`, it works; after publishing,
    the page has `robots noindex` and is not in the sitemap.
-6. Set the site title suffix " | Acme" as `$DESIGNER`. Every page's title ends with it at
-   the next request, with no republish (SE-08).
+6. Set the site title suffix " | Acme" as `$DESIGNER`. Every page without its own meta title
+   ends with it at the next request, with no republish (SE-08); a meta title is used as
+   written.
 
 ## 2. Redirects (US2, SC-002)
 

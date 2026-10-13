@@ -226,6 +226,10 @@ internal sealed class PageResponder(
         references.Pages.UnionWith(fetched.Pages);
         references.Media.UnionWith(fetched.Media);
 
+        // 017 research SE-05: the sharing image, the site's default one, fetched with the rest.
+        var seo = SeoDocument.From(version.Document);
+        references.Media.UnionWith(HeadBuilder.MediaIds(seo, site));
+
         var targets = await pages.GetLinkTargetsAsync(site.Id, references.Pages, cancellationToken).ConfigureAwait(false);
         var files = await media.GetAsync(site.Id, references.Media, cancellationToken).ConfigureAwait(false);
 
@@ -234,7 +238,7 @@ internal sealed class PageResponder(
 
         var inputs = new RenderInputs(
             title, version.Document, design.Document, components, targets, files, site.DefaultLanguage, basePath, fetched.Data,
-            SeoDocument.From(version.Document), site);
+            seo, site, request.Path, pageItem is not null);
         metrics.Rendered();
         return Render(inputs, renderer, context => LogBroken(context, site.Id, pageId));
     }
@@ -264,7 +268,10 @@ internal sealed class PageResponder(
         renderer.RenderDocument(inputs.Document, PageRenderer.PageScope, context, body);
         afterRender?.Invoke(context);
 
-        var document = PageShell.Write(inputs.Title, inputs.Language, inputs.BasePath, context.Tokens, context.NodeRules, body.ToString());
+        var head = inputs.Site is { } site
+            ? HeadBuilder.Build(new HeadInputs(inputs.Title, inputs.Path, inputs.IsItemPage, inputs.Seo, site, inputs.Media))
+            : null;
+        var document = PageShell.Write(inputs.Title, inputs.Language, inputs.BasePath, context.Tokens, context.NodeRules, body.ToString(), head);
         return new RenderedPage(Encoding.UTF8.GetBytes(document.Html), document.StyleHash);
     }
 

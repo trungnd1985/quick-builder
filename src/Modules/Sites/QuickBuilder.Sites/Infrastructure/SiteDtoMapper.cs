@@ -41,7 +41,8 @@ internal sealed class SiteDtoMapper(SitesOptions options)
         Guid? OrganisationLogo,
         bool Discouraged,
         string? RobotsRules,
-        bool RedirectOtherHosts);
+        bool RedirectOtherHosts,
+        Guid? UpdatedBy);
 
     internal static Expression<Func<Site, SiteRow>> Projection { get; } = s => new SiteRow(
         s.Id,
@@ -61,7 +62,8 @@ internal sealed class SiteDtoMapper(SitesOptions options)
             s.SearchOrganisationLogo,
             s.SearchDiscouraged,
             s.SearchRobotsRules,
-            s.RedirectOtherHosts));
+            s.RedirectOtherHosts,
+            s.SearchUpdatedBy));
 
     private static readonly Lazy<Func<Site, SiteRow>> CompiledProjection = new(() => Projection.Compile());
 
@@ -91,7 +93,10 @@ internal sealed class SiteDtoMapper(SitesOptions options)
                 row.Search.OrganisationName,
                 row.Search.OrganisationLogo,
                 row.Search.Discouraged,
-                row.Search.RobotsRules),
+                row.Search.RobotsRules)
+            {
+                UpdatedBy = row.Search.UpdatedBy,
+            },
             RedirectOtherHostNames = row.Search.RedirectOtherHosts,
         };
     }

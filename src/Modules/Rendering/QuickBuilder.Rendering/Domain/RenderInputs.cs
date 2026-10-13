@@ -29,6 +29,8 @@ namespace QuickBuilder.Rendering.Domain;
 /// The site, for its name, base URL and search settings (017 research SE-05); null for renders
 /// that write no head metadata, such as the not-found page.
 /// </param>
+/// <param name="Path">The address the page answers, for its canonical address (017 FR-011).</param>
+/// <param name="IsItemPage">Whether this is an item's page under a template (017 research SE-05).</param>
 internal sealed record RenderInputs(
     string Title,
     JsonElement Document,
@@ -40,4 +42,6 @@ internal sealed record RenderInputs(
     string BasePath,
     Binding.ResolvedData? Data = null,
     QuickBuilder.Rendering.Seo.SeoDocument? Seo = null,
-    QuickBuilder.Sites.Contracts.SiteDto? Site = null);
+    QuickBuilder.Sites.Contracts.SiteDto? Site = null,
+    string Path = "/",
+    bool IsItemPage = false);

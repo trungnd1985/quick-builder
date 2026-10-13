@@ -448,3 +448,55 @@
   color: #ffffff;
   font: 600 0.8125rem/1.4 system-ui, sans-serif;
 }
+
+/* 017: the Search and sharing panel. Fields beside their previews, stacked when narrow. */
+.seo-panel__columns {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  gap: 1.5rem;
+}
+
+@media (max-width: 720px) {
+  .seo-panel__columns {
+    grid-template-columns: 1fr;
+  }
+}
+
+.seo-panel__switches {
+  border: 0;
+  padding: 0;
+  margin: 1rem 0 0;
+}
+
+.seo-preview {
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 6px;
+  padding: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.seo-preview h3 {
+  font-size: 0.8rem;
+  margin: 0 0 0.5rem;
+  color: var(--muted, #6b7280);
+}
+
+.seo-preview p {
+  margin: 0.15rem 0;
+  overflow-wrap: anywhere;
+}
+
+.seo-preview__address,
+.seo-preview__site {
+  font-size: 0.85rem;
+  color: var(--muted, #6b7280);
+}
+
+.seo-preview__title {
+  font-weight: 600;
+}
+
+.seo-preview__description--none {
+  font-style: italic;
+  color: var(--muted, #6b7280);
+}

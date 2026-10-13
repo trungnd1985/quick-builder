@@ -4,6 +4,7 @@ using QuickBuilder.Media.Contracts.Events;
 using QuickBuilder.Pages.Domain;
 using QuickBuilder.Pages.Infrastructure;
 using QuickBuilder.Shared.Kernel.Events;
+using QuickBuilder.Sites.Contracts;
 
 namespace QuickBuilder.Pages.Features.RefreshPagesShowingMedia;
 
@@ -11,7 +12,8 @@ namespace QuickBuilder.Pages.Features.RefreshPagesShowingMedia;
 /// Refreshes the live pages that show a media file, directly or through a component, when the
 /// file is deleted (012 data-model §3.2) or changes in a way pages show (013 research MV-17:
 /// replaced, dimensions recorded, variants withdrawn), so they render the change at their
-/// next request on every instance.
+/// next request on every instance. When the file is the site's default sharing image or
+/// logo, every live page of the site is refreshed (017 research SE-20).
 /// </summary>
 /// <remarks>
 /// <para>
@@ -24,7 +26,7 @@ namespace QuickBuilder.Pages.Features.RefreshPagesShowingMedia;
 /// missing one would leave visitors with stale images.
 /// </para>
 /// </remarks>
-internal sealed class RefreshPagesShowingMediaHandler(IServiceScopeFactory scopes, IItemMediaUsageReader media)
+internal sealed class RefreshPagesShowingMediaHandler(IServiceScopeFactory scopes, IItemMediaUsageReader media, ISiteDirectory sites)
     : IIntegrationEventHandler<FileDeleted>, IIntegrationEventHandler<FileChanged>
 {
     private const string DeletedHandlerName = nameof(RefreshPagesShowingMediaHandler);
@@ -54,6 +56,15 @@ internal sealed class RefreshPagesShowingMediaHandler(IServiceScopeFactory scope
             handlerName,
             async (bump, ct) =>
             {
+                // 017 research SE-20: every page may show the site's default sharing image, and the
+                // home page its logo, without referencing either.
+                if (await sites.FindByIdAsync(siteId, ct).ConfigureAwait(false) is { } site
+                    && (site.Search.DefaultImageId == fileId || site.Search.OrganisationLogoId == fileId))
+                {
+                    await bump.BumpAllLivePagesAsync(siteId, ct).ConfigureAwait(false);
+                    return;
+                }
+
                 await bump.BumpForTargetsAsync(siteId, [(DependencyKinds.Media, fileId)], exceptPageId: null, ct).ConfigureAwait(false);
 
                 // 016 TB-10: lists of collections whose published items show the file. Their item

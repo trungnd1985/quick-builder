@@ -368,6 +368,7 @@ components:
             defaultImageId: { type: [string, 'null'], format: uuid }
             organisationName: { type: [string, 'null'] }
             organisationLogoId: { type: [string, 'null'], format: uuid }
+            updatedBy: { type: [string, 'null'], format: uuid, description: 'Who last changed the search settings or visibility (FR-021).' }
         searchVisibility:
           type: object
           properties:

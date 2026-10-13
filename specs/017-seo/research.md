@@ -167,14 +167,15 @@ media files and the canonical address. In order:
 ```
 
 - **Fallbacks** (FR-005): title → live version title (item pages: item name, else template
-  title, 016 FR-030) + `title_suffix`; description → none; `og:title` → title;
+  title, 016 FR-030) + `title_suffix`. A meta title is used as written, without the suffix; description → none; `og:title` → title;
   `og:description` → description; `og:image` → site default image → none.
 - **Image**: absolute, built from `SiteDto.BaseUrl` and `PublicMediaFile.PublicPath`. The
   largest variant no wider than 1200 px is used when it exists, else the original.
   `PublicMediaFile` gains an optional `AltText` (additive, Media.Contracts) for
   `og:image:alt`.
-- **Robots meta** is written when the page is not indexable for a reason the page controls
-  (`noindex`, or a bound hide switch) or the site discourages search engines (SE-17).
+- **Robots meta**: `noindex` when the page is hidden (`noindex`, or a bound hide switch), so
+  crawlers may still follow its links; `noindex, nofollow` on every page when the site
+  discourages search engines (SE-17).
   `noSitemap` and `canonical` do not write it.
 - **Encoding**: every value goes through `HtmlWriter.Attribute`. `og:locale` maps the BCP 47
   tag (`pt-BR` → `pt_BR`; a bare language gets no region). The title keeps its existing

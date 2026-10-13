@@ -25,7 +25,21 @@ public sealed record SiteResponse(
     string Status,
     uint Version,
     DateTimeOffset UpdatedAtUtc,
-    SitePermissionsResponse Permissions);
+    SitePermissionsResponse Permissions,
+    SiteSearchResponse Search,
+    SiteSearchVisibilityResponse SearchVisibility);
+
+/// <summary>The site's search settings (017 FR-006, seo-api.yaml <c>SiteSearch</c>).</summary>
+/// <param name="UpdatedBy">Who last changed the search settings or visibility (FR-021).</param>
+public sealed record SiteSearchResponse(
+    string? TitleSuffix,
+    Guid? DefaultImageId,
+    string? OrganisationName,
+    Guid? OrganisationLogoId,
+    Guid? UpdatedBy);
+
+/// <summary>Whether search engines may index the site, and how its host names answer (017 FR-014, FR-025, FR-027).</summary>
+public sealed record SiteSearchVisibilityResponse(bool DiscourageSearchEngines, string? RobotsRules, bool RedirectOtherHostNames);
 
 /// <summary>One host name, in stored and readable form.</summary>
 public sealed record HostNameResponse(string HostName, string DisplayName, bool IsPrimary);
@@ -38,7 +52,12 @@ public sealed record HostNameResponse(string HostName, string DisplayName, bool 
 /// <c>canDelete</c>. It is a convenience for the interface, never the enforcement: every
 /// action declares its capability and is checked again when it arrives.
 /// </remarks>
-public sealed record SitePermissionsResponse(bool CanManageSettings, bool CanManageHostNames, bool CanManageAvailability);
+public sealed record SitePermissionsResponse(
+    bool CanManageSettings,
+    bool CanManageHostNames,
+    bool CanManageAvailability,
+    bool CanManageSearch = false,
+    bool CanManageSearchVisibility = false);
 
 internal static class SiteResponses
 {
@@ -53,7 +72,9 @@ internal static class SiteResponses
         var permissions = new SitePermissionsResponse(
             await access.HasCapabilityAsync(SitesCapabilities.SettingsManage, site.Id, cancellationToken).ConfigureAwait(false),
             await access.HasCapabilityAsync(SitesCapabilities.ManageHostNames, site.Id, cancellationToken).ConfigureAwait(false),
-            await access.HasCapabilityAsync(SitesCapabilities.AvailabilityManage, site.Id, cancellationToken).ConfigureAwait(false));
+            await access.HasCapabilityAsync(SitesCapabilities.AvailabilityManage, site.Id, cancellationToken).ConfigureAwait(false),
+            await access.HasCapabilityAsync(SitesCapabilities.SearchManage, site.Id, cancellationToken).ConfigureAwait(false),
+            await access.HasCapabilityAsync(SitesCapabilities.SearchVisibilityManage, site.Id, cancellationToken).ConfigureAwait(false));
 
         return new SiteResponse(
             site.Id,
@@ -73,7 +94,14 @@ internal static class SiteResponses
             site.Status,
             site.Version,
             site.UpdatedAtUtc,
-            permissions);
+            permissions,
+            new SiteSearchResponse(
+                site.Search.TitleSuffix,
+                site.Search.DefaultImageId,
+                site.Search.OrganisationName,
+                site.Search.OrganisationLogoId,
+                site.Search.UpdatedBy),
+            new SiteSearchVisibilityResponse(site.Search.Discouraged, site.Search.RobotsRules, site.RedirectOtherHostNames));
     }
 
     internal static async Task<IReadOnlyList<SiteResponse>> BuildAsync(

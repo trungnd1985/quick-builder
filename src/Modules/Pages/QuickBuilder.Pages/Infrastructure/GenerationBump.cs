@@ -92,6 +92,16 @@ internal sealed class GenerationBump(PagesDbContext database, ICollectionSchemaR
             .ExecuteUpdateAsync(s => s.SetProperty(p => p.Generation, p => p.Generation + 1), cancellationToken);
     }
 
+    /// <summary>
+    /// Increments the generation of every live page of the site: for what every page shows
+    /// without referencing it, such as the site's default sharing image (017 research SE-20).
+    /// Bounded by the site's 2,000 pages.
+    /// </summary>
+    public Task<int> BumpAllLivePagesAsync(Guid siteId, CancellationToken cancellationToken) =>
+        database.ForSite<Publication>(siteId)
+            .Where(p => p.SubjectKind == SubjectKinds.Page && p.LiveVersionId != null)
+            .ExecuteUpdateAsync(s => s.SetProperty(p => p.Generation, p => p.Generation + 1), cancellationToken);
+
     /// <summary>The pages that depend on any target, directly or through a component.</summary>
     public async Task<HashSet<Guid>> AffectedPagesAsync(
         Guid siteId, IReadOnlyCollection<(string Kind, Guid Id)> targets, CancellationToken cancellationToken)

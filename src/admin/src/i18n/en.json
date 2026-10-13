@@ -146,6 +146,20 @@
       "forbidden": "You don't have permission to do that.",
       "unknown": "Something went wrong. Try again.",
       "search_invalid": "Check the search settings: the title suffix fits 60 characters on one line, the organisation name 200, and robots rules 10 KB with lines of at most 500 characters."
+    },
+    "search": {
+      "heading": "Search and sharing",
+      "intro": "How this site presents itself to search engines and in link previews.",
+      "titleSuffix": "Title suffix",
+      "titleSuffixHelp": "Added after the title of every page that has no meta title of its own, for example \" | Acme\".",
+      "defaultImage": "Default sharing image",
+      "organisationName": "Organisation name",
+      "organisationLogo": "Organisation logo",
+      "images": "Default sharing image: {image}. Organisation logo: {logo}.",
+      "set": "set",
+      "notSet": "not set",
+      "save": "Save search settings",
+      "saved": "Search settings saved."
     }
   },
   "media": {
@@ -875,6 +889,7 @@
         "too_deep": "Blocks are nested more than 32 levels deep.",
         "too_large": "The page is larger than 1 MB.",
         "component_ref_not_allowed": "A shared component cannot contain another shared component.",
+        "seo_in_component": "A shared component cannot carry search and sharing settings; they belong to pages.",
         "unknown_component": "The page uses a shared component that no longer exists.",
         "unsupported_schema_version": "The page was written by a newer version of QuickBuilder.",
         "rich_text_too_long": "A rich text block holds more than 20,000 characters.",
@@ -1281,6 +1296,30 @@
       "scopeCard": "the card’s item in {list}",
       "valueFieldOf": "{field} of {where}",
       "valueCurrentOf": "Leave out {where}"
+    },
+    "seo": {
+      "open": "Search and sharing",
+      "title": "Search and sharing",
+      "close": "Done",
+      "metaTitle": "Meta title",
+      "metaDescription": "Meta description",
+      "ogTitle": "Sharing title",
+      "ogDescription": "Sharing description",
+      "ogImage": "Sharing image",
+      "count": "{count} of {max} characters",
+      "longerThanShown": "Search engines usually show about {limit} characters; the rest may be cut.",
+      "tooLong": "This can be at most {max} characters.",
+      "oneLine": "Keep this on one line.",
+      "invalid": "This value cannot be used.",
+      "visibility": "Search engines",
+      "noindex": "Hide from search engines",
+      "noSitemap": "Leave out of the sitemap",
+      "restricted": "Only Designers and Administrators can hide a page from search engines or change its canonical address.",
+      "searchPreview": "Search listing preview",
+      "sharingPreview": "Link preview",
+      "noDescription": "No description: search engines choose a snippet themselves.",
+      "withImage": "With the sharing image",
+      "withoutImage": "No sharing image"
     }
   },
   "design": {

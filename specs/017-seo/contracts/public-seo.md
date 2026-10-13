@@ -47,7 +47,7 @@ they have a value. See research SE-05 for the fallbacks.
 <title>{title}</title>
 <meta name="description" content="{description}">              †
 <link rel="canonical" href="{canonical}">
-<meta name="robots" content="noindex, nofollow">               † not indexable by page or site
+<meta name="robots" content="noindex">                        † hidden page; "noindex, nofollow" on a discouraged site
 <meta property="og:type" content="website|article">
 <meta property="og:title" content="{og title}">
 <meta property="og:description" content="{og description}">    †

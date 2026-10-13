@@ -184,7 +184,7 @@ turn, and publish. Draft changes are invisible until publish, and hostile values
 
 ### Tests for User Story 1 ⚠️
 
-- [ ] T020 [P] [US1] Create `UTESTS/Rendering/Seo/HeadMetadataGoldenTests.cs` with golden files in `UTESTS/Rendering/Seo/golden/head/`. It covers:
+- [X] T020 [P] [US1] Create `UTESTS/Rendering/Seo/HeadMetadataGoldenTests.cs` with golden files in `UTESTS/Rendering/Seo/golden/head/`. It covers:
   - every field and every fallback of SE-05 (title suffix, `og:title` → title, `og:description` → description, `og:image` → site default → none);
   - no empty tags;
   - `og:locale` for `en`, `pt-BR` and `vi`;
@@ -192,23 +192,23 @@ turn, and publish. Draft changes are invisible until publish, and hostile values
   - absolute addresses with a base path;
   - `og:image:alt`;
   - a title of `"><script>x</script>` encoded in every attribute.
-- [ ] T021 [P] [US1] Create `ITESTS/Rendering/PageMetadataRenderTests.cs`:
+- [X] T021 [P] [US1] Create `ITESTS/Rendering/PageMetadataRenderTests.cs`:
   - a published page shows its metadata;
   - a draft change does not show until publish;
   - rollback restores the previous metadata;
   - a site title suffix change shows on every page at the next request, with no republish (`SiteVersion`);
   - a deleted sharing image leaves the page working without `og:image`.
-- [ ] T022 [P] [US1] Create `ITESTS/Pages/SeoDraftPermissionTests.cs` (FR-002, SE-03):
+- [X] T022 [P] [US1] Create `ITESTS/Pages/SeoDraftPermissionTests.cs` (FR-002, SE-03):
   - an Editor saving a draft that changes `seo.canonical`, `seo.noindex` or `seo.bind.noindex` gets `403 pages.seo_restricted` naming the field;
   - an Editor saving a draft with those values unchanged succeeds;
   - a Designer can change them.
-- [ ] T023 [P] [US1] Create `ITESTS/Sites/SearchSettingsTests.cs` for `PUT /api/v1/sites/{id}/search-settings`:
+- [X] T023 [P] [US1] Create `ITESTS/Sites/SearchSettingsTests.cs` for `PUT /api/v1/sites/{id}/search-settings`:
   - suffix, image and organisation values are saved;
   - limits give `400 sites.search_invalid`;
   - a stale version gives `409 sites.out_of_date`;
   - Designers are allowed, Editors are refused, and a member of another site gets 404.
-- [ ] T024 [P] [US1] Create `ITESTS/Pages/SiteImageRefreshTests.cs` (SE-20): replacing or deleting the site's default sharing image bumps every live page of that site and no page of another site. Replacing a page's own `seo.ogImage` bumps that page through its media dependency.
-- [ ] T025 [P] [US1] Create `ADMINTESTS/editor/seo/SeoPanel.spec.ts`. It checks:
+- [X] T024 [P] [US1] Create `ITESTS/Pages/SiteImageRefreshTests.cs` (SE-20): replacing or deleting the site's default sharing image bumps every live page of that site and no page of another site. Replacing a page's own `seo.ogImage` bumps that page through its media dependency.
+- [X] T025 [P] [US1] Create `ADMINTESTS/editor/seo/SeoPanel.spec.ts`. It checks:
   - edits go through editor ops (undo and redo work);
   - the 60/160 character warnings appear;
   - values over the hard maximum are refused;
@@ -218,15 +218,15 @@ turn, and publish. Draft changes are invisible until publish, and hostile values
 
 ### Implementation for User Story 1
 
-- [ ] T026 [US1] Create `RENDER/Seo/HeadMetadata.cs`, `RENDER/Seo/OgLocale.cs` and `RENDER/Seo/HeadBuilder.cs`. `HeadBuilder` builds `HeadMetadata` from `RenderInputs` (`Seo`, `Site`, title, media files) with the SE-05 fallbacks. For now the canonical address is the page's own address on `Site.BaseUrl`; US6 adds overrides and page parameters.
-- [ ] T027 [US1] Extend `RENDER/Rendering/PageShell.cs` to write the head tags in the order of public-seo.md §3 through `HtmlWriter.Attribute`, and call `HeadBuilder` from `RENDER/Features/RenderPage/PageResponder.cs`. Fetch `seo.ogImage`, the site's default image and the organisation logo with the page's other media in one `IPublicMediaReader` call. Make T020 and T021 pass.
-- [ ] T028 [US1] Add `seo.ogImage` media and `seo.canonical` page targets to `PAGES/Domain/DependencyExtractor.cs` (SE-20).
-- [ ] T029 [US1] In `PAGES/Features/RefreshPagesShowingMedia/RefreshPagesShowingMediaHandler.cs`, read the site through `ISiteDirectory`. When the file is the site's `Search.DefaultImageId` or `Search.OrganisationLogoId`, bump every live page of the site through `GenerationBump`, staying idempotent through `processed_events`. Make T024 pass.
-- [ ] T030 [US1] Enforce restricted fields in `PAGES/Features/SavePageDraft/SavePageDraft.cs`. Compare `seo.canonical`, `seo.noindex` and `seo.bind.noindex` with the current draft, and refuse `pages.seo_restricted` when they changed and the member lacks `pages.structure.manage`. Make T022 pass.
-- [ ] T031 [US1] Create `SITES/Features/UpdateSearchSettings/UpdateSearchSettings.cs` (request, validator, handler, controller with `sites.search.manage`), modelled on `SITES/Features/UpdateSettings/UpdateSettings.cs`, with `Site.ChangeSearchSettings(...)` in `SITES/Domain/Site.cs`, which records `search_updated_by` (FR-021). Add `search` and `searchVisibility` to `SITES/Infrastructure/SiteResponse.cs`. Make T023 pass, and extend T023 to assert `search_updated_by`.
-- [ ] T032 [P] [US1] Create `EDITOR/seo/seoFields.ts` (limits, warning thresholds, fallback rules mirroring SE-05), `EDITOR/seo/SearchPreview.vue`, `EDITOR/seo/SharingPreview.vue` and `EDITOR/seo/SeoPanel.vue`. The panel has fields, counters, the media picker with a missing-file mark when the sharing image no longer exists (spec edge case), and "Hide from search engines" and "Leave out of sitemap" switches. Edits go to `root.props.seo` through the editor's ops in `EDITOR/state/editorStore.ts`.
-- [ ] T033 [US1] Add a "Search and sharing" button to `EDITOR/EditorTopBar.vue` that opens `SeoPanel`. Disable the restricted controls without `pages.structure.manage`, and show the reason. Add i18n keys. Make T025 pass.
-- [ ] T034 [P] [US1] Create `ADMIN/features/sites/SearchSettingsPanel.vue` (title suffix, default sharing image, organisation name and logo, with a missing-file mark) and add it to `ADMIN/features/sites/SiteDetailView.vue`. Add `updateSearchSettings` to `ADMIN/api/sites.ts`, and the spec `ADMINTESTS/features/sites/SearchSettingsPanel.spec.ts` with axe.
+- [X] T026 [US1] Create `RENDER/Seo/HeadMetadata.cs`, `RENDER/Seo/OgLocale.cs` and `RENDER/Seo/HeadBuilder.cs`. `HeadBuilder` builds `HeadMetadata` from `RenderInputs` (`Seo`, `Site`, title, media files) with the SE-05 fallbacks. For now the canonical address is the page's own address on `Site.BaseUrl`; US6 adds overrides and page parameters.
+- [X] T027 [US1] Extend `RENDER/Rendering/PageShell.cs` to write the head tags in the order of public-seo.md §3 through `HtmlWriter.Attribute`, and call `HeadBuilder` from `RENDER/Features/RenderPage/PageResponder.cs`. Fetch `seo.ogImage`, the site's default image and the organisation logo with the page's other media in one `IPublicMediaReader` call. Make T020 and T021 pass.
+- [X] T028 [US1] Add `seo.ogImage` media and `seo.canonical` page targets to `PAGES/Domain/DependencyExtractor.cs` (SE-20).
+- [X] T029 [US1] In `PAGES/Features/RefreshPagesShowingMedia/RefreshPagesShowingMediaHandler.cs`, read the site through `ISiteDirectory`. When the file is the site's `Search.DefaultImageId` or `Search.OrganisationLogoId`, bump every live page of the site through `GenerationBump`, staying idempotent through `processed_events`. Make T024 pass.
+- [X] T030 [US1] Enforce restricted fields in `PAGES/Features/SavePageDraft/SavePageDraft.cs`. Compare `seo.canonical`, `seo.noindex` and `seo.bind.noindex` with the current draft, and refuse `pages.seo_restricted` when they changed and the member lacks `pages.structure.manage`. Make T022 pass.
+- [X] T031 [US1] Create `SITES/Features/UpdateSearchSettings/UpdateSearchSettings.cs` (request, validator, handler, controller with `sites.search.manage`), modelled on `SITES/Features/UpdateSettings/UpdateSettings.cs`, with `Site.ChangeSearchSettings(...)` in `SITES/Domain/Site.cs`, which records `search_updated_by` (FR-021). Add `search` and `searchVisibility` to `SITES/Infrastructure/SiteResponse.cs`. Make T023 pass, and extend T023 to assert `search_updated_by`.
+- [X] T032 [P] [US1] Create `EDITOR/seo/seoFields.ts` (limits, warning thresholds, fallback rules mirroring SE-05), `EDITOR/seo/SearchPreview.vue`, `EDITOR/seo/SharingPreview.vue` and `EDITOR/seo/SeoPanel.vue`. The panel has fields, counters, the media picker with a missing-file mark when the sharing image no longer exists (spec edge case), and "Hide from search engines" and "Leave out of sitemap" switches. Edits go to `root.props.seo` through the editor's ops in `EDITOR/state/editorStore.ts`.
+- [X] T033 [US1] Add a "Search and sharing" button to `EDITOR/EditorTopBar.vue` that opens `SeoPanel`. Disable the restricted controls without `pages.structure.manage`, and show the reason. Add i18n keys. Make T025 pass.
+- [X] T034 [P] [US1] Create `ADMIN/features/sites/SearchSettingsPanel.vue` (title suffix, default sharing image, organisation name and logo, with a missing-file mark) and add it to `ADMIN/features/sites/SiteDetailView.vue`. Add `updateSearchSettings` to `ADMIN/api/sites.ts`, and the spec `ADMINTESTS/features/sites/SearchSettingsPanel.spec.ts` with axe.
 
 **Checkpoint**: quickstart §1 passes. Published pages are presentable in search results and
 link previews.
