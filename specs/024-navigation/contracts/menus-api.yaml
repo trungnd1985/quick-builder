@@ -24,15 +24,16 @@ paths:
       x-capability: pages.content.view
       responses:
         '200':
-          description: Every menu of the site (at most 50), by name.
+          description: Every menu of the site (at most 50), by name, and what the caller may do.
           content:
             application/json:
               schema:
                 type: object
-                required: [items, limit]
+                required: [items, limit, permissions]
                 properties:
                   items: { type: array, items: { $ref: '#/components/schemas/MenuSummary' } }
                   limit: { type: integer, const: 50 }
+                  permissions: { $ref: '#/components/schemas/MenuPermissions' }
     post:
       summary: Create a menu, or duplicate one
       x-capability: pages.menus.manage
@@ -71,8 +72,8 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Menu' }
-    patch:
-      summary: Rename a menu
+    put:
+      summary: Rename a menu (as components are renamed)
       x-capability: pages.menus.manage
       description: Refused with `pages.invalid_menu_name`, `409 pages.duplicate_menu_name`, `409 pages.out_of_date`.
       requestBody:
@@ -275,7 +276,7 @@ components:
   schemas:
     MenuSummary:
       type: object
-      required: [id, name, entryCount, usedBy, publication, version]
+      required: [id, name, entryCount, brokenCount, usedBy, publication, version, draftVersion, createdAtUtc, updatedAtUtc]
       properties:
         id: { type: string, format: uuid }
         name: { type: string }
@@ -283,15 +284,24 @@ components:
         brokenCount: { type: integer, description: Entries whose target is deleted. }
         usedBy: { type: integer, description: Distinct pages and components using it in a draft or live version. }
         publication: { $ref: '#/components/schemas/Publication' }
-        version: { type: integer }
+        version: { type: integer, description: For rename and delete. }
+        draftVersion: { type: integer, description: For saving and publishing the draft. }
+        createdAtUtc: { type: string, format: date-time }
+        updatedAtUtc: { type: string, format: date-time }
+    MenuPermissions:
+      type: object
+      required: [canManage, canPublish]
+      properties:
+        canManage: { type: boolean, description: pages.menus.manage }
+        canPublish: { type: boolean, description: pages.publishing.manage }
     Menu:
       allOf:
         - $ref: '#/components/schemas/MenuSummary'
         - type: object
-          required: [draft, draftVersion, targets]
+          required: [draft, targets, permissions]
           properties:
             draft: { $ref: '#/components/schemas/MenuDocument' }
-            draftVersion: { type: integer }
+            permissions: { $ref: '#/components/schemas/MenuPermissions' }
             targets:
               type: array
               description: The state of every page and item target of the draft (data-model §4.3).

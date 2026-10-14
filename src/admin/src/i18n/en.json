@@ -76,7 +76,8 @@
       "media": "Media library",
       "design": "Design",
       "collections": "Collections",
-      "redirects": "Redirects"
+      "redirects": "Redirects",
+      "menus": "Menus"
     },
     "settings": {
       "heading": "Settings",
@@ -2275,6 +2276,157 @@
         "unknown_target": "This entry points at a page or item that is not on this site.",
         "entry_invalid": "This entry is not valid. Check its address and anchor.",
         "schema_violation": "This menu is not valid. Reload it."
+      }
+    },
+    "heading": "Menus",
+    "intro": "Menus of {site}. Build a menu once and show it with a Navigation block on any page or component.",
+    "back": "Back to site",
+    "loading": "Loading menus…",
+    "errorTitle": "Menus could not be loaded",
+    "retry": "Try again",
+    "readOnly": "You can see this site's menus, but only a designer can change them.",
+    "empty": "This site has no menus yet.",
+    "outOfDate": "Someone changed this menu since you opened it. Reload to see their changes.",
+    "reload": "Reload",
+    "limit": "{count} of {limit} menus",
+    "create": {
+      "heading": "New menu",
+      "name": "Menu name",
+      "create": "Create menu",
+      "creating": "Creating…"
+    },
+    "table": {
+      "caption": "Menus of {site}",
+      "name": "Name",
+      "entries": "Entries",
+      "usedBy": "Used by",
+      "publishing": "Publishing",
+      "actions": "Actions",
+      "entryCount": "no entries | 1 entry | {count} entries",
+      "brokenCount": "{count} broken",
+      "usage": "not used | 1 page or component | {count} pages or components"
+    },
+    "actions": {
+      "edit": "Edit entries",
+      "editLabel": "Edit the entries of {name}",
+      "rename": "Rename",
+      "renameLabel": "Rename {name}",
+      "duplicate": "Duplicate",
+      "duplicateLabel": "Duplicate {name}",
+      "duplicateName": "{name} (copy)",
+      "delete": "Delete",
+      "deleteLabel": "Delete {name}",
+      "save": "Save",
+      "cancel": "Cancel"
+    },
+    "status": {
+      "created": "Menu {name} created.",
+      "renamed": "Menu renamed to {name}.",
+      "duplicated": "Menu {name} created as a copy.",
+      "deleted": "Menu {name} deleted.",
+      "saved": "Draft saved. Publish the menu to show it on the site."
+    },
+    "confirm": {
+      "deleteTitle": "Delete {name}?",
+      "deleteBody": "The menu and its published versions are deleted. This cannot be undone.",
+      "deleteUsedBody": "These drafts show this menu. Their Navigation blocks will show it as missing until another menu is chosen: {list}.",
+      "delete": "Delete menu",
+      "deleting": "Deleting…",
+      "cancel": "Keep it"
+    },
+    "editor": {
+      "heading": "Menu: {name}",
+      "back": "Back to menus",
+      "loading": "Loading the menu…",
+      "save": "Save draft",
+      "saving": "Saving…",
+      "saved": "All changes saved.",
+      "unsaved": "Unsaved changes",
+      "leaveWarning": "This menu has unsaved changes. Leave without saving?",
+      "addEntry": "Add entry",
+      "empty": "This menu has no entries yet. Add the first one.",
+      "problems": "Some entries have a problem. Fix them before saving.",
+      "readOnly": "You can see this menu, but only a designer can change it.",
+      "treeLabel": "Entries of {name}",
+      "brokenSummary": "no broken entries | 1 entry points at a page or item that was deleted. | {count} entries point at pages or items that were deleted."
+    },
+    "tree": {
+      "addChild": "Add entry under",
+      "addChildLabel": "Add an entry under {label}",
+      "edit": "Edit",
+      "editLabel": "Edit {label}",
+      "remove": "Remove",
+      "removeLabel": "Remove {label} and its entries",
+      "hidden": "Hidden",
+      "newTab": "New tab",
+      "kinds": {
+        "page": "Page",
+        "item": "Item",
+        "url": "Address",
+        "anchor": "Anchor",
+        "none": "No link"
+      },
+      "states": {
+        "live": "Live",
+        "not_published": "Not published",
+        "deleted": "Deleted",
+        "no_page": "No page for this item"
+      },
+      "untitled": "(no label)",
+      "problem": "Problem: {problem}",
+      "moved": "{label} moved: position {position} of {count}, level {level}.",
+      "moveRefused": "That move is not allowed: entries can be nested at most three levels deep, and never inside themselves.",
+      "keysHelp": "Use the arrow keys to choose an entry. Alt with the arrow keys moves it: up, down, into the entry above, or out of its parent. Enter edits, Delete removes.",
+      "undo": "Undo",
+      "redo": "Redo",
+      "undone": "Change undone.",
+      "redone": "Change redone.",
+      "removed": "{label} removed."
+    },
+    "entry": {
+      "newTitle": "New entry",
+      "editTitle": "Edit entry",
+      "label": "Label",
+      "labelHelp": "Shown to visitors. Leave it empty to use the page's title or the item's name.",
+      "labelRequiredHelp": "Shown to visitors.",
+      "target": "Points at",
+      "kinds": {
+        "page": "A page",
+        "item": "A collection item",
+        "url": "An address",
+        "anchor": "A section of the current page",
+        "none": "Nothing (groups the entries under it)"
+      },
+      "page": "Page",
+      "choosePage": "Choose a page",
+      "pageAnchor": "Section of the page (optional)",
+      "anchor": "Section name",
+      "anchorHelp": "The name of a section, without #. It is not checked: if the page has no section of that name, the link opens the top of the page.",
+      "address": "Address",
+      "addressHelp": "Starts with https://, http://, mailto: or tel:.",
+      "ownHostHint": "This address is on this site. Point at the page instead, so the link follows the page if it moves.",
+      "item": "Collection item",
+      "collection": "Collection",
+      "chooseCollection": "Choose a collection",
+      "searchItems": "Search items",
+      "itemField": "Item",
+      "chooseItem": "Choose an item",
+      "untitledItem": "(untitled item)",
+      "itemsFailed": "Items could not be loaded.",
+      "newTab": "Open in a new tab",
+      "shown": "Shown",
+      "shownHelp": "Turn off to hide this entry and the entries under it without deleting them.",
+      "save": "Save entry",
+      "cancel": "Cancel",
+      "problems": {
+        "label_required": "This kind of entry needs a label.",
+        "entry_invalid": "Check the label, address or section name.",
+        "page_required": "Choose a page.",
+        "item_required": "Choose an item.",
+        "anchor_invalid": "A section name starts with a letter and uses only letters, digits, - and _.",
+        "too_deep": "Entries can be nested at most three levels deep.",
+        "too_many_entries": "A menu can hold at most 300 entries.",
+        "new_tab_not_allowed": "Only entries that link somewhere can open in a new tab."
       }
     }
   }

@@ -40,6 +40,12 @@ internal sealed class PagesAccess(ISiteDirectory sites, IAccessEvaluator access,
             await access.HasCapabilityAsync(PublishingCapabilities.Manage, siteId, cancellationToken).ConfigureAwait(false),
             await access.HasCapabilityAsync(PublishingCapabilities.LogView, siteId, cancellationToken).ConfigureAwait(false));
 
+    /// <summary>What the caller may do with menus (024 research NV-18).</summary>
+    public async Task<Features.Menus.MenuPermissionsResponse> MenuPermissionsAsync(Guid siteId, CancellationToken cancellationToken) =>
+        new(
+            await access.HasCapabilityAsync(PagesCapabilities.MenusManage, siteId, cancellationToken).ConfigureAwait(false),
+            await access.HasCapabilityAsync(PublishingCapabilities.Manage, siteId, cancellationToken).ConfigureAwait(false));
+
     public async Task<IReadOnlyDictionary<Guid, string>> NamesAsync(IEnumerable<Guid> userIds, CancellationToken cancellationToken)
     {
         var distinct = userIds.Distinct().ToList();

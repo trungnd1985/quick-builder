@@ -97,10 +97,10 @@ internal sealed class CollectionSchemaReader(CmsDbContext database) : ICollectio
         var rows = await database.ForSite<Item>(siteId)
             .AsNoTracking()
             .Where(i => itemIds.Contains(i.Id))
-            .Select(i => new { i.Id, i.CollectionId, i.PublishedSlug })
+            .Select(i => new { i.Id, i.CollectionId, i.PublishedSlug, i.Name })
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
 
-        return rows.ToDictionary(r => r.Id, r => new ItemAddressParts(r.CollectionId, r.PublishedSlug));
+        return rows.ToDictionary(r => r.Id, r => new ItemAddressParts(r.CollectionId, r.PublishedSlug, r.Name));
     }
 }

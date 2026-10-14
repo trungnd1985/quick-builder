@@ -147,8 +147,8 @@ export function entryProblems(document: MenuDocument): Map<string, string> {
   const all = walkEntries(document.entries as unknown as Json)
   all.forEach(({ entry, level }, index) => {
     const id = String(entry.id)
-    const { children: _children, ...shallow } = entry
-    const own = menuSchema.validateDefinition('entry', { ...shallow, children: [] } as Json)
+    // The entry alone: its children are checked as entries of their own.
+    const own = menuSchema.validateDefinition('entry', { ...entry, children: [] } as Json)
     const type = targetType(entry)
     const label = typeof entry.label === 'string' ? entry.label : ''
     const problem = own

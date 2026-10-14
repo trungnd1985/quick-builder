@@ -51,6 +51,9 @@ internal sealed class PublishingWrites(
     internal sealed record Subject(string Kind, Guid Id, Guid SiteId, string Label, string? Path, Guid? TemplateCollectionId = null)
     {
         public bool IsPage => Kind == SubjectKinds.Page;
+
+        /// <summary>A menu (024): its document is a menu document, not a page-schema one.</summary>
+        public bool IsMenu => Kind == SubjectKinds.Menu;
     }
 
     // --- Manual actions ---------------------------------------------------------------------
@@ -419,6 +422,19 @@ internal sealed class PublishingWrites(
             return page is null ? null : new Subject(kind, subjectId, siteId, page.Title, page.Path, page.TemplateCollectionId);
         }
 
+        // 024 research NV-01: a menu is published like a component, under its name.
+        if (kind == SubjectKinds.Menu)
+        {
+            var menuName = await database.ForSite<Domain.Menus.Menu>(siteId)
+                .AsNoTracking()
+                .Where(m => m.Id == subjectId)
+                .Select(m => m.Name)
+                .FirstOrDefaultAsync(cancellationToken)
+                .ConfigureAwait(false);
+
+            return menuName is null ? null : new Subject(kind, subjectId, siteId, menuName, Path: null);
+        }
+
         var name = await database.ForSite<Component>(siteId)
             .AsNoTracking()
             .Where(c => c.Id == subjectId)
@@ -445,6 +461,18 @@ internal sealed class PublishingWrites(
                 .ConfigureAwait(false);
 
             return new DraftContent(page.Document, page.SchemaVersion, page.Version);
+        }
+
+        if (subject.IsMenu)
+        {
+            var menu = await database.ForSite<Domain.Menus.MenuDraft>(siteId)
+                .AsNoTracking()
+                .Where(d => d.MenuId == subject.Id)
+                .Select(d => new { d.Document, d.SchemaVersion, d.Version })
+                .FirstAsync(cancellationToken)
+                .ConfigureAwait(false);
+
+            return new DraftContent(menu.Document, menu.SchemaVersion, menu.Version);
         }
 
         var component = await database.ForSite<ComponentDraft>(siteId)

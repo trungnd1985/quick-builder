@@ -23,6 +23,7 @@ using QuickBuilder.Pages.Features.GetTokenUsage;
 using QuickBuilder.Pages.Features.ListComponents;
 using QuickBuilder.Pages.Features.ListComponentUsages;
 using QuickBuilder.Pages.Features.MakeHomePage;
+using QuickBuilder.Pages.Features.Menus;
 using QuickBuilder.Pages.Features.MovePage;
 using QuickBuilder.Pages.Features.Publish;
 using QuickBuilder.Pages.Features.PublishingHistory;
@@ -126,6 +127,7 @@ public static class PagesModule
         // Shared by the slices: the document validator (stateless, loads the schema once),
         // and the read and write paths every slice goes through.
         services.AddSingleton<IPageDocumentValidator, PageDocumentValidator>();
+        services.AddSingleton<Infrastructure.Schema.MenuDocumentValidator>();
         services.AddScoped<PagesAccess>();
         services.AddScoped<PageReads>();
         services.AddScoped<PageTreeWrites>();
@@ -220,6 +222,20 @@ public static class PagesModule
         services.AddScoped<IIntegrationEventHandler<ItemRedirectRequested>, Features.CreateItemRedirect.CreateItemRedirectHandler>();
         services.AddScoped<IIntegrationEventHandler<CollectionChanged>, RefreshPagesUsingCollectionHandler>();
         services.AddScoped<IIntegrationEventHandler<CollectionDeleted>, RefreshPagesUsingCollectionHandler>();
+
+        // 024: menus, their drafts and their reads.
+        services.AddScoped<MenuTargetStates>();
+        services.AddScoped<MenuReads>();
+        services.AddScoped<MenuWrites>();
+        services.AddScoped<IQueryHandler<ListMenusQuery, Result<MenuListResponse>>, ListMenusHandler>();
+        services.AddScoped<IQueryHandler<GetMenuQuery, Result<MenuDetailResponse>>, GetMenuHandler>();
+        services.AddScoped<ICommandHandler<CreateMenuCommand, Result<MenuDetailResponse>>, CreateMenuHandler>();
+        services.AddScoped<IValidator<CreateMenuCommand>, CreateMenuValidator>();
+        services.AddScoped<ICommandHandler<RenameMenuCommand, Result<MenuDetailResponse>>, RenameMenuHandler>();
+        services.AddScoped<IValidator<RenameMenuCommand>, RenameMenuValidator>();
+        services.AddScoped<ICommandHandler<SaveMenuDraftCommand, Result<MenuDetailResponse>>, SaveMenuDraftHandler>();
+        services.AddScoped<IValidator<SaveMenuDraftCommand>, SaveMenuDraftValidator>();
+        services.AddScoped<ICommandHandler<DeleteMenuCommand, Result>, DeleteMenuHandler>();
 
         // 011 research ED-16: the token usage count the admin asks before deleting a token.
         services.AddScoped<IQueryHandler<GetTokenUsageQuery, Result<TokenUsageResponse>>, GetTokenUsageHandler>();

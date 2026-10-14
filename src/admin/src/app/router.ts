@@ -62,6 +62,9 @@ export function createAppRouter(history: RouterHistory = createWebHistory('/admi
       { path: '/sites/:siteId/design', name: 'site-design', component: () => import('../features/design/DesignTokensView.vue') },
       // 017: Designers and Administrators manage redirects; the server checks regardless.
       { path: '/sites/:siteId/redirects', name: 'site-redirects', component: () => import('../features/seo/RedirectsView.vue') },
+      // 024: menus and their entries; Editors see them read-only, the server checks regardless.
+      { path: '/sites/:siteId/menus', name: 'site-menus', component: () => import('../features/menus/MenusView.vue') },
+      { path: '/sites/:siteId/menus/:menuId', name: 'site-menu', component: () => import('../features/menus/MenuEditorView.vue') },
       // 011 ED-22: the editor loads on demand, so TipTap and the canvas stay out of the shell's
       // main chunk. It uses the whole window, without the navigation frame.
       {

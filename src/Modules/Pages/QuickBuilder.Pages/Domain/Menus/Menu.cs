@@ -93,12 +93,4 @@ internal sealed class Menu : ISiteOwned
         UpdatedBy = actor;
         return Result.Success();
     }
-
-    /// <summary>Records who changed the menu's draft, which belongs to it.</summary>
-    public void Touch(Guid actor, TimeProvider clock)
-    {
-        ArgumentNullException.ThrowIfNull(clock);
-        UpdatedAtUtc = clock.GetUtcNow();
-        UpdatedBy = actor;
-    }
 }

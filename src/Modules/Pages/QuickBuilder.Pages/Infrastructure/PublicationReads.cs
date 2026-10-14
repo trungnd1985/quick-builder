@@ -141,6 +141,18 @@ internal sealed class PublicationReads(PagesDbContext database, PagesAccess acce
             return pages.ToDictionary(d => d.PageId, d => (long)d.Version);
         }
 
+        // 024 research NV-02: a menu's draft is its own table, as a component's is.
+        if (subjectKind == SubjectKinds.Menu)
+        {
+            var menus = await database.ForSite<Domain.Menus.MenuDraft>(siteId)
+                .Where(d => ids.Contains(d.MenuId))
+                .Select(d => new { d.MenuId, d.Version })
+                .ToListAsync(cancellationToken)
+                .ConfigureAwait(false);
+
+            return menus.ToDictionary(d => d.MenuId, d => (long)d.Version);
+        }
+
         var components = await database.ForSite<ComponentDraft>(siteId)
             .Where(d => ids.Contains(d.ComponentId))
             .Select(d => new { d.ComponentId, d.Version })
