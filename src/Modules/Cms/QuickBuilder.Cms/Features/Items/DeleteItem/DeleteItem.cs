@@ -8,7 +8,7 @@ using QuickBuilder.Shared.Kernel.Results;
 
 namespace QuickBuilder.Cms.Features.Items.DeleteItem;
 
-internal sealed record DeleteItemCommand(Guid SiteId, Guid CollectionId, Guid ItemId, int Revision) : ICommand<Result>;
+internal sealed record DeleteItemCommand(Guid SiteId, Guid CollectionId, Guid ItemId, int Revision, Guid? RedirectToPageId = null) : ICommand<Result>;
 
 /// <summary>
 /// Deletes an item permanently with its versions, schedules and history (015 US5, FR-008).
@@ -37,6 +37,7 @@ internal sealed class DeleteItemHandler(ItemWrites writes, ItemReferrers referre
                         return Result.Failure<Item?>(refused);
                     }
 
+                    ItemPublishing.RequestRemovedRedirect(context, context.Item!, command.RedirectToPageId);
                     context.Delete(context.Item!);
                     return Result.Success<Item?>(null);
                 },
@@ -69,9 +70,10 @@ public sealed class DeleteItemController(IDispatcher dispatcher) : ControllerBas
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
-    public async Task<IActionResult> DeleteAsync(Guid siteId, Guid collectionId, Guid itemId, [FromQuery] int revision, CancellationToken cancellationToken)
+    public async Task<IActionResult> DeleteAsync(
+        Guid siteId, Guid collectionId, Guid itemId, [FromQuery] int revision, [FromQuery] Guid? redirectToPageId, CancellationToken cancellationToken)
     {
-        var result = await dispatcher.SendAsync(new DeleteItemCommand(siteId, collectionId, itemId, revision), cancellationToken).ConfigureAwait(false);
+        var result = await dispatcher.SendAsync(new DeleteItemCommand(siteId, collectionId, itemId, revision, redirectToPageId), cancellationToken).ConfigureAwait(false);
         return result.IsFailure ? CmsErrorResults.ToActionResult(result.Error) : NoContent();
     }
 }

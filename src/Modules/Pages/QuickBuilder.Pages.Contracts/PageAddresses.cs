@@ -31,7 +31,8 @@ public static partial class PageAddresses
     /// </summary>
     /// <remarks>
     /// Platform prefixes the slug grammar cannot produce, such as <c>/_media</c>, need no
-    /// entry. <c>ReservedAddressCoverageTests</c> fails the build when the platform gains a
+    /// entry; nor do <c>/robots.txt</c>, <c>/sitemap.xml</c> and <c>/sitemap-{n}.xml</c> (017),
+    /// since a slug has no <c>.</c>. <c>ReservedAddressCoverageTests</c> fails the build when the platform gains a
     /// prefix that is neither listed here nor impossible to produce.
     /// </remarks>
     public static IReadOnlyList<string> ReservedFirstSegments { get; } = ["api", "admin", "health"];

@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "bindingVersion": 1,
+  "root": {
+    "id": "root",
+    "type": "root",
+    "props": {
+      "seo": {
+        "bind": {
+          "title": { "value": { "parts": [ { "field": "f1" }, " | Acme blog" ] } },
+          "description": { "value": { "field": "f2" }, "empty": "fallback" },
+          "ogImage": { "value": { "field": "f4" } },
+          "noindex": { "value": { "field": "f7" } }
+        },
+        "fallback": { "description": "Stories from Acme." },
+        "structuredData": {
+          "type": "Article",
+          "bind": {
+            "headline": { "value": { "field": "f1" } },
+            "image": { "value": { "field": "f4" } },
+            "authorName": { "value": { "field": "f1", "via": "f9" } }
+          }
+        }
+      }
+    },
+    "children": []
+  }
+}

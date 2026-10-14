@@ -188,7 +188,33 @@ internal sealed class BindingFetcher(IPublishedItemReader items, IPublishedConte
     /// <summary>The reference fields that bindings follow, anywhere in a document.</summary>
     private static void CollectVia(JsonElement node, HashSet<string> fields)
     {
-        if (node.TryGetProperty("props", out var props) && props.TryGetProperty("bind", out var bind) && bind.ValueKind == JsonValueKind.Object)
+        if (node.TryGetProperty("props", out var props) && props.ValueKind == JsonValueKind.Object)
+        {
+            if (props.TryGetProperty("bind", out var bind))
+            {
+                CollectBindingVia(bind, fields);
+            }
+
+            // 017 research SE-04: the page's metadata bindings read through references too.
+            if (props.TryGetProperty("seo", out var seo) && seo.ValueKind == JsonValueKind.Object && seo.TryGetProperty("bind", out var seoBind))
+            {
+                CollectBindingVia(seoBind, fields);
+            }
+        }
+
+        if (node.TryGetProperty("children", out var children) && children.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var child in children.EnumerateArray())
+            {
+                CollectVia(child, fields);
+            }
+        }
+    }
+
+    /// <summary>The reference fields one node's bindings follow.</summary>
+    private static void CollectBindingVia(JsonElement bind, HashSet<string> fields)
+    {
+        if (bind.ValueKind == JsonValueKind.Object)
         {
             foreach (var binding in bind.EnumerateObject())
             {
@@ -208,14 +234,6 @@ internal sealed class BindingFetcher(IPublishedItemReader items, IPublishedConte
                         fields.Add(field);
                     }
                 }
-            }
-        }
-
-        if (node.TryGetProperty("children", out var children) && children.ValueKind == JsonValueKind.Array)
-        {
-            foreach (var child in children.EnumerateArray())
-            {
-                CollectVia(child, fields);
             }
         }
     }

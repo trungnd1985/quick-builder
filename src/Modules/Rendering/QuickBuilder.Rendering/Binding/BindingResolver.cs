@@ -4,6 +4,7 @@ using System.Text.RegularExpressions;
 using QuickBuilder.Cms.Contracts.Publishing;
 using QuickBuilder.Rendering.Domain;
 using QuickBuilder.Rendering.Rendering;
+using QuickBuilder.Rendering.Seo;
 
 namespace QuickBuilder.Rendering.Binding;
 
@@ -25,13 +26,15 @@ internal enum BoundState
 
 /// <summary>A bound property's outcome, with the value in the form its kind takes.</summary>
 /// <param name="Broken">Why the binding could not be read, when it was broken rather than empty.</param>
+/// <param name="Flag">For a metadata switch: on (017 FR-007a). Off is no value.</param>
 internal sealed record BoundValue(
     BoundState State,
     string? Text = null,
     JsonElement? RichText = null,
     Guid? MediaId = null,
     ResolvedLink? Link = null,
-    string? Broken = null)
+    string? Broken = null,
+    bool Flag = false)
 {
     public static BoundValue Unbound { get; } = new(BoundState.Unbound);
 }
@@ -53,9 +56,7 @@ internal static partial class BindingResolver
     {
         ArgumentNullException.ThrowIfNull(context);
 
-        if (!node.TryGetProperty("props", out var props)
-            || !props.TryGetProperty("bind", out var bind)
-            || !bind.TryGetProperty(prop, out var binding)
+        if (BindingOf(node, prop) is not { } binding
             || !binding.TryGetProperty("value", out var value)
             || BindingRules.KindOf(RenderContext.TypeOf(node), prop) is not { } kind)
         {
@@ -63,8 +64,14 @@ internal static partial class BindingResolver
         }
 
         var resolved = value.TryGetProperty("parts", out var parts)
-            ? Template(parts, node, context)
+            ? Template(parts, kind == PropKind.MetaText ? PropKind.MetaText : PropKind.Text, node, context)
             : One(value, kind, node, context);
+
+        // 017 research SE-04: metadata reads as one line, cut to the field's limit.
+        if (kind == PropKind.MetaText && resolved is { State: BoundState.Value, Text: { } text })
+        {
+            resolved = Text(PlainText.Clean(text, PlainText.MaxLength(prop["seo.".Length..])));
+        }
 
         if (resolved.State == BoundState.Value)
         {
@@ -75,8 +82,36 @@ internal static partial class BindingResolver
         return new BoundValue(hide ? BoundState.Hide : BoundState.Fallback, Broken: resolved.Broken);
     }
 
+    /// <summary>
+    /// The binding of <paramref name="prop"/>: in <c>props.bind</c>, or for <c>seo.*</c> in the
+    /// page's metadata bindings, <c>props.seo.bind</c> (017 seo-metadata.md §3).
+    /// </summary>
+    private static JsonElement? BindingOf(JsonElement node, string prop)
+    {
+        if (!node.TryGetProperty("props", out var owner) || owner.ValueKind != JsonValueKind.Object)
+        {
+            return null;
+        }
+
+        var name = prop;
+        if (prop.StartsWith("seo.", StringComparison.Ordinal))
+        {
+            if (!owner.TryGetProperty("seo", out owner) || owner.ValueKind != JsonValueKind.Object)
+            {
+                return null;
+            }
+
+            name = prop["seo.".Length..];
+        }
+
+        return owner.TryGetProperty("bind", out var bind) && bind.ValueKind == JsonValueKind.Object
+               && bind.TryGetProperty(name, out var binding) && binding.ValueKind == JsonValueKind.Object
+            ? binding
+            : null;
+    }
+
     /// <summary>A text template: fixed text and values, where an empty value adds nothing (FR-015).</summary>
-    private static BoundValue Template(JsonElement parts, JsonElement node, RenderContext context)
+    private static BoundValue Template(JsonElement parts, PropKind kind, JsonElement node, RenderContext context)
     {
         var text = new System.Text.StringBuilder();
         var anyValue = false;
@@ -90,7 +125,7 @@ internal static partial class BindingResolver
                 continue;
             }
 
-            var resolved = One(part, PropKind.Text, node, context);
+            var resolved = One(part, kind, node, context);
             if (resolved.State == BoundState.Value)
             {
                 text.Append(resolved.Text);
@@ -162,7 +197,7 @@ internal static partial class BindingResolver
         if (ReadValue(item, field.Id) is not { } stored)
         {
             // No key means no value (collection-schema.md §3); a boolean never set reads as false.
-            return field.Type == FieldInfo.Boolean && kind == PropKind.Text
+            return field.Type == FieldInfo.Boolean && kind is PropKind.Text or PropKind.MetaText
                 ? Text(BooleanText(false, format))
                 : Empty;
         }
@@ -170,6 +205,9 @@ internal static partial class BindingResolver
         return kind switch
         {
             PropKind.Text => Text(FieldText(field, stored, format, RenderContext.TypeOf(node), context)),
+            PropKind.MetaText when field.Type == FieldInfo.RichText => Text(PlainText.Of(stored)),
+            PropKind.MetaText => Text(FieldText(field, stored, format, "heading", context)),
+            PropKind.Flag => stored.ValueKind == JsonValueKind.True ? new BoundValue(BoundState.Value, Flag: true) : Empty,
             PropKind.RichText => RichTextOf(field, stored),
             PropKind.Image => MediaOf(stored, context),
             PropKind.Link => LinkOf(field, stored, context),

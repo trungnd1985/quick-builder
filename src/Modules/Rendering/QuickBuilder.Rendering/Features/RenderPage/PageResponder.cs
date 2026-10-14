@@ -4,10 +4,13 @@ using QuickBuilder.Cms.Contracts.Publishing;
 using QuickBuilder.Editor.Contracts;
 using QuickBuilder.Media.Contracts;
 using QuickBuilder.Pages.Contracts.Publishing;
+using QuickBuilder.Pages.Contracts.Redirects;
 using QuickBuilder.Rendering.Binding;
 using QuickBuilder.Rendering.Contracts;
 using QuickBuilder.Rendering.Domain;
 using QuickBuilder.Rendering.Rendering;
+using QuickBuilder.Rendering.Seo;
+using QuickBuilder.Rendering.Seo.StructuredData;
 using QuickBuilder.Shared.Infrastructure.Caching;
 using QuickBuilder.Sites.Contracts;
 
@@ -36,6 +39,8 @@ internal sealed class PageResponder(
     BindingFetcher bindings,
     PageRenderer renderer,
     IPublicNotFoundPage notFound,
+    IRedirectReader redirectReader,
+    RedirectResponder redirects,
     ICacheProvider cache,
     RenderMetrics metrics,
     ILogger<PageResponder> logger)
@@ -53,22 +58,58 @@ internal sealed class PageResponder(
         string basePath,
         string? ifNoneMatch,
         IReadOnlyDictionary<string, string?>? query,
+        string canonicalQuery,
+        string? rawQuery,
+        CancellationToken cancellationToken) =>
+        await RespondAsync(site, path, rawPath: path, basePath, ifNoneMatch, query, canonicalQuery, rawQuery, cancellationToken).ConfigureAwait(false);
+
+    /// <summary>
+    /// As the other overload, given the address as requested too (017 FR-013, research SE-06):
+    /// when it differs from <paramref name="path"/> only in letter case or a trailing slash and
+    /// live content is at <paramref name="path"/>, the answer is a <c>301</c> there, with the
+    /// query. A miss goes on with the normalised address, so the not-found page stays the same.
+    /// </summary>
+    public async Task<PublicResponse> RespondAsync(
+        SiteDto site,
+        string path,
+        string? rawPath,
+        string basePath,
+        string? ifNoneMatch,
+        IReadOnlyDictionary<string, string?>? query,
+        string canonicalQuery,
+        string? rawQuery,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(site);
+
+        var normalising = path != "/" && rawPath is not null && !string.Equals(rawPath, path, StringComparison.Ordinal);
+
+        // 017 FR-016, FR-017a: a redirect with this exact query is more specific than the
+        // page at its path, so it is matched first.
+        if (canonicalQuery.Length > 0
+            && await redirectReader.FindQueryAsync(site.Id, path, canonicalQuery, cancellationToken).ConfigureAwait(false) is { } queried)
+        {
+            return await redirects.RespondAsync(site, queried, basePath, rawQuery, cancellationToken).ConfigureAwait(false)
+                ?? await notFound.RenderAsync(site, cancellationToken).ConfigureAwait(false);
+        }
 
         // The key first, the content after (PR-05).
         var live = await pages.FindLiveByPathAsync(site.Id, path, cancellationToken).ConfigureAwait(false);
         if (live is null)
         {
-            return await RespondItemAsync(site, path, basePath, ifNoneMatch, query, cancellationToken).ConfigureAwait(false);
+            return await RespondItemAsync(site, path, normalising, basePath, ifNoneMatch, query, rawQuery, cancellationToken).ConfigureAwait(false);
+        }
+
+        if (normalising)
+        {
+            return Normalised(basePath, path, rawQuery);
         }
 
         // 016 TB-11: the page numbers its lists show are part of the key; other parameters are not.
         var request = new ListRequest(path, PageParams.From(live.Params, query));
         var designNumber = await designs.GetLiveNumberAsync(site.Id, cancellationToken).ConfigureAwait(false);
         var key = new RenderKey(site.Id, live.PageId, live.Generation, designNumber, site.Version, basePath, request.Params.Key);
-        var headers = Headers(key.ETag);
+        var headers = Headers(key.ETag, site);
 
         if (key.IsMatchedBy(ifNoneMatch))
         {
@@ -86,23 +127,30 @@ internal sealed class PageResponder(
     private async Task<PublicResponse> RespondItemAsync(
         SiteDto site,
         string path,
+        bool normalising,
         string basePath,
         string? ifNoneMatch,
         IReadOnlyDictionary<string, string?>? query,
+        string? rawQuery,
         CancellationToken cancellationToken)
     {
         if (TemplateMatcher.Split(path) is not { } split
             || await pages.FindLiveTemplateAsync(site.Id, split.ParentPath, cancellationToken).ConfigureAwait(false) is not { } template
             || await items.FindBySlugAsync(site.Id, template.CollectionId, split.Slug, cancellationToken).ConfigureAwait(false) is not { } item)
         {
-            return await notFound.RenderAsync(site, cancellationToken).ConfigureAwait(false);
+            return await RedirectOrNotFoundAsync(site, path, basePath, rawQuery, cancellationToken).ConfigureAwait(false);
+        }
+
+        if (normalising)
+        {
+            return Normalised(basePath, path, rawQuery);
         }
 
         var request = new ListRequest(path, PageParams.From(template.Params, query));
         var designNumber = await designs.GetLiveNumberAsync(site.Id, cancellationToken).ConfigureAwait(false);
         var key = new ItemRenderKey(
             site.Id, template.PageId, template.Generation, item.ItemId, item.RenderStamp, designNumber, site.Version, basePath, request.Params.Key);
-        var headers = Headers(key.ETag);
+        var headers = Headers(key.ETag, site);
 
         if (key.IsMatchedBy(ifNoneMatch))
         {
@@ -121,12 +169,45 @@ internal sealed class PageResponder(
             : ToResponse(rendered, headers);
     }
 
-    private static Dictionary<string, string> Headers(string etag) => new(StringComparer.OrdinalIgnoreCase)
+    /// <summary>
+    /// What answers an address no content answers (017 FR-016): an exact redirect, else the
+    /// longest prefix redirect, else the not-found page. A redirect to a page or item that is no
+    /// longer live is the not-found page too (FR-018).
+    /// </summary>
+    private async Task<PublicResponse> RedirectOrNotFoundAsync(SiteDto site, string path, string basePath, string? rawQuery, CancellationToken cancellationToken)
     {
-        ["ETag"] = etag,
-        // Stored, but checked with the server every time: a publish shows at once.
-        ["Cache-Control"] = "public, no-cache",
-    };
+        if (await redirectReader.FindAsync(site.Id, path, cancellationToken).ConfigureAwait(false) is { } match
+            && await redirects.RespondAsync(site, match, basePath, rawQuery, cancellationToken).ConfigureAwait(false) is { } redirect)
+        {
+            return redirect;
+        }
+
+        return await notFound.RenderAsync(site, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>The 301 to the normalised address of live content, keeping the query (FR-013).</summary>
+    private static PublicResponse Normalised(string basePath, string path, string? rawQuery) =>
+        RedirectResponder.Redirect(
+            StatusCodes.Status301MovedPermanently,
+            RedirectResponder.AsciiOnly(PageShell.TrimBase(basePath) + path + (string.IsNullOrEmpty(rawQuery) ? string.Empty : rawQuery)));
+
+    private static Dictionary<string, string> Headers(string etag, SiteDto site)
+    {
+        var headers = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["ETag"] = etag,
+            // Stored, but checked with the server every time: a publish shows at once.
+            ["Cache-Control"] = "public, no-cache",
+        };
+
+        // 017 FR-027: a site that discourages search engines says so on every response too.
+        if (site.Search.Discouraged)
+        {
+            headers["X-Robots-Tag"] = "noindex, nofollow";
+        }
+
+        return headers;
+    }
 
     private static PublicResponse NotModified(Dictionary<string, string> headers) =>
         new(StatusCodes.Status304NotModified, "text/html; charset=utf-8", headers, ReadOnlyMemory<byte>.Empty);
@@ -225,13 +306,31 @@ internal sealed class PageResponder(
         references.Pages.UnionWith(fetched.Pages);
         references.Media.UnionWith(fetched.Media);
 
+        // 017 research SE-05: the sharing image, the site's default one, fetched with the rest.
+        var seo = SeoDocument.From(version.Document);
+        references.Media.UnionWith(HeadBuilder.MediaIds(seo, site));
+
+        // 017 FR-012: a canonical override's target, to name its current address.
+        if (seo?.Canonical?.PageId is { } canonicalPage)
+        {
+            references.Pages.Add(canonicalPage);
+        }
+
         var targets = await pages.GetLinkTargetsAsync(site.Id, references.Pages, cancellationToken).ConfigureAwait(false);
         var files = await media.GetAsync(site.Id, references.Media, cancellationToken).ConfigureAwait(false);
+
+        // 017 research SE-18: the breadcrumb trail, read on a miss only; the generation moves
+        // when an ancestor's live title does (T100).
+        var ancestors = request.Path == "/" && pageItem is null
+            ? []
+            : await pages.GetLiveAncestorsAsync(site.Id, pageId, cancellationToken).ConfigureAwait(false);
 
         // 016 FR-030: an item page is titled by the item's name, else by the template's title.
         var title = string.IsNullOrWhiteSpace(pageItem?.Name) ? version.Title : pageItem.Name;
 
-        var inputs = new RenderInputs(title, version.Document, design.Document, components, targets, files, site.DefaultLanguage, basePath, fetched.Data);
+        var inputs = new RenderInputs(
+            title, version.Document, design.Document, components, targets, files, site.DefaultLanguage, basePath, fetched.Data,
+            seo, site, request.Path, pageItem is not null, request.Params.Pages, ancestors);
         metrics.Rendered();
         return Render(inputs, renderer, context => LogBroken(context, site.Id, pageId));
     }
@@ -259,10 +358,57 @@ internal sealed class PageResponder(
         var context = new RenderContext(inputs, BlockDefaults.Current);
         var body = new HtmlWriter();
         renderer.RenderDocument(inputs.Document, PageRenderer.PageScope, context, body);
-        afterRender?.Invoke(context);
 
-        var document = PageShell.Write(inputs.Title, inputs.Language, inputs.BasePath, context.Tokens, context.NodeRules, body.ToString());
+        var head = inputs.Site is { } site
+            ? HeadBuilder.Build(new HeadInputs(
+                inputs.Title, inputs.Path, inputs.IsItemPage, inputs.Seo, site, inputs.Media, MetadataBindings(inputs, context), inputs.PageParams, inputs.LinkTargets))
+            : null;
+        var structuredData = head is null ? null : JsonLdWriter.Write(Graph(inputs, context, head));
+        afterRender?.Invoke(context);
+        var document = PageShell.Write(inputs.Title, inputs.Language, inputs.BasePath, context.Tokens, context.NodeRules, body.ToString(), head, structuredData);
         return new RenderedPage(Encoding.UTF8.GetBytes(document.Html), document.StyleHash);
+    }
+
+    /// <summary>
+    /// The outcome of each metadata binding of an item page, read through the render context so a
+    /// broken one is logged with the root's id (017 research SE-04). Other pages read none (rule 23).
+    /// </summary>
+    private static Dictionary<string, BoundValue>? MetadataBindings(RenderInputs inputs, RenderContext context)
+    {
+        if (!inputs.IsItemPage || inputs.Seo is not { Bindings.Count: > 0 } seo || !inputs.Document.TryGetProperty("root", out var root))
+        {
+            return null;
+        }
+
+        return seo.Bindings.Keys.ToDictionary(field => field, field => context.Bound(root, "seo." + field), StringComparer.Ordinal);
+    }
+
+    /// <summary>
+    /// The page's structured data graph (017 research SE-18; public-seo.md §4): the website on the
+    /// home page, else the breadcrumb trail; the blocks' nodes; and an item page's content type.
+    /// </summary>
+    private static List<System.Text.Json.Nodes.JsonObject> Graph(RenderInputs inputs, RenderContext context, HeadMetadata head)
+    {
+        var site = inputs.Site!;
+        var nodes = new List<System.Text.Json.Nodes.JsonObject>();
+        if (inputs.Path == "/" && !inputs.IsItemPage)
+        {
+            nodes.AddRange(PageNodes.Home(site, inputs.Media));
+        }
+        else
+        {
+            nodes.Add(PageNodes.Breadcrumbs(site, inputs.Ancestors ?? [], inputs.Title));
+        }
+
+        nodes.AddRange(context.StructuredData);
+
+        if (inputs.IsItemPage && inputs.Seo is { StructuredDataType: { } type } seo && context.Data.PageItem is { } item
+            && ItemNode.Build(type, seo.StructuredDataBindings, new ItemNodeInputs(item, context.Data, inputs.Media, site.BaseUrl, inputs.Language, head.Canonical)) is { } itemNode)
+        {
+            nodes.Add(itemNode);
+        }
+
+        return nodes;
     }
 
     /// <summary>The headers of public-rendering.md §3 around a rendered page.</summary>

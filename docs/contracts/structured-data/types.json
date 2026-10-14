@@ -1,0 +1,53 @@
+{
+  "version": 1,
+  "description": "Content types an item page can describe itself as (017 structured-data.md §3). The single source for the editor's control and the renderer.",
+  "accepts": {
+    "text": "a text field, single or multi-line",
+    "richText": "a rich text field, read as plain text",
+    "option": "an option field: its label",
+    "number": "a number field",
+    "date": "a date field",
+    "boolean": "a yes/no field",
+    "image": "an image field",
+    "reference": "a single reference: the referenced item's name",
+    "slug": "the item's slug",
+    "firstPublishedAt": "when the item was first published",
+    "lastPublishedAt": "when the item was last published",
+    "template": "a text template of text values"
+  },
+  "types": {
+    "Article": {
+      "properties": [
+        { "name": "headline", "required": true, "accepts": ["text", "option", "number", "date", "slug", "template"], "default": "name" },
+        { "name": "description", "accepts": ["text", "richText", "template"] },
+        { "name": "image", "accepts": ["image"] },
+        { "name": "authorName", "accepts": ["text", "reference"] },
+        { "name": "datePublished", "accepts": ["date", "firstPublishedAt"], "default": "firstPublishedAt" },
+        { "name": "dateModified", "accepts": ["date", "lastPublishedAt"], "default": "lastPublishedAt" }
+      ]
+    },
+    "Product": {
+      "properties": [
+        { "name": "name", "required": true, "accepts": ["text", "option", "number", "date", "slug", "template"], "default": "name" },
+        { "name": "description", "accepts": ["text", "richText", "template"] },
+        { "name": "image", "accepts": ["image"] },
+        { "name": "brand", "accepts": ["text", "option", "reference"] },
+        { "name": "sku", "accepts": ["text"] },
+        { "name": "price", "accepts": ["number"] },
+        { "name": "priceCurrency", "accepts": ["text", "option"] },
+        { "name": "availability", "accepts": ["boolean"] }
+      ]
+    },
+    "Event": {
+      "properties": [
+        { "name": "name", "required": true, "accepts": ["text", "option", "number", "date", "slug", "template"], "default": "name" },
+        { "name": "description", "accepts": ["text", "richText", "template"] },
+        { "name": "image", "accepts": ["image"] },
+        { "name": "startDate", "required": true, "accepts": ["date"] },
+        { "name": "endDate", "accepts": ["date"] },
+        { "name": "locationName", "accepts": ["text", "reference"] },
+        { "name": "locationAddress", "accepts": ["text"] }
+      ]
+    }
+  }
+}

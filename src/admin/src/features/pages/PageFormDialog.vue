@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import RedirectOfferCheckbox from '../../components/RedirectOfferCheckbox.vue'
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { isValidSlug, slugify } from './slugify'
@@ -24,7 +25,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  submit: [value: { title: string; slug: string; isHome: boolean }]
+  submit: [value: { title: string; slug: string; isHome: boolean; redirectOldAddresses: boolean }]
   cancel: []
 }>()
 
@@ -33,6 +34,8 @@ const { t } = useI18n()
 const title = ref(props.initialTitle ?? '')
 const slug = ref(props.initialSlug ?? '')
 const isHome = ref(false)
+// 017 FR-028: ticked by default.
+const redirectOldAddresses = ref(true)
 const slugEdited = ref(props.initialSlug !== undefined)
 const titleInput = ref<HTMLInputElement | null>(null)
 
@@ -76,7 +79,7 @@ function onKeydown(event: KeyboardEvent): void {
       :aria-labelledby="`${dialogId}-title`"
       novalidate
       @keydown="onKeydown"
-      @submit.prevent="emit('submit', { title, slug, isHome })"
+      @submit.prevent="emit('submit', { title, slug, isHome, redirectOldAddresses: movesLivePages && redirectOldAddresses })"
     >
       <h2 :id="`${dialogId}-title`">
         {{ heading }}
@@ -123,6 +126,12 @@ function onKeydown(event: KeyboardEvent): void {
       >
         {{ t('publishing.address.warning', { count: liveAddressCount ?? 0 }) }}
       </p>
+      <RedirectOfferCheckbox
+        v-if="movesLivePages"
+        :id="`${dialogId}-redirect`"
+        v-model="redirectOldAddresses"
+        :count="liveAddressCount ?? 0"
+      />
 
       <div
         v-if="offerHome"

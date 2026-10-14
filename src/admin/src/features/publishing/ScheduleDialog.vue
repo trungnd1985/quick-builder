@@ -7,6 +7,8 @@ import { computed, nextTick, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { publishingApi, type Publication, type ScheduleAction, type SubjectKind } from '../../api/publishing'
 import ZonedDateTimeInput from '../../components/ZonedDateTimeInput.vue'
+import RedirectToPagePicker, { type PickablePage } from '../../components/RedirectToPagePicker.vue'
+import { pagesApi } from '../../api/pages'
 import { publishingErrorMessage } from './errorMessages'
 
 const props = defineProps<{
@@ -37,7 +39,18 @@ const busy = ref(false)
 const error = ref<string | null>(null)
 const form = ref<HTMLFormElement | null>(null)
 
+// 017 FR-032 (tasks T118): a scheduled unpublish of a page can redirect its address when it runs.
+const redirectToPageId = ref<string | null>(null)
+const sitePages = ref<PickablePage[]>([])
+
 onMounted(async () => {
+  if (props.kind === 'page' && actions.value.includes('unpublish')) {
+    try {
+      sitePages.value = (await pagesApi.tree(props.siteId)).pages ?? []
+    } catch {
+      sitePages.value = []
+    }
+  }
   await nextTick()
   form.value?.querySelector<HTMLElement>('select, input')?.focus()
 })
@@ -53,7 +66,8 @@ async function save(): Promise<void> {
   try {
     const version = action.value === 'publish' ? await props.draftVersion() : undefined
     if (version === null) throw new Error('The draft could not be saved.')
-    await publishingApi.schedule(props.siteId, props.kind, props.subjectId, action.value, due.value, version)
+    await publishingApi.schedule(
+      props.siteId, props.kind, props.subjectId, action.value, due.value, version, action.value === 'unpublish' ? redirectToPageId.value : null)
     emit('changed')
   } catch (caught) {
     error.value = publishingErrorMessage(t, te, caught)
@@ -128,6 +142,14 @@ function onKeydown(event: KeyboardEvent): void {
       <ZonedDateTimeInput
         :id="dialogId"
         v-model="due"
+      />
+
+      <RedirectToPagePicker
+        v-if="action === 'unpublish'"
+        :id="`${dialogId}-redirect`"
+        v-model="redirectToPageId"
+        :pages="sitePages"
+        :except-page-id="subjectId"
       />
 
       <p

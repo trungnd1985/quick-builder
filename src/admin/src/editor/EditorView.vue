@@ -20,6 +20,8 @@ import ConflictBanner from './ConflictBanner.vue'
 import RecoveryDialog from './RecoveryDialog.vue'
 import EditorTopBar from './EditorTopBar.vue'
 import SampleItemPicker from './SampleItemPicker.vue'
+import SeoPanel from './seo/SeoPanel.vue'
+import { useSitesStore } from '../app/sitesStore'
 import { refusalKey } from './editorErrors'
 import { definitionOf } from './blocks/registry'
 import type { ContentDocument, ContentNode, DocumentKind } from './schema/schema'
@@ -45,6 +47,15 @@ const auth = useAuthStore()
 const title = ref('')
 const publication = ref<Publication | null>(null)
 const canPublish = ref(false)
+/** 017: the page's address and whether this member may change its structure, for Search and sharing. */
+const pagePath = ref('/')
+const canManageStructure = ref(false)
+const seoOpen = ref(false)
+const sites = useSitesStore()
+const sitePresentation = computed(() => {
+  const site = sites.sites.find((s) => s.id === props.siteId)
+  return { name: site?.name ?? '', baseUrl: site?.baseUrl ?? '/', titleSuffix: site?.search?.titleSuffix ?? null }
+})
 const announcement = ref('')
 const notice = ref('')
 const saveState = ref<Autosave['state']['value']>('saved')
@@ -168,6 +179,8 @@ async function loadHeader(): Promise<void> {
       title.value = page.title
       publication.value = page.publication ?? null
       canPublish.value = page.permissions?.canPublish === true
+      pagePath.value = page.path ?? '/'
+      canManageStructure.value = page.permissions?.canManageStructure === true
     } else {
       const component = await pagesApi.getComponent(props.siteId, props.documentId)
       title.value = component.name
@@ -315,6 +328,13 @@ defineExpose({ autosave: () => autosave, history })
         @refused="selectRefused"
       />
       <SampleItemPicker v-if="store.loadState === 'ready' && kind === 'page'" />
+      <button
+        v-if="store.loadState === 'ready' && kind === 'page' && versionNumber === undefined"
+        type="button"
+        @click="seoOpen = true"
+      >
+        {{ t('editor.seo.open') }}
+      </button>
       <PreviewWidthSwitch v-model="previewWidth" />
       <button
         type="button"
@@ -455,6 +475,15 @@ defineExpose({ autosave: () => autosave, history })
     >
       {{ t(refusalKey(store.lastRefusal.code)) }}
     </p>
+    <SeoPanel
+      v-if="seoOpen && store.root"
+      :site-id="siteId"
+      :page-title="title"
+      :path="pagePath"
+      :site="sitePresentation"
+      :can-manage-structure="canManageStructure"
+      @close="seoOpen = false"
+    />
   </div>
 </template>
 

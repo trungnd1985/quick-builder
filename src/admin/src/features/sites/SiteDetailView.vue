@@ -6,6 +6,8 @@ import { sitesApi, type Site, type SiteScheme } from '../../api/sites'
 import { useSitesStore } from '../../app/sitesStore'
 import { useAuthStore } from '../../app/authStore'
 import AvailabilityPanel from './AvailabilityPanel.vue'
+import SearchSettingsPanel from './SearchSettingsPanel.vue'
+import SearchVisibilityPanel from './SearchVisibilityPanel.vue'
 import HostNameList from './HostNameList.vue'
 import LanguageSelect from './LanguageSelect.vue'
 import { isOutOfDate, siteErrorMessage } from './siteErrors'
@@ -173,6 +175,9 @@ watch(siteId, load)
         <RouterLink :to="{ name: 'site-design', params: { siteId: site.id } }">
           {{ t('sites.detail.design') }}
         </RouterLink>
+        <RouterLink :to="{ name: 'site-redirects', params: { siteId: site.id } }">
+          {{ t('sites.detail.redirects') }}
+        </RouterLink>
         <!-- 012 FR-017: the publish log is for Administrators; the server checks regardless. -->
         <RouterLink
           v-if="auth.isAdministrator"
@@ -324,6 +329,16 @@ watch(siteId, load)
       />
 
       <AvailabilityPanel
+        :site="site"
+        @updated="show"
+      />
+
+      <SearchSettingsPanel
+        :site="site"
+        @updated="show"
+      />
+
+      <SearchVisibilityPanel
         :site="site"
         @updated="show"
       />

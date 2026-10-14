@@ -48,6 +48,12 @@ internal sealed class RefreshPagesUsingCollectionHandler(IServiceScopeFactory sc
             eventId,
             occurredAtUtc,
             handlerName,
-            (bump, ct) => bump.BumpForCollectionsAsync(siteId, [collectionId], includeTemplates: true, exceptPageId: null, ct),
+            async (bump, ct) =>
+            {
+                await bump.BumpForCollectionsAsync(siteId, [collectionId], includeTemplates: true, exceptPageId: null, ct).ConfigureAwait(false);
+
+                // 017 research SE-15: item pages and their dates are in the sitemap.
+                await bump.Sitemap.BumpAsync(siteId, ct).ConfigureAwait(false);
+            },
             cancellationToken);
 }

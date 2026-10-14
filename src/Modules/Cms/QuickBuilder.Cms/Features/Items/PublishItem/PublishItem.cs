@@ -28,14 +28,16 @@ internal sealed class PublishItemHandler(ItemWrites writes, ItemReads reads, Cms
             return Result.Failure<ItemResponse>(CmsErrors.SiteNotFound);
         }
 
+        var redirectRequested = false;
         var written = await writes.ExecuteAsync(
                 new ItemWriteRequest(command.SiteId, command.CollectionId, command.ItemId, command.Request.Revision, null, access.Actor),
                 async context =>
                 {
                     var item = context.Item!;
                     var published = await ItemPublishing.PublishAsync(
-                            context, item.DraftValues(), item.Slug, ItemVersionKinds.Publish, null, command.Request.CancelSchedule, null, cancellationToken)
+                            context, item.DraftValues(), item.Slug, ItemVersionKinds.Publish, null, command.Request.CancelSchedule, null, command.Request.RedirectOldAddress, cancellationToken)
                         .ConfigureAwait(false);
+                    redirectRequested = context.RedirectRequested;
                     return published.IsFailure ? Result.Failure<Item?>(published.Error) : Result.Success<Item?>(item);
                 },
                 cancellationToken)
@@ -47,7 +49,8 @@ internal sealed class PublishItemHandler(ItemWrites writes, ItemReads reads, Cms
         }
 
         var unpublished = await UnpublishedReferencesAsync(database, command.SiteId, command.ItemId, cancellationToken).ConfigureAwait(false);
-        return await ItemSlices.AnswerAsync(written, reads, unpublished, cancellationToken).ConfigureAwait(false);
+        var answered = await ItemSlices.AnswerAsync(written, reads, unpublished, cancellationToken).ConfigureAwait(false);
+        return answered.IsFailure ? answered : Result.Success(answered.Value with { RedirectRequested = redirectRequested });
     }
 
     /// <summary>The items the published values refer to that have nothing published (FR-017, FR-020).</summary>

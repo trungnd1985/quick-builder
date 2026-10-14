@@ -49,7 +49,18 @@ public interface IPublishedContentReader
 
     /// <summary>Whether the site's home page is live, for the not-found page's link home.</summary>
     Task<bool> IsHomePageLiveAsync(Guid siteId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// The live pages above <paramref name="pageId"/>, root first: the home page when it is live,
+    /// then each live ancestor, with its live title (017 FR-034, research SE-18). One query.
+    /// An ancestor that is not live is left out.
+    /// </summary>
+    Task<IReadOnlyList<LiveAncestor>> GetLiveAncestorsAsync(Guid siteId, Guid pageId, CancellationToken cancellationToken = default);
 }
+
+/// <summary>A live page above another, for its breadcrumb trail (017 research SE-18).</summary>
+/// <param name="Title">Its live version's title, as visitors see it.</param>
+public sealed record LiveAncestor(Guid PageId, string Path, string Title, bool IsHome);
 
 /// <summary>A live page found by address, with the generation its cache key carries (PR-05).</summary>
 /// <param name="PageParamNames">

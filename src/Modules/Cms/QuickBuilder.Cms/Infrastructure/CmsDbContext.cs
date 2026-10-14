@@ -254,6 +254,10 @@ internal sealed class CmsDbContext(DbContextOptions<CmsDbContext> options, ISite
             entity.Property(e => e.FailureCode).HasMaxLength(64);
             entity.Ignore(e => e.IsPending);
 
+            // 017 data-model §1.5: the member's redirect choice, applied when the schedule runs.
+            entity.Property(e => e.RedirectOldAddress).HasDefaultValue(false);
+            entity.Property(e => e.RedirectToPageId);
+
             entity.HasOne<Item>().WithMany().HasForeignKey(e => e.ItemId).OnDelete(DeleteBehavior.Cascade);
             entity.HasIndex(e => new { e.ItemId, e.Action })
                 .IsUnique()

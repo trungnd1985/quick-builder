@@ -9,6 +9,9 @@ import PublicationBadge from '../publishing/PublicationBadge.vue'
 import PublishMenu from '../publishing/PublishMenu.vue'
 import { liveAddressCount } from '../publishing/addressWarning'
 import ConfirmDialog from '../sites/ConfirmDialog.vue'
+import RedirectOfferCheckbox from '../../components/RedirectOfferCheckbox.vue'
+import RedirectToPagePicker from '../../components/RedirectToPagePicker.vue'
+import type { RedirectOutcome } from '../../api/pages'
 import MoveDialog from './MoveDialog.vue'
 import PageFormDialog from './PageFormDialog.vue'
 import TemplateDialog from './TemplateDialog.vue'
@@ -48,6 +51,9 @@ const outOfDate = ref(false)
 const status = ref('')
 /** 016 TB-12: what the last change did to item addresses, as visible notes. */
 const notices = ref<string[]>([])
+// 017 FR-028, FR-032: the offers in the home page and delete confirmations.
+const redirectOldAddresses = ref(true)
+const redirectToPageId = ref<string | null>(null)
 
 function noticesOf(warnings: TemplateWarning[] | undefined): string[] {
   return (warnings ?? []).map((w) =>
@@ -131,7 +137,17 @@ async function focusRow(pageId: string | null): Promise<void> {
   target?.focus()
 }
 
+/** 017: what an accepted redirect offer did, as notes after the change. */
+function redirectNotes(outcome: RedirectOutcome | null | undefined): string[] {
+  if (!outcome) return []
+  const notes = [t('redirects.offer.outcome', { created: outcome.created, skipped: outcome.skipped })]
+  if (outcome.turnedOff.length > 0) notes.push(t('redirects.offer.turnedOff', { count: outcome.turnedOff.length }))
+  return notes
+}
+
 function open(next: Dialog): void {
+  redirectOldAddresses.value = true
+  redirectToPageId.value = null
   dialogError.value = null
   dialog.value = next
 }
@@ -170,7 +186,7 @@ async function run(action: () => Promise<PageTree | void>, message: string, inDi
   }
 }
 
-async function submitForm(value: { title: string; slug: string; isHome: boolean }): Promise<void> {
+async function submitForm(value: { title: string; slug: string; isHome: boolean; redirectOldAddresses: boolean }): Promise<void> {
   const current = dialog.value
   if (current?.kind === 'create') {
     let createdId: string | null = null
@@ -192,7 +208,12 @@ async function submitForm(value: { title: string; slug: string; isHome: boolean 
     }
   } else if (current?.kind === 'rename') {
     const ok = await run(
-      async () => { notices.value = noticesOf((await pagesApi.update(siteId.value, current.page.id, { ...value, version: current.page.version })).warnings) },
+      async () => {
+        const updated = await pagesApi.update(siteId.value, current.page.id, {
+          title: value.title, slug: value.slug, version: current.page.version, redirectOldAddresses: value.redirectOldAddresses,
+        })
+        notices.value = [...noticesOf(updated.warnings), ...redirectNotes(updated.redirects)]
+      },
       t('pages.status.renamed', { title: value.title.trim() }),
       true)
 
@@ -202,7 +223,7 @@ async function submitForm(value: { title: string; slug: string; isHome: boolean 
   }
 }
 
-async function submitMove(value: { parentId: string | null; afterPageId: string | null }): Promise<void> {
+async function submitMove(value: { parentId: string | null; afterPageId: string | null; redirectOldAddresses: boolean }): Promise<void> {
   const current = dialog.value
   if (current?.kind !== 'move') {
     return
@@ -211,7 +232,7 @@ async function submitMove(value: { parentId: string | null; afterPageId: string 
   if (await run(
     async () => {
       const tree = await pagesApi.move(siteId.value, current.page.id, { ...value, version: current.page.version })
-      notices.value = noticesOf(tree.warnings)
+      notices.value = [...noticesOf(tree.warnings), ...redirectNotes(tree.redirects)]
       return tree
     },
     t('pages.status.moved', { title: current.page.title }),
@@ -247,7 +268,11 @@ async function confirm(): Promise<void> {
   const current = dialog.value
   if (current?.kind === 'makeHome') {
     if (await run(
-      () => pagesApi.makeHome(siteId.value, current.page.id, current.page.version),
+      async () => {
+        const tree = await pagesApi.makeHome(siteId.value, current.page.id, current.page.version, liveAddressCount(pages.value, current.page.id) > 0 && redirectOldAddresses.value)
+        notices.value = redirectNotes(tree.redirects)
+        return tree
+      },
       t('pages.status.madeHome', { title: current.page.title }),
       true)) {
       await close()
@@ -256,7 +281,7 @@ async function confirm(): Promise<void> {
     const index = pages.value.findIndex((p) => p.id === current.page.id)
     const previous = index > 0 ? pages.value[index - 1]!.id : null
     if (await run(
-      () => pagesApi.remove(siteId.value, current.page.id, current.page.version),
+      () => pagesApi.remove(siteId.value, current.page.id, current.page.version, redirectToPageId.value),
       t('pages.status.deleted', { title: current.page.title }),
       true)) {
       dialog.value = null
@@ -283,7 +308,7 @@ function collectionName(id: string | null | undefined): string {
   return collections.value.find((c) => c.id === id)?.name ?? ''
 }
 
-async function submitTemplate(collectionId: string | null): Promise<void> {
+async function submitTemplate(collectionId: string | null, redirect: boolean): Promise<void> {
   const current = dialog.value
   if (current?.kind !== 'template') {
     return
@@ -296,7 +321,7 @@ async function submitTemplate(collectionId: string | null): Promise<void> {
   if (await run(
     async () => {
       if (collectionId) {
-        await pagesApi.setTemplate(siteId.value, current.page.id, collectionId, current.page.version)
+        notices.value = redirectNotes((await pagesApi.setTemplate(siteId.value, current.page.id, collectionId, current.page.version, redirect)).redirects)
       } else {
         await pagesApi.removeTemplate(siteId.value, current.page.id, current.page.version)
       }
@@ -675,7 +700,13 @@ function whoSaved(value: PageDetail): string {
       :busy="busy"
       @confirm="confirm"
       @cancel="close"
-    />
+    >
+      <RedirectOfferCheckbox
+        id="page-make-home-redirect"
+        v-model="redirectOldAddresses"
+        :count="liveAddressCount(pages, dialog.page.id)"
+      />
+    </ConfirmDialog>
 
     <ConfirmDialog
       v-if="dialog?.kind === 'delete'"
@@ -689,6 +720,13 @@ function whoSaved(value: PageDetail): string {
       danger
       @confirm="confirm"
       @cancel="close"
-    />
+    >
+      <RedirectToPagePicker
+        id="page-delete-redirect"
+        v-model="redirectToPageId"
+        :pages="pages"
+        :except-page-id="dialog.page.id"
+      />
+    </ConfirmDialog>
   </section>
 </template>

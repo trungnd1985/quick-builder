@@ -155,6 +155,20 @@ internal static class DependencyExtractor
 
             switch (type)
             {
+                case "root":
+                    // 017 research SE-20: the sharing image shows a file (usage and refresh alike),
+                    // and a page canonical follows that page's address.
+                    if (props.TryGetProperty("seo", out var seo) && seo.ValueKind == JsonValueKind.Object)
+                    {
+                        if (seo.TryGetProperty("ogImage", out var ogImage) && ogImage.ValueKind == JsonValueKind.Object)
+                        {
+                            AddGuid(found, DependencyKinds.Media, ogImage, "mediaId");
+                        }
+
+                        AddPageLink(found, seo, "canonical");
+                    }
+
+                    break;
                 case "component-ref":
                     AddGuid(found, DependencyKinds.Component, props, "componentId");
                     break;

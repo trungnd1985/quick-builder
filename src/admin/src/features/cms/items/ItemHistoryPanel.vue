@@ -2,10 +2,11 @@
 // An item's history (015 US7, FR-022, FR-031): its kept versions, newest first, with the live
 // one marked, and what happened to it. A version can be published again (rolled back), which is
 // refused with the reasons when it no longer meets today's rules, or copied into the draft.
-import { onMounted, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { itemsApi, refusalOf, type HistoryEvent, type Item, type ItemHistory, type Version } from '../../../api/items'
 import ConfirmDialog from '../../sites/ConfirmDialog.vue'
+import RedirectOfferCheckbox from '../../../components/RedirectOfferCheckbox.vue'
 import { errorCodeOf, itemErrorMessage, problemMessage } from './itemErrors'
 
 const props = defineProps<{ siteId: string; collectionId: string; item: Item }>()
@@ -18,6 +19,13 @@ const notice = ref<string | null>(null)
 const problems = ref<string[]>([])
 const confirming = ref<{ action: 'rollback' | 'copy'; version: Version } | null>(null)
 const busy = ref(false)
+
+// 017 FR-029: rolling back to a version with another slug moves a live item's address.
+const redirectOldAddress = ref(true)
+const hasAddress = computed(() => !!props.item.address?.path && !props.item.address.reason)
+const movesAddress = computed(() =>
+  confirming.value?.action === 'rollback' && hasAddress.value
+  && !!props.item.publishedSlug && confirming.value.version.slug !== props.item.publishedSlug)
 
 async function load(): Promise<void> {
   error.value = null
@@ -57,7 +65,8 @@ async function confirm(): Promise<void> {
   try {
     const hasSchedule = props.item.schedules.some((s) => s.action === 'publish')
     const next = pending.action === 'rollback'
-      ? await itemsApi.rollback(props.siteId, props.collectionId, props.item.id, pending.version.number, props.item.revision, hasSchedule)
+      ? await itemsApi.rollback(
+        props.siteId, props.collectionId, props.item.id, pending.version.number, props.item.revision, hasSchedule, movesAddress.value && redirectOldAddress.value)
       : await itemsApi.copyToDraft(props.siteId, props.collectionId, props.item.id, pending.version.number, props.item.revision)
     notice.value = pending.action === 'rollback'
       ? t('cms.items.history.rolledBack', { number: pending.version.number })
@@ -185,6 +194,13 @@ async function confirm(): Promise<void> {
       :busy="busy"
       @confirm="confirm"
       @cancel="confirming = null"
-    />
+    >
+      <RedirectOfferCheckbox
+        v-if="movesAddress"
+        id="item-history-redirect"
+        v-model="redirectOldAddress"
+        :count="1"
+      />
+    </ConfirmDialog>
   </aside>
 </template>

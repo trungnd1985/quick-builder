@@ -59,7 +59,7 @@ whitespace. "Read back unchanged" means **equal as a JSON value**.
 
 | Type | Props | Children | Allowed in |
 |---|---|---|---|
-| `root` | none (`{}`) | `rootChild` | the envelope's `root` only |
+| `root` | `seo` (017; page documents only, rule 22) | `rootChild` | the envelope's `root` only |
 | `component-ref` | `componentId`: UUID of a shared component of the **same site** | none | page documents, under `root` only |
 | `section` | `background`, `paddingY`, `width`, `layerLabel` | `contentChild` | under `root` |
 | `container` | `direction`, `columns`, `gap`, `padding`, `align`, `maxWidth`, `background`, `stackOnMobile`, `layerLabel` | `contentChild` | in `section` or `container` |
@@ -199,6 +199,24 @@ Rules 13–21 come with bindings and Collection lists (016, [binding-expression.
     last: a draft save against the other drafts, a publish against the live versions. The
     editor keeps a page's own lists clear of its components' names as they are set.
 
+Rules 22–25 come with search metadata (017, `root.props.seo`; specs/017-seo
+contracts/seo-metadata.md):
+
+22. A component document's `root` has no `seo` (`seo_in_component`, at `/root/props/seo`).
+    Metadata belongs to pages.
+23. `seo.bind` and `seo.structuredData` read the page's item. On a page that is not a template
+    they are broken bindings, shown as empty, never refused, as a `"page"` scope is below. Rule
+    13 counts them: a document holding either carries `bindingVersion: 1`.
+24. A `url` canonical is an absolute `http` or `https` address without user info. The schema
+    says it (`seoCanonical`), so a failure is `props_invalid` at `…/seo/canonical/href`.
+25. Metadata texts (`title`, `description`, `ogTitle`, `ogDescription` and the `fallback`
+    texts) hold no control characters, line breaks included. The schema says it with a
+    pattern, so a failure is `props_invalid` at the text.
+
+Who may change `seo.canonical`, `seo.noindex` and `seo.bind.noindex` is not a document rule:
+the server refuses the draft save of a member who changes them without the page structure
+capability (`pages.seo_restricted`, 017 research SE-03).
+
 A `"page"` scope in an ordinary page is not refused: it is a broken binding, shown as empty,
 so turning a template back into a page never makes its draft unsaveable. A binding to a field
 that no longer exists, or whose type does not fit, is broken in the same way. The shapes the
@@ -227,10 +245,12 @@ fails the same way:
    - `unknown_type` for any other `type`, at its `/type`;
    - `children_not_allowed` for children under a type that takes none;
 6. the list's children (rule 20);
-7. the code rules: the component rules (rules 6–7), then rich text length (rule 9) for
+7. the code rules: the component rules (rules 6–7, then 22), then rich text length (rule 9) for
    every Rich Text block, then rules 10–12 for every Rich Text block, in document order;
-8. rule 13, then one walk in document order that checks each list (rules 18, 17, its
-   source, filters and sort keys, 19) and then each binding (rules 15–16) as it meets them;
+8. rule 13, then the metadata bindings of `root.props.seo` (rule 23: the shape of each, and
+   rule 15 with no list scope open), then one walk in document order that checks each list
+   (rules 18, 17, its source, filters and sort keys, 19) and then each binding (rules 15–16)
+   as it meets them;
 9. on the server, rule 14.
 
 Depth and count come before the schema on purpose. They bound the work the schema check
@@ -279,7 +299,9 @@ answers there before any page could.
 | `health` | Health probes |
 
 Platform prefixes the slug grammar can't produce, such as `/_media` (media files) and `/_assets`
-(the block stylesheet, 012), need no entry.
+(the block stylesheet, 012), need no entry. Neither do the per-site `/robots.txt`, `/sitemap.xml`
+and `/sitemap-{n}.xml` (017): a slug has no `.`, so no page can take them, and they are
+answered before the page route.
 `ReservedAddressCoverageTests` fails the build if the platform gains a prefix that is
 neither listed here nor impossible to produce.
 
@@ -314,6 +336,12 @@ and headings. List items now refer to `rtListBlock`, which holds exactly what `r
 before, so list items accept the same content as ever; `rtBlock` is the top level only. A
 text node may carry up to 6 marks instead of 3. Every document valid before stays valid and
 renders the same (035 SC-001).
+
+**Additions in 017 (still version 1)**: `root` gained an optional `seo` prop (`$defs` `seo`,
+`seoBinding`, `seoCanonical`, `seoStructuredData`) and rules 22–25. The binding's value
+object moved into `$defs/bindingSource`, which `binding` and `seoBinding` both refer to; it
+accepts exactly what it accepted before. Every document valid before stays valid and
+renders the same body (017 `UpgradeFrom016Tests`).
 
 ## 7. The schema file
 
@@ -407,6 +435,16 @@ Every validator of this schema runs the same files:
 | `invalid/rich_text_too_many_tables--21.json` | at `…/props/content` (035, rule 10) |
 | `invalid/table_not_rectangular.json` | at the first row that differs (035, rule 11) |
 | `invalid/table_header_misplaced.json` | at the header cell in row 2 (035, rule 12) |
+| `valid/seo-page-all-fields.json` | passes: every fixed metadata field, a `url` canonical (017) |
+| `valid/seo-canonical-page.json` | passes: a `page` canonical, left out of the sitemap (017) |
+| `valid/seo-template-bound.json` | passes: bound metadata, a fallback and an Article mapping (017) |
+| `valid/seo-bound-on-ordinary-page.json` | passes: bindings on an ordinary page are broken, not refused (017, rule 23) |
+| `invalid/props_invalid--seo-canonical-javascript.json` | at `…/seo/canonical/href` (017, rule 24) |
+| `invalid/props_invalid--seo-canonical-user-info.json` | at `…/seo/canonical/href`: no user info (017, rule 24) |
+| `invalid/props_invalid--seo-title-line-break.json` | at `…/seo/title` (017, rule 25) |
+| `invalid/props_invalid--seo-title-201.json` | at `…/seo/title`: over 200 characters (017) |
+| `invalid/props_invalid--seo-bind-hide.json` | at `…/seo/bind/title/empty`: metadata always falls back (017) |
+| `invalid/binding_version_required--seo-bind.json` | at the document: metadata bindings need the binding version (017, rules 13, 23) |
 | `invalid/props_invalid--rich-text-table-in-list.json` | at the table's `/type` (035) |
 | `invalid/props_invalid--rich-text-image-in-cell.json` | at the image's `/type`: cells hold paragraphs only (035) |
 | `invalid/props_invalid--rich-text-cell-colspan.json` | at the cell's `/attrs`: cells never span (035) |

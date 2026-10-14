@@ -42,25 +42,15 @@ internal static class PageScopeReaders
 
         if (node.TryGetProperty("props", out var props) && props.ValueKind == JsonValueKind.Object)
         {
-            if (props.TryGetProperty("bind", out var bind) && bind.ValueKind == JsonValueKind.Object)
+            if (props.TryGetProperty("bind", out var bind))
             {
-                foreach (var binding in bind.EnumerateObject())
-                {
-                    if (binding.Value.TryGetProperty("value", out var value))
-                    {
-                        if (value.TryGetProperty("parts", out var parts) && parts.ValueKind == JsonValueKind.Array)
-                        {
-                            foreach (var part in parts.EnumerateArray())
-                            {
-                                Read(part, inCard, found);
-                            }
-                        }
-                        else
-                        {
-                            Read(value, inCard, found);
-                        }
-                    }
-                }
+                ReadBindings(bind, inCard, found);
+            }
+
+            // 017 research SE-04: the page's metadata bindings read the page's item too.
+            if (props.TryGetProperty("seo", out var seo) && seo.ValueKind == JsonValueKind.Object && seo.TryGetProperty("bind", out var seoBind))
+            {
+                ReadBindings(seoBind, inCard, found);
             }
 
             if (isList)
@@ -89,6 +79,34 @@ internal static class PageScopeReaders
             {
                 var opensCard = isList && child.TryGetProperty("type", out var childType) && childType.GetString() == "list-card";
                 Walk(child, inCard + (opensCard ? 1 : 0), found);
+            }
+        }
+    }
+
+    private static void ReadBindings(JsonElement bind, int inCard, List<string> found)
+    {
+        if (bind.ValueKind != JsonValueKind.Object)
+        {
+            return;
+        }
+
+        foreach (var binding in bind.EnumerateObject())
+        {
+            if (!binding.Value.TryGetProperty("value", out var value))
+            {
+                continue;
+            }
+
+            if (value.TryGetProperty("parts", out var parts) && parts.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var part in parts.EnumerateArray())
+                {
+                    Read(part, inCard, found);
+                }
+            }
+            else
+            {
+                Read(value, inCard, found);
             }
         }
     }

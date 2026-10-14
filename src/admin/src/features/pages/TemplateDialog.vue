@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import RedirectOfferCheckbox from '../../components/RedirectOfferCheckbox.vue'
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { pagesApi, type PageNode, type TemplateImpact } from '../../api/pages'
@@ -21,7 +22,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  submit: [collectionId: string | null]
+  submit: [collectionId: string | null, redirectOldAddresses: boolean]
   cancel: []
 }>()
 
@@ -31,6 +32,8 @@ const collectionId = ref<string>(props.page.templateCollectionId ?? props.collec
 const impact = ref<TemplateImpact | null>(null)
 const impactFailed = ref(false)
 const first = ref<HTMLElement | null>(null)
+// 017 FR-028: the page's own live address, which becomes a pattern; ticked by default.
+const redirectOldAddresses = ref(true)
 
 const wanted = computed(() => (props.mode === 'remove' ? null : collectionId.value || null))
 const unchanged = computed(() => props.mode === 'set' && wanted.value === (props.page.templateCollectionId ?? null))
@@ -62,7 +65,7 @@ onMounted(async () => {
 
 function submit(): void {
   if (props.mode === 'set' && (!wanted.value || unchanged.value)) return
-  emit('submit', wanted.value)
+  emit('submit', wanted.value, !!impact.value?.liveStaticAddressLost && redirectOldAddresses.value)
 }
 
 function onKeydown(event: KeyboardEvent): void {
@@ -160,6 +163,12 @@ function onKeydown(event: KeyboardEvent): void {
             >
               {{ t('pages.template.liveAddressLost', { address: page.path }) }}
             </p>
+            <RedirectOfferCheckbox
+              v-if="impact.liveStaticAddressLost"
+              :id="`${dialogId}-redirect`"
+              v-model="redirectOldAddresses"
+              :count="1"
+            />
             <p
               v-if="impact.itemsGainingAddress > 0"
               role="note"

@@ -50,7 +50,8 @@ describe('TemplateDialog', () => {
     expect(await violations(container)).toEqual([])
 
     await fireEvent.click(screen.getByRole('button', { name: en.pages.template.set }))
-    expect(emitted().submit).toEqual([[POSTS]])
+    // 017 FR-028: the live address it loses is offered a redirect, ticked by default.
+    expect(emitted().submit).toEqual([[POSTS, true]])
   })
 
   it('assesses again when another collection is chosen, and counts the bindings that would break', async () => {
@@ -80,7 +81,7 @@ describe('TemplateDialog', () => {
     expect(calls[0].url).toBe(`/api/v1/pages/sites/${SITE}/pages/p1/template`)
 
     await fireEvent.click(screen.getByRole('button', { name: en.pages.template.remove }))
-    await waitFor(() => expect(emitted().submit).toEqual([[null]]))
+    await waitFor(() => expect(emitted().submit).toEqual([[null, false]]))
   })
 
   it('closes with Escape', async () => {

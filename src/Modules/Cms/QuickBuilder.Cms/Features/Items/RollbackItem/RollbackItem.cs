@@ -30,6 +30,7 @@ internal sealed class RollbackItemHandler(ItemWrites writes, ItemReads reads, Cm
             return Result.Failure<ItemResponse>(CmsErrors.SiteNotFound);
         }
 
+        var redirectRequested = false;
         var written = await writes.ExecuteAsync(
                 new ItemWriteRequest(command.SiteId, command.CollectionId, command.ItemId, command.Request.Revision, null, access.Actor),
                 async context =>
@@ -41,8 +42,9 @@ internal sealed class RollbackItemHandler(ItemWrites writes, ItemReads reads, Cm
                     }
 
                     var published = await ItemPublishing.PublishAsync(
-                            context, version.ReadValues(), version.Slug, ItemVersionKinds.Rollback, version.Number, command.Request.CancelSchedule, null, cancellationToken)
+                            context, version.ReadValues(), version.Slug, ItemVersionKinds.Rollback, version.Number, command.Request.CancelSchedule, null, command.Request.RedirectOldAddress, cancellationToken)
                         .ConfigureAwait(false);
+                    redirectRequested = context.RedirectRequested;
                     return published.IsFailure ? Result.Failure<Item?>(published.Error) : Result.Success<Item?>(context.Item);
                 },
                 cancellationToken)
@@ -55,7 +57,8 @@ internal sealed class RollbackItemHandler(ItemWrites writes, ItemReads reads, Cm
                 ItemReads.Report(new ItemReport([new ItemProblem(ItemReport.SlugField, ItemProblems.InvalidSlug)]))));
         }
 
-        return await ItemSlices.AnswerAsync(written, reads, null, cancellationToken).ConfigureAwait(false);
+        var answered = await ItemSlices.AnswerAsync(written, reads, null, cancellationToken).ConfigureAwait(false);
+        return answered.IsFailure ? answered : Result.Success(answered.Value with { RedirectRequested = redirectRequested });
     }
 
     internal static Task<ItemVersion?> VersionAsync(ItemWriteContext context, int number, CancellationToken cancellationToken)

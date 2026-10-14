@@ -38,7 +38,21 @@ public interface IPublishedItemReader
 
     /// <summary>How many items of the collection have published data, for address warnings (TB-12).</summary>
     Task<int> CountPublishedAsync(Guid siteId, Guid collectionId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// The published items of a collection for the sitemap, by id, after <paramref name="afterId"/>
+    /// (017 research SE-14). <paramref name="hideFieldId"/> names the switch field whose published
+    /// value true hides an item (FR-007a); null when none.
+    /// </summary>
+    Task<IReadOnlyList<PublishedItemAddress>> ListAddressesAsync(
+        Guid siteId, Guid collectionId, string? hideFieldId, Guid? afterId, int limit, CancellationToken cancellationToken = default);
 }
+
+/// <summary>
+/// A published item's address parts for the sitemap. <see cref="Slug"/> is content: never log it.
+/// </summary>
+/// <param name="Hidden">Its published value of the template's hide field is true (017 FR-007a).</param>
+public sealed record PublishedItemAddress(Guid ItemId, string Slug, DateTimeOffset LastPublishedAtUtc, bool Hidden);
 
 /// <summary>A published item found by slug, with the stamp its page's cache key carries (TB-10).</summary>
 public sealed record PublishedItemRef(Guid ItemId, long RenderStamp);

@@ -58,7 +58,7 @@ export function validateDocument(document: unknown, kind: DocumentKind, context:
   const listChildren = checkListChildren(root, '/root')
   if (listChildren) return { valid: false, ...listChildren }
 
-  const earlier = componentRules(root, '/root', kind) ?? richTextLength(root, '/root') ?? richTextRules(root, '/root')
+  const earlier = componentRules(root, '/root', kind) ?? metadataRules(root, kind) ?? richTextLength(root, '/root') ?? richTextRules(root, '/root')
   if (earlier) return earlier
 
   // Rules 13, 15–19, then rule 14 last, as the server orders them (page-schema.md §3).
@@ -127,6 +127,14 @@ function componentRules(node: Json, pointer: string, kind: DocumentKind): Docume
   for (let i = 0; i < children.length; i++) {
     const failure = componentRules(children[i], `${pointer}/children/${i}`, kind)
     if (failure) return failure
+  }
+  return null
+}
+
+/** Rule 22 (017): search metadata belongs to pages, never to components. */
+function metadataRules(root: Json, kind: DocumentKind): DocumentValidation | null {
+  if (kind === 'component' && isObject(root) && isObject(root.props) && 'seo' in root.props) {
+    return invalid('seo_in_component', '/root/props/seo', 'A component cannot carry search metadata.')
   }
   return null
 }

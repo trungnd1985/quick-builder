@@ -95,6 +95,45 @@ internal static class PagesErrors
         "pages.template_parent_taken",
         "That page already holds a template. A page holds at most one.");
 
+    // Search metadata and redirects (017 data-model §4).
+
+    /// <summary>SE-03: canonical address and hiding are page structure decisions.</summary>
+    internal static Error SeoRestricted(string field) => With(
+        Error.Validation(
+            "pages.seo_restricted",
+            "Only members who may change the page structure can change the canonical address or hide a page from search engines."),
+        ("field", field));
+
+    internal static Error RedirectNotFound { get; } = Error.NotFound("redirects.not_found", "No such redirect on this site.");
+
+    internal static Error RedirectSourceInvalid(string reason) => Error.Validation(
+        "redirects.source_invalid",
+        $"That source address cannot be redirected: {reason}");
+
+    internal static Error RedirectTargetInvalid(string reason) => Error.Validation(
+        "redirects.target_invalid",
+        $"That target cannot be used: {reason}");
+
+    internal static Error RedirectDuplicate(Guid redirectId) => With(
+        Error.Conflict("redirects.duplicate", "Another redirect already has that source address."),
+        ("redirectId", redirectId));
+
+    internal static Error RedirectLoop(Guid? redirectId) => With(
+        Error.Conflict("redirects.loop", "This redirect would send visitors round in a loop."),
+        ("redirectId", redirectId));
+
+    internal static Error RedirectLimitReached(int limit) => With(
+        Error.Conflict("redirects.limit_reached", $"A site may have at most {limit} redirects."),
+        ("limit", limit));
+
+    internal static Error RedirectImportEncoding { get; } = Error.Validation(
+        "redirects.import_encoding",
+        "The file is not UTF-8 text. Save it as UTF-8 and import it again.");
+
+    internal static Error RedirectImportTooLarge(int maxRows, int maxBytes) => Error.Validation(
+        "redirects.import_too_large",
+        $"An import may hold at most {maxRows} rows and {maxBytes / (1024 * 1024)} MB.");
+
     internal static Error InvalidComponentName { get; } = Error.Validation(
         "pages.invalid_component_name",
         $"A component name must be between 1 and {Domain.Component.MaxNameLength} characters.");

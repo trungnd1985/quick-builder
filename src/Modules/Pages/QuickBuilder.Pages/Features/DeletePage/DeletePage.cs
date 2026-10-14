@@ -10,7 +10,7 @@ using QuickBuilder.Shared.Kernel.Results;
 
 namespace QuickBuilder.Pages.Features.DeletePage;
 
-internal sealed record DeletePageCommand(Guid SiteId, Guid PageId, int Version) : ICommand<Result>;
+internal sealed record DeletePageCommand(Guid SiteId, Guid PageId, int Version, Guid? RedirectToPageId = null) : ICommand<Result>;
 
 /// <summary>
 /// Permanently deletes a page without children (FR-012 to FR-014, clarification Q2).
@@ -25,6 +25,8 @@ internal sealed class DeletePageHandler(
     PagesAccess access,
     PagesDbContext database,
     PublishingWrites publishing,
+    RedirectWrites redirectWrites,
+    RedirectOffers redirectOffers,
     ILogger<DeletePageHandler> logger)
     : ICommandHandler<DeletePageCommand, Result>
 {
@@ -46,12 +48,24 @@ internal sealed class DeletePageHandler(
             return Result.Failure(PagesErrors.PagePublished);
         }
 
+        // 017 FR-032: the address the page had may still be linked to; checked before anything changes.
+        if (command.RedirectToPageId is { } target
+            && RedirectOffers.CheckRemovedTarget(await redirectWrites.LoadAsync(command.SiteId, cancellationToken).ConfigureAwait(false), command.PageId, target) is { } refused)
+        {
+            return Result.Failure(refused);
+        }
+
         var deleted = await writes.ChangeAsync(
             command.SiteId,
             startIfMissing: false,
             (tree, _, clock) => tree.Delete(command.PageId, command.Version, clock),
             async (_, page, ct) =>
             {
+                if (command.RedirectToPageId is { } redirectTo)
+                {
+                    await redirectOffers.RedirectRemovedPageAsync(command.SiteId, page.Id, redirectTo, access.Actor, ct).ConfigureAwait(false);
+                }
+
                 // 012 FR-017: its publishing records go with it; the publish log keeps its
                 // entries and gains a "deleted" one.
                 await publishing.ForgetAsync(
@@ -85,9 +99,10 @@ public sealed class DeletePageController(IDispatcher dispatcher) : ControllerBas
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
-    public async Task<IActionResult> DeleteAsync(Guid siteId, Guid pageId, [FromQuery] int version, CancellationToken cancellationToken)
+    public async Task<IActionResult> DeleteAsync(
+        Guid siteId, Guid pageId, [FromQuery] int version, [FromQuery] Guid? redirectToPageId, CancellationToken cancellationToken)
     {
-        var result = await dispatcher.SendAsync(new DeletePageCommand(siteId, pageId, version), cancellationToken)
+        var result = await dispatcher.SendAsync(new DeletePageCommand(siteId, pageId, version, redirectToPageId), cancellationToken)
             .ConfigureAwait(false);
 
         return result.IsFailure ? PagesErrorResults.ToActionResult(result.Error) : NoContent();

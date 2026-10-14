@@ -6,7 +6,9 @@
 
 import { isObject, type Json } from '../schema/subsetValidator'
 
-export type PropKind = 'text' | 'richText' | 'image' | 'link'
+// 'metaText' and 'flag' are the page's metadata (017 seo-metadata.md §3): text or rich text read
+// as plain text, and the hide switch, a boolean field.
+export type PropKind = 'text' | 'richText' | 'image' | 'link' | 'metaText' | 'flag'
 
 export const BROKEN = {
   fieldMissing: 'field_missing',
@@ -86,6 +88,15 @@ export function kindOf(blockType: string, prop: string): PropKind | null {
     case 'image.link':
     case 'heading.link':
       return 'link'
+    case 'root.seo.title':
+    case 'root.seo.description':
+    case 'root.seo.ogTitle':
+    case 'root.seo.ogDescription':
+      return 'metaText'
+    case 'root.seo.ogImage':
+      return 'image'
+    case 'root.seo.noindex':
+      return 'flag'
     default:
       return null
   }
@@ -102,12 +113,16 @@ export function fits(kind: PropKind, field: FieldInfo): boolean {
       return field.type === 'image'
     case 'link':
       return field.type === 'file' || (field.type === 'text' && !field.multiline)
+    case 'metaText':
+      return fits('text', field) || field.type === 'richText'
+    case 'flag':
+      return field.type === 'boolean'
   }
 }
 
 /** Whether a built-in item value can fill a property of `kind`. */
 export function fitsBuiltIn(kind: PropKind, builtIn: string): boolean {
-  if (kind === 'text') return builtIn === 'slug' || builtIn === 'firstPublishedAt' || builtIn === 'lastPublishedAt'
+  if (kind === 'text' || kind === 'metaText') return builtIn === 'slug' || builtIn === 'firstPublishedAt' || builtIn === 'lastPublishedAt'
   if (kind === 'link') return builtIn === 'url'
   return false
 }

@@ -131,6 +131,42 @@ internal sealed class PublishedItemReader(CmsPublishedReadDbContext database) : 
     public Task<int> CountPublishedAsync(Guid siteId, Guid collectionId, CancellationToken cancellationToken = default) =>
         database.Items.CountAsync(i => i.SiteId == siteId && i.CollectionId == collectionId, cancellationToken);
 
+    /// <summary>
+    /// Published items for the sitemap, by id after <paramref name="afterId"/> (017 research
+    /// SE-14): keyset paging on the primary key. A boolean published as true in
+    /// <paramref name="hideFieldId"/> hides the item; empty or anything else does not (FR-007a).
+    /// </summary>
+    public async Task<IReadOnlyList<PublishedItemAddress>> ListAddressesAsync(
+        Guid siteId, Guid collectionId, string? hideFieldId, Guid? afterId, int limit, CancellationToken cancellationToken = default)
+    {
+        if (limit <= 0)
+        {
+            return [];
+        }
+
+        var items = database.Items.Where(i => i.SiteId == siteId && i.CollectionId == collectionId && i.PublishedSlug != null);
+        if (afterId is { } after)
+        {
+            items = items.Where(i => i.Id.CompareTo(after) > 0);
+        }
+
+        var hide = hideFieldId ?? string.Empty;
+        var rows = await items
+            .OrderBy(i => i.Id)
+            .Take(limit)
+            .Select(i => new
+            {
+                i.Id,
+                Slug = i.PublishedSlug!,
+                LastPublished = i.LastPublishedAtUtc ?? i.FirstPublishedAtUtc ?? DateTimeOffset.UnixEpoch,
+                Hidden = hideFieldId != null && i.Published!.RootElement.GetProperty("values").GetProperty(hide).GetString() == "true",
+            })
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        return [.. rows.Select(r => new PublishedItemAddress(r.Id, r.Slug, r.LastPublished, r.Hidden))];
+    }
+
     /// <summary>Rows as contract items, each named by its collection's title field.</summary>
     internal async Task<Dictionary<Guid, PublishedItem>> ToItemsAsync(Guid siteId, IReadOnlyList<PublishedItemRow> rows, CancellationToken cancellationToken)
     {

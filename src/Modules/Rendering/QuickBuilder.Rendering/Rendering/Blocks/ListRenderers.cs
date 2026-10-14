@@ -70,10 +70,42 @@ internal sealed class CollectionListRenderer : IBlockRenderer
         }
 
         writer.Close("ul");
+        ListNode(items, context);
 
         if (paging is { } pages && result is not null)
         {
             Pager.Write(writer, context, pages.Param, LayerLabel(node), pages.Current, Pager.LastPage(result.Total, pages.PageSize), pages.Steps);
+        }
+    }
+
+    /// <summary>
+    /// 017 research SE-18: the shown items' pages, in order, when their collection has a live
+    /// template; a list of items without pages describes nothing.
+    /// </summary>
+    private static void ListNode(IReadOnlyList<PublishedItem> items, RenderContext context)
+    {
+        if (context.Inputs.Site is not { } site)
+        {
+            return;
+        }
+
+        var elements = new System.Text.Json.Nodes.JsonArray();
+        foreach (var item in items)
+        {
+            if (context.Data.TemplatePatterns.TryGetValue(item.CollectionId, out var pattern))
+            {
+                elements.Add(new System.Text.Json.Nodes.JsonObject
+                {
+                    ["@type"] = "ListItem",
+                    ["position"] = elements.Count + 1,
+                    ["url"] = Seo.SiteAddress.Absolute(site.BaseUrl, pattern.Replace(Pages.Contracts.TemplateInfo.SlugPlaceholder, item.Slug, StringComparison.Ordinal)),
+                });
+            }
+        }
+
+        if (elements.Count > 0)
+        {
+            context.StructuredData.Add(new System.Text.Json.Nodes.JsonObject { ["@type"] = "ItemList", ["itemListElement"] = elements });
         }
     }
 

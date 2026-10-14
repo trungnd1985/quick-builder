@@ -13,12 +13,17 @@ answers with the site's not-found page (§4).
 
 1. **Host not held by an enabled site** → 009's `sites.not_resolved` JSON 404, byte for
    byte, unchanged (FR-030).
+   - **Since 017**: a site set to redirect other host names answers `301` to its primary host
+     name for every address except `/_media` and `/_assets` (017 public-seo.md §1).
 2. **`/_media/…`** → Media (003), unchanged.
 3. **`/_assets/blocks.{hash}.css`** → the block stylesheet (§5).
 4. **Any other path**:
    - A method other than `GET` or `HEAD` → `405`, `Allow: GET, HEAD`, empty body.
    - Otherwise the path is normalised (§2) and looked up. A live page gets §3; anything else
      gets the not-found page (§4).
+   - **Since 017**: `/robots.txt` and the sitemap files answer first; a redirect whose source
+     has a query is matched before content, and other redirects after content, before the
+     not-found page. The full order is 017 [public-seo.md](../../017-seo/contracts/public-seo.md) §1.
 
 ---
 
@@ -32,8 +37,10 @@ answers with the site's not-found page (§4).
 | Case | Compared lower-case (invariant), because addresses are unique ignoring case (010). |
 | Query string | Ignored for matching and caching. It is never echoed into the page. |
 
-`/About`, `/about/` and `/about?x=1` all serve the page at `/about`, with `200`. Canonical
-redirects are #17.
+`/about?x=1` serves the page at `/about`, with `200`. **Since 017**, `/About` and `/about/`
+answer `301` to `/about`, keeping the query, when a page or item page is there; with nothing
+there they go on to redirects and the not-found page (017 research SE-06). Each page also names
+its canonical address in its head (017 public-seo.md §3).
 
 ---
 

@@ -50,5 +50,11 @@
   "props_invalid--rich-text-table-21-columns.json": { "rule": "props_invalid", "pointer": "/root/children/0/children/0/props/content/content/0/content/0/content" },
   "props_invalid--rich-text-align-justify.json": { "rule": "props_invalid", "pointer": "/root/children/0/children/0/props/content/content/0/attrs/align" },
   "props_invalid--rich-text-paragraph-style.json": { "rule": "props_invalid", "pointer": "/root/children/0/children/0/props/content/content/0/attrs/style" },
-  "props_invalid--rich-text-align-on-quote.json": { "rule": "props_invalid", "pointer": "/root/children/0/children/0/props/content/content/0/attrs" }
+  "props_invalid--rich-text-align-on-quote.json": { "rule": "props_invalid", "pointer": "/root/children/0/children/0/props/content/content/0/attrs" },
+  "props_invalid--seo-canonical-javascript.json": { "rule": "props_invalid", "pointer": "/root/props/seo/canonical/href" },
+  "props_invalid--seo-canonical-user-info.json": { "rule": "props_invalid", "pointer": "/root/props/seo/canonical/href" },
+  "props_invalid--seo-title-line-break.json": { "rule": "props_invalid", "pointer": "/root/props/seo/title" },
+  "props_invalid--seo-title-201.json": { "rule": "props_invalid", "pointer": "/root/props/seo/title" },
+  "props_invalid--seo-bind-hide.json": { "rule": "props_invalid", "pointer": "/root/props/seo/bind/title/empty" },
+  "binding_version_required--seo-bind.json": { "rule": "binding_version_required", "pointer": "" }
 }

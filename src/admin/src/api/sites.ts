@@ -24,6 +24,26 @@ export interface SitePermissions {
   canManageSettings: boolean
   canManageHostNames: boolean
   canManageAvailability: boolean
+  /** 017: title suffix, default sharing image, organisation. */
+  canManageSearch?: boolean
+  /** 017: discourage search engines, robots rules, host name redirect (Administrators). */
+  canManageSearchVisibility?: boolean
+}
+
+/** 017 FR-006: how the site presents itself to search engines and link previews. */
+export interface SiteSearch {
+  titleSuffix: string | null
+  defaultImageId: string | null
+  organisationName: string | null
+  organisationLogoId: string | null
+  updatedBy: string | null
+}
+
+/** 017 FR-014, FR-025, FR-027: whether search engines see the site, and how host names answer. */
+export interface SiteSearchVisibility {
+  discourageSearchEngines: boolean
+  robotsRules: string | null
+  redirectOtherHostNames: boolean
 }
 
 export interface Site {
@@ -42,6 +62,9 @@ export interface Site {
   version: number
   updatedAtUtc: string
   permissions: SitePermissions
+  /** 017. Absent from servers before 017. */
+  search?: SiteSearch
+  searchVisibility?: SiteSearchVisibility
 }
 
 export interface SiteSettings {
@@ -103,4 +126,16 @@ export const sitesApi = {
   enable: (siteId: string): Promise<Site> => request<Site>(`/sites/${siteId}/enable`, { method: 'POST' }),
 
   languages: (): Promise<Languages> => request<Languages>('/sites/languages'),
+
+  /** 017: needs sites.search.manage. */
+  putSearchSettings: (
+    siteId: string,
+    settings: { titleSuffix: string | null; defaultImageId: string | null; organisationName: string | null; organisationLogoId: string | null; version: number },
+  ): Promise<Site> => request<Site>(`/sites/${siteId}/search-settings`, { method: 'PUT', body: JSON.stringify(settings) }),
+
+  /** 017: Administrators only. */
+  putSearchVisibility: (
+    siteId: string,
+    visibility: { discourageSearchEngines: boolean; robotsRules: string | null; redirectOtherHostNames: boolean; version: number },
+  ): Promise<Site> => request<Site>(`/sites/${siteId}/search-visibility`, { method: 'PUT', body: JSON.stringify(visibility) }),
 }

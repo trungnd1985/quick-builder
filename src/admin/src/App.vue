@@ -5,6 +5,7 @@ import { identityApi } from './api/identity'
 import { useAuthStore } from './app/authStore'
 import { clearClipboard } from './editor/state/clipboard'
 import { clearRecoveryForUser } from './editor/state/recovery'
+import SearchHiddenBanner from './components/SearchHiddenBanner.vue'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -38,6 +39,7 @@ async function signOut(): Promise<void> {
     :class="route.meta.fullscreen ? 'fullscreen' : 'bare'"
     tabindex="-1"
   >
+    <SearchHiddenBanner />
     <RouterView />
   </main>
 
@@ -109,6 +111,7 @@ async function signOut(): Promise<void> {
           class="shell-main"
           tabindex="-1"
         >
+          <SearchHiddenBanner />
           <RouterView />
         </main>
       </div>

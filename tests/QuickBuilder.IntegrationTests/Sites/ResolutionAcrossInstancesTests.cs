@@ -40,6 +40,7 @@ public sealed class ResolutionAcrossInstancesTests(DatabaseFixture database) : I
     public async Task Adding_and_removing_a_host_name_on_one_instance_is_seen_by_the_other_at_the_next_request()
     {
         var site = (await SitesApi.CreateOkAsync(_admin, "Moving", ["moving.test"]).ConfigureAwait(true)).GetProperty("id").GetGuid();
+        await SitesApi.ServeOnEveryHostNameAsync(_admin, site).ConfigureAwait(true);
         await PublicSite.MarkAsync(_admin, site).ConfigureAwait(true);
 
         // Warm the second instance with a miss for the name about to be added.

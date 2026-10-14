@@ -61,6 +61,12 @@ internal sealed partial class PublishSchedule : ISiteOwned
 
     public string? FailureCode { get; private set; }
 
+    /// <summary>
+    /// For a page unpublish: the page its address should redirect to once the schedule runs,
+    /// if the member accepted the offer (017 FR-032, research SE-11).
+    /// </summary>
+    public Guid? RedirectToPageId { get; private set; }
+
     public Guid CreatedBy { get; private set; }
 
     public DateTimeOffset CreatedAtUtc { get; private set; }
@@ -94,6 +100,16 @@ internal sealed partial class PublishSchedule : ISiteOwned
         var schedule = new PublishSchedule(siteId, SubjectKinds.Page, pageId, ScheduleActions.Unpublish, createdBy, now);
         schedule.MoveTo(dueAtUtc);
         return schedule;
+    }
+
+    /// <summary>
+    /// Sets where a scheduled unpublish redirects the page's address, or clears it (017 FR-032);
+    /// a scheduled publish has nothing to redirect.
+    /// </summary>
+    public void RedirectTo(Guid? pageId)
+    {
+        EnsurePending();
+        RedirectToPageId = Action == ScheduleActions.Unpublish ? pageId : null;
     }
 
     /// <summary>Changes a pending schedule's time; the old due message becomes a no-op.</summary>

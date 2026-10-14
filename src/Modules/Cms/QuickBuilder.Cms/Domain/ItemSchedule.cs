@@ -73,6 +73,15 @@ internal sealed class ItemSchedule : ISiteOwned, IDisposable
 
     public string? FailureCode { get; private set; }
 
+    /// <summary>
+    /// For a publish: whether a changed slug should redirect from the old address once the
+    /// schedule runs (017 FR-029, research SE-11).
+    /// </summary>
+    public bool RedirectOldAddress { get; private set; }
+
+    /// <summary>For an unpublish: the page the item's address should redirect to (017 FR-032).</summary>
+    public Guid? RedirectToPageId { get; private set; }
+
     /// <summary>Who set the schedule, or last moved it.</summary>
     public Guid CreatedBy { get; private set; }
 
@@ -98,6 +107,17 @@ internal sealed class ItemSchedule : ISiteOwned, IDisposable
     }
 
     public ItemValues? ReadCaptured() => CapturedValues is null ? null : ItemValues.Read(CapturedValues);
+
+    /// <summary>
+    /// The redirect accepted for when the schedule runs (017 FR-029, FR-032): a publish's changed
+    /// slug, or an unpublish's address to a page. The other action's choice is ignored.
+    /// </summary>
+    public void RedirectOnRun(bool redirectOldAddress, Guid? redirectToPageId)
+    {
+        EnsurePending();
+        RedirectOldAddress = Action == ItemScheduleActions.Publish && redirectOldAddress;
+        RedirectToPageId = Action == ItemScheduleActions.Unpublish ? redirectToPageId : null;
+    }
 
     /// <summary>Changes a pending schedule's time; the old due message becomes a no-op.</summary>
     public void Reschedule(DateTimeOffset dueAtUtc, Guid by)

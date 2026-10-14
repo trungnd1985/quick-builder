@@ -62,6 +62,8 @@ export const DOCUMENT_RULES: readonly string[] = [
   'duplicate_page_param',
   // 016 FR-027: rule 21, across a page and the components it shows (server only).
   'page_param_taken',
+  // 017: search metadata belongs to pages (page-schema.md §3, rule 22).
+  'seo_in_component',
 ]
 
 /** Server error codes the editor and the design screen can receive. */

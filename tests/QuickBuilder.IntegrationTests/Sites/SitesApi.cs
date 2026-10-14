@@ -70,6 +70,21 @@ internal static class SitesApi
             new Uri($"{Root}/{siteId}/settings", UriKind.Relative),
             new { name, scheme, defaultLanguage, primaryHostName, version });
 
+    /// <summary>
+    /// Lets every host name of the site serve it (017 FR-014): new sites redirect other host
+    /// names to the primary one, and tests of host name resolution need each name to answer.
+    /// </summary>
+    public static async Task ServeOnEveryHostNameAsync(HttpClient admin, Guid siteId)
+    {
+        ArgumentNullException.ThrowIfNull(admin);
+
+        var site = await GetOkAsync(admin, siteId).ConfigureAwait(false);
+        var response = await admin.PutAsJsonAsync(
+            new Uri($"{Root}/{siteId}/search-visibility", UriKind.Relative),
+            new { discourageSearchEngines = false, robotsRules = (string?)null, redirectOtherHostNames = false, version = site.GetProperty("version").GetUInt32() }).ConfigureAwait(false);
+        response.EnsureSuccessStatusCode();
+    }
+
     public static Task<HttpResponseMessage> AddHostNameAsync(HttpClient client, Guid siteId, string hostName) =>
         client.PostAsJsonAsync(new Uri($"{Root}/{siteId}/host-names", UriKind.Relative), new { hostName });
 

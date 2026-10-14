@@ -9,6 +9,7 @@ import { pagesApi } from '../../api/pages'
 import { publishingApi, type Publication, type SubjectKind } from '../../api/publishing'
 import { ApiError } from '../../api/request'
 import ConfirmDialog from '../sites/ConfirmDialog.vue'
+import RedirectToPagePicker, { type PickablePage } from '../../components/RedirectToPagePicker.vue'
 import PublicationBadge from './PublicationBadge.vue'
 import ScheduleDialog from './ScheduleDialog.vue'
 import { publishingErrorMessage } from './errorMessages'
@@ -39,6 +40,21 @@ const busy = ref(false)
 const error = ref<string | null>(null)
 const status = ref('')
 const confirmingUnpublish = ref(false)
+// 017 FR-032: where an unpublished page's address goes; none unless chosen.
+const redirectToPageId = ref<string | null>(null)
+const sitePages = ref<PickablePage[]>([])
+
+async function askUnpublish(): Promise<void> {
+  redirectToPageId.value = null
+  if (props.kind === 'page' && sitePages.value.length === 0) {
+    try {
+      sitePages.value = (await pagesApi.tree(props.siteId)).pages ?? []
+    } catch {
+      sitePages.value = []
+    }
+  }
+  confirmingUnpublish.value = true
+}
 const confirmingPublish = ref(false)
 const scheduling = ref(false)
 
@@ -103,7 +119,7 @@ async function publish(): Promise<void> {
 /** Taking something down asks first: visitors lose it from the next request (FR-005). */
 async function unpublish(): Promise<void> {
   await run(
-    () => publishingApi.unpublish(props.siteId, props.kind, props.subjectId),
+    () => publishingApi.unpublish(props.siteId, props.kind, props.subjectId, props.kind === 'page' ? redirectToPageId.value : null),
     () => t('publishing.menu.unpublished'),
   )
   confirmingUnpublish.value = false
@@ -143,7 +159,7 @@ async function scheduled(): Promise<void> {
       v-if="canPublish && isPublished"
       type="button"
       :disabled="busy"
-      @click="confirmingUnpublish = true"
+      @click="askUnpublish"
     >
       {{ t('publishing.menu.unpublish') }}
     </button>
@@ -206,7 +222,15 @@ async function scheduled(): Promise<void> {
       danger
       @confirm="unpublish"
       @cancel="confirmingUnpublish = false"
-    />
+    >
+      <RedirectToPagePicker
+        v-if="kind === 'page'"
+        id="publish-unpublish-redirect"
+        v-model="redirectToPageId"
+        :pages="sitePages"
+        :except-page-id="subjectId"
+      />
+    </ConfirmDialog>
 
     <ConfirmDialog
       v-if="confirmingPublish && pendingPublish"

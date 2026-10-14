@@ -634,6 +634,10 @@ namespace QuickBuilder.Pages.Infrastructure.Migrations
                         .HasColumnType("character varying(100)")
                         .HasColumnName("failure_code");
 
+                    b.Property<Guid?>("RedirectToPageId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("redirect_to_page_id");
+
                     b.Property<int>("Revision")
                         .HasColumnType("integer")
                         .HasColumnName("revision");
@@ -749,6 +753,225 @@ namespace QuickBuilder.Pages.Infrastructure.Migrations
 
                             t.HasCheckConstraint("ck_published_versions_subject_kind", "subject_kind IN ('page', 'component')");
                         });
+                });
+
+            modelBuilder.Entity("QuickBuilder.Pages.Domain.Redirects.Redirect", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at_utc");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<bool>("Enabled")
+                        .HasColumnType("boolean")
+                        .HasColumnName("enabled");
+
+                    b.Property<string>("MatchKind")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("match_kind");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("note");
+
+                    b.Property<string>("Origin")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("origin");
+
+                    b.Property<Guid>("SiteId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("site_id");
+
+                    b.Property<string>("SourcePath")
+                        .IsRequired()
+                        .HasMaxLength(1024)
+                        .HasColumnType("character varying(1024)")
+                        .HasColumnName("source_path");
+
+                    b.Property<string>("SourceQuery")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("source_query");
+
+                    b.Property<short>("StatusCode")
+                        .HasColumnType("smallint")
+                        .HasColumnName("status_code");
+
+                    b.Property<Guid?>("TargetCollectionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("target_collection_id");
+
+                    b.Property<Guid?>("TargetItemId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("target_item_id");
+
+                    b.Property<string>("TargetKind")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("target_kind");
+
+                    b.Property<Guid?>("TargetPageId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("target_page_id");
+
+                    b.Property<string>("TargetPath")
+                        .HasMaxLength(1600)
+                        .HasColumnType("character varying(1600)")
+                        .HasColumnName("target_path");
+
+                    b.Property<string>("TargetUrl")
+                        .HasMaxLength(2048)
+                        .HasColumnType("character varying(2048)")
+                        .HasColumnName("target_url");
+
+                    b.Property<DateTimeOffset>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at_utc");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id")
+                        .HasName("pk_redirects");
+
+                    b.HasIndex("SiteId", "TargetPageId")
+                        .HasDatabaseName("ix_redirects_target_page")
+                        .HasFilter("target_page_id IS NOT NULL");
+
+                    b.HasIndex("SiteId", "TargetPath")
+                        .HasDatabaseName("ix_redirects_target_path")
+                        .HasFilter("target_path IS NOT NULL");
+
+                    b.HasIndex("SiteId", "MatchKind", "SourcePath", "SourceQuery")
+                        .IsUnique()
+                        .HasDatabaseName("ux_redirects_source");
+
+                    b.ToTable("redirects", "pages", t =>
+                        {
+                            t.HasCheckConstraint("ck_redirects_match_kind", "match_kind IN ('exact', 'prefix')");
+
+                            t.HasCheckConstraint("ck_redirects_origin", "origin IN ('manual', 'import', 'offer')");
+
+                            t.HasCheckConstraint("ck_redirects_prefix", "match_kind = 'exact' OR (source_query = '' AND target_kind IN ('page', 'path'))");
+
+                            t.HasCheckConstraint("ck_redirects_status_code", "status_code IN (301, 302)");
+
+                            t.HasCheckConstraint("ck_redirects_target", "(target_kind = 'page' AND target_page_id IS NOT NULL AND target_item_id IS NULL AND target_path IS NULL AND target_url IS NULL) OR (target_kind = 'item' AND target_collection_id IS NOT NULL AND target_item_id IS NOT NULL AND target_page_id IS NULL AND target_path IS NULL AND target_url IS NULL) OR (target_kind = 'path' AND target_path IS NOT NULL AND target_page_id IS NULL AND target_item_id IS NULL AND target_url IS NULL) OR (target_kind = 'url' AND target_url IS NOT NULL AND target_page_id IS NULL AND target_item_id IS NULL AND target_path IS NULL)");
+                        });
+                });
+
+            modelBuilder.Entity("QuickBuilder.Pages.Domain.Redirects.RedirectChange", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("action");
+
+                    b.Property<Guid?>("ActorUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("actor_user_id");
+
+                    b.Property<DateTimeOffset>("AtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("at_utc");
+
+                    b.Property<string>("Origin")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("origin");
+
+                    b.Property<Guid>("RedirectId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("redirect_id");
+
+                    b.Property<Guid>("SiteId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("site_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_redirect_changes");
+
+                    b.HasIndex("SiteId", "AtUtc")
+                        .IsDescending(false, true)
+                        .HasDatabaseName("ix_redirect_changes_site_time");
+
+                    b.HasIndex("SiteId", "RedirectId", "AtUtc")
+                        .IsDescending(false, false, true)
+                        .HasDatabaseName("ix_redirect_changes_redirect");
+
+                    b.ToTable("redirect_changes", "pages", t =>
+                        {
+                            t.HasCheckConstraint("ck_redirect_changes_action", "action IN ('created', 'changed', 'turned_on', 'turned_off', 'deleted', 'imported', 'offered', 'retargeted')");
+
+                            t.HasCheckConstraint("ck_redirect_changes_origin", "origin IN ('manual', 'import', 'offer')");
+                        });
+                });
+
+            modelBuilder.Entity("QuickBuilder.Pages.Domain.Redirects.RedirectUsage", b =>
+                {
+                    b.Property<Guid>("RedirectId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("redirect_id");
+
+                    b.Property<long>("Hits")
+                        .HasColumnType("bigint")
+                        .HasColumnName("hits");
+
+                    b.Property<DateTimeOffset>("LastUsedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_used_at_utc");
+
+                    b.Property<Guid>("SiteId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("site_id");
+
+                    b.HasKey("RedirectId")
+                        .HasName("pk_redirect_usage");
+
+                    b.ToTable("redirect_usage", "pages");
+                });
+
+            modelBuilder.Entity("QuickBuilder.Pages.Domain.SitemapState", b =>
+                {
+                    b.Property<Guid>("SiteId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("site_id");
+
+                    b.Property<long>("Generation")
+                        .HasColumnType("bigint")
+                        .HasColumnName("generation");
+
+                    b.HasKey("SiteId")
+                        .HasName("pk_sitemap_state");
+
+                    b.ToTable("sitemap_state", "pages");
                 });
 
             modelBuilder.Entity("QuickBuilder.Pages.Domain.VersionMediaReference", b =>
@@ -920,6 +1143,16 @@ namespace QuickBuilder.Pages.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_published_versions_publications_subject_kind_subject_id");
+                });
+
+            modelBuilder.Entity("QuickBuilder.Pages.Domain.Redirects.RedirectUsage", b =>
+                {
+                    b.HasOne("QuickBuilder.Pages.Domain.Redirects.Redirect", null)
+                        .WithOne()
+                        .HasForeignKey("QuickBuilder.Pages.Domain.Redirects.RedirectUsage", "RedirectId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_redirect_usage_redirects_redirect_id");
                 });
 
             modelBuilder.Entity("QuickBuilder.Pages.Domain.VersionMediaReference", b =>

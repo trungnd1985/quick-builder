@@ -28,9 +28,21 @@ internal sealed class SiteDtoMapper(SitesOptions options)
         uint Version,
         DateTimeOffset CreatedAtUtc,
         DateTimeOffset UpdatedAtUtc,
-        List<HostNameRow> HostNames);
+        List<HostNameRow> HostNames,
+        SearchRow Search);
 
     internal sealed record HostNameRow(string HostName, DateTimeOffset CreatedAtUtc);
+
+    /// <summary>The search settings columns (017 data-model §1.4).</summary>
+    internal sealed record SearchRow(
+        string? TitleSuffix,
+        Guid? DefaultImage,
+        string? OrganisationName,
+        Guid? OrganisationLogo,
+        bool Discouraged,
+        string? RobotsRules,
+        bool RedirectOtherHosts,
+        Guid? UpdatedBy);
 
     internal static Expression<Func<Site, SiteRow>> Projection { get; } = s => new SiteRow(
         s.Id,
@@ -42,7 +54,16 @@ internal sealed class SiteDtoMapper(SitesOptions options)
         s.Version,
         s.CreatedAtUtc,
         s.UpdatedAtUtc,
-        s.HostNames.Select(h => new HostNameRow(h.HostName, h.CreatedAtUtc)).ToList());
+        s.HostNames.Select(h => new HostNameRow(h.HostName, h.CreatedAtUtc)).ToList(),
+        new SearchRow(
+            s.SearchTitleSuffix,
+            s.SearchDefaultImage,
+            s.SearchOrganisationName,
+            s.SearchOrganisationLogo,
+            s.SearchDiscouraged,
+            s.SearchRobotsRules,
+            s.RedirectOtherHosts,
+            s.SearchUpdatedBy));
 
     private static readonly Lazy<Func<Site, SiteRow>> CompiledProjection = new(() => Projection.Compile());
 
@@ -66,6 +87,17 @@ internal sealed class SiteDtoMapper(SitesOptions options)
             Status = row.Status,
             Version = row.Version,
             UpdatedAtUtc = row.UpdatedAtUtc,
+            Search = new SiteSearchSettings(
+                row.Search.TitleSuffix,
+                row.Search.DefaultImage,
+                row.Search.OrganisationName,
+                row.Search.OrganisationLogo,
+                row.Search.Discouraged,
+                row.Search.RobotsRules)
+            {
+                UpdatedBy = row.Search.UpdatedBy,
+            },
+            RedirectOtherHostNames = row.Search.RedirectOtherHosts,
         };
     }
 

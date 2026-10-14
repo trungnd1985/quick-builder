@@ -7,6 +7,7 @@ using QuickBuilder.Media.Contracts.Events;
 using QuickBuilder.Pages.Contracts;
 using QuickBuilder.Pages.Contracts.Events;
 using QuickBuilder.Pages.Contracts.Publishing;
+using QuickBuilder.Pages.Contracts.Redirects;
 using QuickBuilder.Pages.Features;
 using QuickBuilder.Pages.Features.CreateComponent;
 using QuickBuilder.Pages.Features.CreatePage;
@@ -26,6 +27,7 @@ using QuickBuilder.Pages.Features.MovePage;
 using QuickBuilder.Pages.Features.Publish;
 using QuickBuilder.Pages.Features.PublishingHistory;
 using QuickBuilder.Pages.Features.RecordDesignPublish;
+using QuickBuilder.Pages.Features.Redirects;
 using QuickBuilder.Pages.Features.RefreshPagesListingItems;
 using QuickBuilder.Pages.Features.RefreshPagesShowingMedia;
 using QuickBuilder.Pages.Features.RefreshPagesUsingCollection;
@@ -85,6 +87,15 @@ public static class PagesModule
             .UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking));
         services.AddScoped<IPublishedContentReader, PublishedContentReader>();
 
+        // 017 research SE-10, SE-12: redirects on the public path, and their use, counted in
+        // memory and saved in the background.
+        services.AddScoped<IRedirectReader, RedirectReader>();
+        services.AddScoped<ISitemapReader, SitemapReader>();
+        services.AddSingleton<RedirectHitCounter>();
+        services.AddSingleton<IRedirectHits>(sp => sp.GetRequiredService<RedirectHitCounter>());
+        services.AddSingleton<RedirectUsageFlusher>();
+        services.AddHostedService(sp => sp.GetRequiredService<RedirectUsageFlusher>());
+
         // 013 research MV-05: where media files are used, for the Media module.
         services.AddScoped<QuickBuilder.Pages.Contracts.Media.IMediaUsageReader, MediaUsageReader>();
 
@@ -122,6 +133,21 @@ public static class PagesModule
         services.AddScoped<CollectionUseRows>();
         services.AddScoped<PageParamRules>();
         services.AddScoped<AddressWarnings>();
+
+        // 017: redirects (research SE-09 to SE-13a).
+        services.AddScoped<SitemapGeneration>();
+        services.AddScoped<RedirectWrites>();
+        services.AddScoped<RedirectOffers>();
+        services.AddScoped<RedirectViews>();
+        services.AddScoped<ManageRedirectHandlers>();
+        services.AddScoped<ICommandHandler<CreateRedirectCommand, Result<RedirectResponse>>>(sp => sp.GetRequiredService<ManageRedirectHandlers>());
+        services.AddScoped<ICommandHandler<UpdateRedirectCommand, Result<RedirectResponse>>>(sp => sp.GetRequiredService<ManageRedirectHandlers>());
+        services.AddScoped<ICommandHandler<DeleteRedirectCommand, Result>>(sp => sp.GetRequiredService<ManageRedirectHandlers>());
+        services.AddScoped<IQueryHandler<GetRedirectQuery, Result<RedirectResponse>>>(sp => sp.GetRequiredService<ManageRedirectHandlers>());
+        services.AddScoped<IQueryHandler<ListRedirectsQuery, Result<RedirectListResponse>>, ListRedirectsHandler>();
+        services.AddScoped<RedirectFileHandlers>();
+        services.AddScoped<ICommandHandler<ImportRedirectsCommand, Result<ImportRedirectsResponse>>>(sp => sp.GetRequiredService<RedirectFileHandlers>());
+        services.AddScoped<IQueryHandler<ExportRedirectsQuery, Result<string>>>(sp => sp.GetRequiredService<RedirectFileHandlers>());
         services.AddScoped<ICollectionUsageReader, CollectionUsageReader>();
         services.AddScoped<ComponentReads>();
 
@@ -191,6 +217,7 @@ public static class PagesModule
         services.AddScoped<IIntegrationEventHandler<ItemPublished>, RefreshPagesListingItemsHandler>();
         services.AddScoped<IIntegrationEventHandler<ItemUnpublished>, RefreshPagesListingItemsHandler>();
         services.AddScoped<IIntegrationEventHandler<ItemDeleted>, RefreshPagesListingItemsHandler>();
+        services.AddScoped<IIntegrationEventHandler<ItemRedirectRequested>, Features.CreateItemRedirect.CreateItemRedirectHandler>();
         services.AddScoped<IIntegrationEventHandler<CollectionChanged>, RefreshPagesUsingCollectionHandler>();
         services.AddScoped<IIntegrationEventHandler<CollectionDeleted>, RefreshPagesUsingCollectionHandler>();
 

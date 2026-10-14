@@ -66,6 +66,7 @@ public sealed class BindingRulesGoldenTests
             BoundState.Value when bound.RichText is { } richText => new Dictionary<string, object?> { ["richText"] = richText },
             BoundState.Value when bound.MediaId is { } media => new Dictionary<string, object?> { ["media"] = media.ToString() },
             BoundState.Value when bound.Link is { } link => new Dictionary<string, object?> { ["link"] = link.Href },
+            BoundState.Value when bound.Flag => new Dictionary<string, object?> { ["flag"] = true },
             BoundState.Hide => new Dictionary<string, object?> { ["hide"] = true },
             _ => new Dictionary<string, object?> { ["fallback"] = true },
         };

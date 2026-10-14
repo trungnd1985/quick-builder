@@ -75,7 +75,8 @@
       "components": "Shared components",
       "media": "Media library",
       "design": "Design",
-      "collections": "Collections"
+      "collections": "Collections",
+      "redirects": "Redirects"
     },
     "settings": {
       "heading": "Settings",
@@ -144,7 +145,39 @@
       "out_of_date": "Someone else changed this site at the same time. Reload it and try again.",
       "not_found": "This site no longer exists, or you can no longer see it.",
       "forbidden": "You don't have permission to do that.",
-      "unknown": "Something went wrong. Try again."
+      "unknown": "Something went wrong. Try again.",
+      "search_invalid": "Check the search settings: the title suffix fits 60 characters on one line, the organisation name 200, and robots rules 10 KB with lines of at most 500 characters."
+    },
+    "search": {
+      "heading": "Search and sharing",
+      "intro": "How this site presents itself to search engines and in link previews.",
+      "titleSuffix": "Title suffix",
+      "titleSuffixHelp": "Added after the title of every page that has no meta title of its own, for example \" | Acme\".",
+      "defaultImage": "Default sharing image",
+      "organisationName": "Organisation name",
+      "organisationLogo": "Organisation logo",
+      "images": "Default sharing image: {image}. Organisation logo: {logo}.",
+      "set": "set",
+      "notSet": "not set",
+      "save": "Save search settings",
+      "saved": "Search settings saved."
+    },
+    "searchVisibility": {
+      "heading": "Search engines and host names",
+      "discourage": "Discourage search engines",
+      "discourageHelp": "While the site is being built: robots.txt asks every crawler to stay away, every page asks not to be indexed, and the sitemap lists nothing. Turn it off at launch.",
+      "redirectOtherHosts": "Redirect other host names to the primary one",
+      "redirectOtherHostsHelp": "Visitors on any other host name of this site are sent to the same address on {primary}. Media files keep answering on every host name.",
+      "robotsRules": "Your own robots.txt rules",
+      "robotsRulesHelp": "Added after the generated rules. At most 10 KB, lines of at most 500 characters.",
+      "save": "Save search engine settings",
+      "saved": "Search engine settings saved.",
+      "saving": "Saving…",
+      "cancel": "Cancel",
+      "confirmTitle": "Redirect other host names?",
+      "confirmBody": "Every public address on {others} will redirect to the same address on {primary}. Make sure {primary} reaches this site first.",
+      "confirmAction": "Redirect them",
+      "hiddenBanner": "{name} is hidden from search engines. Turn this off in the site's search engine settings when it launches."
     }
   },
   "media": {
@@ -474,7 +507,8 @@
       "template_has_children": "A template cannot have pages under it, because its address holds each item’s slug.",
       "unknown_collection": "That collection is not one of this site’s.",
       "collection_has_template": "That collection already has a template page. A collection has one template.",
-      "template_parent_taken": "That page already holds a template. A page holds at most one."
+      "template_parent_taken": "That page already holds a template. A page holds at most one.",
+      "seo_restricted": "Only Designers and Administrators can change the canonical address or hide a page from search engines."
     },
     "template": {
       "setTitle": "Use {title} as a template",
@@ -873,6 +907,7 @@
         "too_deep": "Blocks are nested more than 32 levels deep.",
         "too_large": "The page is larger than 1 MB.",
         "component_ref_not_allowed": "A shared component cannot contain another shared component.",
+        "seo_in_component": "A shared component cannot carry search and sharing settings; they belong to pages.",
         "unknown_component": "The page uses a shared component that no longer exists.",
         "unsupported_schema_version": "The page was written by a newer version of QuickBuilder.",
         "rich_text_too_long": "A rich text block holds more than 20,000 characters.",
@@ -1279,6 +1314,57 @@
       "scopeCard": "the card’s item in {list}",
       "valueFieldOf": "{field} of {where}",
       "valueCurrentOf": "Leave out {where}"
+    },
+    "seo": {
+      "open": "Search and sharing",
+      "title": "Search and sharing",
+      "close": "Done",
+      "metaTitle": "Meta title",
+      "metaDescription": "Meta description",
+      "ogTitle": "Sharing title",
+      "ogDescription": "Sharing description",
+      "ogImage": "Sharing image",
+      "count": "{count} of {max} characters",
+      "longerThanShown": "Search engines usually show about {limit} characters; the rest may be cut.",
+      "tooLong": "This can be at most {max} characters.",
+      "oneLine": "Keep this on one line.",
+      "invalid": "This value cannot be used.",
+      "visibility": "Search engines",
+      "noindex": "Hide from search engines",
+      "noSitemap": "Leave out of the sitemap",
+      "restricted": "Only Designers and Administrators can hide a page from search engines or change its canonical address.",
+      "searchPreview": "Search listing preview",
+      "sharingPreview": "Link preview",
+      "noDescription": "No description: search engines choose a snippet themselves.",
+      "withImage": "With the sharing image",
+      "withoutImage": "No sharing image",
+      "templateHint": "This page is a template: each field can read the item shown. Values are shortened to fit at a word.",
+      "whenNone": "{field} when the item has none",
+      "hideItem": "Hide an item from search engines",
+      "canonical": {
+        "label": "Canonical address",
+        "self": "This page",
+        "page": "Another page of this site",
+        "pageLabel": "Page that holds the original",
+        "url": "An address elsewhere",
+        "urlLabel": "Address of the original (http or https)",
+        "invalid": "Use a full http or https address, without a user name or password."
+      },
+      "structuredData": {
+        "label": "What each item is",
+        "help": "Tells search engines what kind of content each item page holds, from the item's fields.",
+        "type": "Content type",
+        "none": "Nothing",
+        "required": "required",
+        "notBound": "Not set: {fallback}",
+        "leftOut": "left out",
+        "unknownProperty": "This property is not part of the content type, so it is left out.",
+        "defaults": {
+          "name": "the item's name",
+          "firstPublishedAt": "when it was first published",
+          "lastPublishedAt": "when it was last published"
+        }
+      }
     }
   },
   "design": {
@@ -2051,6 +2137,116 @@
         "template_not_live": "This item has no page yet: its collection’s template is not published.",
         "not_published": "This item has no page until it is published."
       }
+    }
+  },
+  "redirects": {
+    "errors": {
+      "invalid": "Check the redirect and try again.",
+      "forbidden": "You are not allowed to manage redirects on this site.",
+      "out_of_date": "Someone else changed this redirect while you were working. Reload and try again.",
+      "unknown": "Something went wrong. Try again.",
+      "not_found": "That redirect no longer exists. Reload and try again.",
+      "source_invalid": "That source address cannot be redirected. Use a path on this site that is not reserved, such as /old-page.",
+      "target_invalid": "That target cannot be used. Choose a page or an item, a path on this site, or an http or https address.",
+      "duplicate": "Another redirect already has this source address.",
+      "loop": "This redirect would send visitors round in a loop.",
+      "limit_reached": "This site already has the most redirects it can hold ({limit}).",
+      "import_encoding": "The file is not UTF-8 text. Save it as UTF-8 (CSV) and import it again.",
+      "import_too_large": "An import may hold at most 5,000 rows and 1 MB.",
+      "import_row_malformed": "This line does not have a source, a target and a kind."
+    },
+    "title": "Redirects",
+    "states": {
+      "active": "Active",
+      "off": "Off",
+      "hidden": "Hidden by a page",
+      "broken": "Broken"
+    },
+    "sort": {
+      "source": "Source address",
+      "hits": "Most used",
+      "lastUsed": "Last used",
+      "updated": "Recently changed"
+    },
+    "match": {
+      "exact": "This address only",
+      "prefix": "This address and everything below it"
+    },
+    "target": {
+      "page": "A page",
+      "path": "A path on this site",
+      "url": "Another website",
+      "item": "A collection item"
+    },
+    "kind": {
+      "permanent": "Permanent (301)",
+      "temporary": "Temporary (302)"
+    },
+    "warnings": {
+      "source_holds_content": "A page answers this address too. This redirect takes visitors away from it when the query matches.",
+      "source_uses_page_param": "This query uses the parameter a list on that page pages with, so one of its pages will redirect."
+    },
+    "list": {
+      "new": "New redirect",
+      "import": "Import",
+      "export": "Export",
+      "search": "Search",
+      "state": "State",
+      "allStates": "All",
+      "sort": "Sort by",
+      "apply": "Apply",
+      "loading": "Loading redirects…",
+      "count": "{total} of at most {limit} redirects",
+      "source": "From",
+      "target": "To",
+      "kind": "Kind",
+      "hits": "Uses",
+      "lastUsed": "Last used",
+      "never": "Never",
+      "noAddress": "No live address",
+      "andBelow": "and below",
+      "empty": "No redirects match.",
+      "pages": "Pages of redirects",
+      "previous": "Previous",
+      "next": "Next",
+      "pageOf": "Page {page} of {count}"
+    },
+    "dialog": {
+      "newTitle": "New redirect",
+      "editTitle": "Change redirect",
+      "source": "From address",
+      "sourceHelp": "A path on this site, such as /old-page. An exact redirect may include a query, such as /product.php?id=7.",
+      "match": "Match",
+      "targetKind": "Send visitors to",
+      "kind": "Kind",
+      "enabled": "Redirect is on",
+      "note": "Note",
+      "save": "Save",
+      "cancel": "Cancel",
+      "delete": "Delete",
+      "done": "Done",
+      "saved": "Redirect saved.",
+      "shortened": "It pointed at another redirect, so it now goes straight to {address}.",
+      "conflictWith": "(redirect {id}…)",
+      "confirmDelete": "Delete this redirect? Its old address will give the not-found page."
+    },
+    "import": {
+      "title": "Import redirects",
+      "help": "A CSV file with the columns source, target, kind (301 or 302), and optionally match (exact or prefix) and note. At most 5,000 rows and 1 MB.",
+      "file": "CSV file",
+      "run": "Import",
+      "close": "Close",
+      "summary": "{added} added, {refused} refused",
+      "shortened": "{count} pointed at other redirects and now go straight to the final address.",
+      "line": "Line {line}"
+    },
+    "offer": {
+      "label": "Redirect the old address to the new one | Redirect the {count} old addresses to the new ones",
+      "toPage": "Redirect this address to another page",
+      "page": "Page to send visitors to",
+      "outcome": "{created} redirect(s) created; {skipped} left alone because something live now uses the address.",
+      "turnedOff": "{count} older redirect(s) turned off, because they would now send visitors in a circle.",
+      "itemRequested": "The old address will redirect within a few seconds."
     }
   }
 }

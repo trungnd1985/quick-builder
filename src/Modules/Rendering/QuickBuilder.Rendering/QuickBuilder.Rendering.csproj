@@ -45,4 +45,11 @@
     <InternalsVisibleTo Include="QuickBuilder.ArchitectureTests" />
   </ItemGroup>
 
+  <!-- 017 research SE-19: the structured data types are the contract's own file, so the
+       renderer and the editor can never disagree about them. -->
+  <ItemGroup>
+    <EmbeddedResource Include="..\..\..\..\docs\contracts\structured-data\types.json"
+                      LogicalName="QuickBuilder.Rendering.StructuredData.types.json" />
+  </ItemGroup>
+
 </Project>

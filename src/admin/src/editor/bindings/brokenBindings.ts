@@ -7,6 +7,7 @@ import type { ContentNode } from '../schema/schema'
 import { isObject, type JsonObject } from '../schema/subsetValidator'
 import { fits, fitsBuiltIn, kindOf, type BrokenReason, type PropKind, type SchemaInfo } from './bindingRules'
 import type { ScopeOption } from './scopes'
+import { bindingOf } from './resolve'
 
 /** Why one reader is broken, or null. `scopes` are the node's, nearest first. */
 export function readerBroken(
@@ -40,14 +41,14 @@ export function propBroken(
   scopes: readonly ScopeOption[],
   schemas: Readonly<Record<string, SchemaInfo>>,
 ): BrokenReason | null {
-  const bind = node.props.bind
-  const binding = isObject(bind) ? bind[prop] : undefined
+  const binding = bindingOf(node, prop)
   const value = isObject(binding) && isObject(binding.value) ? binding.value : null
   const kind = kindOf(node.type, prop)
   if (!value || !kind) return null
   if (Array.isArray(value.parts)) {
+    const partKind: PropKind = kind === 'metaText' ? 'metaText' : 'text'
     for (const part of value.parts) {
-      const reason = isObject(part) ? readerBroken(part, 'text', scopes, schemas) : null
+      const reason = isObject(part) ? readerBroken(part, partKind, scopes, schemas) : null
       if (reason) return reason
     }
     return null
@@ -55,15 +56,17 @@ export function propBroken(
   return readerBroken(value, kind, scopes, schemas)
 }
 
-/** Every broken binding of a node: property and reason. */
+/** Every broken binding of a node: property and reason; a page's metadata as `seo.<field>` (017). */
 export function nodeBroken(
   node: ContentNode,
   scopes: readonly ScopeOption[],
   schemas: Readonly<Record<string, SchemaInfo>>,
 ): { prop: string; reason: BrokenReason }[] {
   const bind = node.props.bind
-  if (!isObject(bind)) return []
-  return Object.keys(bind)
+  const seo = node.props.seo
+  const seoBind = isObject(seo) && isObject(seo.bind) ? seo.bind : {}
+  const props = [...(isObject(bind) ? Object.keys(bind) : []), ...Object.keys(seoBind).map((field) => `seo.${field}`)]
+  return props
     .map((prop) => ({ prop, reason: propBroken(node, prop, scopes, schemas) }))
     .filter((b): b is { prop: string; reason: BrokenReason } => b.reason !== null)
 }

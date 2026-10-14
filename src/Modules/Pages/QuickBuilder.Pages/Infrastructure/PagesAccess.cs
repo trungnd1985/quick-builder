@@ -28,6 +28,10 @@ internal sealed class PagesAccess(ISiteDirectory sites, IAccessEvaluator access,
     public Guid Actor =>
         access.UserId ?? throw new InvalidOperationException("A Pages operation reached a handler without a signed-in user.");
 
+    /// <summary>Whether the caller may change the page tree, and so a page's canonical address and hiding (017 SE-03).</summary>
+    public Task<bool> MayChangeStructureAsync(Guid siteId, CancellationToken cancellationToken) =>
+        access.HasCapabilityAsync(PagesCapabilities.StructureManage, siteId, cancellationToken);
+
     public async Task<PermissionsResponse> PermissionsAsync(Guid siteId, CancellationToken cancellationToken) =>
         new(
             await access.HasCapabilityAsync(PagesCapabilities.StructureManage, siteId, cancellationToken).ConfigureAwait(false),

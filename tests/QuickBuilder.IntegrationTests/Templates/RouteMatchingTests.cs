@@ -38,7 +38,9 @@ public sealed class RouteMatchingTests(DatabaseFixture database)
         await world.PublishedPostAsync("autumn-update", new JsonObject { ["f1"] = $"{PagesApi.CanaryMarker}Autumn update" });
 
         var hello = await world.VisitAsync("/blog/hello-world");
-        var autumn = await world.VisitAsync("/blog/Autumn-Update");
+        var autumn = await world.VisitAsync("/blog/autumn-update");
+        // 017 FR-013: another letter case redirects to the one address.
+        Assert.Equal(HttpStatusCode.MovedPermanently, (await world.VisitAsync("/blog/Autumn-Update")).Status);
 
         Assert.Equal(HttpStatusCode.OK, hello.Status);
         Assert.Contains("Hello world</h1>", hello.Body, StringComparison.Ordinal);

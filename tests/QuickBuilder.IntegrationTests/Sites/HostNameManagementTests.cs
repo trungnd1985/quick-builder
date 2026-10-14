@@ -188,6 +188,7 @@ public sealed class HostNameManagementTests(DatabaseFixture database) : IAsyncLi
     private async Task<Guid> CreateAsync(string name, params string[] hostNames)
     {
         var site = (await SitesApi.CreateOkAsync(_admin, name, hostNames).ConfigureAwait(false)).GetProperty("id").GetGuid();
+        await SitesApi.ServeOnEveryHostNameAsync(_admin, site).ConfigureAwait(false);
         await PublicSite.MarkAsync(_admin, site).ConfigureAwait(false);
         return site;
     }

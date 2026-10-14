@@ -123,6 +123,8 @@ internal sealed class ScheduleItemHandler(ItemWrites writes, ItemReads reads, Cm
             item.RecordSchedule(unpublish is null ? ItemHistoryKinds.Scheduled : ItemHistoryKinds.Rescheduled, ItemScheduleActions.Unpublish, due, null, context.Actor, context.Now);
         }
 
+        schedule.RedirectOnRun(command.Request.RedirectOldAddress, command.Request.RedirectToPageId);
+
         context.Database.OutboxMessages.Add(OutboxMessage.From(
             new ItemScheduleDue(Guid.CreateVersion7(), context.Now, context.SiteId, schedule.Id, schedule.Revision),
             availableAtUtc: due));

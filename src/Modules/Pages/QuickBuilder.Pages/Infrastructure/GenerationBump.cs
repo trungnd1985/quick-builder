@@ -21,8 +21,11 @@ namespace QuickBuilder.Pages.Infrastructure;
 /// (<c>GenerationBumpSiteFilterTests</c>).
 /// </para>
 /// </remarks>
-internal sealed class GenerationBump(PagesDbContext database, ICollectionSchemaReader collections)
+internal sealed class GenerationBump(PagesDbContext database, ICollectionSchemaReader collections, SitemapGeneration sitemap)
 {
+    /// <summary>The site's sitemap generation (017 research SE-15), moved with the changes it lists.</summary>
+    public SitemapGeneration Sitemap => sitemap;
+
     /// <summary>
     /// Increments the generation of the live pages that list <paramref name="collectionIds"/>, or
     /// a collection whose items can show theirs through a reference, directly or through a
@@ -91,6 +94,16 @@ internal sealed class GenerationBump(PagesDbContext database, ICollectionSchemaR
             .Where(p => p.SubjectKind == SubjectKinds.Page && pageIds.Contains(p.SubjectId))
             .ExecuteUpdateAsync(s => s.SetProperty(p => p.Generation, p => p.Generation + 1), cancellationToken);
     }
+
+    /// <summary>
+    /// Increments the generation of every live page of the site: for what every page shows
+    /// without referencing it, such as the site's default sharing image (017 research SE-20).
+    /// Bounded by the site's 2,000 pages.
+    /// </summary>
+    public Task<int> BumpAllLivePagesAsync(Guid siteId, CancellationToken cancellationToken) =>
+        database.ForSite<Publication>(siteId)
+            .Where(p => p.SubjectKind == SubjectKinds.Page && p.LiveVersionId != null)
+            .ExecuteUpdateAsync(s => s.SetProperty(p => p.Generation, p => p.Generation + 1), cancellationToken);
 
     /// <summary>The pages that depend on any target, directly or through a component.</summary>
     public async Task<HashSet<Guid>> AffectedPagesAsync(

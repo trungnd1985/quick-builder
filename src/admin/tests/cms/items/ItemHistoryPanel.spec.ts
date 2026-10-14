@@ -45,7 +45,7 @@ describe('ItemHistoryPanel', () => {
     await fireEvent.click(screen.getByRole('button', { name: en.cms.items.publish.confirm }))
 
     await waitFor(() => expect(screen.getByText(en.cms.items.problems.reference_missing)).toBeTruthy())
-    expect(calls.find((c) => c.url.endsWith('/versions/1/rollback'))?.body).toEqual({ revision: 3, cancelSchedule: false })
+    expect(calls.find((c) => c.url.endsWith('/versions/1/rollback'))?.body).toEqual({ revision: 3, cancelSchedule: false, redirectOldAddress: false })
   })
 
   it('copies a version into the draft', async () => {

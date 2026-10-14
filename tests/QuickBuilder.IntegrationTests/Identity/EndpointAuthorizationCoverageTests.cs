@@ -71,7 +71,8 @@ public sealed class EndpointAuthorizationCoverageTests(DatabaseFixture database)
 
     /// <summary>
     /// The public surface is exactly the reviewed anonymous endpoints: 003's media files and
-    /// 012's pages and block stylesheet (contracts/authorization.md §4, 003 FR-026, 012 FR-022).
+    /// 012's pages and block stylesheet, and 017's sitemap and robots.txt (contracts/authorization.md
+    /// §4, 003 FR-026, 012 FR-022, 017 FR-023, FR-025).
     /// 001's site placeholder at <c>/</c> is gone: published pages replaced it. A new public
     /// endpoint fails here until someone adds it on purpose.
     /// </summary>
@@ -90,9 +91,15 @@ public sealed class EndpointAuthorizationCoverageTests(DatabaseFixture database)
                 "DELETE /{**path:publicPath}",
                 "GET /_assets/{**file}",
                 "GET /_media/{**file}",
+                "GET /robots.txt",
+                "GET /sitemap-{number:int:min(1)}.xml",
+                "GET /sitemap.xml",
                 "GET /{**path:publicPath}",
                 "HEAD /_assets/{**file}",
                 "HEAD /_media/{**file}",
+                "HEAD /robots.txt",
+                "HEAD /sitemap-{number:int:min(1)}.xml",
+                "HEAD /sitemap.xml",
                 "HEAD /{**path:publicPath}",
                 "PATCH /{**path:publicPath}",
                 "POST /{**path:publicPath}",

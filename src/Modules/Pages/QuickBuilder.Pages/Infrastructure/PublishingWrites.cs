@@ -32,6 +32,7 @@ internal sealed class PublishingWrites(
     ICollectionSchemaReader collections,
     CollectionUseRows uses,
     PageParamRules pageParams,
+    RedirectOffers redirectOffers,
     TimeProvider clock,
     ILogger<PublishingWrites> logger)
 {
@@ -81,8 +82,36 @@ internal sealed class PublishingWrites(
 
     /// <summary>Takes a page or component off the public site (FR-004, FR-005).</summary>
     public Task<Result<PublicationResponse>> UnpublishAsync(Guid siteId, string kind, Guid subjectId, CancellationToken cancellationToken) =>
-        RunAsync(siteId, kind, subjectId, (subject, now) =>
-            UnpublishLiveAsync(subject, access.Actor, scheduleOwner: null, now, cancellationToken), cancellationToken);
+        UnpublishAsync(siteId, kind, subjectId, redirectToPageId: null, cancellationToken);
+
+    /// <summary>
+    /// Unpublishes, and when <paramref name="redirectToPageId"/> is given redirects the page's
+    /// address to that page in the same transaction (017 FR-032).
+    /// </summary>
+    public Task<Result<PublicationResponse>> UnpublishAsync(
+        Guid siteId, string kind, Guid subjectId, Guid? redirectToPageId, CancellationToken cancellationToken) =>
+        RunAsync(siteId, kind, subjectId, async (subject, now) =>
+        {
+            var unpublished = await UnpublishLiveAsync(subject, access.Actor, scheduleOwner: null, now, cancellationToken).ConfigureAwait(false);
+            return unpublished.IsFailure || redirectToPageId is not { } target || !subject.IsPage
+                ? unpublished
+                : await RedirectRemovedPageAsync(subject, target, access.Actor, cancellationToken).ConfigureAwait(false);
+        }, cancellationToken);
+
+    /// <summary>The redirect accepted when a live page is taken down, saved in the caller's transaction.</summary>
+    internal async Task<Result> RedirectRemovedPageAsync(Subject subject, Guid targetPageId, Guid actor, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(subject);
+
+        var redirected = await redirectOffers.RedirectRemovedPageAsync(subject.SiteId, subject.Id, targetPageId, actor, cancellationToken).ConfigureAwait(false);
+        if (redirected.IsFailure)
+        {
+            return Result.Failure(redirected.Error);
+        }
+
+        await database.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        return Result.Success();
+    }
 
     /// <summary>Publishes a retained version again as a new one; the draft is untouched (FR-014).</summary>
     public Task<Result<PublicationResponse>> RollbackAsync(
@@ -207,7 +236,18 @@ internal sealed class PublishingWrites(
         }
 
         var publication = await PublicationAsync(siteId, subject, create: true, cancellationToken).ConfigureAwait(false);
-        var version = publication!.Publish(
+
+        // 017 research SE-18: what the page's descendants show of it in their breadcrumbs.
+        var wasLive = publication!.IsLive;
+        var previousTitle = wasLive && subject.IsPage
+            ? await database.ForSite<PublishedVersion>(siteId)
+                .Where(v => v.Id == publication.LiveVersionId)
+                .Select(v => v.Title)
+                .FirstOrDefaultAsync(cancellationToken)
+                .ConfigureAwait(false)
+            : null;
+
+        var version = publication.Publish(
             content.Document, content.SchemaVersion, title, fromDraftVersion, versionKind, restoredFromNumber, actor, subject.Path, now);
         publication.SetPageParamNames(DependencyExtractor.PageParamNames(content.Document));
         database.PublishedVersions.Add(version);
@@ -235,6 +275,11 @@ internal sealed class PublishingWrites(
         await database.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
         await AfterLiveChangeAsync(siteId, subject, publication, cancellationToken).ConfigureAwait(false);
+
+        if (subject.IsPage && (!wasLive || !string.Equals(previousTitle, title, StringComparison.Ordinal)))
+        {
+            await BumpBreadcrumbsAsync(subject, cancellationToken).ConfigureAwait(false);
+        }
 
         // Ids and numbers only: a title or a path can itself be content (FR-044).
         logger.LogInformation(
@@ -293,6 +338,11 @@ internal sealed class PublishingWrites(
         await database.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
         await AfterLiveChangeAsync(siteId, subject, publication, cancellationToken).ConfigureAwait(false);
+
+        if (subject.IsPage)
+        {
+            await BumpBreadcrumbsAsync(subject, cancellationToken).ConfigureAwait(false);
+        }
 
         logger.LogInformation(
             "{SubjectKind} {SubjectId} of site {SiteId} was unpublished (scheduled: {Scheduled}).",
@@ -616,6 +666,13 @@ internal sealed class PublishingWrites(
         await bump.BumpForTargetsAsync(siteId, [target], exceptPageId: subject.IsPage ? subject.Id : null, cancellationToken)
             .ConfigureAwait(false);
 
+        // 017 research SE-15: a page or template going live, changing or leaving changes the
+        // sitemap. Its own rows are saved already, so a new generation row needs a save too.
+        if (subject.IsPage && await bump.Sitemap.BumpAsync(siteId, cancellationToken).ConfigureAwait(false))
+        {
+            await database.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        }
+
         // 016 TB-10 row 3: the item links of every list of the collection change with its template.
         if (subject.TemplateCollectionId is { } templateCollection)
         {
@@ -632,6 +689,42 @@ internal sealed class PublishingWrites(
                 .Where(v => v.SubjectKind == subject.Kind && v.SubjectId == subject.Id && v.Number <= oldest && v.Id != liveId)
                 .ExecuteDeleteAsync(cancellationToken)
                 .ConfigureAwait(false);
+        }
+    }
+
+    /// <summary>
+    /// 017 research SE-18: a page's live title or live state appears in the breadcrumbs of every
+    /// live page under it (of every live page, for the home page), so those refresh with it, in
+    /// this transaction.
+    /// </summary>
+    private async Task BumpBreadcrumbsAsync(Subject subject, CancellationToken cancellationToken)
+    {
+        var siteId = subject.SiteId;
+        var page = await database.ForSite<Page>(siteId)
+            .Where(p => p.Id == subject.Id)
+            .Select(p => new { p.Path, p.IsHome })
+            .FirstOrDefaultAsync(cancellationToken)
+            .ConfigureAwait(false);
+        if (page is null)
+        {
+            return;
+        }
+
+        if (page.IsHome)
+        {
+            await bump.BumpAllLivePagesAsync(siteId, cancellationToken).ConfigureAwait(false);
+            return;
+        }
+
+        var prefix = page.Path + "/";
+        var descendants = await database.ForSite<Page>(siteId)
+            .Where(p => p.Path.StartsWith(prefix))
+            .Select(p => p.Id)
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+        if (descendants.Count > 0)
+        {
+            await bump.BumpPagesAsync(siteId, descendants, cancellationToken).ConfigureAwait(false);
         }
     }
 

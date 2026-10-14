@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 using QuickBuilder.Rendering.Domain;
+using QuickBuilder.Rendering.Seo;
 
 namespace QuickBuilder.Rendering.Rendering;
 
@@ -19,7 +20,8 @@ internal static class PageShell
     /// <param name="StyleHash">Base64 SHA-256 of the one style element's text, for <c>style-src</c>.</param>
     internal sealed record Document(string Html, string StyleHash);
 
-    public static Document Write(string title, string language, string basePath, TokenCss tokens, string nodeRules, string body)
+    public static Document Write(
+        string title, string language, string basePath, TokenCss tokens, string nodeRules, string body, HeadMetadata? head = null, string? structuredData = null)
     {
         ArgumentNullException.ThrowIfNull(tokens);
 
@@ -45,8 +47,25 @@ internal static class PageShell
             .Open("html").Attribute("lang", language).EndTag().Markup("\n")
             .Markup("<head>\n")
             .Markup("<meta charset=\"utf-8\">\n")
-            .Markup("<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n")
-            .Markup("<title>").Text(title).Markup("</title>\n");
+            .Markup("<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n");
+
+        // 017 research SE-05: a published page says what it is. The not-found page and the
+        // golden renders, which have no site, keep only their title.
+        if (head is null)
+        {
+            writer.Markup("<title>").Text(title).Markup("</title>\n");
+        }
+        else
+        {
+            HeadWriter.Write(writer, head);
+
+            // 017 research SE-18: a data block the browser never runs; JsonLdWriter escapes every
+            // character that could end the element.
+            if (structuredData is not null)
+            {
+                writer.Markup("<script type=\"application/ld+json\">").Markup(structuredData).Markup("</script>\n");
+            }
+        }
 
         writer.Open("link").Attribute("rel", "stylesheet");
         writer.SitePath("href", $"{TrimBase(basePath)}/_assets/{BlockStylesheet.Instance.FileName}");

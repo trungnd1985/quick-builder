@@ -46,11 +46,23 @@ export interface PageNode {
   templateCollectionId?: string | null
 }
 
+/** 017 FR-028: what an accepted redirect offer did. */
+export interface RedirectOutcome {
+  created: number
+  /** Old addresses left alone because live content now holds them. */
+  skipped: number
+  retargeted: number
+  /** Redirects turned off because they would now loop. */
+  turnedOff: string[]
+}
+
 export interface PageTree {
   pages: PageNode[]
   permissions: PagePermissions
   /** 016: what a move did to item addresses. */
   warnings?: TemplateWarning[]
+  /** 017: present when a redirect offer was accepted. */
+  redirects?: RedirectOutcome | null
 }
 
 export interface UserReference {
@@ -68,6 +80,8 @@ export interface DraftSummary {
 export interface PageDetail extends PageNode {
   /** 016: what a create or rename did to item addresses. */
   warnings?: TemplateWarning[]
+  /** 017: present when a redirect offer was accepted. */
+  redirects?: RedirectOutcome | null
   draft: DraftSummary
   createdAtUtc: string
   updatedAtUtc: string
@@ -147,6 +161,8 @@ export interface TemplateWarning {
 export interface PageWithWarnings {
   page: PageDetail
   warnings: TemplateWarning[]
+  /** 017: present when a redirect offer was accepted. */
+  redirects?: RedirectOutcome | null
 }
 
 const root = (siteId: string) => `/pages/sites/${encodeURIComponent(siteId)}`
@@ -163,18 +179,22 @@ export const pagesApi = {
   create: (siteId: string, body: CreatePageRequest): Promise<PageDetail> =>
     request<PageDetail>(`${root(siteId)}/pages`, { method: 'POST', body: JSON.stringify(body) }),
 
-  update: (siteId: string, pageId: string, body: { title: string; slug: string; version: number }): Promise<PageDetail> =>
+  update: (siteId: string, pageId: string, body: { title: string; slug: string; version: number; redirectOldAddresses?: boolean }): Promise<PageDetail> =>
     request<PageDetail>(page(siteId, pageId), { method: 'PUT', body: JSON.stringify(body) }),
 
   /** Moves a page under `parentId` (null: top level), after `afterPageId` (null: first). */
-  move: (siteId: string, pageId: string, body: { parentId: string | null; afterPageId: string | null; version: number }): Promise<PageTree> =>
+  move: (siteId: string, pageId: string, body: { parentId: string | null; afterPageId: string | null; version: number; redirectOldAddresses?: boolean }): Promise<PageTree> =>
     request<PageTree>(`${page(siteId, pageId)}/move`, { method: 'POST', body: JSON.stringify(body) }),
 
-  makeHome: (siteId: string, pageId: string, version: number): Promise<PageTree> =>
-    request<PageTree>(`${page(siteId, pageId)}/make-home`, { method: 'POST', body: JSON.stringify({ version }) }),
+  makeHome: (siteId: string, pageId: string, version: number, redirectOldAddresses = false): Promise<PageTree> =>
+    request<PageTree>(`${page(siteId, pageId)}/make-home`, { method: 'POST', body: JSON.stringify({ version, redirectOldAddresses }) }),
 
-  remove: (siteId: string, pageId: string, version: number): Promise<void> =>
-    request<void>(`${page(siteId, pageId)}?version=${version}`, { method: 'DELETE' }),
+  /** Deletes a page; 017 FR-032: with `redirectToPageId`, its address redirects there. */
+  remove: (siteId: string, pageId: string, version: number, redirectToPageId: string | null = null): Promise<void> =>
+    request<void>(
+      `${page(siteId, pageId)}?version=${version}${redirectToPageId ? `&redirectToPageId=${encodeURIComponent(redirectToPageId)}` : ''}`,
+      { method: 'DELETE' },
+    ),
 
   components: (siteId: string): Promise<ComponentList> =>
     request<ComponentList>(`${root(siteId)}/components`),
@@ -216,8 +236,8 @@ export const pagesApi = {
       `${page(siteId, pageId)}/template${collectionId ? `?collectionId=${encodeURIComponent(collectionId)}` : ''}`,
     ),
 
-  setTemplate: (siteId: string, pageId: string, collectionId: string, version: number): Promise<PageWithWarnings> =>
-    request<PageWithWarnings>(`${page(siteId, pageId)}/template`, { method: 'PUT', body: JSON.stringify({ collectionId, version }) }),
+  setTemplate: (siteId: string, pageId: string, collectionId: string, version: number, redirectOldAddresses = false): Promise<PageWithWarnings> =>
+    request<PageWithWarnings>(`${page(siteId, pageId)}/template`, { method: 'PUT', body: JSON.stringify({ collectionId, version, redirectOldAddresses }) }),
 
   removeTemplate: (siteId: string, pageId: string, version: number): Promise<PageWithWarnings> =>
     request<PageWithWarnings>(`${page(siteId, pageId)}/template?version=${version}`, { method: 'DELETE' }),

@@ -35,6 +35,9 @@ public sealed class QuickBuilderApp(
     // one shared volume (SC-007).
     private readonly bool _ownsStorage = storagePath is null;
 
+    /// <summary>The database this instance uses, for a second instance on the same one (017).</summary>
+    public string ConnectionString => connectionString;
+
     /// <summary>The local storage directory this instance uses.</summary>
     public string StoragePath { get; } = storagePath ?? CreateTemporaryStorage();
 

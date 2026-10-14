@@ -30,6 +30,15 @@ internal static class SitesCapabilities
     /// </summary>
     public const string AvailabilityManage = "sites.availability.manage";
 
+    /// <summary>Change the title suffix, default sharing image and organisation (017 FR-006). Designer.</summary>
+    public const string SearchManage = "sites.search.manage";
+
+    /// <summary>
+    /// Change "Discourage search engines", the robots.txt rules and the host name redirect
+    /// (017 FR-006, FR-014). Administrator only: a mistake removes the site from search.
+    /// </summary>
+    public const string SearchVisibilityManage = "sites.search_visibility.manage";
+
     public static IEnumerable<CapabilityDefinition> All =>
     [
         new(Create, CapabilityScope.Installation, []),
@@ -37,5 +46,7 @@ internal static class SitesCapabilities
         new(ManageHostNames, CapabilityScope.Site, []),
         new(SettingsManage, CapabilityScope.Site, []),
         new(AvailabilityManage, CapabilityScope.Site, []),
+        new(SearchManage, CapabilityScope.Site, [SystemRole.Designer]),
+        new(SearchVisibilityManage, CapabilityScope.Site, []),
     ];
 }

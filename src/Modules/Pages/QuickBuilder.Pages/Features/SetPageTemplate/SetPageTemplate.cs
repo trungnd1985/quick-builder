@@ -14,13 +14,21 @@ using QuickBuilder.Shared.Kernel.Results;
 namespace QuickBuilder.Pages.Features.SetPageTemplate;
 
 /// <summary>The collection the page becomes the template of, and the page <see cref="Version"/> the caller last saw.</summary>
-public sealed record SetPageTemplateRequest(Guid CollectionId, int Version);
+/// <param name="RedirectOldAddresses">017 FR-028: redirect the page's own live address, which becomes a pattern, to its parent.</param>
+public sealed record SetPageTemplateRequest(Guid CollectionId, int Version, bool RedirectOldAddresses = false);
 
-/// <summary>A warning about what a change did to item addresses (016 data-model §4).</summary>
-public sealed record TemplateWarningResponse(string Code, int? Count = null, Guid? ItemId = null);
+/// <summary>
+/// A warning about what a change did to addresses (016 data-model §4): item addresses, and
+/// since 017 a redirect the page now hides (<c>redirect_hidden</c>, with <see cref="RedirectId"/>).
+/// </summary>
+public sealed record TemplateWarningResponse(string Code, int? Count = null, Guid? ItemId = null, Guid? RedirectId = null);
 
 /// <summary>The page after a template change, and what it did to item addresses.</summary>
-public sealed record PageWithWarningsResponse(PageDetailResponse Page, IReadOnlyList<TemplateWarningResponse> Warnings);
+public sealed record PageWithWarningsResponse(PageDetailResponse Page, IReadOnlyList<TemplateWarningResponse> Warnings)
+{
+    /// <summary>017 FR-028: what the accepted redirect offer did; null when none was accepted.</summary>
+    public RedirectOutcomeResponse? Redirects { get; init; }
+}
 
 /// <summary>What a template change would do, nothing changed (contracts/templates-api.yaml).</summary>
 public sealed record TemplateImpactResponse(
@@ -31,7 +39,7 @@ public sealed record TemplateImpactResponse(
     int ItemsGainingAddress,
     int BrokenBindings);
 
-internal sealed record SetPageTemplateCommand(Guid SiteId, Guid PageId, Guid? CollectionId, int Version)
+internal sealed record SetPageTemplateCommand(Guid SiteId, Guid PageId, Guid? CollectionId, int Version, bool RedirectOldAddresses = false)
     : ICommand<Result<PageWithWarningsResponse>>;
 
 internal sealed record GetTemplateImpactQuery(Guid SiteId, Guid PageId, Guid? CollectionId)
@@ -52,7 +60,8 @@ internal sealed class SetPageTemplateHandler(
     PagesAccess access,
     TemplateImpact impact,
     ICollectionSchemaReader collections,
-    GenerationBump bump)
+    GenerationBump bump,
+    AddressWarnings addresses)
     : ICommandHandler<SetPageTemplateCommand, Result<PageWithWarningsResponse>>
 {
     public async Task<Result<PageWithWarningsResponse>> HandleAsync(SetPageTemplateCommand command, CancellationToken cancellationToken)
@@ -79,11 +88,11 @@ internal sealed class SetPageTemplateHandler(
         // Counted before the change: what it does to addresses visitors use today.
         var before = await impact.AssessAsync(command.SiteId, command.PageId, command.CollectionId, cancellationToken).ConfigureAwait(false);
 
-        var changed = await writes.ChangeAsync(
+        var changed = await writes.ChangeOfferingRedirectsAsync(
             command.SiteId,
-            startIfMissing: false,
             (tree, actor, clock) => UpdatePageHandler.ToUnit(tree.SetTemplate(command.PageId, command.CollectionId, command.Version, actor, clock)),
             beforeSave: (_, _, ct) => bump.BumpPagesAsync(command.SiteId, [command.PageId], ct),
+            command.RedirectOldAddresses,
             cancellationToken).ConfigureAwait(false);
 
         if (changed.IsFailure)
@@ -92,7 +101,15 @@ internal sealed class SetPageTemplateHandler(
         }
 
         var page = await reads.PageAsync(command.SiteId, command.PageId, cancellationToken).ConfigureAwait(false);
-        return Result.Success(new PageWithWarningsResponse(page!, Warnings(before)));
+        // 017 data-model §4: a page that is a template again has its own address, which may be
+        // a redirect's source.
+        var warnings = Warnings(before);
+        if (command.CollectionId is null)
+        {
+            warnings.AddRange(await addresses.RedirectHiddenAsync(command.SiteId, command.PageId, cancellationToken).ConfigureAwait(false));
+        }
+
+        return Result.Success(new PageWithWarningsResponse(page!, warnings) { Redirects = changed.Value.Redirects });
     }
 
     private static List<TemplateWarningResponse> Warnings(TemplateImpactResponse? impact)
@@ -231,7 +248,7 @@ public sealed class PageTemplateController(IDispatcher dispatcher) : ControllerB
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        var result = await dispatcher.SendAsync(new SetPageTemplateCommand(siteId, pageId, request.CollectionId, request.Version), cancellationToken)
+        var result = await dispatcher.SendAsync(new SetPageTemplateCommand(siteId, pageId, request.CollectionId, request.Version, request.RedirectOldAddresses), cancellationToken)
             .ConfigureAwait(false);
         return result.IsFailure ? PagesErrorResults.ToActionResult(result.Error) : Ok(result.Value);
     }
@@ -241,9 +258,10 @@ public sealed class PageTemplateController(IDispatcher dispatcher) : ControllerB
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
-    public async Task<IActionResult> RemoveAsync(Guid siteId, Guid pageId, [FromQuery] int version, CancellationToken cancellationToken)
+    public async Task<IActionResult> RemoveAsync(
+        Guid siteId, Guid pageId, [FromQuery] int version, [FromQuery] bool redirectOldAddresses, CancellationToken cancellationToken)
     {
-        var result = await dispatcher.SendAsync(new SetPageTemplateCommand(siteId, pageId, null, version), cancellationToken)
+        var result = await dispatcher.SendAsync(new SetPageTemplateCommand(siteId, pageId, null, version, redirectOldAddresses), cancellationToken)
             .ConfigureAwait(false);
         return result.IsFailure ? PagesErrorResults.ToActionResult(result.Error) : Ok(result.Value);
     }

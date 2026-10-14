@@ -65,7 +65,11 @@ public sealed record ItemResponse(
     ReportResponse Report,
     bool ScheduledDiffersFromDraft,
     IReadOnlyList<ItemRefResponse> UnpublishedReferences,
-    ItemAddressResponse? Address = null);
+    ItemAddressResponse? Address = null)
+{
+    /// <summary>017 FR-029, FR-032: whether this change asked for a redirect of the item's old address.</summary>
+    public bool RedirectRequested { get; init; }
+}
 
 /// <summary>
 /// Where visitors find an item (016 FR-007): <see cref="Path"/> under its collection's live
@@ -116,13 +120,17 @@ public sealed record SlugAvailabilityResponse(bool Available, string Suggestion)
 public sealed record DraftRequest(string? Slug, JsonElement? Values, int SchemaRevision, int Revision);
 
 /// <summary>A publish, unpublish or rollback (contracts/items-api.yaml, <c>PublishingInput</c>).</summary>
-public sealed record PublishingRequest(int Revision, bool CancelSchedule);
+/// <param name="RedirectOldAddress">017 FR-029, publish and rollback: redirect the old address when the slug changes.</param>
+/// <param name="RedirectToPageId">017 FR-032, unpublish: the page the item's address redirects to.</param>
+public sealed record PublishingRequest(int Revision, bool CancelSchedule, bool RedirectOldAddress = false, Guid? RedirectToPageId = null);
 
 /// <summary>A change that only needs the item's revision.</summary>
 public sealed record RevisionRequest(int Revision);
 
 /// <summary>Setting or moving a schedule.</summary>
-public sealed record ScheduleRequest(DateTimeOffset DueAtUtc, int Revision, bool Recapture);
+/// <param name="RedirectOldAddress">017 FR-029, a scheduled publish: redirect the old address when the slug changes.</param>
+/// <param name="RedirectToPageId">017 FR-032, a scheduled unpublish: the page the item's address redirects to.</param>
+public sealed record ScheduleRequest(DateTimeOffset DueAtUtc, int Revision, bool Recapture, bool RedirectOldAddress = false, Guid? RedirectToPageId = null);
 
 /// <summary>Ids to look up.</summary>
 public sealed record LookupRequest(IReadOnlyList<Guid>? Ids);

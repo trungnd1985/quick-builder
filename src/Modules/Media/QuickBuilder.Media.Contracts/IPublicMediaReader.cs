@@ -32,13 +32,18 @@ public interface IPublicMediaReader
 /// no wider than the largest configured variant width, so a huge original is never downloaded
 /// (013 contracts/public-media.md §2, SC-003).
 /// </param>
+/// <param name="AltText">
+/// The file's alternative text, for a sharing image's <c>og:image:alt</c> (017 research SE-05);
+/// null when none. Content: render it encoded.
+/// </param>
 public sealed record PublicMediaFile(
     string PublicPath,
     string ContentType,
     int? Width,
     int? Height,
     IReadOnlyList<PublicMediaVariant> Variants,
-    bool OfferOriginal = false);
+    bool OfferOriginal = false,
+    string? AltText = null);
 
 /// <summary>One resized copy of a file (013 research MV-15).</summary>
 /// <param name="Width">Its width in pixels, one of the configured widths.</param>

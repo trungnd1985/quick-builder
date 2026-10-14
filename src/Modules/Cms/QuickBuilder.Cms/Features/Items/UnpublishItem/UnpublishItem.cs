@@ -26,17 +26,20 @@ internal sealed class UnpublishItemHandler(ItemWrites writes, ItemReads reads, C
             return Result.Failure<ItemResponse>(CmsErrors.SiteNotFound);
         }
 
+        var redirectRequested = false;
         var written = await writes.ExecuteAsync(
                 new ItemWriteRequest(command.SiteId, command.CollectionId, command.ItemId, command.Request.Revision, null, access.Actor),
                 async context =>
                 {
-                    var unpublished = await ItemPublishing.UnpublishAsync(context, command.Request.CancelSchedule, null, cancellationToken).ConfigureAwait(false);
+                    var unpublished = await ItemPublishing.UnpublishAsync(context, command.Request.CancelSchedule, null, command.Request.RedirectToPageId, cancellationToken).ConfigureAwait(false);
+                    redirectRequested = context.RedirectRequested;
                     return unpublished.IsFailure ? Result.Failure<Item?>(unpublished.Error) : Result.Success<Item?>(context.Item);
                 },
                 cancellationToken)
             .ConfigureAwait(false);
 
-        return await ItemSlices.AnswerAsync(written, reads, null, cancellationToken).ConfigureAwait(false);
+        var answered = await ItemSlices.AnswerAsync(written, reads, null, cancellationToken).ConfigureAwait(false);
+        return answered.IsFailure ? answered : Result.Success(answered.Value with { RedirectRequested = redirectRequested });
     }
 }
 

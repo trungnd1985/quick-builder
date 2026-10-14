@@ -1,0 +1,55 @@
+using QuickBuilder.Media.Contracts;
+using QuickBuilder.Rendering.Binding;
+using QuickBuilder.Sites.Contracts;
+
+namespace QuickBuilder.Rendering.Seo;
+
+/// <summary>What the head of a published page or item page says about it (017 research SE-05).</summary>
+/// <param name="Title">The document title.</param>
+/// <param name="Description">The meta description; null writes none.</param>
+/// <param name="Canonical">The absolute canonical address (017 FR-011).</param>
+/// <param name="Robots">The robots directive, or null when the page may be indexed.</param>
+/// <param name="OgType"><c>article</c> on item pages, <c>website</c> elsewhere.</param>
+/// <param name="OgTitle">The sharing title.</param>
+/// <param name="OgDescription">The sharing description; null writes none.</param>
+/// <param name="SiteName">The site's name.</param>
+/// <param name="OgLocale">The default language as an Open Graph locale.</param>
+/// <param name="Image">The sharing image, or null for none.</param>
+internal sealed record HeadMetadata(
+    string Title,
+    string? Description,
+    string Canonical,
+    string? Robots,
+    string OgType,
+    string OgTitle,
+    string? OgDescription,
+    string SiteName,
+    string OgLocale,
+    SharingImage? Image);
+
+/// <summary>A sharing image, at an absolute address.</summary>
+internal sealed record SharingImage(string Url, int? Width, int? Height, string? Alt);
+
+/// <summary>Everything the head of a page is built from (017 research SE-05).</summary>
+/// <param name="PageTitle">The live version's title, or for an item page its name (016 FR-030).</param>
+/// <param name="Path">The page's normalised address, <c>/</c> for the home page.</param>
+/// <param name="IsItemPage">Whether this is an item's page under a template.</param>
+/// <param name="Seo">The live document's metadata, or null when it has none.</param>
+/// <param name="Site">The site: name, base URL, language and search settings.</param>
+/// <param name="Media">The media files the render fetched; a missing id is a deleted file.</param>
+/// <param name="Bound">
+/// On an item page, the outcome of each metadata binding by field (<c>title</c>, <c>noindex</c>, …);
+/// empty elsewhere, where bindings are not read (page-schema rule 23).
+/// </param>
+/// <param name="PageParams">The page numbers the request asked of the page's paginated lists (016 TB-11).</param>
+/// <param name="LinkTargets">The pages the render links to, among them a canonical override's target.</param>
+internal sealed record HeadInputs(
+    string PageTitle,
+    string Path,
+    bool IsItemPage,
+    SeoDocument? Seo,
+    SiteDto Site,
+    IReadOnlyDictionary<Guid, PublicMediaFile> Media,
+    IReadOnlyDictionary<string, BoundValue>? Bound = null,
+    IReadOnlyDictionary<string, int>? PageParams = null,
+    IReadOnlyDictionary<Guid, Pages.Contracts.Publishing.PageLinkTarget>? LinkTargets = null);

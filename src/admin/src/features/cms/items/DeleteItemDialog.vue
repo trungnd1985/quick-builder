@@ -5,6 +5,8 @@ import { nextTick, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { itemsApi, refusalOf, type Item, type Referrer } from '../../../api/items'
 import { errorCodeOf, itemErrorMessage } from './itemErrors'
+import RedirectToPagePicker, { type PickablePage } from '../../../components/RedirectToPagePicker.vue'
+import { pagesApi } from '../../../api/pages'
 
 const props = defineProps<{ siteId: string; collectionId: string; item: Item }>()
 const emit = defineEmits<{ deleted: []; cancel: [] }>()
@@ -16,7 +18,19 @@ const referrers = ref<Referrer[]>([])
 const total = ref(0)
 const cancelButton = ref<HTMLButtonElement | null>(null)
 
+// 017 FR-032: a live item's address may send visitors to a page instead; none unless chosen.
+const hasAddress = !!props.item.address?.path && !props.item.address.reason
+const redirectToPageId = ref<string | null>(null)
+const sitePages = ref<PickablePage[]>([])
+
 onMounted(async () => {
+  if (hasAddress) {
+    try {
+      sitePages.value = (await pagesApi.tree(props.siteId)).pages ?? []
+    } catch {
+      sitePages.value = []
+    }
+  }
   await nextTick()
   cancelButton.value?.focus()
 })
@@ -25,7 +39,7 @@ async function remove(): Promise<void> {
   busy.value = true
   error.value = null
   try {
-    await itemsApi.remove(props.siteId, props.collectionId, props.item.id, props.item.revision)
+    await itemsApi.remove(props.siteId, props.collectionId, props.item.id, props.item.revision, hasAddress ? redirectToPageId.value : null)
     emit('deleted')
   } catch (caught) {
     if (errorCodeOf(caught) === 'cms.item_referenced') {
@@ -78,6 +92,12 @@ function onKeydown(event: KeyboardEvent): void {
             <p v-if="item.status !== 'draft'">
               <strong>{{ t('cms.items.delete.live') }}</strong>
             </p>
+            <RedirectToPagePicker
+              v-if="hasAddress"
+              id="delete-item-redirect"
+              v-model="redirectToPageId"
+              :pages="sitePages"
+            />
           </template>
           <template v-else>
             <p role="alert">

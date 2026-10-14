@@ -470,6 +470,16 @@ namespace QuickBuilder.Cms.Infrastructure.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("item_id");
 
+                    b.Property<bool>("RedirectOldAddress")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("redirect_old_address");
+
+                    b.Property<Guid?>("RedirectToPageId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("redirect_to_page_id");
+
                     b.Property<int>("Revision")
                         .HasColumnType("integer")
                         .HasColumnName("revision");

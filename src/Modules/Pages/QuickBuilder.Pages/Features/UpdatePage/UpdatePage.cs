@@ -10,9 +10,10 @@ using QuickBuilder.Shared.Kernel.Validation;
 namespace QuickBuilder.Pages.Features.UpdatePage;
 
 /// <summary>A page's new title and slug, and the <see cref="Version"/> the caller last saw.</summary>
-public sealed record UpdatePageRequest(string Title, string Slug, int Version);
+/// <param name="RedirectOldAddresses">017 FR-028: redirect the live addresses the change moves to their new place.</param>
+public sealed record UpdatePageRequest(string Title, string Slug, int Version, bool RedirectOldAddresses = false);
 
-internal sealed record UpdatePageCommand(Guid SiteId, Guid PageId, string Title, string Slug, int Version)
+internal sealed record UpdatePageCommand(Guid SiteId, Guid PageId, string Title, string Slug, int Version, bool RedirectOldAddresses = false)
     : ICommand<Result<PageDetailResponse>>;
 
 internal sealed class UpdatePageValidator : IValidator<UpdatePageCommand>
@@ -44,11 +45,11 @@ internal sealed class UpdatePageHandler(PageTreeWrites writes, PageReads reads, 
         }
 
         var before = (await reads.PageAsync(command.SiteId, command.PageId, cancellationToken).ConfigureAwait(false))?.Path;
-        var renamed = await writes.ChangeAsync(
+        var renamed = await writes.ChangeOfferingRedirectsAsync(
             command.SiteId,
-            startIfMissing: false,
             (tree, actor, clock) => ToUnit(tree.Rename(command.PageId, command.Title, command.Slug, command.Version, actor, clock)),
             beforeSave: null,
+            command.RedirectOldAddresses,
             cancellationToken).ConfigureAwait(false);
 
         if (renamed.IsFailure)
@@ -63,9 +64,10 @@ internal sealed class UpdatePageHandler(PageTreeWrites writes, PageReads reads, 
         {
             warnings.AddRange(await addresses.AddressesChangedAsync(command.SiteId, [command.PageId], cancellationToken).ConfigureAwait(false));
             warnings.AddRange(await addresses.AddressHiddenAsync(command.SiteId, command.PageId, cancellationToken).ConfigureAwait(false));
+            warnings.AddRange(await addresses.RedirectHiddenAsync(command.SiteId, command.PageId, cancellationToken).ConfigureAwait(false));
         }
 
-        return Result.Success(page with { Warnings = warnings });
+        return Result.Success(page with { Warnings = warnings, Redirects = renamed.Value.Redirects });
     }
 
     internal static Result<bool> ToUnit(Result result) =>
@@ -88,7 +90,7 @@ public sealed class UpdatePageController(IDispatcher dispatcher) : ControllerBas
         ArgumentNullException.ThrowIfNull(request);
 
         var result = await dispatcher.SendAsync(
-            new UpdatePageCommand(siteId, pageId, request.Title, request.Slug, request.Version),
+            new UpdatePageCommand(siteId, pageId, request.Title, request.Slug, request.Version, request.RedirectOldAddresses),
             cancellationToken).ConfigureAwait(false);
 
         return result.IsFailure ? PagesErrorResults.ToActionResult(result.Error) : Ok(result.Value);

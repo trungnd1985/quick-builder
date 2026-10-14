@@ -84,4 +84,23 @@ internal sealed class CollectionSchemaReader(CmsDbContext database) : ICollectio
             .Where(i => i.CollectionId == collectionId && i.PublishedSlug == slug)
             .Select(i => (Guid?)i.Id)
             .FirstOrDefaultAsync(cancellationToken);
+
+    public async Task<IReadOnlyDictionary<Guid, ItemAddressParts>> GetItemAddressPartsAsync(
+        Guid siteId, IReadOnlyCollection<Guid> itemIds, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(itemIds);
+        if (itemIds.Count == 0)
+        {
+            return new Dictionary<Guid, ItemAddressParts>();
+        }
+
+        var rows = await database.ForSite<Item>(siteId)
+            .AsNoTracking()
+            .Where(i => itemIds.Contains(i.Id))
+            .Select(i => new { i.Id, i.CollectionId, i.PublishedSlug })
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        return rows.ToDictionary(r => r.Id, r => new ItemAddressParts(r.CollectionId, r.PublishedSlug));
+    }
 }

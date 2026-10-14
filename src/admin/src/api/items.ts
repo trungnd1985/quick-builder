@@ -80,6 +80,8 @@ export interface Item extends ItemSummary {
   unpublishedReferences: ItemRef[]
   /** Where visitors find the item, or why they cannot (016 FR-007). */
   address?: ItemAddress
+  /** 017 FR-029, FR-032: set when the change asked for a redirect of the item's old address. */
+  redirectRequested?: boolean
 }
 
 /**
@@ -118,6 +120,8 @@ export interface Version {
   publishedAtUtc: string
   publishedBy: Member
   live: boolean
+  /** 017: the slug this version published. */
+  slug: string
 }
 
 export type HistoryKind =
@@ -218,19 +222,26 @@ export const itemsApi = {
   save: (siteId: string, collectionId: string, itemId: string, body: DraftInput & { revision: number }): Promise<Item> =>
     request<Item>(one(siteId, collectionId, itemId), { method: 'PUT', body: JSON.stringify(body) }),
 
-  remove: (siteId: string, collectionId: string, itemId: string, revision: number): Promise<void> =>
-    request<void>(`${one(siteId, collectionId, itemId)}?revision=${revision}`, { method: 'DELETE' }),
+  /** 017 FR-032: with `redirectToPageId`, a live item's address redirects there. */
+  remove: (siteId: string, collectionId: string, itemId: string, revision: number, redirectToPageId: string | null = null): Promise<void> =>
+    request<void>(`${one(siteId, collectionId, itemId)}?revision=${revision}${redirectToPageId ? `&redirectToPageId=${encodeURIComponent(redirectToPageId)}` : ''}`, { method: 'DELETE' }),
 
   duplicate: (siteId: string, collectionId: string, itemId: string): Promise<Item> =>
     request<Item>(`${one(siteId, collectionId, itemId)}/duplicate`, post({})),
 
-  publish: (siteId: string, collectionId: string, itemId: string, revision: number, cancelSchedule = false): Promise<Item> =>
-    request<Item>(`${one(siteId, collectionId, itemId)}/publish`, post({ revision, cancelSchedule })),
+  /** 017 FR-029: `redirectOldAddress` redirects the old address when the published slug changes. */
+  publish: (siteId: string, collectionId: string, itemId: string, revision: number, cancelSchedule = false, redirectOldAddress = false): Promise<Item> =>
+    request<Item>(`${one(siteId, collectionId, itemId)}/publish`, post({ revision, cancelSchedule, redirectOldAddress })),
 
-  unpublish: (siteId: string, collectionId: string, itemId: string, revision: number, cancelSchedule = false): Promise<Item> =>
-    request<Item>(`${one(siteId, collectionId, itemId)}/unpublish`, post({ revision, cancelSchedule })),
+  /** 017 FR-032: with `redirectToPageId`, the item's address redirects there. */
+  unpublish: (siteId: string, collectionId: string, itemId: string, revision: number, cancelSchedule = false, redirectToPageId: string | null = null): Promise<Item> =>
+    request<Item>(`${one(siteId, collectionId, itemId)}/unpublish`, post({ revision, cancelSchedule, redirectToPageId })),
 
-  schedule: (siteId: string, collectionId: string, itemId: string, action: ScheduleAction, body: { dueAtUtc: string; revision: number; recapture?: boolean }): Promise<Item> =>
+  /** 017 FR-029, FR-032: the redirect choice is kept on the schedule and applied when it runs. */
+  schedule: (
+    siteId: string, collectionId: string, itemId: string, action: ScheduleAction,
+    body: { dueAtUtc: string; revision: number; recapture?: boolean; redirectOldAddress?: boolean; redirectToPageId?: string | null },
+  ): Promise<Item> =>
     request<Item>(`${one(siteId, collectionId, itemId)}/schedules/${action}`, { method: 'PUT', body: JSON.stringify(body) }),
 
   cancelSchedule: (siteId: string, collectionId: string, itemId: string, action: ScheduleAction, revision: number): Promise<Item> =>
@@ -242,8 +253,9 @@ export const itemsApi = {
   referrers: (siteId: string, collectionId: string, itemId: string, publishedOnly = false): Promise<ReferrerList> =>
     request<ReferrerList>(`${one(siteId, collectionId, itemId)}/referrers${publishedOnly ? '?published=true' : ''}`),
 
-  rollback: (siteId: string, collectionId: string, itemId: string, number: number, revision: number, cancelSchedule = false): Promise<Item> =>
-    request<Item>(`${one(siteId, collectionId, itemId)}/versions/${number}/rollback`, post({ revision, cancelSchedule })),
+  /** 017 FR-029: `redirectOldAddress` redirects the old address when the version's slug differs from the live one. */
+  rollback: (siteId: string, collectionId: string, itemId: string, number: number, revision: number, cancelSchedule = false, redirectOldAddress = false): Promise<Item> =>
+    request<Item>(`${one(siteId, collectionId, itemId)}/versions/${number}/rollback`, post({ revision, cancelSchedule, redirectOldAddress })),
 
   copyToDraft: (siteId: string, collectionId: string, itemId: string, number: number, revision: number): Promise<Item> =>
     request<Item>(`${one(siteId, collectionId, itemId)}/versions/${number}/copy-to-draft`, post({ revision })),

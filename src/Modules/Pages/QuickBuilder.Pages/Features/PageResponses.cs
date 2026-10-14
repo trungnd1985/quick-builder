@@ -36,6 +36,9 @@ public sealed record PageTreeResponse(IReadOnlyList<PageNodeResponse> Pages, Per
 {
     /// <summary>016 TB-12: what the change did to item addresses; empty when nothing.</summary>
     public IReadOnlyList<SetPageTemplate.TemplateWarningResponse> Warnings { get; init; } = [];
+
+    /// <summary>017 FR-028: what the accepted redirect offer did; null when none was accepted.</summary>
+    public RedirectOutcomeResponse? Redirects { get; init; }
 }
 
 /// <summary>Who did something. <see cref="DisplayName"/> is null if the name cannot be found.</summary>
@@ -65,6 +68,9 @@ public sealed record PageDetailResponse(
 {
     /// <summary>016 TB-12: what the change did to item addresses; empty when nothing.</summary>
     public IReadOnlyList<SetPageTemplate.TemplateWarningResponse> Warnings { get; init; } = [];
+
+    /// <summary>017 FR-028: what the accepted redirect offer did; null when none was accepted.</summary>
+    public RedirectOutcomeResponse? Redirects { get; init; }
 }
 
 /// <summary>A draft and its document, equal as JSON to what was saved (FR-020).</summary>
@@ -91,3 +97,13 @@ public sealed record ComponentListResponse(IReadOnlyList<ComponentResponse> Comp
 
 /// <summary>A page that uses a component.</summary>
 public sealed record PageReferenceResponse(Guid Id, string Title, string Path);
+
+/// <summary>What happened to the redirects a change offered and the member accepted (017 FR-028 to FR-031).</summary>
+/// <param name="Created">Redirects added.</param>
+/// <param name="Skipped">Old addresses left alone because live content now holds them (FR-031).</param>
+/// <param name="Retargeted">Existing redirects pointed at the new address instead.</param>
+/// <param name="TurnedOff">Existing redirects turned off because they would now loop.</param>
+public sealed record RedirectOutcomeResponse(int Created, int Skipped, int Retargeted, IReadOnlyList<Guid> TurnedOff)
+{
+    public static RedirectOutcomeResponse None { get; } = new(0, 0, 0, []);
+}

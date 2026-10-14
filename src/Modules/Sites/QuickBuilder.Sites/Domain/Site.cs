@@ -86,6 +86,29 @@ internal sealed class Site
 
     public bool IsEnabled => Status == SiteStatus.Enabled;
 
+    /// <summary>Appended to every page's document title, e.g. <c>" | Acme"</c> (017 FR-005, FR-006).</summary>
+    public string? SearchTitleSuffix { get; private set; }
+
+    /// <summary>The media file used when a page has no sharing image (017 FR-005). Not checked here (research SE-08).</summary>
+    public Guid? SearchDefaultImage { get; private set; }
+
+    /// <summary>The organisation described on the home page (017 FR-034).</summary>
+    public string? SearchOrganisationName { get; private set; }
+
+    public Guid? SearchOrganisationLogo { get; private set; }
+
+    /// <summary>"Discourage search engines" (017 FR-027).</summary>
+    public bool SearchDiscouraged { get; private set; }
+
+    /// <summary>The Administrator's own robots.txt rules, with <c>\n</c> line ends (017 FR-025).</summary>
+    public string? SearchRobotsRules { get; private set; }
+
+    /// <summary>"Redirect other host names to the primary one" (017 FR-014). On for sites created since 017.</summary>
+    public bool RedirectOtherHosts { get; private set; }
+
+    /// <summary>Who last changed the search settings or search visibility (017 FR-021); <see cref="UpdatedAtUtc"/> says when.</summary>
+    public Guid? SearchUpdatedBy { get; private set; }
+
     public IReadOnlyCollection<SiteHostName> HostNames => _hostNames;
 
     public static Result<Site> Create(string name, IEnumerable<string> hostNames, TimeProvider clock) =>
@@ -124,7 +147,12 @@ internal sealed class Site
             return Result.Failure<Site>(UnsupportedLanguage());
         }
 
-        var site = new Site(Guid.CreateVersion7(), trimmedName, parsedScheme, language, clock.GetUtcNow());
+        var site = new Site(Guid.CreateVersion7(), trimmedName, parsedScheme, language, clock.GetUtcNow())
+        {
+            // 017 research SE-07: new sites answer on their primary host name only; sites
+            // created before 017 keep the column's default, off.
+            RedirectOtherHosts = true,
+        };
 
         foreach (var hostName in hostNames)
         {
@@ -196,6 +224,71 @@ internal sealed class Site
         Scheme = parsedScheme;
         DefaultLanguage = language;
         PrimaryHostName = primary.HostName;
+        Touch(clock);
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// Replaces the title suffix, the default sharing image and the organisation (017 FR-006,
+    /// research SE-08). Nothing changes unless every value is valid.
+    /// </summary>
+    public Result ChangeSearchSettings(
+        string? titleSuffix,
+        Guid? defaultImageId,
+        string? organisationName,
+        Guid? organisationLogoId,
+        Guid actorUserId,
+        TimeProvider clock)
+    {
+        ArgumentNullException.ThrowIfNull(clock);
+
+        var suffix = titleSuffix;
+        if (suffix is { Length: > SiteSearchRules.MaxTitleSuffixLength } || SiteSearchRules.HasControlCharacters(suffix))
+        {
+            return Result.Failure(SiteSearchRules.Invalid(
+                $"The title suffix must be at most {SiteSearchRules.MaxTitleSuffixLength} characters on one line."));
+        }
+
+        var organisation = organisationName?.Trim();
+        if (organisation is { Length: > SiteSearchRules.MaxOrganisationNameLength } || SiteSearchRules.HasControlCharacters(organisation))
+        {
+            return Result.Failure(SiteSearchRules.Invalid(
+                $"The organisation name must be at most {SiteSearchRules.MaxOrganisationNameLength} characters on one line."));
+        }
+
+        // The suffix keeps its leading space (" | Acme"); an empty one means none.
+        SearchTitleSuffix = string.IsNullOrWhiteSpace(suffix) ? null : suffix;
+        SearchDefaultImage = defaultImageId;
+        SearchOrganisationName = string.IsNullOrEmpty(organisation) ? null : organisation;
+        SearchOrganisationLogo = organisationLogoId;
+        SearchUpdatedBy = actorUserId;
+        Touch(clock);
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// Replaces "Discourage search engines", the custom robots.txt rules and the host name
+    /// redirect (017 FR-014, FR-025, FR-027). Nothing changes unless every value is valid.
+    /// </summary>
+    public Result ChangeSearchVisibility(
+        bool discourage,
+        string? robotsRules,
+        bool redirectOtherHosts,
+        Guid actorUserId,
+        TimeProvider clock)
+    {
+        ArgumentNullException.ThrowIfNull(clock);
+
+        if (SiteSearchRules.NormaliseRobotsRules(robotsRules) is not { } rules)
+        {
+            return Result.Failure(SiteSearchRules.Invalid(
+                $"Robots rules may be at most {SiteSearchRules.MaxRobotsRulesBytes / 1024} KB, with lines of at most {SiteSearchRules.MaxRobotsLineLength} characters and no control characters."));
+        }
+
+        SearchDiscouraged = discourage;
+        SearchRobotsRules = rules.Length == 0 ? null : rules;
+        RedirectOtherHosts = redirectOtherHosts;
+        SearchUpdatedBy = actorUserId;
         Touch(clock);
         return Result.Success();
     }

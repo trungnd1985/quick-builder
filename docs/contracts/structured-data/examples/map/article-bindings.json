@@ -1,0 +1,181 @@
+{
+  "description": "Each property takes only what types.json says it accepts; anything else is broken and marked, never refused.",
+  "collectionId": "0192f5a0-0000-7000-8000-00000000c001",
+  "schemas": {
+    "0192f5a0-0000-7000-8000-00000000c001": {
+      "schemaVersion": 1,
+      "titleFieldId": "f1",
+      "fields": [
+        {
+          "id": "f1",
+          "key": "title",
+          "name": "Title",
+          "help": "",
+          "required": true,
+          "type": "text",
+          "multiline": false,
+          "maxLength": 256
+        },
+        {
+          "id": "f2",
+          "key": "body",
+          "name": "Body",
+          "help": "",
+          "required": false,
+          "type": "richText"
+        },
+        {
+          "id": "f3",
+          "key": "price",
+          "name": "Price",
+          "help": "",
+          "required": false,
+          "type": "number",
+          "decimals": 2
+        },
+        {
+          "id": "f4",
+          "key": "in-stock",
+          "name": "In stock",
+          "help": "",
+          "required": false,
+          "type": "boolean"
+        },
+        {
+          "id": "f5",
+          "key": "starts",
+          "name": "Starts",
+          "help": "",
+          "required": false,
+          "type": "date",
+          "withTime": true
+        },
+        {
+          "id": "f6",
+          "key": "currency",
+          "name": "Currency",
+          "help": "",
+          "required": false,
+          "type": "option",
+          "options": [
+            {
+              "id": "o1",
+              "label": "EUR"
+            },
+            {
+              "id": "o2",
+              "label": "euro"
+            }
+          ]
+        },
+        {
+          "id": "f7",
+          "key": "venue",
+          "name": "Venue",
+          "help": "",
+          "required": false,
+          "type": "text",
+          "multiline": false,
+          "maxLength": 256
+        },
+        {
+          "id": "f10",
+          "key": "cover",
+          "name": "Cover",
+          "help": "",
+          "required": false,
+          "type": "image"
+        },
+        {
+          "id": "f11",
+          "key": "brochure",
+          "name": "Brochure",
+          "help": "",
+          "required": false,
+          "type": "file",
+          "accept": "any"
+        },
+        {
+          "id": "f12",
+          "key": "author",
+          "name": "Author",
+          "help": "",
+          "required": false,
+          "type": "reference",
+          "target": "0192f5a0-0000-7000-8000-00000000c002"
+        }
+      ]
+    },
+    "0192f5a0-0000-7000-8000-00000000c002": {
+      "schemaVersion": 1,
+      "titleFieldId": "f1",
+      "fields": [
+        {
+          "id": "f1",
+          "key": "name",
+          "name": "Name",
+          "help": "",
+          "required": true,
+          "type": "text",
+          "multiline": false,
+          "maxLength": 100
+        }
+      ]
+    }
+  },
+  "structuredData": {
+    "type": "Article",
+    "bind": {
+      "headline": {
+        "value": {
+          "parts": [
+            {
+              "field": "f1"
+            },
+            " — ",
+            {
+              "item": "slug"
+            }
+          ]
+        }
+      },
+      "description": {
+        "value": {
+          "field": "f2"
+        }
+      },
+      "image": {
+        "value": {
+          "field": "f11"
+        }
+      },
+      "authorName": {
+        "value": {
+          "field": "f1",
+          "via": "f12"
+        }
+      },
+      "datePublished": {
+        "value": {
+          "item": "lastPublishedAt"
+        }
+      },
+      "dateModified": {
+        "value": {
+          "field": "f99"
+        }
+      },
+      "rating": {
+        "value": {
+          "field": "f3"
+        }
+      }
+    }
+  },
+  "broken": {
+    "image": "type_mismatch",
+    "datePublished": "type_mismatch",
+    "dateModified": "field_missing",
+    "rating": "unknown_property"
+  }
+}

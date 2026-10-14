@@ -100,6 +100,14 @@ internal sealed class DraftWrites(
             return Result.Failure<DraftResponse>(PagesErrors.AdminOutdated);
         }
 
+        // 017 FR-002, research SE-03: the canonical address and hiding are structure decisions.
+        // Compared with the draft, so an unchanged value never stops an Editor's save.
+        if (SeoRestrictedFields.FirstChanged(draft.Document, text) is { } restricted
+            && !await access.MayChangeStructureAsync(siteId, cancellationToken).ConfigureAwait(false))
+        {
+            return Result.Failure<DraftResponse>(PagesErrors.SeoRestricted(restricted));
+        }
+
         var referenced = checkedDocument.ReferencedComponentIds;
         if (referenced.Count > 0)
         {

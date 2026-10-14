@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "root": {
+    "id": "root",
+    "type": "root",
+    "props": {
+      "seo": {
+        "title": "Web design services in Hanoi",
+        "description": "Sites that load fast and read well. Built and hosted in Vietnam.",
+        "ogTitle": "Web design in Hanoi",
+        "ogDescription": "Fast, readable sites.",
+        "ogImage": { "mediaId": "0192f5a0-1b2c-7d3e-8f40-5a6b7c8d9e0f" },
+        "canonical": { "type": "url", "href": "https://client.example/services?ref=x" },
+        "noindex": false,
+        "noSitemap": false
+      }
+    },
+    "children": []
+  }
+}

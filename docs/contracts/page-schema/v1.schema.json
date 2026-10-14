@@ -44,7 +44,11 @@
         "props": {
           "type": "object",
           "additionalProperties": false,
-          "properties": {}
+          "properties": {
+            "seo": {
+              "$ref": "#/$defs/seo"
+            }
+          }
         },
         "children": {
           "type": "array",
@@ -924,6 +928,36 @@
         }
       }
     },
+    "bindingSource": {
+      "description": "What a binding reads: exactly one of field, item and parts (checked in code; binding-expression.md §2).",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "field": {
+          "$ref": "#/$defs/fieldId"
+        },
+        "item": {
+          "$ref": "#/$defs/builtInValue"
+        },
+        "via": {
+          "$ref": "#/$defs/fieldId"
+        },
+        "scope": {
+          "$ref": "#/$defs/nodeId"
+        },
+        "format": {
+          "$ref": "#/$defs/valueFormat"
+        },
+        "parts": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 20,
+          "items": {
+            "$ref": "#/$defs/bindingPart"
+          }
+        }
+      }
+    },
     "binding": {
       "description": "Fills one block property from an item (binding-expression.md §2). The value holds exactly one of field, item and parts (checked in code).",
       "type": "object",
@@ -933,33 +967,7 @@
       "additionalProperties": false,
       "properties": {
         "value": {
-          "type": "object",
-          "additionalProperties": false,
-          "properties": {
-            "field": {
-              "$ref": "#/$defs/fieldId"
-            },
-            "item": {
-              "$ref": "#/$defs/builtInValue"
-            },
-            "via": {
-              "$ref": "#/$defs/fieldId"
-            },
-            "scope": {
-              "$ref": "#/$defs/nodeId"
-            },
-            "format": {
-              "$ref": "#/$defs/valueFormat"
-            },
-            "parts": {
-              "type": "array",
-              "minItems": 1,
-              "maxItems": 20,
-              "items": {
-                "$ref": "#/$defs/bindingPart"
-              }
-            }
-          }
+          "$ref": "#/$defs/bindingSource"
         },
         "empty": {
           "enum": [
@@ -1721,6 +1729,188 @@
           }
         }
       ]
+    },
+    "seoBinding": {
+      "description": "A metadata binding (017 seo-metadata.md §3): a binding whose empty value always falls back.",
+      "type": "object",
+      "required": [
+        "value"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "value": {
+          "$ref": "#/$defs/bindingSource"
+        },
+        "empty": {
+          "const": "fallback",
+          "default": "fallback"
+        }
+      }
+    },
+    "seoCanonical": {
+      "description": "A canonical override: a page of the site, or an absolute http or https address (rule 24).",
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "type",
+            "pageId"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "page"
+            },
+            "pageId": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "type",
+            "href"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "url"
+            },
+            "href": {
+              "type": "string",
+              "maxLength": 2048,
+              "pattern": "^https?://[^\\u0000-\\u0020\\u007f@/]+(/[^\\u0000-\\u0020\\u007f]*)?$"
+            }
+          }
+        }
+      ]
+    },
+    "seoStructuredData": {
+      "description": "Maps a template's collection to a structured data type (structured-data.md). Unknown property keys are broken bindings, not refused.",
+      "type": "object",
+      "required": [
+        "type"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "enum": [
+            "Article",
+            "Product",
+            "Event"
+          ]
+        },
+        "bind": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/seoBinding"
+          }
+        }
+      }
+    },
+    "seo": {
+      "description": "Search and sharing metadata of a page (017 seo-metadata.md). Page documents only (rule 22).",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "title": {
+          "type": "string",
+          "maxLength": 200,
+          "pattern": "^[^\\u0000-\\u001f\\u007f]*$"
+        },
+        "description": {
+          "type": "string",
+          "maxLength": 500,
+          "pattern": "^[^\\u0000-\\u001f\\u007f]*$"
+        },
+        "ogTitle": {
+          "type": "string",
+          "maxLength": 200,
+          "pattern": "^[^\\u0000-\\u001f\\u007f]*$"
+        },
+        "ogDescription": {
+          "type": "string",
+          "maxLength": 500,
+          "pattern": "^[^\\u0000-\\u001f\\u007f]*$"
+        },
+        "ogImage": {
+          "type": "object",
+          "required": [
+            "mediaId"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "mediaId": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        },
+        "canonical": {
+          "$ref": "#/$defs/seoCanonical"
+        },
+        "noindex": {
+          "type": "boolean"
+        },
+        "noSitemap": {
+          "type": "boolean"
+        },
+        "fallback": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "title": {
+              "type": "string",
+              "maxLength": 500,
+              "pattern": "^[^\\u0000-\\u001f\\u007f]*$"
+            },
+            "description": {
+              "type": "string",
+              "maxLength": 500,
+              "pattern": "^[^\\u0000-\\u001f\\u007f]*$"
+            },
+            "ogTitle": {
+              "type": "string",
+              "maxLength": 500,
+              "pattern": "^[^\\u0000-\\u001f\\u007f]*$"
+            },
+            "ogDescription": {
+              "type": "string",
+              "maxLength": 500,
+              "pattern": "^[^\\u0000-\\u001f\\u007f]*$"
+            }
+          }
+        },
+        "bind": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "title": {
+              "$ref": "#/$defs/seoBinding"
+            },
+            "description": {
+              "$ref": "#/$defs/seoBinding"
+            },
+            "ogTitle": {
+              "$ref": "#/$defs/seoBinding"
+            },
+            "ogDescription": {
+              "$ref": "#/$defs/seoBinding"
+            },
+            "ogImage": {
+              "$ref": "#/$defs/seoBinding"
+            },
+            "noindex": {
+              "$ref": "#/$defs/seoBinding"
+            }
+          }
+        },
+        "structuredData": {
+          "$ref": "#/$defs/seoStructuredData"
+        }
+      }
     }
   }
 }

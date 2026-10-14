@@ -7,16 +7,20 @@
 // shows the field's current name and scope, its format, what happens when it is empty, and
 // why it is broken when it is. Everything works from the keyboard: the choices are a native
 // select, and every other setting a plain control.
+//
+// A `seo.*` prop is one of the page's metadata fields (017 seo-metadata.md §3): it is stored in
+// `root.props.seo.bind`, and always falls back when empty, so it has no "when empty" choice.
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { fits, fitsBuiltIn, kindOf, type FieldInfo, type SchemaInfo } from '../../bindings/bindingRules'
 import { scopesAt, type ScopeOption } from '../../bindings/scopes'
-import { setProp } from '../../ops'
+import { setProp, setSeo } from '../../ops'
 import type { ContentNode } from '../../schema/schema'
 import { isObject, type Json, type JsonObject } from '../../schema/subsetValidator'
 import { useEditorStore } from '../../state/editorStore'
 import TextTemplateEditor from './TextTemplateEditor.vue'
 import { propBroken } from '../../bindings/brokenBindings'
+import { bindingOf } from '../../bindings/resolve'
 
 const props = defineProps<{ node: ContentNode; prop: string; label: string }>()
 const { t } = useI18n()
@@ -24,6 +28,7 @@ const store = useEditorStore()
 
 const id = computed(() => `bind-${props.node.id}-${props.prop}`)
 const kind = computed(() => kindOf(props.node.type, props.prop))
+const isSeo = computed(() => props.prop.startsWith('seo.'))
 
 /** The scopes this node can read, nearest first; none outside a template or a card. */
 const scopes = computed<ScopeOption[]>(() =>
@@ -41,8 +46,7 @@ watch(scopes, async (next) => {
 }, { immediate: true })
 
 const binding = computed<JsonObject | null>(() => {
-  const bind = props.node.props.bind
-  const value = isObject(bind) ? bind[props.prop] : undefined
+  const value = bindingOf(props.node, props.prop)
   return isObject(value) ? value : null
 })
 const value = computed<JsonObject | null>(() => (binding.value && isObject(binding.value.value) ? binding.value.value : null))
@@ -136,6 +140,11 @@ const errorMessage = ref<string | null>(null)
 
 function write(next: JsonObject | null): void {
   if (!store.root) return
+  if (isSeo.value) {
+    const refused = store.apply(setSeo(store.root, `bind.${props.prop.slice('seo.'.length)}`, next ?? undefined, store.selection))
+    errorMessage.value = refused ? t('editor.binding.refused') : null
+    return
+  }
   const bind = isObject(props.node.props.bind) ? { ...props.node.props.bind } : {}
   if (next) bind[props.prop] = next
   else delete bind[props.prop]
@@ -236,7 +245,7 @@ const decimals = [0, 1, 2, 3, 4, 5, 6]
         </optgroup>
       </select>
       <button
-        v-if="kind === 'text' && !binding"
+        v-if="(kind === 'text' || kind === 'metaText') && !binding"
         type="button"
         class="link"
         @click="useTemplate"
@@ -325,7 +334,7 @@ const decimals = [0, 1, 2, 3, 4, 5, 6]
     </template>
 
     <fieldset
-      v-if="binding"
+      v-if="binding && !isSeo"
       class="binding-control__empty"
     >
       <legend>{{ t('editor.binding.whenEmpty') }}</legend>

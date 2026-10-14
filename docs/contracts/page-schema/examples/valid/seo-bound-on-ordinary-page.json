@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "bindingVersion": 1,
+  "root": {
+    "id": "root",
+    "type": "root",
+    "props": {
+      "seo": { "title": "About", "bind": { "description": { "value": { "field": "f2", "scope": "page" } } } }
+    },
+    "children": []
+  }
+}

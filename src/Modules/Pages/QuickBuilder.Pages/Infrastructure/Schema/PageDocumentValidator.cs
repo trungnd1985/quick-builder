@@ -150,6 +150,12 @@ internal sealed class PageDocumentValidator : IPageDocumentValidator
             return componentFailure;
         }
 
+        // Rule 22 (017): search metadata belongs to pages, never to components.
+        if (kind == DocumentKind.Component && root.GetProperty("root").GetProperty("props").TryGetProperty("seo", out _))
+        {
+            return Invalid("seo_in_component", "/root/props/seo", "A component cannot carry search metadata.");
+        }
+
         if (CheckRichTextLength(root.GetProperty("root"), "/root") is { } richTextFailure)
         {
             return richTextFailure;

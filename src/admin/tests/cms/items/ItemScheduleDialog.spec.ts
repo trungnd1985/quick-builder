@@ -25,7 +25,7 @@ describe('ItemScheduleDialog', () => {
     await fireEvent.click(within(publish).getByRole('button', { name: en.cms.items.schedule.set }))
 
     await waitFor(() => expect(emitted().changed).toBeTruthy())
-    expect(calls[0]!.body).toEqual({ dueAtUtc: new Date('2030-06-01T09:30:00').toISOString(), revision: 3, recapture: false })
+    expect(calls[0]!.body).toEqual({ dueAtUtc: new Date('2030-06-01T09:30:00').toISOString(), revision: 3, recapture: false, redirectOldAddress: false, redirectToPageId: null })
     expect(calls[0]!.url).toMatch(/\/schedules\/publish$/)
   })
 

@@ -68,11 +68,11 @@ internal sealed class ResolveCase
         return context;
     }
 
-    /// <summary>The expected outcomes, by <c>nodeId.prop</c>.</summary>
+    /// <summary>The expected outcomes, by <c>nodeId.prop</c>; a metadata prop is <c>seo.field</c>.</summary>
     public IEnumerable<(string NodeId, string Prop, JsonElement Outcome)> Expected() =>
         Root.GetProperty("expected").EnumerateObject().Select(e =>
         {
-            var dot = e.Name.LastIndexOf('.');
+            var dot = e.Name.IndexOf('.', StringComparison.Ordinal);
             return (e.Name[..dot], e.Name[(dot + 1)..], e.Value);
         });
 

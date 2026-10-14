@@ -49,7 +49,9 @@ public sealed class PublicRenderingTests(DatabaseFixture database) : IAsyncLifet
         Assert.Contains("<html lang=\"en\">", html, StringComparison.Ordinal);
         Assert.Contains("About &lt;us&gt; &amp; friends</h1>", html, StringComparison.Ordinal);
         Assert.Contains("<div class=\"qb-canvas qb-page\">", html, StringComparison.Ordinal);
-        Assert.DoesNotContain("<script", html, StringComparison.OrdinalIgnoreCase);
+        // No script runs (FR-037); the one script element is 017's JSON-LD data block, which the
+        // browser never executes and the policy, with no script-src, would refuse to run anyway.
+        Assert.DoesNotContain("<script", html.Replace("<script type=\"application/ld+json\">", string.Empty, StringComparison.Ordinal), StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain(" style=", html, StringComparison.Ordinal);
 
         var csp = response.Headers.GetValues("Content-Security-Policy").Single();
@@ -59,16 +61,25 @@ public sealed class PublicRenderingTests(DatabaseFixture database) : IAsyncLifet
         Assert.Equal("strict-origin-when-cross-origin", response.Headers.GetValues("Referrer-Policy").Single());
     }
 
-    [Theory]
-    [InlineData("/About")]
-    [InlineData("/about/")]
-    [InlineData("/about?x=1")]
-    public async Task Case_a_trailing_slash_and_a_query_serve_the_same_page(string address)
+    [Fact]
+    public async Task A_query_serves_the_same_page()
     {
-        var response = await Visitor().GetAsync(new Uri(address, UriKind.Relative)).ConfigureAwait(true);
+        var response = await Visitor().GetAsync(new Uri("/about?x=1", UriKind.Relative)).ConfigureAwait(true);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Contains("About &lt;us&gt;", await response.Content.ReadAsStringAsync().ConfigureAwait(true), StringComparison.Ordinal);
+    }
+
+    // 017 FR-013: other letter cases and a trailing slash redirect to the one address.
+    [Theory]
+    [InlineData("/About")]
+    [InlineData("/about/")]
+    public async Task Case_and_a_trailing_slash_redirect_to_the_page(string address)
+    {
+        var response = await QuickBuilder.IntegrationTests.Seo.RedirectsApi.VisitAsync(_scenario.App, PagesScenario.HostA, address).ConfigureAwait(true);
+
+        Assert.Equal(HttpStatusCode.MovedPermanently, response.StatusCode);
+        Assert.Equal("/about", response.Headers.Location?.OriginalString);
     }
 
     [Fact]
@@ -264,6 +275,26 @@ public sealed class PublicRouteBoundaryTests(DatabaseFixture database) : IAsyncL
         var response = await _scenario.App.CreateAnonymousClient().GetAsync(new Uri("/health/live", UriKind.Relative)).ConfigureAwait(true);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    }
+
+    [Theory]
+    [InlineData("/robots.txt", "text/plain")]
+    [InlineData("/sitemap.xml", "application/xml")]
+    public async Task Robots_and_the_sitemap_are_answered_before_the_page_route(string address, string mediaType)
+    {
+        var response = await _scenario.App.CreateClientForHost(PagesScenario.HostA).GetAsync(new Uri(address, UriKind.Relative)).ConfigureAwait(true);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal(mediaType, response.Content.Headers.ContentType?.MediaType);
+    }
+
+    [Fact]
+    public async Task A_numbered_sitemap_file_that_does_not_exist_is_the_site_s_not_found_page()
+    {
+        var response = await _scenario.App.CreateClientForHost(PagesScenario.HostA).GetAsync(new Uri("/sitemap-1.xml", UriKind.Relative)).ConfigureAwait(true);
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        Assert.Equal("text/html", response.Content.Headers.ContentType?.MediaType);
     }
 
     [Fact]
