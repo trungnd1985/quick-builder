@@ -334,7 +334,7 @@ internal sealed class PageDocumentValidator : IPageDocumentValidator
         }
     }
 
-    private static string? FindDuplicateProperty(JsonElement element, string pointer)
+    internal static string? FindDuplicateProperty(JsonElement element, string pointer)
     {
         switch (element.ValueKind)
         {

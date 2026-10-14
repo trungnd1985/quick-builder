@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "entries": [
+    {
+      "id": "l1",
+      "target": {
+        "type": "page",
+        "pageId": "0192f5a0-1b2c-7d3e-8f40-5a6b7c8d9e10"
+      },
+      "children": [
+        {
+          "id": "l2",
+          "target": {
+            "type": "page",
+            "pageId": "0192f5a0-1b2c-7d3e-8f40-5a6b7c8d9e10"
+          },
+          "children": [
+            {
+              "id": "l3",
+              "target": {
+                "type": "page",
+                "pageId": "0192f5a0-1b2c-7d3e-8f40-5a6b7c8d9e10"
+              },
+              "children": [
+                {
+                  "id": "l4",
+                  "target": {
+                    "type": "page",
+                    "pageId": "0192f5a0-1b2c-7d3e-8f40-5a6b7c8d9e10"
+                  },
+                  "children": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -101,6 +101,9 @@
         },
         {
           "$ref": "#/$defs/collection-list"
+        },
+        {
+          "$ref": "#/$defs/navigation"
         }
       ]
     },
@@ -832,6 +835,112 @@
                 "1:1"
               ],
               "default": "16:9"
+            },
+            "layerLabel": {
+              "$ref": "#/$defs/layerLabel"
+            }
+          }
+        },
+        "children": {
+          "$ref": "#/$defs/noChildren"
+        }
+      }
+    },
+    "navCollapse": {
+      "description": "Hide the menu behind a menu button below one of the editor's preview widths: mobile (480 px) or tablet (767 px) (024 FR-017).",
+      "type": "object",
+      "required": [
+        "enabled",
+        "below"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "below": {
+          "enum": [
+            "mobile",
+            "tablet"
+          ]
+        },
+        "buttonLabel": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40,
+          "pattern": "^[^\u0000-\u001f]*$"
+        }
+      }
+    },
+    "navigation": {
+      "description": "Shows one of the site's menus (024, docs/contracts/menu.md). menuId may name a menu that no longer exists; publishing refuses it.",
+      "type": "object",
+      "required": [
+        "id",
+        "type",
+        "props",
+        "children"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/nodeId"
+        },
+        "type": {
+          "const": "navigation"
+        },
+        "props": {
+          "type": "object",
+          "required": [
+            "menuId"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "menuId": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "layout": {
+              "enum": [
+                "horizontal",
+                "vertical"
+              ],
+              "default": "horizontal"
+            },
+            "levels": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 3,
+              "default": 3
+            },
+            "collapse": {
+              "$ref": "#/$defs/navCollapse",
+              "default": {
+                "enabled": false,
+                "below": "mobile"
+              }
+            },
+            "align": {
+              "$ref": "#/$defs/align"
+            },
+            "ariaLabel": {
+              "description": "The navigation landmark's accessible name; absent: the live menu's name.",
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100,
+              "pattern": "^[^\u0000-\u001f]*$"
+            },
+            "color": {
+              "$ref": "#/$defs/colorRef",
+              "default": {
+                "token": "color-text"
+              }
+            },
+            "activeColor": {
+              "$ref": "#/$defs/colorRef",
+              "default": {
+                "token": "color-brand"
+              }
             },
             "layerLabel": {
               "$ref": "#/$defs/layerLabel"

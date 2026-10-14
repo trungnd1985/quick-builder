@@ -5,7 +5,7 @@ import { ApiError } from '../../api/request'
  * Turns a refused publishing operation into a message for people (012 FR-040).
  *
  * The message comes from the translation lookup keyed by the server's `errorCode`, never from
- * its English `detail`. The counts a refusal carries (`componentIds`, `pageCount`) are passed
+ * its English `detail`. The counts a refusal carries (`componentIds`, `menuIds`, `pageCount`, `pages`, `components`) are passed
  * into the message. A code this screen does not know falls back to a generic message.
  */
 export function publishingErrorMessage(t: Composer['t'], te: Composer['te'], caught: unknown): string {
@@ -21,8 +21,14 @@ export function publishingErrorMessage(t: Composer['t'], te: Composer['te'], cau
     const key = (module === 'pages' || module === 'editor') && reason ? `publishing.errors.${module}.${reason}` : ''
     if (key && te(key)) {
       const componentIds = Array.isArray(problem.componentIds) ? problem.componentIds : []
+      const menuIds = Array.isArray(problem.menuIds) ? problem.menuIds : []
       const problems = Array.isArray(problem.problems) ? problem.problems : []
-      return t(key, { count: componentIds.length || problems.length || Number(problem.pageCount ?? 0) })
+      return t(key, {
+        count: componentIds.length || menuIds.length || problems.length || Number(problem.pageCount ?? 0),
+        // 024: a menu in use names how many published pages and components show it.
+        pages: Number(problem.pages ?? 0),
+        components: Number(problem.components ?? 0),
+      })
     }
   }
 

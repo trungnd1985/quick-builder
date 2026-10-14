@@ -87,6 +87,35 @@ public sealed class PublicPathReadOnlyTests(DatabaseFixture database) : IAsyncLi
         Assert.Empty(await LinkTargetsAsync(resolvedSite: _scenario.SiteB, askedSite: _scenario.SiteB, pageId).ConfigureAwait(true));
     }
 
+    [Fact]
+    public async Task A_link_target_carries_its_live_title_only_while_live()
+    {
+        // 024 NV-09: menu entries without their own label show the title visitors see.
+        var page = await PagesApi.CreateOkAsync(_scenario.Admin, _scenario.SiteA, "services").ConfigureAwait(true);
+        var pageId = page.GetProperty("id").GetGuid();
+
+        var draftOnly = (await LinkTargetsAsync(_scenario.SiteA, _scenario.SiteA, pageId).ConfigureAwait(true))[pageId];
+        Assert.False(draftOnly.IsLive);
+        Assert.Null(draftOnly.LiveTitle);
+
+        await Publishing.PublishingApi.PublishCurrentAsync(_scenario.Admin, Publishing.PublishingApi.Subject(_scenario.SiteA, "page", pageId)).ConfigureAwait(true);
+
+        var live = (await LinkTargetsAsync(_scenario.SiteA, _scenario.SiteA, pageId).ConfigureAwait(true))[pageId];
+        Assert.True(live.IsLive);
+        Assert.Equal(PagesApi.Title("services"), live.LiveTitle);
+    }
+
+    [Fact]
+    public async Task Menus_without_a_live_version_and_other_sites_menus_are_absent()
+    {
+        await using var scope = _scenario.App.Services.CreateAsyncScope();
+        scope.ServiceProvider.GetRequiredService<ISiteContextSetter>().SetSite(_scenario.SiteA);
+        var reader = scope.ServiceProvider.GetRequiredService<IPublishedContentReader>();
+
+        Assert.Empty(await reader.GetLiveMenusAsync(_scenario.SiteA, [Guid.NewGuid()]).ConfigureAwait(true));
+        Assert.Empty(await reader.GetLiveMenusAsync(_scenario.SiteA, []).ConfigureAwait(true));
+    }
+
     private async Task<IReadOnlyDictionary<Guid, PageLinkTarget>> LinkTargetsAsync(Guid resolvedSite, Guid askedSite, Guid pageId)
     {
         await using var scope = _scenario.App.Services.CreateAsyncScope();

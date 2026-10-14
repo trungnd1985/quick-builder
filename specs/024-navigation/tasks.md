@@ -87,7 +87,7 @@ Shorthand used below:
 **Purpose**: the feature's documents. No new project references are needed
 (module-surface.md §1).
 
-- [ ] T001 Commit `specs/024-navigation/` (spec, plan, research, data model, contracts, quickstart, checklist, tasks) as the first commit on branch `024-navigation`, referencing #24.
+- [X] T001 Commit `specs/024-navigation/` (spec, plan, research, data model, contracts, quickstart, checklist, tasks) as the first commit on branch `024-navigation`, referencing #24.
 
 ---
 
@@ -104,41 +104,45 @@ Shorthand used below:
 
 ### Menu contract (FR-006 to FR-011, FR-021, NV-03)
 
-- [ ] T002 Create `CONTRACTS/menu/v1.schema.json` (JSON Schema 2020-12, only the vocabulary of page-schema.md §7) from contracts/menu-document.md §1–§3 and §5: `entry`, `target` (`oneOf` page, item, url, anchor, none), label and anchor patterns, `additionalProperties: false`. The `url` target reuses the page schema's link scheme rule by copying the same pattern, with a comment naming page-schema §2a.
-- [ ] T003 Create `CONTRACTS/menu.md` from `specs/024-navigation/contracts/menu-document.md` (sections 1–7), and list it in `CONTRACTS/README.md`.
-- [ ] T004 [P] Create golden examples in `CONTRACTS/menu/examples/valid/` and `CONTRACTS/menu/examples/invalid/` as listed in menu-document.md §7, each invalid one with an `expected.json` naming `rule` and `pointer`.
+- [X] T002 Create `CONTRACTS/menu/v1.schema.json` (JSON Schema 2020-12, only the vocabulary of page-schema.md §7) from contracts/menu-document.md §1–§3 and §5: `entry`, `target` (`oneOf` page, item, url, anchor, none), label and anchor patterns, `additionalProperties: false`. The `url` target reuses the page schema's link scheme rule by copying the same pattern, with a comment naming page-schema §2a.
+- [X] T003 Create `CONTRACTS/menu.md` from `specs/024-navigation/contracts/menu-document.md` (sections 1–7), and list it in `CONTRACTS/README.md`.
+- [X] T004 [P] Create golden examples in `CONTRACTS/menu/examples/valid/` and `CONTRACTS/menu/examples/invalid/` as listed in menu-document.md §7, each invalid one with an `expected.json` naming `rule` and `pointer`.
 
 ### Navigation block in the page schema (FR-016, FR-017, FR-021, NV-05)
 
-- [ ] T005 Extend `CONTRACTS/page-schema/v1.schema.json`, staying at version 1: `$defs/navigation` and `$defs/navCollapse` exactly as contracts/navigation-block.md §2, and `navigation` added to `contentChild`. `PageSchemaSubsetTests` must pass.
-- [ ] T006 Update `CONTRACTS/page-schema.md`: the §2 row, the §3 note that `menuId` is not a site rule, and an "Additions in 024 (still version 1)" paragraph in §6, from navigation-block.md §1, §3 and §4. Run `ITESTS/Pages/PageSchemaContractTests.cs`; it must pass.
-- [ ] T007 [P] Create the five valid and five invalid examples of navigation-block.md §5 in `CONTRACTS/page-schema/examples/`.
+- [X] T005 Extend `CONTRACTS/page-schema/v1.schema.json`, staying at version 1: `$defs/navigation` and `$defs/navCollapse` exactly as contracts/navigation-block.md §2, and `navigation` added to `contentChild`. `PageSchemaSubsetTests` must pass.
+- [X] T006 Update `CONTRACTS/page-schema.md`: the §2 row, the §3 note that `menuId` is not a site rule, and an "Additions in 024 (still version 1)" paragraph in §6, from navigation-block.md §1, §3 and §4. Run `ITESTS/Pages/PageSchemaContractTests.cs`; it must pass.
+- [X] T007 [P] Create the five valid and five invalid examples of navigation-block.md §5 in `CONTRACTS/page-schema/examples/`.
 
 ### Validators, server and admin
 
-- [ ] T008 [P] Create `UTESTS/Pages/Menus/MenuSchemaGoldenTests.cs`, running T004's examples through `PAGES/Infrastructure/Schema/MenuDocumentValidator.cs` (rules 0–7 of menu-document.md §4, in that order). It must fail first.
-- [ ] T009 [P] Create `ADMINTESTS/editor/menuSchema.spec.ts`, running the same examples through `EDITOR/schema/menuValidator.ts`. It must fail first. Load the files the way `ADMINTESTS/editor/contractFiles.ts` does.
-- [ ] T010 [P] Create `UTESTS/Pages/NavigationSchemaGoldenTests.cs` and extend `ADMINTESTS/editor/documentValidator.spec.ts` with T007's examples, through `PageDocumentValidator` and `EDITOR/schema/documentValidator.ts`. They must fail first.
-- [ ] T011 Create `PAGESC/MenuSchema.cs`, embedding `menu/v1.schema.json` as `PAGESC/PageSchema.cs` embeds the page schema (same `.csproj` item pattern), and refresh the embedded page schema.
-- [ ] T012 Create `PAGES/Domain/Menus/MenuRules.cs` (pure: unique ids, entry count, depth, required labels, `newTab` placement; returns the first failure with `rule` and `pointer`) and `PAGES/Infrastructure/Schema/MenuDocumentValidator.cs` (size, JSON, duplicate properties, schema version, the schema through `SchemaSubsetValidator`, then `MenuRules`). Make T008 pass.
-- [ ] T013 [P] Create `EDITOR/schema/menuValidator.ts`, mirroring T012 with `EDITOR/schema/subsetValidator.ts` and the same rule order and codes. Make T009 pass.
-- [ ] T014 Accept the `navigation` node in `PAGES/Infrastructure/Schema/PageDocumentValidator.cs` (schema only, no new rule) and in `EDITOR/schema/schema.ts` and `EDITOR/schema/documentValidator.ts` (`blockTypes`, `canDrop`). Make T010 pass.
+- [X] T008 [P] Create `UTESTS/Pages/Menus/MenuSchemaGoldenTests.cs`, running T004's examples through `PAGES/Infrastructure/Schema/MenuDocumentValidator.cs` (rules 0–7 of menu-document.md §4, in that order). It must fail first.
+- [X] T009 [P] Create `ADMINTESTS/editor/menuSchema.spec.ts`, running the same examples through `EDITOR/schema/menuValidator.ts`. It must fail first. Load the files the way `ADMINTESTS/editor/contractFiles.ts` does.
+- [X] T010 [P] Create `UTESTS/Pages/NavigationSchemaGoldenTests.cs` and extend `ADMINTESTS/editor/documentValidator.spec.ts` with T007's examples, through `PageDocumentValidator` and `EDITOR/schema/documentValidator.ts`. They must fail first.
+- [X] T011 Create `PAGESC/MenuSchema.cs`, embedding `menu/v1.schema.json` as `PAGESC/PageSchema.cs` embeds the page schema (same `.csproj` item pattern), and refresh the embedded page schema.
+- [X] T012 Create `PAGES/Domain/Menus/MenuRules.cs` (pure: unique ids, entry count, depth, required labels, `newTab` placement; returns the first failure with `rule` and `pointer`) and `PAGES/Infrastructure/Schema/MenuDocumentValidator.cs` (size, JSON, duplicate properties, schema version, the schema through `SchemaSubsetValidator`, then `MenuRules`). Make T008 pass.
+- [X] T013 [P] Create `EDITOR/schema/menuValidator.ts`, mirroring T012 with `EDITOR/schema/subsetValidator.ts` and the same rule order and codes. Make T009 pass.
+- [X] T014 Accept the `navigation` node in `PAGES/Infrastructure/Schema/PageDocumentValidator.cs` (schema only, no new rule) and in `EDITOR/schema/schema.ts` and `EDITOR/schema/documentValidator.ts` (`blockTypes`, `canDrop`). Make T010 pass.
 
 ### Domain and database (data-model §1, NV-02)
 
-- [ ] T015 Add `SubjectKinds.Menu`, `DependencyKinds.Menu` and `DependencyKinds.Item` to `PAGES/Domain/PublishingTerms.cs`.
-- [ ] T016 Create `PAGES/Domain/Menus/Menu.cs` (aggregate: `Create` with the name rules of `Component.NormaliseName`, `Rename`, `MarkDeleted`; `MaxNameLength = 100`; `MaxPerSite = 50`), `MenuDraft.cs`, `MenuTarget.cs`, `MenuUsage.cs` and `MenuChange.cs` (actions as constants) in `PAGES/Domain/Menus/`.
-- [ ] T017 Map the five tables in `PAGES/Infrastructure/PagesDbContext.cs`, exactly as data-model.md §1.1–§1.5: `citext` name with the unique index, `xmin` tokens, FKs with cascade, PKs and reverse indexes, and the site filter on all five. If `publications`, `published_versions`, `publish_schedules`, `publish_log` or `live_dependencies` have a check constraint on kinds, widen it. Create `PAGES/Infrastructure/Migrations/<ts>_AddMenus.cs`, forward-only and additive.
-- [ ] T018 Extend `PAGES/Infrastructure/PagesOutbox.cs` with an explicit `SubjectPublishedEvent { SubjectKind: SubjectKinds.Menu }` and `SubjectUnpublishedEvent { SubjectKind: SubjectKinds.Menu }` case that adds nothing, before the component fallback (data-model §6). Add the cases to `UTESTS/Pages/PagesOutboxTests.cs` (create the file if there is none) so a menu publish never emits `Pages.ComponentPublished`.
+- [X] T015 Add `SubjectKinds.Menu`, `DependencyKinds.Menu` and `DependencyKinds.Item` to `PAGES/Domain/PublishingTerms.cs`.
+- [X] T016 Create `PAGES/Domain/Menus/Menu.cs` (aggregate: `Create` with the name rules of `Component.NormaliseName`, `Rename`, `MarkDeleted`; `MaxNameLength = 100`; `MaxPerSite = 50`), `MenuDraft.cs`, `MenuTarget.cs`, `MenuUsage.cs` and `MenuChange.cs` (actions as constants) in `PAGES/Domain/Menus/`.
+  *Done as*: `MenuTarget`, `MenuUsage` and `MenuChange` share `PAGES/Domain/Menus/MenuIndexes.cs`. `Menu` is a plain site-owned entity, not an `AggregateRoot`: menus raise no domain events (data-model §6).
+- [X] T017 Map the five tables in `PAGES/Infrastructure/PagesDbContext.cs`, exactly as data-model.md §1.1–§1.5: `citext` name with the unique index, `xmin` tokens, FKs with cascade, PKs and reverse indexes, and the site filter on all five. If `publications`, `published_versions`, `publish_schedules`, `publish_log` or `live_dependencies` have a check constraint on kinds, widen it. Create `PAGES/Infrastructure/Migrations/<ts>_AddMenus.cs`, forward-only and additive.
+  *Done as*: `publish_schedules` keeps `ck_publish_schedules_unpublish_page`: only pages schedule an unpublish, so menus, like components, schedule a publish only, which is what FR-004a asks for.
+- [X] T018 Extend `PAGES/Infrastructure/PagesOutbox.cs` with an explicit `SubjectPublishedEvent { SubjectKind: SubjectKinds.Menu }` and `SubjectUnpublishedEvent { SubjectKind: SubjectKinds.Menu }` case that adds nothing, before the component fallback (data-model §6). Add the cases to `UTESTS/Pages/PagesOutboxTests.cs` (create the file if there is none) so a menu publish never emits `Pages.ComponentPublished`.
+  *Done as*: `UTESTS/Pages/PagesOutboxTests.cs` is new; it inspects the change tracker without a database.
 
 ### Contracts (module-surface.md §2)
 
-- [ ] T019 [P] Add `GetLiveMenusAsync` (returning `LiveMenu`: document, schema version, and the live version's `title` as `Name`, module-surface.md §2) to `PAGESC/Publishing/IPublishedContentReader.cs`, and the trailing `string? LiveTitle = null` to `PageLinkTarget`. Implement both in `PAGES/Infrastructure/PublishedContentReader.cs` over `PAGES/Infrastructure/PublishedReadDbContext.cs`: one query each, live versions of `subject_kind = 'menu'`, and the live version's title for page targets. Extend the existing reader integration test to cover them, including another site's menu id being absent and the name being the published one, not one renamed since.
+- [X] T019 [P] Add `GetLiveMenusAsync` (returning `LiveMenu`: document, schema version, and the live version's `title` as `Name`, module-surface.md §2) to `PAGESC/Publishing/IPublishedContentReader.cs`, and the trailing `string? LiveTitle = null` to `PageLinkTarget`. Implement both in `PAGES/Infrastructure/PublishedContentReader.cs` over `PAGES/Infrastructure/PublishedReadDbContext.cs`: one query each, live versions of `subject_kind = 'menu'`, and the live version's title for page targets. Extend the existing reader integration test to cover them, including another site's menu id being absent and the name being the published one, not one renamed since.
+  *Done as*: The name-is-published-not-renamed case needs menu publishing, so it is in T034. `ITESTS/Rendering/PublicPathReadOnlyTests.cs` covers `LiveTitle` and absent menus.
 
 ### Capabilities and errors (NV-18, data-model §4.2)
 
-- [ ] T020 Add `pages.menus.manage` (Designer) to `PAGES/PagesCapabilities.cs`, and record it in `specs/002-identity-setup/contracts/authorization.md` §2.
-- [ ] T021 [P] Add every error code of data-model.md §4.2 to `PAGES/PagesErrors.cs` and `PAGES/PagesErrorResults.cs` (`invalid_menu_name`, `duplicate_menu_name`, `menu_limit_reached`, `menu_not_found`, `invalid_menu_document`, `unpublished_menus`, `version_missing_menus`, `menu_in_use_by_published_content`, `invalid_reference_query`), with HTTP statuses as listed in menus-api.yaml. Create `ADMIN/features/menus/menuErrors.ts` with a message for each, and add the publishing ones to `ADMIN/features/publishing/errorMessages.ts`, with `ADMIN/i18n/en.json`.
+- [X] T020 Add `pages.menus.manage` (Designer) to `PAGES/PagesCapabilities.cs`, and record it in `specs/002-identity-setup/contracts/authorization.md` §2.
+- [X] T021 [P] Add every error code of data-model.md §4.2 to `PAGES/PagesErrors.cs` and `PAGES/PagesErrorResults.cs` (`invalid_menu_name`, `duplicate_menu_name`, `menu_limit_reached`, `menu_not_found`, `invalid_menu_document`, `unpublished_menus`, `version_missing_menus`, `menu_in_use_by_published_content`, `invalid_reference_query`), with HTTP statuses as listed in menus-api.yaml. Create `ADMIN/features/menus/menuErrors.ts` with a message for each, and add the publishing ones to `ADMIN/features/publishing/errorMessages.ts`, with `ADMIN/i18n/en.json`.
 
 **Checkpoint**: contracts, validators, tables and kinds are in place. User stories can start.
 
@@ -195,7 +199,7 @@ menu in use; output matches the golden HTML at every layout, with and without sc
 ### Tests for User Story 2 ⚠️
 
 - [ ] T034 [P] [US2] Create `ITESTS/Pages/MenuPublishingTests.cs`:
-  - publish, unpublish, schedule (publish and unpublish), rollback, history, versions and copy-to-draft for menus, mirroring the component tests (numbers, log entries labelled with the menu name, `hasUnpublishedChanges`, rename does not mark the draft changed);
+  - publish, unpublish, a scheduled publish (menus, like components, cannot schedule an unpublish), rollback, history, versions and copy-to-draft for menus, mirroring the component tests (numbers, log entries labelled with the menu name, `hasUnpublishedChanges`, rename does not mark the draft changed);
   - publishing a page or component whose draft has a Navigation block for a never-published or deleted menu gives `409 pages.unpublished_menus` naming it; a scheduled run fails with the same reason;
   - rolling back a page to a version naming a deleted menu gives `409 pages.version_missing_menus`;
   - unpublishing or deleting a menu shown by a live page, or by a live component, gives `409 pages.menu_in_use_by_published_content` with both counts; deleting a menu used only by drafts succeeds and leaves those drafts saveable;

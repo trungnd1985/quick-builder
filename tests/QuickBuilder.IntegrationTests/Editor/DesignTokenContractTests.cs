@@ -143,6 +143,12 @@ public sealed partial class DesignTokenContractTests
         Assert.Equal(QuickBuilder.Pages.Contracts.PageSchema.MaxListsPerDocument, constants["MAX_LISTS_PER_DOCUMENT"]);
         Assert.Equal(QuickBuilder.Pages.Contracts.PageSchema.MaxListDepth, constants["MAX_LIST_DEPTH"]);
         Assert.Equal(QuickBuilder.Pages.Contracts.PageSchema.CurrentBindingVersion, constants["CURRENT_BINDING_VERSION"]);
+
+        // 024: the menu contract's limits live in the same file.
+        Assert.Equal(QuickBuilder.Pages.Contracts.MenuSchema.MaxDocumentBytes, constants["MAX_MENU_DOCUMENT_BYTES"]);
+        Assert.Equal(QuickBuilder.Pages.Contracts.MenuSchema.MaxEntries, constants["MAX_MENU_ENTRIES"]);
+        Assert.Equal(QuickBuilder.Pages.Contracts.MenuSchema.MaxLevels, constants["MAX_MENU_LEVELS"]);
+        Assert.Equal(QuickBuilder.Pages.Contracts.MenuSchema.CurrentVersion, constants["CURRENT_MENU_VERSION"]);
     }
 
     // ['system-ui', "system-ui, sans-serif"] — the id in single quotes, the family in double.

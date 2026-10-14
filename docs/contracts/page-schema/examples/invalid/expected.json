@@ -56,5 +56,10 @@
   "props_invalid--seo-title-line-break.json": { "rule": "props_invalid", "pointer": "/root/props/seo/title" },
   "props_invalid--seo-title-201.json": { "rule": "props_invalid", "pointer": "/root/props/seo/title" },
   "props_invalid--seo-bind-hide.json": { "rule": "props_invalid", "pointer": "/root/props/seo/bind/title/empty" },
-  "binding_version_required--seo-bind.json": { "rule": "binding_version_required", "pointer": "" }
+  "binding_version_required--seo-bind.json": { "rule": "binding_version_required", "pointer": "" },
+  "props_invalid--navigation-levels-4.json": { "rule": "props_invalid", "pointer": "/root/children/0/children/0/props/levels" },
+  "props_invalid--navigation-collapse-below-desktop.json": { "rule": "props_invalid", "pointer": "/root/children/0/children/0/props/collapse/below" },
+  "props_invalid--navigation-label-control-char.json": { "rule": "props_invalid", "pointer": "/root/children/0/children/0/props/ariaLabel" },
+  "children_not_allowed--navigation-child.json": { "rule": "children_not_allowed", "pointer": "/root/children/0/children/0/children" },
+  "nesting_not_allowed--navigation-at-root.json": { "rule": "nesting_not_allowed", "pointer": "/root/children/0/type" }
 }

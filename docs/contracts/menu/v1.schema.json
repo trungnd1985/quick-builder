@@ -1,0 +1,113 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://quickbuilder.dev/contracts/menu/v1.schema.json",
+  "title": "QuickBuilder menu document, version 1 (docs/contracts/menu.md)",
+  "type": "object",
+  "required": ["schemaVersion", "entries"],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "entries": {
+      "description": "The top level of the menu, in order. May be empty.",
+      "type": "array",
+      "items": { "$ref": "#/$defs/entry" }
+    }
+  },
+  "$defs": {
+    "entryId": {
+      "description": "Unique within the document (menu.md rule 3). Same pattern as page-schema node ids.",
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]{1,64}$"
+    },
+    "label": {
+      "description": "Shown to visitors. Absent or blank on a page or item entry: the target's title or name is used.",
+      "type": "string",
+      "maxLength": 100,
+      "pattern": "^[^\\u0000-\\u001f\\u007f]*$"
+    },
+    "anchor": {
+      "description": "A name on a page, without the leading #. Never checked against the page (024 FR-007a).",
+      "type": "string",
+      "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,99}$"
+    },
+    "entry": {
+      "type": "object",
+      "required": ["id", "target", "children"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "#/$defs/entryId" },
+        "label": { "$ref": "#/$defs/label" },
+        "target": { "$ref": "#/$defs/target" },
+        "newTab": {
+          "description": "Only on page, item and url targets (menu.md rule 7).",
+          "type": "boolean",
+          "default": false
+        },
+        "hidden": {
+          "description": "A hidden entry and its children are not shown on the site. The inverse of the spec's \"shown\".",
+          "type": "boolean",
+          "default": false
+        },
+        "children": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/entry" }
+        }
+      }
+    },
+    "target": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["type", "pageId"],
+          "additionalProperties": false,
+          "properties": {
+            "type": { "const": "page" },
+            "pageId": { "type": "string", "format": "uuid" },
+            "anchor": { "$ref": "#/$defs/anchor" }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["type", "collectionId", "itemId"],
+          "additionalProperties": false,
+          "properties": {
+            "type": { "const": "item" },
+            "collectionId": { "type": "string", "format": "uuid" },
+            "itemId": { "type": "string", "format": "uuid" }
+          }
+        },
+        {
+          "description": "The same schemes as a page-schema link (page-schema.md §2a): https, http, mailto and tel; never protocol-relative.",
+          "type": "object",
+          "required": ["type", "href"],
+          "additionalProperties": false,
+          "properties": {
+            "type": { "const": "url" },
+            "href": {
+              "type": "string",
+              "maxLength": 2048,
+              "pattern": "^(https?://[^\\u0000-\\u0020\\u007f]+|mailto:[^\\u0000-\\u0020\\u007f]+|tel:[+0-9 ().-]+)$"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["type", "anchor"],
+          "additionalProperties": false,
+          "properties": {
+            "type": { "const": "anchor" },
+            "anchor": { "$ref": "#/$defs/anchor" }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["type"],
+          "additionalProperties": false,
+          "properties": {
+            "type": { "const": "none" }
+          }
+        }
+      ]
+    }
+  }
+}

@@ -8,6 +8,9 @@ internal static class SubjectKinds
 
     public const string Component = "component";
 
+    /// <summary>A menu (024 research NV-01): published like a component.</summary>
+    public const string Menu = "menu";
+
     /// <summary>The site's design: log entries only, recorded from the Editor module's event.</summary>
     public const string Design = "design";
 }
@@ -36,6 +39,12 @@ internal static class DependencyKinds
 
     /// <summary>A template page's own collection (016 data-model §1.2).</summary>
     public const string Template = "template";
+
+    /// <summary>A Navigation block's menu, from a page or component (024 research NV-07).</summary>
+    public const string Menu = "menu";
+
+    /// <summary>A menu entry's collection item (024 research NV-07).</summary>
+    public const string Item = "item";
 }
 
 /// <summary>What a schedule does (012 data-model §1.4).</summary>

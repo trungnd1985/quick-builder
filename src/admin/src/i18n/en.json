@@ -1451,7 +1451,8 @@
         "not_published": "It was no longer published.",
         "invalid_document": "Its content no longer passes the page checks.",
         "unknown": "The schedule could not run.",
-        "image_alt_missing": "An image in its rich text had no alternative text."
+        "image_alt_missing": "An image in its rich text had no alternative text.",
+        "unpublished_menus": "A menu it shows was not published by then."
       },
       "scheduled": {
         "publish": "Publishes {when}",
@@ -1588,7 +1589,11 @@
         "not_found": "This page no longer exists.",
         "component_not_found": "This component no longer exists.",
         "unknown": "The schedule could not run.",
-        "image_alt_missing": "{count} image(s) in rich text need alternative text, or to be marked decorative, before publishing. The first one is selected."
+        "image_alt_missing": "{count} image(s) in rich text need alternative text, or to be marked decorative, before publishing. The first one is selected.",
+        "unpublished_menus": "{count} menu(s) this shows are not published. Publish them first.",
+        "version_missing_menus": "That version shows {count} menu(s) that no longer exist.",
+        "menu_in_use_by_published_content": "{pages} published page(s) and {components} published component(s) show this menu. Remove it from them first.",
+        "menu_not_found": "This menu no longer exists."
       },
       "editor": {
         "out_of_date": "Someone changed the design since you opened it. Reload and try again.",
@@ -2247,6 +2252,30 @@
       "outcome": "{created} redirect(s) created; {skipped} left alone because something live now uses the address.",
       "turnedOff": "{count} older redirect(s) turned off, because they would now send visitors in a circle.",
       "itemRequested": "The old address will redirect within a few seconds."
+    }
+  },
+  "menus": {
+    "errors": {
+      "forbidden": "You are not allowed to change menus on this site.",
+      "out_of_date": "Someone changed this menu since you opened it. Reload and try again.",
+      "unknown": "Something went wrong. Try again.",
+      "invalid_menu_name": "A menu name must be between 1 and 100 characters.",
+      "duplicate_menu_name": "This site already has a menu with that name.",
+      "menu_limit_reached": "A site can have at most {limit} menus.",
+      "menu_not_found": "This menu no longer exists.",
+      "menu_in_use_by_published_content": "{pages} published page(s) and {components} published component(s) show this menu. Remove it from them first.",
+      "document_too_large": "This menu is too large to save.",
+      "invalid_menu_document": "This menu has a problem and was not saved.",
+      "rules": {
+        "duplicate_entry_id": "Two entries have the same id. Reload the menu.",
+        "too_many_entries": "A menu can hold at most 300 entries.",
+        "too_deep": "Entries can be nested at most three levels deep.",
+        "label_required": "This entry needs a label.",
+        "new_tab_not_allowed": "Only entries that link somewhere can open in a new tab.",
+        "unknown_target": "This entry points at a page or item that is not on this site.",
+        "entry_invalid": "This entry is not valid. Check its address and anchor.",
+        "schema_violation": "This menu is not valid. Reload it."
+      }
     }
   }
 }

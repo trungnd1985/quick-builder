@@ -158,11 +158,41 @@ internal sealed class PublishedContentReader(PublishedReadDbContext database) : 
                     .DefaultIfEmpty()
                     // 016 research TB-02: a link to a template page itself goes nowhere, so it is
                     // never live as a link target and renders as plain text (012 FR-026).
-                select new { page.Id, page.Path, IsLive = publication != null && publication.LiveVersionId != null && page.TemplateCollectionId == null })
+                from version in database.Versions
+                    .Where(v => publication != null && v.Id == publication.LiveVersionId)
+                    .DefaultIfEmpty()
+                select new
+                {
+                    page.Id,
+                    page.Path,
+                    IsLive = publication != null && publication.LiveVersionId != null && page.TemplateCollectionId == null,
+                    // 024 NV-09: the title visitors see, for menu entries without their own label.
+                    LiveTitle = version != null ? version.Title : null,
+                })
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
 
-        return targets.ToDictionary(t => t.Id, t => new PageLinkTarget(t.Path, t.IsLive));
+        return targets.ToDictionary(t => t.Id, t => new PageLinkTarget(t.Path, t.IsLive, t.IsLive ? t.LiveTitle : null));
+    }
+
+    public async Task<IReadOnlyDictionary<Guid, LiveMenu>> GetLiveMenusAsync(
+        Guid siteId, IReadOnlyCollection<Guid> menuIds, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(menuIds);
+
+        if (menuIds.Count == 0)
+        {
+            return new Dictionary<Guid, LiveMenu>();
+        }
+
+        var versions = await LiveVersions(siteId, SubjectKinds.Menu, menuIds)
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        // 024 NV-05: a menu version's title is the menu's name when it was published.
+        return versions.ToDictionary(
+            v => v.SubjectId,
+            v => new LiveMenu(v.Row.SchemaVersion, Parse(v.Row.Document), v.Row.Title ?? string.Empty));
     }
 
     public Task<bool> IsHomePageLiveAsync(Guid siteId, CancellationToken cancellationToken = default) =>

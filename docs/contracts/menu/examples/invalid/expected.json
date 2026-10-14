@@ -1,0 +1,79 @@
+{
+  "$comment": "What each invalid example must fail with: the rule (also the start of its file name) and the JSON Pointer of the first failure. Shared by every validator of the menu contract (docs/contracts/menu.md §7).",
+  "malformed_json--truncated.json": {
+    "rule": "malformed_json",
+    "pointer": ""
+  },
+  "duplicate_property--label.json": {
+    "rule": "duplicate_property",
+    "pointer": "/entries/0/label"
+  },
+  "unsupported_schema_version--version-2.json": {
+    "rule": "unsupported_schema_version",
+    "pointer": "/schemaVersion"
+  },
+  "schema_violation--missing-entries.json": {
+    "rule": "schema_violation",
+    "pointer": ""
+  },
+  "entry_invalid--javascript-href.json": {
+    "rule": "entry_invalid",
+    "pointer": "/entries/0/target/href"
+  },
+  "entry_invalid--protocol-relative-href.json": {
+    "rule": "entry_invalid",
+    "pointer": "/entries/0/target/href"
+  },
+  "entry_invalid--anchor-digit.json": {
+    "rule": "entry_invalid",
+    "pointer": "/entries/0/target/anchor"
+  },
+  "entry_invalid--anchor-hash.json": {
+    "rule": "entry_invalid",
+    "pointer": "/entries/0/target/anchor"
+  },
+  "entry_invalid--label-control-char.json": {
+    "rule": "entry_invalid",
+    "pointer": "/entries/0/label"
+  },
+  "entry_invalid--label-101.json": {
+    "rule": "entry_invalid",
+    "pointer": "/entries/0/label"
+  },
+  "entry_invalid--unknown-target-type.json": {
+    "rule": "entry_invalid",
+    "pointer": "/entries/0/target/type"
+  },
+  "entry_invalid--extra-property.json": {
+    "rule": "entry_invalid",
+    "pointer": "/entries/0/icon"
+  },
+  "entry_invalid--missing-children.json": {
+    "rule": "entry_invalid",
+    "pointer": "/entries/0"
+  },
+  "duplicate_entry_id--twice.json": {
+    "rule": "duplicate_entry_id",
+    "pointer": "/entries/1/id"
+  },
+  "too_deep--fourth-level.json": {
+    "rule": "too_deep",
+    "pointer": "/entries/0/children/0/children/0/children/0"
+  },
+  "label_required--url.json": {
+    "rule": "label_required",
+    "pointer": "/entries/0"
+  },
+  "label_required--anchor-blank.json": {
+    "rule": "label_required",
+    "pointer": "/entries/1"
+  },
+  "label_required--none.json": {
+    "rule": "label_required",
+    "pointer": "/entries/0"
+  },
+  "new_tab_not_allowed--none.json": {
+    "rule": "new_tab_not_allowed",
+    "pointer": "/entries/0/newTab"
+  }
+}

@@ -191,6 +191,23 @@ there removes the site from search engines. See
 - **Redirect offers** that come with a change (a move, a slug change, an item publish) need only
   the capability of that change, so an Editor publishing an item slug change may accept one.
 
+### Registered by 024
+
+Navigation and menus (024) add one, registered by Pages. Menus shape the site's structure, so
+Designers build them ("Designer builds, Editor writes", 010). See
+[024 research NV-18](../../024-navigation/research.md#nv-18-capabilities-audit-and-concurrency).
+
+| Capability | Scope | Administrator | Designer | Editor |
+|---|---|---|---|---|
+| `pages.menus.manage` | Site | ✓ | ✓ | — |
+
+- **`pages.menus.manage`**: create, rename, duplicate and delete menus, save their drafts, and
+  copy a published version into the draft.
+- **Viewing** menus, their preview, usages and references needs `pages.content.view`, so Editors
+  can see menus and choose one in a Navigation block of a draft they may save.
+- **Publishing** menus (publish, unpublish, schedule, roll back) needs
+  `pages.publishing.manage`, as for pages and components.
+
 ## 3. What a caller sees
 
 | Situation | Status | `errorCode` |

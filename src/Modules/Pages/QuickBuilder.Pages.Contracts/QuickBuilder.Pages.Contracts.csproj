@@ -18,6 +18,9 @@
   <ItemGroup>
     <EmbeddedResource Include="..\..\..\..\docs\contracts\page-schema\*.schema.json"
                       LogicalName="QuickBuilder.Pages.Contracts.PageSchema.%(Filename)%(Extension)" />
+    <!-- 024 research NV-03: the menu contract, embedded the same way. -->
+    <EmbeddedResource Include="..\..\..\..\docs\contracts\menu\*.schema.json"
+                      LogicalName="QuickBuilder.Pages.Contracts.MenuSchema.%(Filename)%(Extension)" />
   </ItemGroup>
 
 </Project>

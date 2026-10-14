@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "root": {
+    "id": "root",
+    "type": "root",
+    "props": {},
+    "children": [
+      {
+        "id": "footer",
+        "type": "section",
+        "props": {},
+        "children": [
+          {
+            "id": "footer-nav",
+            "type": "navigation",
+            "props": {
+              "menuId": "0192f5a0-1b2c-7d3e-8f40-5a6b7c8d9e41",
+              "layout": "vertical",
+              "levels": 1,
+              "ariaLabel": "Footer"
+            },
+            "children": []
+          }
+        ]
+      }
+    ]
+  }
+}

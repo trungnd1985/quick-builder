@@ -48,6 +48,12 @@ internal static class PagesOutbox
                 case ComponentDeletedEvent e:
                     Add(database, new ComponentDeleted(Guid.CreateVersion7(), e.OccurredAtUtc, e.SiteId, e.ComponentId, actorUserId));
                     break;
+                // 024 data-model §6: a menu publish refreshes everything it affects in its own
+                // transaction, and no module consumes menu changes, so it announces nothing. Matched
+                // before the component fallbacks below, which would otherwise mislabel it.
+                case SubjectPublishedEvent { SubjectKind: SubjectKinds.Menu }:
+                case SubjectUnpublishedEvent { SubjectKind: SubjectKinds.Menu }:
+                    break;
                 case SubjectPublishedEvent { SubjectKind: SubjectKinds.Page } e:
                     Add(database, new PagePublished(Guid.CreateVersion7(), e.OccurredAtUtc, e.SiteId, e.SubjectId, e.VersionNumber, e.Kind, e.Path ?? string.Empty, actorUserId));
                     break;
