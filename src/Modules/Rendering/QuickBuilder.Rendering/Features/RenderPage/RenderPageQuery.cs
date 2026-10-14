@@ -34,6 +34,7 @@ internal sealed class RenderPageHandler(PageResponder responder, IPublicNotFound
             ? await responder.RespondAsync(
                 query.Site,
                 path,
+                RawPathOf(query.Path),
                 query.BasePath,
                 query.IfNoneMatch,
                 query.Query,
@@ -42,4 +43,7 @@ internal sealed class RenderPageHandler(PageResponder responder, IPublicNotFound
                 cancellationToken).ConfigureAwait(false)
             : await notFound.RenderAsync(query.Site, cancellationToken).ConfigureAwait(false);
     }
+
+    /// <summary>The address as requested; the root, however written, is the root (017 SE-06).</summary>
+    private static string RawPathOf(string? path) => string.IsNullOrEmpty(path) ? "/" : path;
 }

@@ -59,16 +59,25 @@ public sealed class PublicRenderingTests(DatabaseFixture database) : IAsyncLifet
         Assert.Equal("strict-origin-when-cross-origin", response.Headers.GetValues("Referrer-Policy").Single());
     }
 
-    [Theory]
-    [InlineData("/About")]
-    [InlineData("/about/")]
-    [InlineData("/about?x=1")]
-    public async Task Case_a_trailing_slash_and_a_query_serve_the_same_page(string address)
+    [Fact]
+    public async Task A_query_serves_the_same_page()
     {
-        var response = await Visitor().GetAsync(new Uri(address, UriKind.Relative)).ConfigureAwait(true);
+        var response = await Visitor().GetAsync(new Uri("/about?x=1", UriKind.Relative)).ConfigureAwait(true);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Contains("About &lt;us&gt;", await response.Content.ReadAsStringAsync().ConfigureAwait(true), StringComparison.Ordinal);
+    }
+
+    // 017 FR-013: other letter cases and a trailing slash redirect to the one address.
+    [Theory]
+    [InlineData("/About")]
+    [InlineData("/about/")]
+    public async Task Case_and_a_trailing_slash_redirect_to_the_page(string address)
+    {
+        var response = await QuickBuilder.IntegrationTests.Seo.RedirectsApi.VisitAsync(_scenario.App, PagesScenario.HostA, address).ConfigureAwait(true);
+
+        Assert.Equal(HttpStatusCode.MovedPermanently, response.StatusCode);
+        Assert.Equal("/about", response.Headers.Location?.OriginalString);
     }
 
     [Fact]

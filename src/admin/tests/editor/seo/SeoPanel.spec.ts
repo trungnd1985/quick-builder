@@ -39,6 +39,53 @@ afterEach(() => {
   document.body.innerHTML = ''
 })
 
+describe('Canonical address', () => {
+  const tree = {
+    status: 200,
+    body: {
+      pages: [
+        { id: '0192f5a0-0000-7000-8000-0000000000f1', parentId: null, position: 0, depth: 1, title: 'Original', slug: 'original', path: '/original', isHome: false, childCount: 0, version: 1, templateCollectionId: null },
+        { id: 'p-tpl', parentId: null, position: 1, depth: 1, title: 'Post', slug: 'post', path: '/blog/{slug}', isHome: false, childCount: 0, version: 1, templateCollectionId: 'c' },
+      ],
+      permissions: {},
+    },
+  }
+
+  it('names another page of the site, never a template', async () => {
+    const server = stubServer(emptyDocument())
+    server.script(`GET /api/v1/pages/sites/${SITE}/pages`, tree)
+    const dialog = await openPanel(server)
+
+    await fireEvent.click(within(dialog).getByLabelText(en.editor.seo.canonical.page))
+    const select = await within(dialog).findByLabelText<HTMLSelectElement>(en.editor.seo.canonical.pageLabel)
+    await waitFor(() => expect([...select.options].map((o) => o.value)).toEqual(['0192f5a0-0000-7000-8000-0000000000f1']))
+    await fireEvent.update(select, '0192f5a0-0000-7000-8000-0000000000f1')
+
+    expect(seo()?.canonical).toEqual({ type: 'page', pageId: '0192f5a0-0000-7000-8000-0000000000f1' })
+  })
+
+  it('takes an http or https address and refuses anything else', async () => {
+    const dialog = await openPanel(stubServer(emptyDocument()))
+
+    await fireEvent.click(within(dialog).getByLabelText(en.editor.seo.canonical.url))
+    const input = within(dialog).getByLabelText(en.editor.seo.canonical.urlLabel)
+    await fireEvent.update(input, 'ftp://elsewhere.test/x')
+    await fireEvent.change(input)
+    expect(within(dialog).getByRole('alert').textContent).toBe(en.editor.seo.canonical.invalid)
+    expect(seo()).toBeUndefined()
+
+    await fireEvent.update(input, 'https://elsewhere.test/original')
+    await fireEvent.change(input)
+    expect(seo()?.canonical).toEqual({ type: 'url', href: 'https://elsewhere.test/original' })
+  })
+
+  it('is read-only for members who may not change the page structure', async () => {
+    const dialog = await openPanel(stubServer(emptyDocument()), false)
+
+    expect(within(dialog).getByLabelText<HTMLInputElement>(en.editor.seo.canonical.url).disabled).toBe(true)
+  })
+})
+
 describe('Search and sharing panel', () => {
   it('sets the meta title and description in the draft, and undo takes them back', async () => {
     const dialog = await openPanel(stubServer(emptyDocument()))

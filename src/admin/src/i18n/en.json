@@ -1340,7 +1340,16 @@
       "withoutImage": "No sharing image",
       "templateHint": "This page is a template: each field can read the item shown. Values are shortened to fit at a word.",
       "whenNone": "{field} when the item has none",
-      "hideItem": "Hide an item from search engines"
+      "hideItem": "Hide an item from search engines",
+      "canonical": {
+        "label": "Canonical address",
+        "self": "This page",
+        "page": "Another page of this site",
+        "pageLabel": "Page that holds the original",
+        "url": "An address elsewhere",
+        "urlLabel": "Address of the original (http or https)",
+        "invalid": "Use a full http or https address, without a user name or password."
+      }
     }
   },
   "design": {

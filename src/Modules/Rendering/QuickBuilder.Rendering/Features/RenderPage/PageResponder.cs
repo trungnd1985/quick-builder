@@ -59,9 +59,29 @@ internal sealed class PageResponder(
         IReadOnlyDictionary<string, string?>? query,
         string canonicalQuery,
         string? rawQuery,
+        CancellationToken cancellationToken) =>
+        await RespondAsync(site, path, rawPath: path, basePath, ifNoneMatch, query, canonicalQuery, rawQuery, cancellationToken).ConfigureAwait(false);
+
+    /// <summary>
+    /// As the other overload, given the address as requested too (017 FR-013, research SE-06):
+    /// when it differs from <paramref name="path"/> only in letter case or a trailing slash and
+    /// live content is at <paramref name="path"/>, the answer is a <c>301</c> there, with the
+    /// query. A miss goes on with the normalised address, so the not-found page stays the same.
+    /// </summary>
+    public async Task<PublicResponse> RespondAsync(
+        SiteDto site,
+        string path,
+        string? rawPath,
+        string basePath,
+        string? ifNoneMatch,
+        IReadOnlyDictionary<string, string?>? query,
+        string canonicalQuery,
+        string? rawQuery,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(site);
+
+        var normalising = path != "/" && rawPath is not null && !string.Equals(rawPath, path, StringComparison.Ordinal);
 
         // 017 FR-016, FR-017a: a redirect with this exact query is more specific than the
         // page at its path, so it is matched first.
@@ -76,7 +96,12 @@ internal sealed class PageResponder(
         var live = await pages.FindLiveByPathAsync(site.Id, path, cancellationToken).ConfigureAwait(false);
         if (live is null)
         {
-            return await RespondItemAsync(site, path, basePath, ifNoneMatch, query, rawQuery, cancellationToken).ConfigureAwait(false);
+            return await RespondItemAsync(site, path, normalising, basePath, ifNoneMatch, query, rawQuery, cancellationToken).ConfigureAwait(false);
+        }
+
+        if (normalising)
+        {
+            return Normalised(basePath, path, rawQuery);
         }
 
         // 016 TB-11: the page numbers its lists show are part of the key; other parameters are not.
@@ -101,6 +126,7 @@ internal sealed class PageResponder(
     private async Task<PublicResponse> RespondItemAsync(
         SiteDto site,
         string path,
+        bool normalising,
         string basePath,
         string? ifNoneMatch,
         IReadOnlyDictionary<string, string?>? query,
@@ -112,6 +138,11 @@ internal sealed class PageResponder(
             || await items.FindBySlugAsync(site.Id, template.CollectionId, split.Slug, cancellationToken).ConfigureAwait(false) is not { } item)
         {
             return await RedirectOrNotFoundAsync(site, path, basePath, rawQuery, cancellationToken).ConfigureAwait(false);
+        }
+
+        if (normalising)
+        {
+            return Normalised(basePath, path, rawQuery);
         }
 
         var request = new ListRequest(path, PageParams.From(template.Params, query));
@@ -152,6 +183,12 @@ internal sealed class PageResponder(
 
         return await notFound.RenderAsync(site, cancellationToken).ConfigureAwait(false);
     }
+
+    /// <summary>The 301 to the normalised address of live content, keeping the query (FR-013).</summary>
+    private static PublicResponse Normalised(string basePath, string path, string? rawQuery) =>
+        RedirectResponder.Redirect(
+            StatusCodes.Status301MovedPermanently,
+            RedirectResponder.AsciiOnly(PageShell.TrimBase(basePath) + path + (string.IsNullOrEmpty(rawQuery) ? string.Empty : rawQuery)));
 
     private static Dictionary<string, string> Headers(string etag, SiteDto site)
     {
@@ -272,6 +309,12 @@ internal sealed class PageResponder(
         var seo = SeoDocument.From(version.Document);
         references.Media.UnionWith(HeadBuilder.MediaIds(seo, site));
 
+        // 017 FR-012: a canonical override's target, to name its current address.
+        if (seo?.Canonical?.PageId is { } canonicalPage)
+        {
+            references.Pages.Add(canonicalPage);
+        }
+
         var targets = await pages.GetLinkTargetsAsync(site.Id, references.Pages, cancellationToken).ConfigureAwait(false);
         var files = await media.GetAsync(site.Id, references.Media, cancellationToken).ConfigureAwait(false);
 
@@ -280,7 +323,7 @@ internal sealed class PageResponder(
 
         var inputs = new RenderInputs(
             title, version.Document, design.Document, components, targets, files, site.DefaultLanguage, basePath, fetched.Data,
-            seo, site, request.Path, pageItem is not null);
+            seo, site, request.Path, pageItem is not null, request.Params.Pages);
         metrics.Rendered();
         return Render(inputs, renderer, context => LogBroken(context, site.Id, pageId));
     }
@@ -310,7 +353,8 @@ internal sealed class PageResponder(
         renderer.RenderDocument(inputs.Document, PageRenderer.PageScope, context, body);
 
         var head = inputs.Site is { } site
-            ? HeadBuilder.Build(new HeadInputs(inputs.Title, inputs.Path, inputs.IsItemPage, inputs.Seo, site, inputs.Media, MetadataBindings(inputs, context)))
+            ? HeadBuilder.Build(new HeadInputs(
+                inputs.Title, inputs.Path, inputs.IsItemPage, inputs.Seo, site, inputs.Media, MetadataBindings(inputs, context), inputs.PageParams, inputs.LinkTargets))
             : null;
         afterRender?.Invoke(context);
         var document = PageShell.Write(inputs.Title, inputs.Language, inputs.BasePath, context.Tokens, context.NodeRules, body.ToString(), head);

@@ -37,7 +37,7 @@ internal static class HeadBuilder
 
         var title = Meta(seo, bound, "title", seo?.Title) ?? inputs.PageTitle + (site.Search.TitleSuffix ?? string.Empty);
         var description = Meta(seo, bound, "description", seo?.Description);
-        var canonical = SiteAddress.Absolute(site.BaseUrl, inputs.Path);
+        var canonical = CanonicalAddress.Of(site.BaseUrl, inputs.Path, inputs.PageParams, seo?.Canonical, inputs.LinkTargets);
 
         string? robots = site.Search.Discouraged
             ? "noindex, nofollow"

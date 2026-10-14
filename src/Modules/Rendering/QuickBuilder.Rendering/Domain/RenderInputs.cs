@@ -44,4 +44,5 @@ internal sealed record RenderInputs(
     QuickBuilder.Rendering.Seo.SeoDocument? Seo = null,
     QuickBuilder.Sites.Contracts.SiteDto? Site = null,
     string Path = "/",
-    bool IsItemPage = false);
+    bool IsItemPage = false,
+    IReadOnlyDictionary<string, int>? PageParams = null);

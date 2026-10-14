@@ -56,6 +56,17 @@ internal sealed class SiteResolutionMiddleware(RequestDelegate next, ILogger<Sit
 
         siteContextSetter.SetSite(site.Id);
 
+        // 017 FR-014, research SE-07: one host name serves the site when the Administrator
+        // chose so. Media files and the block stylesheet keep answering on every host name, so
+        // images in old emails and embeds still load.
+        if (site.RedirectOtherHostNames && !IsPrimaryHost(context.Request.Host.Host, site) && !ServedOnEveryHost(context.Request.Path))
+        {
+            context.Response.StatusCode = StatusCodes.Status301MovedPermanently;
+            context.Response.Headers.Location = site.BaseUrl.TrimEnd('/') + context.Request.Path.ToUriComponent() + context.Request.QueryString.ToUriComponent();
+            context.Response.Headers.CacheControl = "public, max-age=300";
+            return;
+        }
+
         // A public path nothing handles gets the one public not-found, the same answer an
         // admin path on a client domain gets (research S-13). Paths under /_media stay with
         // Media, which answers its own misses.
@@ -67,6 +78,27 @@ internal sealed class SiteResolutionMiddleware(RequestDelegate next, ILogger<Sit
 
         await next(context).ConfigureAwait(false);
     }
+
+    /// <summary>Whether the request's host name is the site's primary one, compared as the directory stores names.</summary>
+    private static bool IsPrimaryHost(string host, SiteDto site)
+    {
+        var name = host.TrimEnd('.');
+        try
+        {
+            name = new System.Globalization.IdnMapping().GetAscii(name);
+        }
+        catch (ArgumentException)
+        {
+            // Not a valid IDN; it still resolved, so compare it as written.
+        }
+
+        return string.Equals(name, site.PrimaryHostName, StringComparison.OrdinalIgnoreCase)
+            || string.Equals(host, site.PrimaryHostName, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool ServedOnEveryHost(PathString path) =>
+        path.StartsWithSegments("/_media", StringComparison.OrdinalIgnoreCase)
+        || path.StartsWithSegments("/_assets", StringComparison.OrdinalIgnoreCase);
 
     private static bool IsPublicReserved(PathString path) =>
         RoutePrefixes.PublicReservedPrefixes.Any(prefix => path.StartsWithSegments(prefix, StringComparison.OrdinalIgnoreCase));

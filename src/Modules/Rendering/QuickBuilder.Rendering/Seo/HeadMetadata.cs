@@ -41,6 +41,8 @@ internal sealed record SharingImage(string Url, int? Width, int? Height, string?
 /// On an item page, the outcome of each metadata binding by field (<c>title</c>, <c>noindex</c>, …);
 /// empty elsewhere, where bindings are not read (page-schema rule 23).
 /// </param>
+/// <param name="PageParams">The page numbers the request asked of the page's paginated lists (016 TB-11).</param>
+/// <param name="LinkTargets">The pages the render links to, among them a canonical override's target.</param>
 internal sealed record HeadInputs(
     string PageTitle,
     string Path,
@@ -48,4 +50,6 @@ internal sealed record HeadInputs(
     SeoDocument? Seo,
     SiteDto Site,
     IReadOnlyDictionary<Guid, PublicMediaFile> Media,
-    IReadOnlyDictionary<string, BoundValue>? Bound = null);
+    IReadOnlyDictionary<string, BoundValue>? Bound = null,
+    IReadOnlyDictionary<string, int>? PageParams = null,
+    IReadOnlyDictionary<Guid, Pages.Contracts.Publishing.PageLinkTarget>? LinkTargets = null);

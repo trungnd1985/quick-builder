@@ -583,7 +583,7 @@ redirect.
 
 ### Tests for User Story 6 ⚠️
 
-- [ ] T085 [P] [US6] Create `UTESTS/Rendering/Seo/CanonicalAddressTests.cs` for `RENDER/Seo/CanonicalAddress.cs`. It covers:
+- [X] T085 [P] [US6] Create `UTESTS/Rendering/Seo/CanonicalAddressTests.cs` for `RENDER/Seo/CanonicalAddress.cs`. It covers:
   - the home page `/`;
   - a base path;
   - an item address;
@@ -592,7 +592,7 @@ redirect.
   - a page override following the target's current address;
   - a target that is not live → self;
   - a `url` override as written.
-- [ ] T086 [P] [US6] Create `ITESTS/Rendering/AddressNormalisationTests.cs`. It covers:
+- [X] T086 [P] [US6] Create `ITESTS/Rendering/AddressNormalisationTests.cs`. It covers:
   - `/Blog/` and `/blog/` → `301 /blog` with the query kept;
   - item pages likewise;
   - `/` and the base path root never redirected;
@@ -604,14 +604,14 @@ redirect.
   - `/_media` and `/_assets` not redirected;
   - a new site defaults on, and an upgraded site off;
   - only Administrators can change it.
-- [ ] T087 [P] [US6] Extend `ADMINTESTS/features/sites/SearchVisibilityPanel.spec.ts` (the host redirect switch with a confirmation dialog listing the primary and the other host names) and `ADMINTESTS/editor/seo/SeoPanel.spec.ts` (the canonical control: page picker or URL, and `http`/`https` validation).
+- [X] T087 [P] [US6] Extend `ADMINTESTS/features/sites/SearchVisibilityPanel.spec.ts` (the host redirect switch with a confirmation dialog listing the primary and the other host names) and `ADMINTESTS/editor/seo/SeoPanel.spec.ts` (the canonical control: page picker or URL, and `http`/`https` validation).
 
 ### Implementation for User Story 6
 
-- [ ] T088 [US6] Implement `RENDER/Seo/CanonicalAddress.cs` and use it in `HeadBuilder` (`canonical` and `og:url`), in `SitemapBuilder`, and in `RedirectResponder` for absolute addresses. Page override targets come from `GetLinkTargetsAsync`, already collected through the link dependency (T028). Paginated list parameters come from `ListRequest.Params`. Make T085 pass.
-- [ ] T089 [US6] Add the normalisation redirect to `RENDER/Features/RenderPage/RenderPageQuery.cs` and `PageResponder.cs`. Keep the raw path. When the live page or item page matched the normalised path and the raw path differs (case or trailing slash, never for `/`), answer `301` with the query and `Cache-Control: public, max-age=300` before rendering.
-- [ ] T090 [US6] In `HOST/Middleware/SiteResolutionMiddleware.cs`, after resolving the site: when `site.RedirectOtherHostNames` is on, the normalised request host is not `site.PrimaryHostName`, and the path is not under `/_media` or `/_assets`, write a `301` to `site.BaseUrl + path + query` with `Cache-Control: public, max-age=300`. Make T086 pass. The existing site-resolution tests stay green.
-- [ ] T091 [P] [US6] Add the canonical control (page picker or URL) to `EDITOR/seo/SeoPanel.vue`, restricted as in T033. Add the host redirect switch and its confirmation dialog to `ADMIN/features/sites/SearchVisibilityPanel.vue`. Add i18n keys. Make T087 pass.
+- [X] T088 [US6] Implement `RENDER/Seo/CanonicalAddress.cs` and use it in `HeadBuilder` (`canonical` and `og:url`), in `SitemapBuilder`, and in `RedirectResponder` for absolute addresses. Page override targets come from `GetLinkTargetsAsync`, already collected through the link dependency (T028). Paginated list parameters come from `ListRequest.Params`. Make T085 pass.
+- [X] T089 [US6] Add the normalisation redirect to `RENDER/Features/RenderPage/RenderPageQuery.cs` and `PageResponder.cs`. Keep the raw path. When the live page or item page matched the normalised path and the raw path differs (case or trailing slash, never for `/`), answer `301` with the query and `Cache-Control: public, max-age=300` before rendering.
+- [X] T090 [US6] In `HOST/Middleware/SiteResolutionMiddleware.cs`, after resolving the site: when `site.RedirectOtherHostNames` is on, the normalised request host is not `site.PrimaryHostName`, and the path is not under `/_media` or `/_assets`, write a `301` to `site.BaseUrl + path + query` with `Cache-Control: public, max-age=300`. Make T086 pass. The existing site-resolution tests stay green.
+- [X] T091 [P] [US6] Add the canonical control (page picker or URL) to `EDITOR/seo/SeoPanel.vue`, restricted as in T033. Add the host redirect switch and its confirmation dialog to `ADMIN/features/sites/SearchVisibilityPanel.vue`. Add i18n keys. Make T087 pass.
 
 **Checkpoint**: quickstart §6 passes.
 

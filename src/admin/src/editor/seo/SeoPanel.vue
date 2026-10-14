@@ -20,6 +20,7 @@ import { resolveBinding } from '../bindings/resolve'
 import { isObject, type Json, type JsonObject } from '../schema/subsetValidator'
 import SearchPreview from './SearchPreview.vue'
 import SharingPreview from './SharingPreview.vue'
+import CanonicalControl from './CanonicalControl.vue'
 import {
   addressOf,
   effective,
@@ -107,6 +108,7 @@ function change(field: string, value: Json | undefined): void {
 }
 
 function refusalMessage(field: string, keyword: string | undefined): string {
+  if (field === 'canonical') return t('editor.seo.canonical.invalid')
   if (keyword === 'maxLength' && (SEO_TEXT_FIELDS as readonly string[]).includes(field)) {
     return t('editor.seo.tooLong', { max: maxLength(field as SeoTextField) })
   }
@@ -236,6 +238,16 @@ onMounted(async () => {
             :node="store.root"
             prop="seo.ogImage"
             :label="t('editor.seo.ogImage')"
+          />
+
+          <CanonicalControl
+            :id="`${dialogId}-canonical`"
+            :site-id="siteId"
+            :value="seo.canonical"
+            :disabled="readOnly || !canManageStructure"
+            :described-by="canManageStructure ? undefined : `${dialogId}-restricted`"
+            :error="errors.canonical"
+            @change="(value) => change('canonical', value)"
           />
 
           <fieldset class="seo-panel__switches">
