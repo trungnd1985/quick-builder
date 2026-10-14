@@ -451,7 +451,7 @@ sitemap.
 
 ### Tests for User Story 4 ⚠️
 
-- [ ] T065 [P] [US4] Add golden cases to `CONTRACTS/binding-expression/examples/resolve/` (`seo-*.json`). They cover:
+- [X] T065 [P] [US4] Add golden cases to `CONTRACTS/binding-expression/examples/resolve/` (`seo-*.json`). They cover:
   - a text template title;
   - a rich text description (plain text);
   - whitespace collapsing;
@@ -460,15 +460,15 @@ sitemap.
   - a broken binding;
   - a single-reference value;
   - the hide switch: true, false, empty, non-boolean.
-- [ ] T066 [P] [US4] Extend `UTESTS/Rendering/Binding/BindingRulesGoldenTests.cs` and `ADMINTESTS/editor/bindings/bindingRules.spec.ts` to run the `seo-*` cases and the new compatibility rows (seo-metadata.md §3) on both sides. Create `UTESTS/Rendering/Seo/PlainTextTests.cs` for the rich text conversion and cutting. Both must fail first.
-- [ ] T067 [P] [US4] Create `ITESTS/Rendering/SeoTemplateRenderTests.cs`. It covers:
+- [X] T066 [P] [US4] Extend `UTESTS/Rendering/Binding/BindingRulesGoldenTests.cs` and `ADMINTESTS/editor/bindings/bindingRules.spec.ts` to run the `seo-*` cases and the new compatibility rows (seo-metadata.md §3) on both sides. Create `UTESTS/Rendering/Seo/PlainTextTests.cs` for the rich text conversion and cutting. Both must fail first.
+- [X] T067 [P] [US4] Create `ITESTS/Rendering/SeoTemplateRenderTests.cs`. It covers:
   - item pages show bound metadata from published data;
   - the per-item key moves only for the republished item;
   - removing a bound field marks it broken in the editor response and uses the fallback on the site;
   - `seo.bind` on an ordinary page renders as unbound (rule 23);
   - the hide switch writes `noindex` for that item only and leaves the sitemap;
   - the other items stay.
-- [ ] T068 [P] [US4] Extend `ADMINTESTS/editor/seo/SeoPanel.spec.ts` for templates:
+- [X] T068 [P] [US4] Extend `ADMINTESTS/editor/seo/SeoPanel.spec.ts` for templates:
   - each metadata field offers `BindingControl` with compatible fields only;
   - a fallback text input;
   - the hide switch bindable to boolean fields;
@@ -477,9 +477,9 @@ sitemap.
 
 ### Implementation for User Story 4
 
-- [ ] T069 [US4] Add the metadata rows of seo-metadata.md §3 to `CONTRACTS/binding-expression.md` §4, and to the compatibility tables in `RENDER/Binding/BindingRules.cs` and `EDITOR/bindings/bindingRules.ts`.
-- [ ] T070 [US4] Create `RENDER/Seo/PlainText.cs` (rich text to plain text, whitespace collapsing, word-boundary cutting with `…`). Make `PlainTextTests` pass.
-- [ ] T071 [US4] Resolve metadata bindings in `RENDER/Seo/HeadBuilder.cs`:
+- [X] T069 [US4] Add the metadata rows of seo-metadata.md §3 to `CONTRACTS/binding-expression.md` §4, and to the compatibility tables in `RENDER/Binding/BindingRules.cs` and `EDITOR/bindings/bindingRules.ts`.
+- [X] T070 [US4] Create `RENDER/Seo/PlainText.cs` (rich text to plain text, whitespace collapsing, word-boundary cutting with `…`). Make `PlainTextTests` pass.
+- [X] T071 [US4] Resolve metadata bindings in `RENDER/Seo/HeadBuilder.cs`:
   - use `BindingResolver` and `ValueFormatter` with the page scope item from `RenderInputs.Data`;
   - include `seo.bind` field ids in the `BindingFetcher` plan (`RENDER/Binding/BindingFetcher.cs`) so values are fetched before rendering;
   - apply the fallback chain (fallback text, then the SE-05 default);
@@ -487,8 +487,8 @@ sitemap.
   - treat `seo.bind.noindex` true as `noindex`.
 
   Record broken metadata bindings in `RenderContext.BrokenBindings` with node id `root`. Make T065 to T067 pass.
-- [ ] T072 [US4] Extend the sitemap: `SitemapBuilder` passes `SitemapTemplate.HideFieldId` to `ListAddressesAsync` and leaves out hidden items. Item publishes already bump the generation (T056). Extend `SitemapTests` with a hidden item.
-- [ ] T073 [US4] In `EDITOR/seo/SeoPanel.vue`, when the page is a template, put the existing `EDITOR/panel/controls/BindingControl.vue` (scope `page`) beside each metadata field and "Hide from search engines", with a fallback input and broken marks. Show resolved values for the sample item in the previews. Make T068 pass.
+- [X] T072 [US4] Extend the sitemap: `SitemapBuilder` passes `SitemapTemplate.HideFieldId` to `ListAddressesAsync` and leaves out hidden items. Item publishes already bump the generation (T056). Extend `SitemapTests` with a hidden item.
+- [X] T073 [US4] In `EDITOR/seo/SeoPanel.vue`, when the page is a template, put the existing `EDITOR/panel/controls/BindingControl.vue` (scope `page`) beside each metadata field and "Hide from search engines", with a fallback input and broken marks. Show resolved values for the sample item in the previews. Make T068 pass.
 
 **Checkpoint**: quickstart §4 passes.
 

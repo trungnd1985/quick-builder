@@ -308,13 +308,27 @@ internal sealed class PageResponder(
         var context = new RenderContext(inputs, BlockDefaults.Current);
         var body = new HtmlWriter();
         renderer.RenderDocument(inputs.Document, PageRenderer.PageScope, context, body);
-        afterRender?.Invoke(context);
 
         var head = inputs.Site is { } site
-            ? HeadBuilder.Build(new HeadInputs(inputs.Title, inputs.Path, inputs.IsItemPage, inputs.Seo, site, inputs.Media))
+            ? HeadBuilder.Build(new HeadInputs(inputs.Title, inputs.Path, inputs.IsItemPage, inputs.Seo, site, inputs.Media, MetadataBindings(inputs, context)))
             : null;
+        afterRender?.Invoke(context);
         var document = PageShell.Write(inputs.Title, inputs.Language, inputs.BasePath, context.Tokens, context.NodeRules, body.ToString(), head);
         return new RenderedPage(Encoding.UTF8.GetBytes(document.Html), document.StyleHash);
+    }
+
+    /// <summary>
+    /// The outcome of each metadata binding of an item page, read through the render context so a
+    /// broken one is logged with the root's id (017 research SE-04). Other pages read none (rule 23).
+    /// </summary>
+    private static Dictionary<string, BoundValue>? MetadataBindings(RenderInputs inputs, RenderContext context)
+    {
+        if (!inputs.IsItemPage || inputs.Seo is not { Bindings.Count: > 0 } seo || !inputs.Document.TryGetProperty("root", out var root))
+        {
+            return null;
+        }
+
+        return seo.Bindings.Keys.ToDictionary(field => field, field => context.Bound(root, "seo." + field), StringComparer.Ordinal);
     }
 
     /// <summary>The headers of public-rendering.md §3 around a rendered page.</summary>

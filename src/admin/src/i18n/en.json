@@ -1337,7 +1337,10 @@
       "sharingPreview": "Link preview",
       "noDescription": "No description: search engines choose a snippet themselves.",
       "withImage": "With the sharing image",
-      "withoutImage": "No sharing image"
+      "withoutImage": "No sharing image",
+      "templateHint": "This page is a template: each field can read the item shown. Values are shortened to fit at a word.",
+      "whenNone": "{field} when the item has none",
+      "hideItem": "Hide an item from search engines"
     }
   },
   "design": {

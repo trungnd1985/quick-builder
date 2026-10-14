@@ -60,6 +60,7 @@ function describeBound(bound: Bound): Record<string, unknown> {
     if (bound.text !== undefined) outcome = { text: bound.text }
     else if (bound.richText !== undefined) outcome = { richText: bound.richText }
     else if (bound.media !== undefined) outcome = { media: bound.media }
+    else if (bound.flag) outcome = { flag: true }
     else outcome = { link: bound.link!.href }
   } else if (bound.state === 'hide') outcome = { hide: true }
   else outcome = { fallback: true }
@@ -77,7 +78,8 @@ describe('binding resolution against the contract cases', () => {
 
   it.each(outcomes)('%s: %s', (file, key) => {
     const { data, scopes, root, expected } = load(file)
-    const dot = key.lastIndexOf('.')
+    // A page's metadata is `root.seo.<field>`: the node id is everything before the first dot.
+    const dot = key.indexOf('.')
     const node = find(root, key.slice(0, dot))!
 
     expect(describeBound(resolveBinding(node, key.slice(dot + 1), data, scopes))).toEqual(expected[key])

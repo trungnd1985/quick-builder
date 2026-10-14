@@ -15,7 +15,7 @@ Each `*.json` here is one case for every implementation of binding resolution
   "media": { mediaId: public path } — files that exist,
   "scopes": [ { "name": list id, "item": item id } ] — the cards open around the nodes, outermost first,
   "document": a page document,
-  "expected": { "<nodeId>.<prop>": outcome }
+  "expected": { "<nodeId>.<prop>": outcome } — a page's metadata (017) is `root.seo.<field>`
 }
 ```
 
@@ -24,6 +24,7 @@ An item is `{ id, collectionId, slug, name, firstPublishedAt, lastPublishedAt, v
 
 - `{ "text": "…" }`, `{ "richText": { … } }`, `{ "media": mediaId }` or `{ "link": href }`: the
   binding gives that value;
+- `{ "flag": true }`: a metadata switch is on (017 `seo.noindex`); off is `{ "fallback": true }`;
 - `{ "fallback": true }`: nothing to show, so the block's own value is used;
 - `{ "hide": true }`: nothing to show, and the block is left out;
 

@@ -1,4 +1,5 @@
 using QuickBuilder.Media.Contracts;
+using QuickBuilder.Rendering.Binding;
 using QuickBuilder.Sites.Contracts;
 
 namespace QuickBuilder.Rendering.Seo;
@@ -36,10 +37,15 @@ internal sealed record SharingImage(string Url, int? Width, int? Height, string?
 /// <param name="Seo">The live document's metadata, or null when it has none.</param>
 /// <param name="Site">The site: name, base URL, language and search settings.</param>
 /// <param name="Media">The media files the render fetched; a missing id is a deleted file.</param>
+/// <param name="Bound">
+/// On an item page, the outcome of each metadata binding by field (<c>title</c>, <c>noindex</c>, …);
+/// empty elsewhere, where bindings are not read (page-schema rule 23).
+/// </param>
 internal sealed record HeadInputs(
     string PageTitle,
     string Path,
     bool IsItemPage,
     SeoDocument? Seo,
     SiteDto Site,
-    IReadOnlyDictionary<Guid, PublicMediaFile> Media);
+    IReadOnlyDictionary<Guid, PublicMediaFile> Media,
+    IReadOnlyDictionary<string, BoundValue>? Bound = null);

@@ -1,4 +1,5 @@
 using QuickBuilder.Media.Contracts;
+using QuickBuilder.Rendering.Binding;
 
 namespace QuickBuilder.Rendering.Seo;
 
@@ -13,9 +14,11 @@ namespace QuickBuilder.Rendering.Seo;
 /// <item>Sharing title and description: their own, else the title and the description.</item>
 /// <item>Sharing image: the page's, else the site's default, else none. A deleted file is
 /// none.</item>
-/// <item>Robots: <c>noindex</c> for a hidden page; <c>noindex, nofollow</c> for every page
-/// of a site that discourages search engines (FR-027).</item>
+/// <item>Robots: <c>noindex</c> for a hidden page or an item whose hide switch is on;
+/// <c>noindex, nofollow</c> for every page of a site that discourages search engines (FR-027).</item>
 /// </list>
+/// On an item page, a bound field takes its bound value; an empty or broken binding takes the
+/// field's fallback text, then the default above (research SE-04).
 /// Pure: it reads only its inputs, so the golden files pin it down.
 /// </remarks>
 internal static class HeadBuilder
@@ -30,15 +33,18 @@ internal static class HeadBuilder
         var seo = inputs.Seo;
         var site = inputs.Site;
 
-        var title = seo?.Title ?? inputs.PageTitle + (site.Search.TitleSuffix ?? string.Empty);
-        var description = seo?.Description;
+        var bound = inputs.Bound ?? NoBindings;
+
+        var title = Meta(seo, bound, "title", seo?.Title) ?? inputs.PageTitle + (site.Search.TitleSuffix ?? string.Empty);
+        var description = Meta(seo, bound, "description", seo?.Description);
         var canonical = SiteAddress.Absolute(site.BaseUrl, inputs.Path);
 
         string? robots = site.Search.Discouraged
             ? "noindex, nofollow"
-            : seo is { NoIndex: true } ? "noindex" : null;
+            : seo is { NoIndex: true } || bound.GetValueOrDefault("noindex") is { Flag: true } ? "noindex" : null;
 
-        var imageId = seo?.OgImageId ?? site.Search.DefaultImageId;
+        var imageId = (bound.GetValueOrDefault("ogImage") is { State: BoundState.Value, MediaId: { } boundImage } ? boundImage : seo?.OgImageId)
+            ?? site.Search.DefaultImageId;
         var image = imageId is { } id && inputs.Media.TryGetValue(id, out var file)
             ? SharingImageOf(file, site.BaseUrl)
             : null;
@@ -49,11 +55,35 @@ internal static class HeadBuilder
             canonical,
             robots,
             inputs.IsItemPage ? "article" : "website",
-            seo?.OgTitle ?? title,
-            seo?.OgDescription ?? description,
+            Meta(seo, bound, "ogTitle", seo?.OgTitle) ?? title,
+            Meta(seo, bound, "ogDescription", seo?.OgDescription) ?? description,
             site.Name,
             OgLocale.From(site.DefaultLanguage),
             image);
+    }
+
+    private static readonly Dictionary<string, BoundValue> NoBindings = new(StringComparer.Ordinal);
+
+    /// <summary>
+    /// A metadata text: when bound, its value, else its fallback text, else null for the
+    /// default; when not bound, the page's own text.
+    /// </summary>
+    private static string? Meta(SeoDocument? seo, IReadOnlyDictionary<string, BoundValue> bound, string field, string? own)
+    {
+        if (!bound.TryGetValue(field, out var value))
+        {
+            return own;
+        }
+
+        if (value is { State: BoundState.Value, Text: { } text })
+        {
+            return text;
+        }
+
+        return seo?.Fallbacks.TryGetValue(field, out var fallback) == true
+               && PlainText.Clean(fallback, PlainText.MaxLength(field)) is { Length: > 0 } cleaned
+            ? cleaned
+            : null;
     }
 
     /// <summary>The media ids a page's head may show, to fetch with the page's other files.</summary>

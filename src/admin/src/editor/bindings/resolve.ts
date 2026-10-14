@@ -9,6 +9,7 @@ import { isObject, type Json, type JsonObject } from '../schema/subsetValidator'
 import type { ContentNode } from '../schema/schema'
 import { BROKEN, fits, fitsBuiltIn, kindOf, type BrokenReason, type PropKind, type SchemaInfo } from './bindingRules'
 import { formatDate, formatMoment, formatNumber } from './format'
+import { clean, maxLength, plainTextOf } from '../seo/plainText'
 
 /** One item's published data (or, for the canvas's sample item, its draft). */
 export interface BoundItem {
@@ -43,7 +44,7 @@ export interface OpenScope {
 
 export type Bound =
   | { state: 'unbound' }
-  | { state: 'value'; text?: string; richText?: Json; media?: string; link?: { href: string; external: boolean } }
+  | { state: 'value'; text?: string; richText?: Json; media?: string; link?: { href: string; external: boolean }; flag?: true }
   | { state: 'fallback' | 'hide'; broken?: BrokenReason }
 
 const EMPTY: Bound = { state: 'fallback' }
@@ -69,15 +70,31 @@ export function readValue(item: BoundItem, fieldId: string): Json | undefined {
   return isObject(item.values) && isObject(item.values.values) ? item.values.values[fieldId] : undefined
 }
 
+/** The binding of `prop`: in `props.bind`, or for `seo.*` in the page's metadata bindings (017). */
+export function bindingOf(node: ContentNode, prop: string): Json | undefined {
+  if (prop.startsWith('seo.')) {
+    const seo = node.props.seo
+    const bind = isObject(seo) ? seo.bind : undefined
+    return isObject(bind) ? bind[prop.slice(4)] : undefined
+  }
+  const bind = node.props.bind
+  return isObject(bind) ? bind[prop] : undefined
+}
+
 /** What property `prop` of `node` shows when bound; `unbound` when it is not. */
 export function resolveBinding(node: ContentNode, prop: string, data: ResolveData, scopes: readonly OpenScope[]): Bound {
-  const bind = node.props.bind
-  const binding = isObject(bind) ? bind[prop] : undefined
+  const binding = bindingOf(node, prop)
   const kind = kindOf(node.type, prop)
   if (!isObject(binding) || !isObject(binding.value) || kind === null) return { state: 'unbound' }
 
   const value = binding.value
-  const resolved = Array.isArray(value.parts) ? template(value.parts, node, data, scopes) : one(value, kind, node, data, scopes)
+  let resolved = Array.isArray(value.parts)
+    ? template(value.parts, kind === 'metaText' ? 'metaText' : 'text', node, data, scopes)
+    : one(value, kind, node, data, scopes)
+  // 017 research SE-04: metadata reads as one line, cut to the field's limit.
+  if (kind === 'metaText' && resolved.state === 'value' && resolved.text !== undefined) {
+    resolved = text(clean(resolved.text, maxLength(prop.slice(4))))
+  }
   if (resolved.state === 'value') return resolved
 
   const hide = binding.empty === 'hide'
@@ -91,7 +108,7 @@ export function isHidden(node: ContentNode, data: ResolveData, scopes: readonly 
   return isObject(bind) && Object.keys(bind).some((prop) => resolveBinding(node, prop, data, scopes).state === 'hide')
 }
 
-function template(parts: Json[], node: ContentNode, data: ResolveData, scopes: readonly OpenScope[]): Bound {
+function template(parts: Json[], kind: PropKind, node: ContentNode, data: ResolveData, scopes: readonly OpenScope[]): Bound {
   let output = ''
   let anyValue = false
   let firstBroken: BrokenReason | undefined
@@ -101,7 +118,7 @@ function template(parts: Json[], node: ContentNode, data: ResolveData, scopes: r
       continue
     }
     if (!isObject(part)) continue
-    const resolved = one(part, 'text', node, data, scopes)
+    const resolved = one(part, kind, node, data, scopes)
     if (resolved.state === 'value') {
       output += resolved.text ?? ''
       anyValue = true
@@ -148,7 +165,7 @@ function one(value: JsonObject, kind: PropKind, node: ContentNode, data: Resolve
   const stored = readValue(item, field.id)
   if (stored === undefined || stored === null) {
     // No key means no value; a boolean never set reads as false.
-    return field.type === 'boolean' && kind === 'text' ? text(booleanText(false, format)) : EMPTY
+    return field.type === 'boolean' && (kind === 'text' || kind === 'metaText') ? text(booleanText(false, format)) : EMPTY
   }
 
   switch (kind) {
@@ -156,6 +173,9 @@ function one(value: JsonObject, kind: PropKind, node: ContentNode, data: Resolve
     case 'richText': return richTextOf(field.type, stored)
     case 'image': return mediaOf(stored, data)
     case 'link': return linkOf(field.type, stored, data)
+    case 'metaText':
+      return field.type === 'richText' ? text(plainTextOf(stored)) : text(fieldText(field.type, field, stored, format, 'heading', data))
+    case 'flag': return stored === true ? { state: 'value', flag: true } : EMPTY
   }
 }
 

@@ -7,6 +7,12 @@ internal enum PropKind
     RichText,
     Image,
     Link,
+
+    /// <summary>A metadata text (017 seo-metadata.md §3): text, or rich text read as plain text.</summary>
+    MetaText,
+
+    /// <summary>A metadata switch (017 FR-007a): a boolean field, on when its value is true.</summary>
+    Flag,
 }
 
 /// <summary>
@@ -33,6 +39,11 @@ internal static class BindingRules
         ("rich-text", "content") => PropKind.RichText,
         ("image", "media") => PropKind.Image,
         ("button", "link") or ("image", "link") or ("heading", "link") => PropKind.Link,
+
+        // 017 seo-metadata.md §3: the page's metadata, bound on the root of a template.
+        ("root", "seo.title") or ("root", "seo.description") or ("root", "seo.ogTitle") or ("root", "seo.ogDescription") => PropKind.MetaText,
+        ("root", "seo.ogImage") => PropKind.Image,
+        ("root", "seo.noindex") => PropKind.Flag,
         _ => null,
     };
 
@@ -48,6 +59,8 @@ internal static class BindingRules
             PropKind.RichText => field.Type == FieldInfo.RichText || (field.Type == FieldInfo.Text && field.Multiline),
             PropKind.Image => field.Type == FieldInfo.Image,
             PropKind.Link => field.Type == FieldInfo.File || (field.Type == FieldInfo.Text && !field.Multiline),
+            PropKind.MetaText => Fits(PropKind.Text, field) || field.Type == FieldInfo.RichText,
+            PropKind.Flag => field.Type == FieldInfo.Boolean,
             _ => false,
         };
     }
@@ -55,7 +68,7 @@ internal static class BindingRules
     /// <summary>Whether a built-in item value can fill a property of <paramref name="kind"/>.</summary>
     public static bool Fits(PropKind kind, string builtIn) => kind switch
     {
-        PropKind.Text => builtIn is BuiltIns.Slug or BuiltIns.FirstPublishedAt or BuiltIns.LastPublishedAt,
+        PropKind.Text or PropKind.MetaText => builtIn is BuiltIns.Slug or BuiltIns.FirstPublishedAt or BuiltIns.LastPublishedAt,
         PropKind.Link => builtIn == BuiltIns.Url,
         _ => false,
     };

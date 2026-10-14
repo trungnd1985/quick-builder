@@ -85,10 +85,17 @@ valueFormat  = { "date": "short" | "medium" | "long" | "iso" }
 | `rich-text.content` | rich text (limited to the field's `formats` and the block's allow-list), multi-line text (each line a paragraph) |
 | `image.media` | image |
 | `button.link`, `image.link`, `heading.link` | `item: "url"` (this item's page), `item: "url"` with `via` (the referenced item's page), file (the file's address), single-line text holding an `https`, `http`, `mailto` or `tel` address |
+| `seo.title`, `seo.description`, `seo.ogTitle`, `seo.ogDescription` (017, on a template's root) | everything `heading.text` accepts, and rich text read as plain text; and text templates of these. The value is one line: whitespace collapsed, and over the field's limit (200 for titles, 500 for descriptions) cut at the last word that fits with `…` added |
+| `seo.ogImage` (017) | image |
+| `seo.noindex` (017) | boolean: `true` hides the item page; false, empty or broken leaves it shown |
 
 Anything else is **broken**: the editor marks it with a reason (`field_missing`,
 `type_mismatch`, `scope_missing`, `via_not_reference`) and the renderer treats it as empty.
 A broken binding never stops a document from being saved or published.
+
+Metadata bindings (017 seo-metadata.md §3) live in `root.props.seo.bind`, read the page's item
+only, and always fall back when empty: to the field's `seo.fallback` text, then to its default.
+On a page that is not a template they are not read (page-schema rule 23).
 
 **Empty values**:
 - no value stored;

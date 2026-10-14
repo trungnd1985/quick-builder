@@ -6,12 +6,18 @@
 // undo step. The canonical address and hiding belong to members who may change the page
 // structure (SE-03): the server refuses them otherwise, and here they are disabled with the
 // reason.
+//
+// On a template (US4, research SE-04) each field can also read the item shown: a bound text
+// field offers the text to use when an item has none instead of its own value, and the
+// previews show the sample item's values.
 import { computed, nextTick, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { setSeo } from '../ops'
 import { useEditorStore } from '../state/editorStore'
 import MediaControl from '../panel/controls/MediaControl.vue'
-import type { Json } from '../schema/subsetValidator'
+import BindingControl from '../panel/controls/BindingControl.vue'
+import { resolveBinding } from '../bindings/resolve'
+import { isObject, type Json, type JsonObject } from '../schema/subsetValidator'
 import SearchPreview from './SearchPreview.vue'
 import SharingPreview from './SharingPreview.vue'
 import {
@@ -46,7 +52,38 @@ const errors = ref<Partial<Record<string, string>>>({})
 
 const seo = computed(() => (store.root ? seoOf(store.root.props) : {}))
 const readOnly = computed(() => store.readOnly !== null)
-const shown = computed(() => effective(seo.value, props.pageTitle, props.site))
+const isTemplate = computed(() => !!store.bindings.templateCollectionId)
+
+/** Whether a metadata field reads the item, on a template. */
+function isBound(field: string): boolean {
+  return isTemplate.value && isObject(seo.value.bind) && field in seo.value.bind
+}
+
+/** The text a bound field falls back to when an item has none. */
+function fallbackOf(field: SeoTextField): string {
+  const fallback = seo.value.fallback
+  return isObject(fallback) && typeof fallback[field] === 'string' ? fallback[field] : ''
+}
+
+/**
+ * The metadata as the sample item's page has it: each bound field its resolved value, else its
+ * fallback text, else nothing, so the default applies.
+ */
+const resolved = computed<JsonObject>(() => {
+  const own = { ...seo.value }
+  if (!isTemplate.value || !store.root) return own
+  for (const field of SEO_TEXT_FIELDS) {
+    if (!isBound(field)) continue
+    const bound = resolveBinding(store.root, `seo.${field}`, store.bindings.data, [])
+    const value = bound.state === 'value' && bound.text ? bound.text : fallbackOf(field)
+    if (value) own[field] = value
+    else delete own[field]
+  }
+  return own
+})
+
+const shownTitle = computed(() => (isTemplate.value ? store.bindings.sampleItem?.name ?? props.pageTitle : props.pageTitle))
+const shown = computed(() => effective(resolved.value, shownTitle.value, props.site))
 const address = computed(() => addressOf(props.site.baseUrl, props.path))
 
 const LABELS: Record<SeoTextField, string> = {
@@ -118,14 +155,32 @@ onMounted(async () => {
 
       <div class="seo-panel__columns">
         <div class="seo-panel__fields">
+          <p
+            v-if="isTemplate"
+            class="hint"
+          >
+            {{ t('editor.seo.templateHint') }}
+          </p>
+
           <div
             v-for="field in SEO_TEXT_FIELDS"
             :key="field"
             class="field"
           >
-            <label :for="`${dialogId}-${field}`">{{ t(LABELS[field]) }}</label>
+            <label :for="`${dialogId}-${field}`">{{ isBound(field) ? t('editor.seo.whenNone', { field: t(LABELS[field]) }) : t(LABELS[field]) }}</label>
+            <input
+              v-if="isBound(field)"
+              :id="`${dialogId}-${field}`"
+              :ref="field === 'title' ? (el: unknown) => (firstField = el as HTMLInputElement | null) : undefined"
+              type="text"
+              :value="fallbackOf(field)"
+              :disabled="readOnly"
+              :aria-describedby="errors[`fallback.${field}`] ? `${dialogId}-${field}-error` : undefined"
+              @input="change(`fallback.${field}`, ($event.target as HTMLInputElement).value || undefined)"
+            >
             <component
               :is="field === 'description' || field === 'ogDescription' ? 'textarea' : 'input'"
+              v-else
               :id="`${dialogId}-${field}`"
               :ref="field === 'title' ? (el: unknown) => (firstField = el as HTMLInputElement | null) : undefined"
               :value="text(seo, field)"
@@ -137,6 +192,7 @@ onMounted(async () => {
               @input="onText(field, $event)"
             />
             <p
+              v-if="!isBound(field)"
               :id="`${dialogId}-${field}-count`"
               class="hint"
             >
@@ -150,13 +206,19 @@ onMounted(async () => {
               {{ recommendation(field) }}
             </p>
             <p
-              v-if="errors[field]"
+              v-if="errors[field] || errors[`fallback.${field}`]"
               :id="`${dialogId}-${field}-error`"
               class="error"
               role="alert"
             >
-              {{ errors[field] }}
+              {{ errors[field] ?? errors[`fallback.${field}`] }}
             </p>
+            <BindingControl
+              v-if="isTemplate && store.root && !readOnly"
+              :node="store.root"
+              :prop="`seo.${field}`"
+              :label="t(LABELS[field])"
+            />
           </div>
 
           <MediaControl
@@ -168,6 +230,12 @@ onMounted(async () => {
             kind="image"
             @change="(value) => change('ogImage', value)"
             @choose="(value) => change('ogImage', value)"
+          />
+          <BindingControl
+            v-if="isTemplate && store.root && !readOnly"
+            :node="store.root"
+            prop="seo.ogImage"
+            :label="t('editor.seo.ogImage')"
           />
 
           <fieldset class="seo-panel__switches">
@@ -193,6 +261,12 @@ onMounted(async () => {
               >
               {{ t('editor.seo.noSitemap') }}
             </label>
+            <BindingControl
+              v-if="isTemplate && store.root && !readOnly && canManageStructure"
+              :node="store.root"
+              prop="seo.noindex"
+              :label="t('editor.seo.hideItem')"
+            />
             <p
               v-if="!canManageStructure"
               :id="`${dialogId}-restricted`"
@@ -215,7 +289,7 @@ onMounted(async () => {
             :title="shown.ogTitle"
             :description="shown.ogDescription"
             :site-name="site.name"
-            :has-image="!!seo.ogImage"
+            :has-image="!!seo.ogImage || isBound('ogImage')"
           />
         </div>
       </div>

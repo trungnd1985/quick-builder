@@ -1,5 +1,6 @@
 using System.Text.Json;
 using QuickBuilder.Media.Contracts;
+using QuickBuilder.Rendering.Binding;
 using QuickBuilder.Rendering.Rendering;
 using QuickBuilder.Rendering.Seo;
 using QuickBuilder.Sites.Contracts;
@@ -152,20 +153,78 @@ public sealed class HeadMetadataGoldenTests
         Assert.Equal("https://client.example/cms/", HeadBuilder.Build(Inputs(seo: null, path: "/", site: Site(baseUrl: "https://client.example/cms"))).Canonical);
     }
 
+    [Fact]
+    public void A_bound_field_takes_its_value_then_its_fallback_text_then_the_default()
+    {
+        const string seo = """{ "title": "Own", "bind": { "title": { "value": { "field": "f1" } }, "description": { "value": { "field": "f2" } }, "ogTitle": { "value": { "field": "f3" } } }, "fallback": { "description": "  A   post  " } }""";
+        var bound = new Dictionary<string, BoundValue>(StringComparer.Ordinal)
+        {
+            ["title"] = new(BoundState.Value, Text: "Hello world"),
+            ["description"] = new(BoundState.Fallback, Broken: "field_missing"),
+            ["ogTitle"] = new(BoundState.Fallback),
+        };
+
+        var head = HeadBuilder.Build(Inputs(seo, site: Site(suffix: " | Acme"), title: "Hello world", isItemPage: true, bound: bound));
+
+        Assert.Equal("Hello world", head.Title);
+        Assert.Equal("A post", head.Description);
+        Assert.Equal("Hello world", head.OgTitle);
+    }
+
+    [Fact]
+    public void An_empty_bound_title_without_fallback_text_is_the_item_name_with_the_suffix()
+    {
+        const string seo = """{ "bind": { "title": { "value": { "field": "f1" } } } }""";
+        var bound = new Dictionary<string, BoundValue>(StringComparer.Ordinal) { ["title"] = new(BoundState.Fallback) };
+
+        var head = HeadBuilder.Build(Inputs(seo, site: Site(suffix: " | Acme"), title: "Hello world", isItemPage: true, bound: bound));
+
+        Assert.Equal("Hello world | Acme", head.Title);
+    }
+
+    [Fact]
+    public void A_bound_image_and_an_on_hide_switch_apply_to_the_item_page()
+    {
+        const string seo = """{ "bind": { "ogImage": { "value": { "field": "f10" } }, "noindex": { "value": { "field": "f4" } } } }""";
+        var bound = new Dictionary<string, BoundValue>(StringComparer.Ordinal)
+        {
+            ["ogImage"] = new(BoundState.Value, MediaId: ImageId),
+            ["noindex"] = new(BoundState.Value, Flag: true),
+        };
+
+        var head = HeadBuilder.Build(Inputs(seo, site: Site(defaultImage: DefaultImageId), isItemPage: true, bound: bound));
+
+        Assert.Equal("https://client.example/_media/photo-1200.jpg", head.Image!.Url);
+        Assert.Equal("noindex", head.Robots);
+    }
+
+    [Fact]
+    public void Without_resolved_bindings_a_page_keeps_its_own_metadata()
+    {
+        const string seo = """{ "title": "Own", "bind": { "title": { "value": { "field": "f1" } }, "noindex": { "value": { "field": "f4" } } } }""";
+
+        var head = HeadBuilder.Build(Inputs(seo));
+
+        Assert.Equal("Own", head.Title);
+        Assert.Null(head.Robots);
+    }
+
     private static HeadInputs Inputs(
         string? seo,
         SiteDto? site = null,
         string title = "Services",
         string path = "/services",
         bool isItemPage = false,
-        IReadOnlyDictionary<Guid, PublicMediaFile>? media = null) =>
+        IReadOnlyDictionary<Guid, PublicMediaFile>? media = null,
+        IReadOnlyDictionary<string, BoundValue>? bound = null) =>
         new(
             title,
             path,
             isItemPage,
             seo is null ? null : SeoDocument.From(Document(seo)),
             site ?? Site(),
-            media ?? Media());
+            media ?? Media(),
+            bound);
 
     private static Dictionary<Guid, PublicMediaFile> Media() => new()
     {
