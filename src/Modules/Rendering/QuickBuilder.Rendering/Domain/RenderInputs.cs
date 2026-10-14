@@ -45,4 +45,5 @@ internal sealed record RenderInputs(
     QuickBuilder.Sites.Contracts.SiteDto? Site = null,
     string Path = "/",
     bool IsItemPage = false,
-    IReadOnlyDictionary<string, int>? PageParams = null);
+    IReadOnlyDictionary<string, int>? PageParams = null,
+    IReadOnlyList<QuickBuilder.Pages.Contracts.Publishing.LiveAncestor>? Ancestors = null);

@@ -1,0 +1,183 @@
+{
+  "description": "Unbound and empty properties take their defaults: the item name and the publish times; the rest are left out.",
+  "language": "en",
+  "baseUrl": "https://client.example/",
+  "url": "https://client.example/blog/hello-world",
+  "schemas": {
+    "0192f5a0-0000-7000-8000-00000000c001": {
+      "schemaVersion": 1,
+      "titleFieldId": "f1",
+      "fields": [
+        {
+          "id": "f1",
+          "key": "title",
+          "name": "Title",
+          "help": "",
+          "required": true,
+          "type": "text",
+          "multiline": false,
+          "maxLength": 256
+        },
+        {
+          "id": "f2",
+          "key": "body",
+          "name": "Body",
+          "help": "",
+          "required": false,
+          "type": "richText"
+        },
+        {
+          "id": "f3",
+          "key": "price",
+          "name": "Price",
+          "help": "",
+          "required": false,
+          "type": "number",
+          "decimals": 2
+        },
+        {
+          "id": "f4",
+          "key": "in-stock",
+          "name": "In stock",
+          "help": "",
+          "required": false,
+          "type": "boolean"
+        },
+        {
+          "id": "f5",
+          "key": "starts",
+          "name": "Starts",
+          "help": "",
+          "required": false,
+          "type": "date",
+          "withTime": true
+        },
+        {
+          "id": "f6",
+          "key": "currency",
+          "name": "Currency",
+          "help": "",
+          "required": false,
+          "type": "option",
+          "options": [
+            {
+              "id": "o1",
+              "label": "EUR"
+            },
+            {
+              "id": "o2",
+              "label": "euro"
+            }
+          ]
+        },
+        {
+          "id": "f7",
+          "key": "venue",
+          "name": "Venue",
+          "help": "",
+          "required": false,
+          "type": "text",
+          "multiline": false,
+          "maxLength": 256
+        },
+        {
+          "id": "f10",
+          "key": "cover",
+          "name": "Cover",
+          "help": "",
+          "required": false,
+          "type": "image"
+        },
+        {
+          "id": "f11",
+          "key": "brochure",
+          "name": "Brochure",
+          "help": "",
+          "required": false,
+          "type": "file",
+          "accept": "any"
+        },
+        {
+          "id": "f12",
+          "key": "author",
+          "name": "Author",
+          "help": "",
+          "required": false,
+          "type": "reference",
+          "target": "0192f5a0-0000-7000-8000-00000000c002"
+        }
+      ]
+    },
+    "0192f5a0-0000-7000-8000-00000000c002": {
+      "schemaVersion": 1,
+      "titleFieldId": "f1",
+      "fields": [
+        {
+          "id": "f1",
+          "key": "name",
+          "name": "Name",
+          "help": "",
+          "required": true,
+          "type": "text",
+          "multiline": false,
+          "maxLength": 100
+        }
+      ]
+    }
+  },
+  "items": [
+    {
+      "id": "0192f5a1-0000-7000-8000-00000000b001",
+      "collectionId": "0192f5a0-0000-7000-8000-00000000c002",
+      "slug": "lan",
+      "name": "Lan Nguyen",
+      "firstPublishedAt": "2026-01-01T00:00:00Z",
+      "lastPublishedAt": "2026-01-01T00:00:00Z",
+      "values": {
+        "schemaVersion": 1,
+        "values": {
+          "f1": "Lan Nguyen"
+        }
+      }
+    }
+  ],
+  "media": {
+    "0192f5a0-1b2c-7d3e-8f40-5a6b7c8d9e30": "/_media/0192f5a0-1b2c-7d3e-8f40-5a6b7c8d9e30/cover.jpg"
+  },
+  "item": {
+    "id": "0192f5a1-0000-7000-8000-00000000a001",
+    "collectionId": "0192f5a0-0000-7000-8000-00000000c001",
+    "slug": "hello-world",
+    "name": "Hello world",
+    "firstPublishedAt": "2026-10-01T08:00:00Z",
+    "lastPublishedAt": "2026-10-09T08:30:00Z",
+    "values": {
+      "schemaVersion": 1,
+      "values": {
+        "f1": "Hello world"
+      }
+    }
+  },
+  "structuredData": {
+    "type": "Article",
+    "bind": {
+      "headline": {
+        "value": {
+          "field": "f7"
+        }
+      },
+      "description": {
+        "value": {
+          "field": "f2"
+        }
+      }
+    }
+  },
+  "expected": {
+    "@type": "Article",
+    "headline": "Hello world",
+    "datePublished": "2026-10-01T08:00:00Z",
+    "dateModified": "2026-10-09T08:30:00Z",
+    "url": "https://client.example/blog/hello-world"
+  }
+}

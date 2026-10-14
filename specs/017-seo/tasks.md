@@ -628,22 +628,22 @@ of hostile values, and the breadcrumb refresh after a parent's rename.
 
 ### Tests for User Story 7 ⚠️
 
-- [ ] T092 [P] [US7] Create `CONTRACTS/structured-data.md` from `specs/017-seo/contracts/structured-data.md` (drop the "Draft of" line), `CONTRACTS/structured-data/types.json` (types, properties, accepted field types, defaults, required flags), and golden examples in `CONTRACTS/structured-data/examples/{map,render}/`. Add the contract to `CONTRACTS/README.md`.
-- [ ] T093 [P] [US7] Create `UTESTS/Rendering/Seo/StructuredDataTypesContractTests.cs` and `ADMINTESTS/editor/seo/structuredDataTypes.spec.ts`, both comparing `types.json` with the tables of `CONTRACTS/structured-data.md` §3 and with their own loaders. They must fail first.
-- [ ] T094 [P] [US7] Create `UTESTS/Rendering/Seo/JsonLdWriterTests.cs`. Values containing `</script>`, `<!--`, `&`, `'`, `+`, U+2028 and U+2029 must never appear raw inside the element, and the output must parse back to the same values.
-- [ ] T095 [P] [US7] Create `UTESTS/Rendering/Seo/StructuredDataGoldenTests.cs` with golden graphs in `UTESTS/Rendering/Seo/golden/jsonld/`. It covers:
+- [X] T092 [P] [US7] Create `CONTRACTS/structured-data.md` from `specs/017-seo/contracts/structured-data.md` (drop the "Draft of" line), `CONTRACTS/structured-data/types.json` (types, properties, accepted field types, defaults, required flags), and golden examples in `CONTRACTS/structured-data/examples/{map,render}/`. Add the contract to `CONTRACTS/README.md`.
+- [X] T093 [P] [US7] Create `UTESTS/Rendering/Seo/StructuredDataTypesContractTests.cs` and `ADMINTESTS/editor/seo/structuredDataTypes.spec.ts`, both comparing `types.json` with the tables of `CONTRACTS/structured-data.md` §3 and with their own loaders. They must fail first.
+- [X] T094 [P] [US7] Create `UTESTS/Rendering/Seo/JsonLdWriterTests.cs`. Values containing `</script>`, `<!--`, `&`, `'`, `+`, U+2028 and U+2029 must never appear raw inside the element, and the output must parse back to the same values.
+- [X] T095 [P] [US7] Create `UTESTS/Rendering/Seo/StructuredDataGoldenTests.cs` with golden graphs in `UTESTS/Rendering/Seo/golden/jsonld/`. It covers:
   - breadcrumbs (a nested page, an item page, an unpublished home page);
   - `WebSite` with and without `Organization`;
   - a YouTube and a Vimeo embed;
   - a collection list with and without a live template;
   - Article, Product (with and without price, bad currency) and Event (missing `startDate` → left out);
   - the `examples/render/` cases.
-- [ ] T096 [P] [US7] Create `ITESTS/Rendering/BreadcrumbInvalidationTests.cs`:
+- [X] T096 [P] [US7] Create `ITESTS/Rendering/BreadcrumbInvalidationTests.cs`:
   - renaming and publishing a parent refreshes its live descendants and its template's item pages at the next request, and unrelated pages stay cached;
   - republishing a parent without a title change refreshes nothing extra;
   - a home page title change refreshes every live page;
   - this also holds on a second instance.
-- [ ] T097 [P] [US7] Create `ADMINTESTS/editor/seo/StructuredDataControl.spec.ts`:
+- [X] T097 [P] [US7] Create `ADMINTESTS/editor/seo/StructuredDataControl.spec.ts`:
   - type choice;
   - per-property `BindingControl` offering only accepted field types;
   - defaults shown;
@@ -653,15 +653,15 @@ of hostile values, and the breadcrumb refresh after a parent's rename.
 
 ### Implementation for User Story 7
 
-- [ ] T098 [US7] Implement `RENDER/Seo/StructuredData/JsonLdWriter.cs` (System.Text.Json, default encoder plus explicit escaping of U+2028 and U+2029) and `StructuredDataGraph.cs` (an `@graph` collector added to `RENDER/Domain/RenderContext.cs`). Write the `<script type="application/ld+json">` element from `RENDER/Rendering/PageShell.cs` when the graph is non-empty. Make T094 pass.
-- [ ] T099 [US7] Implement `GetLiveAncestorsAsync` in `PAGES/Infrastructure/PublishedContentReader.cs` (one query over the address prefixes, live titles from live versions, root first). Add `RENDER/Seo/StructuredData/Breadcrumbs.cs`, plus the `WebSite` and `Organization` nodes for the home page, using `Site.Name`, `Site.BaseUrl` and `Site.Search`. Fetch the ancestors in `PageResponder` on a miss only.
-- [ ] T100 [US7] In `PAGES/Infrastructure/PublishingWrites.cs`, when a publish, rollback, scheduled publish or unpublish changes a page's live title or live state, bump its live descendants (every live page for the home page) through `GenerationBump` in the same transaction. Make T096 pass.
-- [ ] T101 [US7] Emit block nodes from their renderers:
+- [X] T098 [US7] Implement `RENDER/Seo/StructuredData/JsonLdWriter.cs` (System.Text.Json, default encoder plus explicit escaping of U+2028 and U+2029) and `StructuredDataGraph.cs` (an `@graph` collector added to `RENDER/Domain/RenderContext.cs`). Write the `<script type="application/ld+json">` element from `RENDER/Rendering/PageShell.cs` when the graph is non-empty. Make T094 pass.
+- [X] T099 [US7] Implement `GetLiveAncestorsAsync` in `PAGES/Infrastructure/PublishedContentReader.cs` (one query over the address prefixes, live titles from live versions, root first). Add `RENDER/Seo/StructuredData/Breadcrumbs.cs`, plus the `WebSite` and `Organization` nodes for the home page, using `Site.Name`, `Site.BaseUrl` and `Site.Search`. Fetch the ancestors in `PageResponder` on a miss only.
+- [X] T100 [US7] In `PAGES/Infrastructure/PublishingWrites.cs`, when a publish, rollback, scheduled publish or unpublish changes a page's live title or live state, bump its live descendants (every live page for the home page) through `GenerationBump` in the same transaction. Make T096 pass.
+- [X] T101 [US7] Emit block nodes from their renderers:
   - `VideoObject` from the Embed renderer in `RENDER/Rendering/Blocks/MediaRenderers.cs`, with `thumbnailUrl` for YouTube ids only and no request made;
   - `ItemList` from `CollectionListRenderer` in `RENDER/Rendering/Blocks/ListRenderers.cs`, using the shown items' addresses when the collection has a live template.
-- [ ] T102 [US7] Implement `RENDER/Seo/StructuredData/StructuredDataTypes.cs`, which loads `types.json` embedded as a resource in `RENDER/QuickBuilder.Rendering.csproj`. Map `seo.structuredData` on item pages with `BindingResolver`, `PlainText`, defaults, required checks, the currency check and `offers` rules. Make T093 (server side) and T095 pass.
-- [ ] T103 [P] [US7] Create `EDITOR/seo/structuredDataTypes.ts`, which imports `docs/contracts/structured-data/types.json` through the Vite alias the binding examples use, and `EDITOR/seo/StructuredDataControl.vue`. Show the control in `SeoPanel.vue` on templates. Add i18n keys. Make T093 (admin side) and T097 pass.
-- [ ] T104 [US7] Add "Structured data" notes to `docs/contributing.md` "adding a block type": how a block contributes a node.
+- [X] T102 [US7] Implement `RENDER/Seo/StructuredData/StructuredDataTypes.cs`, which loads `types.json` embedded as a resource in `RENDER/QuickBuilder.Rendering.csproj`. Map `seo.structuredData` on item pages with `BindingResolver`, `PlainText`, defaults, required checks, the currency check and `offers` rules. Make T093 (server side) and T095 pass.
+- [X] T103 [P] [US7] Create `EDITOR/seo/structuredDataTypes.ts`, which imports `docs/contracts/structured-data/types.json` through the Vite alias the binding examples use, and `EDITOR/seo/StructuredDataControl.vue`. Show the control in `SeoPanel.vue` on templates. Add i18n keys. Make T093 (admin side) and T097 pass.
+- [X] T104 [US7] Add "Structured data" notes to `docs/contributing.md` "adding a block type": how a block contributes a node.
 
 **Checkpoint**: quickstart §7 passes. Every story is complete.
 
@@ -669,22 +669,22 @@ of hostile values, and the breadcrumb refresh after a parent's rename.
 
 ## Phase 10: Polish & Cross-Cutting Concerns
 
-- [ ] T105 [P] Create `ITESTS/Isolation/Probes/SeoIsolationProbe.cs`. Site B cannot list, get, change, delete, import into or export site A's redirects. Site A's redirects, sitemap entries and robots rules never answer on site B's host names. A redirect target naming another site's page or item is refused as unknown. Register it, and keep `ITESTS/Isolation/IsolationCoverageTests.cs` green (FR-038).
-- [ ] T106 [P] Run `ATESTS/AuthorizationDeclarationTests.cs` and confirm every new action declares exactly one capability. Add an architecture test in `ATESTS/` checking that `RedirectHitCounter` (the `IRedirectHits` implementation) depends on no `DbContext` or I/O type.
+- [X] T105 [P] Create `ITESTS/Isolation/Probes/SeoIsolationProbe.cs`. Site B cannot list, get, change, delete, import into or export site A's redirects. Site A's redirects, sitemap entries and robots rules never answer on site B's host names. A redirect target naming another site's page or item is refused as unknown. Register it, and keep `ITESTS/Isolation/IsolationCoverageTests.cs` green (FR-038).
+- [X] T106 [P] Run `ATESTS/AuthorizationDeclarationTests.cs` and confirm every new action declares exactly one capability. Add an architecture test in `ATESTS/` checking that `RedirectHitCounter` (the `IRedirectHits` implementation) depends on no `DbContext` or I/O type.
 - [ ] T107 [P] Create `STESTS/RedirectPerformanceTests.cs` and `STESTS/SitemapPerformanceTests.cs` (Performance category):
   - with 10,000 redirects, p95 under 20 ms for redirect responses, exact and prefix, and page renders still within 012's budgets (SC-004);
   - with 100,000 published items, each sitemap file under 2 s on a miss and under 50 ms on a hit (SC-006).
 
   Record the results here. If a budget fails, apply the fallback in plan Risks and record it.
-- [ ] T108 [P] Create `ITESTS/Rendering/UpgradeFrom016Tests.cs`, following `UpgradeFrom035Tests.cs`. A 016 snapshot upgrades, and the three migrations apply and roll back. Then check that:
+- [X] T108 [P] Create `ITESTS/Rendering/UpgradeFrom016Tests.cs`, following `UpgradeFrom035Tests.cs`. A 016 snapshot upgrades, and the three migrations apply and roll back. Then check that:
   - every existing page renders the same body;
   - titles are unchanged;
   - the head gains only the canonical address and the Open Graph tags;
   - existing sites keep `redirect_other_hosts = false`;
   - `robots.txt` and `sitemap.xml` answer.
-- [ ] T109 Add "create a redirect and follow it; fetch sitemap.xml and robots.txt" to the release smoke journey in `STESTS/ReferenceDeploymentSmokeTests.cs`.
-- [ ] T110 [P] Add `seed-redirects -Count <n>` to `qb.ps1`. It imports a generated CSV through the API. Update the help text.
-- [ ] T111 [P] Update the docs:
+- [X] T109 Add "create a redirect and follow it; fetch sitemap.xml and robots.txt" to the release smoke journey in `STESTS/ReferenceDeploymentSmokeTests.cs`.
+- [X] T110 [P] Add `seed-redirects -Count <n>` to `qb.ps1`. It imports a generated CSV through the API. Update the help text.
+- [X] T111 [P] Update the docs:
   - `docs/operations.md`:
     - robots.txt under a base path (the proxy rule);
     - the host name redirect;
@@ -695,7 +695,7 @@ of hostile values, and the breadcrumb refresh after a parent's rename.
   - `specs/012-publishing-rendering/contracts/public-rendering.md` and `readers.md` (from `specs/017-seo/contracts/public-seo.md` and module-surface §2);
   - `docs/configuration.md`: no new keys (state it).
 - [ ] T112 [P] Run `dotnet test` with coverage. `PageResponder`, `RedirectResponder`, `RENDER/Seo/`, `SitemapBuilder`, `PAGES/Domain/Redirects/` and `PublishingWrites` keep at least 80 % line coverage. Run `npm run lint`, `npm run type-check` and `npm test`, and check that `dotnet format --verify-no-changes` and the analyzer gates are clean.
-- [ ] T113 Create `ITESTS/Observability/SeoContentNotLoggedTests.cs` over every 017 path that logs (redirect matching, offers, import, item redirect handler, sitemap, robots). Slugs, sources, targets, titles and metadata must never appear, including `oldSlug`.
+- [X] T113 Create `ITESTS/Observability/SeoContentNotLoggedTests.cs` over every 017 path that logs (redirect matching, offers, import, item redirect handler, sitemap, robots). Slugs, sources, targets, titles and metadata must never appear, including `oldSlug`.
 - [ ] T114 Run the whole of `quickstart.md` by hand on the reference compose setup:
   - SC-001 and SC-002 with a stopwatch;
   - SC-008 keyboard-only with NVDA;

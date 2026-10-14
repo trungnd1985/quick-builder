@@ -119,6 +119,17 @@ it to `RoutePrefixes.PublicReservedPrefixes`.
 
 ---
 
+### Added by 017
+
+- `IPublishedContentReader.GetLiveAncestorsAsync(siteId, pageId)`: the live home page, then
+  each live page above the given one, with its live title, for breadcrumbs. One query.
+- `ISitemapReader`, `IRedirectReader` and `IRedirectHits` (Pages.Contracts): what the
+  sitemap lists, the redirect matching an address, and the in-memory use counter.
+- `IPublishedItemReader.ListAddressesAsync` (Cms.Contracts): published item slugs of a
+  collection, keyset-paged, with the per-item hide switch.
+
+See 017 [module-surface.md](../../017-seo/contracts/module-surface.md) §2–§5.
+
 ## 2. Shared infrastructure additions
 
 - **`ReadOnlyConnection.From(string connectionString)`**: returns the same connection

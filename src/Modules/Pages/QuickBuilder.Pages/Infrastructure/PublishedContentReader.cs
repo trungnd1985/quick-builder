@@ -175,8 +175,42 @@ internal sealed class PublishedContentReader(PublishedReadDbContext database) : 
         .AnyAsync(cancellationToken);
 
     /// <summary>Breadcrumb ancestors; built with structured data (017 tasks T099).</summary>
-    public Task<IReadOnlyList<LiveAncestor>> GetLiveAncestorsAsync(Guid siteId, Guid pageId, CancellationToken cancellationToken = default) =>
-        throw new NotImplementedException("017 T099: breadcrumb ancestors are not built yet.");
+    public async Task<IReadOnlyList<LiveAncestor>> GetLiveAncestorsAsync(Guid siteId, Guid pageId, CancellationToken cancellationToken = default)
+    {
+        var path = await database.Pages
+            .Where(p => p.SiteId == siteId && p.Id == pageId)
+            .Select(p => p.Path)
+            .FirstOrDefaultAsync(cancellationToken)
+            .ConfigureAwait(false);
+        if (path is null || path == "/")
+        {
+            return [];
+        }
+
+        // Every address above it: /a/b/c (or the pattern /a/b/{slug}) has /a and /a/b above it.
+        var prefixes = new List<string>();
+        for (var end = path.IndexOf('/', 1); end > 0; end = path.IndexOf('/', end + 1))
+        {
+            prefixes.Add(path[..end]);
+        }
+
+        var ancestors = await (
+                from page in database.Pages
+                where page.SiteId == siteId && page.TemplateCollectionId == null && (page.IsHome || prefixes.Contains(page.Path))
+                join publication in database.Publications
+                    on new { Kind = SubjectKinds.Page, Id = page.Id } equals new { Kind = publication.SubjectKind, Id = publication.SubjectId }
+                where publication.LiveVersionId != null
+                join version in database.Versions on publication.LiveVersionId equals version.Id
+                select new { page.Id, page.Path, page.IsHome, version.Title })
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        return [.. ancestors
+            .Where(a => a.Id != pageId)
+            .OrderBy(a => a.IsHome ? 0 : 1)
+            .ThenBy(a => a.Path.Length)
+            .Select(a => new LiveAncestor(a.Id, a.Path, a.Title ?? string.Empty, a.IsHome))];
+    }
 
     private IQueryable<LiveVersion> LiveVersions(Guid siteId, string subjectKind, IReadOnlyCollection<Guid> subjectIds) =>
         from publication in database.Publications

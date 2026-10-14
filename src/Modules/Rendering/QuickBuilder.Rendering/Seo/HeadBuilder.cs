@@ -100,6 +100,12 @@ internal static class HeadBuilder
         {
             yield return fallback;
         }
+
+        // 017 research SE-18: the organisation's logo, for the home page's structured data.
+        if (site.Search.OrganisationLogoId is { } logo)
+        {
+            yield return logo;
+        }
     }
 
     /// <summary>The largest variant up to <see cref="MaxSharingImageWidth"/>, else the original.</summary>

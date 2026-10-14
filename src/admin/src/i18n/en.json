@@ -1349,6 +1349,21 @@
         "url": "An address elsewhere",
         "urlLabel": "Address of the original (http or https)",
         "invalid": "Use a full http or https address, without a user name or password."
+      },
+      "structuredData": {
+        "label": "What each item is",
+        "help": "Tells search engines what kind of content each item page holds, from the item's fields.",
+        "type": "Content type",
+        "none": "Nothing",
+        "required": "required",
+        "notBound": "Not set: {fallback}",
+        "leftOut": "left out",
+        "unknownProperty": "This property is not part of the content type, so it is left out.",
+        "defaults": {
+          "name": "the item's name",
+          "firstPublishedAt": "when it was first published",
+          "lastPublishedAt": "when it was last published"
+        }
       }
     }
   },

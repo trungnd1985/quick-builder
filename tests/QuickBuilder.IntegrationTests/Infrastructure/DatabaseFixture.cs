@@ -28,6 +28,10 @@ public sealed class DatabaseFixture : IAsyncLifetime
         // parallel requests. The default of 100 is exhausted by idle pooled connections
         // across a full run; QuickBuilderApp also clears its pools when disposed.
         .WithCommand("-c", "max_connections=300")
+        // Postgres keeps each database's statistics in shared memory, and a full run creates
+        // several hundred databases: Docker's default 64 MB /dev/shm runs out late in the run,
+        // and every class after that fails to start.
+        .WithCreateParameterModifier(parameters => parameters.HostConfig!.ShmSize = 512L * 1024 * 1024)
         // Reuse keeps repeat local runs fast; CI starts clean each time regardless.
         .WithCleanUp(true)
         .Build();

@@ -211,6 +211,22 @@ internal sealed partial class EmbedRenderer : IBlockRenderer
             .EndTag()
             .Close("iframe")
             .Close("div");
+
+        // 017 research SE-18: the video, described from what the block shows. YouTube's preview
+        // image is built from the id: no request is made.
+        var title = context.String(node, "title");
+        var video = new System.Text.Json.Nodes.JsonObject
+        {
+            ["@type"] = "VideoObject",
+            ["name"] = string.IsNullOrWhiteSpace(title) ? context.Inputs.Title : title,
+            ["embedUrl"] = player,
+        };
+        if (YouTube().Match(context.String(node, "url")) is { Success: true } youtube)
+        {
+            video["thumbnailUrl"] = $"https://i.ytimg.com/vi/{youtube.Groups["id"].Value}/hqdefault.jpg";
+        }
+
+        context.StructuredData.Add(video);
     }
 
     /// <summary>The player address for a supported video address, or null.</summary>

@@ -26,6 +26,7 @@ public sealed class SiteResolutionTests(DatabaseFixture database) : IAsyncLifeti
         var admin = await _app.CreateAdminClientAsync().ConfigureAwait(false);
         _siteA = (await SitesApi.CreateOkAsync(admin, "Site A", ["a.test", "bücher.test"]).ConfigureAwait(false)).GetProperty("id").GetGuid();
         _siteB = (await SitesApi.CreateOkAsync(admin, "Site B", ["b.test"]).ConfigureAwait(false)).GetProperty("id").GetGuid();
+        await SitesApi.ServeOnEveryHostNameAsync(admin, _siteA).ConfigureAwait(false);
 
         // Each site serves its own id at /, so a response shows which site it came from.
         await PublicSite.MarkAsync(admin, _siteA).ConfigureAwait(false);

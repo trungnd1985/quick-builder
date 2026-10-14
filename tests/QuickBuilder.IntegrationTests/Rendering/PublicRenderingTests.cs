@@ -49,7 +49,9 @@ public sealed class PublicRenderingTests(DatabaseFixture database) : IAsyncLifet
         Assert.Contains("<html lang=\"en\">", html, StringComparison.Ordinal);
         Assert.Contains("About &lt;us&gt; &amp; friends</h1>", html, StringComparison.Ordinal);
         Assert.Contains("<div class=\"qb-canvas qb-page\">", html, StringComparison.Ordinal);
-        Assert.DoesNotContain("<script", html, StringComparison.OrdinalIgnoreCase);
+        // No script runs (FR-037); the one script element is 017's JSON-LD data block, which the
+        // browser never executes and the policy, with no script-src, would refuse to run anyway.
+        Assert.DoesNotContain("<script", html.Replace("<script type=\"application/ld+json\">", string.Empty, StringComparison.Ordinal), StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain(" style=", html, StringComparison.Ordinal);
 
         var csp = response.Headers.GetValues("Content-Security-Policy").Single();

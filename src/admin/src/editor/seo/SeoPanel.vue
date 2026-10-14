@@ -21,6 +21,7 @@ import { isObject, type Json, type JsonObject } from '../schema/subsetValidator'
 import SearchPreview from './SearchPreview.vue'
 import SharingPreview from './SharingPreview.vue'
 import CanonicalControl from './CanonicalControl.vue'
+import StructuredDataControl from './StructuredDataControl.vue'
 import {
   addressOf,
   effective,
@@ -248,6 +249,12 @@ onMounted(async () => {
             :described-by="canManageStructure ? undefined : `${dialogId}-restricted`"
             :error="errors.canonical"
             @change="(value) => change('canonical', value)"
+          />
+
+          <StructuredDataControl
+            v-if="isTemplate"
+            :id="`${dialogId}-structured`"
+            :disabled="readOnly"
           />
 
           <fieldset class="seo-panel__switches">

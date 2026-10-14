@@ -236,7 +236,18 @@ internal sealed class PublishingWrites(
         }
 
         var publication = await PublicationAsync(siteId, subject, create: true, cancellationToken).ConfigureAwait(false);
-        var version = publication!.Publish(
+
+        // 017 research SE-18: what the page's descendants show of it in their breadcrumbs.
+        var wasLive = publication!.IsLive;
+        var previousTitle = wasLive && subject.IsPage
+            ? await database.ForSite<PublishedVersion>(siteId)
+                .Where(v => v.Id == publication.LiveVersionId)
+                .Select(v => v.Title)
+                .FirstOrDefaultAsync(cancellationToken)
+                .ConfigureAwait(false)
+            : null;
+
+        var version = publication.Publish(
             content.Document, content.SchemaVersion, title, fromDraftVersion, versionKind, restoredFromNumber, actor, subject.Path, now);
         publication.SetPageParamNames(DependencyExtractor.PageParamNames(content.Document));
         database.PublishedVersions.Add(version);
@@ -264,6 +275,11 @@ internal sealed class PublishingWrites(
         await database.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
         await AfterLiveChangeAsync(siteId, subject, publication, cancellationToken).ConfigureAwait(false);
+
+        if (subject.IsPage && (!wasLive || !string.Equals(previousTitle, title, StringComparison.Ordinal)))
+        {
+            await BumpBreadcrumbsAsync(subject, cancellationToken).ConfigureAwait(false);
+        }
 
         // Ids and numbers only: a title or a path can itself be content (FR-044).
         logger.LogInformation(
@@ -322,6 +338,11 @@ internal sealed class PublishingWrites(
         await database.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
         await AfterLiveChangeAsync(siteId, subject, publication, cancellationToken).ConfigureAwait(false);
+
+        if (subject.IsPage)
+        {
+            await BumpBreadcrumbsAsync(subject, cancellationToken).ConfigureAwait(false);
+        }
 
         logger.LogInformation(
             "{SubjectKind} {SubjectId} of site {SiteId} was unpublished (scheduled: {Scheduled}).",
@@ -668,6 +689,42 @@ internal sealed class PublishingWrites(
                 .Where(v => v.SubjectKind == subject.Kind && v.SubjectId == subject.Id && v.Number <= oldest && v.Id != liveId)
                 .ExecuteDeleteAsync(cancellationToken)
                 .ConfigureAwait(false);
+        }
+    }
+
+    /// <summary>
+    /// 017 research SE-18: a page's live title or live state appears in the breadcrumbs of every
+    /// live page under it (of every live page, for the home page), so those refresh with it, in
+    /// this transaction.
+    /// </summary>
+    private async Task BumpBreadcrumbsAsync(Subject subject, CancellationToken cancellationToken)
+    {
+        var siteId = subject.SiteId;
+        var page = await database.ForSite<Page>(siteId)
+            .Where(p => p.Id == subject.Id)
+            .Select(p => new { p.Path, p.IsHome })
+            .FirstOrDefaultAsync(cancellationToken)
+            .ConfigureAwait(false);
+        if (page is null)
+        {
+            return;
+        }
+
+        if (page.IsHome)
+        {
+            await bump.BumpAllLivePagesAsync(siteId, cancellationToken).ConfigureAwait(false);
+            return;
+        }
+
+        var prefix = page.Path + "/";
+        var descendants = await database.ForSite<Page>(siteId)
+            .Where(p => p.Path.StartsWith(prefix))
+            .Select(p => p.Id)
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+        if (descendants.Count > 0)
+        {
+            await bump.BumpPagesAsync(siteId, descendants, cancellationToken).ConfigureAwait(false);
         }
     }
 

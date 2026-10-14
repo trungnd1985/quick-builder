@@ -304,6 +304,18 @@ version 1, so no stored document needs migrating:
    `BindingRulesSchemaTests` fails while the two sides or the schema disagree. A prop that
    is not listed is never bound.
 
+9. **Structured data** (017): a block that describes something search engines understand
+   (a video, a list of items) adds a node to the page's JSON-LD graph from its renderer:
+   `context.StructuredData.Add(new JsonObject { ["@type"] = "…", … })`, built from the
+   values the block actually shows, after it has written its markup. `PageResponder`
+   collects the nodes into one `<script type="application/ld+json">` with the page's
+   breadcrumbs, and `JsonLdWriter` escapes every value, so never write JSON-LD yourself.
+   Leave a node out rather than write an empty or guessed property. Add a case to
+   `StructuredDataGoldenTests`. Content types that item pages map their fields to
+   (`Article`, `Product`, `Event`) live in
+   [contracts/structured-data.md](contracts/structured-data.md) and its `types.json`, not
+   in a block.
+
 Anything that would make a stored document invalid — removing or renaming a type or a prop,
 making a prop required — is a **breaking** change: it needs `v2.schema.json`, a forward
 migration of stored drafts and the other steps in §6, in the same pull request.

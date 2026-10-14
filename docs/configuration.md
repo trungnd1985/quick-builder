@@ -56,6 +56,11 @@ scheme, and behind a proxy they are only correct when the proxy is named here:
 Forwarded values are unwound hop by hop from the nearest one, and unwinding stops at the
 first address that is not named, so an unnamed hop can never choose the host.
 
+**robots.txt under a base path.** Search engines look for `/robots.txt` at the root of a host
+name only. With `Hosting:BasePath` set, forward that one address to `{BasePath}/robots.txt`
+at the proxy (see [operations.md](operations.md#robotstxt-and-sitemaps)). Feature 017 (search
+engines, sitemaps and redirects) adds no configuration keys: every choice is a site setting.
+
 **Keeping the admin off client domains.** For an installation that hosts client sites, set
 `Hosting:AdminHostNames` to a name only you use. If you mistype it and lose the admin, remove
 the key (or fix it) and restart: the setting is the only thing that confines the admin.

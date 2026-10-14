@@ -17,9 +17,9 @@ using QuickBuilder.Sites.Features.GetSite;
 using QuickBuilder.Sites.Features.ListLanguages;
 using QuickBuilder.Sites.Features.ListSites;
 using QuickBuilder.Sites.Features.RemoveHostName;
-using QuickBuilder.Sites.Features.UpdateSettings;
 using QuickBuilder.Sites.Features.UpdateSearchSettings;
 using QuickBuilder.Sites.Features.UpdateSearchVisibility;
+using QuickBuilder.Sites.Features.UpdateSettings;
 using QuickBuilder.Sites.Infrastructure;
 
 namespace QuickBuilder.Sites;

@@ -26,6 +26,12 @@ internal sealed class RenderContext(RenderInputs inputs, BlockDefaults defaults)
 
     public RenderInputs Inputs { get; } = inputs;
 
+    /// <summary>
+    /// The structured data nodes the blocks contribute as they render (017 research SE-18): a
+    /// video embed's <c>VideoObject</c>, a collection list's <c>ItemList</c>.
+    /// </summary>
+    public List<System.Text.Json.Nodes.JsonObject> StructuredData { get; } = [];
+
     public BlockDefaults Defaults { get; } = defaults;
 
     public TokenCss Tokens { get; } = TokenCss.For(inputs.Design);

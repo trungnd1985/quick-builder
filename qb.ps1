@@ -21,6 +21,10 @@
                               Make a published template of a collection under a page, with a
                               heading and an image bound to the item's title and first image,
                               so every published item has its own page (development only).
+    ./qb.ps1 seed-redirects [-Count 1000] [-Site name]
+                              Import generated redirects through the redirect import, in files
+                              of 5,000, for trying the redirect list and matching at scale
+                              (a site holds at most 10,000).
 
     Needs Docker. `dev` and `test` also need the .NET 10 SDK and Node 24.
     On macOS and Linux run it with PowerShell 7: `pwsh ./qb.ps1`.
@@ -28,7 +32,7 @@
 #Requires -Version 7
 param(
     [Parameter(Position = 0)]
-    [ValidateSet('start', 'stop', 'code', 'logs', 'dev', 'cloud', 'test', 'reset', 'seed', 'seed-items', 'seed-template')]
+    [ValidateSet('start', 'stop', 'code', 'logs', 'dev', 'cloud', 'test', 'reset', 'seed', 'seed-items', 'seed-template', 'seed-redirects')]
     [string] $Command = 'start',
 
     # cloud: Azure Blob (Azurite) instead of S3 (LocalStack).
@@ -43,11 +47,12 @@ param(
     # start, cloud: do not open the browser.
     [switch] $NoBrowser,
 
-    # seed: how many images to upload; seed-items: how many items to add (default 300).
+    # seed: how many images to upload; seed-items: how many items to add (default 300);
+    # seed-redirects: how many redirects to import (default 1000).
     [ValidateRange(1, 10000)]
     [int] $Count = 1000,
 
-    # seed, seed-items, seed-template: the site's name; asked for when there is more than one.
+    # seed, seed-items, seed-template, seed-redirects: the site's name; asked for when there is more than one.
     [string] $Site,
 
     # seed-items, seed-template: the collection's address name.
@@ -424,6 +429,43 @@ switch ($Command) {
         Write-Progress -Activity 'Adding items' -Completed
 
         Say "Done: $($Count - $failed) added, $published published, $failed refused (a required field this script cannot fill, such as an image)."
+    }
+
+    'seed-redirects' {
+        # 017 tasks T110: redirects arrive through the CSV import, as a member's file would, in
+        # files of at most 5,000 rows. Exact and prefix rows alternate with permanent and
+        # temporary ones. A development tool: it is never part of the product.
+        if (-not $PSBoundParameters.ContainsKey('Count')) { $Count = 1000 }
+        if ($Count -gt 10000) { throw 'A site holds at most 10,000 redirects.' }
+
+        $api = "http://127.0.0.1:$Port/api/v1"
+        $session = Connect-QuickBuilder $api
+        $target = Select-Site $api $session
+        $headers = @{ 'X-QuickBuilder-Request' = '1' }
+        $stamp = Get-Date -Format 'HHmmss'
+        $imported = 0
+        $refused = 0
+
+        Say "Importing $Count redirects into '$($target.name)'…"
+        for ($start = 1; $start -le $Count; $start += 5000) {
+            $end = [Math]::Min($Count, $start + 4999)
+            $rows = [System.Text.StringBuilder]::new("source,target,kind,match,note`n")
+            for ($n = $start; $n -le $end; $n++) {
+                $kind = if ($n % 5 -eq 0) { 302 } else { 301 }
+                if ($n % 10 -eq 0) {
+                    $null = $rows.Append("/seed-$stamp/section-$n,/new-$stamp/section-$n,$kind,prefix,seeded`n")
+                } else {
+                    $null = $rows.Append("/seed-$stamp/page-$n.html,/new-$stamp/page-$n,$kind,exact,`n")
+                }
+            }
+
+            $result = Invoke-RestMethod "$api/pages/sites/$($target.id)/redirects/import" -Method Post -WebSession $session -Headers $headers `
+                -ContentType 'text/csv' -Body ([System.Text.Encoding]::UTF8.GetBytes($rows.ToString()))
+            $imported += $result.added
+            $refused += @($result.refused).Count
+        }
+
+        Say "Done: $imported imported, $refused refused. Open the site's Redirects page, or visit /seed-$stamp/page-1.html."
     }
 
     'seed-template' {

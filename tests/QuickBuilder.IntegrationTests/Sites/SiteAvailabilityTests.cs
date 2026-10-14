@@ -87,6 +87,7 @@ public sealed class SiteAvailabilityTests(DatabaseFixture database) : IAsyncLife
     public async Task Re_enabling_restores_the_site_unchanged()
     {
         var site = await CreateAsync("Back", "back.test", "www.back.test").ConfigureAwait(true);
+        await SitesApi.ServeOnEveryHostNameAsync(_admin, site).ConfigureAwait(true);
         await PublicSite.MarkAsync(_admin, site).ConfigureAwait(true);
         var file = await MediaApi.UploadOkAsync(_admin, site).ConfigureAwait(true);
         var before = await SitesApi.GetOkAsync(_admin, site).ConfigureAwait(true);

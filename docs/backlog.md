@@ -77,3 +77,19 @@ Deferred by 035 (richer rich text; see specs/035-rich-text-formats/plan.md):
 - One `LATERAL` query per nested list, per-field expression indexes for sort keys, and
   narrowing list refreshes by filter
 - Draft preview links for item pages (#22)
+
+## Deferred by 017 (SEO, sitemap and redirects)
+
+- Wildcard or regular-expression redirects; a not-found log; redirect use over time
+- Image, news and video sitemaps; per-locale sitemaps and `hreflang`; pinging search engines
+- Structured data types beyond Article, Product and Event (additive); `uploadDate` and
+  thumbnails for videos other than YouTube
+- Per-item metadata fields; `twitter:*` tags
+- A previous-slug fallback for the few seconds before an item's redirect exists
+- A redirect for the item addresses of a template turned back into a page: a prefix redirect
+  keeps the rest of the path, so it would need a "drop the rest" option
+- Obligations on later features:
+  - **#20 site export and import**: carry `pages.redirects` (remapping `page` and `item`
+    target ids) and the site search settings; page metadata already travels in documents
+  - **#22 draft previews**: preview responses must write `noindex` and never appear in the
+    sitemap

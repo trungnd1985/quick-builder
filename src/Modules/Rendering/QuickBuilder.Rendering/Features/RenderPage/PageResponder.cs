@@ -10,6 +10,7 @@ using QuickBuilder.Rendering.Contracts;
 using QuickBuilder.Rendering.Domain;
 using QuickBuilder.Rendering.Rendering;
 using QuickBuilder.Rendering.Seo;
+using QuickBuilder.Rendering.Seo.StructuredData;
 using QuickBuilder.Shared.Infrastructure.Caching;
 using QuickBuilder.Sites.Contracts;
 
@@ -318,12 +319,18 @@ internal sealed class PageResponder(
         var targets = await pages.GetLinkTargetsAsync(site.Id, references.Pages, cancellationToken).ConfigureAwait(false);
         var files = await media.GetAsync(site.Id, references.Media, cancellationToken).ConfigureAwait(false);
 
+        // 017 research SE-18: the breadcrumb trail, read on a miss only; the generation moves
+        // when an ancestor's live title does (T100).
+        var ancestors = request.Path == "/" && pageItem is null
+            ? []
+            : await pages.GetLiveAncestorsAsync(site.Id, pageId, cancellationToken).ConfigureAwait(false);
+
         // 016 FR-030: an item page is titled by the item's name, else by the template's title.
         var title = string.IsNullOrWhiteSpace(pageItem?.Name) ? version.Title : pageItem.Name;
 
         var inputs = new RenderInputs(
             title, version.Document, design.Document, components, targets, files, site.DefaultLanguage, basePath, fetched.Data,
-            seo, site, request.Path, pageItem is not null, request.Params.Pages);
+            seo, site, request.Path, pageItem is not null, request.Params.Pages, ancestors);
         metrics.Rendered();
         return Render(inputs, renderer, context => LogBroken(context, site.Id, pageId));
     }
@@ -356,8 +363,9 @@ internal sealed class PageResponder(
             ? HeadBuilder.Build(new HeadInputs(
                 inputs.Title, inputs.Path, inputs.IsItemPage, inputs.Seo, site, inputs.Media, MetadataBindings(inputs, context), inputs.PageParams, inputs.LinkTargets))
             : null;
+        var structuredData = head is null ? null : JsonLdWriter.Write(Graph(inputs, context, head));
         afterRender?.Invoke(context);
-        var document = PageShell.Write(inputs.Title, inputs.Language, inputs.BasePath, context.Tokens, context.NodeRules, body.ToString(), head);
+        var document = PageShell.Write(inputs.Title, inputs.Language, inputs.BasePath, context.Tokens, context.NodeRules, body.ToString(), head, structuredData);
         return new RenderedPage(Encoding.UTF8.GetBytes(document.Html), document.StyleHash);
     }
 
@@ -373,6 +381,34 @@ internal sealed class PageResponder(
         }
 
         return seo.Bindings.Keys.ToDictionary(field => field, field => context.Bound(root, "seo." + field), StringComparer.Ordinal);
+    }
+
+    /// <summary>
+    /// The page's structured data graph (017 research SE-18; public-seo.md §4): the website on the
+    /// home page, else the breadcrumb trail; the blocks' nodes; and an item page's content type.
+    /// </summary>
+    private static List<System.Text.Json.Nodes.JsonObject> Graph(RenderInputs inputs, RenderContext context, HeadMetadata head)
+    {
+        var site = inputs.Site!;
+        var nodes = new List<System.Text.Json.Nodes.JsonObject>();
+        if (inputs.Path == "/" && !inputs.IsItemPage)
+        {
+            nodes.AddRange(PageNodes.Home(site, inputs.Media));
+        }
+        else
+        {
+            nodes.Add(PageNodes.Breadcrumbs(site, inputs.Ancestors ?? [], inputs.Title));
+        }
+
+        nodes.AddRange(context.StructuredData);
+
+        if (inputs.IsItemPage && inputs.Seo is { StructuredDataType: { } type } seo && context.Data.PageItem is { } item
+            && ItemNode.Build(type, seo.StructuredDataBindings, new ItemNodeInputs(item, context.Data, inputs.Media, site.BaseUrl, inputs.Language, head.Canonical)) is { } itemNode)
+        {
+            nodes.Add(itemNode);
+        }
+
+        return nodes;
     }
 
     /// <summary>The headers of public-rendering.md §3 around a rendered page.</summary>
