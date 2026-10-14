@@ -72,6 +72,93 @@ internal sealed partial class Redirect : ISiteOwned
 
     /// <summary>PostgreSQL's <c>xmin</c>: the concurrency token the API calls <c>version</c>.</summary>
     public uint Version { get; private set; }
+
+    public const int MaxNoteLength = 500;
+
+    /// <summary>Where it sends visitors.</summary>
+    public RedirectTarget Target => new(TargetKind, TargetPageId, TargetCollectionId, TargetItemId, TargetPath, TargetUrl);
+
+    /// <summary>
+    /// A new redirect from a checked source to a checked target (<see cref="RedirectSource"/>,
+    /// <see cref="RedirectTargets"/>, <see cref="RedirectRules"/>).
+    /// </summary>
+    public static Redirect Create(
+        Guid siteId,
+        string matchKind,
+        string sourcePath,
+        string sourceQuery,
+        RedirectTarget target,
+        int statusCode,
+        bool enabled,
+        string? note,
+        string origin,
+        Guid? actor,
+        DateTimeOffset now)
+    {
+        var redirect = new Redirect
+        {
+            Id = Guid.CreateVersion7(),
+            SiteId = siteId,
+            Origin = origin,
+            CreatedAtUtc = now,
+            CreatedBy = actor,
+        };
+        redirect.Change(matchKind, sourcePath, sourceQuery, target, statusCode, enabled, note, actor, now);
+        return redirect;
+    }
+
+    /// <summary>Replaces everything a member can change.</summary>
+    public void Change(
+        string matchKind,
+        string sourcePath,
+        string sourceQuery,
+        RedirectTarget target,
+        int statusCode,
+        bool enabled,
+        string? note,
+        Guid? actor,
+        DateTimeOffset now)
+    {
+        if (statusCode is not (301 or 302))
+        {
+            throw new ArgumentOutOfRangeException(nameof(statusCode), statusCode, "A redirect is 301 or 302.");
+        }
+
+        MatchKind = matchKind;
+        SourcePath = sourcePath;
+        SourceQuery = sourceQuery;
+        StatusCode = statusCode;
+        Enabled = enabled;
+        Note = string.IsNullOrWhiteSpace(note) ? null : note.Trim();
+        Retarget(target, actor, now);
+    }
+
+    /// <summary>Sends visitors somewhere else, as when an address it named moved (017 FR-029).</summary>
+    public void Retarget(RedirectTarget target, Guid? actor, DateTimeOffset now)
+    {
+        ArgumentNullException.ThrowIfNull(target);
+
+        TargetKind = target.Kind;
+        TargetPageId = target.PageId;
+        TargetCollectionId = target.CollectionId;
+        TargetItemId = target.ItemId;
+        TargetPath = target.Path;
+        TargetUrl = target.Url;
+        Touch(actor, now);
+    }
+
+    /// <summary>Stops answering requests without being deleted, as when it would loop (017 SE-11).</summary>
+    public void TurnOff(Guid? actor, DateTimeOffset now)
+    {
+        Enabled = false;
+        Touch(actor, now);
+    }
+
+    private void Touch(Guid? actor, DateTimeOffset now)
+    {
+        UpdatedAtUtc = now;
+        UpdatedBy = actor;
+    }
 }
 
 /// <summary>How a redirect's source matches a request (FR-033).</summary>

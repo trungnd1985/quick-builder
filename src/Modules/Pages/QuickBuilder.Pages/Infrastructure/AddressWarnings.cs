@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using QuickBuilder.Cms.Contracts;
 using QuickBuilder.Pages.Domain;
+using QuickBuilder.Pages.Domain.Redirects;
 using QuickBuilder.Pages.Features.SetPageTemplate;
 
 namespace QuickBuilder.Pages.Infrastructure;
@@ -79,6 +80,30 @@ internal sealed class AddressWarnings(PagesDbContext database, ICollectionSchema
 
         var itemId = await items.PublishedItemWithSlugAsync(siteId, collection, page.Slug, cancellationToken).ConfigureAwait(false);
         return itemId is { } hidden ? [new TemplateWarningResponse("item_address_hidden", ItemId: hidden)] : [];
+    }
+
+    /// <summary>
+    /// <c>redirect_hidden</c> (017 data-model §4): the page's address is the source of an enabled
+    /// redirect without a query, which the page answers first once it is live (FR-016).
+    /// </summary>
+    public async Task<IReadOnlyList<TemplateWarningResponse>> RedirectHiddenAsync(Guid siteId, Guid pageId, CancellationToken cancellationToken)
+    {
+        var path = await database.ForSite<Page>(siteId)
+            .Where(p => p.Id == pageId && p.TemplateCollectionId == null)
+            .Select(p => p.Path)
+            .FirstOrDefaultAsync(cancellationToken)
+            .ConfigureAwait(false);
+        if (path is null)
+        {
+            return [];
+        }
+
+        var redirect = await database.ForSite<Redirect>(siteId)
+            .Where(r => r.Enabled && r.MatchKind == RedirectMatchKinds.Exact && r.SourcePath == path && r.SourceQuery == string.Empty)
+            .Select(r => (Guid?)r.Id)
+            .FirstOrDefaultAsync(cancellationToken)
+            .ConfigureAwait(false);
+        return redirect is { } id ? [new TemplateWarningResponse("redirect_hidden", RedirectId: id)] : [];
     }
 
     /// <summary>The collections of the templates among <paramref name="pageIds"/> and their descendants.</summary>

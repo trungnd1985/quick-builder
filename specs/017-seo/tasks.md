@@ -244,7 +244,7 @@ and confirm the status, target, query handling and the content-wins rule, on two
 
 ### Tests for User Story 2 ⚠️
 
-- [ ] T035 [P] [US2] Create `UTESTS/Pages/Redirects/RedirectRulesTests.cs` and `UTESTS/Pages/Redirects/CanonicalQueryTests.cs` (SE-09). They cover:
+- [X] T035 [P] [US2] Create `UTESTS/Pages/Redirects/RedirectRulesTests.cs` and `UTESTS/Pages/Redirects/CanonicalQueryTests.cs` (SE-09). They cover:
   - source normalisation (case, trailing slash, dot segments refused);
   - refused reserved and platform sources and `/` without a query;
   - canonical queries (order, decoding and re-encoding, case of names kept, 512 limit);
@@ -252,14 +252,14 @@ and confirm the status, target, query handling and the content-wins rule, on two
   - target validation (schemes, user info, protocol-relative, prefix with `url` or `item`);
   - chain shortening up to 10 steps;
   - loops, including a prefix matching its own target.
-- [ ] T036 [P] [US2] Create `UTESTS/Pages/Redirects/RedirectCsvTests.cs`. It covers:
+- [X] T036 [P] [US2] Create `UTESTS/Pages/Redirects/RedirectCsvTests.cs`. It covers:
   - RFC 4180 quoting, embedded commas, quotes and line breaks;
   - a BOM, CRLF and LF line ends;
   - header detection;
   - `kind` and `match` spellings;
   - malformed rows;
   - the export formula guard (`=`, `+`, `-`, `@`, tab, CR).
-- [ ] T037 [P] [US2] Create `ITESTS/Pages/RedirectEndpointsTests.cs` for every redirect operation in seo-api.yaml:
+- [X] T037 [P] [US2] Create `ITESTS/Pages/RedirectEndpointsTests.cs` for every redirect operation in seo-api.yaml:
   - list search, state filter, sort, paging;
   - create, get, update (version conflict), delete;
   - turning off;
@@ -269,7 +269,7 @@ and confirm the status, target, query handling and the content-wins rule, on two
   - the `hidden` and `broken` states;
   - a path target equal to a page's address stored as `page`;
   - authorization (Designer allowed, Editor 403, other site 404).
-- [ ] T038 [P] [US2] Create `ITESTS/Pages/RedirectImportTests.cs`. It covers:
+- [X] T038 [P] [US2] Create `ITESTS/Pages/RedirectImportTests.cs`. It covers:
   - 297 valid rows + 2 duplicates + 1 loop → `added: 297` with three line reports;
   - duplicates within the file;
   - a Latin-1 file → `400 redirects.import_encoding`, with nothing added;
@@ -279,7 +279,7 @@ and confirm the status, target, query handling and the content-wins rule, on two
   - a refused row's detail never echoes its content.
 
   Add the fixture `FIX/redirects-300.csv`.
-- [ ] T039 [P] [US2] Create `ITESTS/Rendering/RedirectMatchingTests.cs` for the order and responses of public-seo.md §1–§2:
+- [X] T039 [P] [US2] Create `ITESTS/Rendering/RedirectMatchingTests.cs` for the order and responses of public-seo.md §1–§2:
   - query redirect before a live page (`/?p=12` with a live home page);
   - a live page winning over an exact redirect;
   - an item page winning;
@@ -291,13 +291,13 @@ and confirm the status, target, query handling and the content-wins rule, on two
   - a broken page target → not-found bytes;
   - a disabled redirect ignored;
   - a change visible at the next request on a second instance.
-- [ ] T040 [P] [US2] Create `ITESTS/Pages/RedirectUsageTests.cs` (SE-12). It covers:
+- [X] T040 [P] [US2] Create `ITESTS/Pages/RedirectUsageTests.cs` (SE-12). It covers:
   - hits counted and flushed on a forced flush;
   - two instances adding up;
   - `last_used_at` keeping the latest time;
   - a redirect deleted before the flush is ignored;
   - the request path making no database write (assert with an EF interceptor counting commands on the writable context during redirect requests).
-- [ ] T041 [P] [US2] Create `ADMINTESTS/features/seo/RedirectsView.spec.ts`, `RedirectDialog.spec.ts` and `RedirectImportDialog.spec.ts`. They cover:
+- [X] T041 [P] [US2] Create `ADMINTESTS/features/seo/RedirectsView.spec.ts`, `RedirectDialog.spec.ts` and `RedirectImportDialog.spec.ts`. They cover:
   - the list with states and usage sort;
   - the create and edit dialog with page, item, path and URL targets, match kind and query warnings (the source path holds live content, or the query uses a list's page parameter);
   - the import report per line;
@@ -306,16 +306,16 @@ and confirm the status, target, query handling and the content-wins rule, on two
 
 ### Implementation for User Story 2
 
-- [ ] T042 [US2] Implement `PAGES/Domain/Redirects/RedirectSource.cs`, `CanonicalQuery.cs` and `RedirectRules.cs` (pure: normalisation, validation, chain shortening, loop detection over a resolver delegate), and complete `PAGES/Domain/Redirects/Redirect.cs` with `Create`, `Change`, `TurnOn` and `TurnOff` enforcing the rules. Make T035 pass.
-- [ ] T043 [US2] Implement `PAGES/Infrastructure/RedirectWrites.cs`:
+- [X] T042 [US2] Implement `PAGES/Domain/Redirects/RedirectSource.cs`, `CanonicalQuery.cs` and `RedirectRules.cs` (pure: normalisation, validation, chain shortening, loop detection over a resolver delegate), and complete `PAGES/Domain/Redirects/Redirect.cs` with `Create`, `Change`, `TurnOn` and `TurnOff` enforcing the rules. Make T035 pass.
+- [X] T043 [US2] Implement `PAGES/Infrastructure/RedirectWrites.cs`:
   - load the site's redirect sources for chain and loop checks;
   - resolve `page` and `item` targets (Pages tree; `IPublishedItemReader` for items);
   - store a path equal to a page's current address as `page`;
   - store a `url` on the site's primary host name and base path as `path` (then `page`), and keep a `url` on another host name of the site absolute (SE-09);
   - enforce the 10,000 limit;
   - save with the `xmin` concurrency check.
-- [ ] T044 [US2] Implement `PAGES/Infrastructure/RedirectCsv.cs` (an in-house RFC 4180 reader and writer, with UTF-8 validation and the formula guard). Make T036 pass.
-- [ ] T045 [US2] Create the slices in `PAGES/Features/Redirects/`:
+- [X] T044 [US2] Implement `PAGES/Infrastructure/RedirectCsv.cs` (an in-house RFC 4180 reader and writer, with UTF-8 validation and the formula guard). Make T036 pass.
+- [X] T045 [US2] Create the slices in `PAGES/Features/Redirects/`:
   - `ListRedirects.cs` (search, state, sort and paging; `hidden` and `broken` computed for the page of results through `IPublishedContentReader` and the item reader; usage joined from `redirect_usage`);
   - `GetRedirect.cs`, `CreateRedirect.cs`, `UpdateRedirect.cs` and `DeleteRedirect.cs`;
   - `ImportRedirects.cs` (a `text/csv` body limited to 1 MiB, all valid rows in one transaction, line reports);
@@ -323,27 +323,29 @@ and confirm the status, target, query handling and the content-wins rule, on two
   - `RedirectResponses.cs`.
 
   Every action has `pages.redirects.manage`. Register them in `PAGES/PagesModule.cs` and `ITESTS/Infrastructure/EndpointCatalog.cs`. Make T037 and T038 pass.
-- [ ] T046 [US2] Implement `PAGES/Infrastructure/RedirectReader.cs` (`IRedirectReader`) on `PublishedReadDbContext`:
+
+  *Done as*: get, create, update and delete share `ManageRedirects.cs` (one handler class, one controller); `RedirectViews` in `RedirectResponses.cs` builds states, addresses and warnings; import and export are `RedirectFiles.cs`. The endpoint catalog finds endpoints by itself. The CSV reader and writer are pure, so they sit in `PAGES/Domain/Redirects/RedirectCsv.cs` beside the rules. `CanonicalQuery` moved to `PAGESC/Redirects/` because Rendering canonicalises request queries the same way. Cms gained `ICollectionSchemaReader.GetItemAddressPartsAsync` for item targets.
+- [X] T046 [US2] Implement `PAGES/Infrastructure/RedirectReader.cs` (`IRedirectReader`) on `PublishedReadDbContext`:
   - `FindQueryAsync` is one indexed lookup;
   - `FindAsync` is one query: the exact match without a query, else `source_path = ANY(@ancestors)` with `match_kind = 'prefix'`, ordered by length descending, `LIMIT 1`.
 
   Enabled rows only. Register it as scoped.
-- [ ] T047 [US2] Implement `PAGES/Infrastructure/RedirectHitCounter.cs` (an `IRedirectHits` singleton over a `ConcurrentDictionary`, never throwing) and `PAGES/Infrastructure/RedirectUsageFlusher.cs`, a `BackgroundService` that:
+- [X] T047 [US2] Implement `PAGES/Infrastructure/RedirectHitCounter.cs` (an `IRedirectHits` singleton over a `ConcurrentDictionary`, never throwing) and `PAGES/Infrastructure/RedirectUsageFlusher.cs`, a `BackgroundService` that:
   - swaps the counters every 60 s and on `StopAsync`;
   - upserts `hits = hits + n` and `last_used_at = greatest(...)` per site through `PagesDbContext`, using LINQ and `ExecuteUpdate` plus inserts, with no raw SQL;
   - skips deleted redirects.
 
   Register both in `PAGES/PagesModule.cs`, with a test hook to flush. Make T040 pass.
-- [ ] T048 [US2] Create `RENDER/Features/RenderPage/RedirectResponder.cs`. It builds the 301 or 302 `PublicResponse` (empty body, `Location` with base path, current target address, prefix remainder and query rules; `Cache-Control` per public-seo.md §2) and calls `IRedirectHits.Record`. Item targets resolve through `IPublishedContentReader.GetLiveTemplatePatternsAsync` and `IPublishedItemReader.GetAsync`. A target that is not live gives null, so the caller serves the not-found page.
-- [ ] T049 [US2] Change `RENDER/Features/RenderPage/PageResponder.cs` and `RenderPageQuery.cs` to match in the FR-016 order:
+- [X] T048 [US2] Create `RENDER/Features/RenderPage/RedirectResponder.cs`. It builds the 301 or 302 `PublicResponse` (empty body, `Location` with base path, current target address, prefix remainder and query rules; `Cache-Control` per public-seo.md §2) and calls `IRedirectHits.Record`. Item targets resolve through `IPublishedContentReader.GetLiveTemplatePatternsAsync` and `IPublishedItemReader.GetAsync`. A target that is not live gives null, so the caller serves the not-found page.
+- [X] T049 [US2] Change `RENDER/Features/RenderPage/PageResponder.cs` and `RenderPageQuery.cs` to match in the FR-016 order:
   - pass the full query to compute the canonical query;
   - try `FindQueryAsync` first when the query is non-empty;
   - after the page and item lookups miss, try `FindAsync`;
   - fall back to the not-found page.
 
   Make T039 pass. Existing `RouteMatchingTests` stay green.
-- [ ] T050 [P] [US2] Create `ADMIN/features/seo/RedirectsView.vue`, `RedirectDialog.vue` (target pickers reuse the page picker and 015's item picker) and `RedirectImportDialog.vue`, with `ADMIN/api/redirects.ts`. Add the route `/sites/:id/redirects` in `ADMIN/app/router.ts` and a navigation entry for members holding `pages.redirects.manage`. Add i18n keys. Make T041 pass.
-- [ ] T116 [US2] Add the redirect warnings of data-model.md §4 (added after analysis, C1, C2):
+- [X] T050 [P] [US2] Create `ADMIN/features/seo/RedirectsView.vue`, `RedirectDialog.vue` (target pickers reuse the page picker and 015's item picker) and `RedirectImportDialog.vue`, with `ADMIN/api/redirects.ts`. Add the route `/sites/:id/redirects` in `ADMIN/app/router.ts` and a navigation entry for members holding `pages.redirects.manage`. Add i18n keys. Make T041 pass.
+- [X] T116 [US2] Add the redirect warnings of data-model.md §4 (added after analysis, C1, C2):
   - `CreateRedirect.cs` and `UpdateRedirect.cs` return `warnings`: `source_holds_content` when a query source's path is a live page or item page, and `source_uses_page_param` when a parameter is named like a paginated list's parameter there;
   - page create, slug change, move, home change, template removal and publish responses (`PAGES/Features/PageResponses.cs`, `PublishingResponses.cs`) carry `redirect_hidden`, naming the redirect, when the page's live address is the source of an enabled redirect without a query.
 
@@ -405,17 +407,17 @@ discouraging.
 
 ### Implementation for User Story 3
 
-- [ ] T056 [US3] Create `PAGES/Infrastructure/SitemapGeneration.cs` (`BumpAsync(siteId)` in the caller's transaction, creating the row when missing). Call it from:
+- [X] T056 [US3] Create `PAGES/Infrastructure/SitemapGeneration.cs` (`BumpAsync(siteId)` in the caller's transaction, creating the row when missing). Call it from:
   - `PAGES/Infrastructure/PublishingWrites.cs` (publish, rollback, unpublish);
   - `ScheduleWrites.cs` (scheduled runs);
   - `PageTreeWrites.cs` (slug, move, home, template set or remove, delete, when live pages or templates are affected);
   - the existing handlers `RefreshPagesListingItemsHandler.cs` (`Cms.ItemPublished`, `ItemUnpublished`, `ItemDeleted` with `wasPublished`) and `RefreshPagesUsingCollectionHandler.cs` (`CollectionChanged` with `itemsRewritten`, `CollectionDeleted`).
-- [ ] T057 [US3] Implement `PAGES/Infrastructure/SitemapReader.cs` (`ISitemapReader`) on `PublishedReadDbContext`:
+- [X] T057 [US3] Implement `PAGES/Infrastructure/SitemapReader.cs` (`ISitemapReader`) on `PublishedReadDbContext`:
   - `GetGenerationAsync`;
   - `GetPagesAsync`, one query over live pages and templates. It projects path or pattern, `LiveSinceUtc`, collection, and the `seo.noindex`, `seo.noSitemap` and `seo.canonical` flags and the `seo.bind.noindex.value.field` id from the live document's `jsonb` through EF JSON translation.
 
   `Indexable` follows data-model §3.1, without the site flags. Register it.
-- [ ] T058 [US3] Implement `ListAddressesAsync` in `CMS/Infrastructure/PublishedItemReader.cs`: keyset by id, published items of the collection, slug, `LastPublishedAtUtc`, and `Hidden` = the published boolean value of `hideFieldId` is true (EF JSON translation, no raw SQL). Add `ITESTS/Cms/PublishedItemAddressesTests.cs` covering paging, the hide flag (true, false, missing, non-boolean) and site isolation.
+- [X] T058 [US3] Implement `ListAddressesAsync` in `CMS/Infrastructure/PublishedItemReader.cs`: keyset by id, published items of the collection, slug, `LastPublishedAtUtc`, and `Hidden` = the published boolean value of `hideFieldId` is true (EF JSON translation, no raw SQL). Add `ITESTS/Cms/PublishedItemAddressesTests.cs` covering paging, the hide flag (true, false, missing, non-boolean) and site isolation.
 - [ ] T059 [US3] Create `RENDER/Features/Sitemap/SitemapKey.cs`, `SitemapBuilder.cs` and `SitemapController.cs`:
   - routes `GET`/`HEAD` `sitemap.xml` and `sitemap-{n:int}.xml`, anonymous, ordered before the page catch-all;
   - `SitemapBuilder` reads the generation (key first), then builds every entry: pages by path, then each indexable template's items by id, with absolute canonical addresses from `SiteDto.BaseUrl`;

@@ -91,6 +91,10 @@ internal sealed class PageTreeWrites(PagesDbContext database, PagesAccess access
             // go to the outbox, which clears them.
             await BumpLinkersAsync(siteId, tree, ct).ConfigureAwait(false);
 
+            // 017 research SE-15: an address, a template or a page's existence may have changed
+            // what the sitemap lists. A spare rebuild costs little; a missed one shows stale data.
+            await bump.Sitemap.BumpAsync(siteId, ct).ConfigureAwait(false);
+
             if (database.Entry(tree).State != EntityState.Added)
             {
                 database.MarkTreeChanged(tree);

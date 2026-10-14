@@ -43,6 +43,8 @@ using QuickBuilder.Pages.Infrastructure.Schema;
 using QuickBuilder.Shared.Infrastructure.Data;
 using QuickBuilder.Shared.Infrastructure.Modules;
 using QuickBuilder.Shared.Infrastructure.MultiSite;
+using QuickBuilder.Pages.Contracts.Redirects;
+using QuickBuilder.Pages.Features.Redirects;
 using QuickBuilder.Shared.Infrastructure.Outbox;
 using QuickBuilder.Shared.Kernel.Dispatch;
 using QuickBuilder.Shared.Kernel.Events;
@@ -85,6 +87,15 @@ public static class PagesModule
             .UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking));
         services.AddScoped<IPublishedContentReader, PublishedContentReader>();
 
+        // 017 research SE-10, SE-12: redirects on the public path, and their use, counted in
+        // memory and saved in the background.
+        services.AddScoped<IRedirectReader, RedirectReader>();
+        services.AddScoped<ISitemapReader, SitemapReader>();
+        services.AddSingleton<RedirectHitCounter>();
+        services.AddSingleton<IRedirectHits>(sp => sp.GetRequiredService<RedirectHitCounter>());
+        services.AddSingleton<RedirectUsageFlusher>();
+        services.AddHostedService(sp => sp.GetRequiredService<RedirectUsageFlusher>());
+
         // 013 research MV-05: where media files are used, for the Media module.
         services.AddScoped<QuickBuilder.Pages.Contracts.Media.IMediaUsageReader, MediaUsageReader>();
 
@@ -122,6 +133,20 @@ public static class PagesModule
         services.AddScoped<CollectionUseRows>();
         services.AddScoped<PageParamRules>();
         services.AddScoped<AddressWarnings>();
+
+        // 017: redirects (research SE-09 to SE-13a).
+        services.AddScoped<SitemapGeneration>();
+        services.AddScoped<RedirectWrites>();
+        services.AddScoped<RedirectViews>();
+        services.AddScoped<ManageRedirectHandlers>();
+        services.AddScoped<ICommandHandler<CreateRedirectCommand, Result<RedirectResponse>>>(sp => sp.GetRequiredService<ManageRedirectHandlers>());
+        services.AddScoped<ICommandHandler<UpdateRedirectCommand, Result<RedirectResponse>>>(sp => sp.GetRequiredService<ManageRedirectHandlers>());
+        services.AddScoped<ICommandHandler<DeleteRedirectCommand, Result>>(sp => sp.GetRequiredService<ManageRedirectHandlers>());
+        services.AddScoped<IQueryHandler<GetRedirectQuery, Result<RedirectResponse>>>(sp => sp.GetRequiredService<ManageRedirectHandlers>());
+        services.AddScoped<IQueryHandler<ListRedirectsQuery, Result<RedirectListResponse>>, ListRedirectsHandler>();
+        services.AddScoped<RedirectFileHandlers>();
+        services.AddScoped<ICommandHandler<ImportRedirectsCommand, Result<ImportRedirectsResponse>>>(sp => sp.GetRequiredService<RedirectFileHandlers>());
+        services.AddScoped<IQueryHandler<ExportRedirectsQuery, Result<string>>>(sp => sp.GetRequiredService<RedirectFileHandlers>());
         services.AddScoped<ICollectionUsageReader, CollectionUsageReader>();
         services.AddScoped<ComponentReads>();
 

@@ -75,7 +75,8 @@
       "components": "Shared components",
       "media": "Media library",
       "design": "Design",
-      "collections": "Collections"
+      "collections": "Collections",
+      "redirects": "Redirects"
     },
     "settings": {
       "heading": "Settings",
@@ -2109,6 +2110,91 @@
       "import_encoding": "The file is not UTF-8 text. Save it as UTF-8 (CSV) and import it again.",
       "import_too_large": "An import may hold at most 5,000 rows and 1 MB.",
       "import_row_malformed": "This line does not have a source, a target and a kind."
+    },
+    "title": "Redirects",
+    "states": {
+      "active": "Active",
+      "off": "Off",
+      "hidden": "Hidden by a page",
+      "broken": "Broken"
+    },
+    "sort": {
+      "source": "Source address",
+      "hits": "Most used",
+      "lastUsed": "Last used",
+      "updated": "Recently changed"
+    },
+    "match": {
+      "exact": "This address only",
+      "prefix": "This address and everything below it"
+    },
+    "target": {
+      "page": "A page",
+      "path": "A path on this site",
+      "url": "Another website",
+      "item": "A collection item"
+    },
+    "kind": {
+      "permanent": "Permanent (301)",
+      "temporary": "Temporary (302)"
+    },
+    "warnings": {
+      "source_holds_content": "A page answers this address too. This redirect takes visitors away from it when the query matches.",
+      "source_uses_page_param": "This query uses the parameter a list on that page pages with, so one of its pages will redirect."
+    },
+    "list": {
+      "new": "New redirect",
+      "import": "Import",
+      "export": "Export",
+      "search": "Search",
+      "state": "State",
+      "allStates": "All",
+      "sort": "Sort by",
+      "apply": "Apply",
+      "loading": "Loading redirects…",
+      "count": "{total} of at most {limit} redirects",
+      "source": "From",
+      "target": "To",
+      "kind": "Kind",
+      "hits": "Uses",
+      "lastUsed": "Last used",
+      "never": "Never",
+      "noAddress": "No live address",
+      "andBelow": "and below",
+      "empty": "No redirects match.",
+      "pages": "Pages of redirects",
+      "previous": "Previous",
+      "next": "Next",
+      "pageOf": "Page {page} of {count}"
+    },
+    "dialog": {
+      "newTitle": "New redirect",
+      "editTitle": "Change redirect",
+      "source": "From address",
+      "sourceHelp": "A path on this site, such as /old-page. An exact redirect may include a query, such as /product.php?id=7.",
+      "match": "Match",
+      "targetKind": "Send visitors to",
+      "kind": "Kind",
+      "enabled": "Redirect is on",
+      "note": "Note",
+      "save": "Save",
+      "cancel": "Cancel",
+      "delete": "Delete",
+      "done": "Done",
+      "saved": "Redirect saved.",
+      "shortened": "It pointed at another redirect, so it now goes straight to {address}.",
+      "conflictWith": "(redirect {id}…)",
+      "confirmDelete": "Delete this redirect? Its old address will give the not-found page."
+    },
+    "import": {
+      "title": "Import redirects",
+      "help": "A CSV file with the columns source, target, kind (301 or 302), and optionally match (exact or prefix) and note. At most 5,000 rows and 1 MB.",
+      "file": "CSV file",
+      "run": "Import",
+      "close": "Close",
+      "summary": "{added} added, {refused} refused",
+      "shortened": "{count} pointed at other redirects and now go straight to the final address.",
+      "line": "Line {line}"
     }
   }
 }

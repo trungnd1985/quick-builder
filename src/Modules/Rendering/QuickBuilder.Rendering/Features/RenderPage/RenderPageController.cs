@@ -38,7 +38,9 @@ public sealed class RenderPageController(IDispatcher dispatcher, ICurrentSite cu
                     Request.Path.Value,
                     Request.PathBase.Value ?? string.Empty,
                     Request.Headers.IfNoneMatch.ToString(),
-                    Request.Query.ToDictionary(q => q.Key, q => (string?)q.Value.FirstOrDefault(), StringComparer.Ordinal)),
+                    Request.Query.ToDictionary(q => q.Key, q => (string?)q.Value.FirstOrDefault(), StringComparer.Ordinal),
+                    [.. Request.Query.SelectMany(q => q.Value.Select(v => new KeyValuePair<string, string?>(q.Key, v)))],
+                    Request.QueryString.Value),
                 cancellationToken)
             .ConfigureAwait(false);
 

@@ -47,6 +47,7 @@ public static class RenderingModule
 
         services.AddSingleton<RenderMetrics>();
         services.AddScoped<PageResponder>();
+        services.AddScoped<RedirectResponder>();
 
         // 016 research TB-09: what bindings read, fetched before rendering.
         services.AddScoped<QuickBuilder.Rendering.Binding.BindingFetcher>();

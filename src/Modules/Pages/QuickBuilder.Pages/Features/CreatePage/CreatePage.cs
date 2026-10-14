@@ -76,7 +76,15 @@ internal sealed class CreatePageHandler(
 
         // 016 TB-12: a page beside a template may take an item's address.
         var page = (await reads.PageAsync(command.SiteId, created.Value.Id, cancellationToken).ConfigureAwait(false))!;
-        return Result.Success(page with { Warnings = await addresses.AddressHiddenAsync(command.SiteId, page.Id, cancellationToken).ConfigureAwait(false) });
+        // 017 data-model §4: and once published, it answers a redirect's source first.
+        return Result.Success(page with
+        {
+            Warnings =
+            [
+                .. await addresses.AddressHiddenAsync(command.SiteId, page.Id, cancellationToken).ConfigureAwait(false),
+                .. await addresses.RedirectHiddenAsync(command.SiteId, page.Id, cancellationToken).ConfigureAwait(false),
+            ],
+        });
     }
 }
 

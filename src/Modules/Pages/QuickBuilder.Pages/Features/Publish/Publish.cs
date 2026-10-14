@@ -18,12 +18,21 @@ internal sealed record PublishCommand(Guid SiteId, string SubjectKind, Guid Subj
 /// <summary>
 /// Publishes a page's or component's draft as its new live version (012 FR-001, FR-002).
 /// </summary>
-internal sealed class PublishHandler(PublishingWrites writes) : ICommandHandler<PublishCommand, Result<PublicationResponse>>
+internal sealed class PublishHandler(PublishingWrites writes, AddressWarnings addresses) : ICommandHandler<PublishCommand, Result<PublicationResponse>>
 {
-    public Task<Result<PublicationResponse>> HandleAsync(PublishCommand command, CancellationToken cancellationToken)
+    public async Task<Result<PublicationResponse>> HandleAsync(PublishCommand command, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(command);
-        return writes.PublishAsync(command.SiteId, command.SubjectKind, command.SubjectId, command.DraftVersion, cancellationToken);
+        var published = await writes.PublishAsync(command.SiteId, command.SubjectKind, command.SubjectId, command.DraftVersion, cancellationToken)
+            .ConfigureAwait(false);
+        if (published.IsFailure || command.SubjectKind != SubjectKinds.Page)
+        {
+            return published;
+        }
+
+        // 017 data-model §4: the live page now answers a redirect's source first.
+        var hidden = await addresses.RedirectHiddenAsync(command.SiteId, command.SubjectId, cancellationToken).ConfigureAwait(false);
+        return hidden.Count == 0 ? published : Result.Success(published.Value with { Warnings = [.. published.Value.Warnings, .. hidden] });
     }
 }
 

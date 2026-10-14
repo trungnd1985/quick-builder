@@ -37,7 +37,12 @@ public sealed class MediaReferenceBackfillTests(DatabaseFixture database) : IAsy
     [Fact]
     public async Task The_migration_records_what_the_extractor_reads_for_every_document()
     {
-        var documents = ValidExamples().Append((Name: "edge-cases", Document: EdgeCases)).ToList();
+        // A document with search metadata (017) cannot exist before the upgrade that adds it, so
+        // this migration never meets one; its sharing image is recorded once 017 runs.
+        var documents = ValidExamples()
+            .Where(d => !d.Document.Contains("\"seo\"", StringComparison.Ordinal))
+            .Append((Name: "edge-cases", Document: EdgeCases))
+            .ToList();
         var outline = string.Join('\n', documents.Select((_, i) => $"doc-{i}"));
         var pages = await PagesApi.SeedTreeAsync(_scenario.Admin, _scenario.SiteA, outline).ConfigureAwait(true);
         var pageIds = documents.Select((_, i) => pages[$"/doc-{i}"]).ToList();

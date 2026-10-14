@@ -616,6 +616,13 @@ internal sealed class PublishingWrites(
         await bump.BumpForTargetsAsync(siteId, [target], exceptPageId: subject.IsPage ? subject.Id : null, cancellationToken)
             .ConfigureAwait(false);
 
+        // 017 research SE-15: a page or template going live, changing or leaving changes the
+        // sitemap. Its own rows are saved already, so a new generation row needs a save too.
+        if (subject.IsPage && await bump.Sitemap.BumpAsync(siteId, cancellationToken).ConfigureAwait(false))
+        {
+            await database.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        }
+
         // 016 TB-10 row 3: the item links of every list of the collection change with its template.
         if (subject.TemplateCollectionId is { } templateCollection)
         {

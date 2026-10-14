@@ -16,8 +16,11 @@ namespace QuickBuilder.Pages.Features.SetPageTemplate;
 /// <summary>The collection the page becomes the template of, and the page <see cref="Version"/> the caller last saw.</summary>
 public sealed record SetPageTemplateRequest(Guid CollectionId, int Version);
 
-/// <summary>A warning about what a change did to item addresses (016 data-model §4).</summary>
-public sealed record TemplateWarningResponse(string Code, int? Count = null, Guid? ItemId = null);
+/// <summary>
+/// A warning about what a change did to addresses (016 data-model §4): item addresses, and
+/// since 017 a redirect the page now hides (<c>redirect_hidden</c>, with <see cref="RedirectId"/>).
+/// </summary>
+public sealed record TemplateWarningResponse(string Code, int? Count = null, Guid? ItemId = null, Guid? RedirectId = null);
 
 /// <summary>The page after a template change, and what it did to item addresses.</summary>
 public sealed record PageWithWarningsResponse(PageDetailResponse Page, IReadOnlyList<TemplateWarningResponse> Warnings);
@@ -52,7 +55,8 @@ internal sealed class SetPageTemplateHandler(
     PagesAccess access,
     TemplateImpact impact,
     ICollectionSchemaReader collections,
-    GenerationBump bump)
+    GenerationBump bump,
+    AddressWarnings addresses)
     : ICommandHandler<SetPageTemplateCommand, Result<PageWithWarningsResponse>>
 {
     public async Task<Result<PageWithWarningsResponse>> HandleAsync(SetPageTemplateCommand command, CancellationToken cancellationToken)
@@ -92,7 +96,15 @@ internal sealed class SetPageTemplateHandler(
         }
 
         var page = await reads.PageAsync(command.SiteId, command.PageId, cancellationToken).ConfigureAwait(false);
-        return Result.Success(new PageWithWarningsResponse(page!, Warnings(before)));
+        // 017 data-model §4: a page that is a template again has its own address, which may be
+        // a redirect's source.
+        var warnings = Warnings(before);
+        if (command.CollectionId is null)
+        {
+            warnings.AddRange(await addresses.RedirectHiddenAsync(command.SiteId, command.PageId, cancellationToken).ConfigureAwait(false));
+        }
+
+        return Result.Success(new PageWithWarningsResponse(page!, warnings));
     }
 
     private static List<TemplateWarningResponse> Warnings(TemplateImpactResponse? impact)

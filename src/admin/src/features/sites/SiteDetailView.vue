@@ -174,6 +174,9 @@ watch(siteId, load)
         <RouterLink :to="{ name: 'site-design', params: { siteId: site.id } }">
           {{ t('sites.detail.design') }}
         </RouterLink>
+        <RouterLink :to="{ name: 'site-redirects', params: { siteId: site.id } }">
+          {{ t('sites.detail.redirects') }}
+        </RouterLink>
         <!-- 012 FR-017: the publish log is for Administrators; the server checks regardless. -->
         <RouterLink
           v-if="auth.isAdministrator"

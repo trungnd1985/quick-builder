@@ -63,6 +63,7 @@ internal sealed class UpdatePageHandler(PageTreeWrites writes, PageReads reads, 
         {
             warnings.AddRange(await addresses.AddressesChangedAsync(command.SiteId, [command.PageId], cancellationToken).ConfigureAwait(false));
             warnings.AddRange(await addresses.AddressHiddenAsync(command.SiteId, command.PageId, cancellationToken).ConfigureAwait(false));
+            warnings.AddRange(await addresses.RedirectHiddenAsync(command.SiteId, command.PageId, cancellationToken).ConfigureAwait(false));
         }
 
         return Result.Success(page with { Warnings = warnings });

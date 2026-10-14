@@ -21,8 +21,11 @@ namespace QuickBuilder.Pages.Infrastructure;
 /// (<c>GenerationBumpSiteFilterTests</c>).
 /// </para>
 /// </remarks>
-internal sealed class GenerationBump(PagesDbContext database, ICollectionSchemaReader collections)
+internal sealed class GenerationBump(PagesDbContext database, ICollectionSchemaReader collections, SitemapGeneration sitemap)
 {
+    /// <summary>The site's sitemap generation (017 research SE-15), moved with the changes it lists.</summary>
+    public SitemapGeneration Sitemap => sitemap;
+
     /// <summary>
     /// Increments the generation of the live pages that list <paramref name="collectionIds"/>, or
     /// a collection whose items can show theirs through a reference, directly or through a

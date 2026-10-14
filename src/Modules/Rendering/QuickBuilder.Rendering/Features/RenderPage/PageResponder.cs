@@ -4,6 +4,7 @@ using QuickBuilder.Cms.Contracts.Publishing;
 using QuickBuilder.Editor.Contracts;
 using QuickBuilder.Media.Contracts;
 using QuickBuilder.Pages.Contracts.Publishing;
+using QuickBuilder.Pages.Contracts.Redirects;
 using QuickBuilder.Rendering.Binding;
 using QuickBuilder.Rendering.Contracts;
 using QuickBuilder.Rendering.Domain;
@@ -37,6 +38,8 @@ internal sealed class PageResponder(
     BindingFetcher bindings,
     PageRenderer renderer,
     IPublicNotFoundPage notFound,
+    IRedirectReader redirectReader,
+    RedirectResponder redirects,
     ICacheProvider cache,
     RenderMetrics metrics,
     ILogger<PageResponder> logger)
@@ -54,15 +57,26 @@ internal sealed class PageResponder(
         string basePath,
         string? ifNoneMatch,
         IReadOnlyDictionary<string, string?>? query,
+        string canonicalQuery,
+        string? rawQuery,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(site);
+
+        // 017 FR-016, FR-017a: a redirect with this exact query is more specific than the
+        // page at its path, so it is matched first.
+        if (canonicalQuery.Length > 0
+            && await redirectReader.FindQueryAsync(site.Id, path, canonicalQuery, cancellationToken).ConfigureAwait(false) is { } queried)
+        {
+            return await redirects.RespondAsync(site, queried, basePath, rawQuery, cancellationToken).ConfigureAwait(false)
+                ?? await notFound.RenderAsync(site, cancellationToken).ConfigureAwait(false);
+        }
 
         // The key first, the content after (PR-05).
         var live = await pages.FindLiveByPathAsync(site.Id, path, cancellationToken).ConfigureAwait(false);
         if (live is null)
         {
-            return await RespondItemAsync(site, path, basePath, ifNoneMatch, query, cancellationToken).ConfigureAwait(false);
+            return await RespondItemAsync(site, path, basePath, ifNoneMatch, query, rawQuery, cancellationToken).ConfigureAwait(false);
         }
 
         // 016 TB-11: the page numbers its lists show are part of the key; other parameters are not.
@@ -90,13 +104,14 @@ internal sealed class PageResponder(
         string basePath,
         string? ifNoneMatch,
         IReadOnlyDictionary<string, string?>? query,
+        string? rawQuery,
         CancellationToken cancellationToken)
     {
         if (TemplateMatcher.Split(path) is not { } split
             || await pages.FindLiveTemplateAsync(site.Id, split.ParentPath, cancellationToken).ConfigureAwait(false) is not { } template
             || await items.FindBySlugAsync(site.Id, template.CollectionId, split.Slug, cancellationToken).ConfigureAwait(false) is not { } item)
         {
-            return await notFound.RenderAsync(site, cancellationToken).ConfigureAwait(false);
+            return await RedirectOrNotFoundAsync(site, path, basePath, rawQuery, cancellationToken).ConfigureAwait(false);
         }
 
         var request = new ListRequest(path, PageParams.From(template.Params, query));
@@ -120,6 +135,22 @@ internal sealed class PageResponder(
         return rendered is null
             ? await notFound.RenderAsync(site, cancellationToken).ConfigureAwait(false)
             : ToResponse(rendered, headers);
+    }
+
+    /// <summary>
+    /// What answers an address no content answers (017 FR-016): an exact redirect, else the
+    /// longest prefix redirect, else the not-found page. A redirect to a page or item that is no
+    /// longer live is the not-found page too (FR-018).
+    /// </summary>
+    private async Task<PublicResponse> RedirectOrNotFoundAsync(SiteDto site, string path, string basePath, string? rawQuery, CancellationToken cancellationToken)
+    {
+        if (await redirectReader.FindAsync(site.Id, path, cancellationToken).ConfigureAwait(false) is { } match
+            && await redirects.RespondAsync(site, match, basePath, rawQuery, cancellationToken).ConfigureAwait(false) is { } redirect)
+        {
+            return redirect;
+        }
+
+        return await notFound.RenderAsync(site, cancellationToken).ConfigureAwait(false);
     }
 
     private static Dictionary<string, string> Headers(string etag) => new(StringComparer.OrdinalIgnoreCase)

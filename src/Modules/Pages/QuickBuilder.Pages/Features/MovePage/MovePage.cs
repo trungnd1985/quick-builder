@@ -58,6 +58,7 @@ internal sealed class MovePageHandler(PageTreeWrites writes, PageReads reads, Pa
         {
             warnings.AddRange(await addresses.AddressesChangedAsync(command.SiteId, [command.PageId], cancellationToken).ConfigureAwait(false));
             warnings.AddRange(await addresses.AddressHiddenAsync(command.SiteId, command.PageId, cancellationToken).ConfigureAwait(false));
+            warnings.AddRange(await addresses.RedirectHiddenAsync(command.SiteId, command.PageId, cancellationToken).ConfigureAwait(false));
         }
 
         return Result.Success(await reads.TreeAsync(command.SiteId, cancellationToken).ConfigureAwait(false) with { Warnings = warnings });

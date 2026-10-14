@@ -37,4 +37,15 @@ public interface ICollectionSchemaReader
     /// page at that address hides the item's page (TB-12, "item_address_hidden").
     /// </summary>
     Task<Guid?> PublishedItemWithSlugAsync(Guid siteId, Guid collectionId, string slug, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// The site's items among <paramref name=itemIds/>, with their collection and published
+    /// slug (null while unpublished): for redirects whose target is an item (017 research SE-09).
+    /// Ids that are not items of the site are absent. Slugs are content: never log them.
+    /// </summary>
+    Task<IReadOnlyDictionary<Guid, ItemAddressParts>> GetItemAddressPartsAsync(
+        Guid siteId, IReadOnlyCollection<Guid> itemIds, CancellationToken cancellationToken = default);
 }
+
+/// <summary>What an item's address is made of: its collection's template pattern and its published slug.</summary>
+public sealed record ItemAddressParts(Guid CollectionId, string? PublishedSlug);

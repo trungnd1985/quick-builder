@@ -39,6 +39,13 @@ public sealed record RedirectMatch(
 
 public enum RedirectTargetKind { Page, Item, Path, Url }
 
+/// How queries compare (FR-017a): Pages stores sources this way, Rendering canonicalises the request.
+public static class CanonicalQuery
+{
+    public static string FromRaw(string? rawQuery);
+    public static string FromPairs(IEnumerable<KeyValuePair<string, string?>> pairs);
+}
+
 /// Counting without writing on the request path (SE-12). Singleton; never throws.
 public interface IRedirectHits
 {
@@ -81,6 +88,15 @@ public sealed record ItemRedirectRequested(
 {
     public static string EventType => "Cms.ItemRedirectRequested";
 }
+```
+
+```csharp
+// ICollectionSchemaReader (admin-side) gains: the collection and published slug of items that
+// redirects target, for checking item targets and showing their address (SE-09).
+Task<IReadOnlyDictionary<Guid, ItemAddressParts>> GetItemAddressPartsAsync(
+    Guid siteId, IReadOnlyCollection<Guid> itemIds, CancellationToken ct = default);
+
+public sealed record ItemAddressParts(Guid CollectionId, string? PublishedSlug);
 ```
 
 `OldSlug` is the one slug carried by an event: an address, sent only on request and never
