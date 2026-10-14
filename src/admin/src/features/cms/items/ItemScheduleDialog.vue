@@ -6,6 +6,9 @@ import { computed, nextTick, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { itemsApi, type Item, type ScheduleAction } from '../../../api/items'
 import ZonedDateTimeInput from '../../../components/ZonedDateTimeInput.vue'
+import RedirectOfferCheckbox from '../../../components/RedirectOfferCheckbox.vue'
+import RedirectToPagePicker, { type PickablePage } from '../../../components/RedirectToPagePicker.vue'
+import { pagesApi } from '../../../api/pages'
 import { itemErrorMessage } from './itemErrors'
 
 const props = defineProps<{ siteId: string; collectionId: string; item: Item }>()
@@ -18,6 +21,14 @@ const inAnHour = (): string => new Date(Date.now() + 60 * 60 * 1000).toISOString
 const publishAt = ref<string | null>(existingOf('publish')?.dueAtUtc ?? inAnHour())
 const unpublishAt = ref<string | null>(existingOf('unpublish')?.dueAtUtc ?? null)
 const recapture = ref(false)
+
+// 017 FR-029, FR-032: kept on the schedule and applied when it runs; offered only for an item
+// with an address visitors use.
+const hasAddress = computed(() => !!props.item.address?.path && !props.item.address.reason)
+const slugChanges = computed(() => !!props.item.publishedSlug && props.item.publishedSlug !== props.item.slug)
+const redirectOldAddress = ref(true)
+const redirectToPageId = ref<string | null>(null)
+const sitePages = ref<PickablePage[]>([])
 const busy = ref(false)
 const error = ref<string | null>(null)
 const dialog = ref<HTMLElement | null>(null)
@@ -26,6 +37,13 @@ let current: Item = props.item
 const canUnpublish = computed(() => props.item.status !== 'draft' || existingOf('publish') !== null)
 
 onMounted(async () => {
+  if (hasAddress.value) {
+    try {
+      sitePages.value = (await pagesApi.tree(props.siteId)).pages ?? []
+    } catch {
+      sitePages.value = []
+    }
+  }
   await nextTick()
   dialog.value?.querySelector<HTMLElement>('input')?.focus()
 })
@@ -44,6 +62,8 @@ async function set(action: ScheduleAction): Promise<void> {
       dueAtUtc: due,
       revision: current.revision,
       recapture: action === 'publish' && recapture.value,
+      redirectOldAddress: action === 'publish' && hasAddress.value && slugChanges.value && redirectOldAddress.value,
+      redirectToPageId: action === 'unpublish' && hasAddress.value ? redirectToPageId.value : null,
     })
     emit('changed', current)
   } catch (caught) {
@@ -111,6 +131,12 @@ function onKeydown(event: KeyboardEvent): void {
             >
             {{ t('cms.items.schedule.recapture', { when: d(new Date(existingOf('publish')!.dueAtUtc), 'short') }) }}
           </label>
+          <RedirectOfferCheckbox
+            v-if="hasAddress && slugChanges"
+            id="item-schedule-publish-redirect"
+            v-model="redirectOldAddress"
+            :count="1"
+          />
           <div class="actions">
             <button
               v-if="existingOf('publish')"
@@ -137,6 +163,12 @@ function onKeydown(event: KeyboardEvent): void {
           <ZonedDateTimeInput
             id="item-schedule-unpublish"
             v-model="unpublishAt"
+          />
+          <RedirectToPagePicker
+            v-if="hasAddress"
+            id="item-schedule-unpublish-redirect"
+            v-model="redirectToPageId"
+            :pages="sitePages"
           />
           <div class="actions">
             <button

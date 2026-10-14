@@ -32,10 +32,27 @@ internal static class ItemPublishing
         int? restoredFrom,
         bool cancelSchedule,
         ItemSchedule? schedule,
+        CancellationToken cancellationToken) =>
+        await PublishAsync(context, values, slug, kind, restoredFrom, cancelSchedule, schedule, redirectOldAddress: false, cancellationToken).ConfigureAwait(false);
+
+    /// <summary>
+    /// As the other overload; when <paramref name="redirectOldAddress"/> and the published slug
+    /// changes, also asks Pages to redirect the old address, in this transaction (017 FR-029).
+    /// </summary>
+    public static async Task<Result<ItemVersion>> PublishAsync(
+        ItemWriteContext context,
+        ItemValues values,
+        string slug,
+        string kind,
+        int? restoredFrom,
+        bool cancelSchedule,
+        ItemSchedule? schedule,
+        bool redirectOldAddress,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(context);
         var item = context.Item!;
+        var oldSlug = item.PublishedSlug;
 
         var report = await context.ValidateAsync(item.Id, slug, values, cancellationToken).ConfigureAwait(false);
         if (!report.IsEmpty)
@@ -58,6 +75,12 @@ internal static class ItemPublishing
         var version = item.Publish(values, slug, kind, restoredFrom, schedule?.Action, context.Actor, context.Now);
         context.Database.ItemVersions.Add(version);
 
+        if (redirectOldAddress && oldSlug is not null && !string.Equals(oldSlug, slug, StringComparison.Ordinal))
+        {
+            item.RequestRedirect(oldSlug, Contracts.Events.ItemRedirectReasons.Moved, targetPageId: null, context.Now);
+            context.RedirectRequested = true;
+        }
+
         // FR-023: the 50 newest versions are kept; the live one is the newest, so never removed.
         var oldest = version.Number - Item.KeptVersions;
         await context.Database.ForSite<ItemVersion>(context.SiteId)
@@ -70,7 +93,12 @@ internal static class ItemPublishing
     }
 
     /// <summary>Removes the item's published values (FR-021), and the schedules that would act on them.</summary>
-    public static async Task<Result> UnpublishAsync(ItemWriteContext context, bool cancelSchedule, ItemSchedule? schedule, CancellationToken cancellationToken)
+    public static Task<Result> UnpublishAsync(ItemWriteContext context, bool cancelSchedule, ItemSchedule? schedule, CancellationToken cancellationToken) =>
+        UnpublishAsync(context, cancelSchedule, schedule, redirectToPageId: null, cancellationToken);
+
+    /// <summary>As the other overload; with <paramref name="redirectToPageId"/>, also asks Pages to redirect the address (017 FR-032).</summary>
+    public static async Task<Result> UnpublishAsync(
+        ItemWriteContext context, bool cancelSchedule, ItemSchedule? schedule, Guid? redirectToPageId, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(context);
         var item = context.Item!;
@@ -91,9 +119,26 @@ internal static class ItemPublishing
             await CancelPendingAsync(context, ItemScheduleActions.Unpublish, confirmed: true, cancellationToken).ConfigureAwait(false);
         }
 
+        RequestRemovedRedirect(context, item, redirectToPageId);
         item.Unpublish(schedule?.Action, context.Actor, context.Now);
         context.Changed(item);
         return Result.Success();
+    }
+
+    /// <summary>
+    /// The redirect accepted when a live item stops being live (017 FR-032): its address to a
+    /// page. Asked before the published slug goes.
+    /// </summary>
+    public static void RequestRemovedRedirect(ItemWriteContext context, Item item, Guid? redirectToPageId)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+        ArgumentNullException.ThrowIfNull(item);
+
+        if (redirectToPageId is { } target && item.PublishedSlug is { } slug)
+        {
+            item.RequestRedirect(slug, Contracts.Events.ItemRedirectReasons.Removed, target, context.Now);
+            context.RedirectRequested = true;
+        }
     }
 
     /// <summary>The item's pending schedule for <paramref name="action"/>, tracked, or null.</summary>

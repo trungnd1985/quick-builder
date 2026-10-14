@@ -8,6 +8,9 @@ import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { itemsApi, refusalOf, type Item } from '../../../api/items'
 import ConfirmDialog from '../../sites/ConfirmDialog.vue'
+import RedirectOfferCheckbox from '../../../components/RedirectOfferCheckbox.vue'
+import RedirectToPagePicker, { type PickablePage } from '../../../components/RedirectToPagePicker.vue'
+import { pagesApi } from '../../../api/pages'
 import DeleteItemDialog from './DeleteItemDialog.vue'
 import ItemScheduleDialog from './ItemScheduleDialog.vue'
 import { errorCodeOf, itemErrorMessage } from './itemErrors'
@@ -25,6 +28,14 @@ const scheduling = ref(false)
 const deleting = ref(false)
 const notice = ref<{ kind: 'info' | 'error'; text: string } | null>(null)
 
+// 017 FR-029 to FR-032: the item's live address may follow a new slug, or go to a page when it
+// stops being live. Offered only when the item has an address visitors use.
+const hasAddress = computed(() => !!props.item.address?.path && !props.item.address.reason)
+const slugChanges = computed(() => !!props.item.publishedSlug && props.item.publishedSlug !== props.item.slug)
+const redirectOldAddress = ref(true)
+const redirectToPageId = ref<string | null>(null)
+const sitePages = ref<PickablePage[]>([])
+
 const pendingPublish = computed(() => props.item.schedules.find((s) => s.action === 'publish') ?? null)
 const sameContent = (a: Item, b: Item): boolean =>
   a.slug === b.slug && JSON.stringify(a.draft.values) === JSON.stringify(b.draft.values)
@@ -38,6 +49,7 @@ function askPublish(): void {
     lines.push(t('cms.items.publish.cancelsSchedule', { when: d(new Date(pendingPublish.value.dueAtUtc), 'short') }))
   }
   confirmBody.value = lines.join(' ')
+  redirectOldAddress.value = true
   confirming.value = 'publish'
 }
 
@@ -53,6 +65,14 @@ async function askUnpublish(): Promise<void> {
     lines.push(t('cms.items.publish.cancelsSchedule', { when: d(new Date(pendingPublish.value.dueAtUtc), 'short') }))
   }
   confirmBody.value = lines.join(' ')
+  redirectToPageId.value = null
+  if (hasAddress.value && sitePages.value.length === 0) {
+    try {
+      sitePages.value = (await pagesApi.tree(props.siteId)).pages ?? []
+    } catch {
+      sitePages.value = []
+    }
+  }
   confirming.value = 'unpublish'
 }
 
@@ -72,13 +92,15 @@ async function confirm(): Promise<void> {
 
 async function publish(item: Item, retry = true): Promise<Item | null> {
   try {
-    const published = await itemsApi.publish(props.siteId, props.collectionId, item.id, item.revision, pendingPublish.value !== null)
+    const published = await itemsApi.publish(
+      props.siteId, props.collectionId, item.id, item.revision, pendingPublish.value !== null, hasAddress.value && slugChanges.value && redirectOldAddress.value)
     const missing = published.unpublishedReferences.map((r) => r.name ?? r.slug)
     notice.value = {
       kind: 'info',
       text: [
         t('cms.items.publish.published', { number: published.liveVersion }),
         missing.length > 0 ? t('cms.items.publish.unpublishedReferences', { names: missing.join(', ') }) : '',
+        published.redirectRequested ? t('redirects.offer.itemRequested') : '',
         retry ? '' : t('cms.items.publish.retried'),
       ].filter(Boolean).join(' '),
     }
@@ -101,8 +123,12 @@ async function publish(item: Item, retry = true): Promise<Item | null> {
 
 async function unpublish(item: Item): Promise<Item | null> {
   try {
-    const result = await itemsApi.unpublish(props.siteId, props.collectionId, item.id, item.revision, pendingPublish.value !== null)
-    notice.value = { kind: 'info', text: t('cms.items.publish.unpublished') }
+    const result = await itemsApi.unpublish(
+      props.siteId, props.collectionId, item.id, item.revision, pendingPublish.value !== null, hasAddress.value ? redirectToPageId.value : null)
+    notice.value = {
+      kind: 'info',
+      text: [t('cms.items.publish.unpublished'), result.redirectRequested ? t('redirects.offer.itemRequested') : ''].filter(Boolean).join(' '),
+    }
     return result
   } catch (caught) {
     notice.value = { kind: 'error', text: itemErrorMessage(t, te, caught) }
@@ -199,7 +225,20 @@ function scheduled(next: Item): void {
       :danger="confirming === 'unpublish'"
       @confirm="confirm"
       @cancel="confirming = null"
-    />
+    >
+      <RedirectOfferCheckbox
+        v-if="confirming === 'publish' && hasAddress && slugChanges"
+        id="item-publish-redirect"
+        v-model="redirectOldAddress"
+        :count="1"
+      />
+      <RedirectToPagePicker
+        v-if="confirming === 'unpublish' && hasAddress"
+        id="item-unpublish-redirect"
+        v-model="redirectToPageId"
+        :pages="sitePages"
+      />
+    </ConfirmDialog>
 
     <ItemScheduleDialog
       v-if="scheduling"

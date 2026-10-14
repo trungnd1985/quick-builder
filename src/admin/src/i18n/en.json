@@ -2215,6 +2215,14 @@
       "summary": "{added} added, {refused} refused",
       "shortened": "{count} pointed at other redirects and now go straight to the final address.",
       "line": "Line {line}"
+    },
+    "offer": {
+      "label": "Redirect the old address to the new one | Redirect the {count} old addresses to the new ones",
+      "toPage": "Redirect this address to another page",
+      "page": "Page to send visitors to",
+      "outcome": "{created} redirect(s) created; {skipped} left alone because something live now uses the address.",
+      "turnedOff": "{count} older redirect(s) turned off, because they would now send visitors in a circle.",
+      "itemRequested": "The old address will redirect within a few seconds."
     }
   }
 }

@@ -117,9 +117,9 @@ internal sealed class RunItemScheduleHandler(IServiceScopeFactory scopes, ILogge
 
                     Result outcome = schedule.Action == ItemScheduleActions.Publish
                         ? (Result)await ItemPublishing.PublishAsync(
-                                context, schedule.ReadCaptured()!, schedule.CapturedSlug!, ItemVersionKinds.Scheduled, null, false, schedule, cancellationToken)
+                                context, schedule.ReadCaptured()!, schedule.CapturedSlug!, ItemVersionKinds.Scheduled, null, false, schedule, schedule.RedirectOldAddress, cancellationToken)
                             .ConfigureAwait(false)
-                        : await ItemPublishing.UnpublishAsync(context, false, schedule, cancellationToken).ConfigureAwait(false);
+                        : await ItemPublishing.UnpublishAsync(context, false, schedule, schedule.RedirectToPageId, cancellationToken).ConfigureAwait(false);
                     if (outcome.IsFailure)
                     {
                         return Result.Failure<Item?>(outcome.Error);

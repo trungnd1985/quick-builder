@@ -24,9 +24,6 @@ internal sealed class RedirectWrites(
     /// <summary>Loads what checking redirect changes on the site needs.</summary>
     public async Task<RedirectSiteState> LoadAsync(Guid siteId, CancellationToken cancellationToken)
     {
-        var site = await sites.FindByIdAsync(siteId, cancellationToken).ConfigureAwait(false)
-            ?? throw new InvalidOperationException("Redirects were loaded for a site that does not exist.");
-
         var pages = await (
                 from page in database.ForSite<Page>(siteId)
                 join publication in database.ForSite<Publication>(siteId).Where(p => p.SubjectKind == SubjectKinds.Page)
@@ -37,6 +34,28 @@ internal sealed class RedirectWrites(
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
 
+        return await LoadAsync(
+                siteId,
+                pages.ToDictionary(p => p.Id, p => new PageAddress(p.Path, p.IsLive, p.TemplateCollectionId is not null)),
+                pages.Where(p => p.IsLive && p.TemplateCollectionId is not null).ToDictionary(p => p.TemplateCollectionId!.Value, p => p.Path),
+                cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Loads what checking redirect changes needs, with the site's pages as given: during a tree
+    /// change, as they are after it and before it is saved (017 research SE-11).
+    /// </summary>
+    /// <param name="livePatterns">Live templates' patterns, by collection.</param>
+    public async Task<RedirectSiteState> LoadAsync(
+        Guid siteId, IReadOnlyDictionary<Guid, PageAddress> pages, IReadOnlyDictionary<Guid, string> livePatterns, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(pages);
+        ArgumentNullException.ThrowIfNull(livePatterns);
+
+        var site = await sites.FindByIdAsync(siteId, cancellationToken).ConfigureAwait(false)
+            ?? throw new InvalidOperationException("Redirects were loaded for a site that does not exist.");
+
         var redirects = await database.ForSite<Redirect>(siteId)
             .AsNoTracking()
             .ToListAsync(cancellationToken)
@@ -46,8 +65,8 @@ internal sealed class RedirectWrites(
             siteId,
             site.BaseUrl,
             site.HostNames,
-            pages.ToDictionary(p => p.Id, p => new PageAddress(p.Path, p.IsLive, p.TemplateCollectionId is not null)),
-            pages.Where(p => p.IsLive && p.TemplateCollectionId is not null).ToDictionary(p => p.TemplateCollectionId!.Value, p => p.Path),
+            pages,
+            livePatterns,
             redirects.Select(Entry));
 
         await LoadItemsAsync(state, redirects.Where(r => r.TargetItemId is not null).Select(r => r.TargetItemId!.Value), cancellationToken).ConfigureAwait(false);

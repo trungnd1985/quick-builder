@@ -71,7 +71,7 @@ describe('ScheduleDialog', () => {
     await waitFor(() => expect(emitted().changed).toBeTruthy())
     const put = calls.find((c) => c.method === 'PUT')!
     expect(put.url).toBe(`/api/v1/pages/sites/${SITE}/pages/${PAGE}/schedules/publish`)
-    expect(put.body).toEqual({ dueAtUtc: new Date('2030-06-15T14:30:00').toISOString(), draftVersion: 42 })
+    expect(put.body).toEqual({ dueAtUtc: new Date('2030-06-15T14:30:00').toISOString(), draftVersion: 42, redirectToPageId: null })
   })
 
   it('refuses a time in the past without asking the server', async () => {
@@ -96,8 +96,11 @@ describe('ScheduleDialog', () => {
     await fireEvent.click(screen.getByRole('button', { name: en.publishing.schedule.save }))
 
     await waitFor(() => expect(calls.some((c) => c.method === 'PUT')).toBe(true))
-    expect(calls[0]!.url.endsWith('/schedules/unpublish')).toBe(true)
-    expect(calls[0]!.body!.draftVersion).toBeUndefined()
+    const put = calls.find((c) => c.method === 'PUT')!
+    expect(put.url.endsWith('/schedules/unpublish')).toBe(true)
+    expect(put.body!.draftVersion).toBeUndefined()
+    // 017 FR-032: no redirect unless one is chosen.
+    expect(put.body!.redirectToPageId).toBeNull()
     expect(draftVersion).not.toHaveBeenCalled()
   })
 

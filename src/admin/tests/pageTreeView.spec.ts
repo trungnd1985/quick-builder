@@ -268,7 +268,7 @@ describe('PageTreeView — reorganising (US2)', () => {
     await fireEvent.click(screen.getByRole('button', { name: en.pages.move.move }))
 
     await waitFor(() => expect(calls.some((c) => c.url.endsWith('/about/move'))).toBe(true))
-    expect(calls.find((c) => c.url.endsWith('/about/move'))?.body).toEqual({ parentId: 'contact', afterPageId: null, version: 1 })
+    expect(calls.find((c) => c.url.endsWith('/about/move'))?.body).toEqual({ parentId: 'contact', afterPageId: null, version: 1, redirectOldAddresses: false })
   })
 
   it('offers make-home only on a top-level page that is not already home', async () => {

@@ -14,9 +14,11 @@ namespace QuickBuilder.Pages.Features.Schedules;
 // own route: "action" is a route value MVC keeps for itself.
 
 /// <summary>When, in UTC, and for a publish the draft version the member reviewed.</summary>
-public sealed record SetScheduleRequest(DateTimeOffset DueAtUtc, uint? DraftVersion);
+/// <param name="RedirectToPageId">017 FR-032, unpublish only: the page the address redirects to once it runs.</param>
+public sealed record SetScheduleRequest(DateTimeOffset DueAtUtc, uint? DraftVersion, Guid? RedirectToPageId = null);
 
-internal sealed record SetScheduleCommand(Guid SiteId, string SubjectKind, Guid SubjectId, string Action, DateTimeOffset DueAtUtc, uint? DraftVersion)
+internal sealed record SetScheduleCommand(
+    Guid SiteId, string SubjectKind, Guid SubjectId, string Action, DateTimeOffset DueAtUtc, uint? DraftVersion, Guid? RedirectToPageId = null)
     : ICommand<Result<ScheduleResponse>>;
 
 internal sealed record CancelScheduleCommand(Guid SiteId, string SubjectKind, Guid SubjectId, string Action) : ICommand<Result>;
@@ -27,7 +29,7 @@ internal sealed class SetScheduleHandler(ScheduleWrites schedules) : ICommandHan
     {
         ArgumentNullException.ThrowIfNull(command);
         return schedules.SetAsync(
-            command.SiteId, command.SubjectKind, command.SubjectId, command.Action, command.DueAtUtc, command.DraftVersion, cancellationToken);
+            command.SiteId, command.SubjectKind, command.SubjectId, command.Action, command.DueAtUtc, command.DraftVersion, command.RedirectToPageId, cancellationToken);
     }
 }
 
@@ -109,7 +111,7 @@ internal static class Schedules
         ArgumentNullException.ThrowIfNull(request);
 
         var result = await dispatcher
-            .SendAsync(new SetScheduleCommand(siteId, kind, subjectId, action, request.DueAtUtc, request.DraftVersion), cancellationToken)
+            .SendAsync(new SetScheduleCommand(siteId, kind, subjectId, action, request.DueAtUtc, request.DraftVersion, request.RedirectToPageId), cancellationToken)
             .ConfigureAwait(false);
 
         return result.IsFailure ? PagesErrorResults.ToActionResult(result.Error) : new OkObjectResult(result.Value);

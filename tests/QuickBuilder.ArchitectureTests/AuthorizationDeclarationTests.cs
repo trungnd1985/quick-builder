@@ -44,6 +44,10 @@ public sealed class AuthorizationDeclarationTests
         "RenderPageController.GetAsync",
         "RenderPageController.OtherMethod",
         "ServeBlockStylesheetController.GetAsync",
+        // 017 FR-023, FR-025: each site's sitemap and robots.txt, for crawlers.
+        "SitemapController.IndexAsync",
+        "SitemapController.FileAsync",
+        "RobotsController.GetAsync",
     };
 
     private static readonly Assembly[] ControllerAssemblies =

@@ -9,7 +9,10 @@ using QuickBuilder.Shared.Kernel.Results;
 
 namespace QuickBuilder.Pages.Features.Unpublish;
 
-internal sealed record UnpublishCommand(Guid SiteId, string SubjectKind, Guid SubjectId) : ICommand<Result<PublicationResponse>>;
+internal sealed record UnpublishCommand(Guid SiteId, string SubjectKind, Guid SubjectId, Guid? RedirectToPageId = null) : ICommand<Result<PublicationResponse>>;
+
+/// <summary>017 FR-032: optionally, the page the unpublished page's address should redirect to.</summary>
+public sealed record UnpublishPageRequest(Guid? RedirectToPageId = null);
 
 /// <summary>
 /// Takes a page or component off the public site; its draft, versions and history stay
@@ -20,7 +23,7 @@ internal sealed class UnpublishHandler(PublishingWrites writes, AddressWarnings 
     public async Task<Result<PublicationResponse>> HandleAsync(UnpublishCommand command, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(command);
-        var result = await writes.UnpublishAsync(command.SiteId, command.SubjectKind, command.SubjectId, cancellationToken).ConfigureAwait(false);
+        var result = await writes.UnpublishAsync(command.SiteId, command.SubjectKind, command.SubjectId, command.RedirectToPageId, cancellationToken).ConfigureAwait(false);
         if (result.IsFailure || command.SubjectKind != SubjectKinds.Page)
         {
             return result;
@@ -42,10 +45,10 @@ public sealed class UnpublishPageController(IDispatcher dispatcher) : Controller
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
-    public async Task<IActionResult> UnpublishAsync(Guid siteId, Guid pageId, CancellationToken cancellationToken)
+    public async Task<IActionResult> UnpublishAsync(Guid siteId, Guid pageId, [FromBody] UnpublishPageRequest? request, CancellationToken cancellationToken)
     {
         var result = await dispatcher
-            .SendAsync(new UnpublishCommand(siteId, SubjectKinds.Page, pageId), cancellationToken)
+            .SendAsync(new UnpublishCommand(siteId, SubjectKinds.Page, pageId, request?.RedirectToPageId), cancellationToken)
             .ConfigureAwait(false);
 
         return result.IsFailure ? PagesErrorResults.ToActionResult(result.Error) : Ok(result.Value);

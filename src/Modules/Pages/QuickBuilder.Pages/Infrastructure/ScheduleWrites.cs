@@ -35,8 +35,16 @@ internal sealed class ScheduleWrites(
     private const int Attempts = 3;
 
     /// <summary>Sets the pending schedule for <paramref name="action"/>, or moves the one there is.</summary>
+    public Task<Result<ScheduleResponse>> SetAsync(
+        Guid siteId, string kind, Guid subjectId, string action, DateTimeOffset dueAtUtc, uint? draftVersion, CancellationToken cancellationToken) =>
+        SetAsync(siteId, kind, subjectId, action, dueAtUtc, draftVersion, redirectToPageId: null, cancellationToken);
+
+    /// <summary>
+    /// As the other overload; a page unpublish also keeps where its address will redirect
+    /// (017 FR-032, tasks T118).
+    /// </summary>
     public async Task<Result<ScheduleResponse>> SetAsync(
-        Guid siteId, string kind, Guid subjectId, string action, DateTimeOffset dueAtUtc, uint? draftVersion, CancellationToken cancellationToken)
+        Guid siteId, string kind, Guid subjectId, string action, DateTimeOffset dueAtUtc, uint? draftVersion, Guid? redirectToPageId, CancellationToken cancellationToken)
     {
         if (!await access.SiteExistsAsync(siteId, cancellationToken).ConfigureAwait(false))
         {
@@ -61,7 +69,7 @@ internal sealed class ScheduleWrites(
 
             try
             {
-                var result = await SetInTransactionAsync(subject, action, dueAtUtc, draftVersion, now, cancellationToken).ConfigureAwait(false);
+                var result = await SetInTransactionAsync(subject, action, dueAtUtc, draftVersion, redirectToPageId, now, cancellationToken).ConfigureAwait(false);
                 if (result.IsFailure)
                 {
                     await transaction.RollbackAsync(cancellationToken).ConfigureAwait(false);
@@ -190,6 +198,13 @@ internal sealed class ScheduleWrites(
                         .ConfigureAwait(false)
                     : await publishing.UnpublishLiveAsync(subject, owner, scheduleOwner: owner, now, cancellationToken).ConfigureAwait(false);
 
+                // 017 FR-032: the accepted redirect, in the unpublish's transaction. A target page
+                // deleted since the schedule was set leaves the address without one, not the page live.
+                if (result.IsSuccess && schedule.Action == ScheduleActions.Unpublish && schedule.RedirectToPageId is { } redirectTo)
+                {
+                    await publishing.RedirectRemovedPageAsync(subject, redirectTo, owner, cancellationToken).ConfigureAwait(false);
+                }
+
                 if (result.IsFailure)
                 {
                     await transaction.RollbackAsync(cancellationToken).ConfigureAwait(false);
@@ -219,7 +234,8 @@ internal sealed class ScheduleWrites(
     }
 
     private async Task<Result<PublishSchedule>> SetInTransactionAsync(
-        PublishingWrites.Subject subject, string action, DateTimeOffset dueAtUtc, uint? draftVersion, DateTimeOffset now, CancellationToken cancellationToken)
+        PublishingWrites.Subject subject, string action, DateTimeOffset dueAtUtc, uint? draftVersion,
+        Guid? redirectToPageId, DateTimeOffset now, CancellationToken cancellationToken)
     {
         var siteId = subject.SiteId;
         PublishingWrites.DraftContent? draft = null;
@@ -277,6 +293,17 @@ internal sealed class ScheduleWrites(
             }
 
             publishing.Log(siteId, subject, LogActions.ScheduleChanged, now, actor);
+        }
+
+        if (action == ScheduleActions.Unpublish)
+        {
+            if (redirectToPageId is { } target
+                && !await database.ForSite<Page>(siteId).AnyAsync(p => p.Id == target && p.Id != subject.Id && p.TemplateCollectionId == null, cancellationToken).ConfigureAwait(false))
+            {
+                return Result.Failure<PublishSchedule>(PagesErrors.RedirectTargetInvalid("choose another page of this site"));
+            }
+
+            schedule.RedirectTo(redirectToPageId);
         }
 
         // 016 TB-13: the collections the captured content uses, pending with it.

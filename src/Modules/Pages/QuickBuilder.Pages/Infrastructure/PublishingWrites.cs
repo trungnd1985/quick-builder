@@ -32,6 +32,7 @@ internal sealed class PublishingWrites(
     ICollectionSchemaReader collections,
     CollectionUseRows uses,
     PageParamRules pageParams,
+    RedirectOffers redirectOffers,
     TimeProvider clock,
     ILogger<PublishingWrites> logger)
 {
@@ -81,8 +82,36 @@ internal sealed class PublishingWrites(
 
     /// <summary>Takes a page or component off the public site (FR-004, FR-005).</summary>
     public Task<Result<PublicationResponse>> UnpublishAsync(Guid siteId, string kind, Guid subjectId, CancellationToken cancellationToken) =>
-        RunAsync(siteId, kind, subjectId, (subject, now) =>
-            UnpublishLiveAsync(subject, access.Actor, scheduleOwner: null, now, cancellationToken), cancellationToken);
+        UnpublishAsync(siteId, kind, subjectId, redirectToPageId: null, cancellationToken);
+
+    /// <summary>
+    /// Unpublishes, and when <paramref name="redirectToPageId"/> is given redirects the page's
+    /// address to that page in the same transaction (017 FR-032).
+    /// </summary>
+    public Task<Result<PublicationResponse>> UnpublishAsync(
+        Guid siteId, string kind, Guid subjectId, Guid? redirectToPageId, CancellationToken cancellationToken) =>
+        RunAsync(siteId, kind, subjectId, async (subject, now) =>
+        {
+            var unpublished = await UnpublishLiveAsync(subject, access.Actor, scheduleOwner: null, now, cancellationToken).ConfigureAwait(false);
+            return unpublished.IsFailure || redirectToPageId is not { } target || !subject.IsPage
+                ? unpublished
+                : await RedirectRemovedPageAsync(subject, target, access.Actor, cancellationToken).ConfigureAwait(false);
+        }, cancellationToken);
+
+    /// <summary>The redirect accepted when a live page is taken down, saved in the caller's transaction.</summary>
+    internal async Task<Result> RedirectRemovedPageAsync(Subject subject, Guid targetPageId, Guid actor, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(subject);
+
+        var redirected = await redirectOffers.RedirectRemovedPageAsync(subject.SiteId, subject.Id, targetPageId, actor, cancellationToken).ConfigureAwait(false);
+        if (redirected.IsFailure)
+        {
+            return Result.Failure(redirected.Error);
+        }
+
+        await database.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        return Result.Success();
+    }
 
     /// <summary>Publishes a retained version again as a new one; the draft is untouched (FR-014).</summary>
     public Task<Result<PublicationResponse>> RollbackAsync(

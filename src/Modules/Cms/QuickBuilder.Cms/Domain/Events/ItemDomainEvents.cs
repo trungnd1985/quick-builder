@@ -19,3 +19,7 @@ internal sealed record ItemPublishedEvent(
 internal sealed record ItemUnpublishedEvent(Guid SiteId, Guid CollectionId, Guid ItemId, bool Scheduled, DateTimeOffset OccurredAtUtc) : IDomainEvent;
 
 internal sealed record ItemDeletedEvent(Guid SiteId, Guid CollectionId, Guid ItemId, bool WasPublished, DateTimeOffset OccurredAtUtc) : IDomainEvent;
+
+/// <summary>017 FR-029, FR-032: a member accepted the redirect offer for the item's old address.</summary>
+internal sealed record ItemRedirectRequestedEvent(
+    Guid SiteId, Guid CollectionId, Guid ItemId, string OldSlug, string Reason, Guid? TargetPageId, DateTimeOffset OccurredAtUtc) : IDomainEvent;

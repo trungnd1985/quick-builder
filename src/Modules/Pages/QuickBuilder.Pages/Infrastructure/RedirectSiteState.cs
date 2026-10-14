@@ -66,6 +66,9 @@ internal sealed class RedirectSiteState : IRedirectGraph
 
     public RedirectEntry? Find(Guid id) => _byId.GetValueOrDefault(id);
 
+    /// <summary>Every redirect of the site, enabled or not.</summary>
+    public IEnumerable<RedirectEntry> Entries() => _byId.Values;
+
     /// <summary>The redirect with this source, if any.</summary>
     public Guid? SourceTakenBy(string matchKind, string path, string query) =>
         _sources.TryGetValue((matchKind, path, query), out var id) ? id : null;

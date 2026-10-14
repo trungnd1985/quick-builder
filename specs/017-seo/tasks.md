@@ -350,7 +350,7 @@ and confirm the status, target, query handling and the content-wins rule, on two
   - page create, slug change, move, home change, template removal and publish responses (`PAGES/Features/PageResponses.cs`, `PublishingResponses.cs`) carry `redirect_hidden`, naming the redirect, when the page's live address is the source of an enabled redirect without a query.
 
   Tests go in `ITESTS/Pages/RedirectWarningTests.cs`, written first. `ADMIN/features/seo/RedirectDialog.vue` and `ADMIN/features/pages/PageTreeView.vue` show the warnings, with i18n keys.
-- [ ] T117 [US2] Record every redirect action in `pages.redirect_changes` (research SE-13a, FR-021): create, change, turn on or off, delete and import in `RedirectWrites.cs`, and offers and retargeting in T079 and T082, in the same transaction, with ids, the action, the origin, the actor and the time only. `GetRedirect.cs` returns the last 20 as `history`. Tests go in `ITESTS/Pages/RedirectAuditTests.cs`, written first. They check every action, a delete leaving its rows, and no source, target or note stored.
+- [X] T117 [US2] Record every redirect action in `pages.redirect_changes` (research SE-13a, FR-021): create, change, turn on or off, delete and import in `RedirectWrites.cs`, and offers and retargeting in T079 and T082, in the same transaction, with ids, the action, the origin, the actor and the time only. `GetRedirect.cs` returns the last 20 as `history`. Tests go in `ITESTS/Pages/RedirectAuditTests.cs`, written first. They check every action, a delete leaving its rows, and no source, target or note stored.
 
 **Checkpoint**: quickstart §2 passes. Old links work through managed and imported redirects.
 
@@ -506,7 +506,7 @@ item offer.
 
 ### Tests for User Story 5 ⚠️
 
-- [ ] T074 [P] [US5] Create `UTESTS/Pages/Redirects/OfferedRedirectsTests.cs` for `PAGES/Domain/Redirects/OfferedRedirects.cs`. Given a tree before and after a change, plus the live states, it checks:
+- [X] T074 [P] [US5] Create `UTESTS/Pages/Redirects/OfferedRedirectsTests.cs` for `PAGES/Domain/Redirects/OfferedRedirects.cs`. Given a tree before and after a change, plus the live states, it checks:
   - exact redirects for changed live pages;
   - a prefix redirect for each live template whose pattern changed;
   - a prefix to the parent when a template is removed;
@@ -514,20 +514,20 @@ item offer.
   - old addresses now held by live content skipped;
   - `path` redirects retargeted;
   - loops turned off.
-- [ ] T075 [P] [US5] Create `ITESTS/Pages/RedirectOfferTests.cs` (SC-003). For `UpdatePage` (slug), `MovePage`, `MakeHomePage`, `SetPageTemplate` (set, remove) with the flag on and off, it checks:
+- [X] T075 [P] [US5] Create `ITESTS/Pages/RedirectOfferTests.cs` (SC-003). For `UpdatePage` (slug), `MovePage`, `MakeHomePage`, `SetPageTemplate` (set, remove) with the flag on and off, it checks:
   - the old addresses reach the new content in one hop from the next request (same transaction: no window);
   - the response's `redirects` outcome;
   - moving a template back turns the earlier prefix off and lists it in `turnedOff`;
   - `Unpublish` and `DeletePage` with `redirectToPageId`;
   - flag omitted = no redirect (API compatibility).
-- [ ] T076 [P] [US5] Create `ITESTS/Cms/ItemRedirectOfferTests.cs`. It checks:
+- [X] T076 [P] [US5] Create `ITESTS/Cms/ItemRedirectOfferTests.cs`. It checks:
   - an Editor publishing a slug change with `redirectOldAddress` gets an exact redirect old item address → item target in under 5 s (FR-029; measure and record it);
   - the same for rollback, a scheduled publish (the flag kept on the schedule) and unpublish or delete with `redirectToPageId`;
   - no event when the slug did not change or the flag is off;
   - no redirect when the collection has no live template;
   - a redelivered event creates one redirect;
   - the event payload has the documented fields only, and `oldSlug` never appears in logs.
-- [ ] T077 [P] [US5] Create `ADMINTESTS/components/RedirectOfferCheckbox.spec.ts` and extend `ADMINTESTS/features/pages/MoveDialog.spec.ts`, `PageFormDialog.spec.ts` and `TemplateDialog.spec.ts`, and the item form spec. They check:
+- [X] T077 [P] [US5] Create `ADMINTESTS/components/RedirectOfferCheckbox.spec.ts` and extend `ADMINTESTS/features/pages/MoveDialog.spec.ts`, `PageFormDialog.spec.ts` and `TemplateDialog.spec.ts`, and the item form spec. They check:
   - the checkbox is shown and ticked only when the change moves live addresses;
   - "Redirect this address to…" in the unpublish and delete confirmations, unticked by default;
   - the outcome note after saving;
@@ -535,18 +535,18 @@ item offer.
 
 ### Implementation for User Story 5
 
-- [ ] T078 [US5] Implement `PAGES/Domain/Redirects/OfferedRedirects.cs` (pure, data-model §3.4). Make T074 pass.
-- [ ] T079 [US5] Add `redirectOldAddresses` to the requests and commands of `PAGES/Features/UpdatePage/UpdatePage.cs`, `MovePage/MovePage.cs`, `MakeHomePage/MakeHomePage.cs` and `SetPageTemplate/SetPageTemplate.cs` (body for PUT; query for DELETE). In `PAGES/Infrastructure/PageTreeWrites.cs`:
+- [X] T078 [US5] Implement `PAGES/Domain/Redirects/OfferedRedirects.cs` (pure, data-model §3.4). Make T074 pass.
+- [X] T079 [US5] Add `redirectOldAddresses` to the requests and commands of `PAGES/Features/UpdatePage/UpdatePage.cs`, `MovePage/MovePage.cs`, `MakeHomePage/MakeHomePage.cs` and `SetPageTemplate/SetPageTemplate.cs` (body for PUT; query for DELETE). In `PAGES/Infrastructure/PageTreeWrites.cs`:
   - compute the offered redirects from the tree change and live states;
   - insert, retarget and turn off through `RedirectWrites` in the same `SaveChanges` as the change;
   - return a `RedirectOutcome` added to `PAGES/Features/PageResponses.cs`.
-- [ ] T080 [US5] Add `redirectToPageId` to `PAGES/Features/Unpublish/Unpublish.cs` (body) and `DeletePage/DeletePage.cs` (query), created in the same transaction when the page was live and the target is a page of the site. Make T075 pass.
-- [ ] T081 [US5] In Cms:
+- [X] T080 [US5] Add `redirectToPageId` to `PAGES/Features/Unpublish/Unpublish.cs` (body) and `DeletePage/DeletePage.cs` (query), created in the same transaction when the page was live and the target is a page of the site. Make T075 pass.
+- [X] T081 [US5] In Cms:
   - add `redirectOldAddress` to `PublishItem`, `RollbackItem` and `ScheduleItem` (publish; stored in `redirect_old_address`), and `redirectToPageId` to `UnpublishItem`, `DeleteItem` and a scheduled unpublish (stored in `redirect_to_page_id`);
   - in `CMS/Infrastructure/ItemPublishing.cs` and `ItemWrites.cs`, when the published slug changes (or the item stops being live) and a redirect was asked for, write `Cms.ItemRedirectRequested` to the Cms outbox in the same transaction;
   - apply the stored choice in `CMS/Features/Items/RunItemSchedule/`;
   - return `redirectRequested` in the response.
-- [ ] T082 [US5] Create `PAGES/Features/CreateItemRedirect/CreateItemRedirectHandler.cs`, handling `Cms.ItemRedirectRequested`:
+- [X] T082 [US5] Create `PAGES/Features/CreateItemRedirect/CreateItemRedirectHandler.cs`, handling `Cms.ItemRedirectRequested`:
   - when the collection has a live template, build the old address from its pattern and `oldSlug`;
   - skip it when live content holds the address;
   - create an exact redirect (origin `offer`) to the item (`moved`) or to the page (`removed`);
@@ -554,14 +554,14 @@ item offer.
   - stay idempotent through `processed_events` and the unique index.
 
   Register the subscription. Make T076 pass.
-- [ ] T083 [US5] Record `Cms.ItemRedirectRequested` and the new subscriptions in a "017" section of `specs/001-foundation-skeleton/contracts/integration-events.md`, including the `oldSlug` payload note.
-- [ ] T084 [P] [US5] Create `ADMIN/components/RedirectOfferCheckbox.vue` and `ADMIN/components/RedirectToPagePicker.vue`, and use them in:
+- [X] T083 [US5] Record `Cms.ItemRedirectRequested` and the new subscriptions in a "017" section of `specs/001-foundation-skeleton/contracts/integration-events.md`, including the `oldSlug` payload note.
+- [X] T084 [P] [US5] Create `ADMIN/components/RedirectOfferCheckbox.vue` and `ADMIN/components/RedirectToPagePicker.vue`, and use them in:
   - `ADMIN/features/pages/MoveDialog.vue`, `PageFormDialog.vue` and `TemplateDialog.vue`;
   - the home page action and the unpublish and delete confirmations in `ADMIN/features/pages/PageTreeView.vue` and `ADMIN/features/publishing/`;
   - `ADMIN/features/cms/items/ItemFormView.vue` (publish, schedule and rollback when the slug differs from the published one; unpublish and delete).
 
   Extend `ADMIN/api/pages.ts` and `ADMIN/api/items.ts`, and show the outcome note. Add i18n keys. Make T077 pass.
-- [ ] T118 [US5] Add a redirect choice to scheduled page unpublishes (added after analysis, C3):
+- [X] T118 [US5] Add a redirect choice to scheduled page unpublishes (added after analysis, C3):
   - `SetScheduleRequest` in `PAGES/Features/Schedules/Schedules.cs` gains optional `redirectToPageId`, stored in `publish_schedules.redirect_to_page_id`, unpublish only;
   - `PAGES/Features/RunDueSchedule/RunDueScheduleHandler.cs` creates the redirect in the unpublish's transaction when the page was live;
   - the page's schedule control offers `RedirectToPagePicker`;

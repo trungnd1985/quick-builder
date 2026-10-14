@@ -127,6 +127,30 @@ is written to the Pages outbox with `available_at_utc` set to the schedule's due
 only Pages handles it (012 research PR-14). It is not a contract: no other module may
 subscribe to it.
 
+### 017 SEO, sitemap and redirects (#17)
+
+Cms asks Pages for a redirect when a member accepts the offer for an item's old address: on
+a publish, scheduled publish or rollback that changes the published slug (`moved`), and on an
+unpublish, scheduled unpublish or delete with a page chosen (`removed`). The event is written
+to the Cms outbox in the transaction of that change. Pages builds the old address from the
+collection's live template pattern, creates the redirect (origin `offer`), retargets `path`
+redirects to the old address, turns off any that would loop, and records each action in
+`pages.redirect_changes`. It is idempotent through `pages.processed_events` and the unique
+source index. See [017 research SE-11](../../017-seo/research.md).
+
+| Event | Published by | Payload | When |
+|---|---|---|---|
+| `Cms.ItemRedirectRequested` | Cms | `siteId`, `collectionId`, `itemId`, `oldSlug`, `reason` (`moved`, `removed`), `targetPageId`, `statusCode` (`301`), `actorUserId` | A member accepted a redirect offer for an item's old address. |
+
+- **`oldSlug`** is the only slug any event carries. It is an address, and it is sent only
+  because the member asked for the redirect. It is content: handlers must never log it.
+- **New subscriptions in Pages**:
+  - `Cms.ItemRedirectRequested` creates the redirect.
+  - `Cms.ItemPublished`, `Cms.ItemUnpublished`, `Cms.ItemDeleted`, `Cms.CollectionChanged` and
+    `Cms.CollectionDeleted` now also move the site's sitemap generation (SE-15).
+  - `Media.FileChanged` and `Media.FileDeleted` also refresh every live page when the file is
+    the site's default sharing image or organisation logo (SE-20, SE-22).
+
 ---
 
 ## Delivery guarantees

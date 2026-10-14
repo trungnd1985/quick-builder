@@ -102,6 +102,16 @@ internal sealed partial class PublishSchedule : ISiteOwned
         return schedule;
     }
 
+    /// <summary>
+    /// Sets where a scheduled unpublish redirects the page's address, or clears it (017 FR-032);
+    /// a scheduled publish has nothing to redirect.
+    /// </summary>
+    public void RedirectTo(Guid? pageId)
+    {
+        EnsurePending();
+        RedirectToPageId = Action == ScheduleActions.Unpublish ? pageId : null;
+    }
+
     /// <summary>Changes a pending schedule's time; the old due message becomes a no-op.</summary>
     public void Reschedule(DateTimeOffset dueAtUtc, Guid by)
     {

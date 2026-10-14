@@ -44,7 +44,28 @@ describe('ItemPublishBar', () => {
     expect(body).toContain('This cancels the publish scheduled')
 
     await fireEvent.click(screen.getByRole('button', { name: en.cms.items.publish.confirm }))
-    await waitFor(() => expect(calls.find((c) => c.url.endsWith('/publish'))?.body).toEqual({ revision: 3, cancelSchedule: true }))
+    await waitFor(() => expect(calls.find((c) => c.url.endsWith('/publish'))?.body).toEqual({ revision: 3, cancelSchedule: true, redirectOldAddress: false }))
+  })
+
+  it('offers to redirect a live item’s old address, ticked, and says the redirect was asked for', async () => {
+    const current = item({ status: 'changed', slug: 'new-slug', publishedSlug: 'old-slug', address: { path: '/blog/old-slug', reason: null } })
+    const { calls } = await renderBar(current, () => ({ status: 200, body: item({ status: 'published', redirectRequested: true }) }))
+
+    await fireEvent.click(screen.getByRole('button', { name: en.cms.items.publish.publish }))
+    expect(screen.getByRole<HTMLInputElement>('checkbox').checked).toBe(true)
+    await fireEvent.click(screen.getByRole('button', { name: en.cms.items.publish.confirm }))
+
+    await waitFor(() => expect(calls.find((c) => c.url.endsWith('/publish'))?.body).toEqual({ revision: 3, cancelSchedule: false, redirectOldAddress: true }))
+    expect((await screen.findByRole('status')).textContent).toContain(en.redirects.offer.itemRequested)
+  })
+
+  it('offers no redirect when the item has no address visitors use', async () => {
+    const current = item({ status: 'changed', slug: 'new-slug', publishedSlug: 'old-slug', address: { path: null, reason: 'no_template' } })
+    await renderBar(current, () => ({ status: 200, body: item({ status: 'published' }) }))
+
+    await fireEvent.click(screen.getByRole('button', { name: en.cms.items.publish.publish }))
+
+    expect(screen.queryByRole('checkbox')).toBeNull()
   })
 
   it('retries a publish once after a conflict when the content is unchanged', async () => {

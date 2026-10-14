@@ -71,6 +71,7 @@ function onKeydown(event: KeyboardEvent): void {
       <p :id="`${dialogId}-body`">
         {{ body }}
       </p>
+      <slot />
       <div class="actions">
         <button
           ref="cancelButton"

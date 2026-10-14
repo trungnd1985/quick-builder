@@ -108,6 +108,17 @@ internal sealed class ItemSchedule : ISiteOwned, IDisposable
 
     public ItemValues? ReadCaptured() => CapturedValues is null ? null : ItemValues.Read(CapturedValues);
 
+    /// <summary>
+    /// The redirect accepted for when the schedule runs (017 FR-029, FR-032): a publish's changed
+    /// slug, or an unpublish's address to a page. The other action's choice is ignored.
+    /// </summary>
+    public void RedirectOnRun(bool redirectOldAddress, Guid? redirectToPageId)
+    {
+        EnsurePending();
+        RedirectOldAddress = Action == ItemScheduleActions.Publish && redirectOldAddress;
+        RedirectToPageId = Action == ItemScheduleActions.Unpublish ? redirectToPageId : null;
+    }
+
     /// <summary>Changes a pending schedule's time; the old due message becomes a no-op.</summary>
     public void Reschedule(DateTimeOffset dueAtUtc, Guid by)
     {

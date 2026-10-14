@@ -84,6 +84,7 @@ public static class CmsModule
         services.AddSingleton<IEventTypeRegistration>(new EventTypeRegistration<ItemPublished>());
         services.AddSingleton<IEventTypeRegistration>(new EventTypeRegistration<ItemUnpublished>());
         services.AddSingleton<IEventTypeRegistration>(new EventTypeRegistration<ItemDeleted>());
+        services.AddSingleton<IEventTypeRegistration>(new EventTypeRegistration<ItemRedirectRequested>());
 
         // Shared by the slices: the validators (stateless, load the contract files once), the
         // access helper, the row locks and the migration observer (a no-op outside tests).

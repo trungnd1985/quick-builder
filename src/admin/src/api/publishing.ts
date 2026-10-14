@@ -126,8 +126,12 @@ export const publishingApi = {
   publish: (siteId: string, kind: SubjectKind, id: string, draftVersion: number): Promise<Publication> =>
     request<Publication>(`${subject(siteId, kind, id)}/publish`, post({ draftVersion })),
 
-  unpublish: (siteId: string, kind: SubjectKind, id: string): Promise<Publication> =>
-    request<Publication>(`${subject(siteId, kind, id)}/unpublish`, post()),
+  /** 017 FR-032: with `redirectToPageId`, a page's address redirects there. */
+  unpublish: (siteId: string, kind: SubjectKind, id: string, redirectToPageId: string | null = null): Promise<Publication> =>
+    request<Publication>(
+      `${subject(siteId, kind, id)}/unpublish`,
+      redirectToPageId ? { method: 'POST', body: JSON.stringify({ redirectToPageId }) } : post(),
+    ),
 
   rollback: (siteId: string, kind: SubjectKind, id: string, versionNumber: number): Promise<Publication> =>
     request<Publication>(`${subject(siteId, kind, id)}/rollback`, post({ versionNumber })),
@@ -141,11 +145,16 @@ export const publishingApi = {
   copyToDraft: (siteId: string, kind: SubjectKind, id: string, number: number, draftVersion: number): Promise<Draft> =>
     request<Draft>(`${subject(siteId, kind, id)}/versions/${number}/copy-to-draft`, post({ draftVersion })),
 
-  /** Sets or moves the pending schedule for `action`. `draftVersion` is required to publish. */
-  schedule: (siteId: string, kind: SubjectKind, id: string, action: ScheduleAction, dueAtUtc: string, draftVersion?: number): Promise<Schedule> =>
+  /**
+   * Sets or moves the pending schedule for `action`. `draftVersion` is required to publish;
+   * 017 FR-032: `redirectToPageId`, for a page unpublish, redirects its address when it runs.
+   */
+  schedule: (
+    siteId: string, kind: SubjectKind, id: string, action: ScheduleAction, dueAtUtc: string, draftVersion?: number, redirectToPageId: string | null = null,
+  ): Promise<Schedule> =>
     request<Schedule>(`${subject(siteId, kind, id)}/schedules/${action}`, {
       method: 'PUT',
-      body: JSON.stringify({ dueAtUtc, draftVersion }),
+      body: JSON.stringify({ dueAtUtc, draftVersion, redirectToPageId }),
     }),
 
   cancelSchedule: (siteId: string, kind: SubjectKind, id: string, action: ScheduleAction): Promise<void> =>

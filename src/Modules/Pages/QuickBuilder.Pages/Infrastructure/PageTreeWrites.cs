@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using QuickBuilder.Pages.Domain;
 using QuickBuilder.Pages.Domain.Events;
+using QuickBuilder.Pages.Domain.Redirects;
+using QuickBuilder.Pages.Features;
 using QuickBuilder.Shared.Kernel.Results;
 
 namespace QuickBuilder.Pages.Infrastructure;
@@ -15,7 +17,14 @@ namespace QuickBuilder.Pages.Infrastructure;
 /// changed (which is what makes concurrent changes serialise) or to add the tree's events
 /// to the outbox in the same transaction.
 /// </remarks>
-internal sealed class PageTreeWrites(PagesDbContext database, PagesAccess access, GenerationBump bump, CollectionUseRows uses, TimeProvider clock)
+internal sealed class PageTreeWrites(
+    PagesDbContext database,
+    PagesAccess access,
+    GenerationBump bump,
+    CollectionUseRows uses,
+    RedirectWrites redirectWrites,
+    RedirectOffers redirectOffers,
+    TimeProvider clock)
 {
     /// <summary>
     /// Runs <paramref name="change"/> against the site's tree. <paramref name="startIfMissing"/>
@@ -48,6 +57,35 @@ internal sealed class PageTreeWrites(PagesDbContext database, PagesAccess access
         bool startIfMissing,
         Func<PageTree, Guid, TimeProvider, Result<T>> change,
         Func<PageTree, T, CancellationToken, Task>? beforeSave,
+        CancellationToken cancellationToken) =>
+        RunAsync(siteId, startIfMissing, change, beforeSave, outcome: null, cancellationToken);
+
+    /// <summary>
+    /// As <see cref="ChangeAsync{T}(Guid, bool, Func{PageTree, Guid, TimeProvider, Result{T}}, Func{PageTree, T, CancellationToken, Task}?, CancellationToken)"/>
+    /// on an existing tree, also adding the redirects the change offers when the member accepted
+    /// them (017 FR-028 to FR-031, research SE-11): in the same transaction, so the old addresses
+    /// reach the new content from the next request. Without acceptance the outcome is null.
+    /// </summary>
+    public async Task<Result<(T Value, RedirectOutcomeResponse? Redirects)>> ChangeOfferingRedirectsAsync<T>(
+        Guid siteId,
+        Func<PageTree, Guid, TimeProvider, Result<T>> change,
+        Func<PageTree, T, CancellationToken, Task>? beforeSave,
+        bool redirectOldAddresses,
+        CancellationToken cancellationToken)
+    {
+        var outcome = redirectOldAddresses ? new System.Runtime.CompilerServices.StrongBox<RedirectOutcomeResponse?>() : null;
+        var result = await RunAsync(siteId, startIfMissing: false, change, beforeSave, outcome, cancellationToken).ConfigureAwait(false);
+        return result.IsFailure
+            ? Result.Failure<(T, RedirectOutcomeResponse?)>(result.Error)
+            : Result.Success((result.Value, outcome?.Value));
+    }
+
+    private Task<Result<T>> RunAsync<T>(
+        Guid siteId,
+        bool startIfMissing,
+        Func<PageTree, Guid, TimeProvider, Result<T>> change,
+        Func<PageTree, T, CancellationToken, Task>? beforeSave,
+        System.Runtime.CompilerServices.StrongBox<RedirectOutcomeResponse?>? outcome,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(change);
@@ -74,6 +112,7 @@ internal sealed class PageTreeWrites(PagesDbContext database, PagesAccess access
                 database.PageTrees.Add(tree);
             }
 
+            var before = outcome is null ? null : Snapshot(tree);
             var result = change(tree, actor, clock);
             if (result.IsFailure)
             {
@@ -84,6 +123,11 @@ internal sealed class PageTreeWrites(PagesDbContext database, PagesAccess access
             if (beforeSave is not null)
             {
                 await beforeSave(tree, result.Value, ct).ConfigureAwait(false);
+            }
+
+            if (outcome is not null)
+            {
+                outcome.Value = await OfferRedirectsAsync(siteId, tree, before!, actor, ct).ConfigureAwait(false);
             }
 
             // 012 FR-011, data-model §3.2: a page's new address reaches every live page that
@@ -105,6 +149,34 @@ internal sealed class PageTreeWrites(PagesDbContext database, PagesAccess access
             await transaction.CommitAsync(ct).ConfigureAwait(false);
             return result;
         }, cancellationToken);
+    }
+
+    /// <summary>Every page's address, parent and whether it is a template.</summary>
+    private static Dictionary<Guid, TreeAddress> Snapshot(PageTree tree) =>
+        tree.Pages.ToDictionary(p => p.Id, p => new TreeAddress(p.Path, p.ParentId, p.TemplateCollectionId is not null));
+
+    /// <summary>The redirects the change offers, applied against the site's redirects as the tree now is.</summary>
+    private async Task<RedirectOutcomeResponse> OfferRedirectsAsync(
+        Guid siteId, PageTree tree, IReadOnlyDictionary<Guid, TreeAddress> before, Guid actor, CancellationToken cancellationToken)
+    {
+        var live = await database.ForSite<Publication>(siteId)
+            .Where(p => p.SubjectKind == SubjectKinds.Page && p.LiveVersionId != null)
+            .Select(p => p.SubjectId)
+            .ToHashSetAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        var offers = OfferedRedirects.Plan(before, Snapshot(tree), live);
+        if (offers.Count == 0)
+        {
+            return RedirectOutcomeResponse.None;
+        }
+
+        var pages = tree.Pages.ToDictionary(p => p.Id, p => new PageAddress(p.Path, live.Contains(p.Id), p.TemplateCollectionId is not null));
+        var patterns = tree.Pages
+            .Where(p => live.Contains(p.Id) && p.TemplateCollectionId is not null)
+            .ToDictionary(p => p.TemplateCollectionId!.Value, p => p.Path);
+        var state = await redirectWrites.LoadAsync(siteId, pages, patterns, cancellationToken).ConfigureAwait(false);
+        return await redirectOffers.ApplyAsync(state, offers, actor, cancellationToken).ConfigureAwait(false);
     }
 
     private async Task BumpLinkersAsync(Guid siteId, PageTree tree, CancellationToken cancellationToken)

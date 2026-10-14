@@ -13,9 +13,10 @@ namespace QuickBuilder.Pages.Features.MovePage;
 /// Where a page goes: under <see cref="ParentId"/> (null for the top level), after
 /// <see cref="AfterPageId"/> (null for first), given the <see cref="Version"/> the caller saw.
 /// </summary>
-public sealed record MovePageRequest(Guid? ParentId, Guid? AfterPageId, int Version);
+/// <param name="RedirectOldAddresses">017 FR-028: redirect the live addresses the move changes to their new place.</param>
+public sealed record MovePageRequest(Guid? ParentId, Guid? AfterPageId, int Version, bool RedirectOldAddresses = false);
 
-internal sealed record MovePageCommand(Guid SiteId, Guid PageId, Guid? ParentId, Guid? AfterPageId, int Version)
+internal sealed record MovePageCommand(Guid SiteId, Guid PageId, Guid? ParentId, Guid? AfterPageId, int Version, bool RedirectOldAddresses = false)
     : ICommand<Result<PageTreeResponse>>;
 
 /// <summary>
@@ -38,12 +39,12 @@ internal sealed class MovePageHandler(PageTreeWrites writes, PageReads reads, Pa
         }
 
         var before = (await reads.PageAsync(command.SiteId, command.PageId, cancellationToken).ConfigureAwait(false))?.Path;
-        var moved = await writes.ChangeAsync(
+        var moved = await writes.ChangeOfferingRedirectsAsync(
             command.SiteId,
-            startIfMissing: false,
             (tree, actor, clock) => UpdatePageHandler.ToUnit(
                 tree.Move(command.PageId, command.ParentId, command.AfterPageId, command.Version, actor, clock)),
             beforeSave: null,
+            command.RedirectOldAddresses,
             cancellationToken).ConfigureAwait(false);
 
         if (moved.IsFailure)
@@ -61,7 +62,7 @@ internal sealed class MovePageHandler(PageTreeWrites writes, PageReads reads, Pa
             warnings.AddRange(await addresses.RedirectHiddenAsync(command.SiteId, command.PageId, cancellationToken).ConfigureAwait(false));
         }
 
-        return Result.Success(await reads.TreeAsync(command.SiteId, cancellationToken).ConfigureAwait(false) with { Warnings = warnings });
+        return Result.Success(await reads.TreeAsync(command.SiteId, cancellationToken).ConfigureAwait(false) with { Warnings = warnings, Redirects = moved.Value.Redirects });
     }
 }
 
@@ -80,7 +81,7 @@ public sealed class MovePageController(IDispatcher dispatcher) : ControllerBase
         ArgumentNullException.ThrowIfNull(request);
 
         var result = await dispatcher.SendAsync(
-            new MovePageCommand(siteId, pageId, request.ParentId, request.AfterPageId, request.Version),
+            new MovePageCommand(siteId, pageId, request.ParentId, request.AfterPageId, request.Version, request.RedirectOldAddresses),
             cancellationToken).ConfigureAwait(false);
 
         return result.IsFailure ? PagesErrorResults.ToActionResult(result.Error) : Ok(result.Value);

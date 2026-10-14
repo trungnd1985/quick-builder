@@ -49,6 +49,9 @@ internal sealed class ItemWriteContext(
 
     public DateTimeOffset Now => now;
 
+    /// <summary>Whether this operation asked Pages for a redirect (017 FR-029, FR-032).</summary>
+    public bool RedirectRequested { get; set; }
+
     /// <summary>Whether any write in this operation added, removed or migrated versions.</summary>
     public bool VersionsChanged { get; private set; }
 

@@ -137,6 +137,7 @@ public static class PagesModule
         // 017: redirects (research SE-09 to SE-13a).
         services.AddScoped<SitemapGeneration>();
         services.AddScoped<RedirectWrites>();
+        services.AddScoped<RedirectOffers>();
         services.AddScoped<RedirectViews>();
         services.AddScoped<ManageRedirectHandlers>();
         services.AddScoped<ICommandHandler<CreateRedirectCommand, Result<RedirectResponse>>>(sp => sp.GetRequiredService<ManageRedirectHandlers>());
@@ -216,6 +217,7 @@ public static class PagesModule
         services.AddScoped<IIntegrationEventHandler<ItemPublished>, RefreshPagesListingItemsHandler>();
         services.AddScoped<IIntegrationEventHandler<ItemUnpublished>, RefreshPagesListingItemsHandler>();
         services.AddScoped<IIntegrationEventHandler<ItemDeleted>, RefreshPagesListingItemsHandler>();
+        services.AddScoped<IIntegrationEventHandler<ItemRedirectRequested>, Features.CreateItemRedirect.CreateItemRedirectHandler>();
         services.AddScoped<IIntegrationEventHandler<CollectionChanged>, RefreshPagesUsingCollectionHandler>();
         services.AddScoped<IIntegrationEventHandler<CollectionDeleted>, RefreshPagesUsingCollectionHandler>();
 

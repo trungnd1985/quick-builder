@@ -174,7 +174,7 @@ if prefix(longest P with path starts with P + "/") → redirect to target + rema
 |---|---|
 | Slug change, move, new home page (live pages) | exact: each changed live old path → `page` |
 | Live template's pattern changes (its own or an ancestor's move/slug) | prefix: old prefix → new prefix (`path`) |
-| Template turned back into a page | prefix: old prefix → parent `page` |
+| Template turned back into a page | none for its items (a prefix keeps the rest of the path, so old prefix → parent would loop; decided during implementation) |
 | Page unpublished or deleted (`redirectTo`) | exact: its address → chosen `page` |
 | Item slug changes on publish, scheduled publish, rollback | exact: old item address → `item` (via `Cms.ItemRedirectRequested`) |
 | Item unpublished or deleted (`redirectTo`) | exact: item address → chosen `page` |

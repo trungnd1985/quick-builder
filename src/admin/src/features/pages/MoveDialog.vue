@@ -2,6 +2,7 @@
 import { computed, nextTick, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { PageNode } from '../../api/pages'
+import RedirectOfferCheckbox from '../../components/RedirectOfferCheckbox.vue'
 
 // 010 US2, FR-009, FR-033: move a page, with its subtree, anywhere — without a pointing
 // device. Two selects: the new parent, then the place among its children. A page cannot be
@@ -19,7 +20,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  submit: [value: { parentId: string | null; afterPageId: string | null }]
+  submit: [value: { parentId: string | null; afterPageId: string | null; redirectOldAddresses: boolean }]
   cancel: []
 }>()
 
@@ -69,6 +70,8 @@ function currentAnchor(): string {
 const afterPageId = ref<string>(currentAnchor())
 const movesLivePages = computed(() => (props.liveAddressCount ?? 0) > 0 && (props.page.parentId ?? TOP) !== parentId.value)
 const parentSelect = ref<HTMLSelectElement | null>(null)
+// 017 FR-028: ticked by default.
+const redirectOldAddresses = ref(true)
 
 function onParentChange(): void {
   afterPageId.value = currentAnchor()
@@ -87,6 +90,7 @@ function submit(): void {
   emit('submit', {
     parentId: parentId.value === TOP ? null : parentId.value,
     afterPageId: afterPageId.value === FIRST ? null : afterPageId.value,
+    redirectOldAddresses: movesLivePages.value && redirectOldAddresses.value,
   })
 }
 
@@ -163,6 +167,12 @@ function onKeydown(event: KeyboardEvent): void {
       >
         {{ t('publishing.address.warning', { count: liveAddressCount ?? 0 }) }}
       </p>
+      <RedirectOfferCheckbox
+        v-if="movesLivePages"
+        :id="`${dialogId}-redirect`"
+        v-model="redirectOldAddresses"
+        :count="liveAddressCount ?? 0"
+      />
 
       <p
         v-if="error"

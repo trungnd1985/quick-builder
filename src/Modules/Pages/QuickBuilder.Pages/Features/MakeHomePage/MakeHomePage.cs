@@ -9,9 +9,10 @@ using QuickBuilder.Shared.Kernel.Results;
 namespace QuickBuilder.Pages.Features.MakeHomePage;
 
 /// <summary>The <see cref="Version"/> of the page the caller last saw.</summary>
-public sealed record MakeHomePageRequest(int Version);
+/// <param name="RedirectOldAddresses">017 FR-028: redirect the page's former address to the home page.</param>
+public sealed record MakeHomePageRequest(int Version, bool RedirectOldAddresses = false);
 
-internal sealed record MakeHomePageCommand(Guid SiteId, Guid PageId, int Version) : ICommand<Result<PageTreeResponse>>;
+internal sealed record MakeHomePageCommand(Guid SiteId, Guid PageId, int Version, bool RedirectOldAddresses = false) : ICommand<Result<PageTreeResponse>>;
 
 /// <summary>
 /// Makes a top-level page the site's home page (FR-003, research P-07). The former home
@@ -29,16 +30,16 @@ internal sealed class MakeHomePageHandler(PageTreeWrites writes, PageReads reads
             return Result.Failure<PageTreeResponse>(PagesErrors.SiteNotFound);
         }
 
-        var changed = await writes.ChangeAsync(
+        var changed = await writes.ChangeOfferingRedirectsAsync(
             command.SiteId,
-            startIfMissing: false,
             (tree, actor, clock) => UpdatePageHandler.ToUnit(tree.MakeHome(command.PageId, command.Version, actor, clock)),
             beforeSave: null,
+            command.RedirectOldAddresses,
             cancellationToken).ConfigureAwait(false);
 
         return changed.IsFailure
             ? Result.Failure<PageTreeResponse>(changed.Error)
-            : Result.Success(await reads.TreeAsync(command.SiteId, cancellationToken).ConfigureAwait(false));
+            : Result.Success(await reads.TreeAsync(command.SiteId, cancellationToken).ConfigureAwait(false) with { Redirects = changed.Value.Redirects });
     }
 }
 
@@ -56,7 +57,7 @@ public sealed class MakeHomePageController(IDispatcher dispatcher) : ControllerB
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        var result = await dispatcher.SendAsync(new MakeHomePageCommand(siteId, pageId, request.Version), cancellationToken)
+        var result = await dispatcher.SendAsync(new MakeHomePageCommand(siteId, pageId, request.Version, request.RedirectOldAddresses), cancellationToken)
             .ConfigureAwait(false);
 
         return result.IsFailure ? PagesErrorResults.ToActionResult(result.Error) : Ok(result.Value);

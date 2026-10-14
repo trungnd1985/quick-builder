@@ -276,6 +276,16 @@ internal sealed class Item : AggregateRoot, ISiteOwned, IDisposable
         _newHistory.Add(ItemHistoryEntry.For(this, kind, actor, now, scheduleAction: action, dueAtUtc: dueAtUtc, failureCode: failureCode));
     }
 
+    /// <summary>
+    /// Asks Pages to redirect the item's old address (017 FR-029, FR-032): to the item when its
+    /// published slug changed, or to a page when it stopped being live.
+    /// </summary>
+    public void RequestRedirect(string oldSlug, string reason, Guid? targetPageId, DateTimeOffset now)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(oldSlug);
+        Raise(new ItemRedirectRequestedEvent(SiteId, CollectionId, Id, oldSlug, reason, targetPageId, now));
+    }
+
     /// <summary>Records that the item is being deleted, with its versions, schedules and history (FR-008).</summary>
     public void MarkDeleted(DateTimeOffset now) =>
         Raise(new ItemDeletedEvent(SiteId, CollectionId, Id, IsPublished, now));
