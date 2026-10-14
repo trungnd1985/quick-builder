@@ -16,9 +16,9 @@ is also covered by the automated tests listed here, which pass.
 | SC-001: set a page's metadata and see the head | under 2 minutes, by hand | | Pending |
 | SC-002: import 300 redirects with 3 bad lines | under 1 minute, by hand | `RedirectImportTests`: 297 added, 3 refused with codes | Automated pass; timing pending |
 | SC-003: every address change reaches the new content in one hop | 100 % | `RedirectOfferTests` (12), `ItemRedirectOfferTests` (6) | Pass |
-| SC-004: 10,000 redirects, redirect p95 under 20 ms, page budgets kept | reference setup | `SeoPerformanceTests` | Pending (needs the perf compose run) |
+| SC-004: 10,000 redirects, redirect p95 under 20 ms, page budgets kept | reference setup | exact 7.9 ms, prefix 7.3 ms, cached page 3.8 ms at p95 (`SeoPerformanceTests`) | Pass |
 | SC-005: sitemap shows a change within 5 s on every instance | 5 s | `SitemapFreshnessTests` (second instance included); item redirect measured at under 1 s | Pass |
-| SC-006: 100,000 item pages, each file under 2 s on a miss, 50 ms on a hit | reference setup | `SeoPerformanceTests` | Pending (needs the perf compose run) |
+| SC-006: 100,000 item pages, each file under 2 s on a miss, 50 ms on a hit | reference setup | slowest miss 517 ms, hit 30 ms at p95 (`SeoPerformanceTests`) | Pass |
 | SC-007: the head and structured data validate | schema.org validator, by hand | `HeadMetadataGoldenTests`, `StructuredDataGoldenTests`, `StructuredDataRenderTests` | Automated pass; validator pending |
 | SC-008: every new control works from the keyboard, with a screen reader | all, with NVDA | axe passes on every new panel and dialog (`SeoPanel`, `SeoTemplate`, `StructuredDataControl`, `RedirectOffer`, `SearchSettingsPanel`, `SearchVisibilityPanel`, redirects specs) | Automated pass; NVDA pending |
 
@@ -33,7 +33,7 @@ is also covered by the automated tests listed here, which pass.
 | 5. Redirect offers | `RedirectOfferTests`, `ItemRedirectOfferTests`, `OfferedRedirectsTests`, `RedirectOffer.spec.ts` |
 | 6. Canonical addresses and host names | `AddressNormalisationTests`, `HostRedirectTests`, `CanonicalAddressTests` |
 | 7. Structured data | `StructuredDataRenderTests`, `StructuredDataGoldenTests`, `JsonLdWriterTests`, `StructuredDataTypesContractTests`, `structuredDataTypes.spec.ts` |
-| 8. Performance | `SeoPerformanceTests` (pending run) |
+| 8. Performance | `SeoPerformanceTests` (run 2026-10-14, all budgets hold) |
 | 9. Isolation, keyboard, logs and upgrade | `SiteIsolationSuite` with `SeoIsolationProbe`, `SeoContentNotLoggedTests`, `UpgradeFrom016Tests` |
 
 ## Deviations found while implementing

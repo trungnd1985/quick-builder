@@ -432,15 +432,15 @@ public sealed class ReferenceDeploymentSmokeTests(ITestOutputHelper output) : IA
         //     robots.txt describe the site.
         using var redirect = await client.PostAsJsonAsync(
             new Uri($"/api/v1/pages/sites/{siteId}/redirects", UriKind.Relative),
-            new { source = "/old-blog", match = "exact", target = new { kind = "path", path = "/blog" }, statusCode = 301, enabled = true }).ConfigureAwait(true);
+            new { source = "/old-post", match = "exact", target = new { kind = "path", path = "/blog/hello-world" }, statusCode = 301, enabled = true }).ConfigureAwait(true);
         Assert.Equal(HttpStatusCode.Created, redirect.StatusCode);
         using (var noFollow = new HttpClient(new HttpClientHandler { AllowAutoRedirect = false }) { BaseAddress = new Uri(BaseAddress) })
         {
-            using var oldAddress = new HttpRequestMessage(HttpMethod.Get, new Uri("/old-blog", UriKind.Relative));
+            using var oldAddress = new HttpRequestMessage(HttpMethod.Get, new Uri("/old-post", UriKind.Relative));
             oldAddress.Headers.Host = "smoke.test";
             using var moved = await noFollow.SendAsync(oldAddress).ConfigureAwait(true);
             Assert.Equal(HttpStatusCode.MovedPermanently, moved.StatusCode);
-            Assert.Equal("/blog", moved.Headers.Location?.OriginalString);
+            Assert.Equal("/blog/hello-world", moved.Headers.Location?.OriginalString);
         }
 
         using var sitemapRequest = new HttpRequestMessage(HttpMethod.Get, new Uri("/sitemap.xml", UriKind.Relative));
@@ -452,7 +452,7 @@ public sealed class ReferenceDeploymentSmokeTests(ITestOutputHelper output) : IA
         robotsRequest.Headers.Host = "smoke.test";
         using var robots = await publicClient.SendAsync(robotsRequest).ConfigureAwait(true);
         Assert.Contains("Sitemap: https://smoke.test/sitemap.xml", await robots.Content.ReadAsStringAsync().ConfigureAwait(true), StringComparison.Ordinal);
-        output.WriteLine("redirect /old-blog → /blog answers 301; sitemap.xml lists the item page; robots.txt names the sitemap");
+        output.WriteLine("redirect /old-post → /blog/hello-world answers 301; sitemap.xml lists the item page; robots.txt names the sitemap");
 
         // 10. Operator recovery (002 US5): with command-line access to the container, the
         //     operator issues a set-password link for the administrator, sets a new password

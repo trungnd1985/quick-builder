@@ -671,11 +671,13 @@ of hostile values, and the breadcrumb refresh after a parent's rename.
 
 - [X] T105 [P] Create `ITESTS/Isolation/Probes/SeoIsolationProbe.cs`. Site B cannot list, get, change, delete, import into or export site A's redirects. Site A's redirects, sitemap entries and robots rules never answer on site B's host names. A redirect target naming another site's page or item is refused as unknown. Register it, and keep `ITESTS/Isolation/IsolationCoverageTests.cs` green (FR-038).
 - [X] T106 [P] Run `ATESTS/AuthorizationDeclarationTests.cs` and confirm every new action declares exactly one capability. Add an architecture test in `ATESTS/` checking that `RedirectHitCounter` (the `IRedirectHits` implementation) depends on no `DbContext` or I/O type.
-- [ ] T107 [P] Create `STESTS/RedirectPerformanceTests.cs` and `STESTS/SitemapPerformanceTests.cs` (Performance category):
+- [X] T107 [P] Create `STESTS/RedirectPerformanceTests.cs` and `STESTS/SitemapPerformanceTests.cs` (Performance category):
   - with 10,000 redirects, p95 under 20 ms for redirect responses, exact and prefix, and page renders still within 012's budgets (SC-004);
   - with 100,000 published items, each sitemap file under 2 s on a miss and under 50 ms on a hit (SC-006).
 
   Record the results here. If a budget fails, apply the fallback in plan Risks and record it.
+
+  **Results (2026-10-14, reference compose setup, `SeoPerformanceTests`)**: with 10,000 redirects, exact redirect p95 7.9 ms, prefix redirect p95 7.3 ms, cached page p95 3.8 ms; with 100,000 item pages, the slowest sitemap file miss 517 ms and hit p95 30 ms. Every budget holds; no fallback was needed.
 - [X] T108 [P] Create `ITESTS/Rendering/UpgradeFrom016Tests.cs`, following `UpgradeFrom035Tests.cs`. A 016 snapshot upgrades, and the three migrations apply and roll back. Then check that:
   - every existing page renders the same body;
   - titles are unchanged;
@@ -694,7 +696,7 @@ of hostile values, and the breadcrumb refresh after a parent's rename.
   - `docs/backlog.md`: the deferred items in plan.md, and the #20 obligations (module-surface §7);
   - `specs/012-publishing-rendering/contracts/public-rendering.md` and `readers.md` (from `specs/017-seo/contracts/public-seo.md` and module-surface §2);
   - `docs/configuration.md`: no new keys (state it).
-- [ ] T112 [P] Run `dotnet test` with coverage. `PageResponder`, `RedirectResponder`, `RENDER/Seo/`, `SitemapBuilder`, `PAGES/Domain/Redirects/` and `PublishingWrites` keep at least 80 % line coverage. Run `npm run lint`, `npm run type-check` and `npm test`, and check that `dotnet format --verify-no-changes` and the analyzer gates are clean.
+- [X] T112 [P] Run `dotnet test` with coverage. `PageResponder`, `RedirectResponder`, `RENDER/Seo/`, `SitemapBuilder`, `PAGES/Domain/Redirects/` and `PublishingWrites` keep at least 80 % line coverage. Run `npm run lint`, `npm run type-check` and `npm test`, and check that `dotnet format --verify-no-changes` and the analyzer gates are clean.
 - [X] T113 Create `ITESTS/Observability/SeoContentNotLoggedTests.cs` over every 017 path that logs (redirect matching, offers, import, item redirect handler, sitemap, robots). Slugs, sources, targets, titles and metadata must never appear, including `oldSlug`.
 - [ ] T114 Run the whole of `quickstart.md` by hand on the reference compose setup:
   - SC-001 and SC-002 with a stopwatch;

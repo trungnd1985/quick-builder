@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, ref, watch, shallowRef } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { sitesApi, type Site } from '../../api/sites'
 import MediaControl from '../../editor/panel/controls/MediaControl.vue'
@@ -19,8 +19,9 @@ const canManage = computed(() => props.site.permissions?.canManageSearch === tru
 
 const titleSuffix = ref('')
 const organisationName = ref('')
-const defaultImage = ref<Json | undefined>(undefined)
-const organisationLogo = ref<Json | undefined>(undefined)
+// Shallow: a recursive JSON type would make the ref unwrap without end.
+const defaultImage = shallowRef<Json | undefined>(undefined)
+const organisationLogo = shallowRef<Json | undefined>(undefined)
 const saving = ref(false)
 const error = ref<string | null>(null)
 const status = ref('')

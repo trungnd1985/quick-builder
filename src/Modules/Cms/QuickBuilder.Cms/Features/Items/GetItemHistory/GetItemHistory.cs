@@ -12,7 +12,8 @@ namespace QuickBuilder.Cms.Features.Items.GetItemHistory;
 internal sealed record GetItemHistoryQuery(Guid SiteId, Guid CollectionId, Guid ItemId) : IQuery<Result<ItemHistoryResponse>>;
 
 /// <summary>A kept version (015 FR-022, FR-023).</summary>
-public sealed record VersionResponse(int Number, string Kind, int? RestoredFrom, DateTimeOffset PublishedAtUtc, MemberResponse PublishedBy, bool Live);
+/// <param name="Slug">The slug this version published, so a rollback can say whether the address moves (017 FR-028).</param>
+public sealed record VersionResponse(int Number, string Kind, int? RestoredFrom, DateTimeOffset PublishedAtUtc, MemberResponse PublishedBy, bool Live, string Slug);
 
 /// <summary>Something that happened to the item (015 FR-031). No values, names or slugs.</summary>
 public sealed record HistoryEventResponse(
@@ -54,7 +55,7 @@ internal sealed class GetItemHistoryHandler(CmsDbContext database, CmsAccess acc
             .AsNoTracking()
             .Where(v => v.ItemId == query.ItemId)
             .OrderByDescending(v => v.Number)
-            .Select(v => new { v.Number, v.Kind, v.RestoredFrom, v.PublishedAtUtc, v.PublishedBy })
+            .Select(v => new { v.Number, v.Kind, v.RestoredFrom, v.PublishedAtUtc, v.PublishedBy, v.Slug })
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
 
@@ -69,7 +70,7 @@ internal sealed class GetItemHistoryHandler(CmsDbContext database, CmsAccess acc
         MemberResponse Member(Guid id) => new(id, names.GetValueOrDefault(id, string.Empty));
 
         return Result.Success(new ItemHistoryResponse(
-            versions.Select(v => new VersionResponse(v.Number, v.Kind, v.RestoredFrom, v.PublishedAtUtc, Member(v.PublishedBy), v.Number == item.LiveVersion)).ToList(),
+            versions.Select(v => new VersionResponse(v.Number, v.Kind, v.RestoredFrom, v.PublishedAtUtc, Member(v.PublishedBy), v.Number == item.LiveVersion, v.Slug)).ToList(),
             events.Select(e => new HistoryEventResponse(e.Kind, e.VersionNumber, e.ScheduleAction, e.DueAtUtc, e.FailureCode, e.AtUtc, Member(e.By))).ToList()));
     }
 }

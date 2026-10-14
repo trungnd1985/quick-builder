@@ -161,6 +161,8 @@ export interface TemplateWarning {
 export interface PageWithWarnings {
   page: PageDetail
   warnings: TemplateWarning[]
+  /** 017: present when a redirect offer was accepted. */
+  redirects?: RedirectOutcome | null
 }
 
 const root = (siteId: string) => `/pages/sites/${encodeURIComponent(siteId)}`

@@ -120,6 +120,8 @@ export interface Version {
   publishedAtUtc: string
   publishedBy: Member
   live: boolean
+  /** 017: the slug this version published. */
+  slug: string
 }
 
 export type HistoryKind =
