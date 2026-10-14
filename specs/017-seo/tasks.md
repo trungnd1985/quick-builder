@@ -704,7 +704,7 @@ of hostile values, and the breadcrumb refresh after a parent's rename.
   - schema.org validation of §7.
 
   Record the results in `specs/017-seo/quickstart-results.md`.
-- [ ] T115 Open the PR closing #17, with the plan's operator impact and upgrade notes in the description.
+- [X] T115 Open the PR closing #17, with the plan's operator impact and upgrade notes in the description.
 
 ---
 
