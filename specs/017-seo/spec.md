@@ -423,8 +423,8 @@ values is encoded.
   from 012.
 - **The home page is not published**: it is not in the sitemap. The breadcrumb trail of
   other pages starts with the site name, without a link.
-- **Pages under an unpublished parent**: they have no live address (012), so they are not
-  listed.
+- **Pages under an unpublished parent**: a published page keeps answering at its address
+  when its parent is not published (012), so it is listed like any other live page.
 - **Templates whose collection has thousands of items**: they are all listed, split across
   sitemap files as FR-024 describes.
 - **Sharing image deleted from the media library**: the page keeps working without a

@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  The sitemap protocol's sitemapindex, as https://www.sitemaps.org/schemas/sitemap/0.9/siteindex.xsd
+  defines it, transcribed for offline validation (017 SC-007).
+-->
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+            targetNamespace="http://www.sitemaps.org/schemas/sitemap/0.9"
+            xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+            elementFormDefault="qualified">
+  <xsd:element name="sitemapindex">
+    <xsd:complexType>
+      <xsd:sequence>
+        <xsd:element name="sitemap" maxOccurs="unbounded">
+          <xsd:complexType>
+            <xsd:sequence>
+              <xsd:element name="loc">
+                <xsd:simpleType>
+                  <xsd:restriction base="xsd:anyURI">
+                    <xsd:minLength value="12"/>
+                  </xsd:restriction>
+                </xsd:simpleType>
+              </xsd:element>
+              <xsd:element name="lastmod" minOccurs="0">
+                <xsd:simpleType>
+                  <xsd:union memberTypes="xsd:date xsd:dateTime"/>
+                </xsd:simpleType>
+              </xsd:element>
+            </xsd:sequence>
+          </xsd:complexType>
+        </xsd:element>
+      </xsd:sequence>
+    </xsd:complexType>
+  </xsd:element>
+</xsd:schema>

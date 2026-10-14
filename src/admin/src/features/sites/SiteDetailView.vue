@@ -7,6 +7,7 @@ import { useSitesStore } from '../../app/sitesStore'
 import { useAuthStore } from '../../app/authStore'
 import AvailabilityPanel from './AvailabilityPanel.vue'
 import SearchSettingsPanel from './SearchSettingsPanel.vue'
+import SearchVisibilityPanel from './SearchVisibilityPanel.vue'
 import HostNameList from './HostNameList.vue'
 import LanguageSelect from './LanguageSelect.vue'
 import { isOutOfDate, siteErrorMessage } from './siteErrors'
@@ -333,6 +334,11 @@ watch(siteId, load)
       />
 
       <SearchSettingsPanel
+        :site="site"
+        @updated="show"
+      />
+
+      <SearchVisibilityPanel
         :site="site"
         @updated="show"
       />

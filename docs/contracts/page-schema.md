@@ -299,7 +299,9 @@ answers there before any page could.
 | `health` | Health probes |
 
 Platform prefixes the slug grammar can't produce, such as `/_media` (media files) and `/_assets`
-(the block stylesheet, 012), need no entry.
+(the block stylesheet, 012), need no entry. Neither do the per-site `/robots.txt`, `/sitemap.xml`
+and `/sitemap-{n}.xml` (017): a slug has no `.`, so no page can take them, and they are
+answered before the page route.
 `ReservedAddressCoverageTests` fails the build if the platform gains a prefix that is
 neither listed here nor impossible to produce.
 

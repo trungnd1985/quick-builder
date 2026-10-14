@@ -161,6 +161,23 @@
       "notSet": "not set",
       "save": "Save search settings",
       "saved": "Search settings saved."
+    },
+    "searchVisibility": {
+      "heading": "Search engines and host names",
+      "discourage": "Discourage search engines",
+      "discourageHelp": "While the site is being built: robots.txt asks every crawler to stay away, every page asks not to be indexed, and the sitemap lists nothing. Turn it off at launch.",
+      "redirectOtherHosts": "Redirect other host names to the primary one",
+      "redirectOtherHostsHelp": "Visitors on any other host name of this site are sent to the same address on {primary}. Media files keep answering on every host name.",
+      "robotsRules": "Your own robots.txt rules",
+      "robotsRulesHelp": "Added after the generated rules. At most 10 KB, lines of at most 500 characters.",
+      "save": "Save search engine settings",
+      "saved": "Search engine settings saved.",
+      "saving": "Saving…",
+      "cancel": "Cancel",
+      "confirmTitle": "Redirect other host names?",
+      "confirmBody": "Every public address on {others} will redirect to the same address on {primary}. Make sure {primary} reaches this site first.",
+      "confirmAction": "Redirect them",
+      "hiddenBanner": "{name} is hidden from search engines. Turn this off in the site's search engine settings when it launches."
     }
   },
   "media": {

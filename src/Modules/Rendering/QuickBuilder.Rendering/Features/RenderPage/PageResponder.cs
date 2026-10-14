@@ -83,7 +83,7 @@ internal sealed class PageResponder(
         var request = new ListRequest(path, PageParams.From(live.Params, query));
         var designNumber = await designs.GetLiveNumberAsync(site.Id, cancellationToken).ConfigureAwait(false);
         var key = new RenderKey(site.Id, live.PageId, live.Generation, designNumber, site.Version, basePath, request.Params.Key);
-        var headers = Headers(key.ETag);
+        var headers = Headers(key.ETag, site);
 
         if (key.IsMatchedBy(ifNoneMatch))
         {
@@ -118,7 +118,7 @@ internal sealed class PageResponder(
         var designNumber = await designs.GetLiveNumberAsync(site.Id, cancellationToken).ConfigureAwait(false);
         var key = new ItemRenderKey(
             site.Id, template.PageId, template.Generation, item.ItemId, item.RenderStamp, designNumber, site.Version, basePath, request.Params.Key);
-        var headers = Headers(key.ETag);
+        var headers = Headers(key.ETag, site);
 
         if (key.IsMatchedBy(ifNoneMatch))
         {
@@ -153,12 +153,23 @@ internal sealed class PageResponder(
         return await notFound.RenderAsync(site, cancellationToken).ConfigureAwait(false);
     }
 
-    private static Dictionary<string, string> Headers(string etag) => new(StringComparer.OrdinalIgnoreCase)
+    private static Dictionary<string, string> Headers(string etag, SiteDto site)
     {
-        ["ETag"] = etag,
-        // Stored, but checked with the server every time: a publish shows at once.
-        ["Cache-Control"] = "public, no-cache",
-    };
+        var headers = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["ETag"] = etag,
+            // Stored, but checked with the server every time: a publish shows at once.
+            ["Cache-Control"] = "public, no-cache",
+        };
+
+        // 017 FR-027: a site that discourages search engines says so on every response too.
+        if (site.Search.Discouraged)
+        {
+            headers["X-Robots-Tag"] = "noindex, nofollow";
+        }
+
+        return headers;
+    }
 
     private static PublicResponse NotModified(Dictionary<string, string> headers) =>
         new(StatusCodes.Status304NotModified, "text/html; charset=utf-8", headers, ReadOnlyMemory<byte>.Empty);

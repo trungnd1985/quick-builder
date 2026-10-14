@@ -49,6 +49,11 @@ public static class RenderingModule
         services.AddScoped<PageResponder>();
         services.AddScoped<RedirectResponder>();
 
+        // 017 research SE-14 to SE-16: the sitemap and robots.txt.
+        services.AddScoped<Features.Sitemap.SitemapBuilder>();
+        services.AddScoped<IQueryHandler<Features.Sitemap.SitemapQuery, PublicResponse>, Features.Sitemap.SitemapHandler>();
+        services.AddScoped<IQueryHandler<Features.Robots.RobotsQuery, PublicResponse>, Features.Robots.RobotsHandler>();
+
         // 016 research TB-09: what bindings read, fetched before rendering.
         services.AddScoped<QuickBuilder.Rendering.Binding.BindingFetcher>();
         services.AddScoped<IQueryHandler<RenderPageQuery, PublicResponse>, RenderPageHandler>();

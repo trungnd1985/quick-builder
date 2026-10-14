@@ -367,7 +367,7 @@ discouraging.
 
 ### Tests for User Story 3 ⚠️
 
-- [ ] T051 [P] [US3] Create `ITESTS/Rendering/SitemapTests.cs`. It covers:
+- [X] T051 [P] [US3] Create `ITESTS/Rendering/SitemapTests.cs`. It covers:
   - published, draft-only, unpublished, hidden, `noSitemap` and canonical-override pages;
   - pages under an unpublished parent;
   - a live template with items in every state;
@@ -380,7 +380,7 @@ discouraging.
   - a base path;
   - ETag and `304`;
   - a disabled site → the site-not-resolved answer.
-- [ ] T052 [P] [US3] Create `ITESTS/Rendering/SitemapFreshnessTests.cs` (SE-15). Each of these bumps the generation and shows at the next request on a second instance:
+- [X] T052 [P] [US3] Create `ITESTS/Rendering/SitemapFreshnessTests.cs` (SE-15). Each of these bumps the generation and shows at the next request on a second instance:
   - page publish, unpublish, rollback and scheduled publish;
   - slug change, move and home change;
   - template set and remove;
@@ -388,19 +388,19 @@ discouraging.
   - `Cms.ItemPublished`, `ItemUnpublished`, `ItemDeleted`, `CollectionChanged` (`itemsRewritten`) and `CollectionDeleted`.
 
   Redelivered events bump at most once. Measure the end-to-end delay of an item publish (SC-005: under 5 s).
-- [ ] T053 [P] [US3] Create `ITESTS/Rendering/RobotsTests.cs`. It covers:
+- [X] T053 [P] [US3] Create `ITESTS/Rendering/RobotsTests.cs`. It covers:
   - the default text with an absolute `Sitemap:` line;
   - custom rules after the generated block;
   - discouraged → `Disallow: /` with the sitemap line kept;
   - a base path;
   - ETag;
   - a change visible at the next request.
-- [ ] T054 [P] [US3] Create `ITESTS/Sites/SearchVisibilityTests.cs` for `PUT /api/v1/sites/{id}/search-visibility`:
+- [X] T054 [P] [US3] Create `ITESTS/Sites/SearchVisibilityTests.cs` for `PUT /api/v1/sites/{id}/search-visibility`:
   - Administrator only (Designer 403);
   - robots rules limits (10 KB, 500-character lines, control characters) → `400 sites.search_invalid`;
   - a stale version → 409;
   - discouraging gives `noindex` meta and `X-Robots-Tag` on pages, item pages, sitemap and robots, and an empty `urlset`.
-- [ ] T055 [P] [US3] Create `ADMINTESTS/features/sites/SearchVisibilityPanel.spec.ts` and `ADMINTESTS/components/SearchHiddenBanner.spec.ts`. They cover:
+- [X] T055 [P] [US3] Create `ADMINTESTS/features/sites/SearchVisibilityPanel.spec.ts` and `ADMINTESTS/components/SearchHiddenBanner.spec.ts`. They cover:
   - the discourage switch and robots rules editor;
   - the banner shown on every site screen while discouraged, for every role;
   - axe.
@@ -418,7 +418,7 @@ discouraging.
 
   `Indexable` follows data-model §3.1, without the site flags. Register it.
 - [X] T058 [US3] Implement `ListAddressesAsync` in `CMS/Infrastructure/PublishedItemReader.cs`: keyset by id, published items of the collection, slug, `LastPublishedAtUtc`, and `Hidden` = the published boolean value of `hideFieldId` is true (EF JSON translation, no raw SQL). Add `ITESTS/Cms/PublishedItemAddressesTests.cs` covering paging, the hide flag (true, false, missing, non-boolean) and site isolation.
-- [ ] T059 [US3] Create `RENDER/Features/Sitemap/SitemapKey.cs`, `SitemapBuilder.cs` and `SitemapController.cs`:
+- [X] T059 [US3] Create `RENDER/Features/Sitemap/SitemapKey.cs`, `SitemapBuilder.cs` and `SitemapController.cs`:
   - routes `GET`/`HEAD` `sitemap.xml` and `sitemap-{n:int}.xml`, anonymous, ordered before the page catch-all;
   - `SitemapBuilder` reads the generation (key first), then builds every entry: pages by path, then each indexable template's items by id, with absolute canonical addresses from `SiteDto.BaseUrl`;
   - the files are split at 50,000 and written with `XmlWriter`;
@@ -426,14 +426,14 @@ discouraging.
   - a discouraged site gives an empty `urlset`.
 
   Make T051 and T052 pass.
-- [ ] T060 [US3] Create `RENDER/Features/Robots/RobotsText.cs` and `RobotsController.cs` (SE-16), cached under `robots:{siteVersion}:{base}:{stamp}`. Make T053 pass.
-- [ ] T061 [US3] Implement discouraging in Rendering:
+- [X] T060 [US3] Create `RENDER/Features/Robots/RobotsText.cs` and `RobotsController.cs` (SE-16), cached under `robots:{siteVersion}:{base}:{stamp}`. Make T053 pass.
+- [X] T061 [US3] Implement discouraging in Rendering:
   - `HeadBuilder` writes the robots meta when `Site.Search.Discouraged`;
   - `PageResponder`, `SitemapController` and `RobotsController` add `X-Robots-Tag: noindex, nofollow`;
   - the not-found page is unchanged.
-- [ ] T062 [US3] Create `SITES/Features/UpdateSearchVisibility/UpdateSearchVisibility.cs` (`sites.search_visibility.manage`; discourage, robots rules normalised to `\n`, and `redirectOtherHostNames` stored, enforced in US6), with `Site.ChangeSearchVisibility(...)`, which records `search_updated_by`. Make T054 pass.
-- [ ] T063 [P] [US3] Create `ADMIN/features/sites/SearchVisibilityPanel.vue` (discourage switch, robots rules textarea with limits; the host redirect switch arrives in T087) and `ADMIN/components/SearchHiddenBanner.vue`, shown by the site shell when `searchVisibility.discourageSearchEngines`. Add `updateSearchVisibility` to `ADMIN/api/sites.ts` and i18n keys. Make T055 pass.
-- [ ] T064 [US3] Add `robots.txt` and the sitemap paths to the platform paths documented in `PAGESC/PageAddresses.cs` remarks and `CONTRACTS/page-schema.md` §5 (impossible slugs, so not reserved). Extend `ITESTS/Rendering/PublicRouteBoundaryTests.cs` to assert they are answered before the catch-all.
+- [X] T062 [US3] Create `SITES/Features/UpdateSearchVisibility/UpdateSearchVisibility.cs` (`sites.search_visibility.manage`; discourage, robots rules normalised to `\n`, and `redirectOtherHostNames` stored, enforced in US6), with `Site.ChangeSearchVisibility(...)`, which records `search_updated_by`. Make T054 pass.
+- [X] T063 [P] [US3] Create `ADMIN/features/sites/SearchVisibilityPanel.vue` (discourage switch, robots rules textarea with limits; the host redirect switch arrives in T087) and `ADMIN/components/SearchHiddenBanner.vue`, shown by the site shell when `searchVisibility.discourageSearchEngines`. Add `updateSearchVisibility` to `ADMIN/api/sites.ts` and i18n keys. Make T055 pass.
+- [X] T064 [US3] Add `robots.txt` and the sitemap paths to the platform paths documented in `PAGESC/PageAddresses.cs` remarks and `CONTRACTS/page-schema.md` §5 (impossible slugs, so not reserved). Extend `ITESTS/Rendering/PublicRouteBoundaryTests.cs` to assert they are answered before the catch-all.
 
 **Checkpoint**: quickstart §3 passes. All three P1 stories are complete.
 

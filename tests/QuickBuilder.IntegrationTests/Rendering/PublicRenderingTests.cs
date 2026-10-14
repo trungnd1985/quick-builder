@@ -266,6 +266,26 @@ public sealed class PublicRouteBoundaryTests(DatabaseFixture database) : IAsyncL
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
 
+    [Theory]
+    [InlineData("/robots.txt", "text/plain")]
+    [InlineData("/sitemap.xml", "application/xml")]
+    public async Task Robots_and_the_sitemap_are_answered_before_the_page_route(string address, string mediaType)
+    {
+        var response = await _scenario.App.CreateClientForHost(PagesScenario.HostA).GetAsync(new Uri(address, UriKind.Relative)).ConfigureAwait(true);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal(mediaType, response.Content.Headers.ContentType?.MediaType);
+    }
+
+    [Fact]
+    public async Task A_numbered_sitemap_file_that_does_not_exist_is_the_site_s_not_found_page()
+    {
+        var response = await _scenario.App.CreateClientForHost(PagesScenario.HostA).GetAsync(new Uri("/sitemap-1.xml", UriKind.Relative)).ConfigureAwait(true);
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        Assert.Equal("text/html", response.Content.Headers.ContentType?.MediaType);
+    }
+
     [Fact]
     public void The_page_route_leaves_exactly_the_hosts_administrative_prefixes_alone()
     {
