@@ -38,6 +38,34 @@ internal static class DependencyExtractor
     public static IReadOnlyList<Guid> Components(string document) =>
         [.. Extract(document).Where(t => t.Kind == DependencyKinds.Component).Select(t => t.Id)];
 
+    /// <summary>The menus a page or component document shows in its Navigation blocks (024 NV-07).</summary>
+    public static IReadOnlyList<Guid> Menus(string document) =>
+        [.. Extract(document).Where(t => t.Kind == DependencyKinds.Menu).Select(t => t.Id)];
+
+    /// <summary>
+    /// What a live menu depends on (024 research NV-07): the pages it points at, the items it
+    /// points at, and the templates of those items' collections, whose changes move the items'
+    /// pages. Read from a menu document, which has passed the menu contract.
+    /// </summary>
+    public static IReadOnlyList<(string Kind, Guid Id)> MenuDependencies(string document)
+    {
+        var found = new HashSet<(string, Guid)>();
+        foreach (var target in Domain.Menus.MenuTargets.Extract(document))
+        {
+            if (target.Kind == Domain.Menus.MenuTargetKinds.Page)
+            {
+                found.Add((DependencyKinds.Page, target.Id));
+            }
+            else
+            {
+                found.Add((DependencyKinds.Item, target.Id));
+                found.Add((DependencyKinds.Template, target.CollectionId!.Value));
+            }
+        }
+
+        return [.. found.OrderBy(t => t.Item1, StringComparer.Ordinal).ThenBy(t => t.Item2)];
+    }
+
     /// <summary>The media files a document shows (013 research MV-05).</summary>
     public static IReadOnlyList<Guid> Media(string document) =>
         [.. Extract(document).Where(t => t.Kind == DependencyKinds.Media).Select(t => t.Id)];
@@ -171,6 +199,10 @@ internal static class DependencyExtractor
                     break;
                 case "component-ref":
                     AddGuid(found, DependencyKinds.Component, props, "componentId");
+                    break;
+                case "navigation":
+                    // 024 NV-07: the page or component shows this menu.
+                    AddGuid(found, DependencyKinds.Menu, props, "menuId");
                     break;
                 case "button":
                 case "heading":

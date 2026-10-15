@@ -191,6 +191,16 @@ internal sealed class MenuWrites(
         return Result.Success();
     }
 
+    /// <summary>The menu's draft as the shared draft response (012 copy-to-draft answers with it).</summary>
+    public async Task<Features.DraftResponse> DraftResponseAsync(Guid siteId, Guid menuId, CancellationToken cancellationToken)
+    {
+        var draft = await database.ForSite<MenuDraft>(siteId).AsNoTracking().FirstAsync(d => d.MenuId == menuId, cancellationToken).ConfigureAwait(false);
+        var names = await access.NamesAsync([draft.UpdatedBy], cancellationToken).ConfigureAwait(false);
+        using var document = JsonDocument.Parse(draft.Document);
+        return new Features.DraftResponse(
+            draft.SchemaVersion, draft.Version, draft.UpdatedAtUtc, PagesAccess.Reference(draft.UpdatedBy, names), document.RootElement.Clone());
+    }
+
     /// <summary>
     /// Deletes a menu (FR-003): refused while a live page or component shows it; otherwise its
     /// draft, indexes and publishing records go with it, and drafts that used it keep a dangling
@@ -209,7 +219,7 @@ internal sealed class MenuWrites(
             return Result.Failure(PagesErrors.OutOfDate);
         }
 
-        if (await InUseErrorAsync(siteId, menuId, cancellationToken).ConfigureAwait(false) is { } inUse)
+        if (await publishing.MenuInUseErrorAsync(siteId, menuId, cancellationToken).ConfigureAwait(false) is { } inUse)
         {
             return Result.Failure(inUse);
         }
@@ -237,24 +247,6 @@ internal sealed class MenuWrites(
 
         logger.LogInformation("Menu {MenuId} deleted from site {SiteId}.", menuId, siteId);
         return Result.Success();
-    }
-
-    /// <summary>
-    /// FR-003: the refusal when live pages or components show the menu, or null when none do.
-    /// Also used before a menu is unpublished.
-    /// </summary>
-    internal async Task<Error?> InUseErrorAsync(Guid siteId, Guid menuId, CancellationToken cancellationToken)
-    {
-        var users = await database.ForSite<LiveDependency>(siteId)
-            .Where(d => d.TargetKind == DependencyKinds.Menu && d.TargetId == menuId)
-            .Select(d => new { d.SubjectKind, d.SubjectId })
-            .Distinct()
-            .ToListAsync(cancellationToken)
-            .ConfigureAwait(false);
-
-        var pages = users.Count(u => u.SubjectKind == SubjectKinds.Page);
-        var components = users.Count(u => u.SubjectKind == SubjectKinds.Component);
-        return pages + components > 0 ? PagesErrors.MenuInUseByPublishedContent(pages, components) : null;
     }
 
     /// <summary>

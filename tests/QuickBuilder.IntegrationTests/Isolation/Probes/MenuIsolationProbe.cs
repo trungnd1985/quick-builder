@@ -22,6 +22,16 @@ internal sealed class MenuIsolationProbe : ISiteIsolationProbe
         "PUT api/v1/pages/sites/{siteId:guid}/menus/{menuId:guid}",
         "DELETE api/v1/pages/sites/{siteId:guid}/menus/{menuId:guid}",
         "PUT api/v1/pages/sites/{siteId:guid}/menus/{menuId:guid}/draft",
+        "GET api/v1/pages/sites/{siteId:guid}/menus/{menuId:guid}/preview",
+        "GET api/v1/pages/sites/{siteId:guid}/menus/{menuId:guid}/usages",
+        "POST api/v1/pages/sites/{siteId:guid}/menus/{menuId:guid}/publish",
+        "POST api/v1/pages/sites/{siteId:guid}/menus/{menuId:guid}/unpublish",
+        "POST api/v1/pages/sites/{siteId:guid}/menus/{menuId:guid}/rollback",
+        "PUT api/v1/pages/sites/{siteId:guid}/menus/{menuId:guid}/schedules/publish",
+        "DELETE api/v1/pages/sites/{siteId:guid}/menus/{menuId:guid}/schedules/publish",
+        "GET api/v1/pages/sites/{siteId:guid}/menus/{menuId:guid}/history",
+        "GET api/v1/pages/sites/{siteId:guid}/menus/{menuId:guid}/versions/{number:int}",
+        "POST api/v1/pages/sites/{siteId:guid}/menus/{menuId:guid}/versions/{number:int}/copy-to-draft",
     ];
 
     public string? NeverIssuedPublicPath => null;
@@ -33,6 +43,10 @@ internal sealed class MenuIsolationProbe : ISiteIsolationProbe
         var page = (await PagesApi.CreateOkAsync(admin, siteId, "probe-menu-target").ConfigureAwait(false)).GetProperty("id").GetGuid();
         var menu = await MenusApi.CreateIdAsync(admin, siteId, $"Probe menu {siteId.ToString("N")[^8..]}").ConfigureAwait(false);
         await MenusApi.SaveCurrentDraftOkAsync(admin, siteId, menu, MenusApi.Document(MenusApi.Entry("target", MenusApi.PageTarget(page)))).ConfigureAwait(false);
+
+        // Published, so the version and history endpoints have something of this site to refuse.
+        var draftVersion = (await MenusApi.GetOkAsync(admin, siteId, menu).ConfigureAwait(false)).GetProperty("draftVersion").GetUInt32();
+        await PagesApi.OkAsync(await QuickBuilder.IntegrationTests.Publishing.PublishingApi.PublishAsync(admin, MenusApi.MenuPath(siteId, menu), draftVersion).ConfigureAwait(false)).ConfigureAwait(false);
         return new SeededRecords([menu.ToString()], []);
     }
 
@@ -49,6 +63,16 @@ internal sealed class MenuIsolationProbe : ISiteIsolationProbe
             document = new { schemaVersion = 1, entries = Array.Empty<object>() },
             version = 1,
         });
+        yield return new ProbeRequest(HttpMethod.Get, $"{one}/preview", ProbeKind.Addressed);
+        yield return new ProbeRequest(HttpMethod.Get, $"{one}/usages", ProbeKind.Addressed);
+        yield return new ProbeRequest(HttpMethod.Post, $"{one}/publish", ProbeKind.Addressed, new { draftVersion = 1 });
+        yield return new ProbeRequest(HttpMethod.Post, $"{one}/unpublish", ProbeKind.Addressed);
+        yield return new ProbeRequest(HttpMethod.Post, $"{one}/rollback", ProbeKind.Addressed, new { versionNumber = 1 });
+        yield return new ProbeRequest(HttpMethod.Put, $"{one}/schedules/publish", ProbeKind.Addressed, new { dueAtUtc = DateTimeOffset.UtcNow.AddDays(1), draftVersion = 1 });
+        yield return new ProbeRequest(HttpMethod.Delete, $"{one}/schedules/publish", ProbeKind.Addressed);
+        yield return new ProbeRequest(HttpMethod.Get, $"{one}/history", ProbeKind.Addressed);
+        yield return new ProbeRequest(HttpMethod.Get, $"{one}/versions/1", ProbeKind.Addressed);
+        yield return new ProbeRequest(HttpMethod.Post, $"{one}/versions/1/copy-to-draft", ProbeKind.Addressed, new { draftVersion = 1 });
         yield return new ProbeRequest(HttpMethod.Get, MenusApi.MenusPath(siteId), ProbeKind.Listing);
     }
 

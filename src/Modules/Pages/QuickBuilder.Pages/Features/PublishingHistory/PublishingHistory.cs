@@ -142,6 +142,7 @@ internal sealed class CopyVersionToDraftHandler(
     PagesAccess access,
     PublishingWrites publishing,
     DraftWrites drafts,
+    MenuWrites menus,
     TimeProvider clock)
     : ICommandHandler<CopyVersionToDraftCommand, Result<DraftResponse>>
 {
@@ -171,6 +172,20 @@ internal sealed class CopyVersionToDraftHandler(
         // Saved with the draft, so the entry exists exactly when the copy does.
         publishing.Log(command.SiteId, subject, LogActions.CopiedToDraft, clock.GetUtcNow(), access.Actor, versionNumber: version.Number);
 
+        if (subject.IsMenu)
+        {
+            // 024 NV-04: through the menu's own save path, so rule 8 and the target index hold.
+            var replaced = await menus.ReplaceDraftAsync(command.SiteId, subject.Id, version.Document, command.DraftVersion, cancellationToken)
+                .ConfigureAwait(false);
+            if (replaced.IsFailure)
+            {
+                database.ChangeTracker.Clear();
+                return Result.Failure<DraftResponse>(replaced.Error);
+            }
+
+            return Result.Success(await menus.DraftResponseAsync(command.SiteId, subject.Id, cancellationToken).ConfigureAwait(false));
+        }
+
         using var document = JsonDocument.Parse(version.Document);
         var saved = subject.IsPage
             ? await drafts.SavePageDraftAsync(command.SiteId, subject.Id, document.RootElement, command.DraftVersion, clientKeepsEveryFormat: true, cancellationToken).ConfigureAwait(false)
@@ -188,7 +203,7 @@ internal sealed class CopyVersionToDraftHandler(
 /// <summary>What the history slices share.</summary>
 internal static class Subjects
 {
-    public static Error NotFound(string kind) => kind == SubjectKinds.Page ? PagesErrors.NotFound : PagesErrors.ComponentNotFound;
+    public static Error NotFound(string kind) => PublishingWrites.NotFoundFor(kind);
 
     /// <summary>The refusal when the site or subject does not exist; null when both do.</summary>
     public static async Task<Error?> CheckAsync(
@@ -301,6 +316,55 @@ public sealed class CopyComponentVersionToDraftController(IDispatcher dispatcher
 
         var result = await dispatcher
             .SendAsync(new CopyVersionToDraftCommand(siteId, SubjectKinds.Component, componentId, number, request.DraftVersion), cancellationToken)
+            .ConfigureAwait(false);
+
+        return result.IsFailure ? PagesErrorResults.ToActionResult(result.Error) : Ok(result.Value);
+    }
+}
+
+/// <summary>Administrative surface: a menu's publishing history and retained versions (024 FR-004a).</summary>
+[ApiController]
+[Route("api/v1/pages/sites/{siteId:guid}/menus/{menuId:guid}")]
+public sealed class MenuHistoryController(IDispatcher dispatcher) : ControllerBase
+{
+    [HttpGet("history")]
+    [RequireCapability(PagesCapabilities.ContentView)]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> HistoryAsync(Guid siteId, Guid menuId, CancellationToken cancellationToken)
+    {
+        var result = await dispatcher.QueryAsync(new GetHistoryQuery(siteId, SubjectKinds.Menu, menuId), cancellationToken).ConfigureAwait(false);
+        return result.IsFailure ? PagesErrorResults.ToActionResult(result.Error) : Ok(result.Value);
+    }
+
+    [HttpGet("versions/{number:int}")]
+    [RequireCapability(PagesCapabilities.ContentView)]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> VersionAsync(Guid siteId, Guid menuId, int number, CancellationToken cancellationToken)
+    {
+        var result = await dispatcher.QueryAsync(new GetVersionQuery(siteId, SubjectKinds.Menu, menuId, number), cancellationToken).ConfigureAwait(false);
+        return result.IsFailure ? PagesErrorResults.ToActionResult(result.Error) : Ok(result.Value);
+    }
+}
+
+/// <summary>Administrative surface: copy a retained menu version into the menu's draft.</summary>
+[ApiController]
+[Route("api/v1/pages/sites/{siteId:guid}/menus/{menuId:guid}/versions/{number:int}/copy-to-draft")]
+public sealed class CopyMenuVersionToDraftController(IDispatcher dispatcher) : ControllerBase
+{
+    [HttpPost]
+    [RequireCapability(PagesCapabilities.MenusManage)]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> CopyAsync(Guid siteId, Guid menuId, int number, CopyToDraftRequest request, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        var result = await dispatcher
+            .SendAsync(new CopyVersionToDraftCommand(siteId, SubjectKinds.Menu, menuId, number, request.DraftVersion), cancellationToken)
             .ConfigureAwait(false);
 
         return result.IsFailure ? PagesErrorResults.ToActionResult(result.Error) : Ok(result.Value);

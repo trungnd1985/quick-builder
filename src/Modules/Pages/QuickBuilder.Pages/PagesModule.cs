@@ -236,6 +236,9 @@ public static class PagesModule
         services.AddScoped<ICommandHandler<SaveMenuDraftCommand, Result<MenuDetailResponse>>, SaveMenuDraftHandler>();
         services.AddScoped<IValidator<SaveMenuDraftCommand>, SaveMenuDraftValidator>();
         services.AddScoped<ICommandHandler<DeleteMenuCommand, Result>, DeleteMenuHandler>();
+        services.AddScoped<IQueryHandler<PreviewMenuQuery, Result<MenuPreviewResponse>>, PreviewMenuHandler>();
+        services.AddScoped<IQueryHandler<MenuUsagesQuery, Result<MenuUsageListResponse>>, MenuUsagesHandler>();
+        services.AddScoped<IQueryHandler<MenuReferencesQuery, Result<MenuReferenceListResponse>>, MenuReferencesHandler>();
 
         // 011 research ED-16: the token usage count the admin asks before deleting a token.
         services.AddScoped<IQueryHandler<GetTokenUsageQuery, Result<TokenUsageResponse>>, GetTokenUsageHandler>();

@@ -81,3 +81,26 @@ public sealed class PublishComponentController(IDispatcher dispatcher) : Control
         return result.IsFailure ? PagesErrorResults.ToActionResult(result.Error) : Ok(result.Value);
     }
 }
+
+/// <summary>Administrative surface: publish a menu (024 FR-004).</summary>
+[ApiController]
+[Route("api/v1/pages/sites/{siteId:guid}/menus/{menuId:guid}/publish")]
+public sealed class PublishMenuController(IDispatcher dispatcher) : ControllerBase
+{
+    [HttpPost]
+    [RequireCapability(PublishingCapabilities.Manage)]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> PublishAsync(Guid siteId, Guid menuId, PublishRequest request, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        var result = await dispatcher
+            .SendAsync(new PublishCommand(siteId, SubjectKinds.Menu, menuId, request.DraftVersion), cancellationToken)
+            .ConfigureAwait(false);
+
+        return result.IsFailure ? PagesErrorResults.ToActionResult(result.Error) : Ok(result.Value);
+    }
+}

@@ -150,6 +150,7 @@ internal sealed class DraftWrites(
             .Select(id => new ComponentUsage(siteId, pageId, id)));
 
         await ReplaceMediaReferencesAsync(siteId, SubjectKinds.Page, pageId, text, cancellationToken).ConfigureAwait(false);
+        await ReplaceMenuUsagesAsync(siteId, SubjectKinds.Page, pageId, text, cancellationToken).ConfigureAwait(false);
 
         // 016 TB-13: the collections the draft uses, and the page's template, saved with it.
         var template = await database.ForSite<Page>(siteId)
@@ -209,6 +210,7 @@ internal sealed class DraftWrites(
 
         draft.Replace(text, checkedDocument.SchemaVersion, access.Actor, clock);
         await ReplaceMediaReferencesAsync(siteId, SubjectKinds.Component, componentId, text, cancellationToken).ConfigureAwait(false);
+        await ReplaceMenuUsagesAsync(siteId, SubjectKinds.Component, componentId, text, cancellationToken).ConfigureAwait(false);
         await uses.StageAsync(siteId, SubjectKinds.Component, componentId, CollectionUsageStates.Draft, text, null, cancellationToken).ConfigureAwait(false);
         return await SaveAsync(draft, cancellationToken).ConfigureAwait(false);
     }
@@ -232,6 +234,32 @@ internal sealed class DraftWrites(
         database.DraftMediaReferences.AddRange(wanted
             .Where(id => !existing.Exists(r => r.MediaId == id))
             .Select(id => new DraftMediaReference(siteId, subjectKind, subjectId, id)));
+    }
+
+    /// <summary>
+    /// Makes the draft's menu usage exactly the menus <paramref name="document"/> shows (024
+    /// research NV-06), saved with the draft. A menu id that names no menu of the site — one
+    /// deleted, or never there — is a dangling reference the draft may keep, so it gets no row:
+    /// rows exist only to answer "which drafts show this menu?".
+    /// </summary>
+    internal async Task ReplaceMenuUsagesAsync(
+        Guid siteId, string subjectKind, Guid subjectId, string document, CancellationToken cancellationToken)
+    {
+        var shown = DependencyExtractor.Menus(document);
+        var wanted = shown.Count == 0
+            ? []
+            : (await database.ForSite<Domain.Menus.Menu>(siteId).Where(m => shown.Contains(m.Id)).Select(m => m.Id).ToListAsync(cancellationToken).ConfigureAwait(false))
+                .ToHashSet();
+
+        var existing = await database.ForSite<Domain.Menus.MenuUsage>(siteId)
+            .Where(u => u.SubjectKind == subjectKind && u.SubjectId == subjectId)
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        database.MenuUsages.RemoveRange(existing.Where(u => !wanted.Contains(u.MenuId)));
+        database.MenuUsages.AddRange(wanted
+            .Where(id => !existing.Exists(u => u.MenuId == id))
+            .Select(id => new Domain.Menus.MenuUsage(siteId, subjectKind, subjectId, id)));
     }
 
     private async Task<Result<DraftResponse>> SaveAsync(Draft draft, CancellationToken cancellationToken)

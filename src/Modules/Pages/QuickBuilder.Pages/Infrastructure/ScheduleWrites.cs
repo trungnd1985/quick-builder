@@ -23,7 +23,6 @@ namespace QuickBuilder.Pages.Infrastructure;
 /// </remarks>
 internal sealed class ScheduleWrites(
     PagesDbContext database,
-    IPageDocumentValidator validator,
     PagesAccess access,
     PublishingWrites publishing,
     CollectionUseRows uses,
@@ -56,7 +55,7 @@ internal sealed class ScheduleWrites(
             var subject = await publishing.SubjectAsync(siteId, kind, subjectId, cancellationToken).ConfigureAwait(false);
             if (subject is null)
             {
-                return Result.Failure<ScheduleResponse>(kind == SubjectKinds.Page ? PagesErrors.NotFound : PagesErrors.ComponentNotFound);
+                return Result.Failure<ScheduleResponse>(PublishingWrites.NotFoundFor(kind));
             }
 
             var now = clock.GetUtcNow();
@@ -106,7 +105,7 @@ internal sealed class ScheduleWrites(
         var subject = await publishing.SubjectAsync(siteId, kind, subjectId, cancellationToken).ConfigureAwait(false);
         if (subject is null)
         {
-            return Result.Failure(kind == SubjectKinds.Page ? PagesErrors.NotFound : PagesErrors.ComponentNotFound);
+            return Result.Failure(PublishingWrites.NotFoundFor(kind));
         }
 
         var now = clock.GetUtcNow();
@@ -187,7 +186,7 @@ internal sealed class ScheduleWrites(
                     ? await publishing.PublishContentAsync(
                             subject,
                             new PublishingWrites.DraftContent(schedule.CapturedDocument!, schedule.CapturedSchemaVersion!.Value, schedule.CapturedDraftVersion ?? 0),
-                            subject.IsPage ? schedule.CapturedTitle : null,
+                            subject.IsPage ? schedule.CapturedTitle : subject.VersionTitle,
                             schedule.CapturedDraftVersion,
                             VersionKinds.Scheduled,
                             restoredFromNumber: null,
@@ -254,8 +253,7 @@ internal sealed class ScheduleWrites(
                 return Result.Failure<PublishSchedule>(PagesErrors.OutOfDate);
             }
 
-            var checkedDocument = validator.Validate(
-                Encoding.UTF8.GetBytes(draft.Document), subject.IsPage ? DocumentKind.Page : DocumentKind.Component);
+            var checkedDocument = publishing.Validate(subject, draft.Document);
             if (!checkedDocument.IsValid)
             {
                 return Result.Failure<PublishSchedule>(PagesErrors.InvalidDocument(checkedDocument));
@@ -273,7 +271,7 @@ internal sealed class ScheduleWrites(
         }
 
         var actor = access.Actor;
-        var title = subject.IsPage ? subject.Label : null;
+        var title = subject.VersionTitle;
         var schedule = await PendingAsync(subject, action, cancellationToken).ConfigureAwait(false);
 
         if (schedule is null)

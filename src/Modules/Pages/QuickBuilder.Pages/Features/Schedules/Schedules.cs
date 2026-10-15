@@ -102,6 +102,31 @@ public sealed class ComponentScheduleController(IDispatcher dispatcher) : Contro
         Schedules.CancelAsync(dispatcher, siteId, SubjectKinds.Component, componentId, ScheduleActions.Publish, cancellationToken);
 }
 
+/// <summary>
+/// Administrative surface: schedule a menu's publish (024 FR-004a). Like components, menus have
+/// no unpublish schedule.
+/// </summary>
+[ApiController]
+[Route("api/v1/pages/sites/{siteId:guid}/menus/{menuId:guid}/schedules")]
+public sealed class MenuScheduleController(IDispatcher dispatcher) : ControllerBase
+{
+    [HttpPut("publish")]
+    [RequireCapability(PublishingCapabilities.Manage)]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public Task<IActionResult> SetPublishAsync(Guid siteId, Guid menuId, SetScheduleRequest request, CancellationToken cancellationToken) =>
+        Schedules.SetAsync(dispatcher, siteId, SubjectKinds.Menu, menuId, ScheduleActions.Publish, request, cancellationToken);
+
+    [HttpDelete("publish")]
+    [RequireCapability(PublishingCapabilities.Manage)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public Task<IActionResult> CancelPublishAsync(Guid siteId, Guid menuId, CancellationToken cancellationToken) =>
+        Schedules.CancelAsync(dispatcher, siteId, SubjectKinds.Menu, menuId, ScheduleActions.Publish, cancellationToken);
+}
+
 /// <summary>What the schedule controllers share.</summary>
 internal static class Schedules
 {
