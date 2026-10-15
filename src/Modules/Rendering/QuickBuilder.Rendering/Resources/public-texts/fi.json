@@ -9,5 +9,10 @@
     "previous": "Edellinen",
     "next": "Seuraava",
     "first": "Takaisin ensimmäiselle sivulle"
+  },
+  "navigation": {
+    "menu": "Valikko",
+    "showSubmenu": "Näytä alavalikko: {0}",
+    "newTab": "(avautuu uudelle välilehdelle)"
   }
 }

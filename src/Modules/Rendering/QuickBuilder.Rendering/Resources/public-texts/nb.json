@@ -9,5 +9,10 @@
     "previous": "Forrige",
     "next": "Neste",
     "first": "Tilbake til første side"
+  },
+  "navigation": {
+    "menu": "Meny",
+    "showSubmenu": "Vis undermeny: {0}",
+    "newTab": "(åpnes i en ny fane)"
   }
 }

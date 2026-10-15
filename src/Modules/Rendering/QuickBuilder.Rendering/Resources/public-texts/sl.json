@@ -9,5 +9,10 @@
     "previous": "Prejšnja",
     "next": "Naslednja",
     "first": "Nazaj na prvo stran"
+  },
+  "navigation": {
+    "menu": "Meni",
+    "showSubmenu": "Pokaži podmeni: {0}",
+    "newTab": "(odpre se v novem zavihku)"
   }
 }

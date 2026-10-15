@@ -9,5 +9,10 @@
     "previous": "Prethodna",
     "next": "Sljedeća",
     "first": "Natrag na prvu stranicu"
+  },
+  "navigation": {
+    "menu": "Izbornik",
+    "showSubmenu": "Prikaži podizbornik: {0}",
+    "newTab": "(otvara se u novoj kartici)"
   }
 }

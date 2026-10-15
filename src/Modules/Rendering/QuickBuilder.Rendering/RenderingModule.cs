@@ -43,6 +43,8 @@ public static class RenderingModule
         services.AddSingleton<IBlockRenderer, CollectionListRenderer>();
         services.AddSingleton<IBlockRenderer, ListCardRenderer>();
         services.AddSingleton<IBlockRenderer, ListEmptyRenderer>();
+        // 024: a site's menu, with active state and the one navigation script.
+        services.AddSingleton<IBlockRenderer, NavigationRenderer>();
         services.AddSingleton<PageRenderer>();
 
         services.AddSingleton<RenderMetrics>();

@@ -103,6 +103,20 @@ internal sealed class RenderContext(RenderInputs inputs, BlockDefaults defaults)
     /// </summary>
     public double? SectionWidth { get; set; }
 
+    private int _navigationBlocks;
+
+    /// <summary>
+    /// The next Navigation block's id within the page (<c>n1</c>, <c>n2</c>, …), so the submenu
+    /// groups (<c>name</c>) of two blocks never join (024 public-navigation.md §4).
+    /// </summary>
+    public string NextNavigationId() => string.Create(System.Globalization.CultureInfo.InvariantCulture, $"n{++_navigationBlocks}");
+
+    /// <summary>
+    /// Whether the navigation script has been written into this page (024 research NV-14). The
+    /// page's content security policy admits it only when it has.
+    /// </summary>
+    public bool NavigationScriptWritten { get; set; }
+
     /// <summary>The per-node rules collected so far, for the page's style element.</summary>
     public string NodeRules => _rules.ToString();
 

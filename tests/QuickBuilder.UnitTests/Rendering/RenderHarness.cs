@@ -49,6 +49,22 @@ internal sealed class RenderHarness
 
     public Dictionary<Guid, LiveDocument> Components { get; } = [];
 
+    /// <summary>Live menus by id, for Navigation blocks (024).</summary>
+    public Dictionary<Guid, LiveMenu> Menus { get; } = [];
+
+    /// <summary>Published items menu entries point at (024).</summary>
+    public Dictionary<Guid, QuickBuilder.Cms.Contracts.Publishing.PublishedItem> Items { get; } = [];
+
+    /// <summary>Live template patterns by collection (024).</summary>
+    public Dictionary<Guid, string> Patterns { get; } = [];
+
+    /// <summary>The page being rendered and its address, for active state (024).</summary>
+    public Guid? CurrentPageId { get; set; }
+
+    public Guid? CurrentItemId { get; set; }
+
+    public string Path { get; set; } = "/";
+
     public string BasePath { get; set; } = string.Empty;
 
     public JsonElement Design { get; set; } = DefaultDesignTokens.Document;
@@ -73,7 +89,8 @@ internal sealed class RenderHarness
         System.Text.Encoding.UTF8.GetString(QuickBuilder.Rendering.Features.RenderPage.PageResponder.Render(Inputs(document, title), Renderer).Html);
 
     public RenderInputs Inputs(JsonElement document, string title = "Test page") =>
-        new(title, document, Design, Components, Links, Media, "en", BasePath);
+        new(title, document, Design, Components, Links, Media, "en", BasePath, Path: Path,
+            Menus: Menus, MenuItems: Items, ItemPatterns: Patterns, CurrentPageId: CurrentPageId, CurrentItemId: CurrentItemId);
 
     private RenderContext Context(JsonElement document)
     {

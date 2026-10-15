@@ -9,5 +9,10 @@
     "previous": "Ankstesnis",
     "next": "Kitas",
     "first": "Grįžti į pirmą puslapį"
+  },
+  "navigation": {
+    "menu": "Meniu",
+    "showSubmenu": "Rodyti submeniu: {0}",
+    "newTab": "(atsidaro naujame skirtuke)"
   }
 }

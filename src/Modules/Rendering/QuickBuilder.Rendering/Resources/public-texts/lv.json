@@ -9,5 +9,10 @@
     "previous": "Iepriekšējā",
     "next": "Nākamā",
     "first": "Atpakaļ uz pirmo lapu"
+  },
+  "navigation": {
+    "menu": "Izvēlne",
+    "showSubmenu": "Rādīt apakšizvēlni: {0}",
+    "newTab": "(atveras jaunā cilnē)"
   }
 }

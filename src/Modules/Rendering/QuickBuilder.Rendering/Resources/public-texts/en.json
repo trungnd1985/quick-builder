@@ -9,5 +9,10 @@
     "previous": "Previous",
     "next": "Next",
     "first": "Back to the first page"
+  },
+  "navigation": {
+    "menu": "Menu",
+    "showSubmenu": "Show submenu: {0}",
+    "newTab": "(opens in a new tab)"
   }
 }

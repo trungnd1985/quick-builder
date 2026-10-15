@@ -56,7 +56,7 @@ Active entries use the block's `activeColor`.
       <li class="qb-nav__item qb-nav__item--containing" data-qb-current-path>
         <a class="qb-nav__link" href="/services">Services</a>
         <details class="qb-nav__sub" name="qb-n1-l1">
-          <summary class="qb-nav__expander"><span class="qb-visually-hidden">Show submenu: Services</span></summary>
+          <summary class="qb-nav__expander"><span class="qb-nav__hidden">Show submenu: Services</span></summary>
           <ul class="qb-nav__list qb-nav__list--l2">…</ul>
         </details>
       </li>
@@ -66,7 +66,7 @@ Active entries use the block's `activeColor`.
           <ul class="qb-nav__list qb-nav__list--l2">…</ul>
         </details>
       </li>
-      <li class="qb-nav__item"><a class="qb-nav__link" href="https://status.example" target="_blank" rel="noopener noreferrer">Status<span class="qb-visually-hidden"> (opens in a new tab)</span></a></li>
+      <li class="qb-nav__item"><a class="qb-nav__link" href="https://status.example" target="_blank" rel="noopener noreferrer">Status<span class="qb-nav__hidden"> (opens in a new tab)</span></a></li>
     </ul>
   </details>
 </nav>

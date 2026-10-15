@@ -14,6 +14,9 @@ internal sealed class RenderReferences
 
     public HashSet<Guid> Media { get; } = [];
 
+    /// <summary>The menus Navigation blocks show (024 NV-09).</summary>
+    public HashSet<Guid> Menus { get; } = [];
+
     /// <summary>Adds everything <paramref name="document"/> refers to.</summary>
     public void Collect(JsonElement document)
     {
@@ -36,6 +39,9 @@ internal sealed class RenderReferences
             {
                 case "component-ref":
                     AddGuid(Components, props, "componentId");
+                    break;
+                case "navigation":
+                    AddGuid(Menus, props, "menuId");
                     break;
                 case "button":
                 case "heading":

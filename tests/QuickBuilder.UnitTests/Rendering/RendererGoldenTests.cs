@@ -35,12 +35,21 @@ public sealed class RendererGoldenTests
         Assert.Equal(File.ReadAllText(golden).ReplaceLineEndings("\n"), html);
     }
 
-    /// <summary>FR-028: no published page built from the core blocks ships JavaScript.</summary>
+    /// <summary>
+    /// FR-028: no published page built from the core blocks ships JavaScript. A page with a
+    /// Navigation block carries exactly one script, the navigation one, which its policy admits by
+    /// hash (024 research NV-14); nothing else.
+    /// </summary>
     [Theory]
     [MemberData(nameof(Examples))]
     public void A_published_page_ships_no_javascript(string example)
     {
         var html = Render(example);
+        if (html.Contains("class=\"qb-nav ", StringComparison.Ordinal))
+        {
+            Assert.Equal(1, html.Split(QuickBuilder.Rendering.Rendering.Navigation.NavScript.Element).Length - 1);
+            html = html.Replace(QuickBuilder.Rendering.Rendering.Navigation.NavScript.Element, string.Empty, StringComparison.Ordinal);
+        }
 
         Assert.DoesNotContain("<script", html, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotMatch("<[^>]*\\son[a-z]+\\s*=", html);
@@ -101,7 +110,9 @@ public sealed class RendererGoldenTests
         foreach (var target in root.GetProperty("linkTargets").EnumerateObject())
         {
             harness.Links[Guid.Parse(target.Name)] = new PageLinkTarget(
-                target.Value.GetProperty("path").GetString()!, target.Value.GetProperty("isLive").GetBoolean());
+                target.Value.GetProperty("path").GetString()!,
+                target.Value.GetProperty("isLive").GetBoolean(),
+                target.Value.TryGetProperty("title", out var title) ? title.GetString() : null);
         }
 
         foreach (var file in root.GetProperty("media").EnumerateObject())
@@ -126,6 +137,12 @@ public sealed class RendererGoldenTests
         foreach (var component in root.GetProperty("components").EnumerateObject())
         {
             harness.Components[Guid.Parse(component.Name)] = new LiveDocument(1, component.Value.Clone());
+        }
+
+        // 024: the live menus Navigation examples show.
+        foreach (var menu in root.GetProperty("menus").EnumerateObject())
+        {
+            harness.Menus[Guid.Parse(menu.Name)] = new LiveMenu(1, menu.Value.GetProperty("document").Clone(), menu.Value.GetProperty("name").GetString()!);
         }
 
         return (harness, document.RootElement.Clone(), root.GetProperty("title").GetString()!);

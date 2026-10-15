@@ -390,7 +390,7 @@ of SC-004 without a database, and the page tree's paths are already normalised.
     <li class="qb-nav__item qb-nav__item--containing">
       <a href="/services">Services</a>
       <details class="qb-nav__sub" name="qb-nav-1-l1">
-        <summary><span class="qb-visually-hidden">Show submenu: Services</span></summary>
+        <summary><span class="qb-nav__hidden">Show submenu: Services</span></summary>
         <ul class="qb-nav__list">…</ul>
       </details>
     </li>

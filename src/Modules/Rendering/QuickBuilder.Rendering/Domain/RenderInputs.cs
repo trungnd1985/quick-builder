@@ -31,6 +31,11 @@ namespace QuickBuilder.Rendering.Domain;
 /// </param>
 /// <param name="Path">The address the page answers, for its canonical address (017 FR-011).</param>
 /// <param name="IsItemPage">Whether this is an item's page under a template (017 research SE-05).</param>
+/// <param name="Menus">Live menus by id, with their published names, for Navigation blocks (024 NV-09).</param>
+/// <param name="MenuItems">Published items that menu entries point at, by id (024 NV-09).</param>
+/// <param name="ItemPatterns">Live template patterns by collection, for menu entries' item links.</param>
+/// <param name="CurrentPageId">The page being rendered (for an item page, its template), for active state (024 NV-11).</param>
+/// <param name="CurrentItemId">The item of an item page, for active state; null otherwise.</param>
 internal sealed record RenderInputs(
     string Title,
     JsonElement Document,
@@ -46,4 +51,9 @@ internal sealed record RenderInputs(
     string Path = "/",
     bool IsItemPage = false,
     IReadOnlyDictionary<string, int>? PageParams = null,
-    IReadOnlyList<QuickBuilder.Pages.Contracts.Publishing.LiveAncestor>? Ancestors = null);
+    IReadOnlyList<QuickBuilder.Pages.Contracts.Publishing.LiveAncestor>? Ancestors = null,
+    IReadOnlyDictionary<Guid, LiveMenu>? Menus = null,
+    IReadOnlyDictionary<Guid, QuickBuilder.Cms.Contracts.Publishing.PublishedItem>? MenuItems = null,
+    IReadOnlyDictionary<Guid, string>? ItemPatterns = null,
+    Guid? CurrentPageId = null,
+    Guid? CurrentItemId = null);

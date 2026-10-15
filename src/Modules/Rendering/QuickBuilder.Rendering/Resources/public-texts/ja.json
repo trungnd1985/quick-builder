@@ -9,5 +9,10 @@
     "previous": "前へ",
     "next": "次へ",
     "first": "最初のページに戻る"
+  },
+  "navigation": {
+    "menu": "メニュー",
+    "showSubmenu": "サブメニューを表示: {0}",
+    "newTab": "（新しいタブで開きます）"
   }
 }

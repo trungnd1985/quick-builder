@@ -9,5 +9,10 @@
     "previous": "Önceki",
     "next": "Sonraki",
     "first": "İlk sayfaya dön"
+  },
+  "navigation": {
+    "menu": "Menü",
+    "showSubmenu": "Alt menüyü göster: {0}",
+    "newTab": "(yeni sekmede açılır)"
   }
 }
