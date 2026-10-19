@@ -327,14 +327,19 @@ entries, and the starting state of submenus matches FR-019a.
 
 ### Tests for User Story 5 ⚠️
 
-- [ ] T066 [P] [US5] Create `UTESTS/Rendering/Navigation/ActiveStateTests.cs` (SC-004) for `RENDER/Rendering/Navigation/ActiveState.cs`: current, containing and section for nested pages, a page not in the menu, the home page only on `/`, item pages with and without an entry, paged lists (`?page=2`), anchors, the same target twice, `url`/`anchor`/`none` never current, hidden entries, and levels pruned below the current entry.
-- [ ] T067 [P] [US5] Extend `UTESTS/Rendering/Navigation/NavigationGoldenTests.cs`: `aria-current="page"` and the containing and section classes; vertical blocks write `open` on the current path; horizontal blocks never do and mark `data-qb-current-path`.
-- [ ] T068 [P] [US5] Create `ADMINTESTS/rendering/navScript.spec.ts`, a jsdom test that loads the golden script file of T038 and the golden HTML of T067: Escape closes the innermost submenu and focuses its summary; opening one closes its `name` siblings; an outside click closes horizontal dropdowns; a narrow container closes the panel and a wide one opens it; opening a collapsed horizontal panel opens the current path.
+- [X] T066 [P] [US5] Create `UTESTS/Rendering/Navigation/ActiveStateTests.cs` (SC-004) for `RENDER/Rendering/Navigation/ActiveState.cs`: current, containing and section for nested pages, a page not in the menu, the home page only on `/`, item pages with and without an entry, paged lists (`?page=2`), anchors, the same target twice, `url`/`anchor`/`none` never current, hidden entries, and levels pruned below the current entry.
+  *Done as*: Paged lists are covered by the current address carrying no query (`PageResponder` passes the path only); hidden entries never reach `ActiveState` because `MenuModel.Resolve` drops them, so an entry that does not link is the case tested.
+- [X] T067 [P] [US5] Extend `UTESTS/Rendering/Navigation/NavigationGoldenTests.cs`: `aria-current="page"` and the containing and section classes; vertical blocks write `open` on the current path; horizontal blocks never do and mark `data-qb-current-path`.
+  *Done as*: The active-state cases render with `RenderHarness.CurrentPageId` and `Path`.
+- [X] T068 [P] [US5] Create `ADMINTESTS/rendering/navScript.spec.ts`, a jsdom test that loads the golden script file of T038 and the golden HTML of T067: Escape closes the innermost submenu and focuses its summary; opening one closes its `name` siblings; an outside click closes horizontal dropdowns; a narrow container closes the panel and a wide one opens it; opening a collapsed horizontal panel opens the current path.
+  *Done as*: The spec builds markup shaped as the renderer writes it, since the T067 cases assert fragments rather than whole golden files. jsdom has no layout, so the container width is set on `.qb-page`, and toggle events are dispatched by hand.
 
 ### Implementation for User Story 5
 
-- [ ] T069 [US5] Create `RENDER/Rendering/Navigation/ActiveState.cs` (pure, NV-11), and call it from `NavigationRenderer` with the current page id or item id and path from `RenderInputs`. Make T066 pass.
-- [ ] T070 [US5] Write `aria-current`, the state classes, `open` for vertical current paths and `data-qb-current-path` in `RENDER/Rendering/Blocks/NavigationRenderer.cs`, and the `activeColor` styles in `EDITOR/blocks/blocks.css`. Finish the script's current-path step in `RENDER/Rendering/Navigation/NavScript.cs`, updating its golden file and hash. Make T067 and T068 pass.
+- [X] T069 [US5] Create `RENDER/Rendering/Navigation/ActiveState.cs` (pure, NV-11), and call it from `NavigationRenderer` with the current page id or item id and path from `RenderInputs`. Make T066 pass.
+  *Done as*: Written with US2 (T047 to T049), since the renderer's markup depends on it.
+- [X] T070 [US5] Write `aria-current`, the state classes, `open` for vertical current paths and `data-qb-current-path` in `RENDER/Rendering/Blocks/NavigationRenderer.cs`, and the `activeColor` styles in `EDITOR/blocks/blocks.css`. Finish the script's current-path step in `RENDER/Rendering/Navigation/NavScript.cs`, updating its golden file and hash. Make T067 and T068 pass.
+  *Done as*: Written with US2 (T049, T050): the script's current-path step and the `activeColor` styles were in its first version, so the golden script and hash did not change here.
 
 **Checkpoint**: quickstart §5 passes. All stories are done.
 

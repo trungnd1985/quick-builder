@@ -15,9 +15,9 @@ public sealed class NavigationGoldenTests
     private static readonly Guid Other = Guid.Parse("0192f5a0-1b2c-7d3e-8f40-5a6b7c8d9e41");
     private static readonly Guid Page = Guid.Parse("0192f5a0-1b2c-7d3e-8f40-5a6b7c8d9e10");
 
-    private static string Render(string menuEntries, string props = "", string name = "Main", string secondBlock = "")
+    private static string Render(string menuEntries, string props = "", string name = "Main", string secondBlock = "", Guid? current = null, string path = "/")
     {
-        var harness = new RenderHarness();
+        var harness = new RenderHarness { CurrentPageId = current, Path = path };
         harness.Links[Page] = new PageLinkTarget("/services", IsLive: true, LiveTitle: "Services");
         harness.Menus[Menu] = new LiveMenu(1, JsonDocument.Parse($$"""{ "schemaVersion": 1, "entries": [ {{menuEntries}} ] }""").RootElement.Clone(), name);
         harness.Menus[Other] = new LiveMenu(1, JsonDocument.Parse($$"""{ "schemaVersion": 1, "entries": [ {{Sub}} ] }""").RootElement.Clone(), "Footer");
@@ -135,5 +135,49 @@ public sealed class NavigationGoldenTests
 
         Assert.DoesNotContain("javascript:", html, StringComparison.Ordinal);
         Assert.Contains("<span class=\"qb-nav__text\">Bad</span>", html, StringComparison.Ordinal);
+    }
+
+    // --- Active state (024 US5, FR-027 to FR-030, FR-019a; tasks T067) ---------------------------
+
+    private static readonly Guid Elsewhere = Guid.Parse("0192f5a0-1b2c-7d3e-8f40-5a6b7c8d9e19");
+
+    [Fact]
+    public void The_current_page_is_marked_and_its_group_leads_to_it_but_horizontal_submenus_stay_closed()
+    {
+        var html = Body(Render(Sub, current: Page, path: "/services"));
+
+        Assert.Contains("<li class=\"qb-nav__item qb-nav__item--containing\" data-qb-current-path=\"\"><details class=\"qb-nav__sub\" name=\"qb-n1-l1\"><summary", html, StringComparison.Ordinal);
+        Assert.Contains("<li class=\"qb-nav__item qb-nav__item--current\"><a class=\"qb-nav__link\" href=\"/services\" aria-current=\"page\">Services</a>", html, StringComparison.Ordinal);
+        Assert.DoesNotContain(" open>", html.Replace("qb-nav__panel\" open", string.Empty, StringComparison.Ordinal), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_vertical_menu_opens_the_submenus_on_the_current_path()
+    {
+        var html = Body(Render(Sub, """ "layout": "vertical" """, current: Page, path: "/services"));
+
+        Assert.Contains("data-qb-current-path=\"\"><details class=\"qb-nav__sub\" name=\"qb-n1-l1\" open><summary", html, StringComparison.Ordinal);
+        Assert.Single(System.Text.RegularExpressions.Regex.Matches(html, "aria-current=\"page\""));
+    }
+
+    [Fact]
+    public void Off_the_current_path_nothing_is_marked_or_opened()
+    {
+        var html = Body(Render(Sub, """ "layout": "vertical" """, current: Elsewhere, path: "/pricing"));
+
+        Assert.DoesNotContain("aria-current", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("qb-nav__item--", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("data-qb-current-path", html, StringComparison.Ordinal);
+        Assert.DoesNotContain(" open>", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_page_below_a_menu_entry_marks_that_entry_as_its_section_without_aria_current()
+    {
+        var html = Body(Render(Sub, current: Elsewhere, path: "/services/hosting"));
+
+        Assert.Contains("<li class=\"qb-nav__item qb-nav__item--section\"><a class=\"qb-nav__link\" href=\"/services\">Services</a>", html, StringComparison.Ordinal);
+        Assert.Contains("qb-nav__item--containing\" data-qb-current-path", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("aria-current", html, StringComparison.Ordinal);
     }
 }
