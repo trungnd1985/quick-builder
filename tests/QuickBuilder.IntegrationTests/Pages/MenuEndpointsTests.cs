@@ -176,6 +176,50 @@ public sealed class MenuEndpointsTests(DatabaseFixture database)
     }
 
     [Fact]
+    public async Task Each_target_reports_its_state_and_the_list_counts_broken_entries()
+    {
+        // 024 US4 (tasks T060, FR-025): live, not published, deleted, and an item without a page.
+        using var world = await TemplatesWorld.CreateAsync(database, "menu-states").ConfigureAwait(true);
+        var live = await world.PageAsync("live").ConfigureAwait(true);
+        await world.PublishDocumentAsync(live, Publishing.PublishingApi.HeadingDocument("Live")).ConfigureAwait(true);
+        var draft = await world.PageAsync("draft").ConfigureAwait(true);
+        var doomed = await world.PageAsync("doomed").ConfigureAwait(true);
+        var blog = await world.PageAsync("blog").ConfigureAwait(true);
+        var template = await world.PageAsync("post", blog).ConfigureAwait(true);
+        await world.TemplateOkAsync(template, world.Posts).ConfigureAwait(true);
+        await world.PublishDocumentAsync(template, Publishing.PublishingApi.HeadingDocument("Post")).ConfigureAwait(true);
+        var post = ItemsApiId(await world.PublishedPostAsync("hello").ConfigureAwait(true));
+        var person = ItemsApiId(await world.PublishedPersonAsync("Ana").ConfigureAwait(true));
+
+        var menu = await CreateIdAsync(world.Admin, world.Site, "Main").ConfigureAwait(true);
+        await SaveCurrentDraftOkAsync(world.Admin, world.Site, menu, Document(
+            Entry("live", PageTarget(live)),
+            Entry("draft", PageTarget(draft)),
+            Entry("doomed", PageTarget(doomed)),
+            Entry("post", ItemTarget(world.Posts, post)),
+            Entry("person", ItemTarget(world.People, person)))).ConfigureAwait(true);
+        var doomedVersion = (await PagesApi.OkAsync(await PagesApi.GetAsync(world.Admin, world.Site, doomed).ConfigureAwait(true)).ConfigureAwait(true))
+            .GetProperty("version").GetInt32();
+        Assert.Equal(HttpStatusCode.NoContent, (await PagesApi.DeleteAsync(world.Admin, world.Site, doomed, doomedVersion).ConfigureAwait(true)).StatusCode);
+
+        var read = await GetOkAsync(world.Admin, world.Site, menu).ConfigureAwait(true);
+        var states = read.GetProperty("targets").EnumerateArray()
+            .ToDictionary(t => t.GetProperty("id").GetGuid(), t => (State: t.GetProperty("state").GetString(), Title: t.GetProperty("title")));
+        Assert.Equal("live", states[live].State);
+        Assert.Equal(PagesApi.Title("live"), states[live].Title.GetString());
+        Assert.Equal("not_published", states[draft].State);
+        Assert.Equal("deleted", states[doomed].State);
+        Assert.Equal(JsonValueKind.Null, states[doomed].Title.ValueKind);
+        Assert.Equal("live", states[post].State);
+        Assert.Equal("no_page", states[person].State);
+
+        var listed = (await PagesApi.OkAsync(await ListAsync(world.Admin, world.Site).ConfigureAwait(true)).ConfigureAwait(true))
+            .GetProperty("items").EnumerateArray().Single(m => m.GetProperty("id").GetGuid() == menu);
+        Assert.Equal(1, listed.GetProperty("brokenCount").GetInt32());
+        Assert.Equal(5, listed.GetProperty("entryCount").GetInt32());
+    }
+
+    [Fact]
     public async Task Duplicate_copies_the_draft_and_publishes_nothing()
     {
         using var world = await TemplatesWorld.CreateAsync(database, "menu-duplicate").ConfigureAwait(true);

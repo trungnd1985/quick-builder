@@ -156,23 +156,27 @@ internal sealed class PublishedContentReader(PublishedReadDbContext database) : 
                 from publication in database.Publications
                     .Where(p => p.SubjectKind == SubjectKinds.Page && p.SubjectId == page.Id)
                     .DefaultIfEmpty()
-                    // 016 research TB-02: a link to a template page itself goes nowhere, so it is
-                    // never live as a link target and renders as plain text (012 FR-026).
-                from version in database.Versions
-                    .Where(v => publication != null && v.Id == publication.LiveVersionId)
-                    .DefaultIfEmpty()
                 select new
                 {
                     page.Id,
                     page.Path,
+                    // 016 research TB-02: a link to a template page itself goes nowhere, so it is
+                    // never live as a link target and renders as plain text (012 FR-026).
                     IsLive = publication != null && publication.LiveVersionId != null && page.TemplateCollectionId == null,
-                    // 024 NV-09: the title visitors see, for menu entries without their own label.
-                    LiveTitle = version != null ? version.Title : null,
+                    IsTemplate = page.TemplateCollectionId != null,
+                    // 024 NV-09: the title visitors saw last, for menu entries without their own
+                    // label. The live version is always the newest, since a rollback publishes a
+                    // new number; after an unpublish, the newest is the one that was live.
+                    LastTitle = database.Versions
+                        .Where(v => v.SiteId == siteId && v.SubjectKind == SubjectKinds.Page && v.SubjectId == page.Id)
+                        .OrderByDescending(v => v.Number)
+                        .Select(v => v.Title)
+                        .FirstOrDefault(),
                 })
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
 
-        return targets.ToDictionary(t => t.Id, t => new PageLinkTarget(t.Path, t.IsLive, t.IsLive ? t.LiveTitle : null));
+        return targets.ToDictionary(t => t.Id, t => new PageLinkTarget(t.Path, t.IsLive, t.IsTemplate ? null : t.LastTitle));
     }
 
     public async Task<IReadOnlyDictionary<Guid, LiveMenu>> GetLiveMenusAsync(

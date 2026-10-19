@@ -88,9 +88,10 @@ public sealed class PublicPathReadOnlyTests(DatabaseFixture database) : IAsyncLi
     }
 
     [Fact]
-    public async Task A_link_target_carries_its_live_title_only_while_live()
+    public async Task A_link_target_carries_the_title_visitors_saw_last()
     {
-        // 024 NV-09: menu entries without their own label show the title visitors see.
+        // 024 NV-09: menu entries without their own label show the title visitors saw last: a link
+        // while the page is live, text once it is unpublished, nothing before its first publish.
         var page = await PagesApi.CreateOkAsync(_scenario.Admin, _scenario.SiteA, "services").ConfigureAwait(true);
         var pageId = page.GetProperty("id").GetGuid();
 
@@ -103,6 +104,12 @@ public sealed class PublicPathReadOnlyTests(DatabaseFixture database) : IAsyncLi
         var live = (await LinkTargetsAsync(_scenario.SiteA, _scenario.SiteA, pageId).ConfigureAwait(true))[pageId];
         Assert.True(live.IsLive);
         Assert.Equal(PagesApi.Title("services"), live.LiveTitle);
+
+        await PagesApi.OkAsync(await Publishing.PublishingApi.UnpublishAsync(_scenario.Admin, Publishing.PublishingApi.Subject(_scenario.SiteA, "page", pageId)).ConfigureAwait(true)).ConfigureAwait(true);
+
+        var unpublished = (await LinkTargetsAsync(_scenario.SiteA, _scenario.SiteA, pageId).ConfigureAwait(true))[pageId];
+        Assert.False(unpublished.IsLive);
+        Assert.Equal(PagesApi.Title("services"), unpublished.LiveTitle);
     }
 
     [Fact]

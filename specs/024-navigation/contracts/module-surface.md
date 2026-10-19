@@ -33,7 +33,8 @@ public interface IPublishedContentReader
 public sealed record LiveMenu(int SchemaVersion, JsonElement Document, string Name);
 
 /// A page a link or menu entry points at (012; 024 adds LiveTitle).
-/// LiveTitle: the live version's title, for menu entries without their own label; null when not live.
+/// LiveTitle: the title visitors saw last (the live version's, or the last published one's once
+/// unpublished), for menu entries without their own label; null if never published or a template.
 public sealed record PageLinkTarget(string Path, bool IsLive, string? LiveTitle = null);
 
 /// The menu document contract, embedded like PageSchema (024 NV-03).

@@ -100,7 +100,8 @@ public sealed record LiveMenu(int SchemaVersion, JsonElement Document, string Na
 
 /// <summary>A page a link or menu entry points at: where it is now, and whether visitors can open it.</summary>
 /// <param name="LiveTitle">
-/// The live version's title, for menu entries without their own label (024 NV-09); null when
-/// the page is not live.
+/// The title visitors saw last: the live version's, or, once unpublished, the last published
+/// version's. Menu entries without their own label show it, as a link while the page is live and
+/// as text otherwise (024 NV-09, FR-023). Null for a page never published and for a template.
 /// </param>
 public sealed record PageLinkTarget(string Path, bool IsLive, string? LiveTitle = null);

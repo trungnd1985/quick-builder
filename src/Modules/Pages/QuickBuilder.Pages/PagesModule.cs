@@ -30,6 +30,7 @@ using QuickBuilder.Pages.Features.PublishingHistory;
 using QuickBuilder.Pages.Features.RecordDesignPublish;
 using QuickBuilder.Pages.Features.Redirects;
 using QuickBuilder.Pages.Features.RefreshPagesListingItems;
+using QuickBuilder.Pages.Features.RefreshPagesShowingMenuItems;
 using QuickBuilder.Pages.Features.RefreshPagesShowingMedia;
 using QuickBuilder.Pages.Features.RefreshPagesUsingCollection;
 using QuickBuilder.Pages.Features.RenameComponent;
@@ -219,6 +220,12 @@ public static class PagesModule
         services.AddScoped<IIntegrationEventHandler<ItemPublished>, RefreshPagesListingItemsHandler>();
         services.AddScoped<IIntegrationEventHandler<ItemUnpublished>, RefreshPagesListingItemsHandler>();
         services.AddScoped<IIntegrationEventHandler<ItemDeleted>, RefreshPagesListingItemsHandler>();
+
+        // 024 NV-07: an item a live menu points at refreshes the pages showing the menu.
+        services.AddScoped<IIntegrationEventHandler<ItemPublished>, RefreshPagesShowingMenuItemsHandler>();
+        services.AddScoped<IIntegrationEventHandler<ItemUnpublished>, RefreshPagesShowingMenuItemsHandler>();
+        services.AddScoped<IIntegrationEventHandler<ItemDeleted>, RefreshPagesShowingMenuItemsHandler>();
+
         services.AddScoped<IIntegrationEventHandler<ItemRedirectRequested>, Features.CreateItemRedirect.CreateItemRedirectHandler>();
         services.AddScoped<IIntegrationEventHandler<CollectionChanged>, RefreshPagesUsingCollectionHandler>();
         services.AddScoped<IIntegrationEventHandler<CollectionDeleted>, RefreshPagesUsingCollectionHandler>();
