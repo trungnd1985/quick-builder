@@ -12,6 +12,7 @@ import ConfirmDialog from '../sites/ConfirmDialog.vue'
 import RedirectToPagePicker, { type PickablePage } from '../../components/RedirectToPagePicker.vue'
 import PublicationBadge from './PublicationBadge.vue'
 import ScheduleDialog from './ScheduleDialog.vue'
+import MenuReferencesNote from '../menus/MenuReferencesNote.vue'
 import { publishingErrorMessage } from './errorMessages'
 import { currentDraftVersion, currentPublication, historyRoute as routeToHistory, historyRouteName } from './subjects'
 
@@ -213,6 +214,13 @@ async function scheduled(): Promise<void> {
       @confirm="unpublish"
       @cancel="confirmingUnpublish = false"
     >
+      <!-- 024 FR-026: the menus that link here lose that entry while it is unpublished. -->
+      <MenuReferencesNote
+        v-if="kind === 'page'"
+        :site-id="siteId"
+        :target="{ pageId: subjectId }"
+        action="unpublish"
+      />
       <RedirectToPagePicker
         v-if="kind === 'page'"
         id="publish-unpublish-redirect"

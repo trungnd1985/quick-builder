@@ -2284,6 +2284,11 @@
     }
   },
   "menus": {
+    "references": {
+      "delete": "A menu points here. Its entry stays, but visitors will no longer see it: | {count} menus point here. Their entries stay, but visitors will no longer see them:",
+      "unpublish": "A menu links here. Visitors will not see that entry until this is published again: | {count} menus link here. Visitors will not see those entries until this is published again:",
+      "draftOnly": "{name} (in its draft only)"
+    },
     "errors": {
       "forbidden": "You are not allowed to change menus on this site.",
       "out_of_date": "Someone changed this menu since you opened it. Reload and try again.",

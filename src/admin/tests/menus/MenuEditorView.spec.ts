@@ -194,6 +194,37 @@ describe('the menu editor', () => {
     expect(within(screen.getByRole('treeitem')).getByText(en.menus.tree.states.deleted)).toBeTruthy()
   })
 
+  it('marks each entry with its target\'s state (024 FR-025)', async () => {
+    stubFetch(serve(
+      {
+        schemaVersion: 1,
+        entries: [
+          { id: 'home', target: { type: 'page', pageId: PAGE_HOME }, children: [] },
+          { id: 'about', target: { type: 'page', pageId: PAGE_ABOUT }, children: [] },
+          { id: 'post', label: 'Post', target: { type: 'item', collectionId: COLLECTION, itemId: ITEM }, children: [] },
+          { id: 'ext', label: 'Status', target: { type: 'url', href: 'https://status.example' }, children: [] },
+        ],
+      },
+      designer,
+      {
+        targets: [
+          { kind: 'page', id: PAGE_HOME, state: 'live', title: 'Home' },
+          { kind: 'page', id: PAGE_ABOUT, state: 'not_published', title: 'About' },
+          { kind: 'item', id: ITEM, state: 'no_page', title: 'Hello world' },
+        ],
+      },
+    ))
+    const { container } = await renderEditor()
+
+    const badge = (id: string) => container.querySelector(`[data-entry-id="${id}"] [class*="menu-entry__state--"]`)?.textContent ?? null
+    expect(badge('home')).toBe(en.menus.tree.states.live)
+    expect(badge('about')).toBe(en.menus.tree.states.not_published)
+    expect(badge('post')).toBe(en.menus.tree.states.no_page)
+    expect(badge('ext')).toBeNull()
+    // Nothing is broken, so there is no summary.
+    expect(screen.queryByRole('note')).toBeNull()
+  })
+
   it('publishes what the designer sees: pending changes are saved first, then that draft version', async () => {
     const PUBLISH = `/api/v1/pages/sites/${SITE}/menus/${MENU}/publish`
     const published = { state: 'published', liveNumber: 1, liveSinceUtc: 'x', liveBy: null, hasUnpublishedChanges: false, liveUrl: null, pendingSchedules: [], failedSchedule: null }

@@ -8,6 +8,7 @@ import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { itemsApi, refusalOf, type Item } from '../../../api/items'
 import ConfirmDialog from '../../sites/ConfirmDialog.vue'
+import MenuReferencesNote from '../../menus/MenuReferencesNote.vue'
 import RedirectOfferCheckbox from '../../../components/RedirectOfferCheckbox.vue'
 import RedirectToPagePicker, { type PickablePage } from '../../../components/RedirectToPagePicker.vue'
 import { pagesApi } from '../../../api/pages'
@@ -231,6 +232,13 @@ function scheduled(next: Item): void {
         id="item-publish-redirect"
         v-model="redirectOldAddress"
         :count="1"
+      />
+      <!-- 024 FR-026: the menus that link here lose that entry while it is unpublished. -->
+      <MenuReferencesNote
+        v-if="confirming === 'unpublish'"
+        :site-id="siteId"
+        :target="{ itemId: item.id }"
+        action="unpublish"
       />
       <RedirectToPagePicker
         v-if="confirming === 'unpublish' && hasAddress"
