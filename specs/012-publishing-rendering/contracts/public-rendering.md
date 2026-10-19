@@ -84,7 +84,13 @@ the exact bytes for each valid example document):
 
 **Rules**:
 - **No `<script>`, no inline event handlers, no `style` attributes.** A page ships 0 bytes
-  of JavaScript (FR-028).
+  of JavaScript (FR-028). *Exception added by 024*: a page that shows a Navigation block
+  carries one inline `<script>`, written once after the first `<nav>`, of at most 2 KB. It
+  only improves the menu (Escape, closing sibling and outside dropdowns, the collapse width);
+  without it the menu stays usable. Its bytes are fixed, and that page's
+  `Content-Security-Policy` adds `script-src 'sha256-<hash of the script>'`. Pages without a
+  Navigation block carry no script and no `script-src`. See
+  [024 public-navigation.md](../../024-navigation/contracts/public-navigation.md).
 - **Blocks**: each block element carries `data-qb="{nodeId}"` only when it has per-node
   custom properties. It carries the same `qb-*` classes as the canvas component (page
   schema contract §9, made normative by this feature).

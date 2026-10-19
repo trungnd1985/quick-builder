@@ -69,6 +69,13 @@ internal sealed class ResolvedEntry
 /// </remarks>
 internal static partial class MenuModel
 {
+    /// <summary>
+    /// The menu schema versions this renderer reads (024 contracts/menu.md §6). A live menu of
+    /// another version renders nothing rather than something wrong; a build test fails when the
+    /// contract gains a version this set lacks.
+    /// </summary>
+    public static IReadOnlySet<int> SupportedSchemaVersions { get; } = new HashSet<int> { 1 };
+
     public static List<ResolvedEntry> Resolve(JsonElement document, RenderInputs inputs)
     {
         ArgumentNullException.ThrowIfNull(inputs);

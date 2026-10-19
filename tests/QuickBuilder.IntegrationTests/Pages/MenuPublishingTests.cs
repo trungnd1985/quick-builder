@@ -113,6 +113,29 @@ public sealed class MenuPublishingTests(DatabaseFixture database)
     }
 
     [Fact]
+    public async Task A_navigation_block_naming_another_sites_menu_never_goes_live()
+    {
+        // 024 FR-035: the menu id is not a site rule of the schema, so the draft saves, but site B
+        // has no such live menu: publishing refuses it as it refuses any unpublished menu.
+        using var world = await TemplatesWorld.CreateAsync(database, "menu-guard-site").ConfigureAwait(true);
+        var menu = await CreateIdAsync(world.Admin, world.Site, "Main").ConfigureAwait(true);
+        await SaveCurrentDraftOkAsync(world.Admin, world.Site, menu, Document(Entry("a", UrlTarget("https://a.example/"), label: "A"))).ConfigureAwait(true);
+        await PublishOkAsync(world, menu).ConfigureAwait(true);
+
+        var page = (await PagesApi.CreateOkAsync(world.Admin, world.Cms.SiteB, "home").ConfigureAwait(true)).GetProperty("id").GetGuid();
+        var pagePath = PagesApi.PagePath(world.Cms.SiteB, page);
+        await PublishingApi.SaveAsync(world.Admin, pagePath, PageShowing(menu)).ConfigureAwait(true);
+
+        var refused = await PagesApi.RefusedAsync(
+            await PublishingApi.PublishAsync(world.Admin, pagePath, await PublishingApi.DraftVersionAsync(world.Admin, pagePath).ConfigureAwait(true)).ConfigureAwait(true),
+            HttpStatusCode.Conflict, "pages.unpublished_menus").ConfigureAwait(true);
+        Assert.Contains(menu.ToString(), refused.Body.GetProperty("menuIds").GetRawText(), StringComparison.OrdinalIgnoreCase);
+
+        // Site B's preview of that menu id finds nothing either.
+        Assert.Equal(HttpStatusCode.NotFound, (await PreviewAsync(world.Admin, world.Cms.SiteB, menu).ConfigureAwait(true)).StatusCode);
+    }
+
+    [Fact]
     public async Task A_rollback_to_a_version_showing_a_deleted_menu_is_refused()
     {
         using var world = await TemplatesWorld.CreateAsync(database, "menu-guard-rollback").ConfigureAwait(true);

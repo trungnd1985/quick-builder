@@ -46,7 +46,8 @@ internal sealed class NavigationRenderer : IBlockRenderer
         if (context.Prop(node, "menuId") is not { ValueKind: JsonValueKind.String } id
             || !Guid.TryParse(id.GetString(), out var menuId)
             || inputs.Menus is not { } menus
-            || !menus.TryGetValue(menuId, out var menu))
+            || !menus.TryGetValue(menuId, out var menu)
+            || !MenuModel.SupportedSchemaVersions.Contains(menu.SchemaVersion))
         {
             return;
         }

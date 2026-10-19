@@ -6,11 +6,13 @@ namespace QuickBuilder.IntegrationTests.Isolation.Probes;
 
 /// <summary>
 /// Menus (024 FR-035, Principle V): another site's menus cannot be read, changed, published,
-/// deleted or listed, and their drafts cannot be replaced.
+/// deleted or listed, their drafts cannot be replaced, and asking which menus point at another
+/// site's page names none of them.
 /// </summary>
 /// <remarks>
 /// The seeded menu points at a page of its own site. A menu draft naming another site's page or
-/// item is refused as an unknown target: <c>MenuEndpointsTests</c> covers it.
+/// item is refused as an unknown target: <c>MenuEndpointsTests</c> covers it. A Navigation block
+/// naming another site's menu cannot go live: <c>MenuPublishingTests</c> covers it.
 /// </remarks>
 internal sealed class MenuIsolationProbe : ISiteIsolationProbe
 {
@@ -47,7 +49,7 @@ internal sealed class MenuIsolationProbe : ISiteIsolationProbe
         // Published, so the version and history endpoints have something of this site to refuse.
         var draftVersion = (await MenusApi.GetOkAsync(admin, siteId, menu).ConfigureAwait(false)).GetProperty("draftVersion").GetUInt32();
         await PagesApi.OkAsync(await QuickBuilder.IntegrationTests.Publishing.PublishingApi.PublishAsync(admin, MenusApi.MenuPath(siteId, menu), draftVersion).ConfigureAwait(false)).ConfigureAwait(false);
-        return new SeededRecords([menu.ToString()], []);
+        return new SeededRecords([menu.ToString(), page.ToString()], []);
     }
 
     public IEnumerable<ProbeRequest> AdminRequests(Guid siteId, SeededRecords other)
@@ -74,6 +76,7 @@ internal sealed class MenuIsolationProbe : ISiteIsolationProbe
         yield return new ProbeRequest(HttpMethod.Get, $"{one}/versions/1", ProbeKind.Addressed);
         yield return new ProbeRequest(HttpMethod.Post, $"{one}/versions/1/copy-to-draft", ProbeKind.Addressed, new { draftVersion = 1 });
         yield return new ProbeRequest(HttpMethod.Get, MenusApi.MenusPath(siteId), ProbeKind.Listing);
+        yield return new ProbeRequest(HttpMethod.Get, $"{MenusApi.MenusPath(siteId)}/references?pageId={other.Ids[1]}", ProbeKind.Listing);
     }
 
     public async Task<bool> StillIntactAsync(HttpClient admin, Guid siteId, SeededRecords seeded)

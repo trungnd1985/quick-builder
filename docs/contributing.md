@@ -282,7 +282,11 @@ version 1, so no stored document needs migrating:
    *Guard*: `BlockRegistryCoverage.spec.ts` fails while the schema and the registry
    disagree about types or props.
 6. Never give it a property that holds HTML, and never draw one with `v-html` (lint
-   refuses it). Rich text is structured JSON (§3 rule 8).
+   refuses it). Rich text is structured JSON (§3 rule 8). A block that shows content kept
+   under its own contract names it by id and follows that contract too: the Navigation block
+   names a menu, so it reads [docs/contracts/menu.md](contracts/menu.md), and its renderer
+   lists the menu schema versions it reads (`MenuModel.SupportedSchemaVersions`, guarded by
+   `BlockRendererCoverageTests`).
 7. Add its renderer (012): one class in
    `src/Modules/Rendering/QuickBuilder.Rendering/Rendering/Blocks/` implementing
    `IBlockRenderer`, registered in `RenderingModule`. Write through `HtmlWriter` only, so

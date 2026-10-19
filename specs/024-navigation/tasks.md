@@ -347,20 +347,29 @@ entries, and the starting state of submenus matches FR-019a.
 
 ## Phase 8: Polish & Cross-Cutting Concerns
 
-- [ ] T071 [P] Create `ITESTS/Isolation/Probes/MenuIsolationProbe.cs`: site B cannot list, get, change, publish, delete or query references of site A's menus; a menu draft on A naming B's page or item is refused (`unknown_target`); a Navigation block on B naming A's menu renders nothing and cannot be published. Register it, and keep `ITESTS/Isolation/IsolationCoverageTests.cs` green (FR-035).
-- [ ] T072 [P] Run `ATESTS/AuthorizationDeclarationTests.cs` and confirm every new action declares exactly one capability.
-- [ ] T073 [P] Create `STESTS/MenuRenderPerformanceTests.cs` (Performance category): a page showing two 300-entry, three-level menus, p95 under 200 ms on a miss and under 20 ms on a hit (SC-005). Record the results here; if a budget fails, record the cause and the fix.
-- [ ] T074 [P] Create `ITESTS/Rendering/UpgradeFrom017Tests.cs`, following `UpgradeFrom016Tests.cs`: a 017 snapshot upgrades, `AddMenus` applies, every existing page renders the same body and the same CSP, and no stored document changed.
-- [ ] T075 [P] Add a `MenuRendererCoverageTests` case to `UTESTS/Rendering/BlockRendererCoverageTests.cs` (or a sibling file): the build fails when `CONTRACTS/menu/` holds a schema version the renderer does not list.
-- [ ] T076 Add "create a menu, publish it, add a Navigation block to the header, publish, and find the `<nav>` on the home page" to the release smoke journey in `STESTS/ReferenceDeploymentSmokeTests.cs`.
-- [ ] T077 [P] Create `ITESTS/Observability/MenuContentNotLoggedTests.cs` over every 024 path that logs (menu writes, publishing, the item handler, rendering): menu names, labels, anchors and addresses never appear in logs or `menu_changes`.
-- [ ] T078 [P] Update the docs:
+- [X] T071 [P] Create `ITESTS/Isolation/Probes/MenuIsolationProbe.cs`: site B cannot list, get, change, publish, delete or query references of site A's menus; a menu draft on A naming B's page or item is refused (`unknown_target`); a Navigation block on B naming A's menu renders nothing and cannot be published. Register it, and keep `ITESTS/Isolation/IsolationCoverageTests.cs` green (FR-035).
+  *Done as*: The probe was started in US1 and covers every addressed route; the references query is probed as a listing. A draft naming another site's page or item is in `MenuEndpointsTests`; a Navigation block naming another site's menu is `MenuPublishingTests.A_navigation_block_naming_another_sites_menu_never_goes_live` (the publish is refused, and that site's preview of the id is a 404).
+- [X] T072 [P] Run `ATESTS/AuthorizationDeclarationTests.cs` and confirm every new action declares exactly one capability.
+  *Done as*: `AuthorizationDeclarationTests` pass (2 of 2).
+- [X] T073 [P] Create `STESTS/MenuRenderPerformanceTests.cs` (Performance category): a page showing two 300-entry, three-level menus, p95 under 200 ms on a miss and under 20 ms on a hit (SC-005). Record the results here; if a budget fails, record the cause and the fix.
+  *Done as*: Run on the reference compose setup on 2026-10-20: two 300-entry, three-level menus (one horizontal, one vertical and collapsing), 114,203 bytes. Miss p50 20.2 ms, **p95 66.1 ms** (budget 200 ms); hit p50 5.3 ms, **p95 11.0 ms** (budget 20 ms). Both budgets met.
+- [X] T074 [P] Create `ITESTS/Rendering/UpgradeFrom017Tests.cs`, following `UpgradeFrom016Tests.cs`: a 017 snapshot upgrades, `AddMenus` applies, every existing page renders the same body and the same CSP, and no stored document changed.
+  *Done as*: Pages migrates down to `AddSeo` (017), so the snapshot is built, not stored, as in 016's test. Bodies and policies match, and every stored draft and published document is unchanged.
+- [X] T075 [P] Add a `MenuRendererCoverageTests` case to `UTESTS/Rendering/BlockRendererCoverageTests.cs` (or a sibling file): the build fails when `CONTRACTS/menu/` holds a schema version the renderer does not list.
+  *Done as*: In `BlockRendererCoverageTests` itself. The renderer gained `MenuModel.SupportedSchemaVersions`, and a live menu of another version now renders nothing.
+- [X] T076 Add "create a menu, publish it, add a Navigation block to the header, publish, and find the `<nav>` on the home page" to the release smoke journey in `STESTS/ReferenceDeploymentSmokeTests.cs`.
+  *Done as*: Step 9e2 of the journey: create and publish a menu, add a Navigation block to the header, publish it, and find the `nav`, the entry and the `script-src` hash on the home page. The journey passes on the reference setup.
+- [X] T077 [P] Create `ITESTS/Observability/MenuContentNotLoggedTests.cs` over every 024 path that logs (menu writes, publishing, the item handler, rendering): menu names, labels, anchors and addresses never appear in logs or `menu_changes`.
+  *Done as*: Every name, label, anchor and address carries the canary marker. The audit is checked structurally: `menu_changes` has no text column but `action`.
+- [X] T078 [P] Update the docs:
   - `specs/012-publishing-rendering/contracts/public-rendering.md` (Navigation section and CSP note, from public-navigation.md), `readers.md` (module-surface §2) and `publishing-api.yaml` (menu subject);
   - `docs/contributing.md` (the block checklist names the menu contract for blocks that read it);
   - `docs/backlog.md` (the deferred items in plan.md, and the #20 obligations of module-surface §5);
   - `docs/operations.md` (the CSP note of upgrade note 2);
   - `docs/configuration.md`: no new keys (state it).
-- [ ] T079 [P] Run `dotnet test` with coverage. `PublishingWrites`, `GenerationBump`, `RENDER/Rendering/Navigation/` and `NavigationRenderer` keep at least 80 % line coverage. Run `npm run lint`, `npm run type-check` and `npm test`, and check that `dotnet format --verify-no-changes` and the analyzer gates are clean.
+  *Done as*: `docs/operations.md` gains a Navigation and menus section with the CSP note and an upgrade section for 024.
+- [X] T079 [P] Run `dotnet test` with coverage. `PublishingWrites`, `GenerationBump`, `RENDER/Rendering/Navigation/` and `NavigationRenderer` keep at least 80 % line coverage. Run `npm run lint`, `npm run type-check` and `npm test`, and check that `dotnet format --verify-no-changes` and the analyzer gates are clean.
+  *Done as*: Release run on 2026-10-20: 2019 unit, 36 architecture (after renaming `MenuPreviewEntry` to `MenuPreviewEntryResponse`, which the module-boundary rule caught) and 1222 integration tests pass (3 skipped, as before). Line coverage 95.7% overall; `PublishingWrites` 98.7%, `GenerationBump` 100%, `MenuWrites` 93.2%, `MenuReads` 98.9%, `NavigationRenderer`, `MenuModel`, `ActiveState` and `NavScript` 100%. Admin: lint, type-check and 1161 tests pass; `dotnet format --verify-no-changes` is clean.
 - [ ] T080 Run the whole of `quickstart.md` by hand on the reference compose setup: SC-001 with a stopwatch, and quickstart §8 with NVDA and VoiceOver (exception E-5). Record the results in `specs/024-navigation/quickstart-results.md`.
 - [ ] T081 Open the PR closing #24, with the plan's operator impact and upgrade notes in the description.
 

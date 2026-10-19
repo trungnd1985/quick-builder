@@ -26,7 +26,14 @@ info:
     Administrator holds all of them. Refusal codes are listed in data-model.md §6.
 
     **Component paths** mirror page paths under `/components/{componentId}` with the same
-    bodies and responses, except that components have no unpublish schedule. They are listed
+    bodies and responses, except that components have no unpublish schedule.
+
+    **Menu paths** (024) mirror component paths under `/menus/{menuId}`: publish, unpublish,
+    rollback, a publish schedule, history, versions and copy-to-draft, with subject kind
+    `menu`. Unpublishing a menu that live pages or components show is refused with
+    `pages.menu_in_use_by_published_content`; publishing a page or component whose Navigation
+    blocks name a menu that is not live is refused with `pages.unpublished_menus` (with
+    `menuIds`). See [024 menus-api.yaml](../../024-navigation/contracts/menus-api.yaml). They are listed
     once at the end, without their bodies repeated.
 
 servers:

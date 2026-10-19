@@ -312,6 +312,39 @@ public sealed class ReferenceDeploymentSmokeTests(ITestOutputHelper output) : IA
         css.Headers.Host = "smoke.test";
         Assert.Equal(HttpStatusCode.OK, (await publicClient.SendAsync(css).ConfigureAwait(true)).StatusCode);
 
+        // 9e2. 024: a menu is created and published, the header gains a Navigation block that
+        //      shows it, and once the header is published again the home page carries the
+        //      <nav>, with the policy admitting exactly its inline script.
+        var menus = $"/api/v1/pages/sites/{siteId}/menus";
+        using var menu = await client.PostAsJsonAsync(new Uri(menus, UriKind.Relative), new { name = "Main" }).ConfigureAwait(true);
+        Assert.Equal(HttpStatusCode.Created, menu.StatusCode);
+        var menuRead = await menu.Content.ReadFromJsonAsync<JsonElement>().ConfigureAwait(true);
+        var menuPath = $"{menus}/{menuRead.GetProperty("id").GetGuid()}";
+        using var menuDraft = await client.PutAsJsonAsync(new Uri($"{menuPath}/draft", UriKind.Relative), new
+        {
+            version = menuRead.GetProperty("draftVersion").GetUInt32(),
+            document = JsonDocument.Parse("""{"schemaVersion":1,"entries":[{"id":"docs","label":"Smoke docs","target":{"type":"url","href":"https://docs.example/"},"children":[]}]}""").RootElement,
+        }).ConfigureAwait(true);
+        Assert.True(menuDraft.StatusCode == HttpStatusCode.OK, $"Saving the menu failed: {await menuDraft.Content.ReadAsStringAsync().ConfigureAwait(true)}");
+        await PublishAsync(client, menuPath, (await menuDraft.Content.ReadFromJsonAsync<JsonElement>().ConfigureAwait(true)).GetProperty("draftVersion").GetUInt32()).ConfigureAwait(true);
+
+        var headerWithMenu = await SaveDraftAsync(client, headerPath, $$$"""
+            {"schemaVersion":1,"root":{"id":"root","type":"root","props":{},"children":[
+              {"id":"hs","type":"section","props":{},"children":[
+                {"id":"hh","type":"heading","props":{"text":"Smoke header","level":2},"children":[]},
+                {"id":"hn","type":"navigation","props":{"menuId":"{{{menuRead.GetProperty("id").GetGuid()}}}"},"children":[]}]}]}}
+            """).ConfigureAwait(true);
+        await PublishAsync(client, headerPath, headerWithMenu).ConfigureAwait(true);
+
+        using var withMenu = new HttpRequestMessage(HttpMethod.Get, new Uri("/", UriKind.Relative));
+        withMenu.Headers.Host = "smoke.test";
+        using var withMenuResponse = await publicClient.SendAsync(withMenu).ConfigureAwait(true);
+        var menuHtml = await withMenuResponse.Content.ReadAsStringAsync().ConfigureAwait(true);
+        Assert.Contains("<nav class=\"qb-nav", menuHtml, StringComparison.Ordinal);
+        Assert.Contains(">Smoke docs</a>", menuHtml, StringComparison.Ordinal);
+        Assert.Contains("script-src 'sha256-", string.Join(';', withMenuResponse.Headers.GetValues("Content-Security-Policy")), StringComparison.Ordinal);
+        output.WriteLine("menu published and shown by the header's Navigation block on the home page");
+
         var unpublished = await client.PostAsync(new Uri($"{homePath}/unpublish", UriKind.Relative), null).ConfigureAwait(true);
         Assert.Equal(HttpStatusCode.OK, unpublished.StatusCode);
         using var gone = new HttpRequestMessage(HttpMethod.Get, new Uri("/", UriKind.Relative));

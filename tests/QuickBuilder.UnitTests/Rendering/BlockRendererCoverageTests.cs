@@ -2,6 +2,7 @@ using QuickBuilder.Pages.Contracts;
 using QuickBuilder.Rendering.Domain;
 using QuickBuilder.Rendering.Rendering;
 using QuickBuilder.Rendering.Rendering.Blocks;
+using QuickBuilder.Rendering.Rendering.Navigation;
 
 namespace QuickBuilder.UnitTests.Rendering;
 
@@ -39,5 +40,18 @@ public sealed class BlockRendererCoverageTests
         Assert.NotEmpty(versions);
         Assert.All(versions, v => Assert.Contains(v, PageRenderer.SupportedSchemaVersions));
         Assert.All(PageSchema.SupportedVersions, v => Assert.Contains(v, PageRenderer.SupportedSchemaVersions));
+    }
+
+    [Fact]
+    public void The_navigation_renderer_reads_every_menu_schema_version_that_exists()
+    {
+        // 024 tasks T075: a new menu schema version fails the build until the renderer lists it.
+        var versions = Directory.GetFiles(RepositoryFiles.Path("docs", "contracts", "menu"), "v*.schema.json")
+            .Select(f => int.Parse(Path.GetFileName(f)[1..].Split('.')[0], System.Globalization.CultureInfo.InvariantCulture))
+            .ToList();
+
+        Assert.NotEmpty(versions);
+        Assert.All(versions, v => Assert.Contains(v, MenuModel.SupportedSchemaVersions));
+        Assert.Contains(MenuSchema.CurrentVersion, MenuModel.SupportedSchemaVersions);
     }
 }

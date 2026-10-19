@@ -14,11 +14,11 @@ namespace QuickBuilder.Pages.Features.Menus;
 /// <param name="Label">The entry's own label, else the page's current title or the item's current name; empty when neither.</param>
 /// <param name="Kind"><c>page</c>, <c>item</c>, <c>url</c>, <c>anchor</c> or <c>none</c>.</param>
 /// <param name="State">The target's state; <c>live</c> for entries without a page or item.</param>
-public sealed record MenuPreviewEntry(
-    string Id, string Label, string Kind, string State, bool Hidden, bool NewTab, IReadOnlyList<MenuPreviewEntry> Children);
+public sealed record MenuPreviewEntryResponse(
+    string Id, string Label, string Kind, string State, bool Hidden, bool NewTab, IReadOnlyList<MenuPreviewEntryResponse> Children);
 
 /// <summary>A menu's draft resolved for the canvas. No addresses: links never navigate there.</summary>
-public sealed record MenuPreviewResponse(Guid MenuId, string Name, IReadOnlyList<MenuPreviewEntry> Entries);
+public sealed record MenuPreviewResponse(Guid MenuId, string Name, IReadOnlyList<MenuPreviewEntryResponse> Entries);
 
 internal sealed record PreviewMenuQuery(Guid SiteId, Guid MenuId) : IQuery<Result<MenuPreviewResponse>>;
 
@@ -63,7 +63,7 @@ internal sealed class PreviewMenuHandler(PagesDbContext database, PagesAccess ac
         return Result.Success(new MenuPreviewResponse(query.MenuId, menu.Name, Entries(document.RootElement.GetProperty("entries"), states)));
     }
 
-    private static List<MenuPreviewEntry> Entries(
+    private static List<MenuPreviewEntryResponse> Entries(
         JsonElement entries, IReadOnlyDictionary<(string Kind, Guid Id), MenuTargetStateResponse> states) =>
         [
             .. entries.EnumerateArray().Select(entry =>
@@ -78,7 +78,7 @@ internal sealed class PreviewMenuHandler(PagesDbContext database, PagesAccess ac
                 };
                 var own = entry.TryGetProperty("label", out var label) ? label.GetString()?.Trim() : null;
 
-                return new MenuPreviewEntry(
+                return new MenuPreviewEntryResponse(
                     entry.GetProperty("id").GetString()!,
                     string.IsNullOrEmpty(own) ? state?.Title ?? string.Empty : own,
                     kind,

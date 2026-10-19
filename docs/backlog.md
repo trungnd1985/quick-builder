@@ -78,6 +78,20 @@ Deferred by 035 (richer rich text; see specs/035-rich-text-formats/plan.md):
   narrowing list refreshes by filter
 - Draft preview links for item pages (#22)
 
+## Deferred by 024 (navigation and menus)
+
+- Menus built automatically from the page tree or a collection
+- Mega menus, icons, per-entry styles, per-role menus, localised menus
+- Anchor names on blocks, and checking that a menu's anchors exist
+- Integration events for menu changes (no consumer yet)
+- Breadcrumb blocks (017 has the structured data)
+- Obligations on later features:
+  - **#20 site export and import**: carry, per menu, its id, name, draft, live version number,
+    every retained version (document, number, kind, published by and at) and pending
+    schedules. On import, remap menu documents' `pageId`, `itemId` and `collectionId`, and
+    Navigation blocks' `menuId` in page and component drafts and versions; rebuild
+    `menu_targets` and `menu_usages` from the imported documents rather than importing them
+
 ## Deferred by 017 (SEO, sitemap and redirects)
 
 - Wildcard or regular-expression redirects; a not-found log; redirect use over time
