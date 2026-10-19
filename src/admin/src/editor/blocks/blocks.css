@@ -439,7 +439,9 @@
     transform: rotate(180deg);
   }
 
-  .qb-nav__toggle {
+  /* Hidden until a container query below shows it. Two classes, so it outranks
+     ".qb-nav summary" above, and the queries (also two classes, later) outrank it. */
+  .qb-nav .qb-nav__toggle {
     display: none;
     padding: calc(var(--qb-base-size) * 0.5) calc(var(--qb-base-size) * 0.75);
     border: 1px solid currentColor;
