@@ -246,3 +246,59 @@ const dropClass = (id: string) => {
     </li>
   </ul>
 </template>
+
+<style scoped>
+.menu-tree {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.menu-entry {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  padding-block: 0.375rem;
+  padding-inline-end: 0.5rem;
+  cursor: grab;
+}
+
+.menu-entry[aria-selected='true'] {
+  background: var(--surface);
+  font-weight: 600;
+}
+
+.menu-entry__label {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.menu-entry--hidden .menu-entry__label {
+  opacity: 0.6;
+}
+
+/* Where a dragged entry would land (FR-012); a refused position is drawn in the danger colour. */
+.menu-entry--drop-before {
+  box-shadow: inset 0 3px 0 var(--accent);
+}
+
+.menu-entry--drop-after {
+  box-shadow: inset 0 -3px 0 var(--accent);
+}
+
+.menu-entry--drop-inside {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.menu-entry--drop-refused {
+  outline: 2px dashed var(--danger);
+  outline-offset: -2px;
+  box-shadow: none;
+  cursor: not-allowed;
+}
+</style>

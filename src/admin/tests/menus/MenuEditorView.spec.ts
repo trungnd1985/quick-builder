@@ -228,6 +228,92 @@ describe('the menu editor', () => {
     expect(calls.some((c) => c.url === PUBLISH)).toBe(false)
   })
 
+  describe('moving entries (US3)', () => {
+    const entry = (id: string, label: string, ...children: MenuDocument['entries']) => ({ id, label, target: { type: 'none' as const }, children })
+    // Alpha; Beta > Beta one > Beta deep; Gamma
+    const nested: MenuDocument = { schemaVersion: 1, entries: [entry('a', 'Alpha'), entry('b', 'Beta', entry('b1', 'Beta one', entry('b11', 'Beta deep'))), entry('c', 'Gamma')] }
+    const row = (container: Element, id: string) => container.querySelector<HTMLElement>(`[role="treeitem"][data-entry-id="${id}"]`)!
+    const order = (container: Element) => [...container.querySelectorAll<HTMLElement>('[role="treeitem"]')].map((r) => `${r.dataset.entryId}@${r.getAttribute('aria-level')}`)
+    const liveText = (container: Element) => container.querySelector('[role="status"][aria-live="polite"]')?.textContent ?? ''
+
+    it('shows where a dragged entry lands, marks a refused place, and moves it on drop', async () => {
+      stubFetch(serve(nested))
+      const { container } = await renderEditor()
+
+      // Beta cannot go inside its own subtree: the place is marked as refused.
+      await fireEvent.dragStart(row(container, 'b'))
+      await fireEvent.dragOver(row(container, 'b11'))
+      expect(row(container, 'b11').classList.contains('menu-entry--drop-refused')).toBe(true)
+      await fireEvent.drop(row(container, 'b11'))
+      await waitFor(() => expect(liveText(container)).toBe(en.menus.tree.moveRefused))
+      expect(order(container)).toEqual(['a@1', 'b@1', 'b1@2', 'b11@3', 'c@1'])
+
+      // Alpha after Gamma (jsdom rows have no height, so a drop lands after the row).
+      await fireEvent.dragStart(row(container, 'a'))
+      await fireEvent.dragOver(row(container, 'c'))
+      expect(row(container, 'c').classList.contains('menu-entry--drop-after')).toBe(true)
+      expect(row(container, 'c').classList.contains('menu-entry--drop-refused')).toBe(false)
+      await fireEvent.drop(row(container, 'c'))
+
+      expect(order(container)).toEqual(['b@1', 'b1@2', 'b11@3', 'c@1', 'a@1'])
+      await waitFor(() => expect(liveText(container)).toContain('Alpha moved: position 3 of 3, level 1.'))
+      expect(container.querySelector('.menu-entry--drop-after')).toBeNull()
+    })
+
+    it('moves the focused entry with Alt and the arrows, announces each move, and refuses a fourth level', async () => {
+      const calls = stubFetch(serve(nested))
+      const { container } = await renderEditor()
+
+      await fireEvent.keyDown(row(container, 'c'), { key: 'ArrowUp', altKey: true })
+      expect(order(container)).toEqual(['a@1', 'c@1', 'b@1', 'b1@2', 'b11@3'])
+      await waitFor(() => expect(liveText(container)).toContain('Gamma moved: position 2 of 3, level 1.'))
+
+      await fireEvent.keyDown(row(container, 'c'), { key: 'ArrowRight', altKey: true })
+      expect(order(container)).toEqual(['a@1', 'c@2', 'b@1', 'b1@2', 'b11@3'])
+
+      await fireEvent.keyDown(row(container, 'c'), { key: 'ArrowLeft', altKey: true })
+      await fireEvent.keyDown(row(container, 'c'), { key: 'ArrowDown', altKey: true })
+      expect(order(container)).toEqual(['a@1', 'b@1', 'b1@2', 'b11@3', 'c@1'])
+
+      // Beta into Alpha would put Beta deep at a fourth level.
+      await fireEvent.keyDown(row(container, 'b'), { key: 'ArrowRight', altKey: true })
+      await waitFor(() => expect(liveText(container)).toBe(en.menus.tree.moveRefused))
+      expect(order(container)).toEqual(['a@1', 'b@1', 'b1@2', 'b11@3', 'c@1'])
+
+      await fireEvent.keyDown(row(container, 'b1'), { key: 'ArrowLeft', altKey: true })
+      await fireEvent.click(screen.getByRole('button', { name: en.menus.editor.save }))
+      await waitFor(() => expect(savedDocument(calls)).toBeDefined())
+      expect(savedDocument(calls)!.document.entries.map((e) => e.id)).toEqual(['a', 'b', 'b1', 'c'])
+      expect(savedDocument(calls)!.document.entries[2].children.map((e) => e.id)).toEqual(['b11'])
+    })
+
+    it('undoes and redoes moves with Ctrl+Z and Ctrl+Shift+Z', async () => {
+      stubFetch(serve(nested))
+      const { container } = await renderEditor()
+
+      await fireEvent.keyDown(row(container, 'c'), { key: 'ArrowUp', altKey: true })
+      expect(order(container)[1]).toBe('c@1')
+
+      await fireEvent.keyDown(row(container, 'c'), { key: 'z', ctrlKey: true })
+      expect(order(container)).toEqual(['a@1', 'b@1', 'b1@2', 'b11@3', 'c@1'])
+      await waitFor(() => expect(liveText(container)).toBe(en.menus.tree.undone))
+
+      await fireEvent.keyDown(row(container, 'c'), { key: 'Z', ctrlKey: true, shiftKey: true })
+      expect(order(container)[1]).toBe('c@1')
+      await waitFor(() => expect(liveText(container)).toBe(en.menus.tree.redone))
+    })
+
+    it('has no accessibility violations while dragging', async () => {
+      stubFetch(serve(nested))
+      const { container } = await renderEditor()
+      await fireEvent.dragStart(row(container, 'a'))
+      await fireEvent.dragOver(row(container, 'c'))
+
+      const results = await axe.run(container, { runOnly: { type: 'rule', values: ['aria-required-children', 'aria-required-parent', 'aria-valid-attr-value', 'aria-allowed-attr', 'nested-interactive'] } })
+      expect(results.violations).toEqual([])
+    })
+  })
+
   it('is read-only for an Editor', async () => {
     stubFetch(serve({ schemaVersion: 1, entries: [{ id: 'a', target: { type: 'page', pageId: PAGE_HOME }, children: [] }] }, editor))
     await renderEditor()

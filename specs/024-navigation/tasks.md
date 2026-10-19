@@ -260,13 +260,17 @@ order; refused moves change nothing; moves are announced.
 
 ### Tests for User Story 3 ⚠️
 
-- [ ] T053 [P] [US3] Create `ADMINTESTS/features/menus/menuOps.spec.ts` for `ADMIN/features/menus/menuOps.ts`: `move` before, after and inside, with children; `canMove` refusing a fourth level counting the moved subtree, and a drop into the entry's own subtree; keyboard moves (up, down, indent into previous sibling, outdent after parent) at the edges; undo and redo through `useMenuHistory`.
-- [ ] T054 [P] [US3] Extend `ADMINTESTS/features/menus/MenuEditorView.spec.ts`: drag events produce the drop indicator and a refused position is shown as not allowed; `Alt+↑`, `Alt+↓`, `Alt+→`, `Alt+←` move the focused entry; each move is announced in the live region; `Ctrl/⌘+Z` and `Ctrl/⌘+Shift+Z` work; axe.
+- [X] T053 [P] [US3] Create `ADMINTESTS/features/menus/menuOps.spec.ts` for `ADMIN/features/menus/menuOps.ts`: `move` before, after and inside, with children; `canMove` refusing a fourth level counting the moved subtree, and a drop into the entry's own subtree; keyboard moves (up, down, indent into previous sibling, outdent after parent) at the edges; undo and redo through `useMenuHistory`.
+  *Done as*: The spec is `ADMINTESTS/menus/menuOps.spec.ts`, beside the other menu specs.
+- [X] T054 [P] [US3] Extend `ADMINTESTS/features/menus/MenuEditorView.spec.ts`: drag events produce the drop indicator and a refused position is shown as not allowed; `Alt+↑`, `Alt+↓`, `Alt+→`, `Alt+←` move the focused entry; each move is announced in the live region; `Ctrl/⌘+Z` and `Ctrl/⌘+Shift+Z` work; axe.
+  *Done as*: In `ADMINTESTS/menus/MenuEditorView.spec.ts`. jsdom rows have no height, so a drop there lands after the row; the before, after and inside positions themselves are covered by `menuOps.spec.ts`.
 
 ### Implementation for User Story 3
 
-- [ ] T055 [US3] Create `ADMIN/features/menus/menuOps.ts` (pure tree operations on menu documents: `locate`, `canMove`, `move`, `moveUp`, `moveDown`, `indent`, `outdent`) and `ADMIN/features/menus/useMenuHistory.ts` (undo and redo stack of documents, cleared on save). Make T053 pass.
-- [ ] T056 [US3] Add native drag and drop to `ADMIN/features/menus/MenuEntryTree.vue`, following `EDITOR/dnd/useDragDrop.ts` (before, after and inside positions from the pointer, an indicator, `canMove` for allowed positions), and the ED-11 keys with announcements through the admin's live region. Wire undo and redo in `MenuEditorView.vue`. Make T054 pass.
+- [X] T055 [US3] Create `ADMIN/features/menus/menuOps.ts` (pure tree operations on menu documents: `locate`, `canMove`, `move`, `moveUp`, `moveDown`, `indent`, `outdent`) and `ADMIN/features/menus/useMenuHistory.ts` (undo and redo stack of documents, cleared on save). Make T053 pass.
+  *Done as*: Written with US1 (T032, T033), since adding and removing entries go through the same operations.
+- [X] T056 [US3] Add native drag and drop to `ADMIN/features/menus/MenuEntryTree.vue`, following `EDITOR/dnd/useDragDrop.ts` (before, after and inside positions from the pointer, an indicator, `canMove` for allowed positions), and the ED-11 keys with announcements through the admin's live region. Wire undo and redo in `MenuEditorView.vue`. Make T054 pass.
+  *Done as*: Written with US1 (T032). The drop indicator styles were added here, scoped to `MenuEntryTree.vue`; a refused place is drawn dashed in the danger colour with a not-allowed cursor.
 
 **Checkpoint**: quickstart §3 passes.
 
