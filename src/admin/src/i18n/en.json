@@ -822,7 +822,8 @@
       "collectionList": "Collection list",
       "listCard": "Card",
       "listEmpty": "When nothing is listed",
-      "listEmptyText": "Nothing to show yet."
+      "listEmptyText": "Nothing to show yet.",
+      "navigation": "Navigation"
     },
     "canvas": {
       "label": "Page canvas",
@@ -892,7 +893,8 @@
         "table_not_rectangular": "Every row of a table needs the same number of cells.",
         "table_header_misplaced": "Header cells can only make up the whole first row of a table.",
         "no_collections": "A collection list shows a collection’s items, and this site has none yet. Create a collection first.",
-        "list_slot": "A collection list keeps its card and its empty state. Edit what is inside them, or move or delete the whole list."
+        "list_slot": "A collection list keeps its card and its empty state. Edit what is inside them, or move or delete the whole list.",
+        "no_menus": "A Navigation block shows one of the site's menus, and this site has none yet. Create a menu under Menus first."
       },
       "rules": {
         "malformed_json": "The page content is not well-formed.",
@@ -1052,7 +1054,13 @@
         "filters": "Filters",
         "sort": "Order",
         "limit": "How many items",
-        "paging": "Pages"
+        "paging": "Pages",
+        "menuId": "Menu",
+        "levels": "Levels shown",
+        "ariaLabel": "Name for screen readers",
+        "collapse": "Small screens",
+        "activeColor": "Current page colour",
+        "layout": "Layout"
       },
       "values": {
         "align": {
@@ -1093,6 +1101,10 @@
         "thickness": {
           "thin": "Thin",
           "thick": "Thick"
+        },
+        "layout": {
+          "horizontal": "Horizontal",
+          "vertical": "Vertical"
         }
       },
       "token": {
@@ -1366,6 +1378,21 @@
           "lastPublishedAt": "when it was last published"
         }
       }
+    },
+    "navigation": {
+      "menuButton": "Menu",
+      "missing": "This menu no longer exists. Choose another one: the page cannot be published until then.",
+      "unpublished": "This menu is not published yet. Publish it before publishing this page.",
+      "empty": "This menu has no entries yet.",
+      "showSubmenu": "Show submenu: {label}",
+      "missingOption": "(deleted menu)",
+      "draftOption": "{name} (not published)",
+      "openMenu": "Edit this menu",
+      "collapse": "Collapse behind a menu button on small screens",
+      "below": "Collapse below",
+      "belowMobile": "Mobile width",
+      "belowTablet": "Tablet width",
+      "buttonLabel": "Menu button text"
     }
   },
   "design": {
@@ -1547,6 +1574,7 @@
         "all": "All",
         "page": "Pages",
         "component": "Components",
+        "menu": "Menus",
         "design": "Design"
       },
       "columns": {

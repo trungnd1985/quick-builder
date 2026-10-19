@@ -194,6 +194,40 @@ describe('the menu editor', () => {
     expect(within(screen.getByRole('treeitem')).getByText(en.menus.tree.states.deleted)).toBeTruthy()
   })
 
+  it('publishes what the designer sees: pending changes are saved first, then that draft version', async () => {
+    const PUBLISH = `/api/v1/pages/sites/${SITE}/menus/${MENU}/publish`
+    const published = { state: 'published', liveNumber: 1, liveSinceUtc: 'x', liveBy: null, hasUnpublishedChanges: false, liveUrl: null, pendingSchedules: [], failedSchedule: null }
+    const calls = stubFetch(serve(empty), { [`POST ${PUBLISH}`]: [{ status: 200, body: published }] })
+    await renderEditor()
+
+    await addEntry(async (d) => {
+      await fireEvent.update(within(d).getByLabelText(en.menus.entry.page), PAGE_HOME)
+    })
+    await fireEvent.click(screen.getByRole('button', { name: en.publishing.menu.publish }))
+
+    await waitFor(() => expect(calls.some((c) => c.method === 'POST' && c.url === PUBLISH)).toBe(true))
+    const saveAt = calls.findIndex((c) => c.method === 'PUT' && c.url === DRAFT)
+    const publishAt = calls.findIndex((c) => c.method === 'POST' && c.url === PUBLISH)
+    expect(saveAt).toBeGreaterThanOrEqual(0)
+    expect(saveAt).toBeLessThan(publishAt)
+    // The version the save returned, not the one the editor opened.
+    expect(calls[publishAt].body).toEqual({ draftVersion: 10 })
+  })
+
+  it('does not publish when the pending changes cannot be saved', async () => {
+    const PUBLISH = `/api/v1/pages/sites/${SITE}/menus/${MENU}/publish`
+    const calls = stubFetch(serve(empty), { [`PUT ${DRAFT}`]: [problem(409, 'pages.out_of_date')] })
+    await renderEditor()
+
+    await addEntry(async (d) => {
+      await fireEvent.update(within(d).getByLabelText(en.menus.entry.page), PAGE_HOME)
+    })
+    await fireEvent.click(screen.getByRole('button', { name: en.publishing.menu.publish }))
+
+    await waitFor(() => expect(screen.getByText(en.menus.outOfDate)).toBeTruthy())
+    expect(calls.some((c) => c.url === PUBLISH)).toBe(false)
+  })
+
   it('is read-only for an Editor', async () => {
     stubFetch(serve({ schemaVersion: 1, entries: [{ id: 'a', target: { type: 'page', pageId: PAGE_HOME }, children: [] }] }, editor))
     await renderEditor()

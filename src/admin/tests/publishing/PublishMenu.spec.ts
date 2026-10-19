@@ -135,6 +135,15 @@ describe('PublishMenu', () => {
     expect(await screen.findByRole('alert')).toHaveProperty('textContent', '2 shared component(s) this uses are not published. Publish them first.')
   })
 
+  it('says how many menus the page shows are not published yet (024 FR-003a)', async () => {
+    stubFetch({ status: 409, body: { title: 'Conflict', status: 409, errorCode: 'pages.unpublished_menus', menuIds: ['a', 'b', 'c'] } })
+    mount()
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Publish' }))
+
+    expect(await screen.findByRole('alert')).toHaveProperty('textContent', '3 menu(s) this shows are not published. Publish them first.')
+  })
+
   it('names how many images need alternative text and reports where they are (035 FR-014)', async () => {
     const pointers = ['/root/children/0/children/1/props/content/content/0', '/root/children/0/children/1/props/content/content/3']
     stubFetch({ status: 422, body: { title: 'x', status: 422, errorCode: 'pages.image_alt_missing', problems: pointers.map((pointer) => ({ pointer })) } })

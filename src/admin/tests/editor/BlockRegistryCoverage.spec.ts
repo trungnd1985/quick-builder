@@ -12,6 +12,7 @@ const t = (key: string) => key.split('.').reduce<unknown>((n, p) => (n as Record
 
 /** A collection of the site, for the blocks that need one (016). */
 const SITE_COLLECTION = '0192f5a0-0000-7000-8000-00000000c001'
+const SITE_MENU = '0192f5a0-0000-7000-8000-00000000d001'
 
 describe('block registry against the schema', () => {
   it('has a definition for exactly the schema node types', () => {
@@ -28,7 +29,7 @@ describe('block registry against the schema', () => {
   })
 
   it.each(blockTypes)('starts a new %s with valid values for its required properties only', (type) => {
-    const initial = registry[type].initialProps(t, { collectionIds: [SITE_COLLECTION] })!
+    const initial = registry[type].initialProps(t, { collectionIds: [SITE_COLLECTION], menuIds: [SITE_MENU] })!
 
     expect(Object.keys(initial).sort()).toEqual(requiredProps(type).sort())
     for (const [prop, value] of Object.entries(initial)) {

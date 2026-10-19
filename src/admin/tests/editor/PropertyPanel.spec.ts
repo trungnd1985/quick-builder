@@ -34,7 +34,7 @@ describe('PropertyPanel (US2)', () => {
   })
 
   it.each(blockTypes)('shows exactly the properties of a %s, plus its layer label', async (type) => {
-    const initial = registry[type].initialProps((key) => key, { collectionIds: [COLLECTION] })!
+    const initial = registry[type].initialProps((key) => key, { collectionIds: [COLLECTION], menuIds: ['0192f5a0-0000-7000-8000-00000000d001'] })!
     stubServer(type === 'section'
       ? documentWith({ id: 'x', type, props: initial, children: [] })
       : one({ id: 'x', type, props: initial, children: [] }))

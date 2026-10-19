@@ -2,6 +2,7 @@
 // The blocks a member can add (FR-004, FR-009). Each can be dragged onto the canvas or the
 // layer view, or added with the keyboard: arrows move, Enter adds the block where
 // placementFor puts it (research ED-11).
+import { menuIdsOf, useSiteMenus } from '../state/useSiteMenus'
 import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { definitionOf, newBlock } from '../blocks/registry'
@@ -17,6 +18,8 @@ const emit = defineEmits<{ inserted: [type: string]; refused: [code: string] }>(
 
 const { t } = useI18n()
 const store = useEditorStore()
+// 024: a new Navigation block starts with the site's first menu, so the menus are loaded here.
+useSiteMenus(store.siteId)
 
 const items = computed(() =>
   blockTypes
@@ -42,7 +45,7 @@ function add(type: string, initialProps?: Record<string, string>): void {
     return
   }
 
-  const block = newBlock(type, t, { collectionIds: [...(store.bindings.collectionIds ?? [])], nameFieldOf: store.bindings.nameFieldOf }, initialProps)
+  const block = newBlock(type, t, { collectionIds: [...(store.bindings.collectionIds ?? [])], nameFieldOf: store.bindings.nameFieldOf, menuIds: menuIdsOf(store.siteId) }, initialProps)
   if ('refused' in block) {
     emit('refused', block.refused)
     return

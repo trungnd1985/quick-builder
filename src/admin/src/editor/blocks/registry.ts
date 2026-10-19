@@ -22,6 +22,7 @@ import componentRef from './component-ref'
 import collectionList from './collection-list/definition'
 import listCard from './list-card/definition'
 import listEmpty from './list-empty/definition'
+import navigation from './navigation/definition'
 
 /** How the property panel edits a property (US2). */
 export type ControlKind =
@@ -42,6 +43,9 @@ export type ControlKind =
   | 'listFilters'
   | 'listSort'
   | 'listPaging'
+  // 024 research NV-16: the Navigation block's menu and its collapsing.
+  | 'menu'
+  | 'navCollapse'
 
 export interface PropGroup {
   /** An i18n key under `editor.panel.groups`. */
@@ -52,6 +56,8 @@ export interface PropGroup {
 /** What a new block may start from beyond its type: the site's collections, in list order (016). */
 export interface InsertContext {
   collectionIds: readonly string[]
+  /** The site's menus, in name order: a new Navigation block starts with the first (024). */
+  menuIds?: readonly string[]
   /**
    * The name field of a collection whose schema the editor has loaded, null when it has none
    * or is not loaded: a new list's card shows each item's name (016 FR-022).
@@ -84,10 +90,15 @@ export interface BlockDefinition {
    * only inside their list and arrive with it (016 TB-07).
    */
   palette?: false
+  /**
+   * Why a block cannot be made when `initialProps` returns null: a list needs a collection (016),
+   * a Navigation block a menu (024).
+   */
+  missing?: 'no_collections' | 'no_menus'
 }
 
 const definitions: BlockDefinition[] = [
-  section, container, heading, text, richText, image, button, spacer, divider, embed, componentRef, collectionList, listCard, listEmpty,
+  section, container, heading, text, richText, image, button, spacer, divider, embed, componentRef, collectionList, listCard, listEmpty, navigation,
 ]
 
 export const registry: Readonly<Record<string, BlockDefinition>> = Object.fromEntries(definitions.map((d) => [d.type, d]))
@@ -111,10 +122,10 @@ export function newBlock(
   t: (key: string) => string,
   context: InsertContext,
   initialProps?: Record<string, Json>,
-): { props: Record<string, Json>; children: ContentNode[] } | { refused: 'no_collections' | 'not_found' } {
+): { props: Record<string, Json>; children: ContentNode[] } | { refused: 'no_collections' | 'no_menus' | 'not_found' } {
   const definition = registry[type]
   if (!definition) return { refused: 'not_found' }
   const props = initialProps ?? definition.initialProps(t, context)
-  if (!props) return { refused: 'no_collections' }
+  if (!props) return { refused: definition.missing ?? 'no_collections' }
   return { props, children: definition.initialChildren?.(t, context, props) ?? [] }
 }

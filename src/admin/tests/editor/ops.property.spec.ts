@@ -26,7 +26,7 @@ const t = (key: string) => key
 
 /** A new block's props and children, as the palette makes it; lists take a fixed collection. */
 function newProps(type: string): [Record<string, never>, ContentNode[]] {
-  const block = newBlock(type, t, { collectionIds: ['0192f5a0-0000-7000-8000-00000000c001'] })
+  const block = newBlock(type, t, { collectionIds: ['0192f5a0-0000-7000-8000-00000000c001'], menuIds: ['0192f5a0-0000-7000-8000-00000000d001'] })
   if ('refused' in block) throw new Error(block.refused)
   return [block.props as Record<string, never>, block.children]
 }

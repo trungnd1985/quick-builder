@@ -12,6 +12,8 @@ import { pagesApi, type PageNode } from '../../api/pages'
 import { useSitesStore } from '../../app/sitesStore'
 import { entryProblems, validateMenu } from '../../editor/schema/menuValidator'
 import { isOutOfDate } from '../publishing/errorMessages'
+import PublishMenu from '../publishing/PublishMenu.vue'
+import type { Publication } from '../../api/publishing'
 import MenuEntryDialog from './MenuEntryDialog.vue'
 import MenuEntryTree from './MenuEntryTree.vue'
 import { menuErrorMessage } from './menuErrors'
@@ -146,16 +148,17 @@ function onKeydown(event: KeyboardEvent): void {
   }
 }
 
-async function save(): Promise<void> {
+/** Saves the draft; false when it could not be saved, and the reason is shown. */
+async function save(): Promise<boolean> {
   const current = document.value
   const loaded = menu.value
-  if (!current || !loaded) return
+  if (!current || !loaded) return false
   saveError.value = null
 
   // FR-011: nothing the server is certain to refuse is sent.
   if (problems.value.size > 0 || !validateMenu(current).valid) {
     saveError.value = t('menus.editor.problems')
-    return
+    return false
   }
 
   saving.value = true
@@ -166,12 +169,24 @@ async function save(): Promise<void> {
     savedJson.value = JSON.stringify(saved.draft)
     history.reset()
     announce(t('menus.status.saved'))
+    return true
   } catch (caught) {
     if (isOutOfDate(caught)) outOfDate.value = true
     else saveError.value = menuErrorMessage(t, te, caught)
+    return false
   } finally {
     saving.value = false
   }
+}
+
+/** Publishing saves pending changes first, so what is published is what the member sees. */
+async function saveBeforePublish(): Promise<number | null> {
+  if (dirty.value && !(await save())) return null
+  return menu.value?.draftVersion ?? null
+}
+
+function onPublished(publication: Publication): void {
+  if (menu.value) menu.value = { ...menu.value, publication }
 }
 </script>
 
@@ -260,6 +275,17 @@ async function save(): Promise<void> {
           </button>
         </div>
       </header>
+
+      <PublishMenu
+        :site-id="siteId"
+        kind="menu"
+        :subject-id="menu.id"
+        :title="menu.name"
+        :publication="menu.publication"
+        :can-publish="menu.permissions.canPublish"
+        :before-publish="readOnly ? undefined : saveBeforePublish"
+        @changed="onPublished"
+      />
 
       <p
         v-if="readOnly"

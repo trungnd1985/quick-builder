@@ -94,6 +94,13 @@ export function createAppRouter(history: RouterHistory = createWebHistory('/admi
         component: () => import('../features/publishing/HistoryView.vue'),
         props: (route) => ({ siteId: route.params.siteId, kind: 'component', subjectId: route.params.componentId }),
       },
+      // 024: a menu's publishing history; its versions are restored, not opened in the editor.
+      {
+        path: '/sites/:siteId/menus/:menuId/history',
+        name: 'menu-history',
+        component: () => import('../features/publishing/HistoryView.vue'),
+        props: (route) => ({ siteId: route.params.siteId, kind: 'menu', subjectId: route.params.menuId }),
+      },
       {
         path: '/sites/:siteId/pages/:pageId/versions/:number(\\d+)',
         name: 'page-version',

@@ -7,6 +7,7 @@
 // the first child, ← closes or goes to the parent, Home and End go to the ends, F2 renames.
 // Alt with the arrows moves the block — those keys bubble to the editor's own commands, so
 // they work the same here as on the canvas.
+import { menuIdsOf } from '../state/useSiteMenus'
 import { computed, nextTick, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { definitionOf } from '../blocks/registry'
@@ -219,7 +220,7 @@ function onDrop(event: DragEvent): void {
   endDrag()
   if (!source || !target || !store.root) return
   if (!target.allowed) return emit('refused', 'nesting_not_allowed')
-  const refused = store.apply(dropResult(store.root, source, target, store.kind, t, { collectionIds: [...(store.bindings.collectionIds ?? [])], nameFieldOf: store.bindings.nameFieldOf }))
+  const refused = store.apply(dropResult(store.root, source, target, store.kind, t, { collectionIds: [...(store.bindings.collectionIds ?? [])], nameFieldOf: store.bindings.nameFieldOf, menuIds: menuIdsOf(store.siteId) }))
   if (refused) emit('refused', refused.code)
 }
 

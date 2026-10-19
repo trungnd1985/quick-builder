@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using QuickBuilder.Pages.Contracts.Publishing;
 using QuickBuilder.Pages.Domain;
+using QuickBuilder.Pages.Domain.Menus;
 using QuickBuilder.Pages.Features.PublishingHistory;
 using QuickBuilder.Pages.Infrastructure;
 using QuickBuilder.Shared.Infrastructure.Dispatch;
@@ -106,11 +107,12 @@ internal sealed class GetPublishLogHandler(PagesDbContext database, PagesAccess 
         return Result.Success(new PublishLogResponse(items, next));
     }
 
-    /// <summary>Which of the entries' pages and components still exist.</summary>
+    /// <summary>Which of the entries' pages, components and menus still exist.</summary>
     private async Task<HashSet<Guid>> ExistingAsync(Guid siteId, List<PublishLogEntry> rows, CancellationToken cancellationToken)
     {
         var pageIds = rows.Where(e => e.SubjectKind == SubjectKinds.Page).Select(e => e.SubjectId).Distinct().ToList();
         var componentIds = rows.Where(e => e.SubjectKind == SubjectKinds.Component).Select(e => e.SubjectId).Distinct().ToList();
+        var menuIds = rows.Where(e => e.SubjectKind == SubjectKinds.Menu).Select(e => e.SubjectId).Distinct().ToList();
 
         var pages = pageIds.Count == 0
             ? []
@@ -122,7 +124,12 @@ internal sealed class GetPublishLogHandler(PagesDbContext database, PagesAccess 
             : await database.ForSite<Component>(siteId).Where(c => componentIds.Contains(c.Id)).Select(c => c.Id)
                 .ToListAsync(cancellationToken).ConfigureAwait(false);
 
-        return [.. pages, .. components];
+        var menus = menuIds.Count == 0
+            ? []
+            : await database.ForSite<Menu>(siteId).Where(m => menuIds.Contains(m.Id)).Select(m => m.Id)
+                .ToListAsync(cancellationToken).ConfigureAwait(false);
+
+        return [.. pages, .. components, .. menus];
     }
 
     /// <summary>A position in the log: the last row a page returned.</summary>

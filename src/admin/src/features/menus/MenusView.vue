@@ -5,6 +5,7 @@ import { useRoute } from 'vue-router'
 import { menusApi, type MenuList, type MenuSummary, type MenuUsage } from '../../api/menus'
 import { useSitesStore } from '../../app/sitesStore'
 import ConfirmDialog from '../sites/ConfirmDialog.vue'
+import PublishMenu from '../publishing/PublishMenu.vue'
 import { menuErrorMessage } from './menuErrors'
 import { isOutOfDate } from '../publishing/errorMessages'
 
@@ -38,6 +39,7 @@ const status = ref('')
 
 const menus = computed(() => list.value?.items ?? [])
 const canManage = computed(() => list.value?.permissions.canManage === true)
+const canPublish = computed(() => list.value?.permissions.canPublish === true)
 
 onMounted(async () => {
   if (sites.sites.length === 0) await sites.load().catch(() => undefined)
@@ -308,6 +310,9 @@ async function confirmDelete(): Promise<void> {
               {{ t('menus.table.usedBy') }}
             </th>
             <th scope="col">
+              {{ t('menus.table.publishing') }}
+            </th>
+            <th scope="col">
               {{ t('menus.table.actions') }}
             </th>
           </tr>
@@ -373,6 +378,18 @@ async function confirmDelete(): Promise<void> {
             </td>
             <td>
               {{ t('menus.table.usage', { count: menu.usedBy }, menu.usedBy) }}
+            </td>
+            <td>
+              <!-- 024 NV-01: a menu is published once and every page showing it follows. -->
+              <PublishMenu
+                :site-id="siteId"
+                kind="menu"
+                :subject-id="menu.id"
+                :title="menu.name"
+                :publication="menu.publication"
+                :can-publish="canPublish"
+                @changed="load()"
+              />
             </td>
             <td>
               <div class="page-toolbar">

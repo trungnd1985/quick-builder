@@ -34,6 +34,7 @@ import { PREVIEW_WIDTHS, usePreviewWidth } from './state/usePreviewWidth'
 import PreviewWidthSwitch from './PreviewWidthSwitch.vue'
 import { recoveryOffer, removeRecovery, writeRecovery, type RecoveryKey, type RecoveryOffer } from './state/recovery'
 import { resetSitePages } from './state/useSitePages'
+import { resetSiteMenus } from './state/useSiteMenus'
 import { resetComponentCache } from './state/componentCache'
 import './editor.css'
 
@@ -132,6 +133,7 @@ async function open(): Promise<void> {
   notice.value = ''
   offer.value = null
   resetSitePages()
+  resetSiteMenus()
   resetComponentCache()
 
   if (props.versionNumber !== undefined) {

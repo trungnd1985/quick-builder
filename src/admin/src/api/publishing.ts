@@ -4,7 +4,7 @@
 import type { ContentDocumentJson, Draft, UserReference } from './pages'
 import { request } from './request'
 
-export type SubjectKind = 'page' | 'component'
+export type SubjectKind = 'page' | 'component' | 'menu'
 
 export type ScheduleAction = 'publish' | 'unpublish'
 
@@ -116,9 +116,10 @@ export interface DesignVersions {
   versions: DesignVersionSummary[]
 }
 
+const SEGMENTS: Record<SubjectKind, string> = { page: 'pages', component: 'components', menu: 'menus' }
 const site = (siteId: string) => `/pages/sites/${encodeURIComponent(siteId)}`
 const subject = (siteId: string, kind: SubjectKind, id: string) =>
-  `${site(siteId)}/${kind === 'page' ? 'pages' : 'components'}/${encodeURIComponent(id)}`
+  `${site(siteId)}/${SEGMENTS[kind]}/${encodeURIComponent(id)}`
 const design = (siteId: string) => `/editor/sites/${encodeURIComponent(siteId)}/design-tokens`
 const post = (body?: unknown): RequestInit => ({ method: 'POST', body: body === undefined ? undefined : JSON.stringify(body) })
 

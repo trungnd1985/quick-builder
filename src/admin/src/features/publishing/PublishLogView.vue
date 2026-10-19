@@ -8,6 +8,7 @@ import { useRoute } from 'vue-router'
 import { publishingApi, type LogEntry, type SubjectKind } from '../../api/publishing'
 import { useSitesStore } from '../../app/sitesStore'
 import { publishingErrorMessage } from './errorMessages'
+import { historyRoute as routeToHistory } from './subjects'
 
 type KindFilter = '' | SubjectKind | 'design'
 
@@ -54,9 +55,7 @@ function subject(entry: LogEntry): string {
 }
 
 function historyRoute(entry: LogEntry) {
-  return entry.subjectKind === 'page'
-    ? { name: 'page-history', params: { siteId: siteId.value, pageId: entry.subjectId } }
-    : { name: 'component-history', params: { siteId: siteId.value, componentId: entry.subjectId } }
+  return routeToHistory(entry.subjectKind as SubjectKind, siteId.value, entry.subjectId)
 }
 
 function what(entry: LogEntry): string {
@@ -106,6 +105,9 @@ function who(entry: LogEntry): string {
         </option>
         <option value="component">
           {{ t('publishing.log.filters.component') }}
+        </option>
+        <option value="menu">
+          {{ t('publishing.log.filters.menu') }}
         </option>
         <option value="design">
           {{ t('publishing.log.filters.design') }}

@@ -13,6 +13,8 @@ export const PAGE = '44444444-4444-4444-4444-444444444444'
 export const COMPONENT = '55555555-5555-5555-5555-555555555555'
 /** The site's one collection (016): posts with a title. */
 export const COLLECTION = '0192f5a0-0000-7000-8000-00000000c001'
+/** The site's one menu (024), so a Navigation block can be inserted. */
+export const MENU = '0192f5a0-0000-7000-8000-00000000d001'
 
 export type Json = unknown
 export type Reply = { status: number; body?: Json } | (() => Promise<never>)
@@ -70,6 +72,10 @@ export function stubServer(initial: Json = emptyDocument(), options: { version?:
         stored = body.document
         version += 1
         reply = { status: 200, body: { schemaVersion: 1, version, updatedAtUtc: '2026-09-28T08:01:00Z', updatedBy: { id: 'u', displayName: 'Dana' }, document: stored } }
+      } else if (path.endsWith('/menus') && method === 'GET') {
+        reply = { status: 200, body: { items: [{ id: MENU, name: 'Main', entryCount: 1, brokenCount: 0, usedBy: 0, version: 1, draftVersion: 1, createdAtUtc: 'x', updatedAtUtc: 'x', publication: { state: 'published', liveNumber: 1, liveSinceUtc: 'x', liveBy: null, hasUnpublishedChanges: false, liveUrl: null, pendingSchedules: [], failedSchedule: null } }], limit: 50, permissions: { canManage: true, canPublish: true } } }
+      } else if (path.endsWith(`/menus/${MENU}/preview`) && method === 'GET') {
+        reply = { status: 200, body: { menuId: MENU, name: 'Main', entries: [{ id: 'a', label: 'Home', kind: 'page', state: 'live', hidden: false, newTab: false, children: [] }] } }
       } else if (path.endsWith('/collections') && method === 'GET') {
         reply = { status: 200, body: { collections: [{ id: COLLECTION, name: 'Posts', slug: 'posts', fieldCount: 1, itemCount: 0, revision: 1 }], canManage: true } }
       } else if (path.endsWith(`/collections/${COLLECTION}`) && method === 'GET') {
@@ -126,6 +132,7 @@ export async function mountEditor(kind: 'page' | 'component' = 'page', existing?
       { path: '/sites/:siteId/components', name: 'site-components', component: { template: '<div />' } },
       { path: '/sites/:siteId/pages/:pageId/edit', name: 'page-editor', component: EditorView },
       { path: '/sites/:siteId/components/:componentId/edit', name: 'component-editor', component: EditorView },
+      { path: '/sites/:siteId/menus/:menuId', name: 'site-menu', component: { template: '<div />' } },
     ],
   })
   await router.push(kind === 'page' ? `/sites/${SITE}/pages/${PAGE}/edit` : `/sites/${SITE}/components/${COMPONENT}/edit`)

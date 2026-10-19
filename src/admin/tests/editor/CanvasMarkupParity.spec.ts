@@ -22,7 +22,10 @@ import { jsonFiles, pageExamples, readJson } from './contractFiles'
 //   - an Embed's body (a placeholder on the canvas, the player when published) is not compared;
 //   - component references are dropped on both sides: the canvas draws a shared box around a
 //     component's draft, the published page draws its live version in place, and the component
-//     document itself (component-page.json) is compared on its own.
+//     document itself (component-page.json) is compared on its own;
+//   - a Navigation block is compared as its nav element only (classes and colour properties): the
+//     canvas draws the menu's draft from the preview endpoint, the published page its live
+//     version, and the published page's one script element (024 NV-14) has no counterpart.
 
 const golden = resolve(process.cwd(), '../../tests/fixtures/rendering/golden')
 
@@ -49,16 +52,18 @@ function normalise(element: Element, propsOf: (e: Element) => Record<string, str
   if (kept.includes('qb-image') && !element.querySelector('img')) return null
   if (kept.includes('qb-rt-image') && !element.querySelector('img')) return null
   if (kept.includes('qb-embed') && !element.querySelector('iframe, .qb-embed__url')) return null
+  if (element.tagName === 'SCRIPT') return null
 
   const embed = kept.includes('qb-embed')
-  const children = embed ? [] : childrenOf(element).map((c) => normalise(c, propsOf)).filter((c): c is Normalised => c !== null)
+  const opaque = embed || kept.includes('qb-nav')
+  const children = opaque ? [] : childrenOf(element).map((c) => normalise(c, propsOf)).filter((c): c is Normalised => c !== null)
   const tag = kept.includes('qb-button') ? 'button-element' : element.tagName.toLowerCase()
 
   return {
     tag,
     classes: kept.sort(),
     props: propsOf(element),
-    ...(element.children.length === 0 && !embed ? { text: element.textContent ?? '' } : {}),
+    ...(element.children.length === 0 && !opaque ? { text: element.textContent ?? '' } : {}),
     children,
   }
 }

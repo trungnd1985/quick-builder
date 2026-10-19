@@ -2,6 +2,7 @@
 // The page as visitors will see it (FR-002): the site's tokens as custom properties on a
 // frame that is the `page` container for the block styles' container queries (research
 // ED-09). Drops from the palette and moves of blocks land here.
+import { menuIdsOf } from '../state/useSiteMenus'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { dragState, dropResult, endDrag, resolveTarget, setTarget, sourceOf, type DropPosition } from '../dnd/useDragDrop'
@@ -109,7 +110,7 @@ function onDrop(event: DragEvent): void {
     return
   }
 
-  const refused = store.apply(dropResult(store.root, source, target, store.kind, t, { collectionIds: [...(store.bindings.collectionIds ?? [])], nameFieldOf: store.bindings.nameFieldOf }))
+  const refused = store.apply(dropResult(store.root, source, target, store.kind, t, { collectionIds: [...(store.bindings.collectionIds ?? [])], nameFieldOf: store.bindings.nameFieldOf, menuIds: menuIdsOf(store.siteId) }))
   if (refused) emit('refused', refused.code)
 }
 
