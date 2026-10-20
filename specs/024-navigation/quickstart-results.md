@@ -1,7 +1,7 @@
 # Quickstart results: Navigation and menus (024)
 
-**Status**: automated part done 2026-10-20; the manual run on the reference compose setup is
-**still to do** (tasks T080).
+**Status**: automated part done 2026-10-20; manual run in progress (tasks T080): SC-001 done
+2026-10-21, the rest still to do.
 
 This records which parts of [quickstart.md](./quickstart.md) the automated suites already
 prove, and what a person still has to check by hand. The by-hand parts are the ones no test
@@ -23,18 +23,22 @@ exception E-5).
 | §9 Upgrade | `ITESTS/Rendering/UpgradeFrom017Tests.cs` | pass: same bodies, same policy, no stored document changed |
 | §10 Menu styles (SC-008) | `ITESTS/Rendering/MenuStyleRenderTests.cs`, `NavigationGoldenTests` (looks, overrides), `ADMINTESTS/editor/navStyleCss.spec.ts`, `ADMINTESTS/editor/contrast.spec.ts`, `ADMINTESTS/design/MenuStyleSection.spec.ts`, the `menu-style.json` token-CSS parity fixture | pass |
 
+## Done by hand
+
+| Check | Date | Result |
+|---|---|---|
+| **SC-001**: build the 15-entry menu of §1 and place it (target: under 5 minutes) | 2026-10-21 | **Pass.** Built and placed with 15 entries; it ran normally and was very quick, well under the target by the tester's report. No exact stopwatch time was recorded. |
+
 ## Still to do by hand
 
-1. **SC-001**: a Designer builds the 15-entry, three-level menu of §1 and places it, timed with
-   a stopwatch (target: under 5 minutes).
-2. **§8 with NVDA (Firefox, Windows) and VoiceOver (Safari, macOS)**: on the published menu,
+1. **§8 with NVDA (Firefox, Windows) and VoiceOver (Safari, macOS)**: on the published menu,
    the `nav` landmark and its name, each disclosure's state, `aria-current="page"`, the
    new-tab hint and the collapsed panel's button; in the menu editor, the Alt+arrow moves and
    their announcements.
-3. **§10 in a real browser**: each look in the header and in a collapsed panel, hover and focus by
+2. **§10 in a real browser**: each look in the header and in a collapsed panel, hover and focus by
    pointer and keyboard, visited entries unchanged, and the contrast warnings in Design and in
    the block's panel.
-4. **§2 and §5 in a real browser at phone, tablet and desktop widths**, by keyboard and by
+3. **§2 and §5 in a real browser at phone, tablet and desktop widths**, by keyboard and by
    touch, with scripts on and off: every entry can be reached and opened (SC-006), the panel
    collapses at the chosen width, and the current path opens as FR-019a says.
 
