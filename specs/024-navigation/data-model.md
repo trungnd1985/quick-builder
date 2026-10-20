@@ -109,6 +109,48 @@ Defined in [contracts/navigation-block.md](./contracts/navigation-block.md):
 `menuId`\*, `layout`, `levels`, `collapse { enabled, below, buttonLabel? }`, `align`,
 `ariaLabel`, `color`, `activeColor`, `layerLabel`. In `contentChild`; no children.
 
+Added by the 2026-10-20 clarifications (FR-017a to FR-017c, research NV-26): `look`,
+`background`, `hoverColor`, `hoverBackground`, `activeBackground`, `focusColor`,
+`panelBackground`. Every style prop, `color` and `activeColor` included, has **no schema
+default**: absent means the site-wide menu style (§2.3).
+
+### 2.3 Design tokens v1 addition: `menuStyle`
+
+Defined in [contracts/menu-style.md](./contracts/menu-style.md) (research NV-25). Optional,
+additive in version 1:
+
+```text
+MenuStyle = { look?: "link" | "underline" | "pill" | "button",
+              colors?: { background?, text?, hoverText?, hoverBackground?, currentText?,
+                         currentBackground?, focus?, panelBackground? } }   // colour token ids
+```
+
+Stored inside the site's design token set (Editor module, `editor.design_tokens` and its
+published versions); no new table and no migration. Published with the design.
+
+Effective value of each style, per Navigation block (no stored state; resolved by the renderer
+and the editor):
+
+```text
+look   = block.look ?? menuStyle.look ?? "link"
+colour = block prop (present and its token exists) ?? menuStyle.colors[key] (token exists)
+         ?? built-in default (contracts/menu-style.md §2)
+```
+
+Names of the same colour across the block, the token set and the CSS (the one mapping,
+from contracts/menu-style.md §3):
+
+| Block prop | Token-set key (`menuStyle.colors`) | Block variable | Site variable |
+|---|---|---|---|
+| `color` | `text` | `--qb-nav-text` | `--qb-menu-text` |
+| `activeColor` | `currentText` | `--qb-nav-current-text` | `--qb-menu-current-text` |
+| `background` | `background` | `--qb-nav-background` | `--qb-menu-background` |
+| `hoverColor` | `hoverText` | `--qb-nav-hover-text` | `--qb-menu-hover-text` |
+| `hoverBackground` | `hoverBackground` | `--qb-nav-hover-background` | `--qb-menu-hover-background` |
+| `activeBackground` | `currentBackground` | `--qb-nav-current-background` | `--qb-menu-current-background` |
+| `focusColor` | `focus` | `--qb-nav-focus` | `--qb-menu-focus` |
+| `panelBackground` | `panelBackground` | `--qb-nav-panel-background` | `--qb-menu-panel-background` |
+
 ## 3. Dependency graph additions (NV-07)
 
 ```text

@@ -141,3 +141,21 @@ block none are.
 
 `UpgradeFrom017Tests`: a 017 database snapshot upgrades. Pages without a Navigation block
 render the same body and CSP, and no stored document changed.
+
+## 10. Menu styles (FR-017a to FR-017d, SC-008)
+
+Use the menu of §1, shown by the header (§2) and by a footer Navigation block.
+
+| Step | Expected |
+|---|---|
+| In Design, Menus: choose the pill look, the dark text token as background and the background token as text; publish the design | Both menus show pills on a dark bar; hover and the current entry show the hover and current backgrounds; the dropdown panel has its own background |
+| Choose text too close to the background | The Menus section names the failing pair; saving and publishing still work |
+| In the footer block, override only the background | The footer bar changes; looks and other colours still follow the site |
+| Change the site look to button and publish the design | The header changes to buttons with a border in the text colour; the footer follows too (it overrides only its background) |
+| Visit an entry, come back | The visited entry looks exactly like the others |
+| Tab through both menus in each look | Every link and open/close button shows the focus ring in the focus colour |
+| A site without a menu style | Menus look as they did before this addition |
+
+Automated: `navStyleCss.spec.ts`, `contrast.spec.ts`, the token-CSS parity fixture
+`menu-style.json`, design-token golden examples, and the look cases of
+`NavigationGoldenTests` (research NV-31).

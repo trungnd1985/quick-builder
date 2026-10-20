@@ -71,6 +71,23 @@ schemes.
   layout and in an opened collapsed menu**; horizontal dropdowns always start closed
   (FR-019a).
 
+### Session 2026-10-20
+
+- Q: Where should menu styling be set: on each Navigation block, as site-wide menu styles in
+  the design tokens, or both? → **A: both**: site-wide menu style defaults in the design
+  tokens, which each Navigation block can override (FR-017, FR-017a).
+- Q: Which looks should a menu entry be able to take? → **A: four**: plain link, underline,
+  pill (rounded background on hover and current) and button (filled background with a
+  border) (FR-017b).
+- Q: Which colours should a menu style let designers set? → **A: bar background, text, hover
+  text and background, current-entry text and background, focus ring, and the dropdown
+  panel's background** (FR-017c).
+- Q: Should visited links in a menu look different from unvisited ones? → **A: no**: visited
+  entries look exactly like unvisited ones (FR-017c).
+- Q: What should happen when a designer picks menu colours with too little contrast? → **A:
+  warn, never refuse**: the editor names each failing pair, saving and publishing still
+  work, and the focus ring cannot be removed (FR-017d).
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Building a multi-level menu once (Priority: P1)
@@ -169,6 +186,13 @@ output with the expected golden output.
 9. **Given** a menu that the live version of a page or component shows,
    **When** a member tries to unpublish or delete the menu,
    **Then** it is refused, stating how many published pages and components use it.
+10. **Given** a site-wide menu style (pill look, a dark bar background and light text) and a
+    footer Navigation block that overrides only the bar background,
+    **When** the design and the pages are published,
+    **Then** every Navigation block shows the pill look with the site-wide colours on hover,
+    focus and the current entry, the footer shows its own background, visited entries look
+    like the others, and a designer who picks text too close to its background is warned
+    but can still publish (FR-017a to FR-017d).
 
 ---
 
@@ -330,6 +354,9 @@ are marked current, which as leading to it, and which are not marked.
 - **Moving a page into trash and restoring it (#21)**: the entry points at it again, because
   it refers to the page, not its address.
 - **The not-found page**: it does not include components (012 FR-030), so it shows no menu.
+- **A site-wide menu style default changes while a block overrides some of it**: the block
+  keeps its overrides and follows the new defaults for the rest; published pages change only
+  when the design is published (FR-017a).
 
 ## Requirements *(mandatory)*
 
@@ -417,7 +444,33 @@ are marked current, which as leading to it, and which are not marked.
   button's label and "collapse below" (the editor's mobile preview width, the default, or
   its tablet preview width), alignment, and an accessible name that defaults to the menu's name as of its last publish (a rename
   reaches visitors when the menu is next published). It MUST
-  use the site's design tokens for colours, type and spacing.
+  use the site's design tokens for colours, type and spacing, and its style follows FR-017a.
+- **FR-017a**: Menu styles MUST be set in two places: site-wide menu style defaults in the
+  site's design tokens, published with the design like the other tokens, and per-block
+  overrides on the Navigation block. A block property left unset MUST follow the site-wide
+  default, so changing the default restyles every Navigation block that has not overridden
+  it. *(Clarified 2026-10-20.)*
+- **FR-017b**: Entries MUST take one of four looks, chosen per menu style (site-wide default,
+  block override): **link** (text only), **underline** (an underline on hover, focus and the
+  current entry), **pill** (a rounded background on hover, focus and the current entry) and
+  **button** (a filled background with a border). The look applies to every entry of the
+  block's top level; submenu entries keep a plain list look. Free per-state styling
+  (designers setting their own borders, radii or padding per state) is not offered.
+  *(Clarified 2026-10-20.)*
+- **FR-017c**: A menu style MUST let designers set these colours, each a colour token of the
+  design: the bar's background, the entries' text, hover text, hover background, current
+  entry text, current entry background, the focus ring, and the dropdown panel's background
+  (used for horizontal submenus and the opened small-screen panel). The button look's border
+  MUST use the entries' text colour. The existing `color` and `activeColor` block properties
+  are the text and current-entry text colours. Visited entries MUST look exactly like
+  unvisited ones: no visited colour is offered, and the browser's visited colour MUST NOT
+  show. *(Clarified 2026-10-20.)*
+- **FR-017d**: Where menu colours are chosen (the design tokens' menu style and the block's
+  panel), the editor MUST warn, naming each pair, when the text, hover, current-entry or
+  dropdown colours fall below 4.5:1 contrast against their backgrounds, or the focus ring
+  below 3:1 against the bar. The warning MUST NOT block saving or publishing. Every entry
+  and open/close button MUST show a visible focus ring when focused by keyboard, whatever
+  the style; no setting removes it. *(Clarified 2026-10-20.)*
 - **FR-018**: In the editor canvas, the Navigation block MUST show the chosen menu's draft, MUST NOT navigate when an entry is clicked, and MUST offer a way to open the menu in
   Menus for members who may change it.
 - **FR-019**: On the site, the Navigation block MUST render a labelled navigation region with
@@ -531,6 +584,10 @@ are marked current, which as leading to it, and which are not marked.
   with the keyboard only, meeting the accessibility baseline of 011.
 - **SC-007**: 100% of Navigation block outputs in the golden-file test encode every label
   and address for its context.
+- **SC-008**: For each of the four entry looks, golden files show the site-wide colours and
+  a block's overrides on hover, focus and the current entry, with no visited style; and the
+  editor warns for 100% of colour pairs below the FR-017d contrast minimums in its test
+  matrix, while refusing none.
 
 ## Scope
 

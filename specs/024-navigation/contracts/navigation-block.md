@@ -20,8 +20,15 @@ Draft of the additions to `docs/contracts/page-schema.md` (§2 table and placeme
 | `collapse` | `navCollapse` | `{ "enabled": false, "below": "mobile" }` | Hide behind a menu button below a preview width. |
 | `align` | `"start"` \| `"center"` \| `"end"` | `"start"` | Placement of the top level. |
 | `ariaLabel` | string ≤ 100, no control characters | the live menu's name (its name at last publish) | The accessible name of the navigation landmark. |
-| `color` | `colorRef` | text colour token | Entry text. |
-| `activeColor` | `colorRef` | brand colour token | Current, containing and section entries (024 FR-030). |
+| `look` | `"link"` | `"underline"` | `"pill"` | `"button"` | none: the site's menu style | How top-level entries look (024 FR-017b). |
+| `color` | `colorRef` | none: the site's menu style | Entry text. |
+| `activeColor` | `colorRef` | none: the site's menu style | Current, containing and section entries' text (024 FR-030). |
+| `background` | `colorRef` | none: the site's menu style | The bar's background. |
+| `hoverColor` | `colorRef` | none: the site's menu style | Entry text on hover. |
+| `hoverBackground` | `colorRef` | none: the site's menu style | Entry background on hover. |
+| `activeBackground` | `colorRef` | none: the site's menu style | Current entry background. |
+| `focusColor` | `colorRef` | none: the site's menu style | The keyboard focus ring. It cannot be turned off (024 FR-017d). |
+| `panelBackground` | `colorRef` | none: the site's menu style | Horizontal dropdowns and the opened small-screen panel. |
 | `layerLabel` | as every block | — | Editor aid, never rendered. |
 
 `$defs/navCollapse`:
@@ -42,6 +49,10 @@ Draft of the additions to `docs/contracts/page-schema.md` (§2 table and placeme
 `below` names the editor's preview widths, which are the stylesheet's container breakpoints:
 `mobile` = 480 px, `tablet` = 767 px (011 FR-036, research ED-09). `buttonLabel` defaults to the
 translated "Menu" of the site's default language.
+
+The style props (`look` and the colours) deliberately have **no `default`**: absent means
+the site-wide menu style of the design tokens ([menu-style.md](./menu-style.md)), so a change
+to that style restyles every block that does not override it (024 FR-017a, research NV-26).
 
 ## 3. Rules
 

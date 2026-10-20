@@ -675,3 +675,185 @@ and see the `<nav>` on the home page.
 
 **Decision**: none new, on either side. `details`, `summary` and the `name` attribute are
 HTML. The script is about 60 lines, written in-house. Drag and drop is native (011 ED-02).
+
+---
+
+# Menu styles (added 2026-10-20)
+
+Inputs: the five clarifications of the 2026-10-20 session (FR-017a to FR-017d). Site-wide
+defaults live in the design tokens and each block may override them; entries take one of four
+looks; eight colours are offered; visited entries look like the others; contrast problems are
+warned about, never refused.
+
+---
+
+## NV-25 The site-wide menu style is an optional `menuStyle` in the design tokens
+
+**Decision**: the design-token contract gains an optional top-level object, additive in
+version 1 like `contentWidths` (design-tokens.md §2):
+
+```json
+"menuStyle": {
+  "look": "pill",
+  "colors": { "background": "color-text", "text": "color-background", "currentBackground": "color-brand" }
+}
+```
+
+- `look`: `link`, `underline`, `pill` or `button`; absent: `link`.
+- `colors`: any of `background`, `text`, `hoverText`, `hoverBackground`, `currentText`,
+  `currentBackground`, `focus`, `panelBackground`, each a **colour token id**. Absent keys
+  take the built-in defaults of NV-27.
+- A missing token id is not an error. It falls back like every token reference
+  (design-tokens.md §2, "Fallbacks always resolve").
+- Validated by the existing token validators (Editor C#, admin TypeScript), with golden
+  examples, and edited in the Design view in a new **Menus** section.
+
+It is published with the design, so it reaches visitors on the next design publish. Every
+cached page already re-renders then: the design number is part of the render key (012).
+
+**Rationale**:
+- "Set once for the site" belongs where the site's other look-and-feel lives, and where
+  publishing it already refreshes every page.
+- Token ids, not raw colours, so the menu follows palette changes like every block does.
+
+**Alternatives considered**:
+- **A separate "menu theme" entity in Pages**: a second thing to publish and refresh, for
+  what is plainly design.
+- **Styles on the menu itself**: a menu is content shown by several blocks. FR-017a puts
+  overrides on the block, and the same menu can then look different in header and footer.
+
+---
+
+## NV-26 Block overrides are optional props without schema defaults
+
+**Decision**: the `navigation` node gains optional props, none with a schema `default`, so
+"absent" means "the site-wide value" (the `ariaLabel` precedent):
+- `look`: the four looks;
+- `background`, `hoverColor`, `hoverBackground`, `activeBackground`, `focusColor`,
+  `panelBackground`: colour references (`colorRef`).
+
+`color` and `activeColor` **lose their schema defaults** and mean the text and current-entry
+text colours (FR-017c). This is not a breaking change: the node is new in this unreleased
+feature, so no stored document predates it. Golden examples and `BlockDefaults` are updated.
+
+**Rationale**: a schema default would always win over the site-wide value, which FR-017a
+forbids. Leaving the prop out is the only "follow the site" state that needs no sentinel
+value.
+
+**Alternatives considered**:
+- **A sentinel value such as `{ "token": "inherit" }`**: a special token id every consumer
+  must know, which breaks "an unknown token falls back to the property default".
+- **A boolean "use site style" plus the props**: two sources of truth for one decision.
+
+---
+
+## NV-27 Colours reach the page as two layers of custom properties
+
+**Decision**:
+- **Site layer**: `TokenCss` (and its port, `tokenCss.ts`) emits the
+  `--qb-menu-*` properties, each `var(--qb-color-<id>)` of the site's choice or of the
+  built-in default; six are always emitted, the two look-dependent ones only when chosen:
+
+  The properties, their order and their built-in defaults are in
+  [contracts/menu-style.md](./contracts/menu-style.md) §2; the focus colour defaults to the
+  current-entry text colour, the block's before the site's (§3).
+  These defaults, with the `link` look, reproduce today's output.
+- **Block layer**: the renderer writes `--qb-nav-*` in the block's style rule only for the
+  props that are present (`context.Style`), and the stylesheet reads
+  `var(--qb-nav-x, var(--qb-menu-x))`.
+- **Visited**: the stylesheet sets `:visited` to the same colours as unvisited links, so
+  the browser's visited colour never shows (FR-017c).
+
+**Rationale**: custom properties cascade into dropdowns and the small-screen panel with no
+extra markup. An absent block value falls through to the site value in CSS alone, so the
+renderer needs no merge logic for colours.
+
+**Alternatives considered**:
+- **Merging site and block colours in the renderer**: every page would carry the site's menu
+  colours in its own style rule, and a design publish would change page bodies, not just the
+  token CSS.
+
+---
+
+## NV-28 The look is a class, decided by the renderer
+
+**Decision**: the `nav` element carries `qb-nav--look-<look>`, where the look is the block's
+`look` if present, else `menuStyle.look`, else `link`. The renderer reads `menuStyle.look`
+from the published design it already holds; the editor reads it from the draft tokens. The
+look styles apply to top-level entries only; submenu entries keep the list look (FR-017b).
+The button look's border is `currentColor`, the entries' text colour.
+
+**Rationale**: styling by the value of a custom property needs container style queries,
+which Firefox does not support. A class works everywhere, and the golden files show it.
+
+**Alternatives considered**:
+- **`@container style(--qb-menu-look: pill)`**: unsupported in Firefox; the menu would fall
+  back to plain links there.
+- **Four sets of rules keyed by a `data-` attribute**: the same as a class, but the
+  stylesheet's other modifiers are classes.
+
+---
+
+## NV-29 Contrast warnings are computed in the admin only
+
+**Decision**: a shared admin helper, `editor/tokens/contrast.ts`, computes the WCAG 2.x
+contrast ratio of two colours. It resolves token ids against the draft token set and
+composites `#rrggbbaa` and `transparent` over the site's `color-background` value. It is used
+in:
+- the Design view's Menus section, for the site-wide pairs;
+- the Navigation block's panel, for the block's effective pairs (override, else site value).
+
+The pairs and minimums:
+
+| Foreground | Background | Minimum |
+|---|---|---|
+| text | background | 4.5 |
+| hover text | hover background (over the bar's background) | 4.5 |
+| current text | current background (over the bar's background) | 4.5 |
+| text | panel background | 4.5 |
+| focus | background | 3 |
+
+Each failing pair is named in a warning next to the colours (`role="status"`). Nothing is
+refused, on either side: the server does not compute contrast (FR-017d).
+
+**Rationale**: a warning needs the resolved colours and the place where they are chosen, and
+both are in the admin. A server check could only refuse, which the clarification rules out.
+
+**Alternatives considered**:
+- **A server-side check returning warnings with the save**: duplicated colour maths in C#
+  for a message the admin can already show as the colour is picked.
+
+---
+
+## NV-30 The focus ring cannot be removed
+
+**Decision**: the stylesheet draws
+`outline: 2px solid var(--qb-nav-focus, var(--qb-menu-focus))` with `outline-offset: 2px`
+on `:focus-visible` for every link and `summary` of a Navigation block, in every look. No
+prop and no token turns it off; only its colour is chosen (FR-017d).
+
+**Rationale**: the focus ring is the accessibility baseline (011, SC-006). Making its colour,
+not its presence, configurable meets FR-017d.
+
+**Alternatives considered**:
+- **Using the hover style as the focus style**: a hover background with poor contrast would
+  then hide focus too.
+
+---
+
+## NV-31 Testing the styles
+
+**Decision**:
+- **Contracts**: design-token golden examples for `menuStyle` (valid: each look and every
+  colour key; invalid: unknown look, unknown colour key, a malformed id); page-schema
+  examples for the new props.
+- **Parity**: a `token-css` fixture with a `menuStyle`, run by `TokenCss` and `tokenCss.ts`.
+- **Rendering**: `NavigationGoldenTests` cases for each look, the site look with a block
+  override, and only present overrides written (SC-008).
+- **Stylesheet**: `navCollapseCss.spec.ts` generalised into `navStyleCss.spec.ts`, resolving
+  the cascade for hover, focus, current and visited in each look.
+- **Admin**: `editor/contrast.spec.ts` (WCAG values, alpha compositing), the Design view's Menus
+  section, and the block panel warnings, with axe.
+- **Upgrade**: `UpgradeFrom017Tests` stays green: a token set without `menuStyle` emits the
+  defaults, and pages without a Navigation block are byte-identical apart from the
+  stylesheet link.

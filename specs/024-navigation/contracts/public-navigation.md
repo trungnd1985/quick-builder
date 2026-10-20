@@ -48,7 +48,7 @@ Active entries use the block's `activeColor`.
 
 ```html
 <nav class="qb-nav qb-nav--horizontal qb-nav--align-start qb-nav--collapse-mobile"
-     aria-label="Main" data-qb-nav="n1" style="--qb-nav-color:…;--qb-nav-active:…">
+     aria-label="Main" data-qb-nav="n1" style="--qb-nav-text:…;--qb-nav-current-text:…">
   <details class="qb-nav__panel" open>
     <summary class="qb-nav__toggle">Menu</summary>
     <ul class="qb-nav__list qb-nav__list--l1">
@@ -94,7 +94,12 @@ Added to `blocks.css`, which the editor canvas and published pages share (011 ED
   list stacks vertically with inline submenus;
 - focus styles visible on links and summaries; hit areas at least 44 × 44 CSS px at mobile
   width;
-- `prefers-reduced-motion` respected (no transition).
+- `prefers-reduced-motion` respected (no transition);
+- `.qb-nav__toggle` is hidden with two classes (`.qb-nav .qb-nav__toggle`), so it outranks
+  `.qb-nav summary`; the container queries showing it come later at the same specificity;
+- **looks and colours** (added 2026-10-20): the `qb-nav--look-*` classes, the `--qb-nav-*`
+  block properties falling back to the site's `--qb-menu-*` properties, the visited and focus
+  rules, as [menu-style.md](./menu-style.md) §3 defines.
 
 ## 6. Script and CSP (NV-14)
 

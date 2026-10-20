@@ -18,6 +18,9 @@ description: "Task list for 024-navigation"
 - The spec measures behaviour through automated checks: SC-002 … SC-007.
 - Within each story, test tasks come first and must fail before implementation starts.
 
+**Extended 2026-10-20**: Phase 9 (T082–T099) adds menu styles from the clarifications of that
+date (FR-017a to FR-017d); T080 and T081 now follow it.
+
 **Changed after analysis (2026-10-14)**: T024, T030, T032, T034, T036, T046, T048, T059, T063 and
 T068 were extended or clarified (and T019, T032, T034, T037, T039 and T041 on the second
 analysis), and the US2 dependency on T026 is recorded. No task was added
@@ -370,8 +373,65 @@ entries, and the starting state of submenus matches FR-019a.
   *Done as*: `docs/operations.md` gains a Navigation and menus section with the CSP note and an upgrade section for 024.
 - [X] T079 [P] Run `dotnet test` with coverage. `PublishingWrites`, `GenerationBump`, `RENDER/Rendering/Navigation/` and `NavigationRenderer` keep at least 80 % line coverage. Run `npm run lint`, `npm run type-check` and `npm test`, and check that `dotnet format --verify-no-changes` and the analyzer gates are clean.
   *Done as*: Release run on 2026-10-20: 2019 unit, 36 architecture (after renaming `MenuPreviewEntry` to `MenuPreviewEntryResponse`, which the module-boundary rule caught) and 1222 integration tests pass (3 skipped, as before). Line coverage 95.7% overall; `PublishingWrites` 98.7%, `GenerationBump` 100%, `MenuWrites` 93.2%, `MenuReads` 98.9%, `NavigationRenderer`, `MenuModel`, `ActiveState` and `NavScript` 100%. Admin: lint, type-check and 1161 tests pass; `dotnet format --verify-no-changes` is clean.
-- [ ] T080 Run the whole of `quickstart.md` by hand on the reference compose setup: SC-001 with a stopwatch, and quickstart §8 with NVDA and VoiceOver (exception E-5). Record the results in `specs/024-navigation/quickstart-results.md`.
+- [ ] T080 Run the whole of `quickstart.md` by hand on the reference compose setup: SC-001 with a stopwatch, quickstart §8 with NVDA and VoiceOver (exception E-5), and §10 (menu styles, after Phase 9) in a real browser. Record the results in `specs/024-navigation/quickstart-results.md`.
 - [ ] T081 Open the PR closing #24, with the plan's operator impact and upgrade notes in the description.
+
+
+---
+
+## Phase 9: User Story 2 extension - Menu styles (FR-017a to FR-017d, added 2026-10-20)
+
+**Goal**: designers set a site-wide menu style in the design tokens (a look and eight colours)
+and override any part of it per Navigation block. Visited entries look like the others, the
+focus ring is always drawn, and colour pairs below the contrast minimums are warned about,
+never refused.
+
+**Independent Test**: quickstart §10. With a site-wide pill style and a footer block that
+overrides only its background, both menus show the site's look and colours, the footer its own
+background; a site without a menu style renders exactly as before (SC-008).
+
+**References**: research NV-25 to NV-31; [contracts/menu-style.md](./contracts/menu-style.md)
+(the field, its schema and examples, the token CSS, the block CSS per look, the contrast
+pairs); [contracts/navigation-block.md](./contracts/navigation-block.md) §2 (the new props).
+
+### Contracts for menu styles
+
+- [ ] T082 [P] [US2] Add `menuStyle` to `CONTRACTS/design-tokens/v1.schema.json` as menu-style.md §1 gives it (`$defs/menuStyle`, an optional top-level property; `look` enum; `colors` with the eight keys, each `$defs/tokenId`; `additionalProperties: false` at both levels), and its row to the rules table of `CONTRACTS/design-tokens.md` §2 with a sentence that a colour id naming a missing token falls back like any token reference. Add golden examples: `CONTRACTS/design-tokens/examples/valid/menu-style.json` (the `pill` look and all eight colours) and `valid/menu-style-unknown-token.json`; `invalid/editor.invalid_tokens--menu-style-look.json`, `invalid/editor.invalid_tokens--menu-style-color-key.json` , `invalid/editor.invalid_tokens--menu-style-bad-id.json` and `invalid/editor.invalid_tokens--menu-style-extra-key.json`, each listed in `invalid/expected.json` with its pointer. They must fail in `ITESTS/Editor/DesignTokenContractTests.cs` and `ADMINTESTS/design/designTokens.spec.ts` until T083.
+- [ ] T083 [US2] Make both token validators accept `menuStyle`: `src/Modules/Editor/QuickBuilder.Editor.Contracts/DesignTokens.cs` embeds `v1.schema.json` as a resource, which `src/Modules/Editor/QuickBuilder.Editor/Infrastructure/TokenSetValidator.cs` uses, so check the embedded copy is the updated file; extend `ADMIN/editor/tokens/tokenValidator.ts` and the admin token type in `ADMIN/editor/tokens/defaultTokens.ts` (`menuStyle?: MenuStyle`, beside `contentWidths`) so a set with `menuStyle` round-trips unchanged through save and read. Make T082's examples pass on both sides.
+- [ ] T084 [P] [US2] Extend `$defs/navigation` in `CONTRACTS/page-schema/v1.schema.json` with the props of navigation-block.md §2: `look` (enum of the four looks) and `background`, `hoverColor`, `hoverBackground`, `activeBackground`, `focusColor`, `panelBackground` (each `$ref: #/$defs/colorRef`), **none with a `default`**, and remove the `default` of `color` and `activeColor` (research NV-26). Update the navigation row and the 024 paragraph of `CONTRACTS/page-schema.md` (§2, §6), add `CONTRACTS/page-schema/examples/valid/navigation-styles.json` (every new prop set) and `invalid/props_invalid--navigation-bad-look.json`, refresh `PAGESC/PageSchema.cs`'s embedded copy, and update the navigation expectations in `UTESTS/Rendering/BlockDefaultsTests.cs`. Run `UTESTS/Pages/NavigationSchemaGoldenTests.cs` and `ADMINTESTS/editor/documentValidator.spec.ts`.
+
+### Token CSS (site layer)
+
+- [ ] T085 [P] [US2] Add `tests/fixtures/rendering/token-css/menu-style.json` (a token set with `menuStyle` naming existing ids, one missing id, and hover and current backgrounds) with its expected custom properties as menu-style.md §2 lists them, and add the six always-emitted `--qb-menu-*` properties to the expected output of `default.json`, `custom.json` and `no-content-widths.json`. The parity tests (`ADMINTESTS/editor/tokenCss.parity.spec.ts` and `UTESTS/Rendering/TokenCssParityTests.cs`) must fail until T086.
+- [ ] T086 [US2] Emit the `--qb-menu-*` properties in `RENDER/Domain/TokenCss.cs` (`Entries`, after the content widths, in menu-style.md §2's order; a missing id takes the built-in default; `--qb-menu-hover-background` and `--qb-menu-current-background` only when chosen) and identically in `ADMIN/editor/tokens/tokenCss.ts`. Make T085 pass.
+
+### Block (block layer and look)
+
+- [ ] T087 [P] [US2] Extend `UTESTS/Rendering/Navigation/NavigationGoldenTests.cs` (and `RenderHarness` so a test can give the design a `menuStyle`): the `nav` carries `qb-nav--look-link` with no style anywhere; the site's look applies (`qb-nav--look-pill`); a block `look` wins over the site's; a block with no style props writes **no** `--qb-nav-*` declaration; a block with `background` and `focusColor` writes exactly `--qb-nav-background` and `--qb-nav-focus`; a `colorRef` naming a missing token writes nothing for it. They must fail until T088.
+- [ ] T088 [US2] Implement the block layer: add `RenderContext.TokenIfSet(node, name, kind)` in `RENDER/Domain/RenderContext.cs` returning the token variable only when the prop is present and its token exists (else null), and the same `tokenIfSet` in `ADMIN/editor/blocks/useBlock.ts`. In `RENDER/Rendering/Blocks/NavigationRenderer.cs`, write the look class (block `look`, else the published design's `menuStyle.look`, else `link`; read the design the render already holds, as `TokenCss.For(design)` does) and pass to `context.Style` only the declarations of menu-style.md §3 whose value is not null, using the variable names of its mapping table (this renames `--qb-nav-color` and `--qb-nav-active` to `--qb-nav-text` and `--qb-nav-current-text`). Regenerate goldens with `QB_UPDATE_GOLDEN=1` over the whole unit project and check the diff is the look class, the block style rules and the stylesheet hash only. Make T087 pass.
+
+### Stylesheet
+
+- [ ] T089 [P] [US2] Rename `ADMINTESTS/editor/navCollapseCss.spec.ts` to `ADMINTESTS/editor/navStyleCss.spec.ts`, keep its cascade resolver and the collapse cases, and generalise it to any property and state (match a selector against an element in a given state by adding the state as a class the resolver maps, e.g. treat `:hover`, `:focus-visible` and `:visited` by stripping them and checking them against the asked state). Add cases: for each look, the top-level link's `color` at rest, hover, current and visited, and `background-color` at hover and current, resolve to `var(--qb-nav-…, var(--qb-menu-…))` expressions (or the look's default); `:visited` resolves to the same colour as rest; `:focus-visible` always resolves an `outline` with the focus colour, in every look, falling back to the block's current-text colour when the block sets `activeColor` but not `focusColor`; submenu links do not take the pill or button background. They must fail until T090.
+- [ ] T090 [US2] Write the looks in `ADMIN/editor/blocks/blocks.css` (inside `@layer qb-blocks`) as menu-style.md §3 specifies: the `nav` background and the panel background (horizontal dropdowns and the small-screen panel) from the two layers; text, hover and current colours for links, labels and `summary`; the four `qb-nav--look-*` rule sets on top-level entries only (pill radius 999px; button 1px `currentColor` border, radius 4px; hover and current backgrounds defaulting to `var(--qb-color-color-brand-light)` for pill and button, `transparent` otherwise); `:visited` equal to rest; `:focus-visible` outline from the focus layer (replacing today's rule). Draw the same in the editor: `ADMIN/editor/blocks/navigation/NavigationBlock.vue` adds the look class (block, else `store.tokens.menuStyle?.look`, else `link`) and sets only the present `--qb-nav-*` properties via `tokenIfSet`. Keep `ADMINTESTS/editor/CanvasMarkupParity.spec.ts` green. Make T089 pass.
+
+### Admin: contrast, the Design view and the block panel
+
+- [ ] T091 [P] [US2] Create `ADMINTESTS/editor/contrast.spec.ts` for `ADMIN/editor/tokens/contrast.ts`: WCAG 2.x ratios (black on white 21, white on white 1, `#767676` on white ≈ 4.54), `#rrggbbaa` and `transparent` composited over a given base, token ids resolved against a token set with a missing id falling back to the built-in default, and `menuContrastProblems(effective, tokens)` returning exactly the failing pairs of menu-style.md §4 with their minimums, using the effective look's defaults (pill with no hover background checks hover text against `color-brand-light`; link checks it against the bar's background). Must fail until T092.
+- [ ] T092 [US2] Implement `ADMIN/editor/tokens/contrast.ts` (relative luminance, ratio, alpha compositing, effective colour resolution, the pair list) with no new dependency. Make T091 pass.
+- [ ] T093 [P] [US2] Create `ADMINTESTS/design/MenuStyleSection.spec.ts` and extend `ADMINTESTS/design/DesignTokensView.spec.ts`: the Design view shows a Menus section; choosing a look and colours writes `menuStyle` into the saved token set (only the keys chosen); "Site default" clears a key; a failing pair is named in a `role="status"` warning and saving still works; read-only members see the values without controls; axe passes. Must fail until T094.
+- [ ] T094 [US2] Create `ADMIN/features/design/MenuStyleSection.vue` (look as a radio group with a small preview of each; the eight colours as token pickers reusing the Design view's colour swatches, each with a "Site default" choice; warnings from `contrast.ts`) and add it to `ADMIN/features/design/DesignTokensView.vue`. Add every string to `ADMIN/i18n/en.json` under `design.menus.*`. Make T093 pass.
+- [ ] T095 [P] [US2] Extend `ADMINTESTS/editor/NavigationBlock.spec.ts` and `ADMINTESTS/editor/PropertyPanel.spec.ts`: the Navigation panel has a Style group with the look and the eight colours; unset controls say they follow the site menu style (not "default: …"); choosing then clearing an override adds then removes the prop; the canvas `nav` takes the look class and only the set `--qb-nav-*` properties; the panel warns, naming the pair, when the effective colours fail; a block whose colour prop has a schema default (e.g. a Heading) still shows "default: …" in the token control (FR-016: other blocks unchanged); axe passes. Keep `ADMINTESTS/editor/BlockRegistryCoverage.spec.ts` green. Must fail until T096.
+- [ ] T096 [US2] Add the style props to `ADMIN/editor/blocks/navigation/definition.ts` (a Style group: `look` with a new `ADMIN/editor/panel/controls/MenuLookControl.vue` offering "Site style" plus the four looks, registered as a control kind in `ADMIN/editor/panel/PropertyPanel.vue` and `ADMIN/editor/blocks/registry.ts`; the colours with the existing token control). In `ADMIN/editor/panel/controls/TokenControl.vue`, when the prop has no schema default, label the unset state "Site menu style" (key `editor.panel.token.siteMenuStyle`) and offer clearing an override. Show the block's contrast warnings (effective = override, else site value) under the Style group. Add strings to `ADMIN/i18n/en.json`. Make T095 pass.
+
+### Docs and checks
+
+- [ ] T097 [P] [US2] Update the docs: `docs/operations.md` (the Navigation and menus section: site-wide menu style in Design, per-block overrides, published with the design); `CONTRACTS/README.md` if it lists design-token additions; and `specs/024-navigation/quickstart-results.md` (add quickstart §10 to the automated table once T082–T096 pass, and to the manual list: the looks in a real browser, hover and focus by keyboard and pointer).
+- [ ] T098 [US2] Run the full checks as T079 did (Release `dotnet test` with coverage, `npm run lint`, `npm run type-check`, `npm test`, `dotnet format --verify-no-changes`). `UpgradeFrom017Tests` must stay green (a token set without `menuStyle` renders as before), and coverage of `TokenCss`, `NavigationRenderer` and `contrast.ts` stays at or above 80 %. Record the results in this task's Done-as note.
+
+- [ ] T099 [P] [US2] Create `ITESTS/Rendering/MenuStyleRenderTests.cs` (FR-017a end to end): a page shows a header component with a Navigation block without overrides, and another page a footer block overriding `background` and `look`. Publish a design whose `menuStyle` sets the pill look and a bar background: both pages re-render (new ETags); the token CSS carries the site's `--qb-menu-*` values; the header `nav` carries `qb-nav--look-pill`, the footer keeps its own look class and its `--qb-nav-background`. Saving a changed menu style without publishing the design changes no published page (Principle VII).
+
+**Checkpoint**: quickstart §10 passes; SC-008 is met.
 
 ---
 
@@ -391,6 +451,12 @@ entries, and the starting state of submenus matches FR-019a.
   US1 (target states in the admin).
 - **US5 (Phase 7)**: depends on US2 (`NavigationRenderer`, `NavScript`).
 - **Polish (Phase 8)**: after all stories.
+- **Menu styles (Phase 9, added 2026-10-20)**: extends US2; depends on the Navigation block
+  (T049 to T051) and on the design tokens of 011. Inside it: T082 before T083; T084 alone;
+  T085 before T086; T087 after T082 and T084, before T088; T089 before T090 (T090 after T088
+  for the canvas helper); T091 before T092; T093 and T095 after T092, before T094 and T096;
+  T099 after T086, T088 and T090; T097 and T098 last. **T080 (the manual quickstart run, now including §10) and T081 (the PR)
+  wait for Phase 9.**
 
 ### Within Each User Story
 
@@ -452,10 +518,13 @@ which is the smallest useful feature (spec, User Story 2's priority note).
 3. US2: publish them and show them with the Navigation block. **Demo on the site.**
 4. US3 (reordering) beside US4 (link integrity).
 5. US5 (active state).
-6. Polish, the manual quickstart run, and the PR closing #24.
+6. Polish.
+7. Menu styles (Phase 9). **Demo**: the site-wide style and a block override.
+8. The manual quickstart run (T080) and the PR closing #24 (T081).
 
 One PR, as with 010–017. There is no feature flag mechanism. If the PR must split, follow
-plan.md's Principle XI order: (1) US1; (2) US2, US4, US5; (3) US3.
+plan.md's Principle XI order: (1) US1; (2) US2, US4, US5; (3) US3; (4) menu styles
+(Phase 9), which is additive and can follow as its own PR.
 
 ---
 

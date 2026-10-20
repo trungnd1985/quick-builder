@@ -1,6 +1,6 @@
 # Implementation Plan: Navigation and Menus
 
-**Branch**: `024-navigation` | **Date**: 2026-10-14 | **Spec**: [spec.md](./spec.md)
+**Branch**: `024-navigation` | **Date**: 2026-10-14, extended 2026-10-20 (menu styles) | **Spec**: [spec.md](./spec.md)
 
 **Input**: Feature specification from `/specs/024-navigation/spec.md`
 
@@ -50,6 +50,18 @@ The approach, detailed in [research.md](./research.md):
   - an entry dialog with page and item pickers;
   - the Navigation block with a menu picker and collapse controls, drawing the draft on the
     canvas.
+- **Menu styles** (added 2026-10-20, FR-017a to FR-017d; NV-25 to NV-31):
+  - a site-wide `menuStyle` in the design tokens (look and eight colour token ids), additive
+    in design-tokens v1, edited in a new Menus section of the Design view and published with
+    the design;
+  - per-block overrides as Navigation props **without schema defaults**, so absent means
+    "follow the site";
+  - CSS in two layers: the token CSS emits `--qb-menu-*`, the block writes `--qb-nav-*` only
+    for its overrides, and the stylesheet reads `var(--qb-nav-x, var(--qb-menu-x))`;
+  - the look as a `qb-nav--look-*` class chosen by the renderer (style queries are not
+    available in Firefox);
+  - visited entries styled like unvisited ones, a focus ring that cannot be removed, and
+    contrast warnings computed in the admin only.
 
 ## Technical Context
 
@@ -154,7 +166,11 @@ this section).*
   - `specs/012-publishing-rendering/contracts/public-rendering.md`, `readers.md` and
     `publishing-api.yaml` (menu subject kind, Navigation section, CSP note);
   - `docs/contributing.md` (the block checklist names the menu contract for blocks that read
-    it), `docs/backlog.md` (#20 obligations).
+    it), `docs/backlog.md` (#20 obligations);
+  - **menu styles**: `docs/contracts/design-tokens.md` §2 and `design-tokens/v1.schema.json`
+    (`menuStyle`, from [contracts/menu-style.md](./contracts/menu-style.md)), with golden
+    examples and a `token-css` parity fixture; the `navigation` props in page-schema.md and
+    its schema.
 
 **Operator impact**:
 - **New configuration keys**: none.
@@ -179,6 +195,21 @@ this section).*
 - the menu contract has examples for every rule;
 - no raw SQL;
 - the CSP changes only on pages with a Navigation block.
+
+**Gate: PASS** (no new exception).
+
+**Re-check for menu styles (2026-10-20)**:
+
+| # | Principle | Effect of the addition |
+|---|---|---|
+| I | Modular monolith | No new reference edge: Rendering already reads the published design through Editor.Contracts; the token validator change is in the Editor module. |
+| II, III | Install, upgrade | No migration and no configuration key: `menuStyle` lives inside the stored token set. A set without it renders as before; `UpgradeFrom017Tests` stays green. |
+| VI | Versioned contracts | Additive in design-tokens v1 (like `contentWidths`) and in page-schema v1; golden examples on both validators; `TokenCss` and `tokenCss.ts` kept equal by a shared fixture. The `navigation` props lose their defaults, which is allowed because the node is unreleased. |
+| VII | Draft and published | Site styles reach visitors only with a design publish; block styles only with the page or component publish. |
+| VIII | Rendering | Server-rendered classes and custom properties; no script; a design publish already re-renders every page (design number in the render key). |
+| IX | Secure by default | Values are token ids validated by pattern and written only as `var(--qb-color-<id>)`; no raw colour from a block reaches CSS. |
+| X | Tests | NV-31: contract examples, parity fixture, golden HTML per look, the stylesheet cascade spec, contrast unit tests and axe. |
+| XI | Simplicity | Four looks and eight colours, no per-state free styling, no visited colour, no server contrast check. |
 
 **Gate: PASS** (no new exception).
 
@@ -277,6 +308,39 @@ tests/
 specs/001-foundation-skeleton/contracts/integration-events.md   # ~
 specs/002-identity-setup/contracts/authorization.md             # ~
 specs/012-publishing-rendering/contracts/public-rendering.md  readers.md  publishing-api.yaml   # ~
+```
+
+Menu styles (added 2026-10-20; NV-25 to NV-31):
+
+```text
+docs/contracts/
+~ design-tokens.md  design-tokens/v1.schema.json  design-tokens/examples/   # menuStyle
+~ page-schema/v1.schema.json  page-schema/examples/                         # navigation style props
+
+src/Modules/
+├── Editor/QuickBuilder.Editor/Infrastructure/TokenSetValidator.cs   # ~ embeds the updated schema
+└── Rendering/QuickBuilder.Rendering/
+    ~ Domain/TokenCss.cs                     # --qb-menu-* properties
+    ~ Rendering/Blocks/NavigationRenderer.cs # look class; --qb-nav-* only for present props
+
+src/admin/src/
+~ editor/tokens/tokenCss.ts  tokenValidator.ts   # --qb-menu-*; menuStyle validation
++ editor/tokens/contrast.ts                      # WCAG ratios, compositing (NV-29)
+~ editor/blocks/blocks.css                       # looks, two-layer colours, visited, focus
+~ editor/blocks/navigation/definition.ts  NavigationBlock.vue   # style props; look class
++ editor/panel/controls/MenuLookControl.vue      # look picker with "site default"
+~ editor/panel/PropertyPanel.vue                 # contrast warnings for the block
+~ features/design/DesignTokensView.vue           # + Menus section
++ features/design/MenuStyleSection.vue
+
+tests/
+~ fixtures/rendering/token-css/ (+ menu-style.json)  fixtures/rendering/golden/
+~ QuickBuilder.UnitTests/Rendering/Navigation/NavigationGoldenTests.cs
+~ QuickBuilder.IntegrationTests/Editor/DesignTokenContractTests.cs (menuStyle examples)
+src/admin/tests/
+~ editor/tokenCss.parity.spec.ts  + editor/contrast.spec.ts
+~ editor/navCollapseCss.spec.ts → navStyleCss.spec.ts
++ design/MenuStyleSection.spec.ts  ~ editor/NavigationBlock.spec.ts
 ```
 
 **Structure decision**:
