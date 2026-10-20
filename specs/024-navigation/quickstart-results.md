@@ -28,17 +28,14 @@ exception E-5).
 | Check | Date | Result |
 |---|---|---|
 | **SC-001**: build the 15-entry menu of §1 and place it (target: under 5 minutes) | 2026-10-21 | **Pass.** Built and placed with 15 entries; it ran normally and was very quick, well under the target by the tester's report. No exact stopwatch time was recorded. |
+| **§10 menu styles in a real browser**: each look, hover and focus by pointer and keyboard, visited entries, contrast warnings | 2026-10-21 | **Pass**, by the tester's report. |
+| **§8 with NVDA (Firefox) and VoiceOver (Safari)** | 2026-10-21 | **Not run**: the tester does not use these browsers or screen readers. Left open under exception E-5 (manual screen-reader checks until #25); the automated axe checks and keyboard specs in §8 pass. |
 
 ## Still to do by hand
 
-1. **§8 with NVDA (Firefox, Windows) and VoiceOver (Safari, macOS)**: on the published menu,
-   the `nav` landmark and its name, each disclosure's state, `aria-current="page"`, the
-   new-tab hint and the collapsed panel's button; in the menu editor, the Alt+arrow moves and
-   their announcements.
-2. **§10 in a real browser**: each look in the header and in a collapsed panel, hover and focus by
-   pointer and keyboard, visited entries unchanged, and the contrast warnings in Design and in
-   the block's panel.
-3. **§2 and §5 in a real browser at phone, tablet and desktop widths**, by keyboard and by
+1. **§8 with NVDA and VoiceOver**: not run (see above); needs someone with those browsers
+   and screen readers, or #25's automated replacement.
+2. **§2 and §5 in a real browser at phone, tablet and desktop widths**, by keyboard and by
    touch, with scripts on and off: every entry can be reached and opened (SC-006), the panel
    collapses at the chosen width, and the current path opens as FR-019a says.
 
