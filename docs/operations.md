@@ -814,6 +814,10 @@ a page, item or template change refreshes the pages whose menus point at it.
   policy must keep that `script-src` on those pages, or menus lose Escape and collapse
   handling. They stay usable either way: every submenu is a native disclosure, and the
   small-screen panel is written open.
+- **Menu styles**: the site-wide look and colours of menus are set in **Design**, under
+  Menus, and reach visitors when the design is published. Each Navigation block can override
+  any of them. Sites that set no menu style render exactly as before it existed. Colours that
+  are hard to read are warned about in the admin, never refused.
 - Menu names, labels and addresses are content: they never appear in logs or in the menu
   audit, which records ids and actions only.
 

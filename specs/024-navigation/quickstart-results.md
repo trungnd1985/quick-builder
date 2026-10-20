@@ -21,6 +21,7 @@ exception E-5).
 | §7 Performance (SC-005) | `STESTS/MenuRenderPerformanceTests.cs` on the reference compose setup | pass: miss p50 20.2 ms, **p95 66.1 ms** (budget 200 ms); hit p50 5.3 ms, **p95 11.0 ms** (budget 20 ms); page 114,203 bytes |
 | §8 Accessibility (SC-006), automated part | axe in `NavigationBlock.spec.ts`, `MenuEditorView.spec.ts`; keyboard behaviour in `navScript.spec.ts` | pass |
 | §9 Upgrade | `ITESTS/Rendering/UpgradeFrom017Tests.cs` | pass: same bodies, same policy, no stored document changed |
+| §10 Menu styles (SC-008) | `ITESTS/Rendering/MenuStyleRenderTests.cs`, `NavigationGoldenTests` (looks, overrides), `ADMINTESTS/editor/navStyleCss.spec.ts`, `ADMINTESTS/editor/contrast.spec.ts`, `ADMINTESTS/design/MenuStyleSection.spec.ts`, the `menu-style.json` token-CSS parity fixture | pass |
 
 ## Still to do by hand
 
@@ -30,7 +31,10 @@ exception E-5).
    the `nav` landmark and its name, each disclosure's state, `aria-current="page"`, the
    new-tab hint and the collapsed panel's button; in the menu editor, the Alt+arrow moves and
    their announcements.
-3. **§2 and §5 in a real browser at phone, tablet and desktop widths**, by keyboard and by
+3. **§10 in a real browser**: each look in the header and in a collapsed panel, hover and focus by
+   pointer and keyboard, visited entries unchanged, and the contrast warnings in Design and in
+   the block's panel.
+4. **§2 and §5 in a real browser at phone, tablet and desktop widths**, by keyboard and by
    touch, with scripts on and off: every entry can be reached and opened (SC-006), the panel
    collapses at the chosen width, and the current path opens as FR-019a says.
 

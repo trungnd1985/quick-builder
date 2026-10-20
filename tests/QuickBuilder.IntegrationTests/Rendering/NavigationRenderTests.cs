@@ -49,7 +49,7 @@ public sealed class NavigationRenderTests(DatabaseFixture database)
         await world.PublishedPostAsync("hello").ConfigureAwait(true);
 
         var about1 = await GetAsync(world, "/about").ConfigureAwait(true);
-        Assert.Contains("<nav class=\"qb-nav qb-nav--horizontal qb-nav--align-start\" aria-label=\"Main\"", about1.Body, StringComparison.Ordinal);
+        Assert.Contains("<nav class=\"qb-nav qb-nav--horizontal qb-nav--align-start qb-nav--look-link\" aria-label=\"Main\"", about1.Body, StringComparison.Ordinal);
         Assert.Contains($"href=\"/services\">{PagesApi.Title("services")}</a>", about1.Body, StringComparison.Ordinal);
         Assert.Contains($"script-src 'sha256-{NavScript.Hash}'", about1.Csp, StringComparison.Ordinal);
         var direct1 = await GetAsync(world, "/direct").ConfigureAwait(true);
