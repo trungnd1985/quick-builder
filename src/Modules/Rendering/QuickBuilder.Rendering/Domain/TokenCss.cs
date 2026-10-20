@@ -58,6 +58,13 @@ internal sealed partial class TokenCss
         return IdOf(defaultReference) is { } fallbackId ? Variable(kind, fallbackId) : fallback;
     }
 
+    /// <summary>
+    /// A token reference as CSS only when it names a token of the design; otherwise null, so a
+    /// caller can leave the declaration out and let a lower layer apply (024 research NV-26).
+    /// </summary>
+    public string? ValueIfSet(JsonElement? reference, TokenKind kind) =>
+        IdOf(reference) is { } id && _set.Has(kind, id) ? Variable(kind, id) : null;
+
     /// <summary>The custom property name for a token id.</summary>
     public static string Variable(TokenKind kind, string id) => $"var(--qb-{Prefix(kind)}-{id})";
 
@@ -67,6 +74,28 @@ internal sealed partial class TokenCss
     /// </summary>
     public (double Narrow, double Normal, double Wide) ContentWidths =>
         _set.ContentWidths ?? Defaults.ContentWidths ?? (720, 1_200, 1_440);
+
+    /// <summary>
+    /// The site's menu look (024 FR-017b), or null when the design does not choose one. A block's
+    /// own <c>look</c> wins over it; with neither, menus use <c>link</c>.
+    /// </summary>
+    public string? MenuLook => _set.MenuLook;
+
+    // 024 FR-017a (contracts/menu-style.md §2): the site layer every Navigation block falls back
+    // to. Only colours the site chose, naming a token of its set, are written; the built-in
+    // defaults are the stylesheet's last fallback, so a site without a menu style renders exactly
+    // as before it existed. Mirrors tokenCss.ts.
+    private static readonly (string Key, string Property)[] MenuProperties =
+    [
+        ("background", "--qb-menu-background"),
+        ("text", "--qb-menu-text"),
+        ("hoverText", "--qb-menu-hover-text"),
+        ("currentText", "--qb-menu-current-text"),
+        ("focus", "--qb-menu-focus"),
+        ("panelBackground", "--qb-menu-panel-background"),
+        ("hoverBackground", "--qb-menu-hover-background"),
+        ("currentBackground", "--qb-menu-current-background"),
+    ];
 
     private static string Prefix(TokenKind kind) => kind switch
     {
@@ -111,6 +140,14 @@ internal sealed partial class TokenCss
             yield return new("--qb-width-normal", $"{Number(widths.Normal)}px");
             yield return new("--qb-width-wide", $"{Number(widths.Wide)}px");
         }
+
+        foreach (var (key, property) in MenuProperties)
+        {
+            if (set.MenuColors.TryGetValue(key, out var id) && set.Has(TokenKind.Color, id))
+            {
+                yield return new(property, $"var(--qb-color-{id})");
+            }
+        }
     }
 
     // Sizes scale with the site's base size, not the document's root size (tokenCss.ts).
@@ -130,8 +167,12 @@ internal sealed partial class TokenCss
         string HeadingFont,
         string BodyFont,
         double BaseSizePx,
-        (double Narrow, double Normal, double Wide)? ContentWidths)
+        (double Narrow, double Normal, double Wide)? ContentWidths,
+        IReadOnlyDictionary<string, string> MenuColors,
+        string? MenuLook)
     {
+        private static readonly HashSet<string> Looks = new(StringComparer.Ordinal) { "link", "underline", "pill", "button" };
+
         public bool Has(TokenKind kind, string id) => kind switch
         {
             TokenKind.Color => Colors.Any(c => c.Id == id),
@@ -151,8 +192,20 @@ internal sealed partial class TokenCss
                 String(typography, "headingFont"),
                 String(typography, "bodyFont"),
                 Double(typography, "baseSizePx") ?? 16,
-                Widths(Property(document, "contentWidths")));
+                Widths(Property(document, "contentWidths")),
+                MenuColorsOf(Property(Property(document, "menuStyle"), "colors")),
+                Property(Property(document, "menuStyle"), "look") is { ValueKind: JsonValueKind.String } look && Looks.Contains(look.GetString()!)
+                    ? look.GetString()
+                    : null);
         }
+
+        // Only well-formed ids are kept: each becomes a var() name in a <style> element.
+        private static Dictionary<string, string> MenuColorsOf(JsonElement? colors) =>
+            colors is { ValueKind: JsonValueKind.Object } value
+                ? value.EnumerateObject()
+                    .Where(p => p.Value.ValueKind == JsonValueKind.String && TokenId().IsMatch(p.Value.GetString()!))
+                    .ToDictionary(p => p.Name, p => p.Value.GetString()!, StringComparer.Ordinal)
+                : [];
 
         private static IEnumerable<(string, double)> Scale(JsonElement? list) =>
             Items(list)

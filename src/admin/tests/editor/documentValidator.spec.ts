@@ -39,6 +39,10 @@ describe('document validator against the golden files', () => {
     expect(validateDocument(readJson(join(pageExamples, 'valid', 'component-page.json')), 'component')).toEqual({ valid: true })
   })
 
+  it('accepts a Navigation block in a component document (024)', () => {
+    expect(validateDocument(readJson(join(pageExamples, 'valid', 'component-with-navigation.json')), 'component')).toEqual({ valid: true })
+  })
+
   it('refuses a component reference inside a component document', () => {
     const result = validateDocument(readJson(join(pageExamples, 'valid', 'header-and-footer.json')), 'component')
 

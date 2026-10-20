@@ -94,6 +94,21 @@ public sealed class DesignTokensApiTests(DatabaseFixture database)
     }
 
     [Fact]
+    public async Task A_set_with_a_menu_style_reads_back_unchanged()
+    {
+        // 024 FR-017a (tasks T083): the site-wide menu style is stored with the set, as written.
+        using var scenario = await PagesScenario.CreateAsync(database, "ed-tokens-menustyle").ConfigureAwait(true);
+        var node = System.Text.Json.Nodes.JsonNode.Parse(EditorApi.DefaultDocument)!.AsObject();
+        node["menuStyle"] = System.Text.Json.Nodes.JsonNode.Parse("""{ "look": "pill", "colors": { "background": "color-text", "focus": "color-gone" } }""");
+
+        await PagesApi.OkAsync(await EditorApi.SaveAsync(scenario.Admin, scenario.SiteA, node.ToJsonString(), 0).ConfigureAwait(true)).ConfigureAwait(true);
+        var read = await EditorApi.GetOkAsync(scenario.Admin, scenario.SiteA).ConfigureAwait(true);
+
+        var style = read.GetProperty("document").GetProperty("menuStyle");
+        Assert.True(System.Text.Json.Nodes.JsonNode.DeepEquals(node["menuStyle"], System.Text.Json.Nodes.JsonNode.Parse(style.GetRawText())));
+    }
+
+    [Fact]
     public async Task A_save_based_on_an_old_version_is_out_of_date()
     {
         using var scenario = await PagesScenario.CreateAsync(database, "ed-tokens-stale").ConfigureAwait(true);

@@ -24,6 +24,7 @@ export const OP_REFUSALS: readonly (OpRefusalCode | 'needs_section' | 'clipboard
   'into_itself',
   'read_only',
   'no_collections',
+  'no_menus',
   'list_slot',
   'needs_section',
   'clipboard_empty',

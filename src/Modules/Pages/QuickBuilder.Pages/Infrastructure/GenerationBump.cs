@@ -12,8 +12,9 @@ namespace QuickBuilder.Pages.Infrastructure;
 /// Rendering keys each cached page by its generation, read from the database on every
 /// request. Incrementing it here, in the transaction of the change, is therefore all it takes
 /// for every instance to serve the new content at its next request — no cache is ever told
-/// anything. The pages affected by a target are those that depend on it directly and those
-/// that show a component that depends on it; components do not nest, so two levels is all.
+/// anything. The pages affected by a target are those that depend on it directly, those that
+/// show a component that depends on it, and (024) those that show a menu pointing at it, also
+/// through a component; menus and components do not nest, so three levels is all.
 /// <para>
 /// One set-based <c>UPDATE</c> through EF Core, with the site named explicitly: the admin
 /// surface has no resolved site, so the query filter would match nothing, and the explicit
@@ -105,14 +106,26 @@ internal sealed class GenerationBump(PagesDbContext database, ICollectionSchemaR
             .Where(p => p.SubjectKind == SubjectKinds.Page && p.LiveVersionId != null)
             .ExecuteUpdateAsync(s => s.SetProperty(p => p.Generation, p => p.Generation + 1), cancellationToken);
 
-    /// <summary>The pages that depend on any target, directly or through a component.</summary>
+    /// <summary>
+    /// The pages that depend on any target, directly, through a menu they show, or through a
+    /// component (024 data-model §3). Menus do not nest and components do not nest, so the walk
+    /// is three queries at most: targets → pages, components, menus; menus → pages, components;
+    /// components → pages.
+    /// </summary>
     public async Task<HashSet<Guid>> AffectedPagesAsync(
         Guid siteId, IReadOnlyCollection<(string Kind, Guid Id)> targets, CancellationToken cancellationToken)
     {
         var dependents = await DependentsAsync(siteId, targets, cancellationToken).ConfigureAwait(false);
 
+        // 024 NV-07: a page or item a menu points at reaches the pages and components showing the menu.
+        var menus = dependents.Where(d => d.Kind == SubjectKinds.Menu).Select(d => (DependencyKinds.Menu, d.Id)).ToList();
+        if (menus.Count > 0)
+        {
+            dependents.AddRange(await DependentsAsync(siteId, menus, cancellationToken).ConfigureAwait(false));
+        }
+
         var pages = dependents.Where(d => d.Kind == SubjectKinds.Page).Select(d => d.Id).ToHashSet();
-        var components = dependents.Where(d => d.Kind == SubjectKinds.Component).Select(d => (DependencyKinds.Component, d.Id)).ToList();
+        var components = dependents.Where(d => d.Kind == SubjectKinds.Component).Select(d => (DependencyKinds.Component, d.Id)).Distinct().ToList();
 
         if (components.Count > 0)
         {

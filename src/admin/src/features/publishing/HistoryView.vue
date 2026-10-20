@@ -5,11 +5,13 @@
 // ask first. The server checks every action; the permissions only decide what is offered.
 import { computed, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { menusApi } from '../../api/menus'
 import { pagesApi } from '../../api/pages'
 import { publishingApi, type LogEntry, type SubjectHistory, type SubjectKind } from '../../api/publishing'
 import ConfirmDialog from '../sites/ConfirmDialog.vue'
 import PublicationBadge from './PublicationBadge.vue'
 import { publishingErrorMessage } from './errorMessages'
+import { currentDraftVersion, listRoute, versionRoute as routeToVersion } from './subjects'
 
 const props = defineProps<{ siteId: string; kind: SubjectKind; subjectId: string }>()
 
@@ -30,7 +32,7 @@ const pending = ref<Pending | null>(null)
 
 const liveNumber = computed(() => history.value?.publication.liveNumber ?? null)
 const retained = computed(() => new Set(history.value?.retainedVersions ?? []))
-const backTo = computed(() => ({ name: props.kind === 'page' ? 'site-pages' : 'site-components', params: { siteId: props.siteId } }))
+const backTo = computed(() => listRoute(props.kind, props.siteId))
 
 /** Entries that made a version live; those versions can be viewed and restored while kept. */
 const MAKES_VERSION = new Set(['publish', 'scheduled_publish', 'rollback'])
@@ -51,9 +53,7 @@ function who(entry: LogEntry): string {
 }
 
 function versionRoute(number: number) {
-  return props.kind === 'page'
-    ? { name: 'page-version', params: { siteId: props.siteId, pageId: props.subjectId, number: String(number) } }
-    : { name: 'component-version', params: { siteId: props.siteId, componentId: props.subjectId, number: String(number) } }
+  return routeToVersion(props.kind, props.siteId, props.subjectId, number)
 }
 
 async function load(): Promise<void> {
@@ -77,6 +77,11 @@ async function details(): Promise<void> {
     title.value = page.title
     canPublish.value = page.permissions?.canPublish === true
     canEditDraft.value = page.permissions?.canEditPageDrafts === true
+  } else if (props.kind === 'menu') {
+    const menu = await menusApi.get(props.siteId, props.subjectId)
+    title.value = menu.name
+    canPublish.value = menu.permissions.canPublish
+    canEditDraft.value = menu.permissions.canManage
   } else {
     const [component, list] = await Promise.all([
       pagesApi.getComponent(props.siteId, props.subjectId),
@@ -102,10 +107,8 @@ async function confirm(): Promise<void> {
       const publication = await publishingApi.rollback(props.siteId, props.kind, props.subjectId, action.number)
       status.value = t('publishing.history.rolledBack', { number: action.number, newNumber: publication.liveNumber ?? 0 })
     } else {
-      const draft = props.kind === 'page'
-        ? await pagesApi.pageDraft(props.siteId, props.subjectId)
-        : await pagesApi.componentDraft(props.siteId, props.subjectId)
-      await publishingApi.copyToDraft(props.siteId, props.kind, props.subjectId, action.number, draft.version)
+      const draftVersion = await currentDraftVersion(props.kind, props.siteId, props.subjectId)
+      await publishingApi.copyToDraft(props.siteId, props.kind, props.subjectId, action.number, draftVersion)
       status.value = t('publishing.history.copied', { number: action.number })
     }
     pending.value = null
@@ -225,8 +228,9 @@ async function confirm(): Promise<void> {
                 class="page-toolbar"
               >
                 <RouterLink
+                  v-if="versionRoute(entry.versionNumber!)"
                   class="button-link"
-                  :to="versionRoute(entry.versionNumber!)"
+                  :to="versionRoute(entry.versionNumber!)!"
                   :aria-label="`${t('publishing.history.view')}: ${t('publishing.history.version', { number: entry.versionNumber })}`"
                 >
                   {{ t('publishing.history.view') }}

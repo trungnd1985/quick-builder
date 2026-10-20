@@ -166,6 +166,10 @@ watch(siteId, load)
         <RouterLink :to="{ name: 'site-components', params: { siteId: site.id } }">
           {{ t('sites.detail.components') }}
         </RouterLink>
+        <!-- 024: menus, shown by Navigation blocks; Editors see them read-only. -->
+        <RouterLink :to="{ name: 'site-menus', params: { siteId: site.id } }">
+          {{ t('sites.detail.menus') }}
+        </RouterLink>
         <RouterLink :to="{ name: 'site-collections', params: { siteId: site.id } }">
           {{ t('sites.detail.collections') }}
         </RouterLink>

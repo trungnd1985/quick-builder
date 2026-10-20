@@ -3,17 +3,20 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/vue'
 import { createMemoryHistory, createRouter } from 'vue-router'
 import DeleteItemDialog from '../../../src/features/cms/items/DeleteItemDialog.vue'
 import type { Item } from '../../../src/api/items'
-import { COLLECTION, en, i18n, item, problem, SITE, stubFetch, violations, type Reply } from './itemHarness'
+import { COLLECTION, en, i18n, item, ITEM, problem, SITE, stubFetch, violations, type Reply } from './itemHarness'
 
 // 015 US5: deleting is confirmed, says when the item is live, and lists the items that refer to it.
 
-async function renderDialog(current: Item, reply: Reply) {
-  const calls = stubFetch(() => reply)
+const NO_MENUS: Reply = { status: 200, body: { items: [] } }
+
+async function renderDialog(current: Item, reply: Reply, menus: Reply = NO_MENUS) {
+  const calls = stubFetch((call) => (call.url.includes('/menus/references') ? menus : reply))
   const router = createRouter({
     history: createMemoryHistory(),
     routes: [
       { path: '/', component: { template: '<div />' } },
       { path: '/sites/:siteId/collections/:collectionId/items/:itemId', name: 'site-collection-item', component: { template: '<div />' } },
+      { path: '/sites/:siteId/menus/:menuId', name: 'site-menu', component: { template: '<div />' } },
     ],
   })
   await router.push('/')
@@ -30,7 +33,20 @@ describe('DeleteItemDialog', () => {
     await fireEvent.click(screen.getByRole('button', { name: en.cms.items.delete.delete }))
 
     await waitFor(() => expect(emitted().deleted).toBeTruthy())
-    expect(calls[0]!.url).toContain('?revision=3')
+    expect(calls.find((c) => c.method === 'DELETE')!.url).toContain('?revision=3')
+  })
+
+  it('names the menus that point at the item before it is deleted (024 FR-026)', async () => {
+    const menus = [
+      { menuId: 'm1', name: 'Footer', inDraft: true, inLive: false },
+      { menuId: 'm2', name: 'Main', inDraft: true, inLive: true },
+    ]
+    const { calls } = await renderDialog(item({ status: 'published' }), { status: 204 }, { status: 200, body: { items: menus } })
+
+    expect(await screen.findByRole('link', { name: 'Main' })).toBeTruthy()
+    expect(screen.getByRole('link', { name: en.menus.references.draftOnly.replace('{name}', 'Footer') })).toBeTruthy()
+    expect(screen.getByText(en.menus.references.delete.split(' | ')[1].replace('{count}', '2'))).toBeTruthy()
+    expect(calls.some((c) => c.url.endsWith(`/menus/references?itemId=${ITEM}`))).toBe(true)
   })
 
   it('lists the referring items when refused, with links', async () => {

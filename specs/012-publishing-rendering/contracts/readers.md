@@ -119,6 +119,17 @@ it to `RoutePrefixes.PublicReservedPrefixes`.
 
 ---
 
+### Added by 024
+
+- `IPublishedContentReader.GetLiveMenusAsync(siteId, menuIds)` returns the live version of each
+  menu that has one, as `LiveMenu(SchemaVersion, Document, Name)`; `Name` is the menu's name
+  when that version was published. Absent ids are not live, or not of the site.
+- `PageLinkTarget` gains a trailing `LiveTitle`: the title visitors saw last (the live
+  version's, or the last published one's once unpublished), for menu entries without their own
+  label. Null for a page never published and for a template.
+
+See [024 module-surface.md](../../024-navigation/contracts/module-surface.md) §2.
+
 ### Added by 017
 
 - `IPublishedContentReader.GetLiveAncestorsAsync(siteId, pageId)`: the live home page, then

@@ -12,7 +12,9 @@ import ConfirmDialog from '../sites/ConfirmDialog.vue'
 import RedirectToPagePicker, { type PickablePage } from '../../components/RedirectToPagePicker.vue'
 import PublicationBadge from './PublicationBadge.vue'
 import ScheduleDialog from './ScheduleDialog.vue'
+import MenuReferencesNote from '../menus/MenuReferencesNote.vue'
 import { publishingErrorMessage } from './errorMessages'
+import { currentDraftVersion, currentPublication, historyRoute as routeToHistory, historyRouteName } from './subjects'
 
 const props = defineProps<{
   siteId: string
@@ -66,19 +68,13 @@ const isPublished = computed(() => props.publication?.state === 'published')
 
 // Offered where the app routes to it; the shell always does.
 const router = inject(routerKey, null)
-const hasHistory = computed(() => router?.hasRoute(props.kind === 'page' ? 'page-history' : 'component-history') === true)
+const hasHistory = computed(() => router?.hasRoute(historyRouteName(props.kind)) === true)
 
-const historyRoute = computed(() =>
-  props.kind === 'page'
-    ? { name: 'page-history', params: { siteId: props.siteId, pageId: props.subjectId } }
-    : { name: 'component-history', params: { siteId: props.siteId, componentId: props.subjectId } })
+const historyRoute = computed(() => routeToHistory(props.kind, props.siteId, props.subjectId))
 
 async function draftVersion(): Promise<number | null> {
   if (props.beforePublish) return props.beforePublish()
-  const draft = props.kind === 'page'
-    ? await pagesApi.pageDraft(props.siteId, props.subjectId)
-    : await pagesApi.componentDraft(props.siteId, props.subjectId)
-  return draft.version
+  return currentDraftVersion(props.kind, props.siteId, props.subjectId)
 }
 
 async function run(action: () => Promise<Publication>, message: (p: Publication) => string): Promise<void> {
@@ -128,12 +124,7 @@ async function unpublish(): Promise<void> {
 /** After a schedule is set, changed or cancelled: the fresh publication, schedules and all. */
 async function scheduled(): Promise<void> {
   scheduling.value = false
-  await run(async () => {
-    const subject = props.kind === 'page'
-      ? await pagesApi.get(props.siteId, props.subjectId)
-      : await pagesApi.getComponent(props.siteId, props.subjectId)
-    return subject.publication
-  }, () => t('publishing.schedule.updated'))
+  await run(() => currentPublication(props.kind, props.siteId, props.subjectId), () => t('publishing.schedule.updated'))
 }
 </script>
 
@@ -223,6 +214,13 @@ async function scheduled(): Promise<void> {
       @confirm="unpublish"
       @cancel="confirmingUnpublish = false"
     >
+      <!-- 024 FR-026: the menus that link here lose that entry while it is unpublished. -->
+      <MenuReferencesNote
+        v-if="kind === 'page'"
+        :site-id="siteId"
+        :target="{ pageId: subjectId }"
+        action="unpublish"
+      />
       <RedirectToPagePicker
         v-if="kind === 'page'"
         id="publish-unpublish-redirect"

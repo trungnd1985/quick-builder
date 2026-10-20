@@ -29,6 +29,27 @@ internal static class ContractFiles
         }
     }
 
+    /// <summary>The menu contract's golden examples (docs/contracts/menu.md §7, 024).</summary>
+    public static string MenuExamplesDirectory => Path.Combine(Root, "docs", "contracts", "menu", "examples");
+
+    public static IEnumerable<string> ValidMenuExamples() =>
+        Directory.GetFiles(Path.Combine(MenuExamplesDirectory, "valid"), "*.json").Order(StringComparer.Ordinal);
+
+    /// <summary>Every invalid menu example with the rule and pointer its <c>expected.json</c> gives.</summary>
+    public static IEnumerable<(string File, string Rule, string Pointer)> InvalidMenuExamples()
+    {
+        var directory = Path.Combine(MenuExamplesDirectory, "invalid");
+        using var expected = JsonDocument.Parse(File.ReadAllText(Path.Combine(directory, "expected.json")));
+
+        foreach (var entry in expected.RootElement.EnumerateObject().Where(e => !e.Name.StartsWith('$')))
+        {
+            yield return (
+                Path.Combine(directory, entry.Name),
+                entry.Value.GetProperty("rule").GetString()!,
+                entry.Value.GetProperty("pointer").GetString()!);
+        }
+    }
+
     private static string FindRepositoryRoot()
     {
         for (var directory = new DirectoryInfo(AppContext.BaseDirectory); directory is not null; directory = directory.Parent)

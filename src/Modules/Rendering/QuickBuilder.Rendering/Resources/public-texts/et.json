@@ -9,5 +9,10 @@
     "previous": "Eelmine",
     "next": "Järgmine",
     "first": "Tagasi esimesele lehele"
+  },
+  "navigation": {
+    "menu": "Menüü",
+    "showSubmenu": "Näita alammenüüd: {0}",
+    "newTab": "(avaneb uuel vahelehel)"
   }
 }

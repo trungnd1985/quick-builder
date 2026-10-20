@@ -139,6 +139,9 @@ public sealed class NestedListFetchTests
         public Task<IReadOnlyDictionary<Guid, LiveDocument>> GetLiveComponentsAsync(
             Guid siteId, IReadOnlyCollection<Guid> componentIds, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 
+        public Task<IReadOnlyDictionary<Guid, LiveMenu>> GetLiveMenusAsync(
+            Guid siteId, IReadOnlyCollection<Guid> menuIds, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+
         public Task<IReadOnlyDictionary<Guid, PageLinkTarget>> GetLinkTargetsAsync(
             Guid siteId, IReadOnlyCollection<Guid> pageIds, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 

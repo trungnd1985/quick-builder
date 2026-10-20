@@ -1,0 +1,85 @@
+{
+  "schemaVersion": 1,
+  "entries": [
+    {
+      "id": "home",
+      "target": {
+        "type": "page",
+        "pageId": "0192f5a0-1b2c-7d3e-8f40-5a6b7c8d9e10"
+      },
+      "children": []
+    },
+    {
+      "id": "services",
+      "label": "Our services",
+      "target": {
+        "type": "page",
+        "pageId": "0192f5a0-1b2c-7d3e-8f40-5a6b7c8d9e11"
+      },
+      "children": []
+    },
+    {
+      "id": "latest",
+      "target": {
+        "type": "item",
+        "collectionId": "0192f5a0-1b2c-7d3e-8f40-5a6b7c8d9e20",
+        "itemId": "0192f5a0-1b2c-7d3e-8f40-5a6b7c8d9e21"
+      },
+      "children": []
+    },
+    {
+      "id": "post",
+      "label": "Latest post",
+      "target": {
+        "type": "item",
+        "collectionId": "0192f5a0-1b2c-7d3e-8f40-5a6b7c8d9e20",
+        "itemId": "0192f5a0-1b2c-7d3e-8f40-5a6b7c8d9e21"
+      },
+      "children": []
+    },
+    {
+      "id": "status",
+      "label": "Status",
+      "target": {
+        "type": "url",
+        "href": "https://status.example"
+      },
+      "children": []
+    },
+    {
+      "id": "mail",
+      "label": "Write to us",
+      "target": {
+        "type": "url",
+        "href": "mailto:hello@example.com"
+      },
+      "children": []
+    },
+    {
+      "id": "call",
+      "label": "Call",
+      "target": {
+        "type": "url",
+        "href": "tel:+84 24 1234 5678"
+      },
+      "children": []
+    },
+    {
+      "id": "top",
+      "label": "Back to top",
+      "target": {
+        "type": "anchor",
+        "anchor": "top"
+      },
+      "children": []
+    },
+    {
+      "id": "company",
+      "label": "Company",
+      "target": {
+        "type": "none"
+      },
+      "children": []
+    }
+  ]
+}

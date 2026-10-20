@@ -9,5 +9,10 @@
     "previous": "Predchádzajúca",
     "next": "Ďalšia",
     "first": "Späť na prvú stránku"
+  },
+  "navigation": {
+    "menu": "Ponuka",
+    "showSubmenu": "Zobraziť podponuku: {0}",
+    "newTab": "(otvorí sa na novej karte)"
   }
 }

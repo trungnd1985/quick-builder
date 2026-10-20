@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "entries": [
+    {
+      "id": "services",
+      "target": {
+        "type": "page",
+        "pageId": "0192f5a0-1b2c-7d3e-8f40-5a6b7c8d9e10"
+      },
+      "children": [
+        {
+          "id": "hosting",
+          "target": {
+            "type": "page",
+            "pageId": "0192f5a0-1b2c-7d3e-8f40-5a6b7c8d9e11"
+          },
+          "children": [
+            {
+              "id": "managed",
+              "target": {
+                "type": "page",
+                "pageId": "0192f5a0-1b2c-7d3e-8f40-5a6b7c8d9e12"
+              },
+              "children": []
+            },
+            {
+              "id": "status",
+              "label": "Status",
+              "target": {
+                "type": "url",
+                "href": "https://status.example"
+              },
+              "children": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "company",
+      "label": "Company",
+      "target": {
+        "type": "none"
+      },
+      "children": [
+        {
+          "id": "about",
+          "target": {
+            "type": "page",
+            "pageId": "0192f5a0-1b2c-7d3e-8f40-5a6b7c8d9e12"
+          },
+          "children": [
+            {
+              "id": "careers",
+              "target": {
+                "type": "page",
+                "pageId": "0192f5a0-1b2c-7d3e-8f40-5a6b7c8d9e11"
+              },
+              "children": []
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

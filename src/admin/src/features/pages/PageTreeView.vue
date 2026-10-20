@@ -9,6 +9,7 @@ import PublicationBadge from '../publishing/PublicationBadge.vue'
 import PublishMenu from '../publishing/PublishMenu.vue'
 import { liveAddressCount } from '../publishing/addressWarning'
 import ConfirmDialog from '../sites/ConfirmDialog.vue'
+import MenuReferencesNote from '../menus/MenuReferencesNote.vue'
 import RedirectOfferCheckbox from '../../components/RedirectOfferCheckbox.vue'
 import RedirectToPagePicker from '../../components/RedirectToPagePicker.vue'
 import type { RedirectOutcome } from '../../api/pages'
@@ -721,6 +722,12 @@ function whoSaved(value: PageDetail): string {
       @confirm="confirm"
       @cancel="close"
     >
+      <!-- 024 FR-026: the menus that point here keep a broken entry, which visitors do not see. -->
+      <MenuReferencesNote
+        :site-id="siteId"
+        :target="{ pageId: dialog.page.id }"
+        action="delete"
+      />
       <RedirectToPagePicker
         id="page-delete-redirect"
         v-model="redirectToPageId"

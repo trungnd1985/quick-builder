@@ -1,16 +1,12 @@
 <script setup lang="ts">
 // 017 US5 (FR-032): when a live page or item stops being live, its address can send visitors
 // to a page of the site instead of the not-found page. Unticked by default: taking content
-// down is often meant to make it disappear.
+// down is often meant to make it disappear. The page itself is chosen with PagePicker (024).
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import PagePicker, { type PickablePage } from './PagePicker.vue'
 
-export interface PickablePage {
-  id: string
-  title: string
-  path: string
-  templateCollectionId?: string | null
-}
+export type { PickablePage }
 
 const props = defineProps<{
   id: string
@@ -45,23 +41,13 @@ watch([wanted, chosen], ([on, id]) => {
       >
       {{ t('redirects.offer.toPage') }}
     </label>
-    <div
+    <PagePicker
       v-if="wanted"
-      class="field"
-    >
-      <label :for="`${id}-page`">{{ t('redirects.offer.page') }}</label>
-      <select
-        :id="`${id}-page`"
-        v-model="chosen"
-      >
-        <option
-          v-for="page in choices"
-          :key="page.id"
-          :value="page.id"
-        >
-          {{ page.title }} ({{ page.path }})
-        </option>
-      </select>
-    </div>
+      :id="`${id}-page`"
+      v-model="chosen"
+      :label="t('redirects.offer.page')"
+      :pages="pages"
+      :except-page-id="exceptPageId"
+    />
   </div>
 </template>

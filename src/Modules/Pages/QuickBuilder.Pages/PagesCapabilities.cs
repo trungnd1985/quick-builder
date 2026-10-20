@@ -33,6 +33,12 @@ internal static class PagesCapabilities
     /// </summary>
     public const string RedirectsManage = "pages.redirects.manage";
 
+    /// <summary>
+    /// Create, rename, duplicate and delete menus, and save their drafts. Designer (024 research
+    /// NV-18). Viewing needs <see cref="ContentView"/>; publishing, the publishing capability.
+    /// </summary>
+    public const string MenusManage = "pages.menus.manage";
+
     public static IEnumerable<CapabilityDefinition> All =>
     [
         new(ContentView, CapabilityScope.Site, [SystemRole.Designer, SystemRole.Editor]),
@@ -47,5 +53,8 @@ internal static class PagesCapabilities
 
         // 017: Designers shape the site's addresses, so they manage redirects.
         new(RedirectsManage, CapabilityScope.Site, [SystemRole.Designer]),
+
+        // 024: menus shape the site's structure, so Designers build them ("Designer builds").
+        new(MenusManage, CapabilityScope.Site, [SystemRole.Designer]),
     ];
 }

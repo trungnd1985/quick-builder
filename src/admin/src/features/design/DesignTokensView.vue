@@ -14,11 +14,12 @@ import { editorApi, type DesignTokens } from '../../api/editor'
 import type { DesignPublication } from '../../api/publishing'
 import { pagesApi } from '../../api/pages'
 import { serverKey } from '../../editor/editorErrors'
-import { defaultTokens, type TokenSet } from '../../editor/tokens/defaultTokens'
+import { defaultTokens, type MenuStyle, type TokenSet } from '../../editor/tokens/defaultTokens'
 import { validateTokenSet } from '../../editor/tokens/tokenValidator'
 import ColorList from './ColorList.vue'
 import FontSelect from './FontSelect.vue'
 import ScaleList from './ScaleList.vue'
+import MenuStyleSection from './MenuStyleSection.vue'
 import DesignPublishPanel from '../publishing/DesignPublishPanel.vue'
 
 const { t } = useI18n()
@@ -142,6 +143,13 @@ async function saveBeforePublish(): Promise<number | null> {
     if (error.value) return null
   }
   return loaded.value.version
+}
+
+/** 024 FR-017a: the site-wide menu style; absent when nothing is chosen, as the contract keeps it. */
+function setMenuStyle(style: MenuStyle | undefined): void {
+  if (!draft.value) return
+  if (style) draft.value.menuStyle = style
+  else delete draft.value.menuStyle
 }
 
 function published(publication: DesignPublication): void {
@@ -314,6 +322,12 @@ function published(publication: DesignPublication): void {
           >
         </template>
       </fieldset>
+
+      <MenuStyleSection
+        :tokens="draft"
+        :read-only="readOnly"
+        @change="setMenuStyle"
+      />
     </template>
   </div>
 </template>

@@ -165,6 +165,13 @@ internal sealed class VersionRow : ISiteOwned
     public string Document { get; set; } = string.Empty;
 
     public string? Title { get; set; }
+
+    /// <summary>024 NV-09: which subject, and which of its versions, for the title visitors saw last.</summary>
+    public string SubjectKind { get; set; } = string.Empty;
+
+    public Guid SubjectId { get; set; }
+
+    public int Number { get; set; }
 }
 
 /// <summary>The columns of <c>pages.redirects</c> the public path reads (017 research SE-10).</summary>

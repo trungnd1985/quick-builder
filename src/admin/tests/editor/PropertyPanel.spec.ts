@@ -34,7 +34,7 @@ describe('PropertyPanel (US2)', () => {
   })
 
   it.each(blockTypes)('shows exactly the properties of a %s, plus its layer label', async (type) => {
-    const initial = registry[type].initialProps((key) => key, { collectionIds: [COLLECTION] })!
+    const initial = registry[type].initialProps((key) => key, { collectionIds: [COLLECTION], menuIds: ['0192f5a0-0000-7000-8000-00000000d001'] })!
     stubServer(type === 'section'
       ? documentWith({ id: 'x', type, props: initial, children: [] })
       : one({ id: 'x', type, props: initial, children: [] }))
@@ -47,6 +47,15 @@ describe('PropertyPanel (US2)', () => {
     // `bind` is edited through the binding control beside each bindable property (016 TB-14).
     expect(shown).toEqual(propNames(type).filter((p) => p !== 'bind').sort())
     expect(await violations(container)).toEqual([])
+  })
+
+  it('labels the unset colour of other blocks with their own default (024 FR-016: other blocks unchanged)', async () => {
+    stubServer(one({ id: 'h', type: 'heading', props: { text: 'Hello' }, children: [] }))
+    await mountEditor()
+    useEditorStore().select('h')
+
+    const colour = await within(panel()).findByLabelText(en.editor.panel.props.color) as HTMLSelectElement
+    expect(colour.options[0].textContent?.trim()).toBe(en.editor.panel.token.default.replace('{name}', 'Text'))
   })
 
   it('applies a change to the block at once', async () => {

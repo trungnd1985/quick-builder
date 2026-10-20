@@ -46,7 +46,7 @@ public sealed class BlockDefaultsTests
     public void Every_node_type_of_the_schema_is_known()
     {
         Assert.Equal(
-            ["button", "collection-list", "component-ref", "container", "divider", "embed", "heading", "image", "list-card", "list-empty", "rich-text", "root", "section", "spacer", "text"],
+            ["button", "collection-list", "component-ref", "container", "divider", "embed", "heading", "image", "list-card", "list-empty", "navigation", "rich-text", "root", "section", "spacer", "text"],
             Defaults.Types.Order(StringComparer.Ordinal));
     }
 }

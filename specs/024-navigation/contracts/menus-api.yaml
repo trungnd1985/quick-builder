@@ -1,0 +1,332 @@
+openapi: 3.1.0
+info:
+  title: QuickBuilder admin API additions for navigation and menus
+  version: v1
+  description: |
+    Admin API additions and changes for specs/024-navigation (research NV-01, NV-06, NV-16 to NV-19).
+    Every operation is site-scoped and declares one capability:
+    - `pages.content.view` (every site role): list, get, preview, usages, references.
+    - `pages.menus.manage` (Designer): create, rename, duplicate, delete, save draft.
+    - `pages.publishing.manage` (Designer): publish, unpublish, rollback, schedules.
+    - `pages.content.view` also covers history and versions; copy-to-draft needs `pages.menus.manage`.
+    A user with no role on the site gets the same `404` as for a site that does not exist.
+    Errors are `application/problem+json` with `errorCode` (data-model.md §4.2).
+    Changed operations: page and component publish, rollback and scheduled runs now refuse
+    `409 pages.unpublished_menus` and `409 pages.version_missing_menus`. Page and component
+    draft saves accept the `navigation` node type and maintain `menu_usages`. Their shapes are
+    unchanged.
+paths:
+  /api/v1/pages/sites/{siteId}/menus:
+    parameters:
+      - $ref: '#/components/parameters/SiteId'
+    get:
+      summary: List the site's menus
+      x-capability: pages.content.view
+      responses:
+        '200':
+          description: Every menu of the site (at most 50), by name, and what the caller may do.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items, limit, permissions]
+                properties:
+                  items: { type: array, items: { $ref: '#/components/schemas/MenuSummary' } }
+                  limit: { type: integer, const: 50 }
+                  permissions: { $ref: '#/components/schemas/MenuPermissions' }
+    post:
+      summary: Create a menu, or duplicate one
+      x-capability: pages.menus.manage
+      description: |
+        With `duplicateOf`, the new menu's draft is a copy of that menu's draft; nothing is
+        published. Refused with `pages.invalid_menu_name`, `409 pages.duplicate_menu_name` or
+        `409 pages.menu_limit_reached`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              additionalProperties: false
+              properties:
+                name: { type: string, maxLength: 100 }
+                duplicateOf: { type: string, format: uuid }
+      responses:
+        '201':
+          description: The menu.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Menu' }
+
+  /api/v1/pages/sites/{siteId}/menus/{menuId}:
+    parameters:
+      - $ref: '#/components/parameters/SiteId'
+      - $ref: '#/components/parameters/MenuId'
+    get:
+      summary: One menu with its draft, publication state and target states
+      x-capability: pages.content.view
+      responses:
+        '200':
+          description: The menu.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Menu' }
+    put:
+      summary: Rename a menu (as components are renamed)
+      x-capability: pages.menus.manage
+      description: Refused with `pages.invalid_menu_name`, `409 pages.duplicate_menu_name`, `409 pages.out_of_date`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, version]
+              additionalProperties: false
+              properties:
+                name: { type: string, maxLength: 100 }
+                version: { type: integer }
+      responses:
+        '200':
+          description: The menu.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Menu' }
+    delete:
+      summary: Delete a menu
+      x-capability: pages.menus.manage
+      description: |
+        Refused with `409 pages.menu_in_use_by_published_content` (with `pages` and
+        `components` counts) while a live page or component shows the menu (FR-003). Otherwise
+        removes the menu, its draft, publication, versions, schedules and indexes, and records
+        `deleted` in the publish log when it had history. Drafts that used it keep a dangling
+        `menuId`. Call `…/usages` first to show the confirmation.
+      parameters:
+        - { name: version, in: query, required: true, schema: { type: integer } }
+      responses:
+        '204': { description: Deleted. }
+
+  /api/v1/pages/sites/{siteId}/menus/{menuId}/draft:
+    parameters:
+      - $ref: '#/components/parameters/SiteId'
+      - $ref: '#/components/parameters/MenuId'
+    put:
+      summary: Save the menu's draft
+      x-capability: pages.menus.manage
+      description: |
+        Validates the menu document (menu.md §4) and rewrites `menu_targets`. Refused with
+        `400 pages.invalid_menu_document` (`rule`, `pointer`), `413 pages.document_too_large`,
+        `409 pages.out_of_date` (stale `version`). Records `draft_saved` in `menu_changes`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [document, version]
+              additionalProperties: false
+              properties:
+                document: { $ref: '#/components/schemas/MenuDocument' }
+                version: { type: integer, description: The draft version the member last saw. }
+      responses:
+        '200':
+          description: The menu, with the new draft version and target states.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Menu' }
+
+  /api/v1/pages/sites/{siteId}/menus/{menuId}/preview:
+    parameters:
+      - $ref: '#/components/parameters/SiteId'
+      - $ref: '#/components/parameters/MenuId'
+    get:
+      summary: The draft resolved for the editor canvas (FR-018, NV-16)
+      x-capability: pages.content.view
+      description: |
+        Display labels (own label, else the page's current title or the item's name), target
+        states and depth. Hidden entries are included with `hidden: true` so the canvas can
+        show them faded. No addresses are resolved: links never navigate in the canvas.
+      responses:
+        '200':
+          description: The resolved draft.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [menuId, name, entries]
+                properties:
+                  menuId: { type: string, format: uuid }
+                  name: { type: string }
+                  entries: { type: array, items: { $ref: '#/components/schemas/PreviewEntry' } }
+
+  /api/v1/pages/sites/{siteId}/menus/{menuId}/usages:
+    parameters:
+      - $ref: '#/components/parameters/SiteId'
+      - $ref: '#/components/parameters/MenuId'
+    get:
+      summary: Pages and components that show the menu, in their draft or live version
+      x-capability: pages.content.view
+      responses:
+        '200':
+          description: Usages.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      required: [kind, id, label, inDraft, inLive]
+                      properties:
+                        kind: { enum: [page, component] }
+                        id: { type: string, format: uuid }
+                        label: { type: string, description: Page title or component name. }
+                        inDraft: { type: boolean }
+                        inLive: { type: boolean }
+
+  /api/v1/pages/sites/{siteId}/menus/references:
+    parameters:
+      - $ref: '#/components/parameters/SiteId'
+    get:
+      summary: Menus that point at a page or an item (FR-026, NV-19)
+      x-capability: pages.content.view
+      parameters:
+        - { name: pageId, in: query, schema: { type: string, format: uuid } }
+        - { name: itemId, in: query, schema: { type: string, format: uuid } }
+      description: Exactly one of `pageId` and `itemId`; otherwise `400 pages.invalid_reference_query`.
+      responses:
+        '200':
+          description: The menus whose draft or live version targets it.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      required: [menuId, name, inDraft, inLive]
+                      properties:
+                        menuId: { type: string, format: uuid }
+                        name: { type: string }
+                        inDraft: { type: boolean }
+                        inLive: { type: boolean }
+
+  # Publishing: the same operations and shapes as components (012 publishing-api.yaml), under
+  # menus/{menuId}. Listed for the capability check; bodies and responses are 012's.
+  /api/v1/pages/sites/{siteId}/menus/{menuId}/publish:
+    post:
+      summary: 'Publish the draft (body: draftVersion)'
+      x-capability: pages.publishing.manage
+      responses:
+        '200': { description: 012 Publication }
+  /api/v1/pages/sites/{siteId}/menus/{menuId}/unpublish:
+    post:
+      summary: 'Unpublish; refused with 409 pages.menu_in_use_by_published_content'
+      x-capability: pages.publishing.manage
+      responses:
+        '200': { description: 012 Publication }
+  /api/v1/pages/sites/{siteId}/menus/{menuId}/rollback:
+    post:
+      summary: 'Roll back to a version (body: versionNumber)'
+      x-capability: pages.publishing.manage
+      responses:
+        '200': { description: 012 Publication }
+  /api/v1/pages/sites/{siteId}/menus/{menuId}/schedules/{action}:
+    put:
+      summary: Set or change a schedule
+      x-capability: pages.publishing.manage
+      responses:
+        '200': { description: 012 Schedule }
+    delete:
+      summary: Cancel a schedule
+      x-capability: pages.publishing.manage
+      responses:
+        '204': { description: Cancelled }
+  /api/v1/pages/sites/{siteId}/menus/{menuId}/history:
+    get:
+      summary: Versions and log entries
+      x-capability: pages.content.view
+      responses:
+        '200': { description: 012 History }
+  /api/v1/pages/sites/{siteId}/menus/{menuId}/versions/{number}:
+    get:
+      summary: "One retained version's document"
+      x-capability: pages.content.view
+      responses:
+        '200': { description: 012 Version }
+  /api/v1/pages/sites/{siteId}/menus/{menuId}/versions/{number}/copy-to-draft:
+    post:
+      summary: Copy a version into the draft
+      x-capability: pages.menus.manage
+      responses:
+        '200': { description: 012 Publication }
+
+
+components:
+  parameters:
+    SiteId: { name: siteId, in: path, required: true, schema: { type: string, format: uuid } }
+    MenuId: { name: menuId, in: path, required: true, schema: { type: string, format: uuid } }
+  schemas:
+    MenuSummary:
+      type: object
+      required: [id, name, entryCount, brokenCount, usedBy, publication, version, draftVersion, createdAtUtc, updatedAtUtc]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        entryCount: { type: integer }
+        brokenCount: { type: integer, description: Entries whose target is deleted. }
+        usedBy: { type: integer, description: Distinct pages and components using it in a draft or live version. }
+        publication: { $ref: '#/components/schemas/Publication' }
+        version: { type: integer, description: For rename and delete. }
+        draftVersion: { type: integer, description: For saving and publishing the draft. }
+        createdAtUtc: { type: string, format: date-time }
+        updatedAtUtc: { type: string, format: date-time }
+    MenuPermissions:
+      type: object
+      required: [canManage, canPublish]
+      properties:
+        canManage: { type: boolean, description: pages.menus.manage }
+        canPublish: { type: boolean, description: pages.publishing.manage }
+    Menu:
+      allOf:
+        - $ref: '#/components/schemas/MenuSummary'
+        - type: object
+          required: [draft, targets, permissions]
+          properties:
+            draft: { $ref: '#/components/schemas/MenuDocument' }
+            permissions: { $ref: '#/components/schemas/MenuPermissions' }
+            targets:
+              type: array
+              description: The state of every page and item target of the draft (data-model §4.3).
+              items:
+                type: object
+                required: [kind, id, state]
+                properties:
+                  kind: { enum: [page, item] }
+                  id: { type: string, format: uuid }
+                  state: { enum: [live, not_published, deleted, no_page] }
+                  title: { type: string, description: Current page title or item name; absent when deleted. }
+    MenuDocument:
+      description: menu.md v1 (contracts/menu-document.md). Validated by the embedded schema.
+      type: object
+    PreviewEntry:
+      type: object
+      required: [id, label, kind, state, hidden, children]
+      properties:
+        id: { type: string }
+        label: { type: string }
+        kind: { enum: [page, item, url, anchor, none] }
+        state: { enum: [live, not_published, deleted, no_page] }
+        hidden: { type: boolean }
+        newTab: { type: boolean }
+        children: { type: array, items: { $ref: '#/components/schemas/PreviewEntry' } }
+    Publication:
+      description: 012 publishing-api.yaml `Publication` (live, number, since, hasUnpublishedChanges, schedules).
+      type: object

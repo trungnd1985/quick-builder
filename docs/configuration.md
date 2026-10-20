@@ -177,6 +177,11 @@ Scheduled publishes and unpublishes run through the outbox (012), so `Outbox:Ena
 must stay `true` on at least one instance for schedules to run, and `PollInterval` bounds
 how late one can be.
 
+## Menus
+
+Feature 024 adds no configuration keys. Menu limits (50 menus per site, 300 entries, three
+levels) are part of the menu contract, not settings.
+
 ## Cache
 
 | Key | Default | Meaning |

@@ -26,6 +26,7 @@ namespace QuickBuilder.Pages.Infrastructure;
 internal sealed class PublishingWrites(
     PagesDbContext database,
     IPageDocumentValidator validator,
+    Schema.MenuDocumentValidator menuValidator,
     PagesAccess access,
     PublicationReads reads,
     GenerationBump bump,
@@ -51,6 +52,27 @@ internal sealed class PublishingWrites(
     internal sealed record Subject(string Kind, Guid Id, Guid SiteId, string Label, string? Path, Guid? TemplateCollectionId = null)
     {
         public bool IsPage => Kind == SubjectKinds.Page;
+
+        /// <summary>A menu (024): its document is a menu document, not a page-schema one.</summary>
+        public bool IsMenu => Kind == SubjectKinds.Menu;
+
+        /// <summary>
+        /// What a published version records as its title: a page's title (012 FR-024), a menu's
+        /// name (024 NV-05, the Navigation block's default accessible name), nothing for a
+        /// component.
+        /// </summary>
+        public string? VersionTitle => IsPage || IsMenu ? Label : null;
+    }
+
+    /// <summary>Checks a document against its subject's contract: the menu contract for menus, else the page schema.</summary>
+    internal DocumentValidationResult Validate(Subject subject, string document)
+    {
+        ArgumentNullException.ThrowIfNull(subject);
+
+        var bytes = Encoding.UTF8.GetBytes(document);
+        return subject.IsMenu
+            ? menuValidator.Validate(bytes)
+            : validator.Validate(bytes, subject.IsPage ? DocumentKind.Page : DocumentKind.Component);
     }
 
     // --- Manual actions ---------------------------------------------------------------------
@@ -69,7 +91,7 @@ internal sealed class PublishingWrites(
             return await PublishContentAsync(
                     subject,
                     draft,
-                    subject.IsPage ? subject.Label : null,
+                    subject.VersionTitle,
                     draft.Version,
                     VersionKinds.Publish,
                     restoredFromNumber: null,
@@ -146,6 +168,23 @@ internal sealed class PublishingWrites(
                 }
             }
 
+            // 024 FR-003a: a version showing a menu that was deleted since cannot come back.
+            var shownMenus = subject.IsMenu ? [] : DependencyExtractor.Menus(source.Document);
+            if (shownMenus.Count > 0)
+            {
+                var existingMenus = await database.ForSite<Domain.Menus.Menu>(siteId)
+                    .Where(m => shownMenus.Contains(m.Id))
+                    .Select(m => m.Id)
+                    .ToListAsync(cancellationToken)
+                    .ConfigureAwait(false);
+
+                var missingMenus = shownMenus.Except(existingMenus).ToList();
+                if (missingMenus.Count > 0)
+                {
+                    return Result.Failure(PagesErrors.VersionMissingMenus(missingMenus));
+                }
+            }
+
             return await PublishContentAsync(
                     subject,
                     new DraftContent(source.Document, source.SchemaVersion, Version: 0),
@@ -189,16 +228,51 @@ internal sealed class PublishingWrites(
 
         // The document was valid when saved, but the contract may have moved since; nothing
         // invalid is ever made live (FR-001).
-        var checkedDocument = validator.Validate(
-            Encoding.UTF8.GetBytes(content.Document),
-            subject.IsPage ? DocumentKind.Page : DocumentKind.Component);
+        var checkedDocument = Validate(subject, content.Document);
         if (!checkedDocument.IsValid)
         {
             return Result.Failure(PagesErrors.InvalidDocument(checkedDocument));
         }
 
+        // 024 NV-01: a menu document holds no blocks, so the page-schema checks below do not
+        // apply; what it points at is its dependencies.
+        if (!subject.IsMenu)
+        {
+            var pageChecks = await CheckPageDocumentAsync(subject, content.Document, cancellationToken).ConfigureAwait(false);
+            if (pageChecks.IsFailure)
+            {
+                return pageChecks;
+            }
+        }
+
+        var publication = await PublicationAsync(siteId, subject, create: true, cancellationToken).ConfigureAwait(false);
+
+        // 017 research SE-18: what the page's descendants show of it in their breadcrumbs.
+        var wasLive = publication!.IsLive;
+        var previousTitle = wasLive && subject.IsPage
+            ? await database.ForSite<PublishedVersion>(siteId)
+                .Where(v => v.Id == publication.LiveVersionId)
+                .Select(v => v.Title)
+                .FirstOrDefaultAsync(cancellationToken)
+                .ConfigureAwait(false)
+            : null;
+
+        return await MakeLiveAsync(
+                subject, content, title, fromDraftVersion, versionKind, restoredFromNumber, actor, scheduleOwner, now,
+                publication, wasLive, previousTitle, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// The checks a page or component document passes before it goes live: rich text images,
+    /// live components (012 FR-003), live menus (024 FR-003a) and page parameters (016 rule 21).
+    /// </summary>
+    private async Task<Result> CheckPageDocumentAsync(Subject subject, string document, CancellationToken cancellationToken)
+    {
+        var siteId = subject.SiteId;
+
         // 035 FR-014: a rich text image needs alternative text, or to be decorative, to go live.
-        using (var parsed = JsonDocument.Parse(content.Document))
+        using (var parsed = JsonDocument.Parse(document))
         {
             var withoutAlt = RichTextRules.RichTextBlocks(parsed.RootElement)
                 .SelectMany(block => RichTextRules.ImagesWithoutAlt(block.Content, block.Location))
@@ -210,7 +284,7 @@ internal sealed class PublishingWrites(
         }
 
         // FR-003: a page may show only components visitors can already get.
-        var components = DependencyExtractor.Components(content.Document);
+        var components = DependencyExtractor.Components(document);
         if (components.Count > 0)
         {
             var live = await database.ForSite<Publication>(siteId)
@@ -226,27 +300,48 @@ internal sealed class PublishingWrites(
             }
         }
 
-        // Rule 21 (016 FR-027): visitors never get two lists that turn pages together.
-        var pageParamTaken = subject.IsPage
-            ? await pageParams.CheckPageAsync(siteId, content.Document, live: true, cancellationToken).ConfigureAwait(false)
-            : await pageParams.CheckComponentAsync(siteId, subject.Id, content.Document, live: true, cancellationToken).ConfigureAwait(false);
-        if (pageParamTaken is not null)
+        // 024 FR-003a: a page or component may show only menus visitors can already get. A
+        // menu that no longer exists has no live publication either, so it is named the same way.
+        var menus = DependencyExtractor.Menus(document);
+        if (menus.Count > 0)
         {
-            return Result.Failure(pageParamTaken);
+            var liveMenus = await database.ForSite<Publication>(siteId)
+                .Where(p => p.SubjectKind == SubjectKinds.Menu && menus.Contains(p.SubjectId) && p.LiveVersionId != null)
+                .Select(p => p.SubjectId)
+                .ToListAsync(cancellationToken)
+                .ConfigureAwait(false);
+
+            var unpublishedMenus = menus.Except(liveMenus).ToList();
+            if (unpublishedMenus.Count > 0)
+            {
+                return Result.Failure(PagesErrors.UnpublishedMenus(unpublishedMenus));
+            }
         }
 
-        var publication = await PublicationAsync(siteId, subject, create: true, cancellationToken).ConfigureAwait(false);
+        // Rule 21 (016 FR-027): visitors never get two lists that turn pages together.
+        var pageParamTaken = subject.IsPage
+            ? await pageParams.CheckPageAsync(siteId, document, live: true, cancellationToken).ConfigureAwait(false)
+            : await pageParams.CheckComponentAsync(siteId, subject.Id, document, live: true, cancellationToken).ConfigureAwait(false);
+        return pageParamTaken is null ? Result.Success() : Result.Failure(pageParamTaken);
+    }
 
-        // 017 research SE-18: what the page's descendants show of it in their breadcrumbs.
-        var wasLive = publication!.IsLive;
-        var previousTitle = wasLive && subject.IsPage
-            ? await database.ForSite<PublishedVersion>(siteId)
-                .Where(v => v.Id == publication.LiveVersionId)
-                .Select(v => v.Title)
-                .FirstOrDefaultAsync(cancellationToken)
-                .ConfigureAwait(false)
-            : null;
-
+    /// <summary>The version, dependencies, generations and log entry of a publish that passed its checks.</summary>
+    private async Task<Result> MakeLiveAsync(
+        Subject subject,
+        DraftContent content,
+        string? title,
+        long? fromDraftVersion,
+        string versionKind,
+        int? restoredFromNumber,
+        Guid actor,
+        Guid? scheduleOwner,
+        DateTimeOffset now,
+        Publication publication,
+        bool wasLive,
+        string? previousTitle,
+        CancellationToken cancellationToken)
+    {
+        var siteId = subject.SiteId;
         var version = publication.Publish(
             content.Document, content.SchemaVersion, title, fromDraftVersion, versionKind, restoredFromNumber, actor, subject.Path, now);
         publication.SetPageParamNames(DependencyExtractor.PageParamNames(content.Document));
@@ -305,7 +400,15 @@ internal sealed class PublishingWrites(
             return Result.Failure(PagesErrors.NotPublished);
         }
 
-        if (!subject.IsPage)
+        if (subject.IsMenu)
+        {
+            // 024 FR-003: never take away a menu that published pages or components still show.
+            if (await MenuInUseErrorAsync(siteId, subject.Id, cancellationToken).ConfigureAwait(false) is { } inUse)
+            {
+                return Result.Failure(inUse);
+            }
+        }
+        else if (!subject.IsPage)
         {
             // FR-004: never take away a component that published pages still show.
             var users = await LivePagesUsingAsync(siteId, subject.Id, cancellationToken).ConfigureAwait(false);
@@ -380,6 +483,12 @@ internal sealed class PublishingWrites(
             .ExecuteDeleteAsync(cancellationToken)
             .ConfigureAwait(false);
 
+        // 024 NV-06: which menus its draft showed goes with it too.
+        await database.ForSite<Domain.Menus.MenuUsage>(siteId)
+            .Where(u => u.SubjectKind == subject.Kind && u.SubjectId == subject.Id)
+            .ExecuteDeleteAsync(cancellationToken)
+            .ConfigureAwait(false);
+
         // Versions go with their publication (foreign key, cascade).
         await database.ForSite<Publication>(siteId)
             .Where(p => p.SubjectKind == subject.Kind && p.SubjectId == subject.Id)
@@ -394,6 +503,24 @@ internal sealed class PublishingWrites(
         {
             Log(siteId, subject, LogActions.Deleted, clock.GetUtcNow(), actor);
         }
+    }
+
+    /// <summary>
+    /// 024 FR-003: the refusal when live pages or components show the menu, or null when none
+    /// do. Used before a menu is unpublished or deleted.
+    /// </summary>
+    internal async Task<Error?> MenuInUseErrorAsync(Guid siteId, Guid menuId, CancellationToken cancellationToken)
+    {
+        var users = await database.ForSite<LiveDependency>(siteId)
+            .Where(d => d.TargetKind == DependencyKinds.Menu && d.TargetId == menuId)
+            .Select(d => new { d.SubjectKind, d.SubjectId })
+            .Distinct()
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        var pages = users.Count(u => u.SubjectKind == SubjectKinds.Page);
+        var components = users.Count(u => u.SubjectKind == SubjectKinds.Component);
+        return pages + components > 0 ? PagesErrors.MenuInUseByPublishedContent(pages, components) : null;
     }
 
     /// <summary>How many live pages show the component.</summary>
@@ -417,6 +544,19 @@ internal sealed class PublishingWrites(
                 .ConfigureAwait(false);
 
             return page is null ? null : new Subject(kind, subjectId, siteId, page.Title, page.Path, page.TemplateCollectionId);
+        }
+
+        // 024 research NV-01: a menu is published like a component, under its name.
+        if (kind == SubjectKinds.Menu)
+        {
+            var menuName = await database.ForSite<Domain.Menus.Menu>(siteId)
+                .AsNoTracking()
+                .Where(m => m.Id == subjectId)
+                .Select(m => m.Name)
+                .FirstOrDefaultAsync(cancellationToken)
+                .ConfigureAwait(false);
+
+            return menuName is null ? null : new Subject(kind, subjectId, siteId, menuName, Path: null);
         }
 
         var name = await database.ForSite<Component>(siteId)
@@ -445,6 +585,18 @@ internal sealed class PublishingWrites(
                 .ConfigureAwait(false);
 
             return new DraftContent(page.Document, page.SchemaVersion, page.Version);
+        }
+
+        if (subject.IsMenu)
+        {
+            var menu = await database.ForSite<Domain.Menus.MenuDraft>(siteId)
+                .AsNoTracking()
+                .Where(d => d.MenuId == subject.Id)
+                .Select(d => new { d.Document, d.SchemaVersion, d.Version })
+                .FirstAsync(cancellationToken)
+                .ConfigureAwait(false);
+
+            return new DraftContent(menu.Document, menu.SchemaVersion, menu.Version);
         }
 
         var component = await database.ForSite<ComponentDraft>(siteId)
@@ -535,7 +687,7 @@ internal sealed class PublishingWrites(
             var subject = await SubjectAsync(siteId, kind, subjectId, cancellationToken).ConfigureAwait(false);
             if (subject is null)
             {
-                return Result.Failure<PublicationResponse>(kind == SubjectKinds.Page ? PagesErrors.NotFound : PagesErrors.ComponentNotFound);
+                return Result.Failure<PublicationResponse>(NotFoundFor(kind));
             }
 
             await using var transaction = await database.Database.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
@@ -607,7 +759,9 @@ internal sealed class PublishingWrites(
             .ExecuteDeleteAsync(cancellationToken)
             .ConfigureAwait(false);
 
-        var targets = DependencyExtractor.Extract(document).ToHashSet();
+        // 024 NV-07: a menu depends on the pages and items it points at, and on the templates
+        // that give those items their pages.
+        var targets = (subject.IsMenu ? DependencyExtractor.MenuDependencies(document) : DependencyExtractor.Extract(document)).ToHashSet();
 
         // 016 TB-10: a template depends on its collection, and a list over a multi-reference
         // field on the field's target collection, known only from the schemas.
@@ -662,7 +816,12 @@ internal sealed class PublishingWrites(
     /// </summary>
     private async Task AfterLiveChangeAsync(Guid siteId, Subject subject, Publication publication, CancellationToken cancellationToken)
     {
-        var target = subject.IsPage ? (DependencyKinds.Page, subject.Id) : (DependencyKinds.Component, subject.Id);
+        var target = subject.Kind switch
+        {
+            SubjectKinds.Page => (DependencyKinds.Page, subject.Id),
+            SubjectKinds.Menu => (DependencyKinds.Menu, subject.Id),
+            _ => (DependencyKinds.Component, subject.Id),
+        };
         await bump.BumpForTargetsAsync(siteId, [target], exceptPageId: subject.IsPage ? subject.Id : null, cancellationToken)
             .ConfigureAwait(false);
 
@@ -727,6 +886,14 @@ internal sealed class PublishingWrites(
             await bump.BumpPagesAsync(siteId, descendants, cancellationToken).ConfigureAwait(false);
         }
     }
+
+    /// <summary>The not-found refusal for a subject of <paramref name="kind"/>.</summary>
+    internal static Error NotFoundFor(string kind) => kind switch
+    {
+        SubjectKinds.Page => PagesErrors.NotFound,
+        SubjectKinds.Menu => PagesErrors.MenuNotFound,
+        _ => PagesErrors.ComponentNotFound,
+    };
 
     private static string LogActionFor(string versionKind) => versionKind switch
     {

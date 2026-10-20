@@ -81,6 +81,10 @@
           "$ref": "#/$defs/contentWidth"
         }
       }
+    },
+    "menuStyle": {
+      "description": "Optional. The site-wide menu style; absent: every value takes its built-in default (design-tokens.md §2, 024 FR-017a).",
+      "$ref": "#/$defs/menuStyle"
     }
   },
   "$defs": {
@@ -185,6 +189,50 @@
       "type": "integer",
       "minimum": 320,
       "maximum": 2560
+    },
+    "menuStyle": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "look": {
+          "enum": [
+            "link",
+            "underline",
+            "pill",
+            "button"
+          ]
+        },
+        "colors": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "background": {
+              "$ref": "#/$defs/tokenId"
+            },
+            "text": {
+              "$ref": "#/$defs/tokenId"
+            },
+            "hoverText": {
+              "$ref": "#/$defs/tokenId"
+            },
+            "hoverBackground": {
+              "$ref": "#/$defs/tokenId"
+            },
+            "currentText": {
+              "$ref": "#/$defs/tokenId"
+            },
+            "currentBackground": {
+              "$ref": "#/$defs/tokenId"
+            },
+            "focus": {
+              "$ref": "#/$defs/tokenId"
+            },
+            "panelBackground": {
+              "$ref": "#/$defs/tokenId"
+            }
+          }
+        }
+      }
     }
   }
 }

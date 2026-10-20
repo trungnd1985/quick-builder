@@ -9,6 +9,7 @@ using QuickBuilder.Rendering.Binding;
 using QuickBuilder.Rendering.Contracts;
 using QuickBuilder.Rendering.Domain;
 using QuickBuilder.Rendering.Rendering;
+using QuickBuilder.Rendering.Rendering.Navigation;
 using QuickBuilder.Rendering.Seo;
 using QuickBuilder.Rendering.Seo.StructuredData;
 using QuickBuilder.Shared.Infrastructure.Caching;
@@ -316,6 +317,22 @@ internal sealed class PageResponder(
             references.Pages.Add(canonicalPage);
         }
 
+        // 024 NV-09: the menus Navigation blocks show, and what their entries point at, batched
+        // with the page's other links. Nothing is read for a page without a menu.
+        var menus = await pages.GetLiveMenusAsync(site.Id, references.Menus, cancellationToken).ConfigureAwait(false);
+        var menuItemIds = new HashSet<Guid>();
+        foreach (var menu in menus.Values)
+        {
+            NavigationReferences.Collect(menu.Document, references.Pages, menuItemIds);
+        }
+
+        var menuItems = menuItemIds.Count == 0
+            ? new Dictionary<Guid, PublishedItem>()
+            : await items.GetAsync(site.Id, menuItemIds, cancellationToken).ConfigureAwait(false);
+        var itemPatterns = menuItems.Count == 0
+            ? new Dictionary<Guid, string>()
+            : await pages.GetLiveTemplatePatternsAsync(site.Id, [.. menuItems.Values.Select(i => i.CollectionId).Distinct()], cancellationToken).ConfigureAwait(false);
+
         var targets = await pages.GetLinkTargetsAsync(site.Id, references.Pages, cancellationToken).ConfigureAwait(false);
         var files = await media.GetAsync(site.Id, references.Media, cancellationToken).ConfigureAwait(false);
 
@@ -330,7 +347,8 @@ internal sealed class PageResponder(
 
         var inputs = new RenderInputs(
             title, version.Document, design.Document, components, targets, files, site.DefaultLanguage, basePath, fetched.Data,
-            seo, site, request.Path, pageItem is not null, request.Params.Pages, ancestors);
+            seo, site, request.Path, pageItem is not null, request.Params.Pages, ancestors,
+            menus, menuItems, itemPatterns, pageId, pageItem?.Id);
         metrics.Rendered();
         return Render(inputs, renderer, context => LogBroken(context, site.Id, pageId));
     }
@@ -366,7 +384,8 @@ internal sealed class PageResponder(
         var structuredData = head is null ? null : JsonLdWriter.Write(Graph(inputs, context, head));
         afterRender?.Invoke(context);
         var document = PageShell.Write(inputs.Title, inputs.Language, inputs.BasePath, context.Tokens, context.NodeRules, body.ToString(), head, structuredData);
-        return new RenderedPage(Encoding.UTF8.GetBytes(document.Html), document.StyleHash);
+        return new RenderedPage(
+            Encoding.UTF8.GetBytes(document.Html), document.StyleHash, context.NavigationScriptWritten ? NavScript.Hash : null);
     }
 
     /// <summary>
@@ -418,7 +437,7 @@ internal sealed class PageResponder(
 
         var headers = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
-            ["Content-Security-Policy"] = ContentSecurityPolicy(page.StyleHash),
+            ["Content-Security-Policy"] = ContentSecurityPolicy(page.StyleHash, page.ScriptHash),
             ["X-Content-Type-Options"] = "nosniff",
             ["Referrer-Policy"] = "strict-origin-when-cross-origin",
             ["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()",
@@ -436,8 +455,10 @@ internal sealed class PageResponder(
     /// The strictest policy the page allows: its own stylesheet and exactly its one style
     /// element, images from the site, and the two allow-listed video players (PR-12).
     /// </summary>
-    public static string ContentSecurityPolicy(string styleHash) =>
+    public static string ContentSecurityPolicy(string styleHash, string? scriptHash = null) =>
         "default-src 'none'; " +
+        // 024 NV-14: exactly the navigation script, and only on a page that carries it.
+        (scriptHash is null ? string.Empty : $"script-src 'sha256-{scriptHash}'; ") +
         $"style-src 'self' 'sha256-{styleHash}'; " +
         "img-src 'self'; " +
         "frame-src https://www.youtube-nocookie.com https://player.vimeo.com; " +

@@ -156,13 +156,47 @@ internal sealed class PublishedContentReader(PublishedReadDbContext database) : 
                 from publication in database.Publications
                     .Where(p => p.SubjectKind == SubjectKinds.Page && p.SubjectId == page.Id)
                     .DefaultIfEmpty()
+                select new
+                {
+                    page.Id,
+                    page.Path,
                     // 016 research TB-02: a link to a template page itself goes nowhere, so it is
                     // never live as a link target and renders as plain text (012 FR-026).
-                select new { page.Id, page.Path, IsLive = publication != null && publication.LiveVersionId != null && page.TemplateCollectionId == null })
+                    IsLive = publication != null && publication.LiveVersionId != null && page.TemplateCollectionId == null,
+                    IsTemplate = page.TemplateCollectionId != null,
+                    // 024 NV-09: the title visitors saw last, for menu entries without their own
+                    // label. The live version is always the newest, since a rollback publishes a
+                    // new number; after an unpublish, the newest is the one that was live.
+                    LastTitle = database.Versions
+                        .Where(v => v.SiteId == siteId && v.SubjectKind == SubjectKinds.Page && v.SubjectId == page.Id)
+                        .OrderByDescending(v => v.Number)
+                        .Select(v => v.Title)
+                        .FirstOrDefault(),
+                })
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
 
-        return targets.ToDictionary(t => t.Id, t => new PageLinkTarget(t.Path, t.IsLive));
+        return targets.ToDictionary(t => t.Id, t => new PageLinkTarget(t.Path, t.IsLive, t.IsTemplate ? null : t.LastTitle));
+    }
+
+    public async Task<IReadOnlyDictionary<Guid, LiveMenu>> GetLiveMenusAsync(
+        Guid siteId, IReadOnlyCollection<Guid> menuIds, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(menuIds);
+
+        if (menuIds.Count == 0)
+        {
+            return new Dictionary<Guid, LiveMenu>();
+        }
+
+        var versions = await LiveVersions(siteId, SubjectKinds.Menu, menuIds)
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        // 024 NV-05: a menu version's title is the menu's name when it was published.
+        return versions.ToDictionary(
+            v => v.SubjectId,
+            v => new LiveMenu(v.Row.SchemaVersion, Parse(v.Row.Document), v.Row.Title ?? string.Empty));
     }
 
     public Task<bool> IsHomePageLiveAsync(Guid siteId, CancellationToken cancellationToken = default) =>

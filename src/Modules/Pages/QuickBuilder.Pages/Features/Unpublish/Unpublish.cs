@@ -74,3 +74,23 @@ public sealed class UnpublishComponentController(IDispatcher dispatcher) : Contr
         return result.IsFailure ? PagesErrorResults.ToActionResult(result.Error) : Ok(result.Value);
     }
 }
+
+/// <summary>Administrative surface: unpublish a menu; refused while published content shows it (024 FR-003).</summary>
+[ApiController]
+[Route("api/v1/pages/sites/{siteId:guid}/menus/{menuId:guid}/unpublish")]
+public sealed class UnpublishMenuController(IDispatcher dispatcher) : ControllerBase
+{
+    [HttpPost]
+    [RequireCapability(PublishingCapabilities.Manage)]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> UnpublishAsync(Guid siteId, Guid menuId, CancellationToken cancellationToken)
+    {
+        var result = await dispatcher
+            .SendAsync(new UnpublishCommand(siteId, SubjectKinds.Menu, menuId), cancellationToken)
+            .ConfigureAwait(false);
+
+        return result.IsFailure ? PagesErrorResults.ToActionResult(result.Error) : Ok(result.Value);
+    }
+}

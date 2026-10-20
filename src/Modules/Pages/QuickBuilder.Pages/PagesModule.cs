@@ -23,6 +23,7 @@ using QuickBuilder.Pages.Features.GetTokenUsage;
 using QuickBuilder.Pages.Features.ListComponents;
 using QuickBuilder.Pages.Features.ListComponentUsages;
 using QuickBuilder.Pages.Features.MakeHomePage;
+using QuickBuilder.Pages.Features.Menus;
 using QuickBuilder.Pages.Features.MovePage;
 using QuickBuilder.Pages.Features.Publish;
 using QuickBuilder.Pages.Features.PublishingHistory;
@@ -30,6 +31,7 @@ using QuickBuilder.Pages.Features.RecordDesignPublish;
 using QuickBuilder.Pages.Features.Redirects;
 using QuickBuilder.Pages.Features.RefreshPagesListingItems;
 using QuickBuilder.Pages.Features.RefreshPagesShowingMedia;
+using QuickBuilder.Pages.Features.RefreshPagesShowingMenuItems;
 using QuickBuilder.Pages.Features.RefreshPagesUsingCollection;
 using QuickBuilder.Pages.Features.RenameComponent;
 using QuickBuilder.Pages.Features.Rollback;
@@ -126,6 +128,7 @@ public static class PagesModule
         // Shared by the slices: the document validator (stateless, loads the schema once),
         // and the read and write paths every slice goes through.
         services.AddSingleton<IPageDocumentValidator, PageDocumentValidator>();
+        services.AddSingleton<Infrastructure.Schema.MenuDocumentValidator>();
         services.AddScoped<PagesAccess>();
         services.AddScoped<PageReads>();
         services.AddScoped<PageTreeWrites>();
@@ -217,9 +220,32 @@ public static class PagesModule
         services.AddScoped<IIntegrationEventHandler<ItemPublished>, RefreshPagesListingItemsHandler>();
         services.AddScoped<IIntegrationEventHandler<ItemUnpublished>, RefreshPagesListingItemsHandler>();
         services.AddScoped<IIntegrationEventHandler<ItemDeleted>, RefreshPagesListingItemsHandler>();
+
+        // 024 NV-07: an item a live menu points at refreshes the pages showing the menu.
+        services.AddScoped<IIntegrationEventHandler<ItemPublished>, RefreshPagesShowingMenuItemsHandler>();
+        services.AddScoped<IIntegrationEventHandler<ItemUnpublished>, RefreshPagesShowingMenuItemsHandler>();
+        services.AddScoped<IIntegrationEventHandler<ItemDeleted>, RefreshPagesShowingMenuItemsHandler>();
+
         services.AddScoped<IIntegrationEventHandler<ItemRedirectRequested>, Features.CreateItemRedirect.CreateItemRedirectHandler>();
         services.AddScoped<IIntegrationEventHandler<CollectionChanged>, RefreshPagesUsingCollectionHandler>();
         services.AddScoped<IIntegrationEventHandler<CollectionDeleted>, RefreshPagesUsingCollectionHandler>();
+
+        // 024: menus, their drafts and their reads.
+        services.AddScoped<MenuTargetStates>();
+        services.AddScoped<MenuReads>();
+        services.AddScoped<MenuWrites>();
+        services.AddScoped<IQueryHandler<ListMenusQuery, Result<MenuListResponse>>, ListMenusHandler>();
+        services.AddScoped<IQueryHandler<GetMenuQuery, Result<MenuDetailResponse>>, GetMenuHandler>();
+        services.AddScoped<ICommandHandler<CreateMenuCommand, Result<MenuDetailResponse>>, CreateMenuHandler>();
+        services.AddScoped<IValidator<CreateMenuCommand>, CreateMenuValidator>();
+        services.AddScoped<ICommandHandler<RenameMenuCommand, Result<MenuDetailResponse>>, RenameMenuHandler>();
+        services.AddScoped<IValidator<RenameMenuCommand>, RenameMenuValidator>();
+        services.AddScoped<ICommandHandler<SaveMenuDraftCommand, Result<MenuDetailResponse>>, SaveMenuDraftHandler>();
+        services.AddScoped<IValidator<SaveMenuDraftCommand>, SaveMenuDraftValidator>();
+        services.AddScoped<ICommandHandler<DeleteMenuCommand, Result>, DeleteMenuHandler>();
+        services.AddScoped<IQueryHandler<PreviewMenuQuery, Result<MenuPreviewResponse>>, PreviewMenuHandler>();
+        services.AddScoped<IQueryHandler<MenuUsagesQuery, Result<MenuUsageListResponse>>, MenuUsagesHandler>();
+        services.AddScoped<IQueryHandler<MenuReferencesQuery, Result<MenuReferenceListResponse>>, MenuReferencesHandler>();
 
         // 011 research ED-16: the token usage count the admin asks before deleting a token.
         services.AddScoped<IQueryHandler<GetTokenUsageQuery, Result<TokenUsageResponse>>, GetTokenUsageHandler>();

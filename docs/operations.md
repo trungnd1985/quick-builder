@@ -801,6 +801,35 @@ working. Nothing here needs configuration.
 - Addresses in other letter cases or with a trailing slash now redirect (see above).
 - No configuration changes are needed.
 
+## Navigation and menus
+
+Designers build each site's menus under **Menus** (up to 50 per site, 300 entries over three
+levels each) and show them with the Navigation block. Menus are published like components:
+a menu publish refreshes exactly the pages that show it, directly or through a component, and
+a page, item or template change refreshes the pages whose menus point at it.
+
+- **Content-Security-Policy**: a page that shows a Navigation block carries one small inline
+  script, admitted by its hash: that page's policy adds `script-src 'sha256-…'`. Other pages
+  carry no script and no `script-src`. A reverse proxy or CDN that rewrites or replaces the
+  policy must keep that `script-src` on those pages, or menus lose Escape and collapse
+  handling. They stay usable either way: every submenu is a native disclosure, and the
+  small-screen panel is written open.
+- **Menu styles**: the site-wide look and colours of menus are set in **Design**, under
+  Menus, and reach visitors when the design is published. Each Navigation block can override
+  any of them. Sites that set no menu style render exactly as before it existed. Colours that
+  are hard to read are warned about in the admin, never refused.
+- Menu names, labels and addresses are content: they never appear in logs or in the menu
+  audit, which records ids and actions only.
+
+### Upgrading to navigation and menus (024)
+
+- One migration runs at start-up: Pages `AddMenus`. It adds tables and lets the publishing
+  tables accept the `menu` subject kind; nothing existing is rewritten.
+- Every cached page renders once more after the upgrade: the block stylesheet changes. Page
+  bodies are unchanged, and pages without a Navigation block keep the same policy.
+- Existing navigation built from buttons keeps working.
+- No configuration changes are needed.
+
 ## Upgrading from the foundation release (feature 001)
 
 Feature 001 had no authentication. After the upgrade:

@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "entries": [
+    {
+      "id": "old",
+      "target": {
+        "type": "page",
+        "pageId": "0192f5a0-1b2c-7d3e-8f40-5a6b7c8d9e10"
+      },
+      "hidden": true,
+      "children": [
+        {
+          "id": "older",
+          "target": {
+            "type": "page",
+            "pageId": "0192f5a0-1b2c-7d3e-8f40-5a6b7c8d9e11"
+          },
+          "children": []
+        }
+      ]
+    },
+    {
+      "id": "shown",
+      "target": {
+        "type": "page",
+        "pageId": "0192f5a0-1b2c-7d3e-8f40-5a6b7c8d9e10"
+      },
+      "newTab": false,
+      "hidden": false,
+      "children": []
+    },
+    {
+      "id": "docs",
+      "label": "Docs",
+      "target": {
+        "type": "url",
+        "href": "https://docs.example/start"
+      },
+      "newTab": true,
+      "children": []
+    },
+    {
+      "id": "page-tab",
+      "target": {
+        "type": "page",
+        "pageId": "0192f5a0-1b2c-7d3e-8f40-5a6b7c8d9e11"
+      },
+      "newTab": true,
+      "children": []
+    },
+    {
+      "id": "item-tab",
+      "target": {
+        "type": "item",
+        "collectionId": "0192f5a0-1b2c-7d3e-8f40-5a6b7c8d9e20",
+        "itemId": "0192f5a0-1b2c-7d3e-8f40-5a6b7c8d9e21"
+      },
+      "newTab": true,
+      "children": []
+    }
+  ]
+}

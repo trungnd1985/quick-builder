@@ -70,3 +70,25 @@ public sealed class RollbackComponentController(IDispatcher dispatcher) : Contro
         return result.IsFailure ? PagesErrorResults.ToActionResult(result.Error) : Ok(result.Value);
     }
 }
+
+/// <summary>Administrative surface: roll a menu back to a retained version (024 FR-004a).</summary>
+[ApiController]
+[Route("api/v1/pages/sites/{siteId:guid}/menus/{menuId:guid}/rollback")]
+public sealed class RollbackMenuController(IDispatcher dispatcher) : ControllerBase
+{
+    [HttpPost]
+    [RequireCapability(PublishingCapabilities.Manage)]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> RollbackAsync(Guid siteId, Guid menuId, RollbackRequest request, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        var result = await dispatcher
+            .SendAsync(new RollbackCommand(siteId, SubjectKinds.Menu, menuId, request.VersionNumber), cancellationToken)
+            .ConfigureAwait(false);
+
+        return result.IsFailure ? PagesErrorResults.ToActionResult(result.Error) : Ok(result.Value);
+    }
+}

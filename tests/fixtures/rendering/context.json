@@ -1,12 +1,13 @@
 {
-  "description": "The fixed world golden pages render in (docs/contracts/page-schema.md §8): the default design, one live page to link to, one image, and both components the examples reference, live with the component example document.",
+  "description": "The fixed world golden pages render in (docs/contracts/page-schema.md §8): the default design, one live page to link to, one image, and both components the examples reference, live with the component example document, and two live menus for the Navigation examples (024).",
   "basePath": "",
   "language": "en",
   "title": "Golden page",
   "linkTargets": {
     "0192f5a0-1b2c-7d3e-8f40-5a6b7c8d9e20": {
       "path": "/contact",
-      "isLive": true
+      "isLive": true,
+      "title": "Contact"
     }
   },
   "media": {
@@ -121,6 +122,125 @@
                 ]
               }
             ]
+          }
+        ]
+      }
+    }
+  },
+  "menus": {
+    "0192f5a0-1b2c-7d3e-8f40-5a6b7c8d9e40": {
+      "name": "Main",
+      "document": {
+        "schemaVersion": 1,
+        "entries": [
+          {
+            "id": "contact",
+            "target": {
+              "type": "page",
+              "pageId": "0192f5a0-1b2c-7d3e-8f40-5a6b7c8d9e20"
+            },
+            "children": []
+          },
+          {
+            "id": "company",
+            "label": "Company",
+            "target": {
+              "type": "none"
+            },
+            "children": [
+              {
+                "id": "about",
+                "label": "About us",
+                "target": {
+                  "type": "page",
+                  "pageId": "0192f5a0-1b2c-7d3e-8f40-5a6b7c8d9e20",
+                  "anchor": "about"
+                },
+                "children": [
+                  {
+                    "id": "careers",
+                    "label": "Careers",
+                    "target": {
+                      "type": "url",
+                      "href": "https://jobs.example/"
+                    },
+                    "newTab": true,
+                    "children": []
+                  }
+                ]
+              },
+              {
+                "id": "press",
+                "label": "Press",
+                "target": {
+                  "type": "url",
+                  "href": "mailto:press@example.com"
+                },
+                "children": []
+              }
+            ]
+          },
+          {
+            "id": "top",
+            "label": "Back to top",
+            "target": {
+              "type": "anchor",
+              "anchor": "top"
+            },
+            "children": []
+          },
+          {
+            "id": "hidden",
+            "label": "Hidden",
+            "target": {
+              "type": "none"
+            },
+            "hidden": true,
+            "children": [
+              {
+                "id": "h1",
+                "label": "Never shown",
+                "target": {
+                  "type": "url",
+                  "href": "https://hidden.example/"
+                },
+                "children": []
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "0192f5a0-1b2c-7d3e-8f40-5a6b7c8d9e41": {
+      "name": "Footer",
+      "document": {
+        "schemaVersion": 1,
+        "entries": [
+          {
+            "id": "privacy",
+            "label": "Privacy",
+            "target": {
+              "type": "url",
+              "href": "https://example.com/privacy"
+            },
+            "children": []
+          },
+          {
+            "id": "draft",
+            "target": {
+              "type": "page",
+              "pageId": "0192f5a0-1b2c-7d3e-8f40-5a6b7c8d9e99"
+            },
+            "children": []
+          },
+          {
+            "id": "top",
+            "label": "Back to top",
+            "target": {
+              "type": "anchor",
+              "anchor": "top"
+            },
+            "children": []
           }
         ]
       }

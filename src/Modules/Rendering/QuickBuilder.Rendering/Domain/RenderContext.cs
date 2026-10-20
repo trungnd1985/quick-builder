@@ -103,6 +103,20 @@ internal sealed class RenderContext(RenderInputs inputs, BlockDefaults defaults)
     /// </summary>
     public double? SectionWidth { get; set; }
 
+    private int _navigationBlocks;
+
+    /// <summary>
+    /// The next Navigation block's id within the page (<c>n1</c>, <c>n2</c>, …), so the submenu
+    /// groups (<c>name</c>) of two blocks never join (024 public-navigation.md §4).
+    /// </summary>
+    public string NextNavigationId() => string.Create(System.Globalization.CultureInfo.InvariantCulture, $"n{++_navigationBlocks}");
+
+    /// <summary>
+    /// Whether the navigation script has been written into this page (024 research NV-14). The
+    /// page's content security policy admits it only when it has.
+    /// </summary>
+    public bool NavigationScriptWritten { get; set; }
+
     /// <summary>The per-node rules collected so far, for the page's style element.</summary>
     public string NodeRules => _rules.ToString();
 
@@ -156,6 +170,16 @@ internal sealed class RenderContext(RenderInputs inputs, BlockDefaults defaults)
 
         return Tokens.Value(own, kind, Defaults.Of(TypeOf(node), name), fallback);
     }
+
+    /// <summary>
+    /// A token property as CSS only when the node sets it and its token exists; otherwise null.
+    /// For props without a schema default, whose absence means "a lower layer decides" (024
+    /// research NV-26). Mirrors <c>useBlock.tokenIfSet</c>.
+    /// </summary>
+    public string? TokenIfSet(JsonElement node, string name, TokenKind kind) =>
+        node.TryGetProperty("props", out var props) && props.ValueKind == JsonValueKind.Object && props.TryGetProperty(name, out var value)
+            ? Tokens.ValueIfSet(value, kind)
+            : null;
 
     /// <summary>
     /// Records per-node declarations and writes the <c>data-qb</c> attribute that selects them.

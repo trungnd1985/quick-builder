@@ -17,3 +17,13 @@ export const CURRENT_BINDING_VERSION = 1
 /** The schema versions this editor can read and write. */
 export const SUPPORTED_SCHEMA_VERSIONS: ReadonlySet<number> = new Set([1])
 export const CURRENT_SCHEMA_VERSION = 1
+
+// The menu contract's limits (docs/contracts/menu.md §5, 024). They mirror
+// QuickBuilder.Pages.Contracts.MenuSchema; the same parity test checks them.
+export const MAX_MENU_DOCUMENT_BYTES = 262_144
+export const MAX_MENU_ENTRIES = 300
+export const MAX_MENU_LEVELS = 3
+export const CURRENT_MENU_VERSION = 1
+
+/** The menu versions this editor can read and write. */
+export const SUPPORTED_MENU_VERSIONS: ReadonlySet<number> = new Set([1])

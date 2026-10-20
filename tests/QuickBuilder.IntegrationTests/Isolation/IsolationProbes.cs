@@ -18,6 +18,7 @@ public static class IsolationProbes
         new CmsIsolationProbe(),
         new TemplateIsolationProbe(),
         new SeoIsolationProbe(),
+        new MenuIsolationProbe(),
     ];
 
     public static TheoryData<string> Names

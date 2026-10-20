@@ -9,5 +9,10 @@
     "previous": "Vorige",
     "next": "Volgende",
     "first": "Terug naar de eerste pagina"
+  },
+  "navigation": {
+    "menu": "Menu",
+    "showSubmenu": "Submenu tonen: {0}",
+    "newTab": "(opent in een nieuw tabblad)"
   }
 }

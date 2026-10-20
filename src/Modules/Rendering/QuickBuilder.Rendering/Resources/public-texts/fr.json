@@ -9,5 +9,10 @@
     "previous": "Précédent",
     "next": "Suivant",
     "first": "Revenir à la première page"
+  },
+  "navigation": {
+    "menu": "Menu",
+    "showSubmenu": "Afficher le sous-menu : {0}",
+    "newTab": "(s’ouvre dans un nouvel onglet)"
   }
 }

@@ -151,6 +151,18 @@ source index. See [017 research SE-11](../../017-seo/research.md).
   - `Media.FileChanged` and `Media.FileDeleted` also refresh every live page when the file is
     the site's default sharing image or organisation logo (SE-20, SE-22).
 
+
+### 024 Navigation and menus (#24)
+
+No new event. Menus publish as a third Pages subject (`menu`), but a menu publish or unpublish
+writes nothing to the outbox: no other module needs to know, and the pages that show the menu
+are refreshed through the dependency graph in the transaction of the change (024 research NV-07).
+
+- **New subscriptions in Pages**: `Cms.ItemPublished`, `Cms.ItemUnpublished` and
+  `Cms.ItemDeleted` (with `wasPublished`) also refresh the live pages that show a menu pointing at
+  the item, directly or through a component (`RefreshPagesShowingMenuItemsHandler`). The handler
+  is idempotent through `pages.processed_events`, under handler names of its own.
+
 ---
 
 ## Delivery guarantees

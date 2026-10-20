@@ -7,7 +7,7 @@ import { setProp } from '../ops'
 import { defaultOf, type ContentNode } from '../schema/schema'
 import type { Json } from '../schema/subsetValidator'
 import { useEditorStore } from '../state/editorStore'
-import { tokenValue, type TokenKind } from '../tokens/tokenCss'
+import { tokenValue, tokenValueIfSet, type TokenKind } from '../tokens/tokenCss'
 import { isBound } from '../bindings/canvasBindings'
 
 export function useBlock(node: () => ContentNode) {
@@ -20,11 +20,17 @@ export function useBlock(node: () => ContentNode) {
   const token = (name: string, kind: TokenKind, fallback = 'initial'): string =>
     tokenValue(node().props[name], kind, store.tokens, defaultOf(node().type, name), fallback)
 
+  /**
+   * A token property as CSS only when the block sets it and its token exists, else null: for
+   * props without a schema default, whose absence lets a lower layer decide (024 NV-26).
+   */
+  const tokenIfSet = (name: string, kind: TokenKind): string | null => tokenValueIfSet(node().props[name], kind, store.tokens)
+
   // Content of a shared component shown on a page is never edited there (FR-038).
   const isStatic = inject(STATIC_CANVAS, false)
   const editable = computed(() => !store.readOnly && !isStatic)
 
-  return { store, prop, token, editable }
+  return { store, prop, token, tokenIfSet, editable }
 }
 
 /** The shortcuts that still reach the editor while text has the focus. */

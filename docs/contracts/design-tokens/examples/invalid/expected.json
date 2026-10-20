@@ -11,5 +11,9 @@
   "editor.token_required--empty-spacing.json": { "code": "editor.token_required", "pointer": "/spacing" },
   "editor.unsupported_schema_version--version-2.json": { "code": "editor.unsupported_schema_version", "pointer": "/schemaVersion" },
   "editor.invalid_tokens--wide-3000.json": { "code": "editor.invalid_tokens", "pointer": "/contentWidths/wide" },
-  "editor.content_widths_order--narrow-over-normal.json": { "code": "editor.content_widths_order", "pointer": "/contentWidths" }
+  "editor.content_widths_order--narrow-over-normal.json": { "code": "editor.content_widths_order", "pointer": "/contentWidths" },
+  "editor.invalid_tokens--menu-style-look.json": { "code": "editor.invalid_tokens", "pointer": "/menuStyle/look" },
+  "editor.invalid_tokens--menu-style-color-key.json": { "code": "editor.invalid_tokens", "pointer": "/menuStyle/colors/foreground" },
+  "editor.invalid_tokens--menu-style-bad-id.json": { "code": "editor.invalid_tokens", "pointer": "/menuStyle/colors/text" },
+  "editor.invalid_tokens--menu-style-extra-key.json": { "code": "editor.invalid_tokens", "pointer": "/menuStyle/fonts" }
 }

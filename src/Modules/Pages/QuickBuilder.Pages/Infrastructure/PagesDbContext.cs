@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using QuickBuilder.Pages.Contracts;
 using QuickBuilder.Pages.Domain;
+using QuickBuilder.Pages.Domain.Menus;
 using QuickBuilder.Pages.Domain.Redirects;
 using QuickBuilder.Shared.Infrastructure.Data;
 using QuickBuilder.Shared.Infrastructure.MultiSite;
@@ -62,6 +63,16 @@ internal sealed class PagesDbContext(DbContextOptions<PagesDbContext> options, I
     internal DbSet<RedirectChange> RedirectChanges => Set<RedirectChange>();
 
     internal DbSet<SitemapState> SitemapStates => Set<SitemapState>();
+
+    internal DbSet<Menu> Menus => Set<Menu>();
+
+    internal DbSet<MenuDraft> MenuDrafts => Set<MenuDraft>();
+
+    internal DbSet<MenuTarget> MenuTargets => Set<MenuTarget>();
+
+    internal DbSet<MenuUsage> MenuUsages => Set<MenuUsage>();
+
+    internal DbSet<MenuChange> MenuChanges => Set<MenuChange>();
 
     /// <summary>
     /// The site the query filters compare against. A property on the context, referenced
@@ -276,6 +287,8 @@ internal sealed class PagesDbContext(DbContextOptions<PagesDbContext> options, I
 
         ConfigurePublishing(modelBuilder);
 
+        ConfigureMenus(modelBuilder);
+
         // Every module context carries the outbox (003 analysis U1).
         modelBuilder.AddOutbox(Schema);
 
@@ -295,11 +308,15 @@ internal sealed class PagesDbContext(DbContextOptions<PagesDbContext> options, I
     {
         const string subjectKinds = "subject_kind IN ('page', 'component')";
 
+        // 024 research NV-01: menus are published like components. Media and collection uses
+        // keep the narrower list: a menu shows neither.
+        const string publishedKinds = "subject_kind IN ('page', 'component', 'menu')";
+
         modelBuilder.Entity<Publication>(entity =>
         {
             entity.ToTable("publications", Schema, t =>
             {
-                t.HasCheckConstraint("ck_publications_subject_kind", subjectKinds);
+                t.HasCheckConstraint("ck_publications_subject_kind", publishedKinds);
                 t.HasCheckConstraint("ck_publications_live", "(live_version_id IS NULL) = (live_number IS NULL)");
             });
 
@@ -322,7 +339,7 @@ internal sealed class PagesDbContext(DbContextOptions<PagesDbContext> options, I
         {
             entity.ToTable("published_versions", Schema, t =>
             {
-                t.HasCheckConstraint("ck_published_versions_subject_kind", subjectKinds);
+                t.HasCheckConstraint("ck_published_versions_subject_kind", publishedKinds);
                 t.HasCheckConstraint("ck_published_versions_kind", "kind IN ('publish', 'scheduled', 'rollback')");
                 t.HasCheckConstraint("ck_published_versions_number", "number >= 1");
             });
@@ -354,9 +371,10 @@ internal sealed class PagesDbContext(DbContextOptions<PagesDbContext> options, I
         {
             entity.ToTable("live_dependencies", Schema, t =>
             {
-                t.HasCheckConstraint("ck_live_dependencies_subject_kind", subjectKinds);
-                // 016 data-model §1.2: list sources and a template's own collection.
-                t.HasCheckConstraint("ck_live_dependencies_target_kind", "target_kind IN ('component', 'page', 'media', 'collection', 'template')");
+                t.HasCheckConstraint("ck_live_dependencies_subject_kind", publishedKinds);
+                // 016 data-model §1.2: list sources and a template's own collection. 024
+                // data-model §3: Navigation blocks' menus, and menu entries' items.
+                t.HasCheckConstraint("ck_live_dependencies_target_kind", "target_kind IN ('component', 'page', 'media', 'collection', 'template', 'menu', 'item')");
             });
 
             entity.HasKey(e => new { e.SiteId, e.SubjectKind, e.SubjectId, e.TargetKind, e.TargetId });
@@ -426,7 +444,7 @@ internal sealed class PagesDbContext(DbContextOptions<PagesDbContext> options, I
         {
             entity.ToTable("publish_schedules", Schema, t =>
             {
-                t.HasCheckConstraint("ck_publish_schedules_subject_kind", subjectKinds);
+                t.HasCheckConstraint("ck_publish_schedules_subject_kind", publishedKinds);
                 t.HasCheckConstraint("ck_publish_schedules_action", "action IN ('publish', 'unpublish')");
                 t.HasCheckConstraint("ck_publish_schedules_state", "state IN ('pending', 'done', 'cancelled', 'failed')");
                 t.HasCheckConstraint("ck_publish_schedules_unpublish_page", "action = 'publish' OR subject_kind = 'page'");
@@ -462,7 +480,7 @@ internal sealed class PagesDbContext(DbContextOptions<PagesDbContext> options, I
         modelBuilder.Entity<PublishLogEntry>(entity =>
         {
             entity.ToTable("publish_log", Schema, t =>
-                t.HasCheckConstraint("ck_publish_log_subject_kind", "subject_kind IN ('page', 'component', 'design')"));
+                t.HasCheckConstraint("ck_publish_log_subject_kind", "subject_kind IN ('page', 'component', 'menu', 'design')"));
 
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Id).ValueGeneratedNever();
@@ -588,6 +606,116 @@ internal sealed class PagesDbContext(DbContextOptions<PagesDbContext> options, I
             entity.ToTable("sitemap_state", Schema);
             entity.HasKey(e => e.SiteId);
             entity.Property(e => e.SiteId).ValueGeneratedNever();
+            entity.HasQueryFilter(e => e.SiteId == CurrentSiteId);
+        });
+    }
+
+    /// <summary>024 data-model §1.1–§1.5: menus, their drafts, their indexes and their audit.</summary>
+    private void ConfigureMenus(ModelBuilder modelBuilder)
+    {
+        static string InList(IEnumerable<string> values) => string.Join(", ", values.Select(v => $"'{v}'"));
+
+        modelBuilder.Entity<Menu>(entity =>
+        {
+            entity.ToTable("menus", Schema);
+
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).ValueGeneratedNever();
+            entity.HasAlternateKey(e => new { e.SiteId, e.Id });
+
+            entity.Property(e => e.Name).HasColumnType("citext").HasMaxLength(Menu.MaxNameLength).IsRequired();
+            entity.Property(e => e.Version).IsRowVersion().HasColumnName("xmin").HasColumnType("xid");
+
+            // FR-002: names are unique per site, ignoring letter case.
+            entity
+                .HasIndex(e => new { e.SiteId, e.Name })
+                .IsUnique()
+                .HasDatabaseName("ux_menus_site_name");
+
+            entity.HasQueryFilter(e => e.SiteId == CurrentSiteId);
+        });
+
+        modelBuilder.Entity<MenuDraft>(entity =>
+        {
+            entity.ToTable("menu_drafts", Schema, t =>
+                t.HasCheckConstraint("ck_menu_drafts_schema_version", "schema_version = 1"));
+
+            entity.HasKey(e => e.MenuId);
+            entity.Property(e => e.MenuId).ValueGeneratedNever();
+            entity.Property(e => e.SchemaVersion).HasColumnType("smallint");
+            entity.Property(e => e.Document).HasColumnType("jsonb").IsRequired();
+            entity.Property(e => e.Version).IsRowVersion().HasColumnName("xmin").HasColumnType("xid");
+
+            entity
+                .HasOne<Menu>()
+                .WithOne()
+                .HasForeignKey<MenuDraft>(e => e.MenuId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasQueryFilter(e => e.SiteId == CurrentSiteId);
+        });
+
+        modelBuilder.Entity<MenuTarget>(entity =>
+        {
+            entity.ToTable("menu_targets", Schema, t =>
+                t.HasCheckConstraint("ck_menu_targets_target_kind", "target_kind IN ('page', 'item')"));
+
+            entity.HasKey(e => new { e.SiteId, e.MenuId, e.TargetKind, e.TargetId });
+            entity.Property(e => e.TargetKind).HasMaxLength(16);
+
+            // Both keys include the site: a target row belongs to a menu of its own site.
+            entity
+                .HasOne<Menu>()
+                .WithMany()
+                .HasForeignKey(e => new { e.SiteId, e.MenuId })
+                .HasPrincipalKey(m => new { m.SiteId, m.Id })
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // FR-026: "which menus point at this page or item?"
+            entity
+                .HasIndex(e => new { e.SiteId, e.TargetKind, e.TargetId })
+                .HasDatabaseName("ix_menu_targets_target");
+
+            entity.HasQueryFilter(e => e.SiteId == CurrentSiteId);
+        });
+
+        modelBuilder.Entity<MenuUsage>(entity =>
+        {
+            entity.ToTable("menu_usages", Schema, t =>
+                t.HasCheckConstraint("ck_menu_usages_subject_kind", "subject_kind IN ('page', 'component')"));
+
+            entity.HasKey(e => new { e.SiteId, e.SubjectKind, e.SubjectId, e.MenuId });
+            entity.Property(e => e.SubjectKind).HasMaxLength(16);
+
+            // NV-06: no restricting key. Deleting a menu that only drafts show is allowed, and
+            // takes these rows with it.
+            entity
+                .HasOne<Menu>()
+                .WithMany()
+                .HasForeignKey(e => new { e.SiteId, e.MenuId })
+                .HasPrincipalKey(m => new { m.SiteId, m.Id })
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(e => new { e.SiteId, e.MenuId }).HasDatabaseName("ix_menu_usages_menu");
+
+            entity.HasQueryFilter(e => e.SiteId == CurrentSiteId);
+        });
+
+        modelBuilder.Entity<MenuChange>(entity =>
+        {
+            entity.ToTable("menu_changes", Schema, t =>
+                t.HasCheckConstraint("ck_menu_changes_action", $"action IN ({InList(MenuChangeActions.All)})"));
+
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).ValueGeneratedNever();
+            entity.Property(e => e.Action).HasMaxLength(16);
+
+            // No foreign key: the record outlives the menu (FR-005).
+            entity
+                .HasIndex(e => new { e.SiteId, e.MenuId, e.AtUtc })
+                .IsDescending(false, false, true)
+                .HasDatabaseName("ix_menu_changes_menu");
+
             entity.HasQueryFilter(e => e.SiteId == CurrentSiteId);
         });
     }

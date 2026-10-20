@@ -4,6 +4,7 @@ import axe from 'axe-core'
 import PublishMenu from '../../src/features/publishing/PublishMenu.vue'
 import type { Publication } from '../../src/api/publishing'
 import en from '../../src/i18n/en.json'
+import { createMemoryHistory, createRouter } from 'vue-router'
 import { i18n } from '../editor/harness'
 
 // 012 FR-039, research PR-20: the publishing actions every page, component and the editor offer.
@@ -120,6 +121,22 @@ describe('PublishMenu', () => {
     expect(screen.getByRole('status').textContent).toContain('Unpublished.')
   })
 
+  it('names the menus that link to the page before it is unpublished (024 FR-026)', async () => {
+    vi.stubGlobal('fetch', vi.fn(async (url: string) => (url.includes('/menus/references?pageId=')
+      ? new Response(JSON.stringify({ items: [{ menuId: 'm1', name: 'Main', inDraft: true, inLive: true }] }), { status: 200 })
+      : new Response(JSON.stringify({ pages: [] }), { status: 200 }))))
+    const router = createRouter({ history: createMemoryHistory(), routes: [{ path: '/sites/:siteId/menus/:menuId', name: 'site-menu', component: { template: '<div />' } }] })
+    render(PublishMenu, {
+      props: { siteId: SITE, kind: 'page', subjectId: PAGE, title: 'About', publication: published(2), canPublish: true },
+      global: { plugins: [i18n, router] },
+    })
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Unpublish' }))
+    const dialog = await screen.findByRole('alertdialog')
+    expect(await within(dialog).findByRole('link', { name: 'Main' })).toBeTruthy()
+    expect(within(dialog).getByText(en.menus.references.unpublish.split(' | ')[0])).toBeTruthy()
+  })
+
   it('offers unpublishing only for what is live, and only to publishers', () => {
     stubFetch({ status: 200, body: {} })
     mount({ publication: draft })
@@ -133,6 +150,15 @@ describe('PublishMenu', () => {
     await fireEvent.click(screen.getByRole('button', { name: 'Publish' }))
 
     expect(await screen.findByRole('alert')).toHaveProperty('textContent', '2 shared component(s) this uses are not published. Publish them first.')
+  })
+
+  it('says how many menus the page shows are not published yet (024 FR-003a)', async () => {
+    stubFetch({ status: 409, body: { title: 'Conflict', status: 409, errorCode: 'pages.unpublished_menus', menuIds: ['a', 'b', 'c'] } })
+    mount()
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Publish' }))
+
+    expect(await screen.findByRole('alert')).toHaveProperty('textContent', '3 menu(s) this shows are not published. Publish them first.')
   })
 
   it('names how many images need alternative text and reports where they are (035 FR-014)', async () => {

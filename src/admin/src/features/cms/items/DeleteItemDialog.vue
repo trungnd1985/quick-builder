@@ -7,6 +7,7 @@ import { itemsApi, refusalOf, type Item, type Referrer } from '../../../api/item
 import { errorCodeOf, itemErrorMessage } from './itemErrors'
 import RedirectToPagePicker, { type PickablePage } from '../../../components/RedirectToPagePicker.vue'
 import { pagesApi } from '../../../api/pages'
+import MenuReferencesNote from '../../menus/MenuReferencesNote.vue'
 
 const props = defineProps<{ siteId: string; collectionId: string; item: Item }>()
 const emit = defineEmits<{ deleted: []; cancel: [] }>()
@@ -92,6 +93,12 @@ function onKeydown(event: KeyboardEvent): void {
             <p v-if="item.status !== 'draft'">
               <strong>{{ t('cms.items.delete.live') }}</strong>
             </p>
+            <!-- 024 FR-026: the menus that point here keep a broken entry, which visitors do not see. -->
+            <MenuReferencesNote
+              :site-id="siteId"
+              :target="{ itemId: item.id }"
+              action="delete"
+            />
             <RedirectToPagePicker
               v-if="hasAddress"
               id="delete-item-redirect"

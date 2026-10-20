@@ -74,7 +74,13 @@ internal static class PagesErrorResults
             // 017 data-model §4.
             or "redirects.duplicate"
             or "redirects.loop"
-            or "redirects.limit_reached" => StatusCodes.Status409Conflict,
+            or "redirects.limit_reached"
+            // 024 data-model §4.2.
+            or "pages.duplicate_menu_name"
+            or "pages.menu_limit_reached"
+            or "pages.unpublished_menus"
+            or "pages.version_missing_menus"
+            or "pages.menu_in_use_by_published_content" => StatusCodes.Status409Conflict,
         "pages.seo_restricted" => StatusCodes.Status403Forbidden,
         "redirects.import_too_large" => StatusCodes.Status413PayloadTooLarge,
         "pages.document_too_large" => StatusCodes.Status413PayloadTooLarge,

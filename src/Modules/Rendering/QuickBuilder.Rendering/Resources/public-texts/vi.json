@@ -9,5 +9,10 @@
     "previous": "Trước",
     "next": "Tiếp",
     "first": "Quay lại trang đầu"
+  },
+  "navigation": {
+    "menu": "Menu",
+    "showSubmenu": "Hiện menu con: {0}",
+    "newTab": "(mở trong thẻ mới)"
   }
 }

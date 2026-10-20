@@ -9,5 +9,10 @@
     "previous": "Anterioara",
     "next": "Următoarea",
     "first": "Înapoi la prima pagină"
+  },
+  "navigation": {
+    "menu": "Meniu",
+    "showSubmenu": "Afișează submeniul: {0}",
+    "newTab": "(se deschide într-o filă nouă)"
   }
 }

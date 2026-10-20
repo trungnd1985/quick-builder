@@ -48,4 +48,8 @@ public interface ICollectionSchemaReader
 }
 
 /// <summary>What an item's address is made of: its collection's template pattern and its published slug.</summary>
-public sealed record ItemAddressParts(Guid CollectionId, string? PublishedSlug);
+/// <param name="Name">
+/// The item's current (draft) name, for the menu editor (024 research NV-04); content: never log
+/// it. Null when the collection has no title field or the item has no value for it.
+/// </param>
+public sealed record ItemAddressParts(Guid CollectionId, string? PublishedSlug, string? Name = null);

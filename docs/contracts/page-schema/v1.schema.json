@@ -101,6 +101,9 @@
         },
         {
           "$ref": "#/$defs/collection-list"
+        },
+        {
+          "$ref": "#/$defs/navigation"
         }
       ]
     },
@@ -832,6 +835,141 @@
                 "1:1"
               ],
               "default": "16:9"
+            },
+            "layerLabel": {
+              "$ref": "#/$defs/layerLabel"
+            }
+          }
+        },
+        "children": {
+          "$ref": "#/$defs/noChildren"
+        }
+      }
+    },
+    "navCollapse": {
+      "description": "Hide the menu behind a menu button below one of the editor's preview widths: mobile (480 px) or tablet (767 px) (024 FR-017).",
+      "type": "object",
+      "required": [
+        "enabled",
+        "below"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "below": {
+          "enum": [
+            "mobile",
+            "tablet"
+          ]
+        },
+        "buttonLabel": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40,
+          "pattern": "^[^\u0000-\u001f]*$"
+        }
+      }
+    },
+    "navigation": {
+      "description": "Shows one of the site's menus (024, docs/contracts/menu.md). menuId may name a menu that no longer exists; publishing refuses it.",
+      "type": "object",
+      "required": [
+        "id",
+        "type",
+        "props",
+        "children"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/nodeId"
+        },
+        "type": {
+          "const": "navigation"
+        },
+        "props": {
+          "type": "object",
+          "required": [
+            "menuId"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "menuId": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "layout": {
+              "enum": [
+                "horizontal",
+                "vertical"
+              ],
+              "default": "horizontal"
+            },
+            "levels": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 3,
+              "default": 3
+            },
+            "collapse": {
+              "$ref": "#/$defs/navCollapse",
+              "default": {
+                "enabled": false,
+                "below": "mobile"
+              }
+            },
+            "align": {
+              "$ref": "#/$defs/align"
+            },
+            "ariaLabel": {
+              "description": "The navigation landmark's accessible name; absent: the live menu's name.",
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100,
+              "pattern": "^[^\u0000-\u001f]*$"
+            },
+            "look": {
+              "description": "How top-level entries look; absent: the site's menu style (024 FR-017b).",
+              "enum": [
+                "link",
+                "underline",
+                "pill",
+                "button"
+              ]
+            },
+            "color": {
+              "$ref": "#/$defs/colorRef",
+              "description": "Entry text; absent: the site's menu style (024 FR-017c)."
+            },
+            "activeColor": {
+              "$ref": "#/$defs/colorRef",
+              "description": "Current, containing and section entries' text; absent: the site's menu style."
+            },
+            "background": {
+              "$ref": "#/$defs/colorRef",
+              "description": "The bar's background; absent: the site's menu style."
+            },
+            "hoverColor": {
+              "$ref": "#/$defs/colorRef",
+              "description": "Entry text on hover; absent: the site's menu style."
+            },
+            "hoverBackground": {
+              "$ref": "#/$defs/colorRef",
+              "description": "Entry background on hover; absent: the site's menu style."
+            },
+            "activeBackground": {
+              "$ref": "#/$defs/colorRef",
+              "description": "The current entry's background; absent: the site's menu style."
+            },
+            "focusColor": {
+              "$ref": "#/$defs/colorRef",
+              "description": "The keyboard focus ring, which cannot be turned off; absent: the current entry's text colour, then the site's menu style (024 FR-017d)."
+            },
+            "panelBackground": {
+              "$ref": "#/$defs/colorRef",
+              "description": "Horizontal dropdowns and the opened small-screen panel; absent: the site's menu style."
             },
             "layerLabel": {
               "$ref": "#/$defs/layerLabel"

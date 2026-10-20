@@ -9,5 +9,10 @@
     "previous": "Předchozí",
     "next": "Další",
     "first": "Zpět na první stránku"
+  },
+  "navigation": {
+    "menu": "Nabídka",
+    "showSubmenu": "Zobrazit podnabídku: {0}",
+    "newTab": "(otevře se na nové kartě)"
   }
 }

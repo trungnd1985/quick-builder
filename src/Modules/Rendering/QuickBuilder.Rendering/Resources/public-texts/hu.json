@@ -9,5 +9,10 @@
     "previous": "Előző",
     "next": "Következő",
     "first": "Vissza az első oldalra"
+  },
+  "navigation": {
+    "menu": "Menü",
+    "showSubmenu": "Almenü megjelenítése: {0}",
+    "newTab": "(új lapon nyílik meg)"
   }
 }

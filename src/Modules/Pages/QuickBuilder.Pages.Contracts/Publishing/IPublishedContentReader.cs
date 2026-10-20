@@ -41,6 +41,13 @@ public interface IPublishedContentReader
         Guid siteId, IReadOnlyCollection<Guid> componentIds, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Live versions of the given menus, with the name each had when it was published (024
+    /// research NV-05, NV-09); ids without a live version are absent. One query.
+    /// </summary>
+    Task<IReadOnlyDictionary<Guid, LiveMenu>> GetLiveMenusAsync(
+        Guid siteId, IReadOnlyCollection<Guid> menuIds, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// For link targets: each page's current address and whether it is live. Ids that are not
     /// pages of the site are absent.
     /// </summary>
@@ -87,5 +94,14 @@ public sealed record LiveDocument(int SchemaVersion, JsonElement Document);
 /// <summary>A live page version: its document and the title visitors see.</summary>
 public sealed record LivePageVersion(int SchemaVersion, JsonElement Document, string Title);
 
-/// <summary>A page a link points at: where it is now, and whether visitors can open it.</summary>
-public sealed record PageLinkTarget(string Path, bool IsLive);
+/// <summary>A live menu document, and the menu's name when that version was published (024 NV-05).</summary>
+/// <param name="Name">Content: render it encoded, never log it.</param>
+public sealed record LiveMenu(int SchemaVersion, JsonElement Document, string Name);
+
+/// <summary>A page a link or menu entry points at: where it is now, and whether visitors can open it.</summary>
+/// <param name="LiveTitle">
+/// The title visitors saw last: the live version's, or, once unpublished, the last published
+/// version's. Menu entries without their own label show it, as a link while the page is live and
+/// as text otherwise (024 NV-09, FR-023). Null for a page never published and for a template.
+/// </param>
+public sealed record PageLinkTarget(string Path, bool IsLive, string? LiveTitle = null);

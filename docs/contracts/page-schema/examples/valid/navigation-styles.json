@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "root": {
+    "id": "root",
+    "type": "root",
+    "props": {},
+    "children": [
+      {
+        "id": "header",
+        "type": "section",
+        "props": {},
+        "children": [
+          {
+            "id": "main-nav",
+            "type": "navigation",
+            "props": {
+              "menuId": "0192f5a0-1b2c-7d3e-8f40-5a6b7c8d9e40",
+              "look": "button",
+              "color": {
+                "token": "color-text"
+              },
+              "activeColor": {
+                "token": "color-brand"
+              },
+              "background": {
+                "token": "color-background"
+              },
+              "hoverColor": {
+                "token": "color-brand"
+              },
+              "hoverBackground": {
+                "token": "color-brand-light"
+              },
+              "activeBackground": {
+                "token": "color-brand-light"
+              },
+              "focusColor": {
+                "token": "color-brand"
+              },
+              "panelBackground": {
+                "token": "color-background"
+              }
+            },
+            "children": []
+          }
+        ]
+      }
+    ]
+  }
+}

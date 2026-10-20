@@ -253,6 +253,50 @@ internal static class PagesErrors
         ("param", param),
         ("with", with));
 
+    // --- Menus (024 data-model §4.2) ---------------------------------------------------------
+
+    internal static Error MenuNotFound { get; } = Error.NotFound("pages.menu_not_found", "No such menu on this site.");
+
+    internal static Error InvalidMenuName { get; } = Error.Validation(
+        "pages.invalid_menu_name",
+        $"A menu name must be between 1 and {Domain.Menus.Menu.MaxNameLength} characters.");
+
+    internal static Error DuplicateMenuName { get; } = Error.Conflict(
+        "pages.duplicate_menu_name",
+        "This site already has a menu with that name.");
+
+    internal static Error MenuLimitReached { get; } = With(
+        Error.Conflict(
+            "pages.menu_limit_reached",
+            $"A site may have at most {Domain.Menus.Menu.MaxPerSite} menus."),
+        ("limit", Domain.Menus.Menu.MaxPerSite));
+
+    internal static Error InvalidReferenceQuery { get; } = Error.Validation(
+        "pages.invalid_reference_query",
+        "Ask about exactly one page or one item.");
+
+    /// <summary>FR-003a: a Navigation block names menus that do not exist or are not live.</summary>
+    internal static Error UnpublishedMenus(IReadOnlyCollection<Guid> menuIds) => With(
+        Error.Conflict(
+            "pages.unpublished_menus",
+            $"{menuIds.Count} menu(s) this shows are not published. Publish them first."),
+        ("menuIds", menuIds.ToArray()));
+
+    /// <summary>FR-003a: a version to roll back to shows menus that were deleted since.</summary>
+    internal static Error VersionMissingMenus(IReadOnlyCollection<Guid> menuIds) => With(
+        Error.Conflict(
+            "pages.version_missing_menus",
+            $"This version shows {menuIds.Count} menu(s) that no longer exist."),
+        ("menuIds", menuIds.ToArray()));
+
+    /// <summary>FR-003: published pages or components still show the menu.</summary>
+    internal static Error MenuInUseByPublishedContent(int pageCount, int componentCount) => With(
+        Error.Conflict(
+            "pages.menu_in_use_by_published_content",
+            $"This menu is shown by {pageCount} published page(s) and {componentCount} published component(s). Remove it from them first."),
+        ("pages", pageCount),
+        ("components", componentCount));
+
     /// <summary>A document refusal, carrying the failed rule and where it failed.</summary>
     internal static Error InvalidDocument(DocumentValidationResult result)
     {
@@ -262,7 +306,7 @@ internal static class PagesErrors
         {
             "pages.document_too_large" => Error.Validation(result.Code, result.Message ?? DocumentTooLarge.Message),
             null => throw new ArgumentException("A valid document is not an error.", nameof(result)),
-            _ => Error.Validation(result.Code, result.Message ?? "The document does not follow the page schema."),
+            _ => Error.Validation(result.Code, result.Message ?? "The document does not follow its schema."),
         };
 
         return With(error, ("rule", result.Rule), ("pointer", result.Location));

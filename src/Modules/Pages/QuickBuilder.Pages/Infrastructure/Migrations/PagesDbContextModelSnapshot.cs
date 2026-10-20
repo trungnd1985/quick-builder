@@ -249,9 +249,205 @@ namespace QuickBuilder.Pages.Infrastructure.Migrations
 
                     b.ToTable("live_dependencies", "pages", t =>
                         {
-                            t.HasCheckConstraint("ck_live_dependencies_subject_kind", "subject_kind IN ('page', 'component')");
+                            t.HasCheckConstraint("ck_live_dependencies_subject_kind", "subject_kind IN ('page', 'component', 'menu')");
 
-                            t.HasCheckConstraint("ck_live_dependencies_target_kind", "target_kind IN ('component', 'page', 'media', 'collection', 'template')");
+                            t.HasCheckConstraint("ck_live_dependencies_target_kind", "target_kind IN ('component', 'page', 'media', 'collection', 'template', 'menu', 'item')");
+                        });
+                });
+
+            modelBuilder.Entity("QuickBuilder.Pages.Domain.Menus.Menu", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at_utc");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("citext")
+                        .HasColumnName("name");
+
+                    b.Property<Guid>("SiteId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("site_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at_utc");
+
+                    b.Property<Guid>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id")
+                        .HasName("pk_menus");
+
+                    b.HasAlternateKey("SiteId", "Id")
+                        .HasName("ak_menus_site_id_id");
+
+                    b.HasIndex("SiteId", "Name")
+                        .IsUnique()
+                        .HasDatabaseName("ux_menus_site_name");
+
+                    b.ToTable("menus", "pages");
+                });
+
+            modelBuilder.Entity("QuickBuilder.Pages.Domain.Menus.MenuChange", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("action");
+
+                    b.Property<Guid>("ActorUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("actor_user_id");
+
+                    b.Property<DateTimeOffset>("AtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("at_utc");
+
+                    b.Property<Guid>("MenuId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("menu_id");
+
+                    b.Property<Guid>("SiteId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("site_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_menu_changes");
+
+                    b.HasIndex("SiteId", "MenuId", "AtUtc")
+                        .IsDescending(false, false, true)
+                        .HasDatabaseName("ix_menu_changes_menu");
+
+                    b.ToTable("menu_changes", "pages", t =>
+                        {
+                            t.HasCheckConstraint("ck_menu_changes_action", "action IN ('created', 'renamed', 'duplicated', 'draft_saved', 'deleted')");
+                        });
+                });
+
+            modelBuilder.Entity("QuickBuilder.Pages.Domain.Menus.MenuDraft", b =>
+                {
+                    b.Property<Guid>("MenuId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("menu_id");
+
+                    b.Property<string>("Document")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("document");
+
+                    b.Property<short>("SchemaVersion")
+                        .HasColumnType("smallint")
+                        .HasColumnName("schema_version");
+
+                    b.Property<Guid>("SiteId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("site_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at_utc");
+
+                    b.Property<Guid>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("MenuId")
+                        .HasName("pk_menu_drafts");
+
+                    b.ToTable("menu_drafts", "pages", t =>
+                        {
+                            t.HasCheckConstraint("ck_menu_drafts_schema_version", "schema_version = 1");
+                        });
+                });
+
+            modelBuilder.Entity("QuickBuilder.Pages.Domain.Menus.MenuTarget", b =>
+                {
+                    b.Property<Guid>("SiteId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("site_id");
+
+                    b.Property<Guid>("MenuId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("menu_id");
+
+                    b.Property<string>("TargetKind")
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("target_kind");
+
+                    b.Property<Guid>("TargetId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("target_id");
+
+                    b.HasKey("SiteId", "MenuId", "TargetKind", "TargetId")
+                        .HasName("pk_menu_targets");
+
+                    b.HasIndex("SiteId", "TargetKind", "TargetId")
+                        .HasDatabaseName("ix_menu_targets_target");
+
+                    b.ToTable("menu_targets", "pages", t =>
+                        {
+                            t.HasCheckConstraint("ck_menu_targets_target_kind", "target_kind IN ('page', 'item')");
+                        });
+                });
+
+            modelBuilder.Entity("QuickBuilder.Pages.Domain.Menus.MenuUsage", b =>
+                {
+                    b.Property<Guid>("SiteId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("site_id");
+
+                    b.Property<string>("SubjectKind")
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("subject_kind");
+
+                    b.Property<Guid>("SubjectId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("subject_id");
+
+                    b.Property<Guid>("MenuId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("menu_id");
+
+                    b.HasKey("SiteId", "SubjectKind", "SubjectId", "MenuId")
+                        .HasName("pk_menu_usages");
+
+                    b.HasIndex("SiteId", "MenuId")
+                        .HasDatabaseName("ix_menu_usages_menu");
+
+                    b.ToTable("menu_usages", "pages", t =>
+                        {
+                            t.HasCheckConstraint("ck_menu_usages_subject_kind", "subject_kind IN ('page', 'component')");
                         });
                 });
 
@@ -501,7 +697,7 @@ namespace QuickBuilder.Pages.Infrastructure.Migrations
                         {
                             t.HasCheckConstraint("ck_publications_live", "(live_version_id IS NULL) = (live_number IS NULL)");
 
-                            t.HasCheckConstraint("ck_publications_subject_kind", "subject_kind IN ('page', 'component')");
+                            t.HasCheckConstraint("ck_publications_subject_kind", "subject_kind IN ('page', 'component', 'menu')");
                         });
                 });
 
@@ -580,7 +776,7 @@ namespace QuickBuilder.Pages.Infrastructure.Migrations
 
                     b.ToTable("publish_log", "pages", t =>
                         {
-                            t.HasCheckConstraint("ck_publish_log_subject_kind", "subject_kind IN ('page', 'component', 'design')");
+                            t.HasCheckConstraint("ck_publish_log_subject_kind", "subject_kind IN ('page', 'component', 'menu', 'design')");
                         });
                 });
 
@@ -676,7 +872,7 @@ namespace QuickBuilder.Pages.Infrastructure.Migrations
 
                             t.HasCheckConstraint("ck_publish_schedules_state", "state IN ('pending', 'done', 'cancelled', 'failed')");
 
-                            t.HasCheckConstraint("ck_publish_schedules_subject_kind", "subject_kind IN ('page', 'component')");
+                            t.HasCheckConstraint("ck_publish_schedules_subject_kind", "subject_kind IN ('page', 'component', 'menu')");
 
                             t.HasCheckConstraint("ck_publish_schedules_unpublish_page", "action = 'publish' OR subject_kind = 'page'");
                         });
@@ -751,7 +947,7 @@ namespace QuickBuilder.Pages.Infrastructure.Migrations
 
                             t.HasCheckConstraint("ck_published_versions_number", "number >= 1");
 
-                            t.HasCheckConstraint("ck_published_versions_subject_kind", "subject_kind IN ('page', 'component')");
+                            t.HasCheckConstraint("ck_published_versions_subject_kind", "subject_kind IN ('page', 'component', 'menu')");
                         });
                 });
 
@@ -1107,6 +1303,38 @@ namespace QuickBuilder.Pages.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_component_usages_pages_site_id_page_id");
+                });
+
+            modelBuilder.Entity("QuickBuilder.Pages.Domain.Menus.MenuDraft", b =>
+                {
+                    b.HasOne("QuickBuilder.Pages.Domain.Menus.Menu", null)
+                        .WithOne()
+                        .HasForeignKey("QuickBuilder.Pages.Domain.Menus.MenuDraft", "MenuId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_menu_drafts_menus_menu_id");
+                });
+
+            modelBuilder.Entity("QuickBuilder.Pages.Domain.Menus.MenuTarget", b =>
+                {
+                    b.HasOne("QuickBuilder.Pages.Domain.Menus.Menu", null)
+                        .WithMany()
+                        .HasForeignKey("SiteId", "MenuId")
+                        .HasPrincipalKey("SiteId", "Id")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_menu_targets_menus_site_id_menu_id");
+                });
+
+            modelBuilder.Entity("QuickBuilder.Pages.Domain.Menus.MenuUsage", b =>
+                {
+                    b.HasOne("QuickBuilder.Pages.Domain.Menus.Menu", null)
+                        .WithMany()
+                        .HasForeignKey("SiteId", "MenuId")
+                        .HasPrincipalKey("SiteId", "Id")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_menu_usages_menus_site_id_menu_id");
                 });
 
             modelBuilder.Entity("QuickBuilder.Pages.Domain.Page", b =>

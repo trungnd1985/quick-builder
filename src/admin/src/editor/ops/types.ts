@@ -19,6 +19,8 @@ export type OpRefusalCode =
   | 'read_only'
   /** 016: a Collection list needs a collection, and the site has none. */
   | 'no_collections'
+  /** 024: a Navigation block shows a menu, and the site has none. */
+  | 'no_menus'
   /** 016 rule 20: a list's card and empty state stay with their list, one of each, in order. */
   | 'list_slot'
 

@@ -9,5 +9,10 @@
     "previous": "Sebelumnya",
     "next": "Berikutnya",
     "first": "Kembali ke halaman pertama"
+  },
+  "navigation": {
+    "menu": "Menu",
+    "showSubmenu": "Tampilkan submenu: {0}",
+    "newTab": "(terbuka di tab baru)"
   }
 }

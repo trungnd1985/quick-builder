@@ -25,6 +25,19 @@ export interface ContentWidths {
   wide: number
 }
 
+/** How menu entries look (024 FR-017b). */
+export type MenuLook = 'link' | 'underline' | 'pill' | 'button'
+
+/** The colours a menu style may set, each a colour token id (024 FR-017c). */
+export const MENU_COLOR_KEYS = ['background', 'text', 'hoverText', 'hoverBackground', 'currentText', 'currentBackground', 'focus', 'panelBackground'] as const
+export type MenuColorKey = (typeof MENU_COLOR_KEYS)[number]
+
+/** The site-wide menu style (024 FR-017a; specs/024-navigation/contracts/menu-style.md). */
+export interface MenuStyle {
+  look?: MenuLook
+  colors?: Partial<Record<MenuColorKey, string>>
+}
+
 /** A design token set (docs/contracts/design-tokens.md). */
 export interface TokenSet {
   schemaVersion: number
@@ -38,6 +51,8 @@ export interface TokenSet {
   spacing: ScaleToken[]
   /** Optional: a set saved before content widths existed has none, and takes the defaults. */
   contentWidths?: ContentWidths
+  /** Optional: absent, menus take the built-in style. */
+  menuStyle?: MenuStyle
 }
 
 export const defaultTokens: Readonly<TokenSet> = defaults as TokenSet
