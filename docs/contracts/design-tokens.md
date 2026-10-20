@@ -61,6 +61,7 @@ see; publishing (#12) decides how they reach published pages.
 | `typography.sizes` | 1–12 entries of `{ id, name, rem }`, with `rem` from 0.5 to 6. |
 | `spacing` | 1–12 entries of `{ id, name, rem }`, with `rem` from 0 to 16. |
 | `contentWidths` | Optional. `{ narrow, normal, wide }`, each an integer from 320 to 2560 (CSS pixels), with narrow ≤ normal ≤ wide. All three are always present: none can be added or deleted. When it is absent, the default set's widths apply. |
+| `menuStyle` | Optional (added by 024, still version 1). `{ look?, colors? }`: `look` is `link`, `underline`, `pill` or `button`; `colors` holds any of `background`, `text`, `hoverText`, `hoverBackground`, `currentText`, `currentBackground`, `focus` and `panelBackground`, each a colour token **id**. No other keys. An id that names no token is valid and falls back like any token reference (below). Absent keys, or no `menuStyle`, take the built-in defaults, so menus look as they did before it existed. See [specs/024-navigation/contracts/menu-style.md](../../specs/024-navigation/contracts/menu-style.md). |
 | `id` | Matches `^[a-z0-9-]{1,40}$`. **Unique across all three lists.** It never changes; a new entry gets a new id. |
 | `name` | 1–40 characters, unique within its list ignoring case. Display only. |
 | Size | At most 64 KiB of UTF-8 JSON. |
@@ -142,6 +143,8 @@ Every validator of this schema runs the same files:
 |---|---|
 | `valid/default.json` | passes: the default set |
 | `valid/full.json` | passes: 24 colours, 12 sizes, 12 spacing steps, the extreme content widths |
+| `valid/menu-style.json` | passes: a menu style with the pill look and all eight colours (024) |
+| `valid/menu-style-unknown-token.json` | passes: a menu colour naming no token falls back (024) |
 | `invalid/editor.invalid_tokens--bad-colour.json` | at `/colors/0/value` |
 | `invalid/editor.invalid_tokens--uppercase-colour.json` | at `/colors/0/value` |
 | `invalid/editor.invalid_tokens--25-colours.json` | at `/colors` |
@@ -154,3 +157,7 @@ Every validator of this schema runs the same files:
 | `invalid/editor.unsupported_schema_version--version-2.json` | at `/schemaVersion` |
 | `invalid/editor.invalid_tokens--wide-3000.json` | at `/contentWidths/wide` |
 | `invalid/editor.content_widths_order--narrow-over-normal.json` | at `/contentWidths` |
+| `invalid/editor.invalid_tokens--menu-style-look.json` | at `/menuStyle/look` |
+| `invalid/editor.invalid_tokens--menu-style-color-key.json` | at `/menuStyle/colors/foreground` |
+| `invalid/editor.invalid_tokens--menu-style-bad-id.json` | at `/menuStyle/colors/text` |
+| `invalid/editor.invalid_tokens--menu-style-extra-key.json` | at `/menuStyle/fonts` |

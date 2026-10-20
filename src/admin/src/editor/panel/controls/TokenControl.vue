@@ -11,7 +11,11 @@ import type { Json } from '../../schema/subsetValidator'
 import { useEditorStore } from '../../state/editorStore'
 import { isDeletedToken, tokenValue, type TokenKind } from '../../tokens/tokenCss'
 
-const props = defineProps<ControlProps & { kind: TokenKind }>()
+const props = defineProps<ControlProps & {
+  kind: TokenKind
+  /** The unset option's label, for props without a schema default whose absence defers to another layer (024 NV-26). */
+  inheritLabel?: string
+}>()
 const emit = defineEmits<{ change: [value: Json | undefined] }>()
 const { t } = useI18n()
 const store = useEditorStore()
@@ -63,7 +67,7 @@ function onChange(event: Event): void {
         @change="onChange"
       >
         <option :value="DEFAULT">
-          {{ t('editor.panel.token.default', { name: defaultName }) }}
+          {{ inheritLabel ?? t('editor.panel.token.default', { name: defaultName }) }}
         </option>
         <option
           v-for="token in tokens"

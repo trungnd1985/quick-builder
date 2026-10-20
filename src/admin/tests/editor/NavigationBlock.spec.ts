@@ -3,6 +3,7 @@ import { fireEvent, screen, waitFor, within } from '@testing-library/vue'
 import axe from 'axe-core'
 import en from '../../src/i18n/en.json'
 import { useEditorStore } from '../../src/editor/state/editorStore'
+import { defaultTokens } from '../../src/editor/tokens/defaultTokens'
 import { MENU, SITE, documentWith, mountEditor, stubServer } from './harness'
 
 // 024 US2 (tasks T040): a Navigation block arrives from the palette with the site's first menu,
@@ -164,6 +165,69 @@ describe('the Navigation block in the editor', () => {
 
     await fireEvent.update(within(collapseField).getByLabelText(en.editor.navigation.below), 'tablet')
     expect(store.root!.children[0].children[0].props.collapse).toEqual({ enabled: true, below: 'tablet' })
+  })
+
+  describe('styles (024 FR-017a to FR-017d, tasks T095)', () => {
+    const STYLE_PROPS = ['look', 'color', 'activeColor', 'background', 'hoverColor', 'hoverBackground', 'activeBackground', 'focusColor', 'panelBackground']
+
+    it('offers the look and the eight colours in a Style group, each following the site until set', async () => {
+      stubServer(page(nav()))
+      await mountEditor()
+      useEditorStore().select('nav')
+
+      const style = await waitFor(() => within(panel()).getByRole('group', { name: en.editor.panel.groups.style }))
+      expect([...style.querySelectorAll<HTMLElement>('[data-prop]')].map((e) => e.dataset.prop)).toEqual(STYLE_PROPS)
+      const look = within(style).getByLabelText(en.editor.panel.props.look) as HTMLSelectElement
+      expect(look.value).toBe('')
+      expect(look.options[0].textContent?.trim()).toBe(en.editor.navigation.siteLook.replace('{look}', en.design.menus.looks.link))
+      const background = within(style).getByLabelText(en.editor.panel.props.background) as HTMLSelectElement
+      expect(background.options[0].textContent?.trim()).toBe(en.editor.panel.token.siteMenuStyle)
+    })
+
+    it('adds an override, draws it on the canvas, and removes it again', async () => {
+      stubServer(page(nav()))
+      const { container } = await mountEditor()
+      const store = useEditorStore()
+      store.select('nav')
+
+      await fireEvent.update(within(await field('look')).getByRole('combobox'), 'pill')
+      await fireEvent.update(within(await field('background')).getByRole('combobox'), 'color-text')
+      expect(store.root!.children[0].children[0].props).toMatchObject({ look: 'pill', background: { token: 'color-text' } })
+
+      const drawn = canvasNav(container)!
+      expect(drawn.classList.contains('qb-nav--look-pill')).toBe(true)
+      expect(drawn.style.getPropertyValue('--qb-nav-background')).toBe('var(--qb-color-color-text)')
+      // Only what the block sets: the rest comes from the site's menu style.
+      expect(drawn.style.getPropertyValue('--qb-nav-text')).toBe('')
+
+      await fireEvent.update(within(await field('background')).getByRole('combobox'), '')
+      await fireEvent.update(within(await field('look')).getByRole('combobox'), '')
+      expect(store.root!.children[0].children[0].props).not.toHaveProperty('background')
+      expect(store.root!.children[0].children[0].props).not.toHaveProperty('look')
+      expect(canvasNav(container)!.classList.contains('qb-nav--look-link')).toBe(true)
+    })
+
+    it('follows the site look from the draft tokens', async () => {
+      const server = stubServer(page(nav()))
+      server.script(`GET /api/v1/editor/sites/${SITE}/design-tokens`, {
+        status: 200,
+        body: { siteId: SITE, version: 1, isDefault: false, document: { ...defaultTokens, menuStyle: { look: 'button' } }, updatedAtUtc: null, updatedBy: null, permissions: { canManage: true } },
+      })
+      const { container } = await mountEditor()
+
+      await waitFor(() => expect(canvasNav(container)?.classList.contains('qb-nav--look-button')).toBe(true))
+    })
+
+    it('warns, naming the pair, when the effective colours are hard to read', async () => {
+      stubServer(page(nav({ color: { token: 'color-border' } })))
+      await mountEditor()
+      useEditorStore().select('nav')
+
+      const style = await waitFor(() => within(panel()).getByRole('group', { name: en.editor.panel.groups.style }))
+      const warning = await within(style).findByRole('status')
+      expect(warning.textContent).toContain(en.design.menus.contrast.pairs.text)
+      expect(warning.textContent).not.toContain(en.design.menus.contrast.pairs.focus)
+    })
   })
 
   it('has no accessibility violations on the canvas or in its panel', async () => {

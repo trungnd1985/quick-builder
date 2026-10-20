@@ -6,7 +6,7 @@
 // Sizes are `calc(var(--qb-base-size) * n)` rather than `n rem`: in the admin document `rem`
 // is the admin's own root size, while the contract means the site's base size.
 
-import { defaultTokens, type TokenSet } from './defaultTokens'
+import { defaultTokens, type MenuColorKey, type TokenSet } from './defaultTokens'
 import { fontFamily } from './fontStacks'
 
 export type TokenKind = 'color' | 'space' | 'text'
@@ -22,7 +22,31 @@ function entries(set: Readonly<TokenSet>): [string, string][] {
     ['--qb-font-body', fontFamily(set.typography.bodyFont)],
     ['--qb-base-size', `${set.typography.baseSizePx}px`],
     ...widths(set),
+    ...menu(set),
   ]
+}
+
+// 024 FR-017a (contracts/menu-style.md §2): the site's menu style, as the layer every Navigation
+// block falls back to. Only colours the site chose, naming a token of its set, are written; the
+// built-in defaults are the stylesheet's last fallback, so a site without a menu style renders
+// exactly as before it existed.
+const MENU_PROPERTIES: [MenuColorKey, string][] = [
+  ['background', '--qb-menu-background'],
+  ['text', '--qb-menu-text'],
+  ['hoverText', '--qb-menu-hover-text'],
+  ['currentText', '--qb-menu-current-text'],
+  ['focus', '--qb-menu-focus'],
+  ['panelBackground', '--qb-menu-panel-background'],
+  ['hoverBackground', '--qb-menu-hover-background'],
+  ['currentBackground', '--qb-menu-current-background'],
+]
+
+function menu(set: Readonly<TokenSet>): [string, string][] {
+  const colors = set.menuStyle?.colors ?? {}
+  return MENU_PROPERTIES.flatMap(([key, property]): [string, string][] => {
+    const id = colors[key]
+    return typeof id === 'string' && tokenExists(set, 'color', id) ? [[property, `var(${tokenVar('color', id)})`]] : []
+  })
 }
 
 // Content widths are pixels, not scaled by the base size: they are layout, not type. A set
@@ -59,6 +83,16 @@ export function tokenExists(set: Readonly<TokenSet>, kind: TokenKind, id: string
  * The CSS value for a token reference: the token's variable, or the property default's when
  * the token no longer exists (clarification Q4). With neither, the given fallback.
  */
+/**
+ * A token reference as CSS only when it names a token of the set; otherwise null, so the
+ * caller leaves the declaration out and a lower layer applies (024 research NV-26). Mirrors
+ * TokenCss.ValueIfSet.
+ */
+export function tokenValueIfSet(ref: unknown, kind: TokenKind, set: Readonly<TokenSet>): string | null {
+  const id = typeof ref === 'object' && ref !== null && typeof (ref as { token?: unknown }).token === 'string' ? (ref as { token: string }).token : null
+  return id && tokenExists(set, kind, id) ? `var(${tokenVar(kind, id)})` : null
+}
+
 export function tokenValue(
   ref: unknown,
   kind: TokenKind,

@@ -14,7 +14,7 @@ import NavigationList from './NavigationList.vue'
 
 const props = defineProps<{ node: ContentNode }>()
 const { t } = useI18n()
-const { store, prop, token } = useBlock(() => props.node)
+const { store, prop, tokenIfSet } = useBlock(() => props.node)
 
 const menus = useSiteMenus(store.siteId)
 const menuId = computed(() => String(props.node.props.menuId ?? ''))
@@ -32,16 +32,42 @@ const collapse = computed(() => {
     : null
 })
 
+const LOOKS = ['link', 'underline', 'pill', 'button']
+
+// 024 research NV-28: the block's look, else the site's (draft tokens), else plain links.
+const look = computed(() => {
+  const own = props.node.props.look
+  if (typeof own === 'string' && LOOKS.includes(own)) return own
+  const site = store.tokens.menuStyle?.look
+  return site && LOOKS.includes(site) ? site : 'link'
+})
+
 const classes = computed(() => [
   `qb-nav--${prop('layout')}`,
   `qb-nav--align-${prop('align')}`,
   collapse.value ? `qb-nav--collapse-${collapse.value.below}` : '',
+  `qb-nav--look-${look.value}`,
 ])
 
-const style = computed(() => ({
-  '--qb-nav-color': token('color', 'color'),
-  '--qb-nav-active': token('activeColor', 'color'),
-}))
+// contracts/menu-style.md §3: only the colours the block overrides; the rest come from the
+// site's menu style in the token CSS, as on the published page.
+const OVERRIDES: [string, string][] = [
+  ['color', '--qb-nav-text'],
+  ['activeColor', '--qb-nav-current-text'],
+  ['background', '--qb-nav-background'],
+  ['hoverColor', '--qb-nav-hover-text'],
+  ['hoverBackground', '--qb-nav-hover-background'],
+  ['activeBackground', '--qb-nav-current-background'],
+  ['focusColor', '--qb-nav-focus'],
+  ['panelBackground', '--qb-nav-panel-background'],
+]
+
+const style = computed(() => Object.fromEntries(
+  OVERRIDES.flatMap(([name, property]) => {
+    const value = tokenIfSet(name, 'color')
+    return value === null ? [] : [[property, value]]
+  }),
+))
 
 const label = computed(() => {
   const own = prop<string | undefined>('ariaLabel')

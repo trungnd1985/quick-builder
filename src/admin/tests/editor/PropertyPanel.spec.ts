@@ -49,6 +49,15 @@ describe('PropertyPanel (US2)', () => {
     expect(await violations(container)).toEqual([])
   })
 
+  it('labels the unset colour of other blocks with their own default (024 FR-016: other blocks unchanged)', async () => {
+    stubServer(one({ id: 'h', type: 'heading', props: { text: 'Hello' }, children: [] }))
+    await mountEditor()
+    useEditorStore().select('h')
+
+    const colour = await within(panel()).findByLabelText(en.editor.panel.props.color) as HTMLSelectElement
+    expect(colour.options[0].textContent?.trim()).toBe(en.editor.panel.token.default.replace('{name}', 'Text'))
+  })
+
   it('applies a change to the block at once', async () => {
     stubServer(one({ id: 'h', type: 'heading', props: { text: 'Hello' }, children: [] }))
     await mountEditor()

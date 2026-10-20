@@ -61,5 +61,6 @@
   "props_invalid--navigation-collapse-below-desktop.json": { "rule": "props_invalid", "pointer": "/root/children/0/children/0/props/collapse/below" },
   "props_invalid--navigation-label-control-char.json": { "rule": "props_invalid", "pointer": "/root/children/0/children/0/props/ariaLabel" },
   "children_not_allowed--navigation-child.json": { "rule": "children_not_allowed", "pointer": "/root/children/0/children/0/children" },
-  "nesting_not_allowed--navigation-at-root.json": { "rule": "nesting_not_allowed", "pointer": "/root/children/0/type" }
+  "nesting_not_allowed--navigation-at-root.json": { "rule": "nesting_not_allowed", "pointer": "/root/children/0/type" },
+  "props_invalid--navigation-bad-look.json": { "rule": "props_invalid", "pointer": "/root/children/0/children/0/props/look" }
 }

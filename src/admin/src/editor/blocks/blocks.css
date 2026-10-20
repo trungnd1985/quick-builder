@@ -366,8 +366,21 @@
     drop their submenus down; vertical ones open them in place. Below the block's width, a
     collapsing menu shows its button and stacks (NV-13).
   */
+  /*
+    Colours come in two layers (024 contracts/menu-style.md §2, §3): a block's own override
+    (--qb-nav-*, written only when set), else the site's menu style (--qb-menu-*, written only
+    when chosen), else the built-in default here. Each look sets its own default backgrounds.
+  */
   .qb-nav {
-    color: var(--qb-nav-color, var(--qb-color-color-text));
+    color: var(--qb-nav-text, var(--qb-menu-text, var(--qb-color-color-text)));
+    background-color: var(--qb-nav-background, var(--qb-menu-background, transparent));
+  }
+
+  /* Pill and button: a light background, and dark text on it (brand on light brand is below 4.5:1). */
+  .qb-nav--look-pill,
+  .qb-nav--look-button {
+    --qb-nav-look-background: var(--qb-color-color-brand-light);
+    --qb-nav-look-text: var(--qb-color-color-text);
   }
 
   .qb-nav__list {
@@ -385,23 +398,57 @@
   .qb-nav__expander--label {
     display: inline-block;
     padding: calc(var(--qb-base-size) * 0.5) calc(var(--qb-base-size) * 0.75);
-    color: inherit;
     text-decoration: none;
   }
 
-  .qb-nav__link:hover {
+  /* Text, on every entry and button; visited links look exactly like the others (FR-017c). */
+  .qb-nav :is(.qb-nav__link, .qb-nav__text, summary),
+  .qb-nav .qb-nav__link:visited {
+    color: var(--qb-nav-text, var(--qb-menu-text, var(--qb-color-color-text)));
+  }
+
+  .qb-nav :is(.qb-nav__link, summary):is(:hover, :focus-visible) {
+    color: var(--qb-nav-hover-text, var(--qb-menu-hover-text, var(--qb-nav-look-text, var(--qb-color-color-brand))));
+  }
+
+  /* Plain links underline on hover, so hover is never shown by colour alone. */
+  .qb-nav--look-link .qb-nav__link:hover {
     text-decoration: underline;
   }
 
+  .qb-nav .qb-nav__item--current > .qb-nav__link,
+  .qb-nav .qb-nav__item--containing > :is(.qb-nav__link, details > .qb-nav__expander--label),
+  .qb-nav .qb-nav__item--section > .qb-nav__link {
+    color: var(--qb-nav-current-text, var(--qb-menu-current-text, var(--qb-nav-look-text, var(--qb-color-color-brand))));
+  }
+
+  /* The focus ring is always drawn; only its colour is chosen (FR-017d). */
   .qb-nav :is(.qb-nav__link, summary):focus-visible {
-    outline: 2px solid var(--qb-nav-active, var(--qb-color-color-brand));
+    outline: 2px solid var(--qb-nav-focus, var(--qb-nav-current-text, var(--qb-menu-focus, var(--qb-menu-current-text, var(--qb-color-color-brand)))));
     outline-offset: 2px;
   }
 
-  .qb-nav__item--current > .qb-nav__link,
-  .qb-nav__item--containing > :is(.qb-nav__link, details > .qb-nav__expander--label),
-  .qb-nav__item--section > .qb-nav__link {
-    color: var(--qb-nav-active, var(--qb-color-color-brand));
+  /* Looks (FR-017b), on top-level entries only: submenu entries keep the list look. */
+  .qb-nav .qb-nav__list--l1 > .qb-nav__item > :is(.qb-nav__link, .qb-nav__expander--label):is(:hover, :focus-visible) {
+    background-color: var(--qb-nav-hover-background, var(--qb-menu-hover-background, var(--qb-nav-look-background, transparent)));
+  }
+
+  .qb-nav .qb-nav__list--l1 > :is(.qb-nav__item--current, .qb-nav__item--containing, .qb-nav__item--section) > :is(.qb-nav__link, .qb-nav__expander--label) {
+    background-color: var(--qb-nav-current-background, var(--qb-menu-current-background, var(--qb-nav-look-background, transparent)));
+  }
+
+  .qb-nav--look-underline .qb-nav__list--l1 > .qb-nav__item > .qb-nav__link:is(:hover, :focus-visible),
+  .qb-nav--look-underline .qb-nav__list--l1 > :is(.qb-nav__item--current, .qb-nav__item--containing, .qb-nav__item--section) > .qb-nav__link {
+    text-decoration: underline;
+  }
+
+  .qb-nav--look-pill .qb-nav__list--l1 > .qb-nav__item > :is(.qb-nav__link, .qb-nav__text, .qb-nav__expander--label) {
+    border-radius: 999px;
+  }
+
+  .qb-nav--look-button .qb-nav__list--l1 > .qb-nav__item > :is(.qb-nav__link, .qb-nav__text, .qb-nav__expander--label) {
+    border: 1px solid currentColor;
+    border-radius: 4px;
   }
 
   .qb-nav__item--current > .qb-nav__link {
@@ -479,7 +526,7 @@
     z-index: 10;
     min-width: 12rem;
     padding-block: calc(var(--qb-base-size) * 0.25);
-    background: var(--qb-color-color-background, #fff);
+    background-color: var(--qb-nav-panel-background, var(--qb-menu-panel-background, var(--qb-color-color-background)));
     box-shadow: 0 4px 16px rgb(0 0 0 / 15%);
   }
 
@@ -514,6 +561,7 @@
 
     .qb-nav--collapse-tablet .qb-nav__list--l1 {
       display: block;
+      background-color: var(--qb-nav-panel-background, var(--qb-menu-panel-background, var(--qb-color-color-background)));
     }
 
     .qb-nav--collapse-tablet .qb-nav__sub > .qb-nav__list {
@@ -533,6 +581,7 @@
 
     .qb-nav--collapse-mobile .qb-nav__list--l1 {
       display: block;
+      background-color: var(--qb-nav-panel-background, var(--qb-menu-panel-background, var(--qb-color-color-background)));
     }
 
     .qb-nav--collapse-mobile .qb-nav__sub > .qb-nav__list {

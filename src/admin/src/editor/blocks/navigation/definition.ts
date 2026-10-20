@@ -25,10 +25,18 @@ const definition: BlockDefinition = {
       ],
     },
     {
+      // 024 FR-017a to FR-017c: every style prop is unset by default and follows the site.
       labelKey: 'style',
       props: [
-        { prop: 'color', control: 'colorToken' },
-        { prop: 'activeColor', control: 'colorToken' },
+        { prop: 'look', control: 'menuLook' },
+        { prop: 'color', control: 'menuColor' },
+        { prop: 'activeColor', control: 'menuColor' },
+        { prop: 'background', control: 'menuColor' },
+        { prop: 'hoverColor', control: 'menuColor' },
+        { prop: 'hoverBackground', control: 'menuColor' },
+        { prop: 'activeBackground', control: 'menuColor' },
+        { prop: 'focusColor', control: 'menuColor' },
+        { prop: 'panelBackground', control: 'menuColor' },
       ],
     },
   ],

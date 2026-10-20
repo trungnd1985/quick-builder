@@ -1060,7 +1060,13 @@
         "ariaLabel": "Name for screen readers",
         "collapse": "Small screens",
         "activeColor": "Current page colour",
-        "layout": "Layout"
+        "layout": "Layout",
+        "look": "Look",
+        "hoverColor": "Text on hover",
+        "hoverBackground": "Background on hover",
+        "activeBackground": "Current page background",
+        "focusColor": "Keyboard focus ring",
+        "panelBackground": "Dropdown background"
       },
       "values": {
         "align": {
@@ -1110,7 +1116,8 @@
       "token": {
         "default": "Default ({name})",
         "none": "none",
-        "deleted": "This block used a token that has been deleted, so it shows the default. Choose another one."
+        "deleted": "This block used a token that has been deleted, so it shows the default. Choose another one.",
+        "siteMenuStyle": "Site menu style"
       },
       "link": {
         "none": "No link",
@@ -1392,7 +1399,8 @@
       "below": "Collapse below",
       "belowMobile": "Mobile width",
       "belowTablet": "Tablet width",
-      "buttonLabel": "Menu button text"
+      "buttonLabel": "Menu button text",
+      "siteLook": "Site style ({look})"
     }
   },
   "design": {
@@ -1466,6 +1474,40 @@
       "antique": "Antique",
       "didone": "Didone",
       "handwritten": "Handwritten"
+    },
+    "menus": {
+      "title": "Menus",
+      "help": "How every Navigation block on the site looks, unless a block chooses otherwise. Changes reach visitors when the design is published.",
+      "look": "Look of the top-level entries",
+      "looks": {
+        "link": "Plain link",
+        "underline": "Underline",
+        "pill": "Pill",
+        "button": "Button"
+      },
+      "colors": {
+        "background": "Bar background",
+        "text": "Text",
+        "hoverText": "Text on hover",
+        "hoverBackground": "Background on hover",
+        "currentText": "Current page text",
+        "currentBackground": "Current page background",
+        "focus": "Keyboard focus ring",
+        "panelBackground": "Dropdown background"
+      },
+      "siteDefault": "Default",
+      "missingColor": "(deleted colour: default)",
+      "contrast": {
+        "heading": "Some colours may be hard to read. Visitors will see them as chosen:",
+        "ratio": "contrast {ratio}:1, at least {minimum}:1 recommended",
+        "pairs": {
+          "text": "Text on the bar",
+          "hover": "Text on hover",
+          "current": "Current page",
+          "panel": "Text in dropdowns",
+          "focus": "Focus ring on the bar"
+        }
+      }
     }
   },
   "publishing": {

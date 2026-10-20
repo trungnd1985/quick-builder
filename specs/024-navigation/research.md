@@ -750,9 +750,11 @@ value.
 ## NV-27 Colours reach the page as two layers of custom properties
 
 **Decision**:
-- **Site layer**: `TokenCss` (and its port, `tokenCss.ts`) emits the
-  `--qb-menu-*` properties, each `var(--qb-color-<id>)` of the site's choice or of the
-  built-in default; six are always emitted, the two look-dependent ones only when chosen:
+- **Site layer**: `TokenCss` (and its port, `tokenCss.ts`) emits a `--qb-menu-*` property
+  only for each colour the site chose, as `var(--qb-color-<id>)`. The built-in defaults are the
+  stylesheet's last fallback, so a site without a menu style gets byte-identical token CSS.
+  *(Changed during implementation, 2026-10-20: first planned as always-emitted defaults,
+  which changed every page's HTML.)*
 
   The properties, their order and their built-in defaults are in
   [contracts/menu-style.md](./contracts/menu-style.md) §2; the focus colour defaults to the

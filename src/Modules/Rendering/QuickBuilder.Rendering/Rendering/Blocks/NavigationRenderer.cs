@@ -34,6 +34,21 @@ internal sealed class NavigationRenderer : IBlockRenderer
     private static readonly string[] Layouts = ["horizontal", "vertical"];
     private static readonly string[] Alignments = ["start", "center", "end"];
     private static readonly string[] Widths = ["mobile", "tablet"];
+    private static readonly string[] Looks = ["link", "underline", "pill", "button"];
+
+    // 024 contracts/menu-style.md §3: block prop → the block layer's custom property. The
+    // stylesheet reads each as var(--qb-nav-X, var(--qb-menu-X)), so only overrides are written.
+    private static readonly (string Prop, string Property)[] Overrides =
+    [
+        ("color", "--qb-nav-text"),
+        ("activeColor", "--qb-nav-current-text"),
+        ("background", "--qb-nav-background"),
+        ("hoverColor", "--qb-nav-hover-text"),
+        ("hoverBackground", "--qb-nav-hover-background"),
+        ("activeBackground", "--qb-nav-current-background"),
+        ("focusColor", "--qb-nav-focus"),
+        ("panelBackground", "--qb-nav-panel-background"),
+    ];
 
     public string Type => "navigation";
 
@@ -69,8 +84,13 @@ internal sealed class NavigationRenderer : IBlockRenderer
         var block = context.NextNavigationId();
         var label = context.String(node, "ariaLabel") is { Length: > 0 } own ? own : menu.Name;
 
+        // 024 research NV-28: the block's look, else the published design's, else plain links.
+        var look = context.String(node, "look") is { } chosen && Array.IndexOf(Looks, chosen) >= 0
+            ? chosen
+            : context.Tokens.MenuLook ?? Looks[0];
+
         writer.Open("nav")
-            .Attribute("class", $"qb-nav qb-nav--{layout} qb-nav--align-{context.Choice(node, "align", Alignments)}{(collapse is null ? string.Empty : $" qb-nav--collapse-{below}")}");
+            .Attribute("class", $"qb-nav qb-nav--{layout} qb-nav--align-{context.Choice(node, "align", Alignments)}{(collapse is null ? string.Empty : $" qb-nav--collapse-{below}")} qb-nav--look-{look}");
         if (label.Length > 0)
         {
             writer.Attribute("aria-label", label);
@@ -83,8 +103,12 @@ internal sealed class NavigationRenderer : IBlockRenderer
         }
 
         context.Style(writer, scope, node,
-            ("--qb-nav-color", context.Token(node, "color", TokenKind.Color)),
-            ("--qb-nav-active", context.Token(node, "activeColor", TokenKind.Color)));
+        [
+            .. Overrides
+                .Select(o => (o.Property, Value: context.TokenIfSet(node, o.Prop, TokenKind.Color)))
+                .Where(d => d.Value is not null)
+                .Select(d => (d.Property, d.Value!)),
+        ]);
         writer.EndTag();
 
         if (collapse is { } panel)

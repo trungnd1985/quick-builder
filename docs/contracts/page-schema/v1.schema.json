@@ -930,17 +930,46 @@
               "maxLength": 100,
               "pattern": "^[^\u0000-\u001f]*$"
             },
+            "look": {
+              "description": "How top-level entries look; absent: the site's menu style (024 FR-017b).",
+              "enum": [
+                "link",
+                "underline",
+                "pill",
+                "button"
+              ]
+            },
             "color": {
               "$ref": "#/$defs/colorRef",
-              "default": {
-                "token": "color-text"
-              }
+              "description": "Entry text; absent: the site's menu style (024 FR-017c)."
             },
             "activeColor": {
               "$ref": "#/$defs/colorRef",
-              "default": {
-                "token": "color-brand"
-              }
+              "description": "Current, containing and section entries' text; absent: the site's menu style."
+            },
+            "background": {
+              "$ref": "#/$defs/colorRef",
+              "description": "The bar's background; absent: the site's menu style."
+            },
+            "hoverColor": {
+              "$ref": "#/$defs/colorRef",
+              "description": "Entry text on hover; absent: the site's menu style."
+            },
+            "hoverBackground": {
+              "$ref": "#/$defs/colorRef",
+              "description": "Entry background on hover; absent: the site's menu style."
+            },
+            "activeBackground": {
+              "$ref": "#/$defs/colorRef",
+              "description": "The current entry's background; absent: the site's menu style."
+            },
+            "focusColor": {
+              "$ref": "#/$defs/colorRef",
+              "description": "The keyboard focus ring, which cannot be turned off; absent: the current entry's text colour, then the site's menu style (024 FR-017d)."
+            },
+            "panelBackground": {
+              "$ref": "#/$defs/colorRef",
+              "description": "Horizontal dropdowns and the opened small-screen panel; absent: the site's menu style."
             },
             "layerLabel": {
               "$ref": "#/$defs/layerLabel"

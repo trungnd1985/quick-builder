@@ -74,7 +74,7 @@ whitespace. "Read back unchanged" means **equal as a JSON value**.
 | `collection-list` | `source`\*, `filters`, `sort`, `limit`, `paging`, `columns`, `gap`, `layerLabel` | `listChild`: its `list-card`, then its `list-empty` (rule 20) | in `section` or `container` (016) |
 | `list-card` | `layerLabel` | `contentChild` | in `collection-list` only (016) |
 | `list-empty` | `layerLabel` | `contentChild` | in `collection-list` only (016) |
-| `navigation` | `menuId`\*, `layout`, `levels`, `collapse`, `align`, `ariaLabel`, `color`, `activeColor`, `layerLabel` | none | in `section` or `container`, in page and component documents (024) |
+| `navigation` | `menuId`\*, `layout`, `levels`, `collapse`, `align`, `ariaLabel`, `look`, `color`, `activeColor`, `background`, `hoverColor`, `hoverBackground`, `activeBackground`, `focusColor`, `panelBackground`, `layerLabel` | none | in `section` or `container`, in page and component documents (024) |
 
 \* required. Values, limits and defaults are in the schema file, which is the single
 definition; this table is its index. `layerLabel` is an editor aid and is never rendered.
@@ -354,7 +354,9 @@ renders the same body (017 `UpgradeFrom016Tests`).
 **Additions in 024 (still version 1)**: the node type `navigation` in `contentChild`, with
 `$defs/navigation` and `$defs/navCollapse`. Every document valid before stays valid and renders
 the same (024 `UpgradeFrom017Tests`). Menus themselves have their own contract,
-[menu.md](menu.md).
+[menu.md](menu.md). The Navigation block's style props (`look` and the colours) have **no
+`default`**: absent means the site-wide menu style of the design tokens
+([design-tokens.md](design-tokens.md) §2, `menuStyle`).
 
 ## 7. The schema file
 
@@ -466,9 +468,11 @@ Every validator of this schema runs the same files:
 | `valid/navigation-minimal.json` | passes: a Navigation block with only its menu (024) |
 | `valid/navigation-full.json` | passes: two Navigation blocks with every prop, collapsing at both widths (024) |
 | `valid/component-with-navigation.json` | passes, also as a component document: a footer menu (024) |
+| `valid/navigation-styles.json` | passes: a Navigation block overriding the look and every colour (024 FR-017a) |
 | `invalid/props_invalid--navigation-levels-4.json` | at `…/props/levels` (024) |
 | `invalid/props_invalid--navigation-collapse-below-desktop.json` | at `…/props/collapse/below` (024) |
 | `invalid/props_invalid--navigation-label-control-char.json` | at `…/props/ariaLabel` (024) |
+| `invalid/props_invalid--navigation-bad-look.json` | at `…/props/look` (024) |
 | `invalid/children_not_allowed--navigation-child.json` | at the block's `/children` (024) |
 | `invalid/nesting_not_allowed--navigation-at-root.json` | at `/root/children/0/type` (024) |
 

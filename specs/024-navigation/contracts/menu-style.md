@@ -72,27 +72,37 @@ Schema (`$defs/menuStyle`, referenced as an optional top-level property):
   `valid/menu-style-unknown-token.json` (an id that is not in the set: valid); every existing
   example stays valid unchanged (no `menuStyle`).
 - **Invalid** (`editor.invalid_tokens`): `invalid/editor.invalid_tokens--menu-style-look.json`
-  (`/menuStyle/look`), `--menu-style-color-key.json` (`/menuStyle/colors`),
+  (`/menuStyle/look`), `--menu-style-color-key.json` (`/menuStyle/colors/foreground`),
   `--menu-style-bad-id.json` (`/menuStyle/colors/text`) and `--menu-style-extra-key.json`
-  (`/menuStyle`).
+  (`/menuStyle/fonts`).
 
 ## 2. Token CSS
 
-After the existing custom properties, the token CSS emits, in this order:
+After the existing custom properties, the token CSS emits a `--qb-menu-*` property **only for
+each colour the site chose that names a token of its set**, as `var(--qb-color-<id>)`, in this
+order: `--qb-menu-background`, `-text`, `-hover-text`, `-current-text`, `-focus`,
+`-panel-background`, `-hover-background`, `-current-background`. A colour naming no token is
+left out, as if the key were absent.
 
-| Property | Value |
+The built-in defaults live in the stylesheet, as the last fallback of each `var()` (§3):
+
+| Colour | Built-in default |
 |---|---|
-| `--qb-menu-background` | the chosen colour, else `transparent` |
-| `--qb-menu-text` | the chosen colour, else `var(--qb-color-color-text)` |
-| `--qb-menu-hover-text` | the chosen colour, else `var(--qb-color-color-brand)` |
-| `--qb-menu-current-text` | the chosen colour, else `var(--qb-color-color-brand)` |
-| `--qb-menu-focus` | the chosen colour, else `var(--qb-menu-current-text)` |
-| `--qb-menu-panel-background` | the chosen colour, else `var(--qb-color-color-background)` |
-| `--qb-menu-hover-background` | only when chosen |
-| `--qb-menu-current-background` | only when chosen |
+| background | `transparent` |
+| text | `var(--qb-color-color-text)` |
+| hover text | by look: `var(--qb-color-color-text)` for pill and button, `var(--qb-color-color-brand)` for link and underline |
+| current text | as hover text |
+| focus | the current text colour (the block's, then the site's, then the default) |
+| panel background | `var(--qb-color-color-background)` |
+| hover and current backgrounds | by look: `var(--qb-color-color-brand-light)` for pill and button, `transparent` for link and underline |
 
-"The chosen colour" is `var(--qb-color-<id>)` when the id exists in the set; otherwise the
-built-in default applies, as if the key were absent.
+The look-dependent defaults are set on the `nav` by its look class, as `--qb-nav-look-background`
+and `--qb-nav-look-text`. Pill and button use dark text because the default brand colour on
+the light brand colour is 4.24:1, below the 4.5 minimum of §4: the built-in style of every look
+passes its own contrast checks.
+
+So a site without a `menuStyle` gets no new custom property, and every page's token CSS is
+byte-identical to before this addition (research NV-27).
 
 A new fixture, `tests/fixtures/rendering/token-css/menu-style.json`, pins this output for both
 implementations.
@@ -114,14 +124,15 @@ and the CSS (data-model.md §2.3 repeats it):
 | `focusColor` | `focus` | `--qb-nav-focus` | `--qb-menu-focus` |
 | `panelBackground` | `panelBackground` | `--qb-nav-panel-background` | `--qb-menu-panel-background` |
 
-Each pair shares its suffix, and the stylesheet reads each as `var(--qb-nav-X, var(--qb-menu-X))`,
-so an absent prop follows the site. The block keeps the prop names `color` and `activeColor`
+Each pair shares its suffix, and the stylesheet reads each as
+`var(--qb-nav-X, var(--qb-menu-X, <built-in default>))` (§2), so an absent prop follows the
+site, and an absent site colour the default. The block keeps the prop names `color` and `activeColor`
 it already has; the earlier variables `--qb-nav-color` and `--qb-nav-active` are renamed to
 `--qb-nav-text` and `--qb-nav-current-text`. Both exist only in this unreleased feature, so
 no stored document changes; only golden HTML does.
 
 **Focus** falls back to the block's current-entry colour before the site's:
-`outline: 2px solid var(--qb-nav-focus, var(--qb-nav-current-text, var(--qb-menu-focus)))`. A
+`outline: 2px solid var(--qb-nav-focus, var(--qb-nav-current-text, var(--qb-menu-focus, var(--qb-menu-current-text, var(--qb-color-color-brand)))))`. A
 block that sets only `activeColor` keeps a focus ring in that colour, as before this addition.
 
 The `nav` carries `qb-nav--look-<look>` (research NV-28). Each look styles the **top-level**
@@ -130,7 +141,7 @@ submenu entries keep the list look with the same colours.
 
 | Look | Rest | Hover and focus | Current, containing, section |
 |---|---|---|---|
-| `link` | text colour | hover text | current text, weight 600 on the current entry |
+| `link` | text colour | hover text, underlined on hover (as before this addition, so hover is not shown by colour alone) | current text, weight 600 on the current entry |
 | `underline` | text colour | hover text, underlined | current text, underlined |
 | `pill` | text colour, radius 999px | hover text on hover background (default `color-brand-light`) | current text on current background (default as hover) |
 | `button` | text colour, 1px `currentColor` border, radius 4px | hover text on hover background (default `color-brand-light`) | current text on current background (default as hover) |

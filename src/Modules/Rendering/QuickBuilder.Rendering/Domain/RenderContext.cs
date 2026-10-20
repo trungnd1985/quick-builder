@@ -172,6 +172,16 @@ internal sealed class RenderContext(RenderInputs inputs, BlockDefaults defaults)
     }
 
     /// <summary>
+    /// A token property as CSS only when the node sets it and its token exists; otherwise null.
+    /// For props without a schema default, whose absence means "a lower layer decides" (024
+    /// research NV-26). Mirrors <c>useBlock.tokenIfSet</c>.
+    /// </summary>
+    public string? TokenIfSet(JsonElement node, string name, TokenKind kind) =>
+        node.TryGetProperty("props", out var props) && props.ValueKind == JsonValueKind.Object && props.TryGetProperty(name, out var value)
+            ? Tokens.ValueIfSet(value, kind)
+            : null;
+
+    /// <summary>
     /// Records per-node declarations and writes the <c>data-qb</c> attribute that selects them.
     /// Values come from token variables, enums or constants; never from free text.
     /// </summary>

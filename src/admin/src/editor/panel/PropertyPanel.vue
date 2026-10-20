@@ -27,6 +27,8 @@ import TokenControl from './controls/TokenControl.vue'
 import BindingControl from './controls/BindingControl.vue'
 import MenuControl from './controls/MenuControl.vue'
 import NavCollapseControl from './controls/NavCollapseControl.vue'
+import MenuLookControl from './controls/MenuLookControl.vue'
+import NavContrastNote from './controls/NavContrastNote.vue'
 import { kindOf } from '../bindings/bindingRules'
 
 const { t, te } = useI18n()
@@ -273,6 +275,22 @@ const tokenKind = (control: ControlKind) => (control === 'colorToken' ? 'color' 
             :error="errors[field.prop]"
             @change="change(field, $event)"
           />
+          <MenuLookControl
+            v-else-if="field.control === 'menuLook'"
+            v-bind="field"
+            :site-id="store.siteId"
+            :error="errors[field.prop]"
+            @change="change(field, $event)"
+          />
+          <TokenControl
+            v-else-if="field.control === 'menuColor'"
+            v-bind="field"
+            :site-id="store.siteId"
+            kind="color"
+            :inherit-label="t('editor.panel.token.siteMenuStyle')"
+            :error="errors[field.prop]"
+            @change="change(field, $event)"
+          />
           <RichTextControl
             v-else-if="field.control === 'richText'"
             :id="field.id"
@@ -289,6 +307,11 @@ const tokenKind = (control: ControlKind) => (control === 'colorToken' ? 'color' 
             :label="field.label"
           />
         </template>
+        <!-- 024 FR-017d: the block's colour pairs below the contrast minimums; a warning only. -->
+        <NavContrastNote
+          v-if="node.type === 'navigation' && group.key === 'style'"
+          :node="node"
+        />
       </fieldset>
     </template>
   </section>

@@ -15,9 +15,16 @@ public sealed class NavigationGoldenTests
     private static readonly Guid Other = Guid.Parse("0192f5a0-1b2c-7d3e-8f40-5a6b7c8d9e41");
     private static readonly Guid Page = Guid.Parse("0192f5a0-1b2c-7d3e-8f40-5a6b7c8d9e10");
 
-    private static string Render(string menuEntries, string props = "", string name = "Main", string secondBlock = "", Guid? current = null, string path = "/")
+    private static string Render(string menuEntries, string props = "", string name = "Main", string secondBlock = "", Guid? current = null, string path = "/", string? menuStyle = null)
     {
         var harness = new RenderHarness { CurrentPageId = current, Path = path };
+        if (menuStyle is not null)
+        {
+            var design = System.Text.Json.Nodes.JsonNode.Parse(harness.Design.GetRawText())!.AsObject();
+            design["menuStyle"] = System.Text.Json.Nodes.JsonNode.Parse(menuStyle);
+            harness.Design = JsonDocument.Parse(design.ToJsonString()).RootElement.Clone();
+        }
+
         harness.Links[Page] = new PageLinkTarget("/services", IsLive: true, LiveTitle: "Services");
         harness.Menus[Menu] = new LiveMenu(1, JsonDocument.Parse($$"""{ "schemaVersion": 1, "entries": [ {{menuEntries}} ] }""").RootElement.Clone(), name);
         harness.Menus[Other] = new LiveMenu(1, JsonDocument.Parse($$"""{ "schemaVersion": 1, "entries": [ {{Sub}} ] }""").RootElement.Clone(), "Footer");
@@ -42,9 +49,11 @@ public sealed class NavigationGoldenTests
     {
         var html = Render(Sub);
 
-        Assert.Contains("<nav class=\"qb-nav qb-nav--horizontal qb-nav--align-start\" aria-label=\"Main\" data-qb-nav=\"n1\" data-qb=\"p.nav\">", html, StringComparison.Ordinal);
+        // 024 FR-017a: no style props and no site style: the link look, and no block declarations,
+        // so every colour comes from the site layer of the token CSS.
+        Assert.Contains("<nav class=\"qb-nav qb-nav--horizontal qb-nav--align-start qb-nav--look-link\" aria-label=\"Main\" data-qb-nav=\"n1\">", html, StringComparison.Ordinal);
         Assert.DoesNotContain("qb-nav__panel", Body(html), StringComparison.Ordinal);
-        Assert.Contains("[data-qb=\"p.nav\"]{--qb-nav-color:", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("--qb-nav-", html, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -52,7 +61,7 @@ public sealed class NavigationGoldenTests
     {
         var html = Render(Sub, """ "layout": "vertical", "align": "end", "ariaLabel": "Site", "collapse": { "enabled": true, "below": "tablet", "buttonLabel": "Browse" } """);
 
-        Assert.Contains("class=\"qb-nav qb-nav--vertical qb-nav--align-end qb-nav--collapse-tablet\" aria-label=\"Site\"", html, StringComparison.Ordinal);
+        Assert.Contains("class=\"qb-nav qb-nav--vertical qb-nav--align-end qb-nav--collapse-tablet qb-nav--look-link\" aria-label=\"Site\"", html, StringComparison.Ordinal);
         Assert.Contains("data-qb-collapse=\"tablet\"", html, StringComparison.Ordinal);
         Assert.Contains("<details class=\"qb-nav__panel\" open><summary class=\"qb-nav__toggle\">Browse</summary>", html, StringComparison.Ordinal);
     }
@@ -179,5 +188,48 @@ public sealed class NavigationGoldenTests
         Assert.Contains("<li class=\"qb-nav__item qb-nav__item--section\"><a class=\"qb-nav__link\" href=\"/services\">Services</a>", html, StringComparison.Ordinal);
         Assert.Contains("qb-nav__item--containing\" data-qb-current-path", html, StringComparison.Ordinal);
         Assert.DoesNotContain("aria-current", html, StringComparison.Ordinal);
+    }
+
+    // --- Menu styles (024 FR-017a to FR-017c; tasks T087) --------------------------------------
+
+    [Fact]
+    public void The_sites_look_applies_and_a_blocks_own_look_wins()
+    {
+        Assert.Contains("qb-nav--look-pill\"", Render(Sub, menuStyle: """{ "look": "pill" }"""), StringComparison.Ordinal);
+        Assert.Contains("qb-nav--look-button\"", Render(Sub, """ "look": "button" """, menuStyle: """{ "look": "pill" }"""), StringComparison.Ordinal);
+        Assert.Contains("qb-nav--look-underline\"", Render(Sub, """ "look": "underline" """), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_block_writes_exactly_the_colours_it_overrides()
+    {
+        var html = Render(Sub, """ "background": { "token": "color-text" }, "focusColor": { "token": "color-brand" } """);
+
+        Assert.Contains("[data-qb=\"p.nav\"]{--qb-nav-background:var(--qb-color-color-text);--qb-nav-focus:var(--qb-color-color-brand);}", html, StringComparison.Ordinal);
+        Assert.Equal(2, System.Text.RegularExpressions.Regex.Count(html, "--qb-nav-[a-z-]+:"));
+    }
+
+    [Fact]
+    public void Every_override_uses_the_names_of_the_mapping_table()
+    {
+        var html = Render(Sub, """
+            "color": { "token": "color-text" }, "activeColor": { "token": "color-brand" },
+            "background": { "token": "color-background" }, "hoverColor": { "token": "color-brand" },
+            "hoverBackground": { "token": "color-brand-light" }, "activeBackground": { "token": "color-brand-light" },
+            "focusColor": { "token": "color-brand" }, "panelBackground": { "token": "color-background" }
+            """);
+
+        foreach (var property in new[] { "text", "current-text", "background", "hover-text", "hover-background", "current-background", "focus", "panel-background" })
+        {
+            Assert.Contains($"--qb-nav-{property}:var(--qb-color-", html, StringComparison.Ordinal);
+        }
+    }
+
+    [Fact]
+    public void An_override_naming_a_missing_token_writes_nothing()
+    {
+        var html = Render(Sub, """ "background": { "token": "color-gone" } """);
+
+        Assert.DoesNotContain("--qb-nav-", html, StringComparison.Ordinal);
     }
 }

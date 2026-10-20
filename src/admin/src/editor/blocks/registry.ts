@@ -46,6 +46,9 @@ export type ControlKind =
   // 024 research NV-16: the Navigation block's menu and its collapsing.
   | 'menu'
   | 'navCollapse'
+  // 024 FR-017a: a Navigation block's look and colours, unset following the site's menu style.
+  | 'menuLook'
+  | 'menuColor'
 
 export interface PropGroup {
   /** An i18n key under `editor.panel.groups`. */
