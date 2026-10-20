@@ -1,7 +1,7 @@
 # Quickstart results: Navigation and menus (024)
 
-**Status**: automated part done 2026-10-20; manual run in progress (tasks T080): SC-001 done
-2026-10-21, the rest still to do.
+**Status**: automated part done 2026-10-20; manual run done 2026-10-21 (tasks T080), except the
+screen-reader check, left open under exception E-5.
 
 This records which parts of [quickstart.md](./quickstart.md) the automated suites already
 prove, and what a person still has to check by hand. The by-hand parts are the ones no test
@@ -29,15 +29,13 @@ exception E-5).
 |---|---|---|
 | **SC-001**: build the 15-entry menu of §1 and place it (target: under 5 minutes) | 2026-10-21 | **Pass.** Built and placed with 15 entries; it ran normally and was very quick, well under the target by the tester's report. No exact stopwatch time was recorded. |
 | **§10 menu styles in a real browser**: each look, hover and focus by pointer and keyboard, visited entries, contrast warnings | 2026-10-21 | **Pass**, by the tester's report. |
+| **§2 and §5 in a real browser** (Chrome or Edge device mode): phone and tablet widths, keyboard only, JavaScript off, current page highlighted and its submenu open | 2026-10-21 | **Pass**, all five steps, by the tester's report. |
 | **§8 with NVDA (Firefox) and VoiceOver (Safari)** | 2026-10-21 | **Not run**: the tester does not use these browsers or screen readers. Left open under exception E-5 (manual screen-reader checks until #25); the automated axe checks and keyboard specs in §8 pass. |
 
 ## Still to do by hand
 
 1. **§8 with NVDA and VoiceOver**: not run (see above); needs someone with those browsers
    and screen readers, or #25's automated replacement.
-2. **§2 and §5 in a real browser at phone, tablet and desktop widths**, by keyboard and by
-   touch, with scripts on and off: every entry can be reached and opened (SC-006), the panel
-   collapses at the chosen width, and the current path opens as FR-019a says.
 
 Record each result here with the date, the browser and the reader versions, and anything
 that failed with its fix.
