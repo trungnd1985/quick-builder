@@ -375,7 +375,8 @@ entries, and the starting state of submenus matches FR-019a.
   *Done as*: Release run on 2026-10-20: 2019 unit, 36 architecture (after renaming `MenuPreviewEntry` to `MenuPreviewEntryResponse`, which the module-boundary rule caught) and 1222 integration tests pass (3 skipped, as before). Line coverage 95.7% overall; `PublishingWrites` 98.7%, `GenerationBump` 100%, `MenuWrites` 93.2%, `MenuReads` 98.9%, `NavigationRenderer`, `MenuModel`, `ActiveState` and `NavScript` 100%. Admin: lint, type-check and 1161 tests pass; `dotnet format --verify-no-changes` is clean.
 - [X] T080 Run the whole of `quickstart.md` by hand on the reference compose setup: SC-001 with a stopwatch, quickstart §8 with NVDA and VoiceOver (exception E-5), and §10 (menu styles, after Phase 9) in a real browser. Record the results in `specs/024-navigation/quickstart-results.md`.
   *Done as*: Run 2026-10-21 by the project owner: SC-001, menu styles, and the phone, tablet, keyboard-only and JavaScript-off checks pass. The NVDA and VoiceOver check was not run (the tester does not use those browsers) and stays open under exception E-5 until #25. See quickstart-results.md.
-- [ ] T081 Open the PR closing #24, with the plan's operator impact and upgrade notes in the description.
+- [X] T081 Open the PR closing #24, with the plan's operator impact and upgrade notes in the description.
+  *Done as*: https://github.com/trungnd1985/quick-builder/pull/39
 
 
 ---
