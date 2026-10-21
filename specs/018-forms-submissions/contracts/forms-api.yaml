@@ -1,0 +1,283 @@
+openapi: 3.1.0
+info:
+  title: QuickBuilder admin API additions for forms and submissions
+  version: v1
+  description: |
+    Admin API for specs/018-forms-submissions (research FS-15 to FS-21).
+    Site-scoped operations name the site in the route and declare one capability:
+    - `forms.submissions.view` (every site role): list, get, mark, export, spam, restore,
+      counters, unread count, forms list, retention impact.
+    - `forms.submissions.delete` (Administrator, Designer): delete.
+    - `forms.email.test` (Administrator, installation): test email.
+    A user with no role on the site gets the same `404` as for a site that does not exist
+    (002 contracts/authorization.md §3).
+    Errors are `application/problem+json` with `errorCode`.
+    Changed operations elsewhere: page and component publish, rollback and scheduled runs
+    refuse `409 pages.form_invalid` and `409 pages.form_redirect_not_live`
+    (form-block.md rule 28). The public submit endpoint is in public-forms.md.
+paths:
+  /api/v1/forms/sites/{siteId}/forms:
+    parameters: [{ $ref: '#/components/parameters/SiteId' }]
+    get:
+      summary: The site's known forms (registry), for filters and column names
+      x-capability: forms.submissions.view
+      responses:
+        '200':
+          description: Every form ever published on the site, newest first.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items: { type: array, items: { $ref: '#/components/schemas/FormSummary' } }
+
+  /api/v1/forms/sites/{siteId}/forms/{formId}/retention-impact:
+    parameters:
+      - { $ref: '#/components/parameters/SiteId' }
+      - { $ref: '#/components/parameters/FormId' }
+    get:
+      summary: How many stored submissions a retention period would delete now
+      x-capability: forms.submissions.view
+      parameters:
+        - { name: days, in: query, required: true, schema: { type: integer, enum: [30, 90, 180, 365] } }
+      responses:
+        '200':
+          description: The count (spec edge case on shortening retention).
+          content:
+            application/json:
+              schema: { type: object, required: [count], properties: { count: { type: integer } } }
+
+  /api/v1/forms/sites/{siteId}/submissions:
+    parameters: [{ $ref: '#/components/parameters/SiteId' }]
+    get:
+      summary: List submissions (inbox or spam), newest first
+      x-capability: forms.submissions.view
+      parameters:
+        - { $ref: '#/components/parameters/Box' }
+        - { $ref: '#/components/parameters/FormFilter' }
+        - { $ref: '#/components/parameters/From' }
+        - { $ref: '#/components/parameters/To' }
+        - { $ref: '#/components/parameters/Read' }
+        - { $ref: '#/components/parameters/Search' }
+        - { name: after, in: query, schema: { type: string }, description: Keyset cursor from the previous page }
+      responses:
+        '200':
+          description: Up to 50 submissions and the next cursor.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items, permissions]
+                properties:
+                  items: { type: array, items: { $ref: '#/components/schemas/SubmissionSummary' } }
+                  next: { type: [string, 'null'] }
+                  permissions:
+                    type: object
+                    required: [delete]
+                    properties: { delete: { type: boolean } }
+        '400': { description: '`forms.invalid_filter` (dates, search longer than 200 characters)' }
+    delete:
+      summary: Delete selected submissions (inbox or spam)
+      x-capability: forms.submissions.delete
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [ids]
+              additionalProperties: false
+              properties:
+                ids: { type: array, minItems: 1, maxItems: 500, items: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: The number deleted. Ids not found on the site are ignored. Recorded in the submission log.
+          content:
+            application/json:
+              schema: { type: object, required: [deleted], properties: { deleted: { type: integer } } }
+
+  /api/v1/forms/sites/{siteId}/submissions/{submissionId}:
+    parameters:
+      - { $ref: '#/components/parameters/SiteId' }
+      - { $ref: '#/components/parameters/SubmissionId' }
+    get:
+      summary: One submission; marks it read
+      x-capability: forms.submissions.view
+      responses:
+        '200':
+          description: The submission.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Submission' }
+        '404': { description: '`forms.submission_not_found`' }
+
+  /api/v1/forms/sites/{siteId}/submissions/{submissionId}/read:
+    parameters:
+      - { $ref: '#/components/parameters/SiteId' }
+      - { $ref: '#/components/parameters/SubmissionId' }
+    put:
+      summary: Mark read or unread
+      x-capability: forms.submissions.view
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [read], additionalProperties: false, properties: { read: { type: boolean } } }
+      responses:
+        '204': { description: Done }
+
+  /api/v1/forms/sites/{siteId}/submissions/{submissionId}/restore:
+    parameters:
+      - { $ref: '#/components/parameters/SiteId' }
+      - { $ref: '#/components/parameters/SubmissionId' }
+    post:
+      summary: Move a spam submission to the inbox, unread, and notify (FR-016a)
+      x-capability: forms.submissions.view
+      responses:
+        '200':
+          description: The restored submission.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Submission' }
+        '409': { description: '`forms.not_spam`' }
+
+  /api/v1/forms/sites/{siteId}/submissions/export:
+    parameters: [{ $ref: '#/components/parameters/SiteId' }]
+    get:
+      summary: Export the filtered inbox as CSV (FS-16)
+      x-capability: forms.submissions.view
+      parameters:
+        - { $ref: '#/components/parameters/FormFilter' }
+        - { $ref: '#/components/parameters/From' }
+        - { $ref: '#/components/parameters/To' }
+        - { $ref: '#/components/parameters/Read' }
+        - { $ref: '#/components/parameters/Search' }
+      responses:
+        '200':
+          description: |
+            Streamed `text/csv; charset=utf-8` with a BOM,
+            `Content-Disposition: attachment; filename="submissions-{site slug}-{yyyyMMdd-HHmm}.csv"`,
+            `Cache-Control: no-store`. Recorded in the submission log.
+
+  /api/v1/forms/sites/{siteId}/submissions/unread-count:
+    parameters: [{ $ref: '#/components/parameters/SiteId' }]
+    get:
+      summary: Unread inbox submissions, for the admin navigation badge
+      x-capability: forms.submissions.view
+      responses:
+        '200':
+          description: The count, capped at 1000 for display.
+          content:
+            application/json:
+              schema: { type: object, required: [count], properties: { count: { type: integer } } }
+
+  /api/v1/forms/sites/{siteId}/spam-counters:
+    parameters: [{ $ref: '#/components/parameters/SiteId' }]
+    get:
+      summary: Trapped and rate-limited counts per form for the last 30 days (FR-019)
+      x-capability: forms.submissions.view
+      responses:
+        '200':
+          description: One row per form, summed over the period.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      required: [formId, trappedKept, trappedDropped, rateLimited]
+                      properties:
+                        formId: { type: string }
+                        trappedKept: { type: integer }
+                        trappedDropped: { type: integer }
+                        rateLimited: { type: integer }
+
+  /api/v1/forms/email-status:
+    get:
+      summary: Whether outgoing email is configured (FR-037 warning)
+      x-capability: RequireSignedIn
+      responses:
+        '200':
+          description: No server details are returned.
+          content:
+            application/json:
+              schema: { type: object, required: [configured], properties: { configured: { type: boolean } } }
+
+  /api/v1/forms/email-test:
+    post:
+      summary: Send a test email to the signed-in Administrator's own address (FR-037)
+      x-capability: forms.email.test
+      responses:
+        '200':
+          description: Sent; the mail server accepted it.
+        '409': { description: '`forms.email_not_configured`' }
+        '502':
+          description: '`forms.email_failed`, with the mail server''s reply code and text (no credentials).'
+
+components:
+  parameters:
+    SiteId: { name: siteId, in: path, required: true, schema: { type: string, format: uuid } }
+    FormId: { name: formId, in: path, required: true, schema: { type: string, pattern: '^[0-9a-f]{32}$' } }
+    SubmissionId: { name: submissionId, in: path, required: true, schema: { type: string, format: uuid } }
+    Box: { name: box, in: query, schema: { type: string, enum: [inbox, spam], default: inbox } }
+    FormFilter: { name: formId, in: query, schema: { type: string } }
+    From: { name: from, in: query, schema: { type: string, format: date-time } }
+    To: { name: to, in: query, schema: { type: string, format: date-time } }
+    Read: { name: read, in: query, schema: { type: string, enum: [all, read, unread], default: all } }
+    Search: { name: q, in: query, schema: { type: string, maxLength: 200 } }
+  schemas:
+    FormSummary:
+      type: object
+      required: [formId, name, published, retentionDays, fields, lastPublishedAt]
+      properties:
+        formId: { type: string }
+        name: { type: string }
+        published: { type: boolean }
+        retentionDays: { type: [integer, 'null'], enum: [30, 90, 180, 365, null] }
+        fields:
+          type: array
+          items:
+            type: object
+            required: [id, label, type]
+            properties: { id: { type: string }, label: { type: string }, type: { type: string } }
+        lastPublishedAt: { type: string, format: date-time }
+    NotificationState:
+      type: string
+      enum: [not_needed, not_sent, pending, sent, failed, none]
+    SubmissionSummary:
+      type: object
+      required: [id, formId, formName, formPublished, pagePath, receivedAt, read, notification, preview]
+      properties:
+        id: { type: string, format: uuid }
+        formId: { type: string }
+        formName: { type: string }
+        formPublished: { type: boolean }
+        pagePath: { type: string }
+        receivedAt: { type: string, format: date-time }
+        read: { type: boolean }
+        notification: { $ref: '#/components/schemas/NotificationState' }
+        preview: { type: string, maxLength: 160, description: The first values joined, truncated }
+    Submission:
+      allOf:
+        - $ref: '#/components/schemas/SubmissionSummary'
+        - type: object
+          required: [values, spam, retentionDays]
+          properties:
+            values:
+              type: array
+              items:
+                type: object
+                required: [fieldId, label, type, value]
+                properties:
+                  fieldId: { type: string }
+                  label: { type: string }
+                  type: { type: string }
+                  value: { oneOf: [{ type: string }, { type: array, items: { type: string } }] }
+            spam: { type: boolean }
+            retentionDays: { type: [integer, 'null'] }
+            notificationError: { type: [string, 'null'] }
