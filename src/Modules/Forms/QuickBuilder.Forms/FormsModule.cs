@@ -1,9 +1,12 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using QuickBuilder.Forms.Features.RefreshFormRegistry;
 using QuickBuilder.Forms.Infrastructure;
+using QuickBuilder.Pages.Contracts.Events;
 using QuickBuilder.Shared.Infrastructure.Modules;
 using QuickBuilder.Shared.Infrastructure.MultiSite;
+using QuickBuilder.Shared.Kernel.Events;
 
 namespace QuickBuilder.Forms;
 
@@ -39,6 +42,13 @@ public static class FormsModule
         {
             services.AddSingleton(capability);
         }
+
+        // Research FS-05: the registry follows Pages' publishing events. Pages registers the
+        // event types; this module only handles them.
+        services.AddScoped<IIntegrationEventHandler<PagePublished>, RefreshFormRegistryHandler>();
+        services.AddScoped<IIntegrationEventHandler<PageUnpublished>, RefreshFormRegistryHandler>();
+        services.AddScoped<IIntegrationEventHandler<ComponentPublished>, RefreshFormRegistryHandler>();
+        services.AddScoped<IIntegrationEventHandler<ComponentUnpublished>, RefreshFormRegistryHandler>();
 
         return services;
     }
