@@ -1,19 +1,19 @@
 <!--
 Sync Impact Report
-Version change: 2.3.1 → 2.4.0
-Modified principles: none.
-Modified sections:
-  - Technology Constraints: the placeholder "The editor canvas library is
-    decided in the editor-core spec and then recorded here." is replaced by the
-    decision itself. The placeholder deferred a normative constraint; filling it
-    adds a binding rule that plans must follow, which is a MINOR change under
-    the Governance versioning rule.
-Reason: feature 011 (editor core, issue #11) made the decision the placeholder
-  asked for (specs/011-editor-core/research.md ED-01, ED-02, ED-03, ED-09).
+Version change: 2.4.0 → 2.5.0
+Modified principles:
+  - I. Modular Monolith with Vertical Slices: the module list gains `Forms`.
+    Adding a module to the closed list is a new normative element, which is a
+    MINOR change under the Governance versioning rule.
+Modified sections: none.
+Reason: feature 018 (forms and submissions, issue #18) needs a home for
+  submissions from anonymous visitors, their email notifications, rate limits
+  and retention, which belong to no existing module
+  (specs/018-forms-submissions/research.md FS-01). Approved by the maintainer
+  on 2026-10-22 (/speckit-analyze finding C1).
 Affected specs/plans:
-  - specs/011-editor-core/ — plan.md records this amendment in its
-    Technology Constraints section.
-  - No earlier spec touches the editor canvas, so nothing else is affected.
+  - specs/018-forms-submissions/ — plan.md records this amendment.
+  - No earlier spec is affected: no existing module changes owner or scope.
 Templates requiring updates:
   - .specify/templates/*: none. Templates read this constitution at runtime.
 Follow-up TODOs: none.
@@ -33,7 +33,8 @@ this document wins; changing it requires the amendment process in Governance.
 
 **Modules**
 - The backend is ONE deployable ASP.NET Core application composed of modules:
-  `Identity`, `Sites`, `Pages`, `Editor`, `Rendering`, `Cms`, `Media`, `Setup`.
+  `Identity`, `Sites`, `Pages`, `Editor`, `Rendering`, `Cms`, `Media`, `Forms`,
+  `Setup`.
 - Each module consists of exactly two projects:
   - `QuickBuilder.<Module>.Contracts`: public interfaces, DTOs and integration
     events. The only project other modules may reference.
@@ -279,4 +280,4 @@ a constitution amendment is approved first.
 - Any exception to a MUST rule is recorded in the plan's Complexity Tracking
   section with justification and a follow-up task to remove it.
 
-**Version**: 2.4.0 | **Ratified**: 2026-09-22 | **Last Amended**: 2026-09-28
+**Version**: 2.5.0 | **Ratified**: 2026-09-22 | **Last Amended**: 2026-10-22
