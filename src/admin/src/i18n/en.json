@@ -1525,7 +1525,9 @@
         "invalid_document": "Its content no longer passes the page checks.",
         "unknown": "The schedule could not run.",
         "image_alt_missing": "An image in its rich text had no alternative text.",
-        "unpublished_menus": "A menu it shows was not published by then."
+        "unpublished_menus": "A menu it shows was not published by then.",
+        "form_invalid": "A form on it was not complete.",
+        "form_redirect_not_live": "A form on it pointed at a page that was not published."
       },
       "scheduled": {
         "publish": "Publishes {when}",
@@ -1667,7 +1669,9 @@
         "unpublished_menus": "{count} menu(s) this shows are not published. Publish them first.",
         "version_missing_menus": "That version shows {count} menu(s) that no longer exist.",
         "menu_in_use_by_published_content": "{pages} published page(s) and {components} published component(s) show this menu. Remove it from them first.",
-        "menu_not_found": "This menu no longer exists."
+        "menu_not_found": "This menu no longer exists.",
+        "form_invalid": "A form on this is not complete. Open it in the editor: the form shows what to fix.",
+        "form_redirect_not_live": "A form on this sends visitors to, or links to, a page that is not published. Publish that page first, or choose another."
       },
       "editor": {
         "out_of_date": "Someone changed the design since you opened it. Reload and try again.",

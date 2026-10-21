@@ -80,7 +80,10 @@ internal static class PagesErrorResults
             or "pages.menu_limit_reached"
             or "pages.unpublished_menus"
             or "pages.version_missing_menus"
-            or "pages.menu_in_use_by_published_content" => StatusCodes.Status409Conflict,
+            or "pages.menu_in_use_by_published_content"
+            // 018 form-block.md rule 28.
+            or "pages.form_invalid"
+            or "pages.form_redirect_not_live" => StatusCodes.Status409Conflict,
         "pages.seo_restricted" => StatusCodes.Status403Forbidden,
         "redirects.import_too_large" => StatusCodes.Status413PayloadTooLarge,
         "pages.document_too_large" => StatusCodes.Status413PayloadTooLarge,

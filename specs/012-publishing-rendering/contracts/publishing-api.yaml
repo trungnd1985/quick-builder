@@ -36,6 +36,13 @@ info:
     `menuIds`). See [024 menus-api.yaml](../../024-navigation/contracts/menus-api.yaml). They are listed
     once at the end, without their bodies repeated.
 
+    **Forms** (018): publishing, rolling back or running a scheduled publish of a page or
+    component is refused with `409 pages.form_invalid` (with `formId`, `fieldId` and `rule`)
+    when one of its forms breaks a completeness rule, and with `409 pages.form_redirect_not_live`
+    (with `formId` and `pageId`) when a form's redirect or consent link names a page that is not
+    live (page-schema.md §3 rule 28). A failed scheduled publish records the code as its
+    `failureCode`.
+
 servers:
   - url: /
 

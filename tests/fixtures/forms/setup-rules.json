@@ -1,0 +1,152 @@
+{
+  "$comment": "Publish rules of a form (page-schema.md §3 rule 28.1–28.5; 018 research FS-04). Each case is a form node's props and every problem it has, in the order FormPublishRules and formSetup.ts report them: no_fields first, then each field in order (duplicate_label, no_options, duplicate_option, min_above_max), then reply_field_invalid. Rule 28.6 (live pages) needs the site and is not here. Shared by tests/QuickBuilder.UnitTests/Pages/Forms/FormPublishRulesTests.cs and src/admin/tests/editor/formSetup.spec.ts.",
+  "cases": [
+    {
+      "name": "a complete form",
+      "props": {
+        "name": "Contact",
+        "fields": [
+          { "id": "a00000000001", "type": "text", "label": "Name", "minLength": 2, "maxLength": 100 },
+          { "id": "a00000000002", "type": "email", "label": "Email", "required": true },
+          { "id": "a00000000003", "type": "number", "label": "Guests", "min": 1, "max": 1 },
+          { "id": "a00000000004", "type": "date", "label": "Day", "earliest": "2026-01-01", "latest": "2026-01-01" },
+          { "id": "a00000000005", "type": "checkboxes", "label": "Pick", "minSelected": 1, "maxSelected": 2, "options": [{ "value": "a", "label": "A" }, { "value": "b", "label": "B" }] },
+          { "id": "a00000000006", "type": "radio", "label": "One", "options": [{ "value": "a", "label": "A" }] },
+          { "id": "a00000000007", "type": "consent", "label": "Consent", "statement": "I agree." }
+        ],
+        "notify": { "recipients": ["office@client.example"], "replyFieldId": "a00000000002" }
+      },
+      "problems": []
+    },
+    {
+      "name": "no fields",
+      "props": { "name": "Empty", "fields": [] },
+      "problems": [{ "rule": "no_fields", "fieldId": null }]
+    },
+    {
+      "name": "labels that differ only in case",
+      "props": {
+        "name": "F",
+        "fields": [
+          { "id": "b00000000001", "type": "text", "label": "Name" },
+          { "id": "b00000000002", "type": "email", "label": "Email" },
+          { "id": "b00000000003", "type": "text", "label": "NAME" }
+        ]
+      },
+      "problems": [{ "rule": "duplicate_label", "fieldId": "b00000000003" }]
+    },
+    {
+      "name": "labels compared after trimming",
+      "props": {
+        "name": "F",
+        "fields": [
+          { "id": "b10000000001", "type": "text", "label": "Name" },
+          { "id": "b10000000002", "type": "text", "label": " name " }
+        ]
+      },
+      "problems": [{ "rule": "duplicate_label", "fieldId": "b10000000002" }]
+    },
+    {
+      "name": "choice fields without options",
+      "props": {
+        "name": "F",
+        "fields": [
+          { "id": "c00000000001", "type": "select", "label": "A" },
+          { "id": "c00000000002", "type": "radio", "label": "B" },
+          { "id": "c00000000003", "type": "checkboxes", "label": "C" }
+        ]
+      },
+      "problems": [
+        { "rule": "no_options", "fieldId": "c00000000001" },
+        { "rule": "no_options", "fieldId": "c00000000002" },
+        { "rule": "no_options", "fieldId": "c00000000003" }
+      ]
+    },
+    {
+      "name": "two options with one value",
+      "props": {
+        "name": "F",
+        "fields": [
+          { "id": "d00000000001", "type": "select", "label": "Topic", "options": [{ "value": "sales", "label": "Sales" }, { "value": "sales", "label": "Buying" }] }
+        ]
+      },
+      "problems": [{ "rule": "duplicate_option", "fieldId": "d00000000001" }]
+    },
+    {
+      "name": "minimums above maximums",
+      "props": {
+        "name": "F",
+        "fields": [
+          { "id": "e00000000001", "type": "text", "label": "A", "minLength": 9, "maxLength": 2 },
+          { "id": "e00000000002", "type": "textarea", "label": "B", "minLength": 10000, "maxLength": 50 },
+          { "id": "e00000000003", "type": "number", "label": "C", "min": 5, "max": 4.5 },
+          { "id": "e00000000004", "type": "date", "label": "D", "earliest": "2026-02-01", "latest": "2026-01-31" },
+          { "id": "e00000000005", "type": "checkboxes", "label": "E", "minSelected": 2, "maxSelected": 1, "options": [{ "value": "a", "label": "A" }, { "value": "b", "label": "B" }] },
+          { "id": "e00000000006", "type": "checkboxes", "label": "F", "maxSelected": 3, "options": [{ "value": "a", "label": "A" }, { "value": "b", "label": "B" }] },
+          { "id": "e00000000007", "type": "checkboxes", "label": "G", "minSelected": 3, "options": [{ "value": "a", "label": "A" }, { "value": "b", "label": "B" }] }
+        ]
+      },
+      "problems": [
+        { "rule": "min_above_max", "fieldId": "e00000000001" },
+        { "rule": "min_above_max", "fieldId": "e00000000002" },
+        { "rule": "min_above_max", "fieldId": "e00000000003" },
+        { "rule": "min_above_max", "fieldId": "e00000000004" },
+        { "rule": "min_above_max", "fieldId": "e00000000005" },
+        { "rule": "min_above_max", "fieldId": "e00000000006" },
+        { "rule": "min_above_max", "fieldId": "e00000000007" }
+      ]
+    },
+    {
+      "name": "a minimum length under the default maximum is fine",
+      "props": {
+        "name": "F",
+        "fields": [{ "id": "e10000000001", "type": "text", "label": "A", "minLength": 500 }]
+      },
+      "problems": []
+    },
+    {
+      "name": "a reply field that is not an email field",
+      "props": {
+        "name": "F",
+        "fields": [{ "id": "f00000000001", "type": "text", "label": "Name" }],
+        "notify": { "replyFieldId": "f00000000001" }
+      },
+      "problems": [{ "rule": "reply_field_invalid", "fieldId": "f00000000001" }]
+    },
+    {
+      "name": "a reply field that no longer exists",
+      "props": {
+        "name": "F",
+        "fields": [{ "id": "f10000000001", "type": "email", "label": "Email" }],
+        "notify": { "replyFieldId": "f10000000099" }
+      },
+      "problems": [{ "rule": "reply_field_invalid", "fieldId": "f10000000099" }]
+    },
+    {
+      "name": "a reply field while values are left out",
+      "props": {
+        "name": "F",
+        "fields": [{ "id": "f20000000001", "type": "email", "label": "Email" }],
+        "notify": { "includeValues": false, "replyFieldId": "f20000000001" }
+      },
+      "problems": [{ "rule": "reply_field_invalid", "fieldId": "f20000000001" }]
+    },
+    {
+      "name": "every kind of problem, in order",
+      "props": {
+        "name": "F",
+        "fields": [
+          { "id": "g00000000001", "type": "select", "label": "Same", "options": [{ "value": "x", "label": "X" }, { "value": "x", "label": "Y" }] },
+          { "id": "g00000000002", "type": "number", "label": "same", "min": 2, "max": 1 }
+        ],
+        "notify": { "replyFieldId": "g00000000001" }
+      },
+      "problems": [
+        { "rule": "duplicate_option", "fieldId": "g00000000001" },
+        { "rule": "duplicate_label", "fieldId": "g00000000002" },
+        { "rule": "min_above_max", "fieldId": "g00000000002" },
+        { "rule": "reply_field_invalid", "fieldId": "g00000000001" }
+      ]
+    }
+  ]
+}
