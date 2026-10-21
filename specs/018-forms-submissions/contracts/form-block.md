@@ -20,10 +20,10 @@ The change is **additive** under §6 (a new node type), so documents stay at ver
 | `submitLabel` | string ≤ 60 | *(absent: "Send", site language)* | |
 | `successMessage` | string ≤ 1,000 | *(absent: default text)* | plain text, line breaks kept |
 | `errorMessage` | string ≤ 1,000 | *(absent: default text)* | |
-| `redirect` | `{ "pageId": uuid }` or `{ "url": string ≤ 2,048 }` | *(absent: show the success message)* | `url` scheme `https` or `http` only |
+| `redirect` | `{ "type": "page", "pageId": uuid }` or `{ "type": "url", "href": string ≤ 2,048 }` | *(absent: show the success message)* | `href` scheme `https` or `http` only; tagged by `type` like `link`, as the schema subset requires (§7) |
 | `notify` | `formNotify` | *(absent: no notification)* | |
 | `retentionDays` | 30, 90, 180 or 365 | *(absent: off)* | |
-| `style` | the shared block style props (spacing, width) | | as other content blocks |
+| `layerLabel` | as other blocks | | never rendered |
 
 ### `formNotify`
 
@@ -65,25 +65,30 @@ Type-specific props:
 
 Numbered after the existing rules of page-schema.md §3, which end at 25 (017).
 
-26. A `form` node is not allowed under a `collection-list` (save).
-27. Field ids are unique within a form (save).
+26. At most 20 forms per document (`too_many_forms`), and no `form` under a
+    `collection-list` (`form_in_list`), both at the form's `/type` (save).
+27. Field ids are unique within a form (`duplicate_field_id`, at the second field's `/id`)
+    (save).
 28. **Publish rules** (FS-04), checked by Pages when a page or component is published,
-    by hand or by schedule; the admin shows them on every change:
-    1. at least one field;
-    2. labels unique within the form, ignoring case;
-    3. `select`, `radio` and `checkboxes` have at least one option, with unique values;
-    4. `minLength ≤ maxLength`, `min ≤ max`, `earliest ≤ latest`,
+    by hand, by schedule or by rollback; the admin shows them on every change:
+    1. `no_fields`: at least one field;
+    2. `duplicate_label`: labels unique within the form, ignoring case;
+    3. `no_options`, `duplicate_option`: `select`, `radio` and `checkboxes` have at least
+       one option, with unique values;
+    4. `min_above_max`: `minLength ≤ maxLength`, `min ≤ max`, `earliest ≤ latest`,
        `minSelected ≤ maxSelected ≤ options`;
-    5. `replyFieldId` names an `email` field of the form, and `includeValues` is not
-       `false`;
+    5. `reply_field_invalid`: `replyFieldId` names an `email` field of the form, and
+       `includeValues` is not `false`;
     6. `redirect.pageId` and `consent.linkPageId` name live pages of the site.
 
     Refusal reasons: `form_invalid` (with `formId`, `fieldId` and `rule`) and
     `form_redirect_not_live` (with `formId` and `pageId`).
 
+Final text: docs/contracts/page-schema.md §3.
+
 ## 4. Limits
 
-- §4 gains: at most **20 `form` nodes per document**.
+- §4 gains: **Forms per document: 20** (rule 26).
 - A field's props count toward the existing document size limit.
 
 ## 5. Rendering (§9 addition)
@@ -95,12 +100,16 @@ disabled, with the success panel and error states previewable from the panel.
 
 `docs/contracts/page-schema/examples/`:
 - `valid/form-every-field-type.json`;
-- `valid/form-in-component.json`;
-- `valid/form-minimal-draft.json` (no fields: valid to save);
-- `invalid/form-in-list-card.json` (rule 26);
-- `invalid/form-duplicate-field-id.json` (rule 27);
-- `invalid/form-redirect-javascript-url.json` (schema);
-- `invalid/form-too-many-recipients.json` (schema);
-- `publish-refused/form-*.json`: one file per rule 28 item.
+- `valid/form-in-component.json` (also valid as a component document);
+- `valid/form-minimal-draft.json` (no fields, duplicate labels: valid to save);
+- `invalid/form_in_list--in-list-card.json` (rule 26);
+- `invalid/too_many_forms--21.json` (rule 26);
+- `invalid/duplicate_field_id--twice.json` (rule 27);
+- `invalid/props_invalid--form-redirect-javascript.json` (schema);
+- `invalid/props_invalid--form-too-many-recipients.json` (schema);
+- `invalid/props_invalid--form-option-on-text.json` (schema: type-specific props);
+- `invalid/children_not_allowed--form-child.json` (schema).
 
-Both validators run them (`FormSchemaGoldenTests`, `formSchema.spec.ts`).
+Both validators run them (`FormSchemaGoldenTests`, `documentValidator.spec.ts`). The publish
+rules (rule 28) are not document examples: their cases are the shared fixture
+`tests/fixtures/forms/setup-rules.json`.

@@ -142,6 +142,7 @@ public sealed partial class DesignTokenContractTests
         Assert.Equal(QuickBuilder.Pages.Contracts.PageSchema.CurrentVersion, constants["CURRENT_SCHEMA_VERSION"]);
         Assert.Equal(QuickBuilder.Pages.Contracts.PageSchema.MaxListsPerDocument, constants["MAX_LISTS_PER_DOCUMENT"]);
         Assert.Equal(QuickBuilder.Pages.Contracts.PageSchema.MaxListDepth, constants["MAX_LIST_DEPTH"]);
+        Assert.Equal(QuickBuilder.Pages.Contracts.PageSchema.MaxFormsPerDocument, constants["MAX_FORMS_PER_DOCUMENT"]);
         Assert.Equal(QuickBuilder.Pages.Contracts.PageSchema.CurrentBindingVersion, constants["CURRENT_BINDING_VERSION"]);
 
         // 024: the menu contract's limits live in the same file.

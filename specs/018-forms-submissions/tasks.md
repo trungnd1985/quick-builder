@@ -108,13 +108,13 @@ Shorthand used below:
 
 ### The `form` node (FR-001, FR-005 to FR-008, FS-02, FS-04)
 
-- [ ] T005 Extend `CONTRACTS/page-schema/v1.schema.json`, staying at version 1: `$defs/form`, `$defs/formField` (a `oneOf` per type, so type-specific props are allowed only on their type), `$defs/formNotify` and `$defs/formRedirect` exactly as contracts/form-block.md §2, and `form` added to `contentChild` but not `listChild`. `PageSchemaSubsetTests` must pass.
-- [ ] T006 Update `CONTRACTS/page-schema.md` from form-block.md: the §2 row, rules 26–28 in §3 (28 marked as a publish rule), the 20-forms limit in §4, an "Additions in 018 (still version 1)" paragraph in §6 and the §9 rendering note. Run `ITESTS/Pages/PageSchemaContractTests.cs`; it must pass.
-- [ ] T007 [P] Create the golden examples of form-block.md §6 in `CONTRACTS/page-schema/examples/` (`valid/`, `invalid/` with `expected.json` naming `rule` and `pointer`, and `publish-refused/` with `expected.json` naming `rule`, `formId` and `fieldId`).
-- [ ] T008 [P] Create `UTESTS/Pages/Forms/FormSchemaGoldenTests.cs`, running T007's `valid/` and `invalid/` examples through `PAGES/Infrastructure/Schema/PageDocumentValidator.cs`. It must fail first.
-- [ ] T009 [P] Extend `ADMINTESTS/editor/documentValidator.spec.ts` with T007's `valid/` and `invalid/` examples through `EDITOR/schema/documentValidator.ts`, loading files as `ADMINTESTS/editor/contractFiles.ts` does. It must fail first.
-- [ ] T010 Accept the `form` node in `PAGES/Infrastructure/Schema/PageDocumentValidator.cs`, adding rule 26 (no `form` under `collection-list`), rule 27 (unique field ids) and the 20-forms limit, and refresh the embedded schema in `PAGESC/PageSchema.cs`. Make T008 pass.
-- [ ] T011 [P] Accept the `form` node in `EDITOR/schema/schema.ts` (`blockTypes`, `canDrop` refusing list cards), `EDITOR/schema/documentValidator.ts` (rules 26, 27) and `EDITOR/schema/limits.ts` (20 forms). Make T009 pass.
+- [X] T005 Extend `CONTRACTS/page-schema/v1.schema.json`, staying at version 1: `$defs/form`, `$defs/formField` (a `oneOf` per type, so type-specific props are allowed only on their type), `$defs/formNotify` and `$defs/formRedirect` exactly as contracts/form-block.md §2, and `form` added to `contentChild` but not `listChild`. `PageSchemaSubsetTests` must pass.
+- [X] T006 Update `CONTRACTS/page-schema.md` from form-block.md: the §2 row, rules 26–28 in §3 (28 marked as a publish rule), the 20-forms limit in §4, an "Additions in 018 (still version 1)" paragraph in §6 and the §9 rendering note. Run `ITESTS/Pages/PageSchemaContractTests.cs`; it must pass.
+- [X] T007 [P] Create the golden examples of form-block.md §6 in `CONTRACTS/page-schema/examples/` (`valid/`, and `invalid/<rule>--<case>.json` with entries in `invalid/expected.json` naming `rule` and `pointer`). Rule 28's cases live in T021's fixture, not here.
+- [X] T008 [P] Create `UTESTS/Pages/Forms/FormSchemaGoldenTests.cs`, running T007's `valid/` and `invalid/` examples through `PAGES/Infrastructure/Schema/PageDocumentValidator.cs`. It must fail first.
+- [X] T009 [P] Extend `ADMINTESTS/editor/documentValidator.spec.ts` with T007's `valid/` and `invalid/` examples through `EDITOR/schema/documentValidator.ts`, loading files as `ADMINTESTS/editor/contractFiles.ts` does. It must fail first.
+- [X] T010 Accept the `form` node in `PAGES/Infrastructure/Schema/PageDocumentValidator.cs`, adding rule 26 (no `form` under `collection-list`), rule 27 (unique field ids) and the 20-forms limit, and refresh the embedded schema in `PAGESC/PageSchema.cs`. Make T008 pass.
+- [X] T011 [P] Accept the `form` node in `EDITOR/schema/schema.ts` (`blockTypes`, `canDrop` refusing list cards), `EDITOR/schema/documentValidator.ts` (rules 26, 27) and `EDITOR/schema/limits.ts` (20 forms). Make T009 pass.
 
 ### Forms storage (data-model §1)
 

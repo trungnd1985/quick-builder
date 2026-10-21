@@ -132,6 +132,7 @@ public sealed partial class PageSchemaContractTests
             ["Pages per site"] = PageAddresses.MaxPagesPerSite,
             ["Collection lists per document"] = PageSchema.MaxListsPerDocument,
             ["Collection list nesting"] = PageSchema.MaxListDepth,
+            ["Forms per document"] = PageSchema.MaxFormsPerDocument,
         };
 
         Assert.Equal(enforced.OrderBy(e => e.Key), documented.OrderBy(e => e.Key));

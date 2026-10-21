@@ -222,7 +222,7 @@ paths:
 components:
   parameters:
     SiteId: { name: siteId, in: path, required: true, schema: { type: string, format: uuid } }
-    FormId: { name: formId, in: path, required: true, schema: { type: string, pattern: '^[0-9a-f]{32}$' } }
+    FormId: { name: formId, in: path, required: true, schema: { type: string, pattern: '^[A-Za-z0-9_-]{1,64}$', description: 'The form node id (page-schema nodeId)' } }
     SubmissionId: { name: submissionId, in: path, required: true, schema: { type: string, format: uuid } }
     Box: { name: box, in: query, schema: { type: string, enum: [inbox, spam], default: inbox } }
     FormFilter: { name: formId, in: query, schema: { type: string } }

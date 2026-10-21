@@ -44,6 +44,9 @@ public static class PageSchema
     /// <summary>How deep Collection list blocks may nest: a list inside a list's card (rule 17, 016).</summary>
     public const int MaxListDepth = 2;
 
+    /// <summary>The most Form blocks one document may hold (contract §3 rule 26, added by 018).</summary>
+    public const int MaxFormsPerDocument = 20;
+
     /// <summary>The binding expression format version documents are written in (binding-expression.md §7, 016).</summary>
     public const int CurrentBindingVersion = 1;
 

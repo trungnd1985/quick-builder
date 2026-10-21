@@ -123,10 +123,13 @@ const listFor = (parentType: string): ReadonlySet<string> | null => {
 
 /**
  * Whether a node of `childType` may sit directly inside `parentType` in a document of
- * `kind` — exactly the rule the schema enforces, plus contract rule 7 (no component
- * references inside a component).
+ * `kind` — exactly the rule the schema enforces, plus contract rules 7 (no component
+ * references inside a component) and 26 (no form directly in a list's slots).
  */
 export function canDrop(parentType: string, childType: string, kind: DocumentKind): boolean {
   if (childType === 'component-ref' && kind === 'component') return false
+  // Rule 26 (018): no form in a list's card or empty state. Deeper inside a list it is
+  // refused by the document validator, which knows the ancestors.
+  if (childType === 'form' && (parentType === 'list-card' || parentType === 'list-empty')) return false
   return listFor(parentType)?.has(childType) ?? false
 }

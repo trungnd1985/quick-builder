@@ -104,6 +104,9 @@
         },
         {
           "$ref": "#/$defs/navigation"
+        },
+        {
+          "$ref": "#/$defs/form"
         }
       ]
     },
@@ -970,6 +973,817 @@
             "panelBackground": {
               "$ref": "#/$defs/colorRef",
               "description": "Horizontal dropdowns and the opened small-screen panel; absent: the site's menu style."
+            },
+            "layerLabel": {
+              "$ref": "#/$defs/layerLabel"
+            }
+          }
+        },
+        "children": {
+          "$ref": "#/$defs/noChildren"
+        }
+      }
+    },
+    "formFieldId": {
+      "description": "A form field’s stable id (018 FR-006). Made by the admin, never changed; stored values are keyed by it.",
+      "type": "string",
+      "pattern": "^[0-9a-f]{12}$"
+    },
+    "formOption": {
+      "type": "object",
+      "required": [
+        "value",
+        "label"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "value": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "pattern": "^[^\u0000-\u001f]*$"
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "pattern": "^[^\u0000-\u001f]*$"
+        }
+      }
+    },
+    "formField": {
+      "description": "One field of a form; type-specific props are allowed only on their type (018 contracts/form-block.md §2).",
+      "oneOf": [
+        {
+          "$ref": "#/$defs/formField-text"
+        },
+        {
+          "$ref": "#/$defs/formField-textarea"
+        },
+        {
+          "$ref": "#/$defs/formField-email"
+        },
+        {
+          "$ref": "#/$defs/formField-phone"
+        },
+        {
+          "$ref": "#/$defs/formField-number"
+        },
+        {
+          "$ref": "#/$defs/formField-date"
+        },
+        {
+          "$ref": "#/$defs/formField-select"
+        },
+        {
+          "$ref": "#/$defs/formField-radio"
+        },
+        {
+          "$ref": "#/$defs/formField-checkboxes"
+        },
+        {
+          "$ref": "#/$defs/formField-checkbox"
+        },
+        {
+          "$ref": "#/$defs/formField-consent"
+        }
+      ]
+    },
+    "formField-text": {
+      "type": "object",
+      "required": [
+        "id",
+        "type",
+        "label"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/formFieldId"
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "pattern": "^[^\u0000-\u001f]*$",
+          "description": "The field’s label; for a consent, the column name in Submissions."
+        },
+        "help": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500,
+          "pattern": "^[^\u0000-\u001f]*$"
+        },
+        "required": {
+          "type": "boolean",
+          "default": false
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "pattern": "^[^\u0000-\u001f]*$",
+          "description": "Replaces every default error text of the field."
+        },
+        "type": {
+          "const": "text"
+        },
+        "placeholder": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "pattern": "^[^\u0000-\u001f]*$"
+        },
+        "minLength": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 500
+        },
+        "maxLength": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 500,
+          "default": 500
+        }
+      }
+    },
+    "formField-textarea": {
+      "type": "object",
+      "required": [
+        "id",
+        "type",
+        "label"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/formFieldId"
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "pattern": "^[^\u0000-\u001f]*$",
+          "description": "The field’s label; for a consent, the column name in Submissions."
+        },
+        "help": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500,
+          "pattern": "^[^\u0000-\u001f]*$"
+        },
+        "required": {
+          "type": "boolean",
+          "default": false
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "pattern": "^[^\u0000-\u001f]*$",
+          "description": "Replaces every default error text of the field."
+        },
+        "type": {
+          "const": "textarea"
+        },
+        "placeholder": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "pattern": "^[^\u0000-\u001f]*$"
+        },
+        "minLength": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10000
+        },
+        "maxLength": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10000,
+          "default": 10000
+        }
+      }
+    },
+    "formField-email": {
+      "type": "object",
+      "required": [
+        "id",
+        "type",
+        "label"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/formFieldId"
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "pattern": "^[^\u0000-\u001f]*$",
+          "description": "The field’s label; for a consent, the column name in Submissions."
+        },
+        "help": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500,
+          "pattern": "^[^\u0000-\u001f]*$"
+        },
+        "required": {
+          "type": "boolean",
+          "default": false
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "pattern": "^[^\u0000-\u001f]*$",
+          "description": "Replaces every default error text of the field."
+        },
+        "type": {
+          "const": "email"
+        },
+        "placeholder": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "pattern": "^[^\u0000-\u001f]*$"
+        },
+        "minLength": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 254
+        },
+        "maxLength": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 254,
+          "default": 254
+        }
+      }
+    },
+    "formField-phone": {
+      "type": "object",
+      "required": [
+        "id",
+        "type",
+        "label"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/formFieldId"
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "pattern": "^[^\u0000-\u001f]*$",
+          "description": "The field’s label; for a consent, the column name in Submissions."
+        },
+        "help": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500,
+          "pattern": "^[^\u0000-\u001f]*$"
+        },
+        "required": {
+          "type": "boolean",
+          "default": false
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "pattern": "^[^\u0000-\u001f]*$",
+          "description": "Replaces every default error text of the field."
+        },
+        "type": {
+          "const": "phone"
+        },
+        "placeholder": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "pattern": "^[^\u0000-\u001f]*$"
+        },
+        "minLength": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 500
+        },
+        "maxLength": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 500,
+          "default": 500
+        }
+      }
+    },
+    "formField-number": {
+      "type": "object",
+      "required": [
+        "id",
+        "type",
+        "label"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/formFieldId"
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "pattern": "^[^\u0000-\u001f]*$",
+          "description": "The field’s label; for a consent, the column name in Submissions."
+        },
+        "help": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500,
+          "pattern": "^[^\u0000-\u001f]*$"
+        },
+        "required": {
+          "type": "boolean",
+          "default": false
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "pattern": "^[^\u0000-\u001f]*$",
+          "description": "Replaces every default error text of the field."
+        },
+        "type": {
+          "const": "number"
+        },
+        "placeholder": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "pattern": "^[^\u0000-\u001f]*$"
+        },
+        "min": {
+          "type": "number"
+        },
+        "max": {
+          "type": "number"
+        },
+        "wholeNumber": {
+          "type": "boolean",
+          "default": false
+        }
+      }
+    },
+    "formField-date": {
+      "type": "object",
+      "required": [
+        "id",
+        "type",
+        "label"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/formFieldId"
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "pattern": "^[^\u0000-\u001f]*$",
+          "description": "The field’s label; for a consent, the column name in Submissions."
+        },
+        "help": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500,
+          "pattern": "^[^\u0000-\u001f]*$"
+        },
+        "required": {
+          "type": "boolean",
+          "default": false
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "pattern": "^[^\u0000-\u001f]*$",
+          "description": "Replaces every default error text of the field."
+        },
+        "type": {
+          "const": "date"
+        },
+        "earliest": {
+          "type": "string",
+          "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$"
+        },
+        "latest": {
+          "type": "string",
+          "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$"
+        }
+      }
+    },
+    "formField-select": {
+      "type": "object",
+      "required": [
+        "id",
+        "type",
+        "label"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/formFieldId"
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "pattern": "^[^\u0000-\u001f]*$",
+          "description": "The field’s label; for a consent, the column name in Submissions."
+        },
+        "help": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500,
+          "pattern": "^[^\u0000-\u001f]*$"
+        },
+        "required": {
+          "type": "boolean",
+          "default": false
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "pattern": "^[^\u0000-\u001f]*$",
+          "description": "Replaces every default error text of the field."
+        },
+        "type": {
+          "const": "select"
+        },
+        "options": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 100,
+          "items": {
+            "$ref": "#/$defs/formOption"
+          }
+        }
+      }
+    },
+    "formField-radio": {
+      "type": "object",
+      "required": [
+        "id",
+        "type",
+        "label"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/formFieldId"
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "pattern": "^[^\u0000-\u001f]*$",
+          "description": "The field’s label; for a consent, the column name in Submissions."
+        },
+        "help": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500,
+          "pattern": "^[^\u0000-\u001f]*$"
+        },
+        "required": {
+          "type": "boolean",
+          "default": false
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "pattern": "^[^\u0000-\u001f]*$",
+          "description": "Replaces every default error text of the field."
+        },
+        "type": {
+          "const": "radio"
+        },
+        "options": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 100,
+          "items": {
+            "$ref": "#/$defs/formOption"
+          }
+        }
+      }
+    },
+    "formField-checkboxes": {
+      "type": "object",
+      "required": [
+        "id",
+        "type",
+        "label"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/formFieldId"
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "pattern": "^[^\u0000-\u001f]*$",
+          "description": "The field’s label; for a consent, the column name in Submissions."
+        },
+        "help": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500,
+          "pattern": "^[^\u0000-\u001f]*$"
+        },
+        "required": {
+          "type": "boolean",
+          "default": false
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "pattern": "^[^\u0000-\u001f]*$",
+          "description": "Replaces every default error text of the field."
+        },
+        "type": {
+          "const": "checkboxes"
+        },
+        "options": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 100,
+          "items": {
+            "$ref": "#/$defs/formOption"
+          }
+        },
+        "minSelected": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "maxSelected": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        }
+      }
+    },
+    "formField-checkbox": {
+      "type": "object",
+      "required": [
+        "id",
+        "type",
+        "label"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/formFieldId"
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "pattern": "^[^\u0000-\u001f]*$",
+          "description": "The field’s label; for a consent, the column name in Submissions."
+        },
+        "help": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500,
+          "pattern": "^[^\u0000-\u001f]*$"
+        },
+        "required": {
+          "type": "boolean",
+          "default": false
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "pattern": "^[^\u0000-\u001f]*$",
+          "description": "Replaces every default error text of the field."
+        },
+        "type": {
+          "const": "checkbox"
+        }
+      }
+    },
+    "formField-consent": {
+      "type": "object",
+      "required": [
+        "id",
+        "type",
+        "label",
+        "statement"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/formFieldId"
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "pattern": "^[^\u0000-\u001f]*$",
+          "description": "The field’s label; for a consent, the column name in Submissions."
+        },
+        "help": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500,
+          "pattern": "^[^\u0000-\u001f]*$"
+        },
+        "required": {
+          "type": "boolean",
+          "default": true
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "pattern": "^[^\u0000-\u001f]*$",
+          "description": "Replaces every default error text of the field."
+        },
+        "type": {
+          "const": "consent"
+        },
+        "statement": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000,
+          "pattern": "^[^\u0000-\t\u000b-\u001f]*$"
+        },
+        "linkPageId": {
+          "type": "string",
+          "format": "uuid",
+          "description": "A page the statement links to, such as a privacy policy (rule 28.6)."
+        }
+      }
+    },
+    "formRedirect": {
+      "description": "Where a visitor goes after a successful submission: a page of the site (rule 28.6) or an http(s) address.",
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "type",
+            "pageId"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "page"
+            },
+            "pageId": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "type",
+            "href"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "url"
+            },
+            "href": {
+              "type": "string",
+              "maxLength": 2048,
+              "pattern": "^https?://[^\\u0000-\\u0020\\u007f]+$"
+            }
+          }
+        }
+      ]
+    },
+    "formNotify": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "recipients": {
+          "type": "array",
+          "maxItems": 10,
+          "items": {
+            "type": "string",
+            "maxLength": 254,
+            "pattern": "^[^\\u0000-\\u0020\\u007f@]+@[^\\u0000-\\u0020\\u007f@]+\\.[^\\u0000-\\u0020\\u007f@]+$"
+          },
+          "default": []
+        },
+        "subject": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "pattern": "^[^\u0000-\u001f]*$",
+          "description": "Absent: \"New submission: \" and the form’s name."
+        },
+        "includeValues": {
+          "type": "boolean",
+          "default": true
+        },
+        "replyFieldId": {
+          "$ref": "#/$defs/formFieldId",
+          "description": "An email field of the form (rule 28.5)."
+        }
+      }
+    },
+    "form": {
+      "description": "A form visitors submit (018). Its id is the form’s id (research FS-03). Completeness is checked at publish (rule 28).",
+      "type": "object",
+      "required": [
+        "id",
+        "type",
+        "props",
+        "children"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/nodeId"
+        },
+        "type": {
+          "const": "form"
+        },
+        "props": {
+          "type": "object",
+          "required": [
+            "name",
+            "fields"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "name": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100,
+              "pattern": "^[^\u0000-\u001f]*$"
+            },
+            "fields": {
+              "type": "array",
+              "maxItems": 50,
+              "items": {
+                "$ref": "#/$defs/formField"
+              }
+            },
+            "submitLabel": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 60,
+              "pattern": "^[^\u0000-\u001f]*$",
+              "description": "Absent: the site language’s \"Send\"."
+            },
+            "successMessage": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1000,
+              "pattern": "^[^\u0000-\t\u000b-\u001f]*$",
+              "description": "Absent: the default text."
+            },
+            "errorMessage": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1000,
+              "pattern": "^[^\u0000-\t\u000b-\u001f]*$",
+              "description": "Absent: the default text."
+            },
+            "redirect": {
+              "$ref": "#/$defs/formRedirect",
+              "description": "Absent: the success message is shown."
+            },
+            "notify": {
+              "$ref": "#/$defs/formNotify",
+              "description": "Absent: no notification."
+            },
+            "retentionDays": {
+              "enum": [
+                30,
+                90,
+                180,
+                365
+              ],
+              "description": "Absent: submissions are kept until deleted (018 FR-023a)."
             },
             "layerLabel": {
               "$ref": "#/$defs/layerLabel"

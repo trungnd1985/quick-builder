@@ -62,5 +62,12 @@
   "props_invalid--navigation-label-control-char.json": { "rule": "props_invalid", "pointer": "/root/children/0/children/0/props/ariaLabel" },
   "children_not_allowed--navigation-child.json": { "rule": "children_not_allowed", "pointer": "/root/children/0/children/0/children" },
   "nesting_not_allowed--navigation-at-root.json": { "rule": "nesting_not_allowed", "pointer": "/root/children/0/type" },
-  "props_invalid--navigation-bad-look.json": { "rule": "props_invalid", "pointer": "/root/children/0/children/0/props/look" }
+  "props_invalid--navigation-bad-look.json": { "rule": "props_invalid", "pointer": "/root/children/0/children/0/props/look" },
+  "form_in_list--in-list-card.json": { "rule": "form_in_list", "pointer": "/root/children/0/children/0/children/0/children/0/type" },
+  "too_many_forms--21.json": { "rule": "too_many_forms", "pointer": "/root/children/0/children/20/type" },
+  "duplicate_field_id--twice.json": { "rule": "duplicate_field_id", "pointer": "/root/children/0/children/0/props/fields/1/id" },
+  "props_invalid--form-redirect-javascript.json": { "rule": "props_invalid", "pointer": "/root/children/0/children/0/props/redirect/href" },
+  "props_invalid--form-too-many-recipients.json": { "rule": "props_invalid", "pointer": "/root/children/0/children/0/props/notify/recipients" },
+  "props_invalid--form-option-on-text.json": { "rule": "props_invalid", "pointer": "/root/children/0/children/0/props/fields/0/options" },
+  "children_not_allowed--form-child.json": { "rule": "children_not_allowed", "pointer": "/root/children/0/children/0/children" }
 }

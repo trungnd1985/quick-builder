@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "root": {
+    "id": "root",
+    "type": "root",
+    "props": {},
+    "children": [
+      {
+        "id": "s1",
+        "type": "section",
+        "props": {},
+        "children": [
+          {
+            "id": "draft-form",
+            "type": "form",
+            "props": {
+              "name": "Work in progress",
+              "fields": [
+                { "id": "e1f2a3b4c5d6", "type": "text", "label": "Name" },
+                { "id": "f1a2b3c4d5e6", "type": "text", "label": "name" },
+                { "id": "a2b3c4d5e6f7", "type": "select", "label": "Choice", "options": [{ "value": "a", "label": "A" }] }
+              ]
+            },
+            "children": []
+          },
+          {
+            "id": "empty-form",
+            "type": "form",
+            "props": { "name": "No fields yet", "fields": [] },
+            "children": []
+          }
+        ]
+      }
+    ]
+  }
+}
