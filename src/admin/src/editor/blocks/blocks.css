@@ -640,4 +640,151 @@
       grid-template-columns: minmax(0, 1fr);
     }
   }
+
+  /*
+    Forms (018, public-forms.md §2.1). Colours come from the design tokens; the error colour is
+    fixed, a red with 6.5:1 contrast on white, because no token names one. Without scripts the
+    success panel shows, and the form hides, only when the page lands on its fragment after a
+    submission (research FS-09).
+  */
+  .qb-form {
+    max-width: 40rem;
+  }
+
+  .qb-form__sent {
+    display: none;
+    padding: calc(var(--qb-base-size) * 1);
+    border-left: 4px solid var(--qb-color-color-brand);
+    background: var(--qb-color-color-brand-light);
+    white-space: pre-line;
+  }
+
+  .qb-form__sent:target,
+  .qb-form--sent .qb-form__sent {
+    display: block;
+  }
+
+  .qb-form__sent:target + .qb-form__form,
+  .qb-form--sent .qb-form__form {
+    display: none;
+  }
+
+  .qb-form__form {
+    display: flex;
+    flex-direction: column;
+    gap: calc(var(--qb-base-size) * 1.25);
+  }
+
+  .qb-form__field {
+    display: flex;
+    flex-direction: column;
+    gap: calc(var(--qb-base-size) * 0.375);
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+
+  .qb-form__label {
+    font-weight: 600;
+    padding: 0;
+    white-space: pre-line;
+  }
+
+  .qb-form__req {
+    font-weight: 400;
+    color: var(--qb-color-color-muted);
+  }
+
+  .qb-form__help {
+    color: var(--qb-color-color-muted);
+    font-size: var(--qb-text-text-sm);
+  }
+
+  .qb-form__input {
+    width: 100%;
+    padding: calc(var(--qb-base-size) * 0.5) calc(var(--qb-base-size) * 0.75);
+    border: 1px solid var(--qb-color-color-border);
+    border-radius: 6px;
+    background: var(--qb-color-color-background);
+    color: inherit;
+    font: inherit;
+  }
+
+  textarea.qb-form__input {
+    resize: vertical;
+  }
+
+  .qb-form__input:focus-visible,
+  .qb-form__choice input:focus-visible,
+  .qb-form__check input:focus-visible,
+  .qb-form__submit:focus-visible {
+    outline: 3px solid var(--qb-color-color-brand);
+    outline-offset: 2px;
+  }
+
+  .qb-form__input[aria-invalid="true"] {
+    border-color: #b42318;
+  }
+
+  .qb-form__choice,
+  .qb-form__check {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: calc(var(--qb-base-size) * 0.5);
+  }
+
+  .qb-form__check > .qb-form__label {
+    flex: 1 1 0;
+    font-weight: 400;
+  }
+
+  .qb-form__check > .qb-form__help,
+  .qb-form__check > .qb-form__error {
+    flex-basis: 100%;
+  }
+
+  .qb-form__error {
+    color: #b42318;
+    font-weight: 600;
+  }
+
+  .qb-form__summary,
+  .qb-form__banner {
+    padding: calc(var(--qb-base-size) * 1);
+    border: 3px solid #b42318;
+  }
+
+  .qb-form__summary:focus,
+  .qb-form__banner:focus {
+    outline: 3px solid var(--qb-color-color-brand);
+    outline-offset: 2px;
+  }
+
+  .qb-form__summary h2 {
+    font-size: var(--qb-text-text-md);
+    margin-block-end: calc(var(--qb-base-size) * 0.5);
+  }
+
+  .qb-form__summary a {
+    color: #b42318;
+  }
+
+  .qb-form__submit {
+    padding: calc(var(--qb-base-size) * 0.625) calc(var(--qb-base-size) * 1.25);
+    border: 2px solid var(--qb-color-color-brand);
+    border-radius: 6px;
+    background: var(--qb-color-color-brand);
+    color: var(--qb-color-color-background);
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .qb-form__submit:disabled {
+    opacity: 0.6;
+    cursor: progress;
+  }
 }
