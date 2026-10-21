@@ -10,6 +10,7 @@
     <ProjectReference Include="..\Modules\Editor\QuickBuilder.Editor\QuickBuilder.Editor.csproj" />
     <ProjectReference Include="..\Modules\Cms\QuickBuilder.Cms\QuickBuilder.Cms.csproj" />
     <ProjectReference Include="..\Modules\Rendering\QuickBuilder.Rendering\QuickBuilder.Rendering.csproj" />
+    <ProjectReference Include="..\Modules\Forms\QuickBuilder.Forms\QuickBuilder.Forms.csproj" />
   </ItemGroup>
 
   <ItemGroup>

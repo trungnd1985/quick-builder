@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Extensions.Options;
 using QuickBuilder.Cms;
 using QuickBuilder.Editor;
+using QuickBuilder.Forms;
 using QuickBuilder.Host;
 using QuickBuilder.Host.Configuration;
 using QuickBuilder.Host.Middleware;
@@ -100,6 +101,7 @@ builder.Services.AddPagesModule(builder.Configuration);
 builder.Services.AddEditorModule(builder.Configuration);
 builder.Services.AddCmsModule(builder.Configuration);
 builder.Services.AddRenderingModule(builder.Configuration);
+builder.Services.AddFormsModule(builder.Configuration);
 
 // Controllers live in their modules and are discovered through application parts
 // (constitution Principle I). Minimal APIs are not used anywhere.
@@ -111,7 +113,8 @@ builder.Services
     .AddApplicationPart(typeof(PagesModule).Assembly)
     .AddApplicationPart(typeof(EditorModule).Assembly)
     .AddApplicationPart(typeof(CmsModule).Assembly)
-    .AddApplicationPart(typeof(RenderingModule).Assembly);
+    .AddApplicationPart(typeof(RenderingModule).Assembly)
+    .AddApplicationPart(typeof(FormsModule).Assembly);
 
 var app = builder.Build();
 

@@ -30,6 +30,7 @@ public sealed class ModuleBoundaryTests
         typeof(Editor.EditorModule).Assembly,
         typeof(Rendering.RenderingModule).Assembly,
         typeof(Cms.CmsModule).Assembly,
+        typeof(Forms.FormsModule).Assembly,
     ];
 
     /// <summary>Every module contracts assembly.</summary>
@@ -42,6 +43,7 @@ public sealed class ModuleBoundaryTests
         typeof(Editor.Contracts.DesignTokens).Assembly,
         typeof(Rendering.Contracts.RenderingRoutes).Assembly,
         typeof(Cms.Contracts.CollectionSchema).Assembly,
+        typeof(Forms.Contracts.FormsRoutes).Assembly,
     ];
 
     /// <summary>The file-system types only a storage provider may use (003 FR-019).</summary>
@@ -234,6 +236,58 @@ public sealed class ModuleBoundaryTests
         ];
 
         Assert.All(dependents, edge => Assert.Contains(edge, allowedDependents));
+    }
+
+    /// <summary>The Forms contract depends on nothing but the kernel (018 module-surface.md §1).</summary>
+    [Fact]
+    public void Forms_contracts_reference_only_the_kernel()
+    {
+        var references = typeof(Forms.Contracts.FormsRoutes).Assembly
+            .GetReferencedAssemblies()
+            .Select(a => a.Name!)
+            .Where(name => name.StartsWith("QuickBuilder.", StringComparison.Ordinal))
+            .ToList();
+
+        Assert.All(references, name => Assert.Equal(Kernel.GetName().Name, name));
+    }
+
+    /// <summary>
+    /// Forms reads other modules only through the contracts its plan names (018 module-surface.md
+    /// §1): Pages for published forms, Rendering for the page shown after a refusal, Sites and
+    /// Identity for names. Only the host references the Forms implementation, and no module
+    /// references Forms at all yet.
+    /// </summary>
+    [Fact]
+    public void Forms_references_only_the_contracts_it_declares_and_nothing_references_forms()
+    {
+        string[] allowed =
+        [
+            "QuickBuilder.Shared.Kernel",
+            "QuickBuilder.Shared.Infrastructure",
+            "QuickBuilder.Forms.Contracts",
+            "QuickBuilder.Pages.Contracts",
+            "QuickBuilder.Rendering.Contracts",
+            "QuickBuilder.Sites.Contracts",
+            "QuickBuilder.Identity.Contracts",
+        ];
+
+        var references = typeof(Forms.FormsModule).Assembly
+            .GetReferencedAssemblies()
+            .Select(a => a.Name!)
+            .Where(name => name.StartsWith("QuickBuilder.", StringComparison.Ordinal))
+            .ToList();
+
+        Assert.All(references, name => Assert.Contains(name, allowed));
+
+        var dependents = ModuleImplementations
+            .Concat(ModuleContracts)
+            .Where(a => a.GetName().Name is not ("QuickBuilder.Forms" or "QuickBuilder.Forms.Contracts"))
+            .SelectMany(a => a.GetReferencedAssemblies()
+                .Where(r => r.Name is "QuickBuilder.Forms" or "QuickBuilder.Forms.Contracts")
+                .Select(r => $"{a.GetName().Name} -> {r.Name}"))
+            .ToList();
+
+        Assert.Empty(dependents);
     }
 
     /// <summary>
