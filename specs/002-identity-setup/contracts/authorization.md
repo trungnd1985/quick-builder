@@ -208,6 +208,29 @@ Designers build them ("Designer builds, Editor writes", 010). See
 - **Publishing** menus (publish, unpublish, schedule, roll back) needs
   `pages.publishing.manage`, as for pages and components.
 
+### Registered by 018
+
+Forms and submissions (018) add three, registered by the Forms module. Editors answer
+enquiries, so every site role reads submissions; deleting them for good is kept to Designers
+(018 clarification 1). See
+[018 research FS-20](../../018-forms-submissions/research.md#fs-20-capabilities-and-audit).
+
+| Capability | Scope | Administrator | Designer | Editor |
+|---|---|---|---|---|
+| `forms.submissions.view` | Site | ✓ | ✓ | ✓ |
+| `forms.submissions.delete` | Site | ✓ | ✓ | — |
+| `forms.email.test` | Installation | ✓ | — | — |
+
+- **`forms.submissions.view`**: list, open, mark read or unread, search, filter and export
+  submissions; see Spam and restore from it; see the spam counters, the unread count and the
+  retention impact.
+- **`forms.submissions.delete`**: delete submissions and spam.
+- **`forms.email.test`**: send a test email to one's own address.
+- **Building forms** needs only what editing a draft needs (`pages.page_drafts.edit`, or
+  `pages.components.manage` for components), as for every block; a form reaches visitors with
+  `pages.publishing.manage`.
+- Whether email is configured (`GET /api/v1/forms/email-status`) needs only a signed-in user.
+
 ## 3. What a caller sees
 
 | Situation | Status | `errorCode` |

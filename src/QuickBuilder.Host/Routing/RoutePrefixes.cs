@@ -38,7 +38,13 @@ public static class RoutePrefixes
     /// <summary>Where the block stylesheet is served (012 research PR-08).</summary>
     public const string PublicAssets = QuickBuilder.Rendering.Contracts.RenderingRoutes.AssetsPrefix;
 
-    private static readonly string[] PublicReserved = [PublicMedia, PublicAssets];
+    /// <summary>
+    /// Where forms post their submissions (018 research FS-06). Site-resolved like
+    /// <c>/_media</c>: a form is accepted only on its own site's host names.
+    /// </summary>
+    public const string PublicForms = QuickBuilder.Forms.Contracts.FormsRoutes.SubmitPrefix;
+
+    private static readonly string[] PublicReserved = [PublicMedia, PublicAssets, PublicForms];
 
     /// <summary>True when the path belongs to the administrative surface.</summary>
     public static bool IsReserved(PathString path) =>

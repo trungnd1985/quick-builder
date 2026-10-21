@@ -1,5 +1,9 @@
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using QuickBuilder.Forms.Infrastructure;
+using QuickBuilder.Shared.Infrastructure.Modules;
+using QuickBuilder.Shared.Infrastructure.MultiSite;
 
 namespace QuickBuilder.Forms;
 
@@ -19,6 +23,62 @@ public static class FormsModule
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(configuration);
 
+        var connectionString = configuration.GetConnectionString("Default");
+
+        services.AddDbContext<FormsDbContext>((provider, options) =>
+        {
+            options.UseNpgsql(connectionString, npgsql =>
+                // Each module keeps its own migrations history table in its own schema.
+                npgsql.MigrationsHistoryTable("__EFMigrationsHistory", FormsDbContext.Schema));
+        });
+
+        services.AddSingleton<IModuleDatabaseProvider, FormsDatabaseProvider>();
+
+        // What this module lets people do. Identity enforces them; this module only declares them.
+        foreach (var capability in FormsCapabilities.All)
+        {
+            services.AddSingleton(capability);
+        }
+
         return services;
+    }
+}
+
+/// <summary>Lets the host migrate and health-check the <c>forms</c> schema.</summary>
+internal sealed class FormsDatabaseProvider : IModuleDatabaseProvider
+{
+    public ModuleDatabase Describe() =>
+        new("Forms", FormsDbContext.Schema, typeof(FormsDbContext));
+
+    public DbContext CreateContext(IServiceProvider services)
+    {
+        ArgumentNullException.ThrowIfNull(services);
+
+        // Built directly: migration, health and background work run outside any request,
+        // where no site is resolved. The empty site context fails closed.
+        var options = services.GetRequiredService<DbContextOptions<FormsDbContext>>();
+        return new FormsDbContext(options, NoSiteContext.Instance);
+    }
+
+    public async Task<bool> CanConnectAsync(IServiceProvider services, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await using var context = CreateContext(services);
+            return await context.Database.CanConnectAsync(cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            return false;
+        }
+    }
+
+    private sealed class NoSiteContext : ISiteContext
+    {
+        internal static readonly NoSiteContext Instance = new();
+
+        public Guid? SiteId => null;
+
+        public bool HasSite => false;
     }
 }
