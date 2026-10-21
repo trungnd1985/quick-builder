@@ -823,7 +823,8 @@
       "listCard": "Card",
       "listEmpty": "When nothing is listed",
       "listEmptyText": "Nothing to show yet.",
-      "navigation": "Navigation"
+      "navigation": "Navigation",
+      "form": "Form"
     },
     "canvas": {
       "label": "Page canvas",
@@ -1021,7 +1022,11 @@
         "content": "Content",
         "layout": "Layout",
         "style": "Style",
-        "layer": "Layer"
+        "layer": "Layer",
+        "messages": "Messages",
+        "afterSubmit": "After sending",
+        "notifications": "Notifications",
+        "submissions": "Submissions"
       },
       "props": {
         "text": "Text",
@@ -1069,7 +1074,15 @@
         "hoverBackground": "Background on hover",
         "activeBackground": "Current page background",
         "focusColor": "Keyboard focus ring",
-        "panelBackground": "Dropdown background"
+        "panelBackground": "Dropdown background",
+        "name": "Form name",
+        "fields": "Fields",
+        "submitLabel": "Button label",
+        "successMessage": "Success message",
+        "errorMessage": "Error message",
+        "redirect": "Then go to",
+        "notify": "Email notification",
+        "retentionDays": "Keep submissions"
       },
       "values": {
         "align": {
@@ -1404,6 +1417,121 @@
       "belowTablet": "Tablet width",
       "buttonLabel": "Menu button text",
       "siteLook": "Site style ({look})"
+    },
+    "form": {
+      "defaultName": "Contact form",
+      "defaultEmailLabel": "Email",
+      "incomplete": "This form is not complete yet. Publishing waits until it is: see the form panel.",
+      "public": {
+        "submit": "Send",
+        "success": "Thank you. Your message has been sent.",
+        "error": "Your message could not be sent. Please try again.",
+        "required": "(required)"
+      },
+      "types": {
+        "text": "Single line of text",
+        "textarea": "Paragraph of text",
+        "email": "Email address",
+        "phone": "Phone number",
+        "number": "Number",
+        "date": "Date",
+        "select": "Dropdown (one choice)",
+        "radio": "Radio buttons (one choice)",
+        "checkboxes": "Checkboxes (several choices)",
+        "checkbox": "Single checkbox",
+        "consent": "Consent"
+      },
+      "fields": {
+        "none": "No fields yet. Add one below.",
+        "addType": "Type of the new field",
+        "add": "Add field",
+        "edit": "Edit {label}",
+        "moveUp": "Move {label} up",
+        "moveDown": "Move {label} down",
+        "remove": "Remove {label}",
+        "confirmRemove": "Remove the field “{label}”? Submissions already received keep their values.",
+        "moved": "{label} moved to position {position} of {count}.",
+        "removed": "{label} removed.",
+        "added": "{label} added.",
+        "keys": "Alt+Up and Alt+Down move the selected field.",
+        "required": "required",
+        "newLabel": "New field"
+      },
+      "field": {
+        "newTitle": "New field",
+        "editTitle": "Edit field",
+        "type": "Type",
+        "label": "Label",
+        "consentLabelHelp": "Names the column in Submissions; visitors read the statement.",
+        "help": "Help text",
+        "placeholder": "Placeholder",
+        "required": "Required",
+        "message": "Error message",
+        "messageHelp": "Replaces every standard error message of this field. Leave empty for the standard ones.",
+        "minLength": "Minimum length",
+        "maxLength": "Maximum length",
+        "min": "Lowest value",
+        "max": "Highest value",
+        "wholeNumber": "Whole numbers only",
+        "earliest": "Earliest date",
+        "latest": "Latest date",
+        "options": "Options",
+        "optionLabel": "Option {number}",
+        "optionValue": "Stored as",
+        "addOption": "Add option",
+        "removeOption": "Remove option {number}",
+        "moveOptionUp": "Move option {number} up",
+        "minSelected": "Choose at least",
+        "maxSelected": "Choose at most",
+        "statement": "Statement visitors agree to",
+        "linkPage": "Link to page",
+        "noLinkPage": "No link",
+        "save": "Save field",
+        "cancel": "Cancel",
+        "labelRequired": "Give the field a label.",
+        "statementRequired": "Write the statement visitors agree to.",
+        "labelTaken": "Another field of this form already has this label."
+      },
+      "redirect": {
+        "none": "Show the success message",
+        "page": "A page of this site",
+        "url": "An address",
+        "choosePage": "Choose a page",
+        "address": "Address",
+        "addressHelp": "Begins with https:// or http://.",
+        "addressInvalid": "Enter an address beginning with https:// or http://.",
+        "notLive": "This page is not published. Publishing waits until it is.",
+        "gone": "This page no longer exists. Choose another."
+      },
+      "notify": {
+        "recipients": "Send to",
+        "recipientsHelp": "Up to 10 email addresses, one per line.",
+        "recipientsInvalid": "One of these is not an email address: {address}",
+        "tooMany": "Up to 10 addresses.",
+        "subject": "Subject",
+        "subjectDefault": "New submission: {name}",
+        "includeValues": "Include the submitted values in the email",
+        "includeValuesHelp": "Off: the email only says a submission arrived and links to it, so no visitor data travels by email.",
+        "replyField": "Reply to the address entered in",
+        "noReplyField": "No reply address",
+        "emailOff": "Email is not set up on this installation, so no notification will be sent until an administrator sets it up. Submissions are still kept."
+      },
+      "retention": {
+        "off": "Until deleted",
+        "days": "{days} days",
+        "help": "Older submissions of this form are deleted automatically, once a day, after the page is published.",
+        "impact": "{count} submission(s) already received are older than this and will be deleted after you publish."
+      },
+      "problems": {
+        "title": "Before this form can be published",
+        "no_fields": "Add at least one field.",
+        "duplicate_label": "“{label}” has the same label as another field.",
+        "no_options": "“{label}” needs at least one option.",
+        "duplicate_option": "“{label}” has two options stored the same way.",
+        "min_above_max": "“{label}”: the minimum is above the maximum.",
+        "reply_field_invalid": "The reply address must come from an email field of this form, with values included in the email.",
+        "goTo": "Go to {label}"
+      }
     }
   },
   "design": {

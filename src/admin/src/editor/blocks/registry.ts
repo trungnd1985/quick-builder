@@ -23,6 +23,7 @@ import collectionList from './collection-list/definition'
 import listCard from './list-card/definition'
 import listEmpty from './list-empty/definition'
 import navigation from './navigation/definition'
+import form from './form/definition'
 
 /** How the property panel edits a property (US2). */
 export type ControlKind =
@@ -49,6 +50,11 @@ export type ControlKind =
   // 024 FR-017a: a Navigation block's look and colours, unset following the site's menu style.
   | 'menuLook'
   | 'menuColor'
+  // 018: a form's fields, where it sends visitors, who is told, and how long submissions stay.
+  | 'formFields'
+  | 'formRedirect'
+  | 'formNotify'
+  | 'formRetention'
 
 export interface PropGroup {
   /** An i18n key under `editor.panel.groups`. */
@@ -101,7 +107,7 @@ export interface BlockDefinition {
 }
 
 const definitions: BlockDefinition[] = [
-  section, container, heading, text, richText, image, button, spacer, divider, embed, componentRef, collectionList, listCard, listEmpty, navigation,
+  section, container, heading, text, richText, image, button, spacer, divider, embed, componentRef, collectionList, listCard, listEmpty, navigation, form,
 ]
 
 export const registry: Readonly<Record<string, BlockDefinition>> = Object.fromEntries(definitions.map((d) => [d.type, d]))

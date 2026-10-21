@@ -11,6 +11,8 @@ export type IconName =
   | 'bullet-list' | 'numbered-list' | 'quote' | 'link' | 'image' | 'table'
   | 'align-start' | 'align-center' | 'align-end'
   | 'row-above' | 'row-below' | 'column-before' | 'column-after' | 'delete-row' | 'delete-column' | 'header-row' | 'delete-table'
+  // 018: moving a form's fields and options.
+  | 'arrow-up' | 'arrow-down'
 
 const props = defineProps<{
   icon: IconName
@@ -89,6 +91,8 @@ const paths: Record<IconName, string[]> = {
   'delete-column': ['M8 4h8v16H8z', 'M10 12h4'],
   'header-row': ['M4 5h16v14H4z', 'M4 10h16', 'M7 7.5h10'],
   'delete-table': ['M4 5h16v14H4z', 'M9 9l6 6', 'M15 9l-6 6'],
+  'arrow-up': ['M12 19V5', 'M6 11l6-6 6 6'],
+  'arrow-down': ['M12 5v14', 'M6 13l6 6 6-6'],
 }
 </script>
 

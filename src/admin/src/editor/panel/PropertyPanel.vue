@@ -29,6 +29,11 @@ import MenuControl from './controls/MenuControl.vue'
 import NavCollapseControl from './controls/NavCollapseControl.vue'
 import MenuLookControl from './controls/MenuLookControl.vue'
 import NavContrastNote from './controls/NavContrastNote.vue'
+import FormFieldsControl from './controls/FormFieldsControl.vue'
+import FormRedirectControl from './controls/FormRedirectControl.vue'
+import FormNotifyControl from './controls/FormNotifyControl.vue'
+import FormRetentionControl from './controls/FormRetentionControl.vue'
+import { formSetupProblems } from '../forms/formSetup'
 import { kindOf } from '../bindings/bindingRules'
 
 const { t, te } = useI18n()
@@ -132,6 +137,31 @@ function chooseMedia(field: Field, value: Json, altText: string | null): void {
 }
 
 const tokenKind = (control: ControlKind) => (control === 'colorToken' ? 'color' : control === 'spaceToken' ? 'space' : 'text')
+
+/**
+ * 018 FR-008, research FS-04: what stops a form being published, each with the field it
+ * concerns. Publishing refuses the same problems (page-schema.md §3 rule 28).
+ */
+const formProblems = computed(() => {
+  const current = node.value
+  if (current?.type !== 'form') return []
+  const fields = Array.isArray(current.props.fields) ? current.props.fields : []
+  const labelOf = (fieldId: string | null) => {
+    const field = fields.find((f) => typeof f === 'object' && f !== null && !Array.isArray(f) && f.id === fieldId)
+    return field && typeof field === 'object' && !Array.isArray(field) && typeof field.label === 'string' && field.label ? field.label : t('editor.form.fields.newLabel')
+  }
+  return formSetupProblems(current.props).map((problem) => ({
+    ...problem,
+    text: t(`editor.form.problems.${problem.rule}`, { label: labelOf(problem.fieldId) }),
+    label: labelOf(problem.fieldId),
+    known: fields.some((f) => typeof f === 'object' && f !== null && !Array.isArray(f) && f.id === problem.fieldId),
+  }))
+})
+
+/** Moves the focus to a field in the form's field list, ready to edit. */
+function goToField(fieldId: string): void {
+  document.querySelector<HTMLElement>(`.editor-panel [data-field-id="${CSS.escape(fieldId)}"] [data-part="edit"]`)?.focus()
+}
 </script>
 
 <template>
@@ -168,6 +198,29 @@ const tokenKind = (control: ControlKind) => (control === 'colorToken' ? 'color' 
       >
         {{ t('editor.panel.readOnly') }}
       </p>
+      <div
+        v-if="formProblems.length > 0"
+        class="form-problems"
+        role="status"
+      >
+        <p>{{ t('editor.form.problems.title') }}</p>
+        <ul>
+          <li
+            v-for="(problem, index) in formProblems"
+            :key="index"
+          >
+            {{ problem.text }}
+            <button
+              v-if="problem.fieldId && problem.known"
+              type="button"
+              class="link"
+              @click="goToField(problem.fieldId)"
+            >
+              {{ t('editor.form.problems.goTo', { label: problem.label }) }}
+            </button>
+          </li>
+        </ul>
+      </div>
 
       <fieldset
         v-for="group in groups"
@@ -288,6 +341,34 @@ const tokenKind = (control: ControlKind) => (control === 'colorToken' ? 'color' 
             :site-id="store.siteId"
             kind="color"
             :inherit-label="t('editor.panel.token.siteMenuStyle')"
+            :error="errors[field.prop]"
+            @change="change(field, $event)"
+          />
+          <FormFieldsControl
+            v-else-if="field.control === 'formFields'"
+            v-bind="field"
+            :site-id="store.siteId"
+            :error="errors[field.prop]"
+            @change="change(field, $event)"
+          />
+          <FormRedirectControl
+            v-else-if="field.control === 'formRedirect'"
+            v-bind="field"
+            :site-id="store.siteId"
+            :error="errors[field.prop]"
+            @change="change(field, $event)"
+          />
+          <FormNotifyControl
+            v-else-if="field.control === 'formNotify'"
+            v-bind="field"
+            :site-id="store.siteId"
+            :error="errors[field.prop]"
+            @change="change(field, $event)"
+          />
+          <FormRetentionControl
+            v-else-if="field.control === 'formRetention'"
+            v-bind="field"
+            :site-id="store.siteId"
             :error="errors[field.prop]"
             @change="change(field, $event)"
           />
