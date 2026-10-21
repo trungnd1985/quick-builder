@@ -14,5 +14,31 @@
     "menu": "Menu",
     "showSubmenu": "Tunjukkan submenu: {0}",
     "newTab": "(dibuka dalam tab baharu)"
+  },
+  "forms": {
+    "submit": "Hantar",
+    "success": "Terima kasih. Mesej anda telah dihantar.",
+    "error": "Mesej anda tidak dapat dihantar. Sila cuba lagi.",
+    "limited": "Terlalu banyak mesej telah dihantar daripada sambungan anda. Sila cuba lagi kemudian.",
+    "summary": "Terdapat masalah",
+    "required": "(wajib)",
+    "trap": "Biarkan medan ini kosong",
+    "rules": {
+      "required": "{label} wajib diisi.",
+      "tooShort": "{label} mesti sekurang-kurangnya {min} aksara.",
+      "tooLong": "{label} tidak boleh melebihi {max} aksara.",
+      "email": "{label} mesti alamat e-mel.",
+      "phone": "{label} mesti nombor telefon.",
+      "number": "{label} mesti nombor.",
+      "whole": "{label} mesti nombor bulat.",
+      "tooSmall": "{label} mesti sekurang-kurangnya {min}.",
+      "tooLarge": "{label} tidak boleh melebihi {max}.",
+      "date": "{label} mesti tarikh.",
+      "tooEarly": "{label} mesti pada atau selepas {min}.",
+      "tooLate": "{label} mesti pada atau sebelum {max}.",
+      "choice": "Pilih satu pilihan untuk {label}.",
+      "tooFew": "Pilih sekurang-kurangnya {min} pilihan untuk {label}.",
+      "tooMany": "Pilih tidak lebih daripada {max} pilihan untuk {label}."
+    }
   }
 }

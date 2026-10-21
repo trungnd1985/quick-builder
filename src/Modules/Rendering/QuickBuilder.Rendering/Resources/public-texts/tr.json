@@ -14,5 +14,31 @@
     "menu": "Menü",
     "showSubmenu": "Alt menüyü göster: {0}",
     "newTab": "(yeni sekmede açılır)"
+  },
+  "forms": {
+    "submit": "Gönder",
+    "success": "Teşekkürler. Mesajınız gönderildi.",
+    "error": "Mesajınız gönderilemedi. Lütfen tekrar deneyin.",
+    "limited": "Bağlantınızdan çok fazla mesaj gönderildi. Lütfen daha sonra tekrar deneyin.",
+    "summary": "Bir sorun var",
+    "required": "(zorunlu)",
+    "trap": "Bu alanı boş bırakın",
+    "rules": {
+      "required": "{label} alanı zorunludur.",
+      "tooShort": "{label} en az {min} karakter olmalıdır.",
+      "tooLong": "{label} en fazla {max} karakter olabilir.",
+      "email": "{label} bir e-posta adresi olmalıdır.",
+      "phone": "{label} bir telefon numarası olmalıdır.",
+      "number": "{label} bir sayı olmalıdır.",
+      "whole": "{label} bir tam sayı olmalıdır.",
+      "tooSmall": "{label} en az {min} olmalıdır.",
+      "tooLarge": "{label} en fazla {max} olabilir.",
+      "date": "{label} bir tarih olmalıdır.",
+      "tooEarly": "{label} {min} veya sonrası olmalıdır.",
+      "tooLate": "{label} {max} veya öncesi olmalıdır.",
+      "choice": "{label} için bir seçenek seçin.",
+      "tooFew": "{label} için en az {min} seçenek seçin.",
+      "tooMany": "{label} için en fazla {max} seçenek seçin."
+    }
   }
 }

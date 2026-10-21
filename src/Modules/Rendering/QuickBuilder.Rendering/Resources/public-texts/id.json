@@ -14,5 +14,31 @@
     "menu": "Menu",
     "showSubmenu": "Tampilkan submenu: {0}",
     "newTab": "(terbuka di tab baru)"
+  },
+  "forms": {
+    "submit": "Kirim",
+    "success": "Terima kasih. Pesan Anda telah terkirim.",
+    "error": "Pesan Anda tidak dapat dikirim. Silakan coba lagi.",
+    "limited": "Terlalu banyak pesan dikirim dari koneksi Anda. Silakan coba lagi nanti.",
+    "summary": "Ada masalah",
+    "required": "(wajib)",
+    "trap": "Biarkan kolom ini kosong",
+    "rules": {
+      "required": "{label} wajib diisi.",
+      "tooShort": "{label} harus berisi minimal {min} karakter.",
+      "tooLong": "{label} boleh berisi maksimal {max} karakter.",
+      "email": "{label} harus berupa alamat email.",
+      "phone": "{label} harus berupa nomor telepon.",
+      "number": "{label} harus berupa angka.",
+      "whole": "{label} harus berupa bilangan bulat.",
+      "tooSmall": "{label} minimal {min}.",
+      "tooLarge": "{label} maksimal {max}.",
+      "date": "{label} harus berupa tanggal.",
+      "tooEarly": "{label} harus pada atau setelah {min}.",
+      "tooLate": "{label} harus pada atau sebelum {max}.",
+      "choice": "Pilih satu opsi untuk {label}.",
+      "tooFew": "Pilih minimal {min} opsi untuk {label}.",
+      "tooMany": "Pilih maksimal {max} opsi untuk {label}."
+    }
   }
 }

@@ -14,5 +14,31 @@
     "menu": "Ponuka",
     "showSubmenu": "Zobraziť podponuku: {0}",
     "newTab": "(otvorí sa na novej karte)"
+  },
+  "forms": {
+    "submit": "Odoslať",
+    "success": "Ďakujeme. Vaša správa bola odoslaná.",
+    "error": "Vašu správu sa nepodarilo odoslať. Skúste to znova.",
+    "limited": "Z vášho pripojenia bolo odoslaných príliš veľa správ. Skúste to neskôr.",
+    "summary": "Vyskytol sa problém",
+    "required": "(povinné)",
+    "trap": "Toto pole nechajte prázdne",
+    "rules": {
+      "required": "Pole {label} je povinné.",
+      "tooShort": "Pole {label} musí mať aspoň {min} znakov.",
+      "tooLong": "Pole {label} môže mať najviac {max} znakov.",
+      "email": "Pole {label} musí byť e-mailová adresa.",
+      "phone": "Pole {label} musí byť telefónne číslo.",
+      "number": "Pole {label} musí byť číslo.",
+      "whole": "Pole {label} musí byť celé číslo.",
+      "tooSmall": "Pole {label} musí byť aspoň {min}.",
+      "tooLarge": "Pole {label} môže byť najviac {max}.",
+      "date": "Pole {label} musí byť dátum.",
+      "tooEarly": "Pole {label} musí byť {min} alebo neskôr.",
+      "tooLate": "Pole {label} musí byť {max} alebo skôr.",
+      "choice": "Vyberte možnosť pre pole {label}.",
+      "tooFew": "Vyberte pre pole {label} aspoň {min} možnosti.",
+      "tooMany": "Vyberte pre pole {label} najviac {max} možnosti."
+    }
   }
 }

@@ -14,5 +14,31 @@
     "menu": "菜单",
     "showSubmenu": "显示子菜单：{0}",
     "newTab": "（在新标签页中打开）"
+  },
+  "forms": {
+    "submit": "发送",
+    "success": "谢谢。您的消息已发送。",
+    "error": "无法发送您的消息。请重试。",
+    "limited": "您的网络连接发送的消息过多。请稍后重试。",
+    "summary": "存在问题",
+    "required": "（必填）",
+    "trap": "请将此字段留空",
+    "rules": {
+      "required": "{label}为必填项。",
+      "tooShort": "{label}至少需要 {min} 个字符。",
+      "tooLong": "{label}最多 {max} 个字符。",
+      "email": "{label}必须是电子邮件地址。",
+      "phone": "{label}必须是电话号码。",
+      "number": "{label}必须是数字。",
+      "whole": "{label}必须是整数。",
+      "tooSmall": "{label}不能小于 {min}。",
+      "tooLarge": "{label}不能大于 {max}。",
+      "date": "{label}必须是日期。",
+      "tooEarly": "{label}不能早于 {min}。",
+      "tooLate": "{label}不能晚于 {max}。",
+      "choice": "请为{label}选择一个选项。",
+      "tooFew": "请为{label}至少选择 {min} 个选项。",
+      "tooMany": "请为{label}最多选择 {max} 个选项。"
+    }
   }
 }

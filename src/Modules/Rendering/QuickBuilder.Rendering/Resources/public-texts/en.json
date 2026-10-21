@@ -14,5 +14,31 @@
     "menu": "Menu",
     "showSubmenu": "Show submenu: {0}",
     "newTab": "(opens in a new tab)"
+  },
+  "forms": {
+    "submit": "Send",
+    "success": "Thank you. Your message has been sent.",
+    "error": "Your message could not be sent. Please try again.",
+    "limited": "Too many messages have been sent from your connection. Please try again later.",
+    "summary": "There is a problem",
+    "required": "(required)",
+    "trap": "Leave this field empty",
+    "rules": {
+      "required": "{label} is required.",
+      "tooShort": "{label} must be at least {min} characters.",
+      "tooLong": "{label} must be at most {max} characters.",
+      "email": "{label} must be an email address.",
+      "phone": "{label} must be a phone number.",
+      "number": "{label} must be a number.",
+      "whole": "{label} must be a whole number.",
+      "tooSmall": "{label} must be at least {min}.",
+      "tooLarge": "{label} must be at most {max}.",
+      "date": "{label} must be a date.",
+      "tooEarly": "{label} must be on or after {min}.",
+      "tooLate": "{label} must be on or before {max}.",
+      "choice": "Choose an option for {label}.",
+      "tooFew": "Choose at least {min} options for {label}.",
+      "tooMany": "Choose at most {max} options for {label}."
+    }
   }
 }

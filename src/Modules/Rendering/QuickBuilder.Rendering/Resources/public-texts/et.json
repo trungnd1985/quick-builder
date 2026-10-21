@@ -14,5 +14,31 @@
     "menu": "Menüü",
     "showSubmenu": "Näita alammenüüd: {0}",
     "newTab": "(avaneb uuel vahelehel)"
+  },
+  "forms": {
+    "submit": "Saada",
+    "success": "Aitäh! Teie sõnum on saadetud.",
+    "error": "Teie sõnumit ei õnnestunud saata. Proovige uuesti.",
+    "limited": "Teie ühenduselt on saadetud liiga palju sõnumeid. Proovige hiljem uuesti.",
+    "summary": "Esineb probleem",
+    "required": "(kohustuslik)",
+    "trap": "Jätke see väli tühjaks",
+    "rules": {
+      "required": "Väli {label} on kohustuslik.",
+      "tooShort": "Väljas {label} peab olema vähemalt {min} märki.",
+      "tooLong": "Väljas {label} võib olla kõige rohkem {max} märki.",
+      "email": "Väli {label} peab olema e-posti aadress.",
+      "phone": "Väli {label} peab olema telefoninumber.",
+      "number": "Väli {label} peab olema arv.",
+      "whole": "Väli {label} peab olema täisarv.",
+      "tooSmall": "Väli {label} peab olema vähemalt {min}.",
+      "tooLarge": "Väli {label} võib olla kõige rohkem {max}.",
+      "date": "Väli {label} peab olema kuupäev.",
+      "tooEarly": "Väli {label} peab olema {min} või hiljem.",
+      "tooLate": "Väli {label} peab olema {max} või varem.",
+      "choice": "Valige väljale {label} üks variant.",
+      "tooFew": "Valige väljale {label} vähemalt {min} varianti.",
+      "tooMany": "Valige väljale {label} kõige rohkem {max} varianti."
+    }
   }
 }

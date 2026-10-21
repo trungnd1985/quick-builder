@@ -14,5 +14,31 @@
     "menu": "Izbornik",
     "showSubmenu": "Prikaži podizbornik: {0}",
     "newTab": "(otvara se u novoj kartici)"
+  },
+  "forms": {
+    "submit": "Pošalji",
+    "success": "Hvala. Vaša je poruka poslana.",
+    "error": "Vašu poruku nije bilo moguće poslati. Pokušajte ponovno.",
+    "limited": "S vaše je veze poslano previše poruka. Pokušajte ponovno kasnije.",
+    "summary": "Postoji problem",
+    "required": "(obavezno)",
+    "trap": "Ostavite ovo polje prazno",
+    "rules": {
+      "required": "Polje {label} je obavezno.",
+      "tooShort": "Polje {label} mora imati najmanje {min} znakova.",
+      "tooLong": "Polje {label} smije imati najviše {max} znakova.",
+      "email": "Polje {label} mora biti adresa e-pošte.",
+      "phone": "Polje {label} mora biti telefonski broj.",
+      "number": "Polje {label} mora biti broj.",
+      "whole": "Polje {label} mora biti cijeli broj.",
+      "tooSmall": "Polje {label} mora biti najmanje {min}.",
+      "tooLarge": "Polje {label} smije biti najviše {max}.",
+      "date": "Polje {label} mora biti datum.",
+      "tooEarly": "Polje {label} mora biti {min} ili kasnije.",
+      "tooLate": "Polje {label} mora biti {max} ili ranije.",
+      "choice": "Odaberite opciju za {label}.",
+      "tooFew": "Odaberite najmanje {min} opcije za {label}.",
+      "tooMany": "Odaberite najviše {max} opcije za {label}."
+    }
   }
 }

@@ -14,5 +14,31 @@
     "menu": "Menu",
     "showSubmenu": "Vis undermenu: {0}",
     "newTab": "(åbner i en ny fane)"
+  },
+  "forms": {
+    "submit": "Send",
+    "success": "Tak. Din besked er sendt.",
+    "error": "Din besked kunne ikke sendes. Prøv igen.",
+    "limited": "Der er sendt for mange beskeder fra din forbindelse. Prøv igen senere.",
+    "summary": "Der er et problem",
+    "required": "(påkrævet)",
+    "trap": "Lad dette felt være tomt",
+    "rules": {
+      "required": "{label} skal udfyldes.",
+      "tooShort": "{label} skal være på mindst {min} tegn.",
+      "tooLong": "{label} må højst være på {max} tegn.",
+      "email": "{label} skal være en e-mailadresse.",
+      "phone": "{label} skal være et telefonnummer.",
+      "number": "{label} skal være et tal.",
+      "whole": "{label} skal være et helt tal.",
+      "tooSmall": "{label} skal være mindst {min}.",
+      "tooLarge": "{label} må højst være {max}.",
+      "date": "{label} skal være en dato.",
+      "tooEarly": "{label} skal være {min} eller senere.",
+      "tooLate": "{label} skal være {max} eller tidligere.",
+      "choice": "Vælg en mulighed for {label}.",
+      "tooFew": "Vælg mindst {min} muligheder for {label}.",
+      "tooMany": "Vælg højst {max} muligheder for {label}."
+    }
   }
 }

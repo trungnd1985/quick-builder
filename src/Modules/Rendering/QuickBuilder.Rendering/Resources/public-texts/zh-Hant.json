@@ -14,5 +14,31 @@
     "menu": "選單",
     "showSubmenu": "顯示子選單：{0}",
     "newTab": "（在新分頁中開啟）"
+  },
+  "forms": {
+    "submit": "傳送",
+    "success": "謝謝。您的訊息已傳送。",
+    "error": "無法傳送您的訊息。請再試一次。",
+    "limited": "您的網路連線傳送的訊息過多。請稍後再試。",
+    "summary": "有問題需要處理",
+    "required": "（必填）",
+    "trap": "請將此欄位留空",
+    "rules": {
+      "required": "{label}為必填欄位。",
+      "tooShort": "{label}至少需要 {min} 個字元。",
+      "tooLong": "{label}最多 {max} 個字元。",
+      "email": "{label}必須是電子郵件地址。",
+      "phone": "{label}必須是電話號碼。",
+      "number": "{label}必須是數字。",
+      "whole": "{label}必須是整數。",
+      "tooSmall": "{label}不得小於 {min}。",
+      "tooLarge": "{label}不得大於 {max}。",
+      "date": "{label}必須是日期。",
+      "tooEarly": "{label}不得早於 {min}。",
+      "tooLate": "{label}不得晚於 {max}。",
+      "choice": "請為{label}選擇一個選項。",
+      "tooFew": "請為{label}至少選擇 {min} 個選項。",
+      "tooMany": "請為{label}最多選擇 {max} 個選項。"
+    }
   }
 }

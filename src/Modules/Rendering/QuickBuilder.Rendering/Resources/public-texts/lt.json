@@ -14,5 +14,31 @@
     "menu": "Meniu",
     "showSubmenu": "Rodyti submeniu: {0}",
     "newTab": "(atsidaro naujame skirtuke)"
+  },
+  "forms": {
+    "submit": "Siųsti",
+    "success": "Ačiū. Jūsų žinutė išsiųsta.",
+    "error": "Jūsų žinutės išsiųsti nepavyko. Bandykite dar kartą.",
+    "limited": "Iš jūsų ryšio išsiųsta per daug žinučių. Bandykite vėliau.",
+    "summary": "Yra problema",
+    "required": "(privaloma)",
+    "trap": "Palikite šį lauką tuščią",
+    "rules": {
+      "required": "Laukas {label} yra privalomas.",
+      "tooShort": "Lauke {label} turi būti bent {min} simbolių.",
+      "tooLong": "Lauke {label} gali būti ne daugiau kaip {max} simbolių.",
+      "email": "Laukas {label} turi būti el. pašto adresas.",
+      "phone": "Laukas {label} turi būti telefono numeris.",
+      "number": "Laukas {label} turi būti skaičius.",
+      "whole": "Laukas {label} turi būti sveikasis skaičius.",
+      "tooSmall": "Laukas {label} turi būti ne mažesnis kaip {min}.",
+      "tooLarge": "Laukas {label} turi būti ne didesnis kaip {max}.",
+      "date": "Laukas {label} turi būti data.",
+      "tooEarly": "Laukas {label} turi būti {min} arba vėliau.",
+      "tooLate": "Laukas {label} turi būti {max} arba anksčiau.",
+      "choice": "Pasirinkite lauko {label} parinktį.",
+      "tooFew": "Lauke {label} pasirinkite bent {min} parinktis.",
+      "tooMany": "Lauke {label} pasirinkite ne daugiau kaip {max} parinktis."
+    }
   }
 }

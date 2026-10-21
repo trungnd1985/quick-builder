@@ -14,5 +14,31 @@
     "menu": "Menu",
     "showSubmenu": "Hiện menu con: {0}",
     "newTab": "(mở trong thẻ mới)"
+  },
+  "forms": {
+    "submit": "Gửi",
+    "success": "Cảm ơn bạn. Tin nhắn của bạn đã được gửi.",
+    "error": "Không gửi được tin nhắn của bạn. Vui lòng thử lại.",
+    "limited": "Có quá nhiều tin nhắn được gửi từ kết nối của bạn. Vui lòng thử lại sau.",
+    "summary": "Có lỗi cần sửa",
+    "required": "(bắt buộc)",
+    "trap": "Để trống ô này",
+    "rules": {
+      "required": "{label} là bắt buộc.",
+      "tooShort": "{label} phải có ít nhất {min} ký tự.",
+      "tooLong": "{label} chỉ được có tối đa {max} ký tự.",
+      "email": "{label} phải là địa chỉ email.",
+      "phone": "{label} phải là số điện thoại.",
+      "number": "{label} phải là một số.",
+      "whole": "{label} phải là số nguyên.",
+      "tooSmall": "{label} phải từ {min} trở lên.",
+      "tooLarge": "{label} chỉ được tối đa {max}.",
+      "date": "{label} phải là ngày.",
+      "tooEarly": "{label} phải từ ngày {min} trở về sau.",
+      "tooLate": "{label} phải từ ngày {max} trở về trước.",
+      "choice": "Hãy chọn một mục cho {label}.",
+      "tooFew": "Hãy chọn ít nhất {min} mục cho {label}.",
+      "tooMany": "Hãy chọn tối đa {max} mục cho {label}."
+    }
   }
 }

@@ -14,5 +14,31 @@
     "menu": "Menu",
     "showSubmenu": "Submenu tonen: {0}",
     "newTab": "(opent in een nieuw tabblad)"
+  },
+  "forms": {
+    "submit": "Verzenden",
+    "success": "Bedankt. Je bericht is verzonden.",
+    "error": "Je bericht kon niet worden verzonden. Probeer het opnieuw.",
+    "limited": "Er zijn te veel berichten verzonden vanaf je verbinding. Probeer het later opnieuw.",
+    "summary": "Er is een probleem",
+    "required": "(verplicht)",
+    "trap": "Laat dit veld leeg",
+    "rules": {
+      "required": "{label} is verplicht.",
+      "tooShort": "{label} moet minstens {min} tekens bevatten.",
+      "tooLong": "{label} mag maximaal {max} tekens bevatten.",
+      "email": "{label} moet een e-mailadres zijn.",
+      "phone": "{label} moet een telefoonnummer zijn.",
+      "number": "{label} moet een getal zijn.",
+      "whole": "{label} moet een geheel getal zijn.",
+      "tooSmall": "{label} moet minstens {min} zijn.",
+      "tooLarge": "{label} mag maximaal {max} zijn.",
+      "date": "{label} moet een datum zijn.",
+      "tooEarly": "{label} moet op of na {min} zijn.",
+      "tooLate": "{label} moet op of vóór {max} zijn.",
+      "choice": "Kies een optie voor {label}.",
+      "tooFew": "Kies minstens {min} opties voor {label}.",
+      "tooMany": "Kies maximaal {max} opties voor {label}."
+    }
   }
 }
