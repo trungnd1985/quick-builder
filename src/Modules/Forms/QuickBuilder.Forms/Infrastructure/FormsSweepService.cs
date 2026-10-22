@@ -7,8 +7,10 @@ using QuickBuilder.Forms.Domain;
 namespace QuickBuilder.Forms.Infrastructure;
 
 /// <summary>
-/// Removes submissions that have outlived their form's retention period (018 FR-023a; research
-/// FS-17), hourly, so "at least once a day" holds with margin.
+/// Removes what Forms keeps only for a while (018 FR-016a, FR-019, FR-021, FR-023a; research
+/// FS-17), hourly, so "at least once a day" holds with margin: submissions past their form's
+/// retention period, spam after 30 days, rate windows after an hour and spam counters after
+/// 90 days.
 /// </summary>
 /// <remarks>
 /// Modelled on Identity's retention service: each form is emptied in batches of
@@ -19,6 +21,12 @@ namespace QuickBuilder.Forms.Infrastructure;
 internal sealed class FormsSweepService(IServiceScopeFactory scopes, TimeProvider clock, ILogger<FormsSweepService> logger) : BackgroundService
 {
     internal const int BatchSize = 10_000;
+
+    /// <summary>How long a submission caught by the trap stays in Spam (clarification 5).</summary>
+    internal static readonly TimeSpan SpamRetention = TimeSpan.FromDays(30);
+
+    /// <summary>How long a rate window is kept: the longest window, an hour (FR-021).</summary>
+    internal static readonly TimeSpan RateWindowRetention = TimeSpan.FromHours(1);
 
     private static readonly TimeSpan SweepInterval = TimeSpan.FromHours(1);
 
@@ -75,7 +83,59 @@ internal sealed class FormsSweepService(IServiceScopeFactory scopes, TimeProvide
             total += removed;
         }
 
+        total += await PurgeSpamAsync(database, log, now, cancellationToken).ConfigureAwait(false);
+        total += await DeleteAllAsync(batch => database.DeleteRateWindowsAsync(now - RateWindowRetention, batch, cancellationToken)).ConfigureAwait(false);
+        total += await DeleteAllAsync(batch => database.DeleteSpamCountersAsync(
+            DateOnly.FromDateTime((now - SpamCounter.Retention).UtcDateTime), batch, cancellationToken)).ConfigureAwait(false);
+
         return total;
+    }
+
+    /// <summary>Spam older than 30 days, in batches, with one log row per site and form.</summary>
+    private async Task<int> PurgeSpamAsync(FormsDbContext database, SubmissionLog log, DateTimeOffset now, CancellationToken cancellationToken)
+    {
+        var removed = new Dictionary<(Guid SiteId, string FormId), int>();
+        while (true)
+        {
+            var batch = await database.PurgeSpamAsync(now - SpamRetention, BatchSize, cancellationToken).ConfigureAwait(false);
+            foreach (var row in batch)
+            {
+                removed[(row.SiteId, row.FormId)] = removed.GetValueOrDefault((row.SiteId, row.FormId)) + 1;
+            }
+
+            if (batch.Count < BatchSize)
+            {
+                break;
+            }
+        }
+
+        foreach (var ((siteId, formId), count) in removed)
+        {
+            log.Add(siteId, actor: null, SubmissionLogActions.SpamPurge, formId, count);
+            logger.LogInformation("Deleted {Count} spam submission(s) of form {FormId} on site {SiteId} after 30 days.", count, formId, siteId);
+        }
+
+        if (removed.Count > 0)
+        {
+            await database.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        }
+
+        return removed.Values.Sum();
+    }
+
+    /// <summary>Runs a batched delete until a batch comes back short.</summary>
+    private static async Task<int> DeleteAllAsync(Func<int, Task<int>> deleteBatch)
+    {
+        var total = 0;
+        while (true)
+        {
+            var deleted = await deleteBatch(BatchSize).ConfigureAwait(false);
+            total += deleted;
+            if (deleted < BatchSize)
+            {
+                return total;
+            }
+        }
     }
 
     /// <summary>Deletes what <paramref name="query"/> selects, at most <see cref="BatchSize"/> rows per statement.</summary>

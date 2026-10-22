@@ -154,7 +154,7 @@ describe('the Form block in the editor', () => {
   it('shows the English texts visitors read, as the published page does', () => {
     const publicTexts = JSON.parse(readFileSync(
       resolve(process.cwd(), '../Modules/Rendering/QuickBuilder.Rendering/Resources/public-texts/en.json'), 'utf8')) as {
-      forms: { submit: string; success: string; error: string; required: string }
+      forms: { submit: string; success: string; error: string; required: string; trap: string }
     }
 
     expect(en.editor.form.public).toEqual({
@@ -162,6 +162,7 @@ describe('the Form block in the editor', () => {
       success: publicTexts.forms.success,
       error: publicTexts.forms.error,
       required: publicTexts.forms.required,
+      trap: publicTexts.forms.trap,
     })
   })
 

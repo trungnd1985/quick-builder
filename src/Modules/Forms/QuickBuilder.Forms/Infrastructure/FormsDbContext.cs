@@ -183,6 +183,42 @@ internal sealed class FormsDbContext(DbContextOptions<FormsDbContext> options, I
         return Database.ExecuteSqlAsync($"SELECT pg_advisory_xact_lock({key})", cancellationToken);
     }
 
+    /// <summary>
+    /// Deletes up to <paramref name="batchSize"/> spam submissions of any site received before
+    /// <paramref name="before"/>, and says which site and form each was (018 FR-016a; research
+    /// FS-17).
+    /// </summary>
+    /// <remarks>
+    /// The sweep's maintenance deletes are cross-site by nature: spam, rate windows and counters
+    /// expire by age on every site alike. Each returns or names nothing but counts, which the
+    /// sweep records per site and form.
+    /// </remarks>
+    internal Task<List<PurgedSubmission>> PurgeSpamAsync(DateTimeOffset before, int batchSize, CancellationToken cancellationToken) =>
+        Database.SqlQuery<PurgedSubmission>($"""
+            DELETE FROM forms.submissions
+            WHERE id IN (
+                SELECT id FROM forms.submissions
+                WHERE is_spam AND received_at_utc < {before}
+                LIMIT {batchSize})
+            RETURNING site_id AS "SiteId", form_id AS "FormId"
+            """).ToListAsync(cancellationToken);
+
+    /// <summary>Deletes up to <paramref name="batchSize"/> rate windows of any site that started before <paramref name="before"/>.</summary>
+    /// <remarks>The sweep's, with <see cref="PurgeSpamAsync"/>.</remarks>
+    internal Task<int> DeleteRateWindowsAsync(DateTimeOffset before, int batchSize, CancellationToken cancellationToken) =>
+        Database.ExecuteSqlAsync($"""
+            DELETE FROM forms.rate_windows
+            WHERE ctid IN (SELECT ctid FROM forms.rate_windows WHERE window_start_utc < {before} LIMIT {batchSize})
+            """, cancellationToken);
+
+    /// <summary>Deletes up to <paramref name="batchSize"/> spam counters of any site older than <paramref name="before"/>.</summary>
+    /// <remarks>The sweep's, with <see cref="PurgeSpamAsync"/>.</remarks>
+    internal Task<int> DeleteSpamCountersAsync(DateOnly before, int batchSize, CancellationToken cancellationToken) =>
+        Database.ExecuteSqlAsync($"""
+            DELETE FROM forms.spam_counters
+            WHERE ctid IN (SELECT ctid FROM forms.spam_counters WHERE day < {before} LIMIT {batchSize})
+            """, cancellationToken);
+
     /// <summary>Makes the open transaction read-only, so the export cannot change what it reads (FS-16). Reads no rows.</summary>
     internal Task MakeTransactionReadOnlyAsync(CancellationToken cancellationToken) =>
         Database.ExecuteSqlAsync($"SET TRANSACTION READ ONLY", cancellationToken);
@@ -323,3 +359,6 @@ internal sealed record ClaimedDelivery(Guid SubmissionId, Guid SiteId);
 
 /// <summary>One window's count after a request was counted in it.</summary>
 internal sealed record WindowCount(string Kind, int Count);
+
+/// <summary>A deleted submission: which site and form it was, for the log's counts.</summary>
+internal sealed record PurgedSubmission(Guid SiteId, string FormId);

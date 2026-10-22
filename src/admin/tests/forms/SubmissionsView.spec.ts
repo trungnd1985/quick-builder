@@ -27,10 +27,14 @@ function serve(listReply: (url: string) => Reply) {
   return (method: string, url: string): Reply => {
     if (url === '/api/v1/sites') return { status: 200, body: [{ id: SITE, name: 'Acme', hostNames: ['acme.test'] }] }
     if (url.endsWith('/forms')) return { status: 200, body: { items: forms } }
+    if (url.endsWith('/spam-counters')) return { status: 200, body: { items: [{ formId: 'contact', trappedKept: 3, trappedDropped: 1, rateLimited: 0 }, { formId: 'old', trappedKept: 0, trappedDropped: 0, rateLimited: 0 }] } }
     if (method === 'DELETE') return { status: 200, body: { deleted: 1 } }
     return listReply(url)
   }
 }
+
+/** The rows of the submissions table, header included. */
+const listRows = async () => within(await screen.findByRole('table', { name: en.forms.submissions.title })).getAllByRole('row')
 
 async function renderView(query = '') {
   setActivePinia(createPinia())
@@ -39,6 +43,7 @@ async function renderView(query = '') {
     routes: [
       { path: '/sites/:siteId', name: 'site', component: { template: '<div />' } },
       { path: '/sites/:siteId/submissions', name: 'site-submissions', component: SubmissionsView },
+      { path: '/sites/:siteId/submissions/spam', name: 'site-spam', component: { template: '<div />' } },
       { path: '/sites/:siteId/submissions/:submissionId', name: 'site-submission', component: { template: '<div />' } },
     ],
   })
@@ -54,7 +59,7 @@ describe('the submissions list', () => {
     stubFetch(serve(() => ({ status: 200, body: page([summary(SUB_A, { read: false }), summary(SUB_B, { formName: 'Old enquiry', formPublished: false })]) })))
     await renderView()
 
-    const rows = await screen.findAllByRole('row')
+    const rows = await listRows()
     expect(rows).toHaveLength(3)
     expect(within(rows[1]!).getByText(en.forms.submissions.unread)).toBeTruthy()
     expect(within(rows[2]!).getByText(en.forms.submissions.notPublished)).toBeTruthy()
@@ -64,7 +69,7 @@ describe('the submissions list', () => {
   it('sends filters and search to the server and carries them to the export link', async () => {
     const calls = stubFetch(serve(() => ({ status: 200, body: page([summary(SUB_A)]) })))
     const { router } = await renderView()
-    await screen.findAllByRole('row')
+    await listRows()
 
     await fireEvent.update(screen.getByLabelText(en.forms.filters.search), '  anna smith ')
     await fireEvent.update(screen.getByLabelText(en.forms.filters.form), 'contact')
@@ -93,7 +98,7 @@ describe('the submissions list', () => {
 
     await fireEvent.click(await screen.findByRole('button', { name: en.forms.submissions.more }))
 
-    await waitFor(() => expect(screen.getAllByRole('row')).toHaveLength(3))
+    await waitFor(async () => expect(await listRows()).toHaveLength(3))
     expect(calls.some((c) => c.url === `${LIST}?after=cursor-1`)).toBe(true)
     expect(screen.queryByRole('button', { name: en.forms.submissions.more })).toBeNull()
   })
@@ -102,7 +107,7 @@ describe('the submissions list', () => {
     const calls = stubFetch(serve(() => ({ status: 200, body: page([summary(SUB_A), summary(SUB_B)]) })))
     vi.stubGlobal('confirm', vi.fn(() => true))
     await renderView()
-    await screen.findAllByRole('row')
+    await listRows()
 
     const remove = screen.getByRole('button', { name: en.forms.submissions.delete }) as HTMLButtonElement
     expect(remove.disabled).toBe(true)
@@ -116,7 +121,7 @@ describe('the submissions list', () => {
   it('hides selection and delete from those who may not delete', async () => {
     stubFetch(serve(() => ({ status: 200, body: page([summary(SUB_A)], false) })))
     await renderView()
-    await screen.findAllByRole('row')
+    await listRows()
 
     expect(screen.queryByRole('checkbox')).toBeNull()
     expect(screen.queryByRole('button', { name: en.forms.submissions.delete })).toBeNull()
@@ -132,10 +137,20 @@ describe('the submissions list', () => {
     expect(list.getByText(/Kept until deleted/)).toBeTruthy()
   })
 
+  it('shows what spam protection held back per form, and links to Spam', async () => {
+    stubFetch(serve(() => ({ status: 200, body: page([summary(SUB_A)]) })))
+    await renderView()
+
+    const held = within(await screen.findByRole('region', { name: en.forms.counters.heading }))
+    expect(held.getAllByRole('row')).toHaveLength(2)
+    expect(held.getByRole('rowheader', { name: 'Contact' })).toBeTruthy()
+    expect(screen.getByRole('link', { name: en.forms.submissions.spamLink }).getAttribute('href')).toBe(`/sites/${SITE}/submissions/spam`)
+  })
+
   it('has no accessibility violations', async () => {
     stubFetch(serve(() => ({ status: 200, body: page([summary(SUB_A, { read: false })]) })))
     const { container } = await renderView()
-    await screen.findAllByRole('row')
+    await listRows()
 
     const results = await axe.run(container, { runOnly: { type: 'rule', values: ['label', 'aria-valid-attr-value', 'aria-required-attr', 'button-name', 'heading-order', 'link-name'] } })
     expect(results.violations).toEqual([])

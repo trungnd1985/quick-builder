@@ -121,12 +121,27 @@ internal sealed class FormsWorld : IDisposable
 
     /// <summary>
     /// Posts a form as a browser does: urlencoded, the page's hidden fields, then the values.
-    /// With <paramref name="json"/>, as the form script does.
+    /// With <paramref name="json"/>, as the form script does; <paramref name="from"/> sets the
+    /// client address the server sees.
     /// </summary>
-    public async Task<HttpResponseMessage> SubmitAsync(
-        string formId, Guid pageId, string path, IEnumerable<KeyValuePair<string, string>> values, bool json = false, string host = CmsScenario.HostA)
+    public Task<HttpResponseMessage> SubmitAsync(
+        string formId, Guid pageId, string path, IEnumerable<KeyValuePair<string, string>> values, bool json = false, string host = CmsScenario.HostA, string? from = null) =>
+        SubmitAsync(App, formId, pageId, path, values, json, host, from is null ? null : r => r.Headers.Add(Infrastructure.IdentitySeed.RemoteAddressHeader, from));
+
+    /// <summary>As above, through <paramref name="app"/> (another instance), with the request adjusted by <paramref name="adjust"/>.</summary>
+    public static async Task<HttpResponseMessage> SubmitAsync(
+        Infrastructure.QuickBuilderApp app,
+        string formId,
+        Guid pageId,
+        string path,
+        IEnumerable<KeyValuePair<string, string>> values,
+        bool json = false,
+        string host = CmsScenario.HostA,
+        Action<HttpRequestMessage>? adjust = null)
     {
-        using var client = App.CreateClientForHost(host);
+        ArgumentNullException.ThrowIfNull(app);
+
+        using var client = app.CreateClientForHost(host);
         using var request = new HttpRequestMessage(HttpMethod.Post, new Uri($"/_forms/{formId}", UriKind.Relative))
         {
             Content = new FormUrlEncodedContent(
@@ -136,6 +151,8 @@ internal sealed class FormsWorld : IDisposable
         {
             request.Headers.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/json"));
         }
+
+        adjust?.Invoke(request);
 
         var response = await client.SendAsync(request).ConfigureAwait(false);
         await response.Content.LoadIntoBufferAsync().ConfigureAwait(false);

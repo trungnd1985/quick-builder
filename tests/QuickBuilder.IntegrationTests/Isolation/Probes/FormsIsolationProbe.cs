@@ -14,7 +14,7 @@ namespace QuickBuilder.IntegrationTests.Isolation.Probes;
 /// host name. A submission for another site's form, sent to this site's host name, is refused
 /// as gone: <c>SubmitEndpointTests</c> covers it. Deleting and exporting name their records in
 /// the body or the filters, so they are sent as listings that must not touch the other site's
-/// rows; the retention impact is a count, sent the same way. Spam and restore arrive with US5.
+/// rows; the retention impact and the spam counters are counts, sent the same way.
 /// </remarks>
 internal sealed class FormsIsolationProbe : ISiteIsolationProbe
 {
@@ -25,6 +25,7 @@ internal sealed class FormsIsolationProbe : ISiteIsolationProbe
         "GET api/v1/forms/sites/{siteId:guid}/submissions/{submissionId:guid}",
         "PUT api/v1/forms/sites/{siteId:guid}/submissions/{submissionId:guid}/read",
         "GET api/v1/forms/sites/{siteId:guid}/forms/{formId}/retention-impact",
+        "POST api/v1/forms/sites/{siteId:guid}/submissions/{submissionId:guid}/restore",
     ];
 
     public string? NeverIssuedPublicPath => null;
@@ -61,6 +62,9 @@ internal sealed class FormsIsolationProbe : ISiteIsolationProbe
         var one = $"{Submissions(siteId)}/{other.Ids[2]}";
         yield return new ProbeRequest(HttpMethod.Get, one, ProbeKind.Addressed);
         yield return new ProbeRequest(HttpMethod.Put, $"{one}/read", ProbeKind.Addressed, new { read = true });
+        yield return new ProbeRequest(HttpMethod.Post, $"{one}/restore", ProbeKind.Addressed);
+        yield return new ProbeRequest(HttpMethod.Get, $"{Submissions(siteId)}?box=spam", ProbeKind.Listing);
+        yield return new ProbeRequest(HttpMethod.Get, $"/api/v1/forms/sites/{siteId}/spam-counters", ProbeKind.Listing);
         yield return new ProbeRequest(HttpMethod.Delete, Submissions(siteId), ProbeKind.Listing, new { ids = new[] { other.Ids[2] } });
         yield return new ProbeRequest(HttpMethod.Get, Submissions(siteId), ProbeKind.Listing);
         yield return new ProbeRequest(HttpMethod.Get, $"{Submissions(siteId)}?formId={other.Ids[0]}", ProbeKind.Listing);

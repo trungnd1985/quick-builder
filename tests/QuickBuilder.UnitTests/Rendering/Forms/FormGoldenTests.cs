@@ -35,6 +35,20 @@ public sealed class FormGoldenTests
     }
 
     [Fact]
+    public void The_trap_field_is_off_screen_out_of_reach_and_labelled_in_the_site_language()
+    {
+        // FS-12: off-screen by class (not display:none), hidden from assistive technology, out of
+        // the tab order, never autofilled on purpose, labelled in case it ever shows.
+        var html = Render("""{ "id": "a00000000001", "type": "email", "label": "Email" }""", language: "de");
+
+        Assert.Contains(
+            "<div class=\"qb-form__hp\" aria-hidden=\"true\"><label for=\"qb-p.contact-form-hp\">Dieses Feld leer lassen</label>"
+            + "<input id=\"qb-p.contact-form-hp\" name=\"_hp\" type=\"text\" tabindex=\"-1\" autocomplete=\"off\"></div>",
+            html,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void The_success_panel_is_the_fragment_a_submission_without_scripts_lands_on()
     {
         var html = Render("""{ "id": "a00000000001", "type": "email", "label": "Email" }""", """, "successMessage": "Thanks, we will reply." """);

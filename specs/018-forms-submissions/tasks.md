@@ -338,8 +338,9 @@ rate limit from one address and normal pace from many; the same submission twice
 
 ### Tests for User Story 5 ⚠️
 
-- [ ] T078 [P] [US5] Extend `UTESTS/Forms/SubmitPolicyTests.cs` with rows 1, 4, 6 and 7 of data-model §4 and their order relative to the others. It must fail first.
-- [ ] T079 [P] [US5] Create `ITESTS/Forms/SpamAndRateLimitTests.cs`:
+- [X] T078 [P] [US5] Extend `UTESTS/Forms/SubmitPolicyTests.cs` with rows 1, 4, 6 and 7 of data-model §4 and their order relative to the others. It must fail first.
+  *Done as*: `SubmitPolicyTests` already covered rows 1, 4, 6 and 7 and their order, written with T037.
+- [X] T079 [P] [US5] Create `ITESTS/Forms/SpamAndRateLimitTests.cs`:
   - trap filled and valid: stored as spam, `notification_state = none`, no email, response identical to `ok` (JSON and HTML);
   - trap filled and invalid: nothing stored, `trapped_dropped` counted, response identical to `ok`;
   - the sixth request in a minute from one address is `429` with `Retry-After` (HTML page with values, and JSON `retryAfter`), counted as `rate_limited`; the 31st in an hour likewise; other addresses and other sites are not affected; limits follow `Forms:RateLimit:*`;
@@ -351,18 +352,26 @@ rate limit from one address and normal pace from many; the same submission twice
   - spam counters endpoint sums per form;
   - no client address, hashed or not, is stored outside `rate_windows`; the rate-window SQL states the site (dedicated test).
   It must fail first.
-- [ ] T080 [P] [US5] Extend `ITESTS/Forms/FormsSweepTests.cs` (spam older than 30 days removed with a `spam_purge` row; rate windows older than an hour removed; counters older than 90 days removed) and `UTESTS/Rendering/Forms/FormGoldenTests.cs` (the trap field markup: off-screen class, `aria-hidden`, `tabindex="-1"`, `autocomplete="off"`, localised label), and create `ADMINTESTS/features/forms/SpamView.spec.ts` (list, restore, delete hidden for Editors, counters shown). They must fail first.
+  *Done as*: the forwarded-client and IPv6 cases run through the test host's address header; `ClientAddressTests` covers the grouping itself. The rate-window statement's site is proven by the same address being counted separately on site B.
+- [X] T080 [P] [US5] Extend `ITESTS/Forms/FormsSweepTests.cs` (spam older than 30 days removed with a `spam_purge` row; rate windows older than an hour removed; counters older than 90 days removed) and `UTESTS/Rendering/Forms/FormGoldenTests.cs` (the trap field markup: off-screen class, `aria-hidden`, `tabindex="-1"`, `autocomplete="off"`, localised label), and create `ADMINTESTS/features/forms/SpamView.spec.ts` (list, restore, delete hidden for Editors, counters shown). They must fail first.
+  *Done as*: the trap markup is asserted in `FormGoldenTests` and appears in the three form goldens; the spam spec is `ADMINTESTS/forms/SpamView.spec.ts`.
 
 ### Implementation for User Story 5
 
-- [ ] T081 [US5] Write the trap field in `RENDER/Rendering/Forms/FormMarkup.cs` and `EDITOR/blocks/form/FormBlock.vue`, and the off-screen `.qb-form__hp` rule in `RENDER/Rendering/BlockStylesheet.cs` and `EDITOR/blocks/blocks.css` (FS-12).
-- [ ] T082 [US5] Complete `FORMS/Domain/SubmitPolicy.cs` with the full order of data-model §4 (limited, trap-invalid, duplicate, trap-valid). Make T078 pass.
-- [ ] T083 [US5] Create `FORMS/FormsOptions.cs` (`Forms:RateLimit:PerMinute`, `PerHour`, ranges and `PerHour ≥ PerMinute`, `ValidateOnStart` in `FORMS/FormsModule.cs`) and `FORMS/Infrastructure/RateWindows.cs` (the atomic `INSERT … ON CONFLICT … DO UPDATE … RETURNING` for the minute and hour windows through `SqlQuery`, the client key as SHA-256 of the address grouped as `SignInThrottleService` groups it, seconds to the window's end for `Retry-After`).
-- [ ] T084 [US5] In `FORMS/Features/Submit/Submit.cs` and `SubmitController.cs`: count the request in `RateWindows` first; read `_hp`; take `pg_advisory_xact_lock` on the fingerprint and look for the same fingerprint within 10 seconds; store trapped valid submissions as spam with `notification_state = none` and no delivery; increment `spam_counters` for each counted outcome; answer silent outcomes exactly as `ok`; answer `limited` as public-forms.md §2.4 and §3.
-- [ ] T085 [US5] Add `box=spam` to `FORMS/Features/ListSubmissions/` and exclude spam from inbox lists, unread count, search and export; create `FORMS/Features/RestoreSubmission/RestoreSubmission.cs` (`forms.submissions.view`; `Submission.Restore`; a delivery as `Submit` creates one; a `restore` log row) and `FORMS/Features/SpamCounters/SpamCounters.cs` (last 30 days per form). Make T079 pass.
-- [ ] T086 [US5] Create `ADMIN/features/forms/SpamView.vue` (list, restore, delete for Designers and Administrators) and show the per-form counters in `ADMIN/features/forms/SubmissionsView.vue`, with `ADMIN/i18n/en.json` strings.
-- [ ] T087 [US5] Extend `FORMS/Infrastructure/FormsSweepService.cs` with the spam purge (30 days, `spam_purge` rows), rate windows older than one hour and counters older than 90 days. Make T080 pass.
-- [ ] T088 [US5] Document `Forms:RateLimit:*` in a new "Forms" section of `docs/configuration.md`, with the `Hosting:KnownProxies` warning (plan upgrade note 4).
+- [X] T081 [US5] Write the trap field in `RENDER/Rendering/Forms/FormMarkup.cs` and `EDITOR/blocks/form/FormBlock.vue`, and the off-screen `.qb-form__hp` rule in `RENDER/Rendering/BlockStylesheet.cs` and `EDITOR/blocks/blocks.css` (FS-12).
+- [X] T082 [US5] Complete `FORMS/Domain/SubmitPolicy.cs` with the full order of data-model §4 (limited, trap-invalid, duplicate, trap-valid). Make T078 pass.
+  *Done as*: the full order was in `SubmitPolicy` since T037; the handler now feeds it every fact.
+- [X] T083 [US5] Create `FORMS/FormsOptions.cs` (`Forms:RateLimit:PerMinute`, `PerHour`, ranges and `PerHour ≥ PerMinute`, `ValidateOnStart` in `FORMS/FormsModule.cs`) and `FORMS/Infrastructure/RateWindows.cs` (the atomic `INSERT … ON CONFLICT … DO UPDATE … RETURNING` for the minute and hour windows through `SqlQuery`, the client key as SHA-256 of the address grouped as `SignInThrottleService` groups it, seconds to the window's end for `Retry-After`).
+  *Done as*: the address grouping moved from Identity's `TransportSecurity` to `Shared.Kernel/Network/ClientAddress`, used by both. The upsert lives in `FormsDbContext.CountRequestAsync`, as all raw SQL in the module does.
+- [X] T084 [US5] In `FORMS/Features/Submit/Submit.cs` and `SubmitController.cs`: count the request in `RateWindows` first; read `_hp`; take `pg_advisory_xact_lock` on the fingerprint and look for the same fingerprint within 10 seconds; store trapped valid submissions as spam with `notification_state = none` and no delivery; increment `spam_counters` for each counted outcome; answer silent outcomes exactly as `ok`; answer `limited` as public-forms.md §2.4 and §3.
+  *Done as*: the request is counted after the body is read, not before: a limited request is answered on the page with its values, which needs the body, and an oversized body is refused by its size anyway. Spam counters count only forms the site has, so made-up form ids cannot grow the table.
+- [X] T085 [US5] Add `box=spam` to `FORMS/Features/ListSubmissions/` and exclude spam from inbox lists, unread count, search and export; create `FORMS/Features/RestoreSubmission/RestoreSubmission.cs` (`forms.submissions.view`; `Submission.Restore`; a delivery as `Submit` creates one; a `restore` log row) and `FORMS/Features/SpamCounters/SpamCounters.cs` (last 30 days per form). Make T079 pass.
+  *Done as*: `box=spam` already worked through the shared filter, and spam was already left out of the inbox, the unread count and the export.
+- [X] T086 [US5] Create `ADMIN/features/forms/SpamView.vue` (list, restore, delete for Designers and Administrators) and show the per-form counters in `ADMIN/features/forms/SubmissionsView.vue`, with `ADMIN/i18n/en.json` strings.
+  *Done as*: the Spam list is its own route, `/sites/:siteId/submissions/spam`, linked from Submissions; the counters show there only for forms with something held back.
+- [X] T087 [US5] Extend `FORMS/Infrastructure/FormsSweepService.cs` with the spam purge (30 days, `spam_purge` rows), rate windows older than one hour and counters older than 90 days. Make T080 pass.
+  *Done as*: the three deletes are batched statements in `FormsDbContext`; spam purges are logged per site and form.
+- [X] T088 [US5] Document `Forms:RateLimit:*` in a new "Forms" section of `docs/configuration.md`, with the `Hosting:KnownProxies` warning (plan upgrade note 4).
 
 **Checkpoint**: all five stories work independently and together.
 

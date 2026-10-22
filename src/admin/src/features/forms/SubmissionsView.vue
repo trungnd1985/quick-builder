@@ -6,7 +6,7 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter, type LocationQuery } from 'vue-router'
-import { formsApi, type FormSummary, type SubmissionFilters as Filters, type SubmissionSummary } from '../../api/forms'
+import { formsApi, type FormSummary, type SpamCounter, type SubmissionFilters as Filters, type SubmissionSummary } from '../../api/forms'
 import { useSitesStore } from '../../app/sitesStore'
 import SubmissionFilters from './SubmissionFilters.vue'
 import { formsErrorMessage } from './formsErrors'
@@ -34,6 +34,8 @@ const filters = computed(() => filtersOf(route.query))
 const filtered = computed(() => Object.keys(filters.value).length > 0)
 
 const forms = ref<FormSummary[]>([])
+// FR-019: what spam protection held back per form; only forms with something to show.
+const counters = ref<SpamCounter[]>([])
 const items = ref<SubmissionSummary[]>([])
 const next = ref<string | null>(null)
 const canDelete = ref(false)
@@ -59,8 +61,15 @@ async function load(more = false): Promise<void> {
 }
 
 async function loadForms(): Promise<void> {
-  forms.value = (await formsApi.forms(siteId.value).catch(() => ({ items: [] }))).items
+  const [known, held] = await Promise.all([
+    formsApi.forms(siteId.value).catch(() => ({ items: [] })),
+    formsApi.spamCounters(siteId.value).catch(() => ({ items: [] })),
+  ])
+  forms.value = known.items
+  counters.value = held.items.filter((c) => c.trappedKept + c.trappedDropped + c.rateLimited > 0)
 }
+
+const formName = (formId: string) => forms.value.find((f) => f.formId === formId)?.name ?? formId
 
 onMounted(async () => {
   if (sites.sites.length === 0) await sites.load().catch(() => undefined)
@@ -131,6 +140,12 @@ function retention(form: FormSummary): string {
         </p>
       </div>
       <div class="actions">
+        <RouterLink
+          class="button-link"
+          :to="{ name: 'site-spam', params: { siteId } }"
+        >
+          {{ t('forms.submissions.spamLink') }}
+        </RouterLink>
         <a
           class="button-link"
           :href="exportUrl"
@@ -268,6 +283,47 @@ function retention(form: FormSummary): string {
     >
       {{ t('forms.submissions.more') }}
     </button>
+
+    <section
+      v-if="counters.length > 0"
+      aria-labelledby="spam-counters-heading"
+      class="submission-forms"
+    >
+      <h2 id="spam-counters-heading">
+        {{ t('forms.counters.heading') }}
+      </h2>
+      <table class="sites-table">
+        <thead>
+          <tr>
+            <th scope="col">
+              {{ t('forms.counters.form') }}
+            </th>
+            <th scope="col">
+              {{ t('forms.counters.trappedKept') }}
+            </th>
+            <th scope="col">
+              {{ t('forms.counters.trappedDropped') }}
+            </th>
+            <th scope="col">
+              {{ t('forms.counters.rateLimited') }}
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr
+            v-for="counter in counters"
+            :key="counter.formId"
+          >
+            <th scope="row">
+              {{ formName(counter.formId) }}
+            </th>
+            <td>{{ counter.trappedKept }}</td>
+            <td>{{ counter.trappedDropped }}</td>
+            <td>{{ counter.rateLimited }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
 
     <section
       v-if="forms.length > 0"

@@ -675,6 +675,15 @@
     gap: calc(var(--qb-base-size) * 1.25);
   }
 
+  /* 018 FS-12: the trap field, moved off-screen; not display:none, which some bots skip. */
+  .qb-form__hp {
+    position: absolute;
+    left: -10000px;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+  }
+
   .qb-form__field {
     display: flex;
     flex-direction: column;

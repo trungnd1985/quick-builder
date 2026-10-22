@@ -1440,7 +1440,8 @@
         "submit": "Send",
         "success": "Thank you. Your message has been sent.",
         "error": "Your message could not be sent. Please try again.",
-        "required": "(required)"
+        "required": "(required)",
+        "trap": "Leave this field empty"
       },
       "types": {
         "text": "Single line of text",
@@ -2680,7 +2681,8 @@
         "preview": "Content",
         "status": "Status"
       },
-      "formsHeading": "Forms"
+      "formsHeading": "Forms",
+      "spamLink": "Spam"
     },
     "filters": {
       "legend": "Filter submissions",
@@ -2725,7 +2727,29 @@
       "submission_not_found": "This submission no longer exists. It may have been deleted.",
       "invalid_filter": "These filters cannot be used: {reason}",
       "forbidden": "You do not have permission to do that on this site.",
-      "generic": "Something went wrong. Try again."
+      "generic": "Something went wrong. Try again.",
+      "not_spam": "This submission is already in the inbox."
+    },
+    "spam": {
+      "title": "Spam",
+      "intro": "Submissions the trap field caught on {site}. They are kept for 30 days and never notified. Restore one that a real visitor sent.",
+      "back": "All submissions",
+      "empty": "No spam in the last 30 days.",
+      "restore": "Restore",
+      "restoreLabel": "Restore the submission of {when}",
+      "restored": "Moved to the inbox as unread; its notification will be sent.",
+      "delete": "Delete",
+      "deleteLabel": "Delete the submission of {when}",
+      "deleteConfirm": "Delete this submission? This cannot be undone.",
+      "deleted": "Submission deleted.",
+      "more": "Show more"
+    },
+    "counters": {
+      "heading": "Held back in the last 30 days",
+      "form": "Form",
+      "trappedKept": "Caught as spam",
+      "trappedDropped": "Caught and dropped",
+      "rateLimited": "Over the rate limit"
     }
   }
 }

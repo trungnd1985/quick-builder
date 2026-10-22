@@ -62,6 +62,20 @@ function consentLink(field: JsonObject): { href: string; title: string } | null 
         type="hidden"
         name="_path"
       >
+      <div
+        class="qb-form__hp"
+        aria-hidden="true"
+      >
+        <label :for="`${base}-hp`">{{ t('editor.form.public.trap') }}</label>
+        <input
+          :id="`${base}-hp`"
+          name="_hp"
+          type="text"
+          tabindex="-1"
+          autocomplete="off"
+          disabled
+        >
+      </div>
       <template
         v-for="field in fields"
         :key="String(field.id)"

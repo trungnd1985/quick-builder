@@ -72,6 +72,14 @@ internal static class FormMarkup
             .Attribute("value", inputs.CurrentPageId?.ToString("D", CultureInfo.InvariantCulture) ?? string.Empty).EndTag();
         writer.Open("input").Attribute("type", "hidden").Attribute("name", "_path").Attribute("value", inputs.Path).EndTag();
 
+        // FS-12: the trap field. Off-screen rather than display:none, which some bots skip;
+        // hidden from assistive technology and the tab order, and labelled in case it shows.
+        writer.Open("div").Attribute("class", "qb-form__hp").Attribute("aria-hidden", "true").EndTag();
+        writer.Open("label").Attribute("for", view.IdBase + "-hp").EndTag().Text(texts.Trap).Close("label");
+        writer.Open("input").Attribute("id", view.IdBase + "-hp").Attribute("name", "_hp").Attribute("type", "text")
+            .Attribute("tabindex", "-1").Attribute("autocomplete", "off").EndTag();
+        writer.Close("div");
+
         foreach (var field in fields)
         {
             Field(field, view, context, writer);

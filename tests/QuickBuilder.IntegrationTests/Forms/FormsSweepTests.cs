@@ -10,8 +10,9 @@ using static QuickBuilder.IntegrationTests.Forms.FormsWorld;
 namespace QuickBuilder.IntegrationTests.Forms;
 
 /// <summary>
-/// The hourly sweep (018 FR-023a; research FS-17): a form's retention period removes its older
-/// inbox submissions and records how many, and nothing else is touched.
+/// The hourly sweep (018 FR-016a, FR-019, FR-021, FR-023a; research FS-17): a form's retention
+/// period removes its older inbox submissions, spam goes after 30 days, rate windows after an
+/// hour and counters after 90 days, each deletion of submissions recorded with its count.
 /// </summary>
 [Collection(DatabaseCollection.Name)]
 public sealed class FormsSweepTests(DatabaseFixture database)
@@ -29,7 +30,8 @@ public sealed class FormsSweepTests(DatabaseFixture database)
             await world.SubmitAsync(form, contact, "/contact", [new("f.e00000000001", email)], json: true).ConfigureAwait(true);
         }
 
-        // Age the "old" submissions past 30 days, and add an aged spam copy the retention leaves alone.
+        // Age the "old" submissions past 30 days, and add an aged spam copy: the spam purge takes
+        // it, under its own log action, not the retention.
         await world.WithFormsAsync(db => db.Database.ExecuteSqlRawAsync(
             "UPDATE forms.submissions SET received_at_utc = now() - interval '31 days' WHERE search_text LIKE '%old@%'")).ConfigureAwait(true);
         await world.WithFormsAsync(db => db.Database.ExecuteSqlRawAsync(
@@ -38,21 +40,71 @@ public sealed class FormsSweepTests(DatabaseFixture database)
 
         var removed = await world.App.Services.GetRequiredService<FormsSweepService>().RunOnceAsync(CancellationToken.None).ConfigureAwait(true);
 
-        Assert.Equal(1, removed);
+        Assert.Equal(2, removed);
         var left = await world.SubmissionsAsync().ConfigureAwait(true);
-        Assert.DoesNotContain(left, s => s.FormId == "short" && !s.IsSpam && s.SearchText.Contains("old@", StringComparison.Ordinal));
+        Assert.DoesNotContain(left, s => s.FormId == "short" && s.SearchText.Contains("old@", StringComparison.Ordinal));
         Assert.Contains(left, s => s.FormId == "short" && s.SearchText.Contains("new@", StringComparison.Ordinal));
         Assert.Contains(left, s => s.FormId == "kept" && s.SearchText.Contains("old@", StringComparison.Ordinal));
-        Assert.Contains(left, s => s.FormId == "short" && s.IsSpam);
 
-        var entry = await world.WithFormsAsync(db => db.ForSite<SubmissionLogEntry>(world.Site).AsNoTracking().SingleAsync()).ConfigureAwait(true);
-        Assert.Equal(SubmissionLogActions.RetentionPurge, entry.Action);
-        Assert.Equal("short", entry.FormId);
-        Assert.Equal(1, entry.Count);
-        Assert.Null(entry.ActorUserId);
+        var entries = await world.WithFormsAsync(db => db.ForSite<SubmissionLogEntry>(world.Site).AsNoTracking().OrderBy(e => e.Action).ToListAsync()).ConfigureAwait(true);
+        Assert.Equal([SubmissionLogActions.RetentionPurge, SubmissionLogActions.SpamPurge], entries.Select(e => e.Action));
+        Assert.All(entries, e =>
+        {
+            Assert.Equal("short", e.FormId);
+            Assert.Equal(1, e.Count);
+            Assert.Null(e.ActorUserId);
+        });
 
         // A second sweep finds nothing more and records nothing.
         Assert.Equal(0, await world.App.Services.GetRequiredService<FormsSweepService>().RunOnceAsync(CancellationToken.None).ConfigureAwait(true));
+    }
+
+    [Fact]
+    public async Task Spam_goes_after_30_days_on_every_form_and_younger_spam_stays()
+    {
+        using var world = await CreateAsync(database, "forms-sweep-spam").ConfigureAwait(true);
+        var contact = await world.PageAsync("contact").ConfigureAwait(true);
+        await world.PublishPageAsync(contact, Document(Form("kept", "Kept"))).ConfigureAwait(true);
+        await world.DeliverEventsAsync().ConfigureAwait(true);
+        foreach (var email in new[] { "old@a.co", "young@a.co" })
+        {
+            await world.SubmitAsync("kept", contact, "/contact", [new("f.e00000000001", email), new("_hp", "bot")], json: true).ConfigureAwait(true);
+        }
+
+        await world.WithFormsAsync(db => db.Database.ExecuteSqlRawAsync(
+            "UPDATE forms.submissions SET received_at_utc = now() - interval '31 days' WHERE search_text LIKE '%old@%'")).ConfigureAwait(true);
+
+        var removed = await world.App.Services.GetRequiredService<FormsSweepService>().RunOnceAsync(CancellationToken.None).ConfigureAwait(true);
+
+        Assert.Equal(1, removed);
+        var left = Assert.Single(await world.SubmissionsAsync().ConfigureAwait(true));
+        Assert.True(left.IsSpam);
+        Assert.Contains("young@", left.SearchText, StringComparison.Ordinal);
+        var entry = await world.WithFormsAsync(db => db.ForSite<SubmissionLogEntry>(world.Site).AsNoTracking().SingleAsync()).ConfigureAwait(true);
+        Assert.Equal(SubmissionLogActions.SpamPurge, entry.Action);
+    }
+
+    [Fact]
+    public async Task Rate_windows_go_after_an_hour_and_counters_after_90_days()
+    {
+        using var world = await CreateAsync(database, "forms-sweep-windows").ConfigureAwait(true);
+        var contact = await world.PageAsync("contact").ConfigureAwait(true);
+        await world.PublishPageAsync(contact, Document(Form("kept", "Kept"))).ConfigureAwait(true);
+        await world.DeliverEventsAsync().ConfigureAwait(true);
+        await world.SubmitAsync("kept", contact, "/contact", [new("f.e00000000001", "a@a.co"), new("_hp", "bot")], json: true).ConfigureAwait(true);
+        await world.WithFormsAsync(db => db.Database.ExecuteSqlRawAsync(
+            "INSERT INTO forms.rate_windows (site_id, client_key, window_kind, window_start_utc, count) " +
+            "SELECT site_id, client_key, window_kind, window_start_utc - interval '2 hours', count FROM forms.rate_windows; " +
+            "INSERT INTO forms.spam_counters (site_id, form_id, day, trapped_kept, trapped_dropped, rate_limited) " +
+            "SELECT site_id, form_id, day - 91, trapped_kept, trapped_dropped, rate_limited FROM forms.spam_counters")).ConfigureAwait(true);
+
+        await world.App.Services.GetRequiredService<FormsSweepService>().RunOnceAsync(CancellationToken.None).ConfigureAwait(true);
+
+        var (windows, counters) = await world.WithFormsAsync(async db => (
+            await db.ForSite<RateWindow>(world.Site).CountAsync().ConfigureAwait(true),
+            await db.ForSite<SpamCounter>(world.Site).CountAsync().ConfigureAwait(true))).ConfigureAwait(true);
+        Assert.Equal(2, windows);
+        Assert.Equal(1, counters);
     }
 
     [Fact]

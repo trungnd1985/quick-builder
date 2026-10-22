@@ -10,7 +10,9 @@ using QuickBuilder.Forms.Features.ListForms;
 using QuickBuilder.Forms.Features.ListSubmissions;
 using QuickBuilder.Forms.Features.MarkSubmission;
 using QuickBuilder.Forms.Features.RefreshFormRegistry;
+using QuickBuilder.Forms.Features.RestoreSubmission;
 using QuickBuilder.Forms.Features.RetentionImpact;
+using QuickBuilder.Forms.Features.SpamCounters;
 using QuickBuilder.Forms.Features.Submit;
 using QuickBuilder.Forms.Features.TestEmail;
 using QuickBuilder.Forms.Features.UnreadCount;
@@ -81,6 +83,8 @@ public static class FormsModule
         services.AddScoped<ICommandHandler<DeleteSubmissionsCommand, Result<DeletedResponse>>, DeleteSubmissionsHandler>();
         services.AddScoped<ICommandHandler<ExportSubmissionsCommand, Result>, ExportSubmissionsHandler>();
         services.AddScoped<IQueryHandler<UnreadCountQuery, Result<CountResponse>>, UnreadCountHandler>();
+        services.AddScoped<ICommandHandler<RestoreSubmissionCommand, Result<SubmissionResponse>>, RestoreSubmissionHandler>();
+        services.AddScoped<IQueryHandler<SpamCountersQuery, Result<SpamCountersResponse>>, SpamCountersHandler>();
         services.AddScoped<IQueryHandler<RetentionImpactQuery, Result<CountResponse>>, RetentionImpactHandler>();
 
         // Research FS-13: the per-address rate limit, its settings checked at startup.

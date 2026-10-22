@@ -209,6 +209,22 @@ Links in notifications point at the submission in the admin and are built from
 `Hosting:PublicUrl` empty, emails say "Open Submissions in the admin" without a link, and
 startup logs a warning.
 
+## Forms
+
+| Key | Default | Meaning |
+|---|---|---|
+| `Forms:RateLimit:PerMinute` | `5` | Submit requests one visitor address may send to one site in a minute, from 1 to 1,000. |
+| `Forms:RateLimit:PerHour` | `30` | The same per hour, from 1 to 10,000, and at least `PerMinute`. |
+
+Every request to `/_forms` counts, valid or not. Over a limit, the visitor sees the form
+again with their values and a message to wait; the response says how long. Counts are kept
+in the database, so every instance shares them, and are deleted after an hour. IPv6
+addresses are grouped by their /64 network, as sign-in throttling groups them.
+
+**Behind a reverse proxy, name it in `Hosting:KnownProxies` or `Hosting:KnownNetworks`.**
+Otherwise every visitor arrives from the proxy's address and they all share one limit: a
+busy site would refuse genuine enquiries after the fifth in a minute.
+
 ## Cache
 
 | Key | Default | Meaning |

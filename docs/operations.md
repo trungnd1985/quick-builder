@@ -861,11 +861,20 @@ instances can run side by side: each notification is taken by one of them.
 
 Logs name the submission, form and site, never a recipient, a value or the server's reply.
 
-### Retention
+### Retention and spam
 
 A form can delete its submissions after 30, 90, 180 or 365 days; the sweep runs hourly on
 each instance and records each deletion's count in the submission log. Forms without a
 period keep submissions until someone deletes them.
+
+Every form carries a hidden trap field. A submission that fills it is kept in **Spam** for
+30 days and never notified; an editor can restore it to the inbox, which sends its
+notification then. A submission that fills the trap and fails the form's rules is dropped.
+The same submission sent twice within 10 seconds is stored once. **Submissions** shows,
+per form, how many were caught, dropped or over the rate limit in the last 30 days; a
+growing "over the rate limit" count on a busy site usually means the reverse proxy is not
+named in `Hosting:KnownProxies` (see [configuration](configuration.md#forms)). No visitor
+address is stored, except a hash in the rate-limit counts, which are deleted after an hour.
 
 ## Upgrading from the foundation release (feature 001)
 
