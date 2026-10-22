@@ -229,7 +229,10 @@ and would accept submissions for a few hundred milliseconds after an unpublish. 
   `too_few`, `too_many`). Text comes from the field's own message or the default text for
   the site's language (FS-11).
 - Normalisation before checks: trim text values (multi-line: trailing whitespace only);
-  normalise line breaks to `\n`; keep letter case; Unicode NFC.
+  normalise line breaks to `\n`; keep letter case. No Unicode normalisation: the product runs
+  with invariant globalization, where `string.Normalize` does nothing (the kernel's
+  `SearchText` says the same), and browsers submit composed text. *(Changed during
+  implementation.)*
 - Email shape: one `@`, a non-empty local part, a domain with a dot, no spaces, at most
   254 characters. No DNS lookup (works offline, Principle II).
 

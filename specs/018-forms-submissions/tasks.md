@@ -190,9 +190,9 @@ failing field; success shows the message or redirects.
 
 ### Tests for User Story 2 ⚠️
 
-- [ ] T036 [P] [US2] Create `FIXTURES/forms/value-rules.json` (field definition + submitted values → normalised values or the value code), covering every type and every code of public-forms.md §4, trimming, line-break normalisation, NFC, the 254-character email limit, checkbox counts and a field `message`.
-- [ ] T037 [P] [US2] Create `UTESTS/Forms/FormValueRulesTests.cs` running T036 through `FormValueRules`. It must fail first.
-- [ ] T038 [P] [US2] Create `ADMINTESTS/editor/formRules.spec.ts` running T036 through `EDITOR/forms/formRules.ts`. It must fail first.
+- [X] T036 [P] [US2] Create `FIXTURES/forms/value-rules.json` (field definition + submitted values → normalised values or the value code), covering every type and every code of public-forms.md §4, trimming, line-break normalisation, NFC, the 254-character email limit, checkbox counts and a field `message`.
+- [X] T037 [P] [US2] Create `UTESTS/Forms/FormValueRulesTests.cs` running T036 through `FormValueRules`. It must fail first.
+- [X] T038 [P] [US2] Create `ADMINTESTS/editor/formRules.spec.ts` running T036 through `EDITOR/forms/formRules.ts`. It must fail first.
 - [ ] T039 [P] [US2] Create `UTESTS/Forms/SubmitPolicyTests.cs` for the outcome order of data-model §4 rows 3, 5, 8 and the database-failure row (rows 1, 4, 6 and 7 are added by T082): `gone`, `invalid` with every failing field, `ok`. It must fail first.
 - [ ] T040 [P] [US2] Create `ITESTS/Forms/SubmitEndpointTests.cs`:
   - JSON (`Accept: application/json`): `ok`; `invalid` with codes for every failing field; unknown keys ignored and never stored; `gone` for an unknown form, a form on an unpublished page, a form id from another site, and a draft-only form;
@@ -209,8 +209,9 @@ failing field; success shows the message or redirects.
 
 ### Implementation for User Story 2
 
-- [ ] T043 [US2] Create `FORMS/Domain/ValueCodes.cs` and `FORMS/Domain/FormValueRules.cs` (pure: normalise then check one field's submitted values, FS-08). Make T037 pass.
-- [ ] T044 [P] [US2] Create `EDITOR/forms/formRules.ts`, mirroring T043. Make T038 pass.
+- [X] T043 [US2] Create `FORMS/Domain/ValueCodes.cs` and `FORMS/Domain/FormValueRules.cs` (pure: normalise then check one field's submitted values, FS-08). Make T037 pass.
+  *Done as*: no Unicode normalisation (research FS-08, changed during implementation): with invariant globalization `string.Normalize` does nothing, so the fixture's NFC case was dropped rather than made to pass on one side only.
+- [X] T044 [P] [US2] Create `EDITOR/forms/formRules.ts`, mirroring T043. Make T038 pass.
 - [ ] T045 [P] [US2] Create `FORMS/Domain/SearchText.cs` (normalisation as Media's `SearchText`: lower case, NFKD without marks, collapsed spaces; `LikePattern` with escaping) and `FORMS/Domain/Fingerprint.cs` (SHA-256 of form id and normalised values in field order, FS-14), with `UTESTS/Forms/SearchTextTests.cs` and `UTESTS/Forms/FingerprintTests.cs`.
 - [ ] T046 [US2] Create `FORMS/Infrastructure/LiveFormLocator.cs` (FS-07: `GetLivePageAsync` for `_page`, find the form node in it, else in its live components via `GetLiveComponentsAsync`; return the `FormDefinition` and the recorded path) and `FORMS/Domain/SubmitPolicy.cs` (the outcome decision of data-model §4 as a pure function of its inputs). Make T039 pass.
 - [ ] T047 [US2] Create `RENDERC/IFormResponsePage.cs` and `RENDERC/FormState.cs` exactly as module-surface.md §2. Thread an optional `FormState` through `RENDER/Domain/RenderInputs.cs` and `RENDER/Domain/RenderContext.cs` so `FormRenderer` passes it to `FormMarkup` for the form it names. Make T042 pass.
