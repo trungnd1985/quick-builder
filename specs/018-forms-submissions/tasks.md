@@ -393,7 +393,8 @@ rate limit from one address and normal pace from many; the same submission twice
   *Done as*: tests added for the hosted worker and sweep loops, a form that no longer names anyone, and a deleted submission's waiting notification. Numbers are in quickstart-results.md.
 - [X] T096 Run quickstart.md end to end on the dev stack with Mailpit, including the manual screen-reader and no-script checks of §7, and record the results, timings (SC-001, SC-002) and any deviation in `specs/018-forms-submissions/quickstart-results.md`.
   *Done as*: the automatable steps were run; the screen-reader pass, the SC-001/SC-002 timings and opening the CSV in a spreadsheet are recorded as still manual.
-- [ ] T097 Open the pull request for branch `018-forms-submissions`, closing #18, listing the constitution amendment, the operator impact and upgrade notes from plan.md.
+- [X] T097 Open the pull request for branch `018-forms-submissions`, closing #18, listing the constitution amendment, the operator impact and upgrade notes from plan.md.
+  *Done as*: opened as #40.
 
 ---
 
