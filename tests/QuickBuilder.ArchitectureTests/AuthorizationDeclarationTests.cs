@@ -48,6 +48,9 @@ public sealed class AuthorizationDeclarationTests
         "SitemapController.IndexAsync",
         "SitemapController.FileAsync",
         "RobotsController.GetAsync",
+        // 018 FR-015: form submissions from site visitors, and the 405 for other methods.
+        "SubmitController.SubmitAsync",
+        "SubmitController.OtherMethod",
     };
 
     private static readonly Assembly[] ControllerAssemblies =

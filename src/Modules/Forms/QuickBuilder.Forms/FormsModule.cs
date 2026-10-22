@@ -2,10 +2,12 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using QuickBuilder.Forms.Features.RefreshFormRegistry;
+using QuickBuilder.Forms.Features.Submit;
 using QuickBuilder.Forms.Infrastructure;
 using QuickBuilder.Pages.Contracts.Events;
 using QuickBuilder.Shared.Infrastructure.Modules;
 using QuickBuilder.Shared.Infrastructure.MultiSite;
+using QuickBuilder.Shared.Kernel.Dispatch;
 using QuickBuilder.Shared.Kernel.Events;
 
 namespace QuickBuilder.Forms;
@@ -49,6 +51,10 @@ public static class FormsModule
         services.AddScoped<IIntegrationEventHandler<PageUnpublished>, RefreshFormRegistryHandler>();
         services.AddScoped<IIntegrationEventHandler<ComponentPublished>, RefreshFormRegistryHandler>();
         services.AddScoped<IIntegrationEventHandler<ComponentUnpublished>, RefreshFormRegistryHandler>();
+
+        // Research FS-06 to FS-09: the public submit endpoint.
+        services.AddScoped<LiveFormLocator>();
+        services.AddScoped<ICommandHandler<SubmitCommand, SubmitResult>, SubmitHandler>();
 
         return services;
     }

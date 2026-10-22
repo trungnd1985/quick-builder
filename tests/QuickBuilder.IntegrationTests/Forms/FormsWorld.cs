@@ -96,6 +96,39 @@ internal sealed class FormsWorld : IDisposable
             .ThenBy(p => p.SubjectKind, StringComparer.Ordinal)
             .ToList());
 
+    /// <summary>A visitor of site A (or another host).</summary>
+    public HttpClient Visitor(string host = CmsScenario.HostA) => App.CreateClientForHost(host);
+
+    /// <summary>
+    /// Posts a form as a browser does: urlencoded, the page's hidden fields, then the values.
+    /// With <paramref name="json"/>, as the form script does.
+    /// </summary>
+    public async Task<HttpResponseMessage> SubmitAsync(
+        string formId, Guid pageId, string path, IEnumerable<KeyValuePair<string, string>> values, bool json = false, string host = CmsScenario.HostA)
+    {
+        using var client = App.CreateClientForHost(host);
+        using var request = new HttpRequestMessage(HttpMethod.Post, new Uri($"/_forms/{formId}", UriKind.Relative))
+        {
+            Content = new FormUrlEncodedContent(
+                [new("_page", pageId.ToString()), new("_path", path), .. values]),
+        };
+        if (json)
+        {
+            request.Headers.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/json"));
+        }
+
+        var response = await client.SendAsync(request).ConfigureAwait(false);
+        await response.Content.LoadIntoBufferAsync().ConfigureAwait(false);
+        return response;
+    }
+
+    /// <summary>A site's stored submissions, oldest first.</summary>
+    public Task<List<QuickBuilder.Forms.Domain.Submission>> SubmissionsAsync(Guid? site = null) =>
+        WithFormsAsync(database => database.ForSite<QuickBuilder.Forms.Domain.Submission>(site ?? Site)
+            .AsNoTracking()
+            .OrderBy(s => s.ReceivedAtUtc)
+            .ToListAsync());
+
     /// <summary>A page document: one Section holding the given blocks, after any component references.</summary>
     public static string Page(IEnumerable<Guid> componentIds, params string[] blocks)
     {

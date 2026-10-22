@@ -262,6 +262,7 @@ can see it is told honestly that they may not do this particular thing.
 | `GET\|HEAD /{path}` and any other method on it (public surface, 012 `RenderPage`) | Published pages for site visitors, and `405` for other methods; justified by 012 FR-022 |
 | `GET\|HEAD /_assets/blocks.{hash}.css` (public surface, 012 `ServeBlockStylesheet`) | The published pages' stylesheet; justified by 012 research PR-10 |
 | `GET\|HEAD /sitemap.xml`, `/sitemap-{n}.xml`, `/robots.txt` (public surface, 017 `Sitemap`, `Robots`) | Crawlers never authenticate; justified by 017 FR-023, FR-025 |
+| `POST /_forms/{formId}`, and any other method on `/_forms/**` (public surface, 018 `Submit`) | Form submissions from site visitors, who never authenticate, and the `405` for other methods; justified by 018 FR-015 |
 | `/admin/**` static assets and the SPA fallback | The shell has to load in order to show the sign-in screen |
 
 Adding to this list means changing this document, the list in the architecture test,
