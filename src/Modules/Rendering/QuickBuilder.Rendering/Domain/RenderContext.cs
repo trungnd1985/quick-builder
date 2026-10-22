@@ -117,6 +117,18 @@ internal sealed class RenderContext(RenderInputs inputs, BlockDefaults defaults)
     /// </summary>
     public bool NavigationScriptWritten { get; set; }
 
+    /// <summary>
+    /// Whether the form script has been written into this page (018 research FS-10). The page's
+    /// policy then admits it, and lets forms post and fetch to the site (FS-11).
+    /// </summary>
+    public bool FormScriptWritten { get; set; }
+
+    /// <summary>
+    /// The origins of external addresses forms on this page redirect to after a submission: the
+    /// page's <c>form-action</c> must name them, as browsers apply it to that redirect (FS-11).
+    /// </summary>
+    public SortedSet<string> FormActionOrigins { get; } = new(StringComparer.Ordinal);
+
     /// <summary>The per-node rules collected so far, for the page's style element.</summary>
     public string NodeRules => _rules.ToString();
 

@@ -280,8 +280,11 @@ ownership of page HTML; Forms only supplies the state.
 
 **Decision**:
 - `FormScript`: one inline script, written once per page that has a form, admitted by its
-  SHA-256 in the CSP like 024's `NavScript`. Its text is a constant in `FormScript.cs`, so no
-  build step links the admin and the server. Target ≤ 6 KB minified (FR-010 allows 15 KB).
+  SHA-256 in the CSP like 024's `NavScript`. Its text is `Resources/form-script.js`, embedded
+  and loaded by `FormScript.cs` (changed during implementation: a C# string constant made the
+  escapes in its patterns fragile), so no
+  build step links the admin and the server. At most 8 KB, hand-written without a minifier
+  (FR-010 allows 15 KB).
 - It:
   - sets `novalidate` and checks fields on submit (and on blur after a first attempt) with
     `formRules`, showing the same messages and summary as the server;

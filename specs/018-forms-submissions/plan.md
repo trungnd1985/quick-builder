@@ -42,7 +42,7 @@ The approach, detailed in [research.md](./research.md):
   - server-rendered, accessible markup;
   - success without scripts by redirect and `:target`, so pages stay cached;
   - refusals re-rendered by Rendering outside the cache through a new `IFormResponsePage`;
-  - one inline script (≤ 6 KB) admitted by hash;
+  - one inline script (≤ 8 KB) admitted by hash;
   - CSP `form-action` and `connect-src` only on pages with a form.
 - **Email** (FS-17 to FS-19): an `IEmailSender` abstraction in Shared.Infrastructure over
   MailKit, with a leased, at-most-once worker, retries for an hour and more, and plain-text
@@ -93,7 +93,7 @@ server-rendered public site.
   page render.
 - **Email**: 95 % handed to a reachable server within 1 minute (SC-005); the worker polls every
   5 s.
-- **Published JS**: at most 6 KB inline, only on pages with a form (FR-010 allows 15 KB).
+- **Published JS**: at most 8 KB inline, only on pages with a form (FR-010 allows 15 KB).
 
 **Constraints**:
 - **Personal data**: no submitted value, recipient, search word or client address in logs,
@@ -129,7 +129,7 @@ this section).*
 | V | Multi-Site Within One Installation | **Complies.** <br>• All seven tables carry `site_id` with the global filter. <br>• **Filter bypasses**: the notification worker and the sweep run across sites, each with a code comment and a dedicated test (as `ThumbnailWorker`). <br>• **Raw SQL**: the rate-window upsert only, parameterised, with the site explicit and a test proving it. <br>• Submissions are accepted only on the form's own site's host names (site resolution + the live-page check). <br>• **Isolation suite**: + `FormsIsolationProbe`. |
 | VI | Content Schemas Are Versioned Contracts | **Complies.** <br>• `form` is an additive node in page-schema v1 with golden examples run by both validators. <br>• Field ids are stable and key stored values. <br>• One `$defs` entry, one canvas component, one renderer; no other block changes. <br>• Value and setup rules shared through fixtures. |
 | VII | Draft and Published Are Separate Worlds | **Complies.** Form changes reach visitors only through page or component publish; the endpoint validates against live documents only (FS-07). Rendering stays read-only; submissions are written by Forms, not by the rendering path. |
-| VIII | Rendering Is Server-Side, Cached and Correctly Invalidated | **Complies.** <br>• The form is rendered on the server inside the cached page; no new dependency edge is needed, because the form is part of the document. <br>• Visitor-specific output (refusals) is never cached (FS-09); success uses a cached page plus a fragment. <br>• Script ≤ 6 KB, inline by hash, enhancement only. <br>• `FormRenderPerformanceTests`. |
+| VIII | Rendering Is Server-Side, Cached and Correctly Invalidated | **Complies.** <br>• The form is rendered on the server inside the cached page; no new dependency edge is needed, because the form is part of the document. <br>• Visitor-specific output (refusals) is never cached (FS-09); success uses a cached page plus a fragment. <br>• Script ≤ 8 KB, inline by hash, enhancement only. <br>• `FormRenderPerformanceTests`. |
 | IX | Secure by Default | **Complies.** <br>• **Encoding**: every label, message and value through `HtmlWriter`; emails plain text; CSV formula neutralisation. <br>• **Input bounds**: 256 KB body, field counts and lengths, urlencoded only. <br>• **Abuse**: rate limit, trap, duplicate suppression. <br>• **CSP**: `form-action` and `connect-src` widened only on pages with a form; the script by hash. <br>• **Email**: header injection impossible by construction; no clear-text password to a non-loopback server; password from secrets only. <br>• **Authorization**: capabilities on every admin operation; the public endpoint on the anonymous allow-list with its justification. <br>• **Privacy**: no addresses stored with submissions; no values, recipients or search words in logs or audit; retention and spam purge. |
 | X | Test-First for Behaviour, Tests Always for Contracts | **Complies.** Integration tests for every endpoint (Testcontainers PostgreSQL and Mailpit); golden files for the `form` node and its HTML; unit tests for rules, outcome order and state transitions; 80 % line coverage on submit, rules, worker and sweep. The release smoke test gains a form submission. |
 | XI | Simplicity and Incremental Delivery | **Complies.** <br>• **One dependency** (MailKit), justified (FS-18). <br>• **Not built**: field child blocks, conditional logic, file uploads, a form library, per-site SMTP, CAPTCHA, webhooks, trigram search, an external script file. <br>• **Reuse**: publishing events, readers, `PagePicker`, `PublicTexts`, the throttle upsert technique, the retention-service pattern. <br>• **Delivery**: one PR. If it must split: (1) the module, the block, submit, Submissions and retention (US1–US3); (2) notifications and email (US4); (3) the trap, Spam list, rate limit and duplicate suppression (US5). Each is usable alone, but forms should not face the public internet before (3). |

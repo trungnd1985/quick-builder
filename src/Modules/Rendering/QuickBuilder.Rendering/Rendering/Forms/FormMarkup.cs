@@ -85,6 +85,23 @@ internal static class FormMarkup
 
         writer.Close("form");
         writer.Close("div");
+
+        // FS-11: browsers apply form-action to the redirect after a submission, so the page's
+        // policy names the origin of an external redirect target.
+        if (context.Prop(node, "redirect") is { ValueKind: JsonValueKind.Object } redirect
+            && redirect.TryGetProperty("href", out var href)
+            && Uri.TryCreate(href.GetString(), UriKind.Absolute, out var target)
+            && target.Scheme is "https" or "http")
+        {
+            context.FormActionOrigins.Add(target.GetLeftPart(UriPartial.Authority));
+        }
+
+        // FS-10: one script for every form of the page, admitted by its hash.
+        if (!context.FormScriptWritten)
+        {
+            writer.Markup(FormScript.Element);
+            context.FormScriptWritten = true;
+        }
     }
 
     /// <summary>The form's error or rate-limit message, focused on load (public-forms.md §2.4).</summary>
@@ -144,7 +161,16 @@ internal static class FormMarkup
         switch (type)
         {
             case "radio" or "checkboxes":
-                writer.Open("fieldset").Attribute("class", "qb-form__field qb-form__group").Attribute("aria-describedby", describes).EndTag();
+                writer.Open("fieldset").Attribute("class", "qb-form__field qb-form__group").Attribute("aria-describedby", describes);
+                FieldData(field, id, writer);
+                if (type == "checkboxes")
+                {
+                    writer.Attribute("data-required", required ? "required" : null)
+                        .Attribute("data-min", Number(field, "minSelected"))
+                        .Attribute("data-max", Number(field, "maxSelected"));
+                }
+
+                writer.EndTag();
                 writer.Open("legend").Attribute("class", "qb-form__label").EndTag();
                 Label(field, required, view.Texts, writer);
                 writer.Close("legend");
@@ -184,7 +210,9 @@ internal static class FormMarkup
                 return;
 
             case "checkbox" or "consent":
-                writer.Open("div").Attribute("class", "qb-form__field qb-form__check").EndTag();
+                writer.Open("div").Attribute("class", "qb-form__field qb-form__check");
+                FieldData(field, id, writer);
+                writer.EndTag();
                 writer.Open("input").Attribute("id", inputId).Attribute("type", "checkbox")
                     .Attribute("name", $"f.{id}").Attribute("value", "yes").Attribute("aria-describedby", describes);
                 if (required)
@@ -222,7 +250,9 @@ internal static class FormMarkup
                 return;
 
             default:
-                writer.Open("div").Attribute("class", "qb-form__field").EndTag();
+                writer.Open("div").Attribute("class", "qb-form__field");
+                FieldData(field, id, writer);
+                writer.EndTag();
                 writer.Open("label").Attribute("class", "qb-form__label").Attribute("for", inputId).EndTag();
                 Label(field, required, view.Texts, writer);
                 writer.Close("label");
@@ -342,6 +372,10 @@ internal static class FormMarkup
             writer.Attribute("data-msg", own);
         }
     }
+
+    /// <summary>What the form script reads of a field: its id and the label its messages name.</summary>
+    private static void FieldData(JsonElement field, string id, HtmlWriter writer) =>
+        writer.Attribute("data-field", id).Attribute("data-label", Text(field, "label"));
 
     private static void Label(JsonElement field, bool required, FormTexts texts, HtmlWriter writer)
     {

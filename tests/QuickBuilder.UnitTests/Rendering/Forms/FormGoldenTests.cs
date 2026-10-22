@@ -55,7 +55,7 @@ public sealed class FormGoldenTests
             """);
 
         Assert.Contains(
-            "<div class=\"qb-form__field\"><label class=\"qb-form__label\" for=\"qb-p.contact-form-f-a00000000001\">Name<span class=\"qb-form__req\"> (required)</span></label>"
+            "<div class=\"qb-form__field\" data-field=\"a00000000001\" data-label=\"Name\"><label class=\"qb-form__label\" for=\"qb-p.contact-form-f-a00000000001\">Name<span class=\"qb-form__req\"> (required)</span></label>"
             + "<p class=\"qb-form__help\" id=\"qb-p.contact-form-h-a00000000001\">As on your passport.</p>"
             + "<input class=\"qb-form__input\" id=\"qb-p.contact-form-f-a00000000001\" name=\"f.a00000000001\" type=\"text\" required=\"required\" minlength=\"2\" maxlength=\"80\" placeholder=\"Jane\" aria-describedby=\"qb-p.contact-form-h-a00000000001\"></div>",
             html,
@@ -78,7 +78,7 @@ public sealed class FormGoldenTests
 
         Assert.Contains("<select class=\"qb-form__input\" id=\"qb-p.contact-form-f-b00000000001\" name=\"f.b00000000001\"><option value=\"\"></option><option value=\"sales\">Sales</option><option value=\"support\">Support</option></select>", html, StringComparison.Ordinal);
         Assert.Contains(
-            "<fieldset class=\"qb-form__field qb-form__group\"><legend class=\"qb-form__label\">Contact by<span class=\"qb-form__req\"> (required)</span></legend>"
+            "<fieldset class=\"qb-form__field qb-form__group\" data-field=\"b00000000002\" data-label=\"Contact by\"><legend class=\"qb-form__label\">Contact by<span class=\"qb-form__req\"> (required)</span></legend>"
             + "<div class=\"qb-form__choice\"><input id=\"qb-p.contact-form-f-b00000000002-0\" type=\"radio\" name=\"f.b00000000002\" value=\"email\" required=\"required\"><label for=\"qb-p.contact-form-f-b00000000002-0\">Email</label></div></fieldset>",
             html,
             StringComparison.Ordinal);
@@ -95,7 +95,7 @@ public sealed class FormGoldenTests
             """);
 
         Assert.Contains(
-            "<div class=\"qb-form__field qb-form__check\"><input id=\"qb-p.contact-form-f-c00000000001\" type=\"checkbox\" name=\"f.c00000000001\" value=\"yes\" required=\"required\">"
+            "<div class=\"qb-form__field qb-form__check\" data-field=\"c00000000001\" data-label=\"Consent\"><input id=\"qb-p.contact-form-f-c00000000001\" type=\"checkbox\" name=\"f.c00000000001\" value=\"yes\" required=\"required\">"
             + "<label class=\"qb-form__label\" for=\"qb-p.contact-form-f-c00000000001\">I agree.<span class=\"qb-form__req\"> (required)</span></label>"
             + "<p class=\"qb-form__help\"><a class=\"qb-form__link\" href=\"/privacy\">Privacy policy</a></p></div>",
             html,
@@ -140,8 +140,11 @@ public sealed class FormGoldenTests
         var harness = new RenderHarness { CurrentPageId = Contact, Path = "/contact", FormState = state };
         var form = $$"""{ "id": "contact-form", "type": "form", "props": { "name": "Contact", "fields": [ {{fields}} ]{{props}} }, "children": [] }""";
         var other = """{ "id": "other-form", "type": "form", "props": { "name": "Other", "fields": [ { "id": "a00000000001", "type": "text", "label": "Name" } ] }, "children": [] }""";
-        return harness.Page(RenderHarness.Document($$"""[{ "id": "s", "type": "section", "props": {}, "children": [ {{form}}, {{other}} ] }]"""));
+        return WithoutScript(harness.Page(RenderHarness.Document($$"""[{ "id": "s", "type": "section", "props": {}, "children": [ {{form}}, {{other}} ] }]""")));
     }
+
+    private static string WithoutScript(string html) =>
+        html.Replace(QuickBuilder.Rendering.Rendering.Forms.FormScript.Element, string.Empty, StringComparison.Ordinal);
 
     private static FormState State(
         Dictionary<string, IReadOnlyList<string>> values, Dictionary<string, string> errors, FormBanner banner = FormBanner.None) =>
@@ -188,7 +191,7 @@ public sealed class FormGoldenTests
         Assert.Contains(">Far too long a message</textarea>", html, StringComparison.Ordinal);
         Assert.Contains("<option value=\"sales\" selected=\"selected\">Sales</option>", html, StringComparison.Ordinal);
         Assert.Contains("name=\"f.a00000000005\" value=\"b\" checked=\"checked\" aria-invalid=\"true\">", html, StringComparison.Ordinal);
-        Assert.Contains("<fieldset class=\"qb-form__field qb-form__group\" aria-describedby=\"qb-p.contact-form-e-a00000000005\">", html, StringComparison.Ordinal);
+        Assert.Contains("<fieldset class=\"qb-form__field qb-form__group\" aria-describedby=\"qb-p.contact-form-e-a00000000005\" data-field=\"a00000000005\" data-label=\"Pick\" data-min=\"2\">", html, StringComparison.Ordinal);
 
         // The state applies to its form only.
         var other = html[html.IndexOf("id=\"qb-p.other-form\"", StringComparison.Ordinal)..];
