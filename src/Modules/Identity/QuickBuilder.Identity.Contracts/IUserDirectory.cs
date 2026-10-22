@@ -14,4 +14,11 @@ public sealed record UserSummaryDto(Guid Id, string DisplayName);
 public interface IUserDirectory
 {
     Task<IReadOnlyList<UserSummaryDto>> FindManyAsync(IReadOnlyCollection<Guid> userIds, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// The address of the signed-in user, for a message they asked to receive themselves, such
+    /// as a test email (018 FR-037). Null for an unknown id. Other people's addresses are never
+    /// given out.
+    /// </summary>
+    Task<string?> OwnEmailAsync(Guid userId, CancellationToken cancellationToken = default);
 }

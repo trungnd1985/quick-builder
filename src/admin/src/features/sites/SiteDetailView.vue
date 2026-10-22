@@ -11,6 +11,7 @@ import SearchVisibilityPanel from './SearchVisibilityPanel.vue'
 import HostNameList from './HostNameList.vue'
 import LanguageSelect from './LanguageSelect.vue'
 import { isOutOfDate, siteErrorMessage } from './siteErrors'
+import { UNREAD_CAP, useUnreadCount } from '../forms/useUnreadCount'
 
 // 009: one site's settings (US1), host names (US2) and availability (US4). Everyone who
 // can see the site sees every setting; only what the server says they may change is
@@ -22,6 +23,8 @@ const sites = useSitesStore()
 const auth = useAuthStore()
 
 const siteId = computed(() => String(route.params.siteId))
+// 018: the unread badge beside Submissions.
+const { count: unread } = useUnreadCount(siteId)
 const site = ref<Site | null>(null)
 const loading = ref(true)
 const loadError = ref<string | null>(null)
@@ -169,6 +172,14 @@ watch(siteId, load)
         <!-- 024: menus, shown by Navigation blocks; Editors see them read-only. -->
         <RouterLink :to="{ name: 'site-menus', params: { siteId: site.id } }">
           {{ t('sites.detail.menus') }}
+        </RouterLink>
+        <!-- 018: every site role reads submissions; the badge counts unread ones. -->
+        <RouterLink :to="{ name: 'site-submissions', params: { siteId: site.id } }">
+          {{ t('sites.detail.submissions') }}
+          <span
+            v-if="unread > 0"
+            class="badge"
+          >{{ unread >= UNREAD_CAP ? t('sites.detail.unreadMany') : t('sites.detail.unread', { count: unread }) }}</span>
         </RouterLink>
         <RouterLink :to="{ name: 'site-collections', params: { siteId: site.id } }">
           {{ t('sites.detail.collections') }}

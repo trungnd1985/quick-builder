@@ -60,6 +60,133 @@ internal sealed class FormsDbContext(DbContextOptions<FormsDbContext> options, I
             .AcrossAllSites("Operation on a site named explicitly: in the admin route (001 FR-011b), or chosen by background work.")
             .Where(e => e.SiteId == siteId);
 
+    /// <summary>
+    /// Every form of any site with a retention period (018 FR-023a): the sweep's starting point.
+    /// </summary>
+    /// <remarks>
+    /// One of the module's cross-site reads, with the notification worker's two: background
+    /// work has no site and must first learn which sites have work. Each form is then swept
+    /// through <see cref="ForSite{T}"/> on its own site. <c>FormsSweepTests</c> covers it.
+    /// </remarks>
+    internal async Task<List<(Guid SiteId, string FormId, int Days)>> FormsWithRetentionAsync(CancellationToken cancellationToken)
+    {
+        var forms = await Set<FormRecord>()
+            .AcrossAllSites("The retention sweep first finds which forms keep submissions for a limited time; each is then swept on its own site (018 FR-023a).")
+            .AsNoTracking()
+            .Where(f => f.RetentionDays != null)
+            .Select(f => new { f.SiteId, f.FormId, Days = f.RetentionDays!.Value })
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        return [.. forms.Select(f => (f.SiteId, f.FormId, f.Days))];
+    }
+
+    /// <summary>
+    /// Claims the next due notification of any site (018 research FS-17): marks it sending under
+    /// a lease and counts the attempt, in one statement that commits on its own. Null when none
+    /// is due.
+    /// </summary>
+    /// <remarks>
+    /// The notification worker's cross-site read, the module's other one besides the sweep's:
+    /// background work has no site. <c>FOR UPDATE SKIP LOCKED</c> lets several instances claim
+    /// side by side without ever taking the same delivery. The worker then reads the submission
+    /// and its form through <see cref="ForSite{T}"/> on the claimed site.
+    /// </remarks>
+    internal async Task<(Guid SubmissionId, Guid SiteId)?> ClaimNextDeliveryAsync(DateTimeOffset now, CancellationToken cancellationToken)
+    {
+        var leaseUntil = now + NotificationDelivery.Lease;
+        var claimed = await Database.SqlQuery<ClaimedDelivery>($"""
+            UPDATE forms.notification_deliveries
+            SET state = 'sending', attempts = attempts + 1, lease_until_utc = {leaseUntil}, next_attempt_at_utc = NULL
+            WHERE submission_id = (
+                SELECT submission_id FROM forms.notification_deliveries
+                WHERE state = 'pending' AND next_attempt_at_utc <= {now}
+                ORDER BY next_attempt_at_utc
+                LIMIT 1
+                FOR UPDATE SKIP LOCKED)
+            RETURNING submission_id AS "SubmissionId", site_id AS "SiteId"
+            """).ToListAsync(cancellationToken).ConfigureAwait(false);
+
+        return claimed is [var one] ? (one.SubmissionId, one.SiteId) : null;
+    }
+
+    /// <summary>
+    /// Fails every delivery whose lease ran out, on any site, as interrupted, and shows it on
+    /// its submission (FS-17): its message may have left, so it is never sent again. Returns
+    /// how many.
+    /// </summary>
+    /// <remarks>The notification worker's, with <see cref="ClaimNextDeliveryAsync"/>.</remarks>
+    internal Task<int> FailExpiredLeasesAsync(DateTimeOffset now, CancellationToken cancellationToken) =>
+        Database.ExecuteSqlAsync($"""
+            WITH expired AS (
+                UPDATE forms.notification_deliveries
+                SET state = 'failed', last_error = {NotificationDelivery.InterruptedReason}, lease_until_utc = NULL, next_attempt_at_utc = NULL
+                WHERE state = 'sending' AND lease_until_utc < {now}
+                RETURNING submission_id)
+            UPDATE forms.submissions s SET notification_state = 'failed'
+            FROM expired e WHERE s.id = e.submission_id
+            """, cancellationToken);
+
+    /// <summary>
+    /// Counts one submit request of a client on a site in its current minute and hour windows,
+    /// and returns both counts (018 research FS-13).
+    /// </summary>
+    /// <remarks>
+    /// One atomic upsert, so instances share the counts without a cache. Raw SQL bypasses the
+    /// site filter, so the site is stated in the statement itself; <c>SpamAndRateLimitTests</c>
+    /// proves another site's windows are untouched.
+    /// </remarks>
+    internal async Task<(int Minute, int Hour)> CountRequestAsync(
+        Guid siteId, byte[] clientKey, DateTimeOffset minuteStart, DateTimeOffset hourStart, CancellationToken cancellationToken)
+    {
+        var counts = await Database.SqlQuery<WindowCount>($"""
+            INSERT INTO forms.rate_windows AS w (site_id, client_key, window_kind, window_start_utc, count)
+            VALUES ({siteId}, {clientKey}, 'minute', {minuteStart}, 1), ({siteId}, {clientKey}, 'hour', {hourStart}, 1)
+            ON CONFLICT (site_id, client_key, window_kind, window_start_utc) DO UPDATE SET count = w.count + 1
+            RETURNING w.window_kind AS "Kind", w.count AS "Count"
+            """).ToListAsync(cancellationToken).ConfigureAwait(false);
+
+        return (counts.Single(c => c.Kind == RateWindowKinds.Minute).Count, counts.Single(c => c.Kind == RateWindowKinds.Hour).Count);
+    }
+
+    /// <summary>
+    /// Adds one to a form's spam counter of the day (018 FR-019), when the site has that form:
+    /// a request naming a form that never existed counts nowhere, so made-up ids cannot grow
+    /// the table.
+    /// </summary>
+    /// <remarks>The site is stated in the statement, as for <see cref="CountRequestAsync"/>.</remarks>
+    internal Task<int> CountSpamAsync(Guid siteId, string formId, DateOnly day, string kind, CancellationToken cancellationToken)
+    {
+        var kept = kind == SpamCounterKinds.TrappedKept ? 1 : 0;
+        var dropped = kind == SpamCounterKinds.TrappedDropped ? 1 : 0;
+        var limited = kind == SpamCounterKinds.RateLimited ? 1 : 0;
+        return Database.ExecuteSqlAsync($"""
+            INSERT INTO forms.spam_counters AS c (site_id, form_id, day, trapped_kept, trapped_dropped, rate_limited)
+            SELECT {siteId}, {formId}, {day}, {kept}, {dropped}, {limited}
+            WHERE EXISTS (SELECT 1 FROM forms.forms f WHERE f.site_id = {siteId} AND f.form_id = {formId})
+            ON CONFLICT (site_id, form_id, day) DO UPDATE SET
+                trapped_kept = c.trapped_kept + EXCLUDED.trapped_kept,
+                trapped_dropped = c.trapped_dropped + EXCLUDED.trapped_dropped,
+                rate_limited = c.rate_limited + EXCLUDED.rate_limited
+            """, cancellationToken);
+    }
+
+    /// <summary>
+    /// Holds a transaction-scoped advisory lock on a fingerprint's first 8 bytes (018 research
+    /// FS-14), so two instances receiving the same submission at once check for each other's in
+    /// turn. Released at commit or rollback.
+    /// </summary>
+    internal Task LockFingerprintAsync(byte[] fingerprint, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(fingerprint);
+        var key = BitConverter.ToInt64(fingerprint, 0);
+        return Database.ExecuteSqlAsync($"SELECT pg_advisory_xact_lock({key})", cancellationToken);
+    }
+
+    /// <summary>Makes the open transaction read-only, so the export cannot change what it reads (FS-16). Reads no rows.</summary>
+    internal Task MakeTransactionReadOnlyAsync(CancellationToken cancellationToken) =>
+        Database.ExecuteSqlAsync($"SET TRANSACTION READ ONLY", cancellationToken);
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         ArgumentNullException.ThrowIfNull(modelBuilder);
@@ -190,3 +317,9 @@ internal sealed class FormsDbContext(DbContextOptions<FormsDbContext> options, I
         base.OnModelCreating(modelBuilder);
     }
 }
+
+/// <summary>A claimed delivery: which submission, on which site.</summary>
+internal sealed record ClaimedDelivery(Guid SubmissionId, Guid SiteId);
+
+/// <summary>One window's count after a request was counted in it.</summary>
+internal sealed record WindowCount(string Kind, int Count);

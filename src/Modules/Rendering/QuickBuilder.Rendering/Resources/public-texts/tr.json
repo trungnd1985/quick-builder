@@ -39,6 +39,16 @@
       "choice": "{label} için bir seçenek seçin.",
       "tooFew": "{label} için en az {min} seçenek seçin.",
       "tooMany": "{label} için en fazla {max} seçenek seçin."
+    },
+    "notification": {
+      "subject": "Yeni gönderim: {form}",
+      "intro": "Birisi {site} üzerinde \"{form}\" formunu gönderdi.",
+      "page": "Sayfa",
+      "received": "Alındı",
+      "open": "Yönetim panelinde açın:",
+      "openWithoutLink": "Okumak için yönetim panelinde Gönderimler’i açın.",
+      "valuesOff": "Değerler bu e-postada yer almıyor. Okumak için gönderimi yönetim panelinde açın.",
+      "footer": "{site} tarafından gönderildi."
     }
   }
 }

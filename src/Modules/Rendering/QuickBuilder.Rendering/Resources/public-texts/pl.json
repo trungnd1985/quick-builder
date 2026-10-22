@@ -39,6 +39,16 @@
       "choice": "Wybierz opcję w polu {label}.",
       "tooFew": "Wybierz co najmniej {min} opcje w polu {label}.",
       "tooMany": "Wybierz najwyżej {max} opcje w polu {label}."
+    },
+    "notification": {
+      "subject": "Nowe zgłoszenie: {form}",
+      "intro": "Ktoś wysłał formularz „{form}” w serwisie {site}.",
+      "page": "Strona",
+      "received": "Otrzymano",
+      "open": "Otwórz je w panelu administracyjnym:",
+      "openWithoutLink": "Aby je przeczytać, otwórz Zgłoszenia w panelu administracyjnym.",
+      "valuesOff": "Wartości nie zostały dołączone do tej wiadomości. Aby je przeczytać, otwórz zgłoszenie w panelu administracyjnym.",
+      "footer": "Wysłane przez {site}."
     }
   }
 }

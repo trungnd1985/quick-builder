@@ -39,6 +39,16 @@
       "choice": "Alegeți o opțiune pentru {label}.",
       "tooFew": "Alegeți cel puțin {min} opțiuni pentru {label}.",
       "tooMany": "Alegeți cel mult {max} opțiuni pentru {label}."
+    },
+    "notification": {
+      "subject": "Trimitere nouă: {form}",
+      "intro": "Cineva a trimis formularul „{form}” pe {site}.",
+      "page": "Pagina",
+      "received": "Primit",
+      "open": "Deschideți-o în administrare:",
+      "openWithoutLink": "Deschideți Trimiteri în administrare pentru a o citi.",
+      "valuesOff": "Valorile nu sunt incluse în acest e-mail. Deschideți trimiterea în administrare pentru a le citi.",
+      "footer": "Trimis de {site}."
     }
   }
 }

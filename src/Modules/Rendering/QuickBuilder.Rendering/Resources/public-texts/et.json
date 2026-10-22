@@ -39,6 +39,16 @@
       "choice": "Valige väljale {label} üks variant.",
       "tooFew": "Valige väljale {label} vähemalt {min} varianti.",
       "tooMany": "Valige väljale {label} kõige rohkem {max} varianti."
+    },
+    "notification": {
+      "subject": "Uus saadetis: {form}",
+      "intro": "Keegi saatis vormi „{form}“ saidil {site}.",
+      "page": "Leht",
+      "received": "Saabunud",
+      "open": "Ava see halduses:",
+      "openWithoutLink": "Selle lugemiseks ava halduses Saadetised.",
+      "valuesOff": "Väärtusi selles e-kirjas ei ole. Nende lugemiseks ava saadetis halduses.",
+      "footer": "Saatis {site}."
     }
   }
 }

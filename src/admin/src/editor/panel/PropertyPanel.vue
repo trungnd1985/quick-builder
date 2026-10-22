@@ -369,6 +369,7 @@ function goToField(fieldId: string): void {
             v-else-if="field.control === 'formRetention'"
             v-bind="field"
             :site-id="store.siteId"
+            :form-id="node.id"
             :error="errors[field.prop]"
             @change="change(field, $event)"
           />

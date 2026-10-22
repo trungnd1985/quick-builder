@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Text.Json;
+using QuickBuilder.Rendering.Contracts;
 
 namespace QuickBuilder.Rendering.Features.NotFound;
 
@@ -87,8 +88,9 @@ internal sealed record NavigationTexts(string Menu, string ShowSubmenu, string N
 
 /// <summary>
 /// A form's words (018 public-forms.md §2.3): its default button, messages and summary heading,
-/// the required marker, the trap field's label, and one message per value code with
-/// <c>{label}</c>, <c>{min}</c> and <c>{max}</c> to fill in.
+/// the required marker, the trap field's label, one message per value code with
+/// <c>{label}</c>, <c>{min}</c> and <c>{max}</c> to fill in, and the notification email's words
+/// (research FS-19).
 /// </summary>
 internal sealed record FormTexts(
     string Submit,
@@ -98,7 +100,8 @@ internal sealed record FormTexts(
     string Summary,
     string Required,
     string Trap,
-    IReadOnlyDictionary<string, string> Rules)
+    IReadOnlyDictionary<string, string> Rules,
+    FormNotificationTexts Notification)
 {
     /// <summary>The catalogue's rule keys, by value code (public-forms.md §4).</summary>
     public static IReadOnlyDictionary<string, string> CodeKeys { get; } = new Dictionary<string, string>(StringComparer.Ordinal)
@@ -127,6 +130,7 @@ internal sealed record FormTexts(
     internal static FormTexts Read(JsonElement forms)
     {
         var rules = forms.GetProperty("rules");
+        var notification = forms.GetProperty("notification");
         return new FormTexts(
             forms.GetProperty("submit").GetString()!,
             forms.GetProperty("success").GetString()!,
@@ -135,6 +139,21 @@ internal sealed record FormTexts(
             forms.GetProperty("summary").GetString()!,
             forms.GetProperty("required").GetString()!,
             forms.GetProperty("trap").GetString()!,
-            CodeKeys.ToDictionary(c => c.Key, c => rules.GetProperty(c.Value).GetString()!, StringComparer.Ordinal));
+            CodeKeys.ToDictionary(c => c.Key, c => rules.GetProperty(c.Value).GetString()!, StringComparer.Ordinal),
+            new FormNotificationTexts(
+                notification.GetProperty("subject").GetString()!,
+                notification.GetProperty("intro").GetString()!,
+                notification.GetProperty("page").GetString()!,
+                notification.GetProperty("received").GetString()!,
+                notification.GetProperty("open").GetString()!,
+                notification.GetProperty("openWithoutLink").GetString()!,
+                notification.GetProperty("valuesOff").GetString()!,
+                notification.GetProperty("footer").GetString()!));
     }
+}
+
+/// <summary>The notification words for Forms (018 FS-19), read from the public catalogue.</summary>
+internal sealed class FormNotificationTextCatalogue : IFormNotificationTexts
+{
+    public FormNotificationTexts For(string? language) => PublicTexts.For(language).Forms.Notification;
 }

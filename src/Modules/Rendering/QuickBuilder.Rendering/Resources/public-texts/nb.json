@@ -39,6 +39,16 @@
       "choice": "Velg et alternativ for {label}.",
       "tooFew": "Velg minst {min} alternativer for {label}.",
       "tooMany": "Velg maks {max} alternativer for {label}."
+    },
+    "notification": {
+      "subject": "Ny innsending: {form}",
+      "intro": "Noen sendte skjemaet «{form}» på {site}.",
+      "page": "Side",
+      "received": "Mottatt",
+      "open": "Åpne den i administrasjonen:",
+      "openWithoutLink": "Åpne Innsendinger i administrasjonen for å lese den.",
+      "valuesOff": "Verdiene er ikke med i denne e-posten. Åpne innsendingen i administrasjonen for å lese dem.",
+      "footer": "Sendt av {site}."
     }
   }
 }

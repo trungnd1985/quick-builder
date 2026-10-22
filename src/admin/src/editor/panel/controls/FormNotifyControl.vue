@@ -2,11 +2,13 @@
 // Who is told about a submission, and how (018 FR-031 to FR-033, clarification 4): up to ten
 // recipients, a subject, whether the email carries the submitted values, and which email field
 // a reply goes to. A reply address needs the values in the email, so it is off while they are.
-import { computed, ref, watch } from 'vue'
+// When the installation has no outgoing email, the control says so (FR-037).
+import { computed, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { ControlProps } from './types'
 import { isObject, type Json, type JsonObject } from '../../schema/subsetValidator'
 import { useEditorStore } from '../../state/editorStore'
+import { emailConfigured } from './emailStatus'
 
 const props = defineProps<ControlProps>()
 const emit = defineEmits<{ change: [value: Json | undefined] }>()
@@ -19,6 +21,11 @@ const stored = computed<JsonObject>(() => (isObject(props.value) ? props.value :
 const recipientsText = ref('')
 const subject = ref('')
 const problem = ref<string | null>(null)
+// Unknown until asked; a failed call shows no warning rather than a wrong one.
+const emailOn = ref(true)
+onMounted(async () => {
+  emailOn.value = await emailConfigured()
+})
 
 const sync = (value: JsonObject) => {
   recipientsText.value = Array.isArray(value.recipients) ? value.recipients.filter((r) => typeof r === 'string').join('\n') : ''
@@ -76,6 +83,13 @@ function commitRecipients(): void {
     <legend class="editor-field__label">
       {{ label }}
     </legend>
+    <p
+      v-if="!emailOn"
+      class="warning"
+      role="note"
+    >
+      {{ t('editor.form.notify.emailOff') }}
+    </p>
     <div class="field">
       <label :for="`${id}-recipients`">{{ t('editor.form.notify.recipients') }}</label>
       <textarea

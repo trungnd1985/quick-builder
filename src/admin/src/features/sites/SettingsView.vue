@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
+import { useAuthStore } from '../../app/authStore'
+import TestEmailPanel from '../settings/TestEmailPanel.vue'
 
-// FR-042 requires at least one placeholder screen. This is it: a second route proves
-// client-side routing and the deep-link fallback work, without inventing functionality
-// no spec asks for.
+// FR-042 required a placeholder screen; 018 FR-037 gives it its first content: outgoing email,
+// for Administrators.
 const { t } = useI18n()
+const auth = useAuthStore()
 </script>
 
 <template>
@@ -12,7 +14,11 @@ const { t } = useI18n()
     <h1 id="settings-heading">
       {{ t('settings.title') }}
     </h1>
-    <p class="subtitle">
+    <TestEmailPanel v-if="auth.isAdministrator" />
+    <p
+      v-else
+      class="subtitle"
+    >
       {{ t('settings.placeholder') }}
     </p>
   </section>

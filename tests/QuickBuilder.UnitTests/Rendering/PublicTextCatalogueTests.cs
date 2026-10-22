@@ -67,6 +67,37 @@ public sealed class PublicTextCatalogueTests
     }
 
     [Fact]
+    public void Every_language_has_the_notification_words_with_the_english_placeholders()
+    {
+        // 018 research FS-19: an email whose subject lost {form} would not say which form was sent.
+        var english = Words(PublicTexts.For(PublicTexts.Fallback).Forms.Notification);
+
+        foreach (var tag in PublicTexts.Languages)
+        {
+            var words = Words(PublicTexts.For(tag).Forms.Notification);
+            foreach (var (name, text) in words)
+            {
+                Assert.False(string.IsNullOrWhiteSpace(text), $"{tag} has an empty notification text '{name}'.");
+                Assert.True(
+                    Placeholders(text) == Placeholders(english[name]),
+                    $"{tag} {name}: '{text}' does not carry the placeholders of '{english[name]}'.");
+            }
+        }
+
+        static Dictionary<string, string> Words(QuickBuilder.Rendering.Contracts.FormNotificationTexts t) => new(StringComparer.Ordinal)
+        {
+            ["subject"] = t.Subject,
+            ["intro"] = t.Intro,
+            ["page"] = t.Page,
+            ["received"] = t.Received,
+            ["open"] = t.Open,
+            ["openWithoutLink"] = t.OpenWithoutLink,
+            ["valuesOff"] = t.ValuesOff,
+            ["footer"] = t.Footer,
+        };
+    }
+
+    [Fact]
     public void A_language_without_a_file_falls_back_to_english()
     {
         Assert.Equal(PublicTexts.For("en"), PublicTexts.For("xx-Future"));

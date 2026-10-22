@@ -39,6 +39,16 @@
       "choice": "Wählen Sie eine Option für {label}.",
       "tooFew": "Wählen Sie mindestens {min} Optionen für {label}.",
       "tooMany": "Wählen Sie höchstens {max} Optionen für {label}."
+    },
+    "notification": {
+      "subject": "Neue Einsendung: {form}",
+      "intro": "Jemand hat das Formular „{form}“ auf {site} abgeschickt.",
+      "page": "Seite",
+      "received": "Eingegangen",
+      "open": "Im Verwaltungsbereich öffnen:",
+      "openWithoutLink": "Öffnen Sie „Einsendungen“ im Verwaltungsbereich, um sie zu lesen.",
+      "valuesOff": "Die Werte sind in dieser E-Mail nicht enthalten. Öffnen Sie die Einsendung im Verwaltungsbereich, um sie zu lesen.",
+      "footer": "Gesendet von {site}."
     }
   }
 }

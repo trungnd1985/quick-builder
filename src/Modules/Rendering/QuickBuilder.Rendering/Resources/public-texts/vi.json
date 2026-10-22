@@ -39,6 +39,16 @@
       "choice": "Hãy chọn một mục cho {label}.",
       "tooFew": "Hãy chọn ít nhất {min} mục cho {label}.",
       "tooMany": "Hãy chọn tối đa {max} mục cho {label}."
+    },
+    "notification": {
+      "subject": "Bài gửi mới: {form}",
+      "intro": "Có người đã gửi biểu mẫu \"{form}\" trên {site}.",
+      "page": "Trang",
+      "received": "Nhận lúc",
+      "open": "Mở trong trang quản trị:",
+      "openWithoutLink": "Mở mục Bài gửi trong trang quản trị để đọc.",
+      "valuesOff": "Email này không kèm các giá trị. Mở bài gửi trong trang quản trị để đọc.",
+      "footer": "Gửi từ {site}."
     }
   }
 }

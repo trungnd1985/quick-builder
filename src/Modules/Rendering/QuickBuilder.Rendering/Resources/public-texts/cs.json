@@ -39,6 +39,16 @@
       "choice": "Vyberte možnost pro pole {label}.",
       "tooFew": "Vyberte pro pole {label} alespoň {min} možnosti.",
       "tooMany": "Vyberte pro pole {label} nejvýše {max} možnosti."
+    },
+    "notification": {
+      "subject": "Nové odeslání: {form}",
+      "intro": "Někdo odeslal formulář „{form}“ na webu {site}.",
+      "page": "Stránka",
+      "received": "Přijato",
+      "open": "Otevřete jej v administraci:",
+      "openWithoutLink": "Otevřete Odeslání v administraci a přečtěte si jej.",
+      "valuesOff": "Hodnoty nejsou v tomto e-mailu uvedeny. Přečtete si je po otevření odeslání v administraci.",
+      "footer": "Odesláno webem {site}."
     }
   }
 }

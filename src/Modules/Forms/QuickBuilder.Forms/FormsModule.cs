@@ -1,14 +1,26 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
+using QuickBuilder.Forms.Features;
+using QuickBuilder.Forms.Features.DeleteSubmissions;
+using QuickBuilder.Forms.Features.ExportSubmissions;
+using QuickBuilder.Forms.Features.GetSubmission;
+using QuickBuilder.Forms.Features.ListForms;
+using QuickBuilder.Forms.Features.ListSubmissions;
+using QuickBuilder.Forms.Features.MarkSubmission;
 using QuickBuilder.Forms.Features.RefreshFormRegistry;
+using QuickBuilder.Forms.Features.RetentionImpact;
 using QuickBuilder.Forms.Features.Submit;
+using QuickBuilder.Forms.Features.TestEmail;
+using QuickBuilder.Forms.Features.UnreadCount;
 using QuickBuilder.Forms.Infrastructure;
 using QuickBuilder.Pages.Contracts.Events;
 using QuickBuilder.Shared.Infrastructure.Modules;
 using QuickBuilder.Shared.Infrastructure.MultiSite;
 using QuickBuilder.Shared.Kernel.Dispatch;
 using QuickBuilder.Shared.Kernel.Events;
+using QuickBuilder.Shared.Kernel.Results;
 
 namespace QuickBuilder.Forms;
 
@@ -55,6 +67,45 @@ public static class FormsModule
         // Research FS-06 to FS-09: the public submit endpoint.
         services.AddScoped<LiveFormLocator>();
         services.AddScoped<ICommandHandler<SubmitCommand, SubmitResult>, SubmitHandler>();
+
+        // Research FS-15 to FS-17, FS-20: Submissions in the admin.
+        services.AddScoped<FormsAccess>();
+        services.AddScoped<SubmissionReads>();
+        services.AddScoped<SubmissionLog>();
+        services.AddScoped<SubmissionExport>();
+        services.AddScoped<IQueryHandler<ListFormsQuery, Result<FormListResponse>>, ListFormsHandler>();
+        services.AddScoped<IQueryHandler<ListSubmissionsQuery, Result<SubmissionListResponse>>, ListSubmissionsHandler>();
+        services.AddScoped<ICommandHandler<GetSubmissionCommand, Result<SubmissionResponse>>, GetSubmissionHandler>();
+        services.AddScoped<ICommandHandler<MarkSubmissionCommand, Result>, MarkSubmissionHandler>();
+        services.AddScoped<ICommandHandler<TestEmailCommand, Result<TestEmailResponse>>, TestEmailHandler>();
+        services.AddScoped<ICommandHandler<DeleteSubmissionsCommand, Result<DeletedResponse>>, DeleteSubmissionsHandler>();
+        services.AddScoped<ICommandHandler<ExportSubmissionsCommand, Result>, ExportSubmissionsHandler>();
+        services.AddScoped<IQueryHandler<UnreadCountQuery, Result<CountResponse>>, UnreadCountHandler>();
+        services.AddScoped<IQueryHandler<RetentionImpactQuery, Result<CountResponse>>, RetentionImpactHandler>();
+
+        // Research FS-13: the per-address rate limit, its settings checked at startup.
+        services
+            .AddOptions<FormsOptions>()
+            .Bind(configuration.GetSection(FormsOptions.SectionName))
+            .ValidateOnStart();
+        services.AddSingleton<IValidateOptions<FormsOptions>, FormsOptionsValidator>();
+        services.AddScoped<RateWindows>();
+
+        // Research FS-17 to FS-19: notifications, built from the form's last published settings
+        // and sent by one worker per instance. The admin link comes from configuration, read
+        // when first needed, never from a request (002 FR-011b).
+        services.AddSingleton(sp =>
+        {
+            var settings = sp.GetRequiredService<IConfiguration>();
+            return new AdminLinks(settings["Hosting:PublicUrl"] ?? string.Empty, settings["Admin:PathPrefix"] is { Length: > 0 } prefix ? prefix : "/admin");
+        });
+        services.AddScoped<NotificationComposer>();
+        services.AddSingleton<NotificationWorker>();
+        services.AddHostedService(sp => sp.GetRequiredService<NotificationWorker>());
+
+        // Research FS-17: the hourly sweep (retention).
+        services.AddSingleton<FormsSweepService>();
+        services.AddHostedService(sp => sp.GetRequiredService<FormsSweepService>());
 
         return services;
     }

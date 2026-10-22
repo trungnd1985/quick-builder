@@ -39,6 +39,16 @@
       "choice": "Odaberite opciju za {label}.",
       "tooFew": "Odaberite najmanje {min} opcije za {label}.",
       "tooMany": "Odaberite najviše {max} opcije za {label}."
+    },
+    "notification": {
+      "subject": "Nova prijava: {form}",
+      "intro": "Netko je poslao obrazac „{form}” na {site}.",
+      "page": "Stranica",
+      "received": "Primljeno",
+      "open": "Otvorite je u administraciji:",
+      "openWithoutLink": "Otvorite Prijave u administraciji da biste je pročitali.",
+      "valuesOff": "Vrijednosti nisu uključene u ovu poruku. Otvorite prijavu u administraciji da biste ih pročitali.",
+      "footer": "Poslao {site}."
     }
   }
 }

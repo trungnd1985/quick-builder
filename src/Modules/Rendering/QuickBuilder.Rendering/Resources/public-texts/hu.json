@@ -39,6 +39,16 @@
       "choice": "Válasszon egy lehetőséget: {label}.",
       "tooFew": "Válasszon legalább {min} lehetőséget: {label}.",
       "tooMany": "Válasszon legfeljebb {max} lehetőséget: {label}."
+    },
+    "notification": {
+      "subject": "Új beküldés: {form}",
+      "intro": "Valaki elküldte a(z) „{form}” űrlapot itt: {site}.",
+      "page": "Oldal",
+      "received": "Beérkezett",
+      "open": "Nyissa meg az adminisztrációban:",
+      "openWithoutLink": "Az elolvasásához nyissa meg a Beküldések oldalt az adminisztrációban.",
+      "valuesOff": "Az értékek nem szerepelnek ebben a levélben. Az elolvasásukhoz nyissa meg a beküldést az adminisztrációban.",
+      "footer": "Küldte: {site}."
     }
   }
 }

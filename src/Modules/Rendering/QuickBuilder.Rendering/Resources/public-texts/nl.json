@@ -39,6 +39,16 @@
       "choice": "Kies een optie voor {label}.",
       "tooFew": "Kies minstens {min} opties voor {label}.",
       "tooMany": "Kies maximaal {max} opties voor {label}."
+    },
+    "notification": {
+      "subject": "Nieuwe inzending: {form}",
+      "intro": "Iemand heeft het formulier ‘{form}’ verstuurd op {site}.",
+      "page": "Pagina",
+      "received": "Ontvangen",
+      "open": "Open het in het beheer:",
+      "openWithoutLink": "Open Inzendingen in het beheer om het te lezen.",
+      "valuesOff": "De waarden staan niet in deze e-mail. Open de inzending in het beheer om ze te lezen.",
+      "footer": "Verzonden door {site}."
     }
   }
 }

@@ -7,6 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 using QuickBuilder.ArchitectureTests.Fixtures;
 using QuickBuilder.Cms;
 using QuickBuilder.Editor;
+using QuickBuilder.Forms;
 using QuickBuilder.Identity;
 using QuickBuilder.Media;
 using QuickBuilder.Pages;
@@ -95,7 +96,8 @@ public sealed class AuthorizationDeclarationTests
             .AddMediaModule(configuration)
             .AddPagesModule(configuration)
             .AddEditorModule(configuration)
-            .AddCmsModule(configuration);
+            .AddCmsModule(configuration)
+            .AddFormsModule(configuration);
 
         return services
             .Where(d => d.ServiceType == typeof(CapabilityDefinition))

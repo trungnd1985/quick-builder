@@ -39,6 +39,16 @@
       "choice": "Pasirinkite lauko {label} parinktį.",
       "tooFew": "Lauke {label} pasirinkite bent {min} parinktis.",
       "tooMany": "Lauke {label} pasirinkite ne daugiau kaip {max} parinktis."
+    },
+    "notification": {
+      "subject": "Naujas pateikimas: {form}",
+      "intro": "Kažkas išsiuntė formą „{form}“ svetainėje {site}.",
+      "page": "Puslapis",
+      "received": "Gauta",
+      "open": "Atidarykite administravime:",
+      "openWithoutLink": "Norėdami perskaityti, administravime atidarykite Pateikimus.",
+      "valuesOff": "Reikšmių šiame laiške nėra. Norėdami jas perskaityti, atidarykite pateikimą administravime.",
+      "footer": "Išsiuntė {site}."
     }
   }
 }

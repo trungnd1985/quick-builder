@@ -39,6 +39,16 @@
       "choice": "Välj ett alternativ för {label}.",
       "tooFew": "Välj minst {min} alternativ för {label}.",
       "tooMany": "Välj högst {max} alternativ för {label}."
+    },
+    "notification": {
+      "subject": "Nytt inskick: {form}",
+      "intro": "Någon skickade formuläret ”{form}” på {site}.",
+      "page": "Sida",
+      "received": "Mottaget",
+      "open": "Öppna det i administrationen:",
+      "openWithoutLink": "Öppna Inskick i administrationen för att läsa det.",
+      "valuesOff": "Värdena finns inte med i det här e-postmeddelandet. Öppna inskicket i administrationen för att läsa dem.",
+      "footer": "Skickat av {site}."
     }
   }
 }

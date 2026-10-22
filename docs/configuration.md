@@ -182,6 +182,33 @@ how late one can be.
 Feature 024 adds no configuration keys. Menu limits (50 menus per site, 300 entries, three
 levels) are part of the menu contract, not settings.
 
+## Email
+
+Outgoing email sends form notifications and the test email (018). All keys are optional:
+leave `Email:Smtp:Host` empty and the installation sends no email at all, makes no
+connection, and shows editors that notifications are off.
+
+| Key | Default | Meaning |
+|---|---|---|
+| `Email:Smtp:Host` | *(empty: email off)* | The mail server's host name or address. |
+| `Email:Smtp:Port` | `587` | 1 to 65535. Usually 587 with `StartTls`, 465 with `SslOnConnect`. |
+| `Email:Smtp:Security` | `StartTls` | `None`, `StartTls` (encrypt before anything is sent; the server must offer it) or `SslOnConnect`. The server's certificate must be trusted by the container. |
+| `Email:Smtp:UserName` | *(empty)* | Sign-in name. Empty means no sign-in. |
+| `Email:Smtp:Password` | *(empty)* | Sign-in password. **A secret**: set it through the environment (`Email__Smtp__Password`) or a mounted secret file, never in a committed file. It is never stored in the database or shown in the admin. |
+| `Email:Smtp:From` | — | The sender address, such as `website@example.com`. Required when `Host` is set. |
+| `Email:Smtp:FromName` | `QuickBuilder` | The sender name, at most 100 characters. |
+| `Email:Smtp:Timeout` | `00:00:30` | How long one attempt may take, from 5 seconds to 5 minutes. |
+
+Startup stops, naming the key, when `Host` is set without a valid `From`, or when a value
+is out of range. It also stops when `Security` is `None` and a `UserName` is set for a
+mail server on another machine: the password would cross the network unencrypted. On the
+same machine (`localhost`, `127.0.0.1`, `::1`) that is allowed.
+
+Links in notifications point at the submission in the admin and are built from
+`Hosting:PublicUrl` and `Admin:PathPrefix`, never from a request. With email on and
+`Hosting:PublicUrl` empty, emails say "Open Submissions in the admin" without a link, and
+startup logs a warning.
+
 ## Cache
 
 | Key | Default | Meaning |

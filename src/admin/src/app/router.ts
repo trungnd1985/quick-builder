@@ -65,6 +65,9 @@ export function createAppRouter(history: RouterHistory = createWebHistory('/admi
       // 024: menus and their entries; Editors see them read-only, the server checks regardless.
       { path: '/sites/:siteId/menus', name: 'site-menus', component: () => import('../features/menus/MenusView.vue') },
       { path: '/sites/:siteId/menus/:menuId', name: 'site-menu', component: () => import('../features/menus/MenuEditorView.vue') },
+      // 018: every site role reads submissions; the server decides who may delete them.
+      { path: '/sites/:siteId/submissions', name: 'site-submissions', component: () => import('../features/forms/SubmissionsView.vue') },
+      { path: '/sites/:siteId/submissions/:submissionId', name: 'site-submission', component: () => import('../features/forms/SubmissionDetail.vue') },
       // 011 ED-22: the editor loads on demand, so TipTap and the canvas stay out of the shell's
       // main chunk. It uses the whole window, without the navigation frame.
       {

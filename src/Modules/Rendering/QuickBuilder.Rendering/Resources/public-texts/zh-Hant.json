@@ -39,6 +39,16 @@
       "choice": "請為{label}選擇一個選項。",
       "tooFew": "請為{label}至少選擇 {min} 個選項。",
       "tooMany": "請為{label}最多選擇 {max} 個選項。"
+    },
+    "notification": {
+      "subject": "新的提交：{form}",
+      "intro": "有人在 {site} 上提交了表單「{form}」。",
+      "page": "頁面",
+      "received": "接收時間",
+      "open": "在管理後台中開啟：",
+      "openWithoutLink": "請在管理後台開啟「提交」查看。",
+      "valuesOff": "此郵件未包含填寫內容。請在管理後台開啟該提交查看。",
+      "footer": "由 {site} 傳送。"
     }
   }
 }

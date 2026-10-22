@@ -39,6 +39,16 @@
       "choice": "{label}의 옵션을 선택하세요.",
       "tooFew": "{label}에서 {min}개 이상 선택하세요.",
       "tooMany": "{label}에서 {max}개 이하로 선택하세요."
+    },
+    "notification": {
+      "subject": "새 제출: {form}",
+      "intro": "{site}에서 누군가 \"{form}\" 양식을 보냈습니다.",
+      "page": "페이지",
+      "received": "받은 시간",
+      "open": "관리 화면에서 열기:",
+      "openWithoutLink": "읽으려면 관리 화면에서 제출 목록을 여세요.",
+      "valuesOff": "이 메일에는 입력값이 포함되어 있지 않습니다. 관리 화면에서 제출을 열어 확인하세요.",
+      "footer": "{site}에서 보냄."
     }
   }
 }

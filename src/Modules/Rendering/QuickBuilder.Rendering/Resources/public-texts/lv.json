@@ -39,6 +39,16 @@
       "choice": "Izvēlieties opciju laukam {label}.",
       "tooFew": "Laukam {label} izvēlieties vismaz {min} opcijas.",
       "tooMany": "Laukam {label} izvēlieties ne vairāk kā {max} opcijas."
+    },
+    "notification": {
+      "subject": "Jauns iesniegums: {form}",
+      "intro": "Kāds nosūtīja veidlapu “{form}” vietnē {site}.",
+      "page": "Lapa",
+      "received": "Saņemts",
+      "open": "Atveriet to administrācijā:",
+      "openWithoutLink": "Lai to izlasītu, administrācijā atveriet Iesniegumus.",
+      "valuesOff": "Vērtības šajā e-pastā nav iekļautas. Lai tās izlasītu, atveriet iesniegumu administrācijā.",
+      "footer": "Nosūtīja {site}."
     }
   }
 }

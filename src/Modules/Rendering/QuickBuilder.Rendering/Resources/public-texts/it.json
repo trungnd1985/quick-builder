@@ -39,6 +39,16 @@
       "choice": "Scegli un’opzione per {label}.",
       "tooFew": "Scegli almeno {min} opzioni per {label}.",
       "tooMany": "Scegli al massimo {max} opzioni per {label}."
+    },
+    "notification": {
+      "subject": "Nuovo invio: {form}",
+      "intro": "Qualcuno ha inviato il modulo «{form}» su {site}.",
+      "page": "Pagina",
+      "received": "Ricevuto",
+      "open": "Aprilo nell’amministrazione:",
+      "openWithoutLink": "Apri Invii nell’amministrazione per leggerlo.",
+      "valuesOff": "I valori non sono inclusi in questa email. Apri l’invio nell’amministrazione per leggerli.",
+      "footer": "Inviato da {site}."
     }
   }
 }

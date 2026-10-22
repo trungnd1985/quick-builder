@@ -32,8 +32,28 @@ internal sealed class FormsWorld : IDisposable
 
     public Guid SiteB => Scenario.SiteB;
 
-    public static async Task<FormsWorld> CreateAsync(Infrastructure.DatabaseFixture database, string label, Action<IServiceCollection>? configureTestServices = null) =>
-        new(await CmsScenario.CreateAsync(database, label, configureTestServices).ConfigureAwait(false));
+    public static async Task<FormsWorld> CreateAsync(
+        Infrastructure.DatabaseFixture database, string label, Action<IServiceCollection>? configureTestServices = null, IReadOnlyDictionary<string, string>? settings = null) =>
+        new(await CmsScenario.CreateAsync(database, label, configureTestServices, WithDefaults(settings)).ConfigureAwait(false));
+
+    /// <summary>
+    /// Every request in a test comes from one address, so the rate limit would stop any test
+    /// that sends more than five submissions. Limits are high unless a test sets its own.
+    /// </summary>
+    private static Dictionary<string, string> WithDefaults(IReadOnlyDictionary<string, string>? settings)
+    {
+        var merged = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["Forms:RateLimit:PerMinute"] = "1000",
+            ["Forms:RateLimit:PerHour"] = "10000",
+        };
+        foreach (var (key, value) in settings ?? new Dictionary<string, string>())
+        {
+            merged[key] = value;
+        }
+
+        return merged;
+    }
 
     /// <summary>A signed-in user holding the given site roles.</summary>
     public Task<HttpClient> UserAsync(params (Guid SiteId, SystemRole Role)[] roles) => Scenario.UserAsync(roles);

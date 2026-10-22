@@ -39,6 +39,16 @@
       "choice": "Pilih satu pilihan untuk {label}.",
       "tooFew": "Pilih sekurang-kurangnya {min} pilihan untuk {label}.",
       "tooMany": "Pilih tidak lebih daripada {max} pilihan untuk {label}."
+    },
+    "notification": {
+      "subject": "Serahan baharu: {form}",
+      "intro": "Seseorang telah menghantar borang \"{form}\" di {site}.",
+      "page": "Halaman",
+      "received": "Diterima",
+      "open": "Bukanya dalam admin:",
+      "openWithoutLink": "Buka Serahan dalam admin untuk membacanya.",
+      "valuesOff": "Nilai tidak disertakan dalam e-mel ini. Buka serahan dalam admin untuk membacanya.",
+      "footer": "Dihantar oleh {site}."
     }
   }
 }

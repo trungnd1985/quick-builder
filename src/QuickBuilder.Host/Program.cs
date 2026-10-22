@@ -15,6 +15,7 @@ using QuickBuilder.Rendering;
 using QuickBuilder.Shared.Infrastructure;
 using QuickBuilder.Shared.Infrastructure.Caching;
 using QuickBuilder.Shared.Infrastructure.Commands;
+using QuickBuilder.Shared.Infrastructure.Email;
 using QuickBuilder.Shared.Infrastructure.Migrations;
 using QuickBuilder.Shared.Infrastructure.Outbox;
 using QuickBuilder.Shared.Infrastructure.Startup;
@@ -77,6 +78,14 @@ builder.Services
     .Bind(builder.Configuration.GetSection(TelemetryOptions.SectionName))
     .ValidateDataAnnotations()
     .ValidateOnStart();
+
+// 018 research FS-18: outgoing email. An empty Email:Smtp:Host turns it off; anything else
+// must name a sender and never sign in unencrypted to another machine.
+builder.Services
+    .AddOptions<SmtpOptions>()
+    .Bind(builder.Configuration.GetSection(SmtpOptions.SectionName))
+    .ValidateOnStart();
+builder.Services.AddEmail();
 
 // --- Shared services ---------------------------------------------------------------
 builder.Services.AddSingleton<IOutboxSettingsProvider, OutboxSettingsProvider>();

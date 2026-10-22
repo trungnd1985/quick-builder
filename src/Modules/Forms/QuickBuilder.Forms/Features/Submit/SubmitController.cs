@@ -88,7 +88,7 @@ public sealed class SubmitController(IDispatcher dispatcher, ICurrentSite curren
         var basePath = Request.PathBase.Value ?? string.Empty;
 
         var result = await dispatcher.SendAsync(
-                new SubmitCommand(site, formId, form["_page"].FirstOrDefault(), form["_path"].FirstOrDefault(), values, form["_hp"].FirstOrDefault(), basePath),
+                new SubmitCommand(site, formId, form["_page"].FirstOrDefault(), form["_path"].FirstOrDefault(), values, form["_hp"].FirstOrDefault(), basePath, HttpContext.Connection.RemoteIpAddress),
                 cancellationToken)
             .ConfigureAwait(false);
 

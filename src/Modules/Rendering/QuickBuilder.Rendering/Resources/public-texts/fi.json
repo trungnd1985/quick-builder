@@ -39,6 +39,16 @@
       "choice": "Valitse vaihtoehto kenttään {label}.",
       "tooFew": "Valitse kenttään {label} vähintään {min} vaihtoehtoa.",
       "tooMany": "Valitse kenttään {label} enintään {max} vaihtoehtoa."
+    },
+    "notification": {
+      "subject": "Uusi lähetys: {form}",
+      "intro": "Joku lähetti lomakkeen ”{form}” sivustolla {site}.",
+      "page": "Sivu",
+      "received": "Vastaanotettu",
+      "open": "Avaa se hallinnassa:",
+      "openWithoutLink": "Avaa Lähetykset hallinnassa lukeaksesi sen.",
+      "valuesOff": "Arvoja ei ole tässä sähköpostissa. Avaa lähetys hallinnassa lukeaksesi ne.",
+      "footer": "Lähettäjä: {site}."
     }
   }
 }

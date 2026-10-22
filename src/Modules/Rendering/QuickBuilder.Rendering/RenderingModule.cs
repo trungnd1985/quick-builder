@@ -55,6 +55,7 @@ public static class RenderingModule
 
         // 018 research FS-09: the page a refused form submission is shown on, never cached.
         services.AddScoped<IFormResponsePage, Features.FormResponse.FormResponsePage>();
+        services.AddSingleton<IFormNotificationTexts, Features.NotFound.FormNotificationTextCatalogue>();
 
         // 017 research SE-14 to SE-16: the sitemap and robots.txt.
         services.AddScoped<Features.Sitemap.SitemapBuilder>();

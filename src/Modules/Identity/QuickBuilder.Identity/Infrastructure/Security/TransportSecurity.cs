@@ -1,6 +1,6 @@
 using System.Net;
-using System.Net.Sockets;
 using Microsoft.Extensions.Options;
+using QuickBuilder.Shared.Kernel.Network;
 using QuickBuilder.Shared.Kernel.Results;
 
 namespace QuickBuilder.Identity.Infrastructure.Security;
@@ -26,27 +26,7 @@ internal sealed class TransportSecurity(IOptions<IdentityOptions> options)
     /// The throttling key for a client: the full IPv4 address, or the /64 prefix of an IPv6
     /// address, since one IPv6 subscriber typically controls a whole /64 (research R-07).
     /// </summary>
-    public static string ClientKey(IPAddress? address)
-    {
-        if (address is null)
-        {
-            return "unknown";
-        }
-
-        if (address.IsIPv4MappedToIPv6)
-        {
-            address = address.MapToIPv4();
-        }
-
-        if (address.AddressFamily != AddressFamily.InterNetworkV6)
-        {
-            return address.ToString();
-        }
-
-        var bytes = address.GetAddressBytes();
-        Array.Clear(bytes, 8, 8);
-        return new IPAddress(bytes) + "/64";
-    }
+    public static string ClientKey(IPAddress? address) => ClientAddress.Group(address);
 
     public static bool IsLoopback(HttpContext context)
     {

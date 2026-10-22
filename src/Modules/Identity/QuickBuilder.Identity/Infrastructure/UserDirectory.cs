@@ -3,7 +3,10 @@ using QuickBuilder.Identity.Contracts;
 
 namespace QuickBuilder.Identity.Infrastructure;
 
-/// <summary>Identity's side of <see cref="IUserDirectory"/>: display names only, never emails.</summary>
+/// <summary>
+/// Identity's side of <see cref="IUserDirectory"/>: display names of anyone, and an address only
+/// for the user asking about themselves.
+/// </summary>
 internal sealed class UserDirectory(IdentityDbContext database) : IUserDirectory
 {
     public async Task<IReadOnlyList<UserSummaryDto>> FindManyAsync(IReadOnlyCollection<Guid> userIds, CancellationToken cancellationToken = default)
@@ -22,4 +25,11 @@ internal sealed class UserDirectory(IdentityDbContext database) : IUserDirectory
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
     }
+
+    public Task<string?> OwnEmailAsync(Guid userId, CancellationToken cancellationToken = default) =>
+        database.Users
+            .AsNoTracking()
+            .Where(u => u.Id == userId)
+            .Select(u => (string?)u.Email)
+            .SingleOrDefaultAsync(cancellationToken);
 }

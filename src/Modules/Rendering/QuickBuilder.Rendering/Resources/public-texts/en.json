@@ -39,6 +39,16 @@
       "choice": "Choose an option for {label}.",
       "tooFew": "Choose at least {min} options for {label}.",
       "tooMany": "Choose at most {max} options for {label}."
+    },
+    "notification": {
+      "subject": "New submission: {form}",
+      "intro": "Someone sent the form \"{form}\" on {site}.",
+      "page": "Page",
+      "received": "Received",
+      "open": "Open it in the admin:",
+      "openWithoutLink": "Open Submissions in the admin to read it.",
+      "valuesOff": "The values are not included in this email. Open the submission in the admin to read them.",
+      "footer": "Sent by {site}."
     }
   }
 }

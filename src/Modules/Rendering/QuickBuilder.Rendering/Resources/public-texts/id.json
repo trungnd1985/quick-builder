@@ -39,6 +39,16 @@
       "choice": "Pilih satu opsi untuk {label}.",
       "tooFew": "Pilih minimal {min} opsi untuk {label}.",
       "tooMany": "Pilih maksimal {max} opsi untuk {label}."
+    },
+    "notification": {
+      "subject": "Kiriman baru: {form}",
+      "intro": "Seseorang mengirim formulir \"{form}\" di {site}.",
+      "page": "Halaman",
+      "received": "Diterima",
+      "open": "Buka di admin:",
+      "openWithoutLink": "Buka Kiriman di admin untuk membacanya.",
+      "valuesOff": "Nilai tidak disertakan dalam email ini. Buka kiriman di admin untuk membacanya.",
+      "footer": "Dikirim oleh {site}."
     }
   }
 }

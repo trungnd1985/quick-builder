@@ -39,6 +39,16 @@
       "choice": "Vælg en mulighed for {label}.",
       "tooFew": "Vælg mindst {min} muligheder for {label}.",
       "tooMany": "Vælg højst {max} muligheder for {label}."
+    },
+    "notification": {
+      "subject": "Ny indsendelse: {form}",
+      "intro": "Nogen har sendt formularen \"{form}\" på {site}.",
+      "page": "Side",
+      "received": "Modtaget",
+      "open": "Åbn den i administrationen:",
+      "openWithoutLink": "Åbn Indsendelser i administrationen for at læse den.",
+      "valuesOff": "Værdierne er ikke med i denne e-mail. Åbn indsendelsen i administrationen for at læse dem.",
+      "footer": "Sendt af {site}."
     }
   }
 }

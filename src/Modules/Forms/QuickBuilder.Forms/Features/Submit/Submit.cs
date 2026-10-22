@@ -1,9 +1,11 @@
+using System.Net;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using QuickBuilder.Forms.Domain;
 using QuickBuilder.Forms.Infrastructure;
 using QuickBuilder.Pages.Contracts.Publishing;
+using QuickBuilder.Shared.Infrastructure.Email;
 using QuickBuilder.Shared.Kernel.Dispatch;
 using QuickBuilder.Shared.Kernel.Text;
 using QuickBuilder.Sites.Contracts;
@@ -18,6 +20,7 @@ namespace QuickBuilder.Forms.Features.Submit;
 /// <param name="Values">The posted <c>f.&lt;id&gt;</c> values, by field id; other keys are not here.</param>
 /// <param name="Trap">The posted <c>_hp</c>.</param>
 /// <param name="BasePath">The installation's base path, for a redirect to a page.</param>
+/// <param name="Client">The visitor's address, for the rate limit only; never stored as it is.</param>
 internal sealed record SubmitCommand(
     SiteDto Site,
     string FormId,
@@ -25,7 +28,8 @@ internal sealed record SubmitCommand(
     string? Path,
     IReadOnlyDictionary<string, IReadOnlyList<string>> Values,
     string? Trap,
-    string BasePath) : ICommand<SubmitResult>;
+    string BasePath,
+    IPAddress? Client = null) : ICommand<SubmitResult>;
 
 /// <summary>
 /// What the endpoint answers with: the outcome, the failing fields' codes, the values to show
@@ -52,6 +56,8 @@ internal sealed class SubmitHandler(
     FormsDbContext database,
     LiveFormLocator locator,
     IPublishedContentReader pages,
+    IEmailSender email,
+    RateWindows rateWindows,
     TimeProvider clock,
     ILogger<SubmitHandler> logger) : ICommandHandler<SubmitCommand, SubmitResult>
 {
@@ -62,8 +68,19 @@ internal sealed class SubmitHandler(
         ArgumentNullException.ThrowIfNull(command);
 
         var siteId = command.Site.Id;
+        var posted = command.Path is { Length: > 0 } given && given[0] == '/' ? given : "/";
+
+        // Row 1: every request counts, before anything is looked up, so a flood costs one upsert.
+        var rate = await rateWindows.CountAsync(siteId, command.Client, cancellationToken).ConfigureAwait(false);
+        if (rate.Limited)
+        {
+            await CountSpamAsync(siteId, command.FormId, SpamCounterKinds.RateLimited, cancellationToken).ConfigureAwait(false);
+            return new SubmitResult(
+                SubmitOutcome.Limited, new Dictionary<string, string>(), command.Values, Redirect: null, posted, (int)Math.Ceiling(rate.RetryAfter.TotalSeconds));
+        }
+
         var live = await locator.FindAsync(siteId, command.FormId, command.PageId, command.Path, cancellationToken).ConfigureAwait(false);
-        var path = live?.Path ?? (command.Path is { Length: > 0 } posted && posted[0] == '/' ? posted : "/");
+        var path = live?.Path ?? posted;
 
         if (live is null)
         {
@@ -84,19 +101,41 @@ internal sealed class SubmitHandler(
         }
 
         var shown = checkedValues.ToDictionary(c => c.Field.Id, c => c.Values, StringComparer.Ordinal);
-        var outcome = SubmitPolicy.Decide(new SubmitFacts(
-            RateLimited: false,
-            FormLive: true,
-            TrapFilled: false,
-            ValuesValid: errors.Count == 0,
-            Duplicate: false));
+        var trapped = !string.IsNullOrEmpty(command.Trap);
 
-        if (outcome != SubmitOutcome.Accepted)
+        // Rows 4 and 5: invalid values are refused, or silently dropped when the trap was filled.
+        if (errors.Count > 0)
         {
-            return new SubmitResult(outcome, errors, shown, Redirect: null, path);
+            var refused = SubmitPolicy.Decide(new SubmitFacts(RateLimited: false, FormLive: true, TrapFilled: trapped, ValuesValid: false, Duplicate: false));
+            if (refused == SubmitOutcome.Dropped)
+            {
+                await CountSpamAsync(siteId, live.Form.Id, SpamCounterKinds.TrappedDropped, cancellationToken).ConfigureAwait(false);
+                return await LooksAcceptedAsync(refused, siteId, live, shown, path, command.BasePath, cancellationToken).ConfigureAwait(false);
+            }
+
+            return new SubmitResult(refused, errors, shown, Redirect: null, path);
         }
 
         var now = clock.GetUtcNow();
+        var fingerprint = Fingerprint.Of(live.Form.Id, checkedValues.Select(c => (c.Field.Id, c.Values)));
+
+        await using var transaction = await database.Database.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
+
+        // Row 6 (FS-14): the lock makes two instances agree on which of two equal requests came first.
+        await database.LockFingerprintAsync(fingerprint, cancellationToken).ConfigureAwait(false);
+        var since = now - DuplicateWindow;
+        var duplicate = await database.Submissions
+            .AnyAsync(s => s.FormId == live.Form.Id && s.Fingerprint == fingerprint && s.ReceivedAtUtc >= since, cancellationToken)
+            .ConfigureAwait(false);
+
+        var outcome = SubmitPolicy.Decide(new SubmitFacts(RateLimited: false, FormLive: true, TrapFilled: trapped, ValuesValid: true, Duplicate: duplicate));
+        if (outcome == SubmitOutcome.Duplicate)
+        {
+            return await LooksAcceptedAsync(outcome, siteId, live, shown, path, command.BasePath, cancellationToken).ConfigureAwait(false);
+        }
+
+        // Row 7: a filled trap with valid values is kept in Spam and never notified (FR-016a).
+        var spam = outcome == SubmitOutcome.Spam;
         var submission = Submission.Receive(siteId, new SubmissionReceipt(
             live.Form.Id,
             live.Form.Name,
@@ -105,14 +144,23 @@ internal sealed class SubmitHandler(
             now,
             ValuesJson(checkedValues),
             SearchText.Normalise(string.Join(' ', checkedValues.SelectMany(c => c.Values))),
-            Fingerprint.Of(live.Form.Id, checkedValues.Select(c => (c.Field.Id, c.Values))),
-            IsSpam: false,
-            NotificationStates.Initial(hasRecipients: live.Form.Notify.Recipients.Count > 0, emailConfigured: false)));
+            fingerprint,
+            IsSpam: spam,
+            spam ? NotificationStates.None : NotificationStates.Initial(hasRecipients: live.Form.Notify.Recipients.Count > 0, emailConfigured: email.IsConfigured)));
 
         database.Submissions.Add(submission);
+
+        // FS-17: the notification waits in the same transaction as the submission, so a stored
+        // submission always has its delivery and a refused one never does.
+        if (submission.NotificationState == NotificationStates.Pending)
+        {
+            database.NotificationDeliveries.Add(NotificationDelivery.For(submission, now));
+        }
+
         try
         {
             await database.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+            await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
         }
         catch (DbUpdateException ex)
         {
@@ -120,13 +168,30 @@ internal sealed class SubmitHandler(
             return new SubmitResult(SubmitOutcome.Error, errors, shown, Redirect: null, path);
         }
 
-        return new SubmitResult(
-            SubmitOutcome.Accepted,
-            errors,
-            shown,
-            await RedirectAsync(siteId, live.Form.Redirect, command.BasePath, cancellationToken).ConfigureAwait(false),
-            path);
+        if (spam)
+        {
+            await CountSpamAsync(siteId, live.Form.Id, SpamCounterKinds.TrappedKept, cancellationToken).ConfigureAwait(false);
+        }
+
+        return await LooksAcceptedAsync(outcome, siteId, live, shown, path, command.BasePath, cancellationToken).ConfigureAwait(false);
     }
+
+    /// <summary>How long an identical submission of the same form is taken as a repeat (FS-14).</summary>
+    internal static readonly TimeSpan DuplicateWindow = TimeSpan.FromSeconds(10);
+
+    // Silent outcomes answer exactly as a success, redirect included, so a bot learns nothing (FR-016).
+    private async Task<SubmitResult> LooksAcceptedAsync(
+        SubmitOutcome outcome,
+        Guid siteId,
+        LiveForm live,
+        IReadOnlyDictionary<string, IReadOnlyList<string>> shown,
+        string path,
+        string basePath,
+        CancellationToken cancellationToken) =>
+        new(outcome, new Dictionary<string, string>(), shown, await RedirectAsync(siteId, live.Form.Redirect, basePath, cancellationToken).ConfigureAwait(false), path);
+
+    private Task<int> CountSpamAsync(Guid siteId, string formId, string kind, CancellationToken cancellationToken) =>
+        database.CountSpamAsync(siteId, formId, DateOnly.FromDateTime(clock.GetUtcNow().UtcDateTime), kind, cancellationToken);
 
     private static SubmitResult Refused(SubmitOutcome outcome, IReadOnlyDictionary<string, IReadOnlyList<string>> values, string path) =>
         new(outcome, new Dictionary<string, string>(), values, Redirect: null, path);

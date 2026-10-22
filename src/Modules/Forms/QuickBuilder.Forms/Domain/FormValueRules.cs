@@ -139,6 +139,9 @@ internal static partial class FormValueRules
         return multiLine ? text.TrimEnd() : text.Replace('\n', ' ').Trim();
     }
 
+    /// <summary>Whether <paramref name="value"/> passes the email rule, as a reply address must (FR-033).</summary>
+    public static bool IsEmail(string value) => Email().IsMatch(value);
+
     // The page schema's own email shape (form-block.md §2, formNotify.recipients): one @, no
     // spaces or control characters, a dot in the domain. No DNS lookup: the product works offline.
     [GeneratedRegex(@"^[^\x00-\x20\x7f@]+@[^\x00-\x20\x7f@]+\.[^\x00-\x20\x7f@]+$", RegexOptions.CultureInvariant)]

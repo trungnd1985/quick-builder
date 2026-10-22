@@ -77,7 +77,10 @@
       "design": "Design",
       "collections": "Collections",
       "redirects": "Redirects",
-      "menus": "Menus"
+      "menus": "Menus",
+      "submissions": "Submissions",
+      "unread": "{count} unread",
+      "unreadMany": "More than 999 unread"
     },
     "settings": {
       "heading": "Settings",
@@ -587,7 +590,18 @@
   },
   "settings": {
     "title": "Settings",
-    "placeholder": "Settings arrive with a later feature."
+    "placeholder": "Settings arrive with a later feature.",
+    "email": {
+      "heading": "Outgoing email",
+      "on": "Outgoing email is set up. Form notifications are sent through the mail server in the Email:Smtp settings.",
+      "off": "Outgoing email is not set up, so form notifications are not sent. Set the Email:Smtp settings and restart the server; see the configuration guide.",
+      "send": "Send test email",
+      "sending": "Sending…",
+      "sent": "The mail server accepted the test email. Check the inbox of {email}.",
+      "failed": "The mail server did not accept the test email: {reply}",
+      "failedNoReply": "The mail server could not be reached.",
+      "notConfigured": "Outgoing email is not set up."
+    }
   },
   "storageSettings": {
     "title": "Storage",
@@ -2638,6 +2652,80 @@
         "too_many_entries": "A menu can hold at most 300 entries.",
         "new_tab_not_allowed": "Only entries that link somewhere can open in a new tab."
       }
+    }
+  },
+  "forms": {
+    "submissions": {
+      "title": "Submissions",
+      "intro": "What visitors sent through the forms of {site}, newest first.",
+      "empty": "No submissions yet. They appear here when visitors send a published form.",
+      "emptyFiltered": "No submissions match these filters.",
+      "more": "Show more",
+      "export": "Export CSV",
+      "exportHelp": "Exports every submission that matches the filters, not only the ones shown.",
+      "delete": "Delete selected",
+      "deleteConfirm": "Delete {count} submission(s)? This cannot be undone.",
+      "deleted": "{count} submission(s) deleted.",
+      "selectAll": "Select all shown",
+      "select": "Select the submission of {when}",
+      "selected": "{count} selected",
+      "unread": "Unread",
+      "notPublished": "No longer published",
+      "keptFor": "Kept {days} days",
+      "keptUntilDeleted": "Kept until deleted",
+      "columns": {
+        "received": "Received",
+        "form": "Form",
+        "page": "Page",
+        "preview": "Content",
+        "status": "Status"
+      },
+      "formsHeading": "Forms"
+    },
+    "filters": {
+      "legend": "Filter submissions",
+      "form": "Form",
+      "allForms": "All forms",
+      "from": "From",
+      "to": "To",
+      "read": "Show",
+      "readAll": "All",
+      "readRead": "Read",
+      "readUnread": "Unread",
+      "search": "Search",
+      "searchHelp": "Finds submissions containing every word, in any field.",
+      "apply": "Apply",
+      "clear": "Clear filters"
+    },
+    "detail": {
+      "title": "Submission from {form}",
+      "back": "All submissions",
+      "received": "Received",
+      "page": "Sent from",
+      "retention": "Retention",
+      "values": "What was sent",
+      "noValue": "(empty)",
+      "markUnread": "Mark as unread",
+      "markRead": "Mark as read",
+      "markedUnread": "Marked as unread.",
+      "delete": "Delete",
+      "deleteConfirm": "Delete this submission? This cannot be undone.",
+      "notification": "Email notification",
+      "spam": "This submission was caught as spam."
+    },
+    "notification": {
+      "not_needed": "Not needed: the form has no recipients.",
+      "not_sent": "Not sent: outgoing email is not set up.",
+      "pending": "Waiting to be sent.",
+      "sent": "Sent.",
+      "failed": "Failed: the mail server did not accept it.",
+      "none": "None: spam is never notified."
+    },
+    "errors": {
+      "submission_not_found": "This submission no longer exists. It may have been deleted.",
+      "invalid_filter": "These filters cannot be used: {reason}",
+      "forbidden": "You do not have permission to do that on this site.",
+      "generic": "Something went wrong. Try again."
     }
   }
 }
