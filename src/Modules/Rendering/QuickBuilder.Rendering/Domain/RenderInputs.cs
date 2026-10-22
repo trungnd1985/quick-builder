@@ -36,6 +36,10 @@ namespace QuickBuilder.Rendering.Domain;
 /// <param name="ItemPatterns">Live template patterns by collection, for menu entries' item links.</param>
 /// <param name="CurrentPageId">The page being rendered (for an item page, its template), for active state (024 NV-11).</param>
 /// <param name="CurrentItemId">The item of an item page, for active state; null otherwise.</param>
+/// <param name="FormState">
+/// A refused submission's values and errors for one form (018 research FS-09); such a render is
+/// never cached.
+/// </param>
 internal sealed record RenderInputs(
     string Title,
     JsonElement Document,
@@ -56,4 +60,5 @@ internal sealed record RenderInputs(
     IReadOnlyDictionary<Guid, QuickBuilder.Cms.Contracts.Publishing.PublishedItem>? MenuItems = null,
     IReadOnlyDictionary<Guid, string>? ItemPatterns = null,
     Guid? CurrentPageId = null,
-    Guid? CurrentItemId = null);
+    Guid? CurrentItemId = null,
+    QuickBuilder.Rendering.Contracts.FormState? FormState = null);

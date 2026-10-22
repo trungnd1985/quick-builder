@@ -1,4 +1,5 @@
 using QuickBuilder.Pages.Contracts.Publishing;
+using QuickBuilder.Rendering.Contracts;
 
 namespace QuickBuilder.UnitTests.Rendering.Forms;
 
@@ -132,6 +133,96 @@ public sealed class FormGoldenTests
         Assert.Contains("<p>Thanks &amp; &quot;bye&quot;</p>", html, StringComparison.Ordinal);
         Assert.DoesNotContain("<script", html, StringComparison.Ordinal);
         Assert.DoesNotContain("<img", html, StringComparison.Ordinal);
+    }
+
+    private static string RenderWithState(string fields, FormState state, string props = "")
+    {
+        var harness = new RenderHarness { CurrentPageId = Contact, Path = "/contact", FormState = state };
+        var form = $$"""{ "id": "contact-form", "type": "form", "props": { "name": "Contact", "fields": [ {{fields}} ]{{props}} }, "children": [] }""";
+        var other = """{ "id": "other-form", "type": "form", "props": { "name": "Other", "fields": [ { "id": "a00000000001", "type": "text", "label": "Name" } ] }, "children": [] }""";
+        return harness.Page(RenderHarness.Document($$"""[{ "id": "s", "type": "section", "props": {}, "children": [ {{form}}, {{other}} ] }]"""));
+    }
+
+    private static FormState State(
+        Dictionary<string, IReadOnlyList<string>> values, Dictionary<string, string> errors, FormBanner banner = FormBanner.None) =>
+        new("contact-form", values, errors, banner);
+
+    [Fact]
+    public void A_refused_submission_keeps_the_values_and_says_what_is_wrong_where()
+    {
+        var html = RenderWithState(
+            """
+            { "id": "a00000000001", "type": "text", "label": "Name", "required": true },
+            { "id": "a00000000002", "type": "email", "label": "Email", "help": "We reply here." },
+            { "id": "a00000000003", "type": "textarea", "label": "Message", "maxLength": 10, "message": "Keep it short." },
+            { "id": "a00000000004", "type": "select", "label": "Topic", "options": [{ "value": "sales", "label": "Sales" }] },
+            { "id": "a00000000005", "type": "checkboxes", "label": "Pick", "minSelected": 2, "options": [{ "value": "a", "label": "A" }, { "value": "b", "label": "B" }] }
+            """,
+            State(
+                new()
+                {
+                    ["a00000000002"] = ["jane@"],
+                    ["a00000000003"] = ["Far too long a message"],
+                    ["a00000000004"] = ["sales"],
+                    ["a00000000005"] = ["b"],
+                },
+                new() { ["a00000000001"] = "required", ["a00000000002"] = "email", ["a00000000003"] = "too_long", ["a00000000005"] = "too_few" }));
+
+        // The summary: focused on load, every failing field in form order, each linking to its input.
+        Assert.Contains(
+            "<div class=\"qb-form__summary\" role=\"alert\" tabindex=\"-1\" autofocus=\"autofocus\"><h2>There is a problem</h2><ul>"
+            + "<li><a href=\"#qb-p.contact-form-f-a00000000001\">Name is required.</a></li>"
+            + "<li><a href=\"#qb-p.contact-form-f-a00000000002\">Email must be an email address.</a></li>"
+            + "<li><a href=\"#qb-p.contact-form-f-a00000000003\">Keep it short.</a></li>"
+            + "<li><a href=\"#qb-p.contact-form-f-a00000000005-0\">Choose at least 2 options for Pick.</a></li></ul></div>",
+            html,
+            StringComparison.Ordinal);
+
+        // Each field: its message tied to it, aria-invalid, and the value as typed.
+        Assert.Contains(
+            "<p class=\"qb-form__help\" id=\"qb-p.contact-form-h-a00000000002\">We reply here.</p>"
+            + "<p class=\"qb-form__error\" id=\"qb-p.contact-form-e-a00000000002\">Email must be an email address.</p>"
+            + "<input class=\"qb-form__input\" id=\"qb-p.contact-form-f-a00000000002\" name=\"f.a00000000002\" type=\"email\" autocomplete=\"email\" maxlength=\"254\" aria-describedby=\"qb-p.contact-form-h-a00000000002 qb-p.contact-form-e-a00000000002\" aria-invalid=\"true\" value=\"jane@\">",
+            html,
+            StringComparison.Ordinal);
+        Assert.Contains(">Far too long a message</textarea>", html, StringComparison.Ordinal);
+        Assert.Contains("<option value=\"sales\" selected=\"selected\">Sales</option>", html, StringComparison.Ordinal);
+        Assert.Contains("name=\"f.a00000000005\" value=\"b\" checked=\"checked\" aria-invalid=\"true\">", html, StringComparison.Ordinal);
+        Assert.Contains("<fieldset class=\"qb-form__field qb-form__group\" aria-describedby=\"qb-p.contact-form-e-a00000000005\">", html, StringComparison.Ordinal);
+
+        // The state applies to its form only.
+        var other = html[html.IndexOf("id=\"qb-p.other-form\"", StringComparison.Ordinal)..];
+        Assert.DoesNotContain("qb-form__error", other, StringComparison.Ordinal);
+        Assert.DoesNotContain("qb-form__summary", other, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_limited_and_error_banners_say_so_and_keep_the_values()
+    {
+        var limited = RenderWithState(
+            """{ "id": "a00000000001", "type": "text", "label": "Name" }""",
+            State(new() { ["a00000000001"] = ["Jane"] }, [], FormBanner.Limited));
+        var error = RenderWithState(
+            """{ "id": "a00000000001", "type": "text", "label": "Name" }""",
+            State(new() { ["a00000000001"] = ["Jane"] }, [], FormBanner.Error),
+            """, "errorMessage": "Call us instead." """);
+
+        Assert.Contains("<div class=\"qb-form__banner\" role=\"alert\" tabindex=\"-1\" autofocus=\"autofocus\"><p>Too many messages have been sent from your connection. Please try again later.</p></div>", limited, StringComparison.Ordinal);
+        Assert.Contains("<p>Call us instead.</p></div>", error, StringComparison.Ordinal);
+        Assert.Contains("value=\"Jane\"", limited, StringComparison.Ordinal);
+        Assert.DoesNotContain("qb-form__summary", limited, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Values_shown_again_are_encoded_like_everything_else()
+    {
+        var html = RenderWithState(
+            """{ "id": "a00000000001", "type": "text", "label": "Name" }, { "id": "a00000000002", "type": "textarea", "label": "Message" }""",
+            State(new() { ["a00000000001"] = ["\"><script>alert(1)</script>"], ["a00000000002"] = ["</textarea><script>x</script>"] }, new() { ["a00000000001"] = "too_long" }));
+
+        Assert.Contains("value=\"&quot;&gt;&lt;script&gt;alert(1)&lt;/script&gt;\"", html, StringComparison.Ordinal);
+        Assert.Contains(">&lt;/textarea&gt;&lt;script&gt;x&lt;/script&gt;</textarea>", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("<script>", html, StringComparison.Ordinal);
     }
 
     [Fact]
