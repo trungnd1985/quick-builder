@@ -25,13 +25,17 @@ public sealed class NotificationTests(DatabaseFixture database, MailpitFixture m
 
     public Task DisposeAsync() => Task.CompletedTask;
 
-    private async Task<(FormsWorld World, Guid Page)> WorldAsync(string label, string notify = Notify, bool email = true)
+    private async Task<(FormsWorld World, Guid Page)> WorldAsync(string label, string notify = Notify, bool email = true, bool realClock = false, bool publicUrl = true)
     {
         var settings = email
             ? mailpit.Settings().Where(s => s.Value is not null).ToDictionary(s => s.Key, s => s.Value!, StringComparer.Ordinal)
             : [];
-        settings["Hosting:PublicUrl"] = "https://cms.example.com";
-        var world = await CreateAsync(database, label, s => s.Replace(ServiceDescriptor.Singleton<TimeProvider>(_clock)), settings).ConfigureAwait(false);
+        if (publicUrl)
+        {
+            settings["Hosting:PublicUrl"] = "https://cms.example.com";
+        }
+
+        var world = await CreateAsync(database, label, realClock ? null : s => s.Replace(ServiceDescriptor.Singleton<TimeProvider>(_clock)), settings).ConfigureAwait(false);
         var page = await world.PageAsync("contact").ConfigureAwait(false);
         await world.PublishPageAsync(page, Document(Form("contact", "Contact", notify))).ConfigureAwait(false);
         await world.DeliverEventsAsync().ConfigureAwait(false);
@@ -198,6 +202,75 @@ public sealed class NotificationTests(DatabaseFixture database, MailpitFixture m
         var messages = await mailpit.WaitForAsync(8, TimeSpan.FromSeconds(20));
         Assert.Equal(8, messages.Count);
         Assert.Equal(8, messages.Select(m => m.Text).Distinct(StringComparer.Ordinal).Count());
+    }
+
+    [Fact]
+    public async Task Running_as_a_hosted_service_the_worker_sends_within_seconds_and_warns_without_a_public_url()
+    {
+        var (world, page) = await WorldAsync("notify-hosted", realClock: true, publicUrl: false);
+        using var _ = world;
+        await SubmitAsync(world, page);
+        var worker = world.App.Services.GetRequiredService<NotificationWorker>();
+
+        await worker.StartAsync(CancellationToken.None);
+        try
+        {
+            // SC-005: handed to the mail server within a minute; the poll is every 5 seconds.
+            var message = Assert.Single(await mailpit.WaitForAsync(1, TimeSpan.FromMinutes(1)));
+            Assert.Contains("Open Submissions in the admin to read it.", message.Text, StringComparison.Ordinal);
+        }
+        finally
+        {
+            await worker.StopAsync(CancellationToken.None);
+        }
+
+        Assert.Contains(world.App.Logs.Events, e => LogCapture.Render(e).Contains("Hosting:PublicUrl is empty", StringComparison.Ordinal));
+        await WaitForAsync(async () => (await DeliveryAsync(world)).State == DeliveryStates.Sent);
+    }
+
+    [Fact]
+    public async Task A_waiting_notification_fails_when_its_form_no_longer_names_anyone()
+    {
+        var (world, page) = await WorldAsync("notify-nobody-left");
+        using var _ = world;
+        await SubmitAsync(world, page);
+        await world.PublishPageAsync(page, Document(Form("contact", "Contact")));
+        await world.DeliverEventsAsync();
+
+        Assert.Equal(1, await RunWorkerAsync(world));
+
+        var failed = await DeliveryAsync(world);
+        Assert.Equal(DeliveryStates.Failed, failed.State);
+        Assert.Equal("The form no longer has anyone to notify.", failed.LastError);
+        Assert.Empty(await mailpit.MessagesAsync());
+    }
+
+    [Fact]
+    public async Task A_deleted_submission_takes_its_waiting_notification_with_it()
+    {
+        var (world, page) = await WorldAsync("notify-deleted");
+        using var _ = world;
+        await SubmitAsync(world, page);
+        var submission = Assert.Single(await world.SubmissionsAsync());
+
+        using var deleted = await world.Admin.SendAsync(new HttpRequestMessage(HttpMethod.Delete, new Uri($"/api/v1/forms/sites/{world.Site}/submissions", UriKind.Relative))
+        {
+            Content = System.Net.Http.Json.JsonContent.Create(new { ids = new[] { submission.Id } }),
+        });
+        deleted.EnsureSuccessStatusCode();
+
+        Assert.Equal(0, await RunWorkerAsync(world));
+        Assert.Empty(await mailpit.MessagesAsync());
+    }
+
+    private static async Task WaitForAsync(Func<Task<bool>> condition)
+    {
+        for (var i = 0; i < 50 && !await condition(); i++)
+        {
+            await Task.Delay(100);
+        }
+
+        Assert.True(await condition());
     }
 
     [Fact]

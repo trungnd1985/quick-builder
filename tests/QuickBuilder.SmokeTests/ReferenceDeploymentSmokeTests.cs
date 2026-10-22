@@ -487,6 +487,46 @@ public sealed class ReferenceDeploymentSmokeTests(ITestOutputHelper output) : IA
         Assert.Contains("Sitemap: https://smoke.test/sitemap.xml", await robots.Content.ReadAsStringAsync().ConfigureAwait(true), StringComparison.Ordinal);
         output.WriteLine("redirect /old-post → /blog/hello-world answers 301; sitemap.xml lists the item page; robots.txt names the sitemap");
 
+        // 9k. 018 (tasks T092): a Form block on a contact page is published, a visitor submits
+        //     it on the site's host name, and the submission is in Submissions. The form becomes
+        //     known through the outbox, so the first submits may find it not live yet.
+        var contact = await client
+            .PostAsJsonAsync(new Uri(pages, UriKind.Relative), new { title = "Contact", slug = "contact" })
+            .ConfigureAwait(true);
+        Assert.Equal(HttpStatusCode.Created, contact.StatusCode);
+        var contactId = (await contact.Content.ReadFromJsonAsync<JsonElement>().ConfigureAwait(true)).GetProperty("id").GetGuid();
+        var contactPath = $"{pages}/{contactId}";
+        const string FormDocument = """
+            {"schemaVersion":1,"root":{"id":"root","type":"root","props":{},"children":[{"id":"s","type":"section","props":{},"children":[
+              {"id":"contact-form","type":"form","props":{"name":"Contact","fields":[{"id":"e00000000001","type":"email","label":"Email","required":true}]},"children":[]}]}]}}
+            """;
+        await PublishAsync(client, contactPath, await SaveDraftAsync(client, contactPath, FormDocument).ConfigureAwait(true)).ConfigureAwait(true);
+
+        var formPage = await PublicGetAsync(publicClient, "/contact").ConfigureAwait(true);
+        Assert.Contains("action=\"/_forms/contact-form\"", formPage, StringComparison.Ordinal);
+
+        HttpStatusCode submitted = default;
+        for (var attempt = 0; attempt < 30 && submitted != HttpStatusCode.OK; attempt++)
+        {
+            using var submit = new HttpRequestMessage(HttpMethod.Post, new Uri("/_forms/contact-form", UriKind.Relative))
+            {
+                Content = new FormUrlEncodedContent([new("_page", contactId.ToString()), new("_path", "/contact"), new("f.e00000000001", "smoke-visitor@example.com")]),
+            };
+            submit.Headers.Host = "smoke.test";
+            submit.Headers.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/json"));
+            using var answer = await publicClient.SendAsync(submit).ConfigureAwait(true);
+            submitted = answer.StatusCode;
+            if (submitted != HttpStatusCode.OK)
+            {
+                await Task.Delay(TimeSpan.FromSeconds(1)).ConfigureAwait(true);
+            }
+        }
+
+        Assert.Equal(HttpStatusCode.OK, submitted);
+        var inbox = await client.GetStringAsync(new Uri($"/api/v1/forms/sites/{siteId}/submissions", UriKind.Relative)).ConfigureAwait(true);
+        Assert.Contains("smoke-visitor@example.com", inbox, StringComparison.Ordinal);
+        output.WriteLine("a published form was submitted on smoke.test and the submission is in Submissions");
+
         // 10. Operator recovery (002 US5): with command-line access to the container, the
         //     operator issues a set-password link for the administrator, sets a new password
         //     through it, and signs in with that password.
@@ -537,6 +577,16 @@ public sealed class ReferenceDeploymentSmokeTests(ITestOutputHelper output) : IA
             .PostAsJsonAsync(new Uri($"{subject}/publish", UriKind.Relative), new { draftVersion })
             .ConfigureAwait(false);
         Assert.True(published.StatusCode == HttpStatusCode.OK, $"Publishing failed: {await published.Content.ReadAsStringAsync().ConfigureAwait(false)}");
+    }
+
+    /// <summary>A public page of the smoke site, which must answer 200.</summary>
+    private static async Task<string> PublicGetAsync(HttpClient client, string path)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Get, new Uri(path, UriKind.Relative));
+        request.Headers.Host = "smoke.test";
+        using var response = await client.SendAsync(request).ConfigureAwait(false);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        return await response.Content.ReadAsStringAsync().ConfigureAwait(false);
     }
 
     private static async Task<bool> PublicResolvesAsync(HttpClient client, string hostName)

@@ -149,6 +149,34 @@ public sealed class FormsSweepTests(DatabaseFixture database)
     }
 
     [Fact]
+    public async Task Running_as_a_hosted_service_the_sweep_runs_at_once_and_stops_cleanly()
+    {
+        using var world = await CreateAsync(database, "forms-sweep-hosted").ConfigureAwait(true);
+        var contact = await world.PageAsync("contact").ConfigureAwait(true);
+        await world.PublishPageAsync(contact, Document(Form("short", "Short", ""","retentionDays":30"""))).ConfigureAwait(true);
+        await world.DeliverEventsAsync().ConfigureAwait(true);
+        await world.SubmitAsync("short", contact, "/contact", [new("f.e00000000001", "old@a.co")], json: true).ConfigureAwait(true);
+        await world.WithFormsAsync(db => db.Database.ExecuteSqlRawAsync(
+            "UPDATE forms.submissions SET received_at_utc = now() - interval '31 days'")).ConfigureAwait(true);
+        var sweep = world.App.Services.GetRequiredService<FormsSweepService>();
+
+        await sweep.StartAsync(CancellationToken.None).ConfigureAwait(true);
+        try
+        {
+            for (var i = 0; i < 50 && (await world.SubmissionsAsync().ConfigureAwait(true)).Count > 0; i++)
+            {
+                await Task.Delay(100).ConfigureAwait(true);
+            }
+        }
+        finally
+        {
+            await sweep.StopAsync(CancellationToken.None).ConfigureAwait(true);
+        }
+
+        Assert.Empty(await world.SubmissionsAsync().ConfigureAwait(true));
+    }
+
+    [Fact]
     public async Task An_unpublished_form_keeps_its_last_published_retention()
     {
         using var world = await CreateAsync(database, "forms-sweep-gone").ConfigureAwait(true);

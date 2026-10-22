@@ -379,14 +379,20 @@ rate limit from one address and normal pace from many; the same submission twice
 
 ## Phase 8: Polish & Cross-Cutting Concerns
 
-- [ ] T089 [P] Create `ITESTS/Isolation/Probes/FormsIsolationProbe.cs` covering every Forms admin endpoint and the submit endpoint with another site's ids and host names (FR-024), registered as the other probes are.
-- [ ] T090 [P] Create `ITESTS/Rendering/UpgradeFrom024Tests.cs` on the previous release's database snapshot: the Forms migration adds the `forms` schema only; existing pages render the same body and the same CSP; nothing else changes (FR-041).
-- [ ] T091 [P] Create `STESTS/SubmissionListPerformanceTests.cs` (100,000 submissions on a site, seeded as `ItemSeedSql.cs` seeds items: list, filters and search under 2 s; export of 10,000 under 30 s; SC-006) and `STESTS/FormRenderPerformanceTests.cs` (a page with two forms within 012's budgets on a miss and a hit; SC-009), and a submit p95 measurement against the plan's 300 ms goal.
-- [ ] T092 Extend the release journey in `STESTS/ReferenceDeploymentSmokeTests.cs`: add a Form block to a page, publish, submit through the public host, and find the submission in Submissions.
-- [ ] T093 [P] Update `docs/backlog.md` with the deferred items of plan.md, the site-deletion obligation and the #20 export obligations of module-surface.md §6; update `docs/contracts/README.md` if it lists node types.
-- [ ] T094 [P] Add an `ATESTS` rule (or extend an existing one) asserting that no Forms type logs a property named after submission values, recipients or search text, alongside the log-capture assertions in T040 and T066.
-- [ ] T095 Run coverage and confirm at least 80 % line coverage on `FORMS/Features/Submit/`, `FORMS/Domain/SubmitPolicy.cs`, `FORMS/Domain/FormValueRules.cs`, `FORMS/Infrastructure/RateWindows.cs`, `FORMS/Infrastructure/NotificationWorker.cs` and `FORMS/Infrastructure/FormsSweepService.cs`; add tests where it falls short.
-- [ ] T096 Run quickstart.md end to end on the dev stack with Mailpit, including the manual screen-reader and no-script checks of §7, and record the results, timings (SC-001, SC-002) and any deviation in `specs/018-forms-submissions/quickstart-results.md`.
+- [X] T089 [P] Create `ITESTS/Isolation/Probes/FormsIsolationProbe.cs` covering every Forms admin endpoint and the submit endpoint with another site's ids and host names (FR-024), registered as the other probes are.
+  *Done as*: the probe covers every Forms admin endpoint that addresses a record, plus the lists, export, counters and retention impact; the submit endpoint with another site's form on this site's host name is in `SubmitEndpointTests`.
+- [X] T090 [P] Create `ITESTS/Rendering/UpgradeFrom024Tests.cs` on the previous release's database snapshot: the Forms migration adds the `forms` schema only; existing pages render the same body and the same CSP; nothing else changes (FR-041).
+  *Done as*: the 024 snapshot is the current database with the `forms` schema dropped, since 018 changes no other module's schema; the test also checks every column outside `forms` is unchanged.
+- [X] T091 [P] Create `STESTS/SubmissionListPerformanceTests.cs` (100,000 submissions on a site, seeded as `ItemSeedSql.cs` seeds items: list, filters and search under 2 s; export of 10,000 under 30 s; SC-006) and `STESTS/FormRenderPerformanceTests.cs` (a page with two forms within 012's budgets on a miss and a hit; SC-009), and a submit p95 measurement against the plan's 300 ms goal.
+  *Done as*: the rate limit is raised by `docker-compose.forms-perf.yml` so one test address can submit repeatedly; shared helpers are in `STESTS/PerfApi.cs`. Numbers are in quickstart-results.md.
+- [X] T092 Extend the release journey in `STESTS/ReferenceDeploymentSmokeTests.cs`: add a Form block to a page, publish, submit through the public host, and find the submission in Submissions.
+- [X] T093 [P] Update `docs/backlog.md` with the deferred items of plan.md, the site-deletion obligation and the #20 export obligations of module-surface.md §6; update `docs/contracts/README.md` if it lists node types.
+- [X] T094 [P] Add an `ATESTS` rule (or extend an existing one) asserting that no Forms type logs a property named after submission values, recipients or search text, alongside the log-capture assertions in T040 and T066.
+  *Done as*: `ATESTS/FormsLoggingTests.cs` scans the module's log templates for placeholders naming values, recipients, addresses or search text, with a self-check that the scan sees templates.
+- [X] T095 Run coverage and confirm at least 80 % line coverage on `FORMS/Features/Submit/`, `FORMS/Domain/SubmitPolicy.cs`, `FORMS/Domain/FormValueRules.cs`, `FORMS/Infrastructure/RateWindows.cs`, `FORMS/Infrastructure/NotificationWorker.cs` and `FORMS/Infrastructure/FormsSweepService.cs`; add tests where it falls short.
+  *Done as*: tests added for the hosted worker and sweep loops, a form that no longer names anyone, and a deleted submission's waiting notification. Numbers are in quickstart-results.md.
+- [X] T096 Run quickstart.md end to end on the dev stack with Mailpit, including the manual screen-reader and no-script checks of §7, and record the results, timings (SC-001, SC-002) and any deviation in `specs/018-forms-submissions/quickstart-results.md`.
+  *Done as*: the automatable steps were run; the screen-reader pass, the SC-001/SC-002 timings and opening the CSV in a spreadsheet are recorded as still manual.
 - [ ] T097 Open the pull request for branch `018-forms-submissions`, closing #18, listing the constitution amendment, the operator impact and upgrade notes from plan.md.
 
 ---
