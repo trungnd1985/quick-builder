@@ -58,12 +58,11 @@ function clear(): void {
     role="search"
     @submit.prevent="apply"
   >
-    <fieldset>
-      <legend class="visually-hidden">
-        {{ t('forms.filters.legend') }}
-      </legend>
-      <div class="field">
-        <label for="submission-filter-search">{{ t('forms.filters.search') }}</label>
+    <!-- The search on its own row with its buttons, so its help text cannot push the
+         filters out of line; the filters share one grid row below. -->
+    <div class="submission-filters__search">
+      <label for="submission-filter-search">{{ t('forms.filters.search') }}</label>
+      <div class="submission-filters__bar">
         <input
           id="submission-filter-search"
           v-model="q"
@@ -71,13 +70,30 @@ function clear(): void {
           :maxlength="MAX_SEARCH_LENGTH"
           aria-describedby="submission-filter-search-help"
         >
-        <p
-          id="submission-filter-search-help"
-          class="help"
+        <button
+          type="submit"
+          class="primary"
         >
-          {{ t('forms.filters.searchHelp') }}
-        </p>
+          {{ t('forms.filters.apply') }}
+        </button>
+        <button
+          type="button"
+          @click="clear"
+        >
+          {{ t('forms.filters.clear') }}
+        </button>
       </div>
+      <p
+        id="submission-filter-search-help"
+        class="help"
+      >
+        {{ t('forms.filters.searchHelp') }}
+      </p>
+    </div>
+    <fieldset class="submission-filters__grid">
+      <legend class="visually-hidden">
+        {{ t('forms.filters.legend') }}
+      </legend>
       <div class="field">
         <label for="submission-filter-form">{{ t('forms.filters.form') }}</label>
         <select
@@ -129,41 +145,51 @@ function clear(): void {
           </option>
         </select>
       </div>
-      <div class="actions">
-        <button
-          type="submit"
-          class="primary"
-        >
-          {{ t('forms.filters.apply') }}
-        </button>
-        <button
-          type="button"
-          @click="clear"
-        >
-          {{ t('forms.filters.clear') }}
-        </button>
-      </div>
     </fieldset>
   </form>
 </template>
 
 <style scoped>
-.submission-filters fieldset {
+.submission-filters {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem 1rem;
-  align-items: flex-end;
-  border: 0;
-  padding: 0;
-  margin: 0 0 1rem;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
 }
 
-.submission-filters .field {
+.submission-filters__search {
+  max-width: 48rem;
+}
+
+.submission-filters__bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.submission-filters__bar input {
+  flex: 1 1 16rem;
+  width: auto;
+}
+
+/* Four equal columns that wrap on narrow screens; every control the same height, so a
+   date input and a select line up. */
+.submission-filters__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  gap: 0.75rem 1rem;
+  max-width: 48rem;
+  border: 0;
+  padding: 0;
   margin: 0;
 }
 
-.submission-filters .actions {
-  display: flex;
-  gap: 0.5rem;
+.submission-filters__grid .field {
+  margin: 0;
+}
+
+.submission-filters :is(input, select, button) {
+  box-sizing: border-box;
+  height: 2.5rem;
 }
 </style>
