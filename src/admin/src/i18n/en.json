@@ -601,6 +601,16 @@
       "failed": "The mail server did not accept the test email: {reply}",
       "failedNoReply": "The mail server could not be reached.",
       "notConfigured": "Outgoing email is not set up."
+    },
+    "about": {
+      "heading": "About this installation",
+      "version": "Running",
+      "database": "Database",
+      "databaseNone": "Not recorded yet",
+      "upgrading": "Upgrade to {version} in progress.",
+      "releaseNotes": "Release notes",
+      "running": "QuickBuilder {version}",
+      "runningWithRevision": "QuickBuilder {version} ({revision})"
     }
   },
   "storageSettings": {

@@ -46,3 +46,21 @@ Found and fixed on the way:
 | 6–7 | unchanged; a restart wrote nothing |
 
 This proves the bundle format round-trips and that snapshots accumulate (FR-014).
+
+## Quickstart §2 — the startup refusal on a real container (2026-10-23)
+
+Image built from this branch (`0.1.0-dev`), reference compose file, project `qb-refusal`.
+
+1. Fresh install: ready.
+2. `UPDATE platform.database_version SET recorded_version = '0.9.0'`, then `restart app`.
+3. `/health/ready` → `503 {"status":"Unhealthy","state":"Incompatible","detail":"This database was
+   upgraded by a newer QuickBuilder release. Start that release, or restore the backup taken
+   before the upgrade. See the logs.","checks":[]}` — no version numbers.
+4. `/` → `503` plain text, "QuickBuilder cannot start on this database. …".
+5. One Fatal line: "Database was migrated by QuickBuilder 0.9.0; this is 0.1.0-dev, which cannot
+   run on it. Start 0.9.0 or newer, or restore the backup taken before upgrading: …#rolling-back".
+6. The container stays up (no restart loop); compose reports it unhealthy.
+
+Found on the way: ASP.NET Core inserts authentication and authorization middleware by itself
+when their services exist, and Identity's fallback policy answered 401 before the refusal
+pipeline; the refusal pipeline now switches that off.

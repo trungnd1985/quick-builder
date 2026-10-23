@@ -134,6 +134,15 @@ builder.Services
     .AddApplicationPart(typeof(RenderingModule).Assembly)
     .AddApplicationPart(typeof(FormsModule).Assembly);
 
+// 019 RL-08: the startup check, before the host exists. A refused database starts nothing of
+// QuickBuilder's own: its hosted services are removed here, and the pipeline below is the
+// refusal's alone. The migration runner checks again after the host is built.
+var refusal = await InstallationPreflight.CheckAsync(builder.Configuration, applicationVersion).ConfigureAwait(false);
+if (refusal is not null)
+{
+    RefusalHost.RemoveApplicationHostedServices(builder.Services);
+}
+
 var app = builder.Build();
 
 // 019 FR-006: every start, command or server, says which release it is before anything else.
@@ -147,6 +156,16 @@ var commandExitCode = await HostCommandRunner.TryRunAsync(args, app.Services).Co
 if (commandExitCode is { } exitCode)
 {
     return exitCode;
+}
+
+if (refusal is { } refused)
+{
+    // Logged once, with both versions and what to do; the probe gets the anonymous detail.
+    app.Logger.LogCritical("{Refusal}", refused.LogMessage);
+    app.Services.GetRequiredService<StartupState>().Advance(StartupPhase.Incompatible, refused.Detail);
+    RefusalHost.Configure(app, app.Services.GetRequiredService<IOptions<HostingOptions>>().Value.BasePath, refused.Detail);
+    await app.RunAsync().ConfigureAwait(false);
+    return 0;
 }
 
 await StartupTasks.RunMigrationsAsync(app).ConfigureAwait(false);

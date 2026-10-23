@@ -196,9 +196,10 @@ data-model §2:
   mark is cleared in one statement. A patch (same major.minor, either direction) never writes
   the mark and never lowers `recorded`.
 
-**Refusal** stops the application *before* the host starts, so no hosted service (outbox,
-schedules, backfills, sweeps) ever runs against a database it does not understand. Instead of
-exiting, `Program.cs` runs a **refusal host**: a minimal `WebApplication` with no modules that
+**Refusal** is decided *before* the host is built (`InstallationPreflight`), so no hosted
+service (outbox, schedules, backfills, sweeps) is even registered against a database it does not
+understand. Instead of exiting, the same app serves a **refusal pipeline** (one terminal
+middleware; a separate host would not be the app `WebApplicationFactory` tests start) that
 answers `/health/live` 200, `/health/ready` 503 with `state: "Incompatible"` and a detail that
 gives the reason and the next step without version numbers (Principle IX: probes are
 anonymous), and 503 to everything else. The full message with both versions and the link to

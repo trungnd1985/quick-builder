@@ -292,7 +292,11 @@ components:
         status: { type: string, enum: [Healthy, Degraded, Unhealthy] }
         state:
           type: string
-          enum: [WaitingForDatabase, Migrating, Ready, Failed]
+          enum: [WaitingForDatabase, Migrating, MigrationsPending, Ready, Failed, Incompatible]
+          description: >
+            019 adds Incompatible: the database belongs to a newer release, or is too old to
+            upgrade directly. Only the probes answer; detail says what to do, without version
+            numbers, and the log names both versions.
         checks:
           type: array
           items:

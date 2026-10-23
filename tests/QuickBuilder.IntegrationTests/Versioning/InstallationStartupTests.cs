@@ -103,6 +103,74 @@ public sealed class InstallationStartupTests(DatabaseFixture database)
         Assert.Null(await DatabaseState.ReadVersionAsync(connectionString).ConfigureAwait(true));
     }
 
+    /// <summary>
+    /// A database a newer minor migrated, or began to, is refused before anything touches it:
+    /// readiness says Incompatible without versions, the log names both, and nothing is written
+    /// (data-model §2 rules 4 and 6, SC-006). Rules 3 and 7 depend on the build's floor, which
+    /// a test cannot lower; <c>InstallationGateTests</c> covers them.
+    /// </summary>
+    [Theory]
+    [InlineData("0.9.0", null)]
+    [InlineData("0.1.0-dev", "0.9.0")]
+    public async Task A_database_from_a_newer_minor_is_refused_without_writing(string recorded, string? upgradingTo)
+    {
+        var connectionString = await database.CreateDatabaseAsync("version-newer").ConfigureAwait(true);
+        using (var first = new QuickBuilderApp(connectionString))
+        {
+            await AssertReadyAsync(first).ConfigureAwait(true);
+        }
+
+        await DatabaseState.WriteVersionAsync(connectionString, recorded, upgradingTo).ConfigureAwait(true);
+        var before = await DatabaseState.FingerprintAsync(connectionString).ConfigureAwait(true);
+
+        using (var older = new QuickBuilderApp(connectionString))
+        {
+            using var client = older.CreateClient();
+            var response = await client.GetAsync(new Uri("/health/ready", UriKind.Relative)).ConfigureAwait(true);
+            var body = await response.Content.ReadAsStringAsync().ConfigureAwait(true);
+            Assert.True(
+                response.StatusCode == HttpStatusCode.ServiceUnavailable,
+                $"{(int)response.StatusCode} {body}\n" + string.Join('\n', older.Logs.Events.Select(e => e.Level + " " + e.RenderMessage(System.Globalization.CultureInfo.InvariantCulture))));
+            using var parsed = JsonDocument.Parse(body);
+            var report = parsed.RootElement;
+            Assert.Equal(nameof(StartupPhase.Incompatible), report.GetProperty("state").GetString());
+            Assert.DoesNotMatch(@"\d+\.\d+\.\d+", report.GetProperty("detail").GetString()!);
+
+            var running = older.Services.GetRequiredService<ApplicationVersion>().Version.ToString();
+            var critical = Assert.Single(older.Logs.Events, e => e.Level == Serilog.Events.LogEventLevel.Fatal);
+            var text = LogCapture.Render(critical);
+            Assert.Contains(upgradingTo ?? recorded, text, StringComparison.Ordinal);
+            Assert.Contains(running, text, StringComparison.Ordinal);
+            Assert.Contains("cannot run on it", text, StringComparison.Ordinal);
+            Assert.DoesNotContain(older.Logs.Events, e => e.MessageTemplate.Text.Contains("Applying", StringComparison.Ordinal));
+        }
+
+        Assert.Empty(DatabaseState.Changed(before, await DatabaseState.FingerprintAsync(connectionString).ConfigureAwait(true)));
+    }
+
+    /// <summary>An older patch of the same minor runs, and never lowers the record (rule 9, clarification Q1).</summary>
+    [Fact]
+    public async Task An_older_patch_of_the_same_minor_runs_and_leaves_the_record_alone()
+    {
+        var connectionString = await database.CreateDatabaseAsync("version-patch").ConfigureAwait(true);
+        string running;
+        using (var first = new QuickBuilderApp(connectionString))
+        {
+            running = first.Services.GetRequiredService<ApplicationVersion>().Version.ToString();
+            await AssertReadyAsync(first).ConfigureAwait(true);
+        }
+
+        var newerPatch = SemanticVersion.Parse(running) is var v ? new SemanticVersion(v.Major, v.Minor, v.Patch + 3).ToString() : running;
+        await DatabaseState.WriteVersionAsync(connectionString, newerPatch).ConfigureAwait(true);
+
+        using (var app = new QuickBuilderApp(connectionString))
+        {
+            await AssertReadyAsync(app).ConfigureAwait(true);
+        }
+
+        Assert.Equal(newerPatch, (await DatabaseState.ReadVersionAsync(connectionString).ConfigureAwait(true))!.RecordedVersion);
+    }
+
     internal static async Task AssertReadyAsync(Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactory<Program> app)
     {
         using var client = app.CreateClient();

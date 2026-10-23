@@ -50,6 +50,13 @@ public sealed class ModuleMigrationRunner(
 
             // 019 RL-08: before the AutoMigrate decision, so the check runs either way.
             var decision = await CheckDatabaseVersionAsync(cancellationToken).ConfigureAwait(false);
+            if (decision.Refusal is { } refusal)
+            {
+                // Nothing has been written beyond the platform schema; nothing will be.
+                logger.LogCritical("{Refusal}", refusal.LogMessage);
+                startupState.Advance(StartupPhase.Incompatible, refusal.Detail);
+                throw new InstallationIncompatibleException(refusal.Detail);
+            }
 
             if (!force && !_options.AutoMigrate)
             {
@@ -80,7 +87,7 @@ public sealed class ModuleMigrationRunner(
             startupState.Advance(StartupPhase.Ready);
             logger.LogInformation("All module migrations applied; application is ready.");
         }
-        catch (Exception ex) when (ex is not OperationCanceledException)
+        catch (Exception ex) when (ex is not OperationCanceledException and not InstallationIncompatibleException)
         {
             // Edge case "migration fails partway": refuse traffic, log the reason, leave
             // the database in a state that can be retried. Crashing would hide the cause
@@ -139,37 +146,10 @@ public sealed class ModuleMigrationRunner(
     /// Migrates the <c>platform</c> schema and decides, from its record, whether this build may
     /// migrate and run on the database (019 contracts/installation-version.md §1 steps 3–4).
     /// </summary>
-    /// <remarks>
-    /// Always runs, even with <c>Database:AutoMigrate=false</c>: the schema is one additive
-    /// table, and the check must judge the database before anything else touches it. Nothing
-    /// is written here beyond the <c>platform</c> migration itself.
-    /// </remarks>
-    private async Task<GateDecision> CheckDatabaseVersionAsync(CancellationToken cancellationToken)
-    {
-        return await WithPlatformLockAsync(
-            async (context, token) =>
-            {
-                var pending = (await context.Database.GetPendingMigrationsAsync(token).ConfigureAwait(false)).ToList();
-                if (pending.Count > 0)
-                {
-                    logger.LogInformation("Applying {Count} migration(s) to the platform schema.", pending.Count);
-                    await context.Database.MigrateAsync(token).ConfigureAwait(false);
-                }
-
-                var state = await ReadStateAsync(context, token).ConfigureAwait(false);
-                var hasModuleHistory = await HasModuleHistoryAsync(context, token).ConfigureAwait(false);
-                var decision = InstallationGate.Decide(version.Version, version.UpgradeFloor, state, hasModuleHistory);
-
-                logger.LogInformation(
-                    "Database at {DatabaseVersion}; this is {Version} ({Outcome}).",
-                    DescribeState(state, hasModuleHistory),
-                    version.Version.ToString(),
-                    decision.Outcome);
-
-                return decision;
-            },
-            cancellationToken).ConfigureAwait(false);
-    }
+    private Task<GateDecision> CheckDatabaseVersionAsync(CancellationToken cancellationToken) =>
+        WithPlatformLockAsync(
+            (context, token) => PlatformRecord.CheckAsync(context, version, logger, token),
+            cancellationToken);
 
     /// <summary>
     /// Marks the database as being upgraded before the first module migration, so an older
@@ -218,7 +198,7 @@ public sealed class ModuleMigrationRunner(
                     context.DatabaseVersion.Add(row);
                 }
 
-                var state = ToState(row);
+                var state = PlatformRecord.ToState(row);
                 if (InstallationGate.RecordAfter(version.Version, state) is { } higher)
                 {
                     row.RecordedVersion = higher.ToString();
@@ -239,83 +219,14 @@ public sealed class ModuleMigrationRunner(
         logger.LogInformation("Database at {DatabaseVersion}; running {Version}.", recorded, version.Version.ToString());
     }
 
-    /// <summary>
-    /// Runs <paramref name="work"/> on a <c>platform</c> context holding the platform advisory
-    /// lock, so several instances starting together read and write the record one at a time.
-    /// </summary>
     private async Task<T> WithPlatformLockAsync<T>(
         Func<PlatformDbContext, CancellationToken, Task<T>> work,
         CancellationToken cancellationToken)
     {
         using var scope = services.CreateScope();
         await using var context = scope.ServiceProvider.GetRequiredService<PlatformDbContext>();
-
-        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        timeout.CancelAfter(_options.MigrationTimeout);
-
-        await context.Database.OpenConnectionAsync(timeout.Token).ConfigureAwait(false);
-        try
-        {
-            await context.Database
-                .ExecuteSqlRawAsync("SELECT pg_advisory_lock({0})", [PlatformLockKey], timeout.Token)
-                .ConfigureAwait(false);
-
-            return await work(context, timeout.Token).ConfigureAwait(false);
-        }
-        finally
-        {
-            try
-            {
-                await context.Database
-                    .ExecuteSqlRawAsync("SELECT pg_advisory_unlock({0})", [PlatformLockKey], CancellationToken.None)
-                    .ConfigureAwait(false);
-            }
-            finally
-            {
-                await context.Database.CloseConnectionAsync().ConfigureAwait(false);
-            }
-        }
+        return await PlatformRecord.WithLockAsync(context, _options.MigrationTimeout, work, cancellationToken).ConfigureAwait(false);
     }
-
-    private static async Task<DatabaseVersionState?> ReadStateAsync(PlatformDbContext context, CancellationToken cancellationToken)
-    {
-        var row = await context.DatabaseVersion.AsNoTracking().SingleOrDefaultAsync(cancellationToken).ConfigureAwait(false);
-        return row is null ? null : ToState(row);
-    }
-
-    private static DatabaseVersionState ToState(DatabaseVersionRow row) =>
-        new(
-            SemanticVersion.Parse(row.RecordedVersion),
-            row.UpgradingTo is null ? null : SemanticVersion.Parse(row.UpgradingTo));
-
-    /// <summary>
-    /// Whether any module has a migration history table: tells a fresh database from one a
-    /// build before 0.1.0 wrote. Reads the catalogue only.
-    /// </summary>
-    private static async Task<bool> HasModuleHistoryAsync(PlatformDbContext context, CancellationToken cancellationToken) =>
-        await context.Database
-            .SqlQuery<bool>(
-                $"""
-                SELECT EXISTS (
-                    SELECT 1 FROM information_schema.tables
-                    WHERE table_name = {PlatformDbContext.HistoryTable}
-                      AND table_schema <> {PlatformDbContext.Schema}) AS "Value"
-                """)
-            .SingleAsync(cancellationToken)
-            .ConfigureAwait(false);
-
-    private static string DescribeState(DatabaseVersionState? state, bool hasModuleHistory) =>
-        state switch
-        {
-            null when hasModuleHistory => "a pre-release build",
-            null => "nothing (fresh)",
-            { Recorded: var r, UpgradingTo: { } m } when r == SemanticVersion.Zero => $"nothing yet (install of {m} interrupted)",
-            { Recorded: var r, UpgradingTo: { } m } => $"{r} (upgrade to {m} interrupted)",
-            { Recorded: var r } => r.ToString(),
-        };
-
-    /// <summary>The advisory lock guarding the <c>platform</c> record, as a module's guards its migrations.</summary>
-    private static readonly long PlatformLockKey = ModuleDatabase.DeriveLockKey(PlatformDbContext.Schema);
 
     private async Task MigrateModuleAsync(IModuleDatabaseProvider provider, CancellationToken cancellationToken)
     {

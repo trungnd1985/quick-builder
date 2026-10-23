@@ -56,6 +56,9 @@ public static class IdentityModule
     /// <summary>The capability that guards every user-management operation.</summary>
     internal const string ManageUsers = "identity.users.manage";
 
+    /// <summary>019 FR-006: seeing the running release. Administrators only.</summary>
+    internal const string ViewInstallation = "identity.installation.view";
+
     /// <summary>Registers the Identity module: data, options, services and controllers.</summary>
     public static IServiceCollection AddIdentityModule(this IServiceCollection services, IConfiguration configuration)
     {
@@ -81,6 +84,7 @@ public static class IdentityModule
             .Bind(configuration.GetSection(PublicUrlOptions.SectionName));
 
         services.AddSingleton(new CapabilityDefinition(ManageUsers, CapabilityScope.Installation, []));
+        services.AddSingleton(new CapabilityDefinition(ViewInstallation, CapabilityScope.Installation, []));
 
         // Security primitives (research R-03, R-04, R-07, R-15).
         services.AddHttpContextAccessor();
@@ -128,6 +132,7 @@ public static class IdentityModule
     private static void AddFeatures(IServiceCollection services)
     {
         services.AddScoped<IQueryHandler<GetStatusQuery, StatusResponse>, GetStatusHandler>();
+        services.AddScoped<IQueryHandler<Features.GetInstallation.GetInstallationQuery, Features.GetInstallation.InstallationResponse>, Features.GetInstallation.GetInstallationHandler>();
 
         services.AddScoped<ICommandHandler<CompleteSetupCommand, Result<MeResponse>>, CompleteSetupHandler>();
         services.AddScoped<IValidator<CompleteSetupCommand>, CompleteSetupValidator>();

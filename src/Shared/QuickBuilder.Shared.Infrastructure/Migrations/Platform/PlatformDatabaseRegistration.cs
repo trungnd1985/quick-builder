@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using QuickBuilder.Shared.Infrastructure.Versioning;
 
 namespace QuickBuilder.Shared.Infrastructure.Migrations.Platform;
 
@@ -17,6 +18,8 @@ public static class PlatformDatabaseRegistration
         services.AddDbContext<PlatformDbContext>(options =>
             options.UseNpgsql(connectionString, npgsql =>
                 npgsql.MigrationsHistoryTable(PlatformDbContext.HistoryTable, PlatformDbContext.Schema)));
+
+        services.AddScoped<IInstallationVersion, InstallationVersion>();
 
         return services;
     }

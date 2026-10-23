@@ -24,6 +24,13 @@ is built and before any hosted service starts:
 The `migrate` command runs steps 2–8 with `force: true` and exits 0, or 3 on refusal, or 1 on
 any other failure (unchanged).
 
+**As built**: steps 2–4 also run once **before the host is built**
+(`InstallationPreflight`, called from `Program.cs`). That is what lets a refusal start
+nothing: the host is then built without QuickBuilder's own hosted services. The runner
+repeats the check after the host is built; it serves the `migrate` command and covers a
+race between two starts. The preflight answers "no refusal" whenever it cannot decide (no
+connection string, a database that never answers) and leaves those to the runner.
+
 ## 2. Interfaces (Shared.Infrastructure)
 
 ```text
@@ -37,7 +44,9 @@ IInstallationVersion          read side for modules (Identity's admin endpoint)
     → (Version, Revision, DatabaseVersion: string?, UpgradingTo: string?)
     DatabaseVersion is null while the row does not exist or R = 0.0.0.
 
-InstallationGate              internal to the runner; returns Pass | Refuse(reason, kind)
+InstallationGate              pure decision of data-model §2: GateDecision(Outcome, MarkBefore, InsertRow, Refusal?)
+PlatformRecord                migrates platform, reads, decides, under the platform advisory lock
+InstallationPreflight         the same check before the host exists (public, called by Program)
 ```
 
 No module may write `platform.database_version`; `ModuleBoundaryTests` gains the rule that only
@@ -47,10 +56,12 @@ No module may write `platform.database_version`; `ModuleBoundaryTests` gains the
 
 - `StartupPhase.Incompatible` (new).
 - The Critical log line of data-model §2 is written once.
-- `Program.cs` does **not** build the application pipeline or start the application host.
-  It runs `RefusalHost` on the same `ASPNETCORE_URLS`, built from terminal middleware only
-  (`app.Run`, matching the path by hand) with no `Map*` endpoints, so no Minimal API is
-  introduced (constitution, Technology Constraints):
+- `Program.cs` removes QuickBuilder's own hosted services before building the host (the web
+  server's stays), and gives the built app one terminal middleware (`RefusalHost.Configure`:
+  `app.Run`, matching the path by hand, no `Map*` endpoints, so no Minimal API is introduced).
+  The authentication and authorization middleware ASP.NET Core would insert by itself are
+  switched off for this pipeline, or Identity's fallback policy would answer 401 first. The
+  same app is what `WebApplicationFactory` tests exercise:
 
 | Request | Response |
 |---|---|
