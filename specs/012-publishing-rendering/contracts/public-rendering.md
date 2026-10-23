@@ -17,6 +17,8 @@ answers with the site's not-found page (§4).
      name for every address except `/_media` and `/_assets` (017 public-seo.md §1).
 2. **`/_media/…`** → Media (003), unchanged.
 3. **`/_assets/blocks.{hash}.css`** → the block stylesheet (§5).
+   - **Since 018**: **`/_forms/{formId}`** → Forms: `POST` takes a form submission; any other
+     method → `405`, `Allow: POST` (018 [public-forms.md](../../018-forms-submissions/contracts/public-forms.md) §1).
 4. **Any other path**:
    - A method other than `GET` or `HEAD` → `405`, `Allow: GET, HEAD`, empty body.
    - Otherwise the path is normalised (§2) and looked up. A live page gets §3; anything else
@@ -60,6 +62,12 @@ its canonical address in its head (017 public-seo.md §3).
 | `X-Content-Type-Options` | `nosniff` |
 | `Referrer-Policy` | `strict-origin-when-cross-origin` |
 | `Permissions-Policy` | `camera=(), microphone=(), geolocation=()` |
+
+**Since 018**: a page that holds a form adds `connect-src 'self'`, lists the form script's hash
+in `script-src` beside any navigation script's, and answers `form-action 'self'` followed by the
+origin of every external address its forms redirect to, instead of `form-action 'none'` (018
+research FS-10, FS-11). A page re-rendered after a refused submission is answered with
+`Cache-Control: no-store` and never enters the cache.
 
 `HEAD` returns the same headers and no body.
 

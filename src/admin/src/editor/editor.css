@@ -500,3 +500,55 @@
   font-style: italic;
   color: var(--muted, #6b7280);
 }
+
+/* 018: a form's field list and the field dialog's paired inputs. */
+.form-fields__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.form-fields__row {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0;
+  border-bottom: 1px solid var(--color-border, #e5e7eb);
+}
+
+.form-fields__name {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.form-fields__add {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.field-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.5rem;
+}
+
+.field-row > .field {
+  flex: 1 1 8rem;
+}
+
+.form-problems {
+  margin: 0 0 0.75rem;
+  padding: 0.5rem 0.75rem;
+  border-left: 4px solid var(--color-warning, #b45309);
+  background: var(--color-warning-background, #fffbeb);
+}
+
+.form-problems ul {
+  margin: 0.25rem 0 0;
+  padding-left: 1.25rem;
+}

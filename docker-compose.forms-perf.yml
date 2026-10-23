@@ -1,0 +1,11 @@
+# QuickBuilder — forms performance override (018 SC-006, SC-009; tasks T091).
+#
+# Layered over docker-compose.yml and docker-compose.perf.yml by the forms performance tests:
+# every request of a test comes from one address, so the per-address rate limit is raised to
+# measure submitting rather than refusing. Not for production use.
+
+services:
+  app:
+    environment:
+      Forms__RateLimit__PerMinute: "1000"
+      Forms__RateLimit__PerHour: "10000"

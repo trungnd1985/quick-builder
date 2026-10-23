@@ -93,6 +93,7 @@ async function renderView() {
       { path: '/sites/:siteId/design', name: 'site-design', component: { template: '<div />' } },
       { path: '/sites/:siteId/redirects', name: 'site-redirects', component: { template: '<div />' } },
       { path: '/sites/:siteId/menus', name: 'site-menus', component: { template: '<div />' } },
+      { path: '/sites/:siteId/submissions', name: 'site-submissions', component: { template: '<div />' } },
     ],
   })
   await router.push(`/sites/${SITE}`)
@@ -133,6 +134,23 @@ describe('SiteDetailView — settings (US1)', () => {
       primaryHostName: 'client.test',
       version: 7,
     })
+  })
+
+  it('links to Submissions with the unread count beside it (018 FS-21)', async () => {
+    const unread = `GET /api/v1/forms/sites/${SITE}/submissions/unread-count`
+    stubFetch(site(), { [unread]: [{ status: 200, body: { count: 4 } }] })
+    await renderView()
+
+    const link = await screen.findByRole('link', { name: `${en.sites.detail.submissions} 4 unread` })
+    expect(link.getAttribute('href')).toBe(`/sites/${SITE}/submissions`)
+  })
+
+  it('says "more than 999" at the server cap', async () => {
+    const unread = `GET /api/v1/forms/sites/${SITE}/submissions/unread-count`
+    stubFetch(site(), { [unread]: [{ status: 200, body: { count: 1000 } }] })
+    await renderView()
+
+    expect(await screen.findByText(en.sites.detail.unreadMany)).toBeTruthy()
   })
 
   it('offers to reload when someone else saved first, and reloading clears the prompt', async () => {

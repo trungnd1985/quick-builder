@@ -67,6 +67,10 @@ internal sealed class RenderHarness
 
     public string BasePath { get; set; } = string.Empty;
 
+    public string Language { get; set; } = "en";
+
+    public QuickBuilder.Rendering.Contracts.FormState? FormState { get; set; }
+
     public JsonElement Design { get; set; } = DefaultDesignTokens.Document;
 
     public static PageRenderer Renderer { get; } = new(BlockRendererCoverageTests.AllRenderers());
@@ -89,8 +93,8 @@ internal sealed class RenderHarness
         System.Text.Encoding.UTF8.GetString(QuickBuilder.Rendering.Features.RenderPage.PageResponder.Render(Inputs(document, title), Renderer).Html);
 
     public RenderInputs Inputs(JsonElement document, string title = "Test page") =>
-        new(title, document, Design, Components, Links, Media, "en", BasePath, Path: Path,
-            Menus: Menus, MenuItems: Items, ItemPatterns: Patterns, CurrentPageId: CurrentPageId, CurrentItemId: CurrentItemId);
+        new(title, document, Design, Components, Links, Media, Language, BasePath, Path: Path,
+            Menus: Menus, MenuItems: Items, ItemPatterns: Patterns, CurrentPageId: CurrentPageId, CurrentItemId: CurrentItemId, FormState: FormState);
 
     private RenderContext Context(JsonElement document)
     {

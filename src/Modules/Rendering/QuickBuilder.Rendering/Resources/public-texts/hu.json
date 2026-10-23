@@ -14,5 +14,41 @@
     "menu": "Menü",
     "showSubmenu": "Almenü megjelenítése: {0}",
     "newTab": "(új lapon nyílik meg)"
+  },
+  "forms": {
+    "submit": "Küldés",
+    "success": "Köszönjük! Üzenetét elküldtük.",
+    "error": "Üzenetét nem sikerült elküldeni. Kérjük, próbálja újra.",
+    "limited": "Az Ön kapcsolatáról túl sok üzenet érkezett. Kérjük, próbálja újra később.",
+    "summary": "Probléma van",
+    "required": "(kötelező)",
+    "trap": "Hagyja üresen ezt a mezőt",
+    "rules": {
+      "required": "A(z) {label} mező kitöltése kötelező.",
+      "tooShort": "A(z) {label} mezőnek legalább {min} karakterből kell állnia.",
+      "tooLong": "A(z) {label} mező legfeljebb {max} karakter lehet.",
+      "email": "A(z) {label} mezőnek e-mail-címnek kell lennie.",
+      "phone": "A(z) {label} mezőnek telefonszámnak kell lennie.",
+      "number": "A(z) {label} mezőnek számnak kell lennie.",
+      "whole": "A(z) {label} mezőnek egész számnak kell lennie.",
+      "tooSmall": "A(z) {label} mező értéke legalább {min} legyen.",
+      "tooLarge": "A(z) {label} mező értéke legfeljebb {max} lehet.",
+      "date": "A(z) {label} mezőnek dátumnak kell lennie.",
+      "tooEarly": "A(z) {label} mező nem lehet korábbi, mint {min}.",
+      "tooLate": "A(z) {label} mező nem lehet későbbi, mint {max}.",
+      "choice": "Válasszon egy lehetőséget: {label}.",
+      "tooFew": "Válasszon legalább {min} lehetőséget: {label}.",
+      "tooMany": "Válasszon legfeljebb {max} lehetőséget: {label}."
+    },
+    "notification": {
+      "subject": "Új beküldés: {form}",
+      "intro": "Valaki elküldte a(z) „{form}” űrlapot itt: {site}.",
+      "page": "Oldal",
+      "received": "Beérkezett",
+      "open": "Nyissa meg az adminisztrációban:",
+      "openWithoutLink": "Az elolvasásához nyissa meg a Beküldések oldalt az adminisztrációban.",
+      "valuesOff": "Az értékek nem szerepelnek ebben a levélben. Az elolvasásukhoz nyissa meg a beküldést az adminisztrációban.",
+      "footer": "Küldte: {site}."
+    }
   }
 }

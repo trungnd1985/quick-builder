@@ -14,5 +14,41 @@
     "menu": "Menü",
     "showSubmenu": "Untermenü anzeigen: {0}",
     "newTab": "(öffnet in einem neuen Tab)"
+  },
+  "forms": {
+    "submit": "Senden",
+    "success": "Vielen Dank. Ihre Nachricht wurde gesendet.",
+    "error": "Ihre Nachricht konnte nicht gesendet werden. Bitte versuchen Sie es erneut.",
+    "limited": "Von Ihrer Verbindung wurden zu viele Nachrichten gesendet. Bitte versuchen Sie es später erneut.",
+    "summary": "Es gibt ein Problem",
+    "required": "(Pflichtfeld)",
+    "trap": "Dieses Feld leer lassen",
+    "rules": {
+      "required": "{label} ist ein Pflichtfeld.",
+      "tooShort": "{label} muss mindestens {min} Zeichen lang sein.",
+      "tooLong": "{label} darf höchstens {max} Zeichen lang sein.",
+      "email": "{label} muss eine E-Mail-Adresse sein.",
+      "phone": "{label} muss eine Telefonnummer sein.",
+      "number": "{label} muss eine Zahl sein.",
+      "whole": "{label} muss eine ganze Zahl sein.",
+      "tooSmall": "{label} muss mindestens {min} sein.",
+      "tooLarge": "{label} darf höchstens {max} sein.",
+      "date": "{label} muss ein Datum sein.",
+      "tooEarly": "{label} muss am oder nach dem {min} liegen.",
+      "tooLate": "{label} muss am oder vor dem {max} liegen.",
+      "choice": "Wählen Sie eine Option für {label}.",
+      "tooFew": "Wählen Sie mindestens {min} Optionen für {label}.",
+      "tooMany": "Wählen Sie höchstens {max} Optionen für {label}."
+    },
+    "notification": {
+      "subject": "Neue Einsendung: {form}",
+      "intro": "Jemand hat das Formular „{form}“ auf {site} abgeschickt.",
+      "page": "Seite",
+      "received": "Eingegangen",
+      "open": "Im Verwaltungsbereich öffnen:",
+      "openWithoutLink": "Öffnen Sie „Einsendungen“ im Verwaltungsbereich, um sie zu lesen.",
+      "valuesOff": "Die Werte sind in dieser E-Mail nicht enthalten. Öffnen Sie die Einsendung im Verwaltungsbereich, um sie zu lesen.",
+      "footer": "Gesendet von {site}."
+    }
   }
 }

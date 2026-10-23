@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The Forms module's public surface (specs/018-forms-submissions): capability names and the
+    public submit prefix the host reserves. References only Shared.Kernel — no EF Core, no
+    ASP.NET Core. Asserted by QuickBuilder.ArchitectureTests (Contracts purity).
+  -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\Shared\QuickBuilder.Shared.Kernel\QuickBuilder.Shared.Kernel.csproj" />
+  </ItemGroup>
+
+</Project>

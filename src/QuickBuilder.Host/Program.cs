@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Extensions.Options;
 using QuickBuilder.Cms;
 using QuickBuilder.Editor;
+using QuickBuilder.Forms;
 using QuickBuilder.Host;
 using QuickBuilder.Host.Configuration;
 using QuickBuilder.Host.Middleware;
@@ -14,6 +15,7 @@ using QuickBuilder.Rendering;
 using QuickBuilder.Shared.Infrastructure;
 using QuickBuilder.Shared.Infrastructure.Caching;
 using QuickBuilder.Shared.Infrastructure.Commands;
+using QuickBuilder.Shared.Infrastructure.Email;
 using QuickBuilder.Shared.Infrastructure.Migrations;
 using QuickBuilder.Shared.Infrastructure.Outbox;
 using QuickBuilder.Shared.Infrastructure.Startup;
@@ -77,6 +79,14 @@ builder.Services
     .ValidateDataAnnotations()
     .ValidateOnStart();
 
+// 018 research FS-18: outgoing email. An empty Email:Smtp:Host turns it off; anything else
+// must name a sender and never sign in unencrypted to another machine.
+builder.Services
+    .AddOptions<SmtpOptions>()
+    .Bind(builder.Configuration.GetSection(SmtpOptions.SectionName))
+    .ValidateOnStart();
+builder.Services.AddEmail();
+
 // --- Shared services ---------------------------------------------------------------
 builder.Services.AddSingleton<IOutboxSettingsProvider, OutboxSettingsProvider>();
 builder.Services.AddSharedInfrastructure();
@@ -100,6 +110,7 @@ builder.Services.AddPagesModule(builder.Configuration);
 builder.Services.AddEditorModule(builder.Configuration);
 builder.Services.AddCmsModule(builder.Configuration);
 builder.Services.AddRenderingModule(builder.Configuration);
+builder.Services.AddFormsModule(builder.Configuration);
 
 // Controllers live in their modules and are discovered through application parts
 // (constitution Principle I). Minimal APIs are not used anywhere.
@@ -111,7 +122,8 @@ builder.Services
     .AddApplicationPart(typeof(PagesModule).Assembly)
     .AddApplicationPart(typeof(EditorModule).Assembly)
     .AddApplicationPart(typeof(CmsModule).Assembly)
-    .AddApplicationPart(typeof(RenderingModule).Assembly);
+    .AddApplicationPart(typeof(RenderingModule).Assembly)
+    .AddApplicationPart(typeof(FormsModule).Assembly);
 
 var app = builder.Build();
 

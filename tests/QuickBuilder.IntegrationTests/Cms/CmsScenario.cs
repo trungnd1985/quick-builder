@@ -36,11 +36,12 @@ internal sealed class CmsScenario : IDisposable
 
     public Guid SiteB { get; }
 
-    public static async Task<CmsScenario> CreateAsync(DatabaseFixture database, string label, Action<IServiceCollection>? configureTestServices = null)
+    public static async Task<CmsScenario> CreateAsync(
+        DatabaseFixture database, string label, Action<IServiceCollection>? configureTestServices = null, IReadOnlyDictionary<string, string>? settings = null)
     {
         ArgumentNullException.ThrowIfNull(database);
 
-        var app = new QuickBuilderApp(await database.CreateDatabaseAsync(label).ConfigureAwait(false), configureTestServices: configureTestServices);
+        var app = new QuickBuilderApp(await database.CreateDatabaseAsync(label).ConfigureAwait(false), configureTestServices: configureTestServices, settings: settings);
         var admin = await app.CreateAdminClientAsync().ConfigureAwait(false);
         var siteA = await MediaApi.CreateSiteAsync(admin, "Site A", HostA).ConfigureAwait(false);
         var siteB = await MediaApi.CreateSiteAsync(admin, "Site B", HostB).ConfigureAwait(false);

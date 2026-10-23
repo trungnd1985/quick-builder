@@ -282,6 +282,22 @@ internal static class PagesErrors
             $"{menuIds.Count} menu(s) this shows are not published. Publish them first."),
         ("menuIds", menuIds.ToArray()));
 
+    /// <summary>
+    /// 018 rule 28.1–28.5: a form is not ready for visitors. Names the form, the field and the
+    /// first broken rule; the editor shows every problem.
+    /// </summary>
+    internal static Error FormInvalid(string formId, string? fieldId, string rule) => With(
+        Error.Conflict("pages.form_invalid", "A form on this is not complete. Fix it in the editor, then publish."),
+        ("formId", formId),
+        ("fieldId", fieldId),
+        ("rule", rule));
+
+    /// <summary>018 rule 28.6: a form redirects to, or its consent links to, a page that is not live.</summary>
+    internal static Error FormRedirectNotLive(string formId, Guid pageId) => With(
+        Error.Conflict("pages.form_redirect_not_live", "A form on this points at a page that is not published. Publish that page first, or choose another."),
+        ("formId", formId),
+        ("pageId", pageId));
+
     /// <summary>FR-003a: a version to roll back to shows menus that were deleted since.</summary>
     internal static Error VersionMissingMenus(IReadOnlyCollection<Guid> menuIds) => With(
         Error.Conflict(

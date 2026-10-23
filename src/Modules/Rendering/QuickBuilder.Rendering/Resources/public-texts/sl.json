@@ -14,5 +14,41 @@
     "menu": "Meni",
     "showSubmenu": "Pokaži podmeni: {0}",
     "newTab": "(odpre se v novem zavihku)"
+  },
+  "forms": {
+    "submit": "Pošlji",
+    "success": "Hvala. Vaše sporočilo je bilo poslano.",
+    "error": "Vašega sporočila ni bilo mogoče poslati. Poskusite znova.",
+    "limited": "Z vaše povezave je bilo poslanih preveč sporočil. Poskusite znova pozneje.",
+    "summary": "Prišlo je do težave",
+    "required": "(obvezno)",
+    "trap": "To polje pustite prazno",
+    "rules": {
+      "required": "Polje {label} je obvezno.",
+      "tooShort": "Polje {label} mora imeti vsaj {min} znakov.",
+      "tooLong": "Polje {label} ima lahko največ {max} znakov.",
+      "email": "Polje {label} mora biti e-poštni naslov.",
+      "phone": "Polje {label} mora biti telefonska številka.",
+      "number": "Polje {label} mora biti število.",
+      "whole": "Polje {label} mora biti celo število.",
+      "tooSmall": "Polje {label} mora biti vsaj {min}.",
+      "tooLarge": "Polje {label} je lahko največ {max}.",
+      "date": "Polje {label} mora biti datum.",
+      "tooEarly": "Polje {label} mora biti {min} ali pozneje.",
+      "tooLate": "Polje {label} mora biti {max} ali prej.",
+      "choice": "Izberite možnost za polje {label}.",
+      "tooFew": "Za polje {label} izberite vsaj {min} možnosti.",
+      "tooMany": "Za polje {label} izberite največ {max} možnosti."
+    },
+    "notification": {
+      "subject": "Nova oddaja: {form}",
+      "intro": "Nekdo je poslal obrazec »{form}« na {site}.",
+      "page": "Stran",
+      "received": "Prejeto",
+      "open": "Odprite jo v skrbništvu:",
+      "openWithoutLink": "Če jo želite prebrati, odprite Oddaje v skrbništvu.",
+      "valuesOff": "Vrednosti niso vključene v to sporočilo. Če jih želite prebrati, odprite oddajo v skrbništvu.",
+      "footer": "Poslal {site}."
+    }
   }
 }

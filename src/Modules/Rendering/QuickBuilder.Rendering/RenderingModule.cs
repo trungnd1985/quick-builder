@@ -45,11 +45,17 @@ public static class RenderingModule
         services.AddSingleton<IBlockRenderer, ListEmptyRenderer>();
         // 024: a site's menu, with active state and the one navigation script.
         services.AddSingleton<IBlockRenderer, NavigationRenderer>();
+        // 018: a form visitors submit to /_forms.
+        services.AddSingleton<IBlockRenderer, FormRenderer>();
         services.AddSingleton<PageRenderer>();
 
         services.AddSingleton<RenderMetrics>();
         services.AddScoped<PageResponder>();
         services.AddScoped<RedirectResponder>();
+
+        // 018 research FS-09: the page a refused form submission is shown on, never cached.
+        services.AddScoped<IFormResponsePage, Features.FormResponse.FormResponsePage>();
+        services.AddSingleton<IFormNotificationTexts, Features.NotFound.FormNotificationTextCatalogue>();
 
         // 017 research SE-14 to SE-16: the sitemap and robots.txt.
         services.AddScoped<Features.Sitemap.SitemapBuilder>();

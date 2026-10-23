@@ -14,5 +14,41 @@
     "menu": "Menu",
     "showSubmenu": "Mostrar submenu: {0}",
     "newTab": "(abre em uma nova aba)"
+  },
+  "forms": {
+    "submit": "Enviar",
+    "success": "Obrigado. Sua mensagem foi enviada.",
+    "error": "Não foi possível enviar sua mensagem. Tente novamente.",
+    "limited": "Muitas mensagens foram enviadas da sua conexão. Tente novamente mais tarde.",
+    "summary": "Há um problema",
+    "required": "(obrigatório)",
+    "trap": "Deixe este campo em branco",
+    "rules": {
+      "required": "O campo {label} é obrigatório.",
+      "tooShort": "O campo {label} deve ter pelo menos {min} caracteres.",
+      "tooLong": "O campo {label} pode ter no máximo {max} caracteres.",
+      "email": "O campo {label} deve ser um endereço de e-mail.",
+      "phone": "O campo {label} deve ser um número de telefone.",
+      "number": "O campo {label} deve ser um número.",
+      "whole": "O campo {label} deve ser um número inteiro.",
+      "tooSmall": "O campo {label} deve ser pelo menos {min}.",
+      "tooLarge": "O campo {label} pode ser no máximo {max}.",
+      "date": "O campo {label} deve ser uma data.",
+      "tooEarly": "O campo {label} deve ser {min} ou depois.",
+      "tooLate": "O campo {label} deve ser {max} ou antes.",
+      "choice": "Escolha uma opção para {label}.",
+      "tooFew": "Escolha pelo menos {min} opções para {label}.",
+      "tooMany": "Escolha no máximo {max} opções para {label}."
+    },
+    "notification": {
+      "subject": "Novo envio: {form}",
+      "intro": "Alguém enviou o formulário \"{form}\" em {site}.",
+      "page": "Página",
+      "received": "Recebido",
+      "open": "Abra-o na administração:",
+      "openWithoutLink": "Abra Envios na administração para lê-lo.",
+      "valuesOff": "Os valores não estão incluídos neste e-mail. Abra o envio na administração para lê-los.",
+      "footer": "Enviado por {site}."
+    }
   }
 }

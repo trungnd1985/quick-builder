@@ -12,6 +12,7 @@ export const MAX_RICH_TEXT_IMAGES = 50
 export const MAX_RICH_TEXT_TABLES = 20
 export const MAX_LISTS_PER_DOCUMENT = 20
 export const MAX_LIST_DEPTH = 2
+export const MAX_FORMS_PER_DOCUMENT = 20
 export const CURRENT_BINDING_VERSION = 1
 
 /** The schema versions this editor can read and write. */

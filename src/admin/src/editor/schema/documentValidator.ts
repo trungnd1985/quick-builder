@@ -9,7 +9,7 @@
 // built or parsed, where neither can occur.
 
 import { codePointLength, isObject, type Json } from './subsetValidator'
-import { MAX_DOCUMENT_BYTES, MAX_NODE_DEPTH, MAX_NODES, MAX_RICH_TEXT_CHARS, MAX_RICH_TEXT_IMAGES, MAX_RICH_TEXT_TABLES, SUPPORTED_SCHEMA_VERSIONS } from './limits'
+import { MAX_DOCUMENT_BYTES, MAX_FORMS_PER_DOCUMENT, MAX_NODE_DEPTH, MAX_NODES, MAX_RICH_TEXT_CHARS, MAX_RICH_TEXT_IMAGES, MAX_RICH_TEXT_TABLES, SUPPORTED_SCHEMA_VERSIONS } from './limits'
 import { nodeTypes, pageSchema, type DocumentKind } from './schema'
 import { checkRichTextRules } from './richTextRules'
 import { checkBindingRules, checkListChildren } from './bindingDocumentRules'
@@ -58,7 +58,12 @@ export function validateDocument(document: unknown, kind: DocumentKind, context:
   const listChildren = checkListChildren(root, '/root')
   if (listChildren) return { valid: false, ...listChildren }
 
-  const earlier = componentRules(root, '/root', kind) ?? metadataRules(root, kind) ?? richTextLength(root, '/root') ?? richTextRules(root, '/root')
+  const earlier =
+    componentRules(root, '/root', kind) ??
+    metadataRules(root, kind) ??
+    richTextLength(root, '/root') ??
+    richTextRules(root, '/root') ??
+    formRules(root, '/root', false, { count: 0 })
   if (earlier) return earlier
 
   // Rules 13, 15–19, then rule 14 last, as the server orders them (page-schema.md §3).
@@ -177,6 +182,37 @@ function richTextRules(node: Json, pointer: string): DocumentValidation | null {
   const children = Array.isArray(node.children) ? node.children : []
   for (let i = 0; i < children.length; i++) {
     const failure = richTextRules(children[i], `${pointer}/children/${i}`)
+    if (failure) return failure
+  }
+  return null
+}
+
+/**
+ * Contract §3 rules 26–27 (018), in document order: at most MAX_FORMS_PER_DOCUMENT forms, none
+ * inside a Collection list, field ids unique within each form. Completeness (rule 28) is a
+ * publish rule, checked by formSetup.ts.
+ */
+function formRules(node: Json, pointer: string, inList: boolean, state: { count: number }): DocumentValidation | null {
+  if (!isObject(node)) return null
+  if (node.type === 'form') {
+    if (++state.count > MAX_FORMS_PER_DOCUMENT) {
+      return invalid('too_many_forms', `${pointer}/type`, `A document may hold at most ${MAX_FORMS_PER_DOCUMENT} forms.`)
+    }
+    if (inList) return invalid('form_in_list', `${pointer}/type`, 'A form cannot be placed inside a collection list.')
+    const fields = isObject(node.props) && Array.isArray(node.props.fields) ? node.props.fields : []
+    const ids = new Set<string>()
+    for (let i = 0; i < fields.length; i++) {
+      const field = fields[i]
+      const id = isObject(field) ? field.id : undefined
+      if (typeof id === 'string' && ids.has(id)) {
+        return invalid('duplicate_field_id', `${pointer}/props/fields/${i}/id`, 'Two fields of this form have the same id.')
+      }
+      if (typeof id === 'string') ids.add(id)
+    }
+  }
+  const children = Array.isArray(node.children) ? node.children : []
+  for (let i = 0; i < children.length; i++) {
+    const failure = formRules(children[i], `${pointer}/children/${i}`, inList || node.type === 'collection-list', state)
     if (failure) return failure
   }
   return null

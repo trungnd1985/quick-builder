@@ -223,6 +223,18 @@ internal static class DependencyExtractor
                     }
 
                     break;
+                case "form":
+                    // 018: a consent links to its page, by title and address. The redirect is
+                    // resolved when a submission arrives, so nothing rendered depends on it.
+                    if (props.TryGetProperty("fields", out var fields) && fields.ValueKind == JsonValueKind.Array)
+                    {
+                        foreach (var field in fields.EnumerateArray())
+                        {
+                            AddGuid(found, DependencyKinds.Page, field, "linkPageId");
+                        }
+                    }
+
+                    break;
                 case "collection-list":
                     // 016 data-model §1.2: a list depends on the collection it shows.
                     if (props.TryGetProperty("source", out var source) && source.ValueKind == JsonValueKind.Object)

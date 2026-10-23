@@ -66,3 +66,15 @@ the package's own `THIRD-PARTY-NOTICES.md` and `versions.json`.
 | Azure.Identity | 1.21.0 | [MIT License](https://github.com/Azure/azure-sdk-for-net/blob/main/LICENSE.txt) |
 
 These are loaded only when an operator selects `Storage:Provider = S3` or `AzureBlob`.
+
+## Email
+
+| Package | Version | Licence |
+|---------|---------|---------|
+| MailKit | 4.17.0 | [MIT License](https://github.com/jstedfast/MailKit/blob/master/LICENSE) |
+| MimeKit | 4.17.0 | [MIT License](https://github.com/jstedfast/MimeKit/blob/master/LICENSE) |
+| BouncyCastle.Cryptography | 2.6.2 | [MIT License](https://github.com/bcgit/bc-csharp/blob/master/LICENSE.html) |
+
+These send form notifications through the operator's SMTP server (018). They make no
+connection unless `Email:Smtp:Host` is set. BouncyCastle comes with MimeKit for S/MIME,
+which QuickBuilder does not use.

@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "root": { "id": "root", "type": "root", "props": {}, "children": [
+    { "id": "s1", "type": "section", "props": {}, "children": [
+      { "id": "f1", "type": "form", "props": { "name": "F", "fields": [
+        { "id": "a1b2c3d4e5f6", "type": "text", "label": "Name", "options": [{ "value": "a", "label": "A" }] }
+      ] }, "children": [] }
+    ] }
+  ] }
+}

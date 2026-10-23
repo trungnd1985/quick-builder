@@ -14,5 +14,41 @@
     "menu": "Nabídka",
     "showSubmenu": "Zobrazit podnabídku: {0}",
     "newTab": "(otevře se na nové kartě)"
+  },
+  "forms": {
+    "submit": "Odeslat",
+    "success": "Děkujeme. Vaše zpráva byla odeslána.",
+    "error": "Vaši zprávu se nepodařilo odeslat. Zkuste to prosím znovu.",
+    "limited": "Z vašeho připojení bylo odesláno příliš mnoho zpráv. Zkuste to prosím později.",
+    "summary": "Vyskytl se problém",
+    "required": "(povinné)",
+    "trap": "Toto pole nechte prázdné",
+    "rules": {
+      "required": "Pole {label} je povinné.",
+      "tooShort": "Pole {label} musí mít alespoň {min} znaků.",
+      "tooLong": "Pole {label} může mít nejvýše {max} znaků.",
+      "email": "Pole {label} musí být e-mailová adresa.",
+      "phone": "Pole {label} musí být telefonní číslo.",
+      "number": "Pole {label} musí být číslo.",
+      "whole": "Pole {label} musí být celé číslo.",
+      "tooSmall": "Pole {label} musí být alespoň {min}.",
+      "tooLarge": "Pole {label} může být nejvýše {max}.",
+      "date": "Pole {label} musí být datum.",
+      "tooEarly": "Pole {label} musí být {min} nebo později.",
+      "tooLate": "Pole {label} musí být {max} nebo dříve.",
+      "choice": "Vyberte možnost pro pole {label}.",
+      "tooFew": "Vyberte pro pole {label} alespoň {min} možnosti.",
+      "tooMany": "Vyberte pro pole {label} nejvýše {max} možnosti."
+    },
+    "notification": {
+      "subject": "Nové odeslání: {form}",
+      "intro": "Někdo odeslal formulář „{form}“ na webu {site}.",
+      "page": "Stránka",
+      "received": "Přijato",
+      "open": "Otevřete jej v administraci:",
+      "openWithoutLink": "Otevřete Odeslání v administraci a přečtěte si jej.",
+      "valuesOff": "Hodnoty nejsou v tomto e-mailu uvedeny. Přečtete si je po otevření odeslání v administraci.",
+      "footer": "Odesláno webem {site}."
+    }
   }
 }

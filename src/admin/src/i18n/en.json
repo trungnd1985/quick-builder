@@ -77,7 +77,10 @@
       "design": "Design",
       "collections": "Collections",
       "redirects": "Redirects",
-      "menus": "Menus"
+      "menus": "Menus",
+      "submissions": "Submissions",
+      "unread": "{count} unread",
+      "unreadMany": "More than 999 unread"
     },
     "settings": {
       "heading": "Settings",
@@ -587,7 +590,18 @@
   },
   "settings": {
     "title": "Settings",
-    "placeholder": "Settings arrive with a later feature."
+    "placeholder": "Settings arrive with a later feature.",
+    "email": {
+      "heading": "Outgoing email",
+      "on": "Outgoing email is set up. Form notifications are sent through the mail server in the Email:Smtp settings.",
+      "off": "Outgoing email is not set up, so form notifications are not sent. Set the Email:Smtp settings and restart the server; see the configuration guide.",
+      "send": "Send test email",
+      "sending": "Sending…",
+      "sent": "The mail server accepted the test email. Check the inbox of {email}.",
+      "failed": "The mail server did not accept the test email: {reply}",
+      "failedNoReply": "The mail server could not be reached.",
+      "notConfigured": "Outgoing email is not set up."
+    }
   },
   "storageSettings": {
     "title": "Storage",
@@ -823,7 +837,8 @@
       "listCard": "Card",
       "listEmpty": "When nothing is listed",
       "listEmptyText": "Nothing to show yet.",
-      "navigation": "Navigation"
+      "navigation": "Navigation",
+      "form": "Form"
     },
     "canvas": {
       "label": "Page canvas",
@@ -911,6 +926,9 @@
         "too_large": "The page is larger than 1 MB.",
         "component_ref_not_allowed": "A shared component cannot contain another shared component.",
         "seo_in_component": "A shared component cannot carry search and sharing settings; they belong to pages.",
+        "too_many_forms": "The page has more forms than allowed (20).",
+        "form_in_list": "A form cannot be placed inside a collection list.",
+        "duplicate_field_id": "Two fields of a form have the same id. Remove one and add it again.",
         "unknown_component": "The page uses a shared component that no longer exists.",
         "unsupported_schema_version": "The page was written by a newer version of QuickBuilder.",
         "rich_text_too_long": "A rich text block holds more than 20,000 characters.",
@@ -1018,7 +1036,11 @@
         "content": "Content",
         "layout": "Layout",
         "style": "Style",
-        "layer": "Layer"
+        "layer": "Layer",
+        "messages": "Messages",
+        "afterSubmit": "After sending",
+        "notifications": "Notifications",
+        "submissions": "Submissions"
       },
       "props": {
         "text": "Text",
@@ -1066,7 +1088,15 @@
         "hoverBackground": "Background on hover",
         "activeBackground": "Current page background",
         "focusColor": "Keyboard focus ring",
-        "panelBackground": "Dropdown background"
+        "panelBackground": "Dropdown background",
+        "name": "Form name",
+        "fields": "Fields",
+        "submitLabel": "Button label",
+        "successMessage": "Success message",
+        "errorMessage": "Error message",
+        "redirect": "Then go to",
+        "notify": "Email notification",
+        "retentionDays": "Keep submissions"
       },
       "values": {
         "align": {
@@ -1401,6 +1431,122 @@
       "belowTablet": "Tablet width",
       "buttonLabel": "Menu button text",
       "siteLook": "Site style ({look})"
+    },
+    "form": {
+      "defaultName": "Contact form",
+      "defaultEmailLabel": "Email",
+      "incomplete": "This form is not complete yet. Publishing waits until it is: see the form panel.",
+      "public": {
+        "submit": "Send",
+        "success": "Thank you. Your message has been sent.",
+        "error": "Your message could not be sent. Please try again.",
+        "required": "(required)",
+        "trap": "Leave this field empty"
+      },
+      "types": {
+        "text": "Single line of text",
+        "textarea": "Paragraph of text",
+        "email": "Email address",
+        "phone": "Phone number",
+        "number": "Number",
+        "date": "Date",
+        "select": "Dropdown (one choice)",
+        "radio": "Radio buttons (one choice)",
+        "checkboxes": "Checkboxes (several choices)",
+        "checkbox": "Single checkbox",
+        "consent": "Consent"
+      },
+      "fields": {
+        "none": "No fields yet. Add one below.",
+        "addType": "Type of the new field",
+        "add": "Add field",
+        "edit": "Edit {label}",
+        "moveUp": "Move {label} up",
+        "moveDown": "Move {label} down",
+        "remove": "Remove {label}",
+        "confirmRemove": "Remove the field “{label}”? Submissions already received keep their values.",
+        "moved": "{label} moved to position {position} of {count}.",
+        "removed": "{label} removed.",
+        "added": "{label} added.",
+        "keys": "Alt+Up and Alt+Down move the selected field.",
+        "required": "required",
+        "newLabel": "New field"
+      },
+      "field": {
+        "newTitle": "New field",
+        "editTitle": "Edit field",
+        "type": "Type",
+        "label": "Label",
+        "consentLabelHelp": "Names the column in Submissions; visitors read the statement.",
+        "help": "Help text",
+        "placeholder": "Placeholder",
+        "required": "Required",
+        "message": "Error message",
+        "messageHelp": "Replaces every standard error message of this field. Leave empty for the standard ones.",
+        "minLength": "Minimum length",
+        "maxLength": "Maximum length",
+        "min": "Lowest value",
+        "max": "Highest value",
+        "wholeNumber": "Whole numbers only",
+        "earliest": "Earliest date",
+        "latest": "Latest date",
+        "options": "Options",
+        "optionLabel": "Option {number}",
+        "optionValue": "Stored as",
+        "addOption": "Add option",
+        "removeOption": "Remove option {number}",
+        "moveOptionUp": "Move option {number} up",
+        "minSelected": "Choose at least",
+        "maxSelected": "Choose at most",
+        "statement": "Statement visitors agree to",
+        "linkPage": "Link to page",
+        "noLinkPage": "No link",
+        "save": "Save field",
+        "cancel": "Cancel",
+        "labelRequired": "Give the field a label.",
+        "statementRequired": "Write the statement visitors agree to.",
+        "labelTaken": "Another field of this form already has this label."
+      },
+      "redirect": {
+        "none": "Show the success message",
+        "page": "A page of this site",
+        "url": "An address",
+        "choosePage": "Choose a page",
+        "address": "Address",
+        "addressHelp": "Begins with https:// or http://.",
+        "addressInvalid": "Enter an address beginning with https:// or http://.",
+        "notLive": "This page is not published. Publishing waits until it is.",
+        "gone": "This page no longer exists. Choose another."
+      },
+      "notify": {
+        "recipients": "Send to",
+        "recipientsHelp": "Up to 10 email addresses, one per line.",
+        "recipientsInvalid": "One of these is not an email address: {address}",
+        "tooMany": "Up to 10 addresses.",
+        "subject": "Subject",
+        "subjectDefault": "New submission: {name}",
+        "includeValues": "Include the submitted values in the email",
+        "includeValuesHelp": "Off: the email only says a submission arrived and links to it, so no visitor data travels by email.",
+        "replyField": "Reply to the address entered in",
+        "noReplyField": "No reply address",
+        "emailOff": "Email is not set up on this installation, so no notification will be sent until an administrator sets it up. Submissions are still kept."
+      },
+      "retention": {
+        "off": "Until deleted",
+        "days": "{days} days",
+        "help": "Older submissions of this form are deleted automatically, once a day, after the page is published.",
+        "impact": "{count} submission(s) already received are older than this and will be deleted after you publish."
+      },
+      "problems": {
+        "title": "Before this form can be published",
+        "no_fields": "Add at least one field.",
+        "duplicate_label": "“{label}” has the same label as another field.",
+        "no_options": "“{label}” needs at least one option.",
+        "duplicate_option": "“{label}” has two options stored the same way.",
+        "min_above_max": "“{label}”: the minimum is above the maximum.",
+        "reply_field_invalid": "The reply address must come from an email field of this form, with values included in the email.",
+        "goTo": "Go to {label}"
+      }
     }
   },
   "design": {
@@ -1522,7 +1668,9 @@
         "invalid_document": "Its content no longer passes the page checks.",
         "unknown": "The schedule could not run.",
         "image_alt_missing": "An image in its rich text had no alternative text.",
-        "unpublished_menus": "A menu it shows was not published by then."
+        "unpublished_menus": "A menu it shows was not published by then.",
+        "form_invalid": "A form on it was not complete.",
+        "form_redirect_not_live": "A form on it pointed at a page that was not published."
       },
       "scheduled": {
         "publish": "Publishes {when}",
@@ -1664,7 +1812,9 @@
         "unpublished_menus": "{count} menu(s) this shows are not published. Publish them first.",
         "version_missing_menus": "That version shows {count} menu(s) that no longer exist.",
         "menu_in_use_by_published_content": "{pages} published page(s) and {components} published component(s) show this menu. Remove it from them first.",
-        "menu_not_found": "This menu no longer exists."
+        "menu_not_found": "This menu no longer exists.",
+        "form_invalid": "A form on this is not complete. Open it in the editor: the form shows what to fix.",
+        "form_redirect_not_live": "A form on this sends visitors to, or links to, a page that is not published. Publish that page first, or choose another."
       },
       "editor": {
         "out_of_date": "Someone changed the design since you opened it. Reload and try again.",
@@ -2503,6 +2653,103 @@
         "too_many_entries": "A menu can hold at most 300 entries.",
         "new_tab_not_allowed": "Only entries that link somewhere can open in a new tab."
       }
+    }
+  },
+  "forms": {
+    "submissions": {
+      "title": "Submissions",
+      "intro": "What visitors sent through the forms of {site}, newest first.",
+      "empty": "No submissions yet. They appear here when visitors send a published form.",
+      "emptyFiltered": "No submissions match these filters.",
+      "more": "Show more",
+      "export": "Export CSV",
+      "exportHelp": "Exports every submission that matches the filters, not only the ones shown.",
+      "delete": "Delete selected",
+      "deleteConfirm": "Delete {count} submission(s)? This cannot be undone.",
+      "deleted": "{count} submission(s) deleted.",
+      "selectAll": "Select all shown",
+      "select": "Select the submission of {when}",
+      "selected": "{count} selected",
+      "unread": "Unread",
+      "notPublished": "No longer published",
+      "keptFor": "Kept {days} days",
+      "keptUntilDeleted": "Kept until deleted",
+      "columns": {
+        "received": "Received",
+        "form": "Form",
+        "page": "Page",
+        "preview": "Content",
+        "status": "Status"
+      },
+      "formsHeading": "Forms",
+      "spamLink": "Spam"
+    },
+    "filters": {
+      "legend": "Filter submissions",
+      "form": "Form",
+      "allForms": "All forms",
+      "from": "From",
+      "to": "To",
+      "read": "Show",
+      "readAll": "All",
+      "readRead": "Read",
+      "readUnread": "Unread",
+      "search": "Search",
+      "searchHelp": "Finds submissions containing every word, in any field.",
+      "apply": "Apply",
+      "clear": "Clear filters"
+    },
+    "detail": {
+      "title": "Submission from {form}",
+      "back": "All submissions",
+      "received": "Received",
+      "page": "Sent from",
+      "retention": "Retention",
+      "values": "What was sent",
+      "noValue": "(empty)",
+      "markUnread": "Mark as unread",
+      "markRead": "Mark as read",
+      "markedUnread": "Marked as unread.",
+      "delete": "Delete",
+      "deleteConfirm": "Delete this submission? This cannot be undone.",
+      "notification": "Email notification",
+      "spam": "This submission was caught as spam."
+    },
+    "notification": {
+      "not_needed": "Not needed: the form has no recipients.",
+      "not_sent": "Not sent: outgoing email is not set up.",
+      "pending": "Waiting to be sent.",
+      "sent": "Sent.",
+      "failed": "Failed: the mail server did not accept it.",
+      "none": "None: spam is never notified."
+    },
+    "errors": {
+      "submission_not_found": "This submission no longer exists. It may have been deleted.",
+      "invalid_filter": "These filters cannot be used: {reason}",
+      "forbidden": "You do not have permission to do that on this site.",
+      "generic": "Something went wrong. Try again.",
+      "not_spam": "This submission is already in the inbox."
+    },
+    "spam": {
+      "title": "Spam",
+      "intro": "Submissions the trap field caught on {site}. They are kept for 30 days and never notified. Restore one that a real visitor sent.",
+      "back": "All submissions",
+      "empty": "No spam in the last 30 days.",
+      "restore": "Restore",
+      "restoreLabel": "Restore the submission of {when}",
+      "restored": "Moved to the inbox as unread; its notification will be sent.",
+      "delete": "Delete",
+      "deleteLabel": "Delete the submission of {when}",
+      "deleteConfirm": "Delete this submission? This cannot be undone.",
+      "deleted": "Submission deleted.",
+      "more": "Show more"
+    },
+    "counters": {
+      "heading": "Held back in the last 30 days",
+      "form": "Form",
+      "trappedKept": "Caught as spam",
+      "trappedDropped": "Caught and dropped",
+      "rateLimited": "Over the rate limit"
     }
   }
 }

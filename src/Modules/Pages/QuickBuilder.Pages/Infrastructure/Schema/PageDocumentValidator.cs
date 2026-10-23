@@ -24,6 +24,8 @@ namespace QuickBuilder.Pages.Infrastructure.Schema;
 /// site; this collects the ids.</item>
 /// <item><b>Rich text length</b> (§3 rule 9, added by 011): the sum over a Rich Text block's
 /// text nodes, which the schema can only bound one node at a time.</item>
+/// <item><b>Forms</b> (§3 rules 26–27, added by 018): how many, not inside a list, and field ids
+/// unique within each form.</item>
 /// </list>
 /// Messages never quote document content (FR-037).
 /// </remarks>
@@ -41,6 +43,8 @@ internal sealed class PageDocumentValidator : IPageDocumentValidator
     };
 
     private const string RichTextType = "rich-text";
+    private const string FormType = "form";
+    private const string CollectionListType = "collection-list";
 
     private readonly Dictionary<int, SchemaSubsetValidator> _schemas;
 
@@ -166,6 +170,13 @@ internal sealed class PageDocumentValidator : IPageDocumentValidator
             return richTextRuleFailure;
         }
 
+        // Rules 26–27 (018). Completeness (rule 28) is a publish rule, not a save rule.
+        var forms = 0;
+        if (CheckFormRules(root.GetProperty("root"), "/root", inList: false, ref forms) is { } formFailure)
+        {
+            return formFailure;
+        }
+
         // Rules 13, 15–19 (016). Rule 14 is the caller's, against its site, like rule 6.
         var collections = new Dictionary<Guid, string>();
         if (BindingDocumentRules.Check(root, kind, collections) is { } bindingFailure)
@@ -239,6 +250,53 @@ internal sealed class PageDocumentValidator : IPageDocumentValidator
             }
 
             index++;
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Contract §3 rules 26–27 (018 research FS-04), in document order: at most
+    /// <see cref="PageSchema.MaxFormsPerDocument"/> forms, none inside a Collection list, and
+    /// field ids unique within each form.
+    /// </summary>
+    private static DocumentValidationResult? CheckFormRules(JsonElement node, string pointer, bool inList, ref int forms)
+    {
+        var type = node.GetProperty("type").GetString();
+        if (type == FormType)
+        {
+            if (++forms > PageSchema.MaxFormsPerDocument)
+            {
+                return Invalid("too_many_forms", $"{pointer}/type", $"A document may hold at most {PageSchema.MaxFormsPerDocument} forms.");
+            }
+
+            if (inList)
+            {
+                return Invalid("form_in_list", $"{pointer}/type", "A form cannot be placed inside a collection list.");
+            }
+
+            var ids = new HashSet<string>(StringComparer.Ordinal);
+            var index = 0;
+            foreach (var field in node.GetProperty("props").GetProperty("fields").EnumerateArray())
+            {
+                if (!ids.Add(field.GetProperty("id").GetString()!))
+                {
+                    return Invalid("duplicate_field_id", $"{pointer}/props/fields/{index}/id", "Two fields of this form have the same id.");
+                }
+
+                index++;
+            }
+        }
+
+        var childIndex = 0;
+        foreach (var child in node.GetProperty("children").EnumerateArray())
+        {
+            if (CheckFormRules(child, $"{pointer}/children/{childIndex}", inList || type == CollectionListType, ref forms) is { } failure)
+            {
+                return failure;
+            }
+
+            childIndex++;
         }
 
         return null;

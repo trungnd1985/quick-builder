@@ -75,6 +75,7 @@ whitespace. "Read back unchanged" means **equal as a JSON value**.
 | `list-card` | `layerLabel` | `contentChild` | in `collection-list` only (016) |
 | `list-empty` | `layerLabel` | `contentChild` | in `collection-list` only (016) |
 | `navigation` | `menuId`\*, `layout`, `levels`, `collapse`, `align`, `ariaLabel`, `look`, `color`, `activeColor`, `background`, `hoverColor`, `hoverBackground`, `activeBackground`, `focusColor`, `panelBackground`, `layerLabel` | none | in `section` or `container`, in page and component documents (024) |
+| `form` | `name`\*, `fields`\*, `submitLabel`, `successMessage`, `errorMessage`, `redirect`, `notify`, `retentionDays`, `layerLabel` | none | in `section` or `container`, never inside a `collection-list` (rule 26) (018) |
 
 \* required. Values, limits and defaults are in the schema file, which is the single
 definition; this table is its index. `layerLabel` is an editor aid and is never rendered.
@@ -214,6 +215,33 @@ contracts/seo-metadata.md):
     texts) hold no control characters, line breaks included. The schema says it with a
     pattern, so a failure is `props_invalid` at the text.
 
+Rules 26–28 come with forms (018; specs/018-forms-submissions contracts/form-block.md):
+
+26. A document holds at most **20** forms (`too_many_forms`, at the 21st form's `/type`), and
+    no form sits inside a `collection-list`, in its card or its empty state (`form_in_list`,
+    at the form's `/type`). A form per list item would give one form many sources with
+    nothing to tell them apart.
+27. The field `id`s of a form are unique within it (`duplicate_field_id`, at the second
+    field's `/id`). Stored submissions are keyed by them, so they never change once made.
+28. **Publish rules.** A draft may break these while someone works on it; publishing a page
+    or component, by hand, by schedule or by rollback, refuses the first form that breaks one
+    (`pages.form_invalid`, with `formId`, `fieldId` and `rule`; or
+    `pages.form_redirect_not_live`, with `formId` and `pageId`). The editor shows every
+    problem as it happens:
+    1. `no_fields`: the form has at least one field;
+    2. `duplicate_label`: labels are unique within the form, ignoring case;
+    3. `no_options`, `duplicate_option`: `select`, `radio` and `checkboxes` have at least one
+       option, with unique values;
+    4. `min_above_max`: `minLength ≤ maxLength`, `min ≤ max`, `earliest ≤ latest`, and
+       `minSelected ≤ maxSelected ≤` the number of options;
+    5. `reply_field_invalid`: `notify.replyFieldId` names an `email` field of the form, and
+       `notify.includeValues` is not `false`;
+    6. `redirect.pageId` and every consent field's `linkPageId` name live pages of the
+       site (`pages.form_redirect_not_live`).
+
+A form's `id` is its node id, the form's identity for its submissions (018 research FS-03).
+The editor gives every copied node a new id, so a copied form is a new form.
+
 A `navigation` node's `menuId` names a menu of the document's site ([menu.md](menu.md)), but
 it is **not** a rule like rule 6: it may name a menu that no longer exists, so deleting a menu
 never makes a draft unsaveable. Publishing refuses a page or component whose Navigation block
@@ -254,7 +282,8 @@ fails the same way:
    - `children_not_allowed` for children under a type that takes none;
 6. the list's children (rule 20);
 7. the code rules: the component rules (rules 6–7, then 22), then rich text length (rule 9) for
-   every Rich Text block, then rules 10–12 for every Rich Text block, in document order;
+   every Rich Text block, then rules 10–12 for every Rich Text block, in document order, then
+   rules 26 and 27 for every form, in document order;
 8. rule 13, then the metadata bindings of `root.props.seo` (rule 23: the shape of each, and
    rule 15 with no list scope open), then one walk in document order that checks each list
    (rules 18, 17, its source, filters and sort keys, 19) and then each binding (rules 15–16)
@@ -278,6 +307,7 @@ does, and they give an oversized document its own reason rather than a generic o
 | Pages per site | 2,000 |
 | Collection lists per document | 20 |
 | Collection list nesting | 2 |
+| Forms per document | 20 |
 
 The limits are part of the contract, not operator settings: a document valid on one
 installation is valid on every installation, which site export and import (#20) rely on.
@@ -357,6 +387,13 @@ the same (024 `UpgradeFrom017Tests`). Menus themselves have their own contract,
 [menu.md](menu.md). The Navigation block's style props (`look` and the colours) have **no
 `default`**: absent means the site-wide menu style of the design tokens
 ([design-tokens.md](design-tokens.md) §2, `menuStyle`).
+
+**Additions in 018 (still version 1)**: the node type `form` in `contentChild`, with
+`$defs/form`, `$defs/formField` (one branch per field type, `formField-<type>`),
+`$defs/formFieldId`, `$defs/formOption`, `$defs/formRedirect` and `$defs/formNotify`, and
+rules 26–28. Every document valid before stays valid and renders the same (018
+`UpgradeFrom024Tests`). Submissions are not part of documents; they belong to the Forms
+module (specs/018-forms-submissions).
 
 ## 7. The schema file
 
@@ -475,6 +512,16 @@ Every validator of this schema runs the same files:
 | `invalid/props_invalid--navigation-bad-look.json` | at `…/props/look` (024) |
 | `invalid/children_not_allowed--navigation-child.json` | at the block's `/children` (024) |
 | `invalid/nesting_not_allowed--navigation-at-root.json` | at `/root/children/0/type` (024) |
+| `valid/form-every-field-type.json` | passes: every field type and rule, a page redirect, notifications and retention, and a second form redirecting to a URL (018) |
+| `valid/form-in-component.json` | passes, also as a component document: a form in a footer (018) |
+| `valid/form-minimal-draft.json` | passes: a form without fields and one with duplicate labels, which only publishing refuses (rule 28) (018) |
+| `invalid/form_in_list--in-list-card.json` | `form_in_list` at the form's `/type` (rule 26) (018) |
+| `invalid/too_many_forms--21.json` | `too_many_forms` at the 21st form's `/type` (rule 26) (018) |
+| `invalid/duplicate_field_id--twice.json` | `duplicate_field_id` at `…/props/fields/1/id` (rule 27) (018) |
+| `invalid/props_invalid--form-redirect-javascript.json` | at `…/props/redirect/href` (018) |
+| `invalid/props_invalid--form-too-many-recipients.json` | at `…/props/notify/recipients` (018) |
+| `invalid/props_invalid--form-option-on-text.json` | at `…/props/fields/0/options`: options belong to choice fields only (018) |
+| `invalid/children_not_allowed--form-child.json` | at the block's `/children` (018) |
 
 Documents too deep or with too many nodes are generated by the tests rather than stored.
 Every block type has at least one valid and one invalid example (011 SC-009);
@@ -556,5 +603,11 @@ visitors at `/_assets/blocks.{hash}.css`.
       renders nothing.
 
   Nothing else is ever emitted.
+- **Forms** (018): a `form` is rendered as a standard HTML form posting to
+  `{base}/_forms/{formId}`, with a success panel shown by `:target`, a hidden trap field,
+  labels, help and errors tied to their inputs, and one inline script admitted by its hash.
+  The markup, the submit endpoint and the content security policy of pages with a form are
+  in specs/018-forms-submissions contracts/public-forms.md §2. The canvas draws the same
+  markup, disabled.
 - **Adding a block type** also means adding one renderer class, which
   `BlockRendererCoverageTests` checks, and golden files (§8).

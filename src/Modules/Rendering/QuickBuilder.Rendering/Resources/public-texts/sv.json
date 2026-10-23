@@ -14,5 +14,41 @@
     "menu": "Meny",
     "showSubmenu": "Visa undermeny: {0}",
     "newTab": "(öppnas i en ny flik)"
+  },
+  "forms": {
+    "submit": "Skicka",
+    "success": "Tack. Ditt meddelande har skickats.",
+    "error": "Ditt meddelande kunde inte skickas. Försök igen.",
+    "limited": "För många meddelanden har skickats från din anslutning. Försök igen senare.",
+    "summary": "Det finns ett problem",
+    "required": "(obligatoriskt)",
+    "trap": "Lämna det här fältet tomt",
+    "rules": {
+      "required": "{label} är obligatoriskt.",
+      "tooShort": "{label} måste ha minst {min} tecken.",
+      "tooLong": "{label} får ha högst {max} tecken.",
+      "email": "{label} måste vara en e-postadress.",
+      "phone": "{label} måste vara ett telefonnummer.",
+      "number": "{label} måste vara ett tal.",
+      "whole": "{label} måste vara ett heltal.",
+      "tooSmall": "{label} måste vara minst {min}.",
+      "tooLarge": "{label} får vara högst {max}.",
+      "date": "{label} måste vara ett datum.",
+      "tooEarly": "{label} måste vara {min} eller senare.",
+      "tooLate": "{label} måste vara {max} eller tidigare.",
+      "choice": "Välj ett alternativ för {label}.",
+      "tooFew": "Välj minst {min} alternativ för {label}.",
+      "tooMany": "Välj högst {max} alternativ för {label}."
+    },
+    "notification": {
+      "subject": "Nytt inskick: {form}",
+      "intro": "Någon skickade formuläret ”{form}” på {site}.",
+      "page": "Sida",
+      "received": "Mottaget",
+      "open": "Öppna det i administrationen:",
+      "openWithoutLink": "Öppna Inskick i administrationen för att läsa det.",
+      "valuesOff": "Värdena finns inte med i det här e-postmeddelandet. Öppna inskicket i administrationen för att läsa dem.",
+      "footer": "Skickat av {site}."
+    }
   }
 }

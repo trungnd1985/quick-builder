@@ -14,5 +14,41 @@
     "menu": "Meniu",
     "showSubmenu": "Afișează submeniul: {0}",
     "newTab": "(se deschide într-o filă nouă)"
+  },
+  "forms": {
+    "submit": "Trimite",
+    "success": "Vă mulțumim. Mesajul dvs. a fost trimis.",
+    "error": "Mesajul dvs. nu a putut fi trimis. Încercați din nou.",
+    "limited": "Au fost trimise prea multe mesaje de pe conexiunea dvs. Încercați din nou mai târziu.",
+    "summary": "Există o problemă",
+    "required": "(obligatoriu)",
+    "trap": "Lăsați acest câmp gol",
+    "rules": {
+      "required": "Câmpul {label} este obligatoriu.",
+      "tooShort": "Câmpul {label} trebuie să aibă cel puțin {min} caractere.",
+      "tooLong": "Câmpul {label} poate avea cel mult {max} caractere.",
+      "email": "Câmpul {label} trebuie să fie o adresă de e-mail.",
+      "phone": "Câmpul {label} trebuie să fie un număr de telefon.",
+      "number": "Câmpul {label} trebuie să fie un număr.",
+      "whole": "Câmpul {label} trebuie să fie un număr întreg.",
+      "tooSmall": "Câmpul {label} trebuie să fie cel puțin {min}.",
+      "tooLarge": "Câmpul {label} poate fi cel mult {max}.",
+      "date": "Câmpul {label} trebuie să fie o dată.",
+      "tooEarly": "Câmpul {label} trebuie să fie {min} sau după.",
+      "tooLate": "Câmpul {label} trebuie să fie {max} sau înainte.",
+      "choice": "Alegeți o opțiune pentru {label}.",
+      "tooFew": "Alegeți cel puțin {min} opțiuni pentru {label}.",
+      "tooMany": "Alegeți cel mult {max} opțiuni pentru {label}."
+    },
+    "notification": {
+      "subject": "Trimitere nouă: {form}",
+      "intro": "Cineva a trimis formularul „{form}” pe {site}.",
+      "page": "Pagina",
+      "received": "Primit",
+      "open": "Deschideți-o în administrare:",
+      "openWithoutLink": "Deschideți Trimiteri în administrare pentru a o citi.",
+      "valuesOff": "Valorile nu sunt incluse în acest e-mail. Deschideți trimiterea în administrare pentru a le citi.",
+      "footer": "Trimis de {site}."
+    }
   }
 }

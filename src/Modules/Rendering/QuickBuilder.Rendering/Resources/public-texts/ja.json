@@ -14,5 +14,41 @@
     "menu": "メニュー",
     "showSubmenu": "サブメニューを表示: {0}",
     "newTab": "（新しいタブで開きます）"
+  },
+  "forms": {
+    "submit": "送信",
+    "success": "ありがとうございます。メッセージを送信しました。",
+    "error": "メッセージを送信できませんでした。もう一度お試しください。",
+    "limited": "お使いの接続から送信されたメッセージが多すぎます。しばらくしてからもう一度お試しください。",
+    "summary": "問題があります",
+    "required": "（必須）",
+    "trap": "この欄は空欄のままにしてください",
+    "rules": {
+      "required": "{label}は必須です。",
+      "tooShort": "{label}は{min}文字以上で入力してください。",
+      "tooLong": "{label}は{max}文字以内で入力してください。",
+      "email": "{label}にはメールアドレスを入力してください。",
+      "phone": "{label}には電話番号を入力してください。",
+      "number": "{label}には数値を入力してください。",
+      "whole": "{label}には整数を入力してください。",
+      "tooSmall": "{label}は{min}以上にしてください。",
+      "tooLarge": "{label}は{max}以下にしてください。",
+      "date": "{label}には日付を入力してください。",
+      "tooEarly": "{label}は{min}以降の日付にしてください。",
+      "tooLate": "{label}は{max}以前の日付にしてください。",
+      "choice": "{label}の選択肢を選んでください。",
+      "tooFew": "{label}は{min}個以上選んでください。",
+      "tooMany": "{label}は{max}個以下で選んでください。"
+    },
+    "notification": {
+      "subject": "新しい送信: {form}",
+      "intro": "{site} でフォーム「{form}」が送信されました。",
+      "page": "ページ",
+      "received": "受信日時",
+      "open": "管理画面で開く:",
+      "openWithoutLink": "内容は管理画面の「送信内容」で確認してください。",
+      "valuesOff": "このメールには入力内容が含まれていません。管理画面で送信内容を開いて確認してください。",
+      "footer": "{site} から送信されました。"
+    }
   }
 }

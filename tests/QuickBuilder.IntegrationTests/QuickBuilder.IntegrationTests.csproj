@@ -39,6 +39,8 @@
     <ProjectReference Include="..\..\src\Modules\Cms\QuickBuilder.Cms.Contracts\QuickBuilder.Cms.Contracts.csproj" />
     <ProjectReference Include="..\..\src\Modules\Rendering\QuickBuilder.Rendering\QuickBuilder.Rendering.csproj" />
     <ProjectReference Include="..\..\src\Modules\Rendering\QuickBuilder.Rendering.Contracts\QuickBuilder.Rendering.Contracts.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Forms\QuickBuilder.Forms\QuickBuilder.Forms.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Forms\QuickBuilder.Forms.Contracts\QuickBuilder.Forms.Contracts.csproj" />
   </ItemGroup>
 
   <!-- 013 T045: images generated at test time (tests/fixtures/media/ImageFixtures.cs). -->

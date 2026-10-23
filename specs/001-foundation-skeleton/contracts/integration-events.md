@@ -163,6 +163,18 @@ are refreshed through the dependency graph in the transaction of the change (024
   the item, directly or through a component (`RefreshPagesShowingMenuItemsHandler`). The handler
   is idempotent through `pages.processed_events`, under handler names of its own.
 
+### 018 Forms and submissions (#18)
+
+No new event: nothing needs to know about submissions yet (webhooks are out of scope).
+
+- **New subscriptions in Forms**: `Pages.PagePublished`, `Pages.PageUnpublished`,
+  `Pages.ComponentPublished` and `Pages.ComponentUnpublished` keep the form registry
+  (`forms.forms`, `forms.form_placements`) in step with what is live
+  (`RefreshFormRegistryHandler`, 018 research FS-05). The handler reads the subject's live
+  document when it runs rather than the payload, under a transaction lock per subject, so it
+  is idempotent without a processed-events row and indifferent to delivery order. It runs in a
+  scope resolved to the event's site, because it reads through the public path's reader.
+
 ---
 
 ## Delivery guarantees

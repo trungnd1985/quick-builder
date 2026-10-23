@@ -14,5 +14,41 @@
     "menu": "Izvēlne",
     "showSubmenu": "Rādīt apakšizvēlni: {0}",
     "newTab": "(atveras jaunā cilnē)"
+  },
+  "forms": {
+    "submit": "Sūtīt",
+    "success": "Paldies! Jūsu ziņojums ir nosūtīts.",
+    "error": "Jūsu ziņojumu neizdevās nosūtīt. Lūdzu, mēģiniet vēlreiz.",
+    "limited": "No jūsu savienojuma ir nosūtīts pārāk daudz ziņojumu. Lūdzu, mēģiniet vēlāk.",
+    "summary": "Radās problēma",
+    "required": "(obligāts)",
+    "trap": "Atstājiet šo lauku tukšu",
+    "rules": {
+      "required": "Lauks {label} ir obligāts.",
+      "tooShort": "Laukā {label} jābūt vismaz {min} rakstzīmēm.",
+      "tooLong": "Laukā {label} drīkst būt ne vairāk kā {max} rakstzīmes.",
+      "email": "Laukam {label} jābūt e-pasta adresei.",
+      "phone": "Laukam {label} jābūt tālruņa numuram.",
+      "number": "Laukam {label} jābūt skaitlim.",
+      "whole": "Laukam {label} jābūt veselam skaitlim.",
+      "tooSmall": "Laukam {label} jābūt vismaz {min}.",
+      "tooLarge": "Laukam {label} jābūt ne vairāk kā {max}.",
+      "date": "Laukam {label} jābūt datumam.",
+      "tooEarly": "Laukam {label} jābūt {min} vai vēlāk.",
+      "tooLate": "Laukam {label} jābūt {max} vai agrāk.",
+      "choice": "Izvēlieties opciju laukam {label}.",
+      "tooFew": "Laukam {label} izvēlieties vismaz {min} opcijas.",
+      "tooMany": "Laukam {label} izvēlieties ne vairāk kā {max} opcijas."
+    },
+    "notification": {
+      "subject": "Jauns iesniegums: {form}",
+      "intro": "Kāds nosūtīja veidlapu “{form}” vietnē {site}.",
+      "page": "Lapa",
+      "received": "Saņemts",
+      "open": "Atveriet to administrācijā:",
+      "openWithoutLink": "Lai to izlasītu, administrācijā atveriet Iesniegumus.",
+      "valuesOff": "Vērtības šajā e-pastā nav iekļautas. Lai tās izlasītu, atveriet iesniegumu administrācijā.",
+      "footer": "Nosūtīja {site}."
+    }
   }
 }

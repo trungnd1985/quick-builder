@@ -43,6 +43,17 @@ internal sealed class RenderReferences
                 case "navigation":
                     AddGuid(Menus, props, "menuId");
                     break;
+                case "form":
+                    // 018: a consent links to its page; the redirect is resolved when submitted.
+                    if (props.TryGetProperty("fields", out var fields) && fields.ValueKind == JsonValueKind.Array)
+                    {
+                        foreach (var field in fields.EnumerateArray())
+                        {
+                            AddGuid(Pages, field, "linkPageId");
+                        }
+                    }
+
+                    break;
                 case "button":
                 case "heading":
                     AddLink(props, "link");

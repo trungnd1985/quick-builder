@@ -6,6 +6,7 @@ using Npgsql;
 using QuickBuilder.Cms.Contracts;
 using QuickBuilder.Pages.Contracts;
 using QuickBuilder.Pages.Domain;
+using QuickBuilder.Pages.Domain.Forms;
 using QuickBuilder.Pages.Features;
 using QuickBuilder.Shared.Kernel.Results;
 
@@ -265,7 +266,8 @@ internal sealed class PublishingWrites(
 
     /// <summary>
     /// The checks a page or component document passes before it goes live: rich text images,
-    /// live components (012 FR-003), live menus (024 FR-003a) and page parameters (016 rule 21).
+    /// live components (012 FR-003), live menus (024 FR-003a), complete forms (018 rule 28) and page
+    /// parameters (016 rule 21).
     /// </summary>
     private async Task<Result> CheckPageDocumentAsync(Subject subject, string document, CancellationToken cancellationToken)
     {
@@ -318,11 +320,71 @@ internal sealed class PublishingWrites(
             }
         }
 
+        // 018 rule 28: a form reaches visitors complete, and pointing only at live pages.
+        if (await CheckFormsAsync(siteId, document, cancellationToken).ConfigureAwait(false) is { } formFailure)
+        {
+            return Result.Failure(formFailure);
+        }
+
         // Rule 21 (016 FR-027): visitors never get two lists that turn pages together.
         var pageParamTaken = subject.IsPage
             ? await pageParams.CheckPageAsync(siteId, document, live: true, cancellationToken).ConfigureAwait(false)
             : await pageParams.CheckComponentAsync(siteId, subject.Id, document, live: true, cancellationToken).ConfigureAwait(false);
         return pageParamTaken is null ? Result.Success() : Result.Failure(pageParamTaken);
+    }
+
+    /// <summary>
+    /// Page-schema rule 28 (018 research FS-04) for every form of the document, in document
+    /// order: the first broken completeness rule, else the first linked page that is not live.
+    /// </summary>
+    private async Task<Error?> CheckFormsAsync(Guid siteId, string document, CancellationToken cancellationToken)
+    {
+        var linked = new List<(string FormId, Guid PageId)>();
+        using (var parsed = JsonDocument.Parse(document))
+        {
+            foreach (var form in FormNodes(parsed.RootElement.GetProperty("root")))
+            {
+                var formId = form.GetProperty("id").GetString()!;
+                if (FormPublishRules.Check(form) is [var first, ..])
+                {
+                    return PagesErrors.FormInvalid(formId, first.FieldId, first.Rule);
+                }
+
+                linked.AddRange(FormPublishRules.LinkedPages(form).Select(page => (formId, page)));
+            }
+        }
+
+        if (linked.Count == 0)
+        {
+            return null;
+        }
+
+        var pageIds = linked.Select(l => l.PageId).Distinct().ToList();
+        var live = await database.ForSite<Publication>(siteId)
+            .Where(p => p.SubjectKind == SubjectKinds.Page && pageIds.Contains(p.SubjectId) && p.LiveVersionId != null)
+            .Select(p => p.SubjectId)
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        return linked.FirstOrDefault(l => !live.Contains(l.PageId)) is { FormId: not null } notLive
+            ? PagesErrors.FormRedirectNotLive(notLive.FormId, notLive.PageId)
+            : null;
+    }
+
+    private static IEnumerable<JsonElement> FormNodes(JsonElement node)
+    {
+        if (node.GetProperty("type").GetString() == "form")
+        {
+            yield return node;
+        }
+
+        foreach (var child in node.GetProperty("children").EnumerateArray())
+        {
+            foreach (var form in FormNodes(child))
+            {
+                yield return form;
+            }
+        }
     }
 
     /// <summary>The version, dependencies, generations and log entry of a publish that passed its checks.</summary>

@@ -14,5 +14,41 @@
     "menu": "Valikko",
     "showSubmenu": "Näytä alavalikko: {0}",
     "newTab": "(avautuu uudelle välilehdelle)"
+  },
+  "forms": {
+    "submit": "Lähetä",
+    "success": "Kiitos! Viestisi on lähetetty.",
+    "error": "Viestiäsi ei voitu lähettää. Yritä uudelleen.",
+    "limited": "Yhteydestäsi on lähetetty liian monta viestiä. Yritä myöhemmin uudelleen.",
+    "summary": "Lomakkeessa on ongelma",
+    "required": "(pakollinen)",
+    "trap": "Jätä tämä kenttä tyhjäksi",
+    "rules": {
+      "required": "Kenttä {label} on pakollinen.",
+      "tooShort": "Kentässä {label} on oltava vähintään {min} merkkiä.",
+      "tooLong": "Kentässä {label} saa olla enintään {max} merkkiä.",
+      "email": "Kentän {label} on oltava sähköpostiosoite.",
+      "phone": "Kentän {label} on oltava puhelinnumero.",
+      "number": "Kentän {label} on oltava luku.",
+      "whole": "Kentän {label} on oltava kokonaisluku.",
+      "tooSmall": "Kentän {label} on oltava vähintään {min}.",
+      "tooLarge": "Kentän {label} saa olla enintään {max}.",
+      "date": "Kentän {label} on oltava päivämäärä.",
+      "tooEarly": "Kentän {label} on oltava {min} tai myöhemmin.",
+      "tooLate": "Kentän {label} on oltava {max} tai aiemmin.",
+      "choice": "Valitse vaihtoehto kenttään {label}.",
+      "tooFew": "Valitse kenttään {label} vähintään {min} vaihtoehtoa.",
+      "tooMany": "Valitse kenttään {label} enintään {max} vaihtoehtoa."
+    },
+    "notification": {
+      "subject": "Uusi lähetys: {form}",
+      "intro": "Joku lähetti lomakkeen ”{form}” sivustolla {site}.",
+      "page": "Sivu",
+      "received": "Vastaanotettu",
+      "open": "Avaa se hallinnassa:",
+      "openWithoutLink": "Avaa Lähetykset hallinnassa lukeaksesi sen.",
+      "valuesOff": "Arvoja ei ole tässä sähköpostissa. Avaa lähetys hallinnassa lukeaksesi ne.",
+      "footer": "Lähettäjä: {site}."
+    }
   }
 }

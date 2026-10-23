@@ -43,6 +43,14 @@ describe('document validator against the golden files', () => {
     expect(validateDocument(readJson(join(pageExamples, 'valid', 'component-with-navigation.json')), 'component')).toEqual({ valid: true })
   })
 
+  it('accepts a Form block in a component document (018)', () => {
+    expect(validateDocument(readJson(join(pageExamples, 'valid', 'form-in-component.json')), 'component')).toEqual({ valid: true })
+  })
+
+  it('accepts an incomplete form, which only publishing refuses (018 rule 28)', () => {
+    expect(validateDocument(readJson(join(pageExamples, 'valid', 'form-minimal-draft.json')), 'page')).toEqual({ valid: true })
+  })
+
   it('refuses a component reference inside a component document', () => {
     const result = validateDocument(readJson(join(pageExamples, 'valid', 'header-and-footer.json')), 'component')
 

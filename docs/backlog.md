@@ -92,6 +92,23 @@ Deferred by 035 (richer rich text; see specs/035-rich-text-formats/plan.md):
     Navigation blocks' `menuId` in page and component drafts and versions; rebuild
     `menu_targets` and `menu_usages` from the imported documents rather than importing them
 
+## Deferred by 018 (forms and submissions)
+
+- Fields as child blocks with free layout; conditional and calculated fields; multi-step forms
+- File uploads; payment fields; confirmation emails to visitors
+- CAPTCHA and third-party spam services; webhooks and CRM integrations
+- Per-site SMTP servers and sender addresses
+- Trigram search for very large submission stores
+- Replying from the admin; assigning or tagging submissions
+- Obligations on later features:
+  - **#20 site export and import**: forms travel inside page and component documents; keep
+    node ids (form and field ids), and remap `redirect.pageId` and `consent.linkPageId` as
+    other page links are. Submissions, the form registry, spam counters and the submission
+    log are **not** exported (018 FR-040)
+  - **Site deletion**: sites cannot be deleted yet. The feature that adds it must delete the
+    site's rows in every `forms` table
+  - **#22 draft previews**: a preview must render forms disabled, as the editor canvas does
+
 ## Deferred by 017 (SEO, sitemap and redirects)
 
 - Wildcard or regular-expression redirects; a not-found log; redirect use over time

@@ -47,6 +47,8 @@ COPY src/Modules/Cms/QuickBuilder.Cms.Contracts/*.csproj              src/Module
 COPY src/Modules/Cms/QuickBuilder.Cms/*.csproj                        src/Modules/Cms/QuickBuilder.Cms/
 COPY src/Modules/Rendering/QuickBuilder.Rendering.Contracts/*.csproj  src/Modules/Rendering/QuickBuilder.Rendering.Contracts/
 COPY src/Modules/Rendering/QuickBuilder.Rendering/*.csproj            src/Modules/Rendering/QuickBuilder.Rendering/
+COPY src/Modules/Forms/QuickBuilder.Forms.Contracts/*.csproj          src/Modules/Forms/QuickBuilder.Forms.Contracts/
+COPY src/Modules/Forms/QuickBuilder.Forms/*.csproj                    src/Modules/Forms/QuickBuilder.Forms/
 RUN dotnet restore src/QuickBuilder.Host/QuickBuilder.Host.csproj
 
 # The .NET folders only. src/admin/ is built by the Node stage above; copying it here

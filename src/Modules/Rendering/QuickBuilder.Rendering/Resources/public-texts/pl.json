@@ -14,5 +14,41 @@
     "menu": "Menu",
     "showSubmenu": "Pokaż podmenu: {0}",
     "newTab": "(otwiera się w nowej karcie)"
+  },
+  "forms": {
+    "submit": "Wyślij",
+    "success": "Dziękujemy. Twoja wiadomość została wysłana.",
+    "error": "Nie udało się wysłać Twojej wiadomości. Spróbuj ponownie.",
+    "limited": "Z Twojego połączenia wysłano zbyt wiele wiadomości. Spróbuj ponownie później.",
+    "summary": "Wystąpił problem",
+    "required": "(wymagane)",
+    "trap": "Pozostaw to pole puste",
+    "rules": {
+      "required": "Pole {label} jest wymagane.",
+      "tooShort": "Pole {label} musi mieć co najmniej {min} znaków.",
+      "tooLong": "Pole {label} może mieć najwyżej {max} znaków.",
+      "email": "Pole {label} musi być adresem e-mail.",
+      "phone": "Pole {label} musi być numerem telefonu.",
+      "number": "Pole {label} musi być liczbą.",
+      "whole": "Pole {label} musi być liczbą całkowitą.",
+      "tooSmall": "Pole {label} musi wynosić co najmniej {min}.",
+      "tooLarge": "Pole {label} może wynosić najwyżej {max}.",
+      "date": "Pole {label} musi być datą.",
+      "tooEarly": "Pole {label} musi być {min} lub później.",
+      "tooLate": "Pole {label} musi być {max} lub wcześniej.",
+      "choice": "Wybierz opcję w polu {label}.",
+      "tooFew": "Wybierz co najmniej {min} opcje w polu {label}.",
+      "tooMany": "Wybierz najwyżej {max} opcje w polu {label}."
+    },
+    "notification": {
+      "subject": "Nowe zgłoszenie: {form}",
+      "intro": "Ktoś wysłał formularz „{form}” w serwisie {site}.",
+      "page": "Strona",
+      "received": "Otrzymano",
+      "open": "Otwórz je w panelu administracyjnym:",
+      "openWithoutLink": "Aby je przeczytać, otwórz Zgłoszenia w panelu administracyjnym.",
+      "valuesOff": "Wartości nie zostały dołączone do tej wiadomości. Aby je przeczytać, otwórz zgłoszenie w panelu administracyjnym.",
+      "footer": "Wysłane przez {site}."
+    }
   }
 }

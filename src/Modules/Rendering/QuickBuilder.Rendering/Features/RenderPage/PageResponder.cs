@@ -9,6 +9,7 @@ using QuickBuilder.Rendering.Binding;
 using QuickBuilder.Rendering.Contracts;
 using QuickBuilder.Rendering.Domain;
 using QuickBuilder.Rendering.Rendering;
+using QuickBuilder.Rendering.Rendering.Forms;
 using QuickBuilder.Rendering.Rendering.Navigation;
 using QuickBuilder.Rendering.Seo;
 using QuickBuilder.Rendering.Seo.StructuredData;
@@ -244,14 +245,14 @@ internal sealed class PageResponder(
     private sealed class PageGoneException : Exception;
 
     /// <summary>Renders a live page; null when it stopped being live since it was found.</summary>
-    public async Task<RenderedPage?> RenderAsync(SiteDto site, Guid pageId, string basePath, ListRequest request, CancellationToken cancellationToken)
+    public async Task<RenderedPage?> RenderAsync(SiteDto site, Guid pageId, string basePath, ListRequest request, CancellationToken cancellationToken, FormState? formState = null)
     {
         ArgumentNullException.ThrowIfNull(site);
 
         var version = await pages.GetLivePageAsync(site.Id, pageId, cancellationToken).ConfigureAwait(false);
         return version is null
             ? null
-            : await RenderVersionAsync(site, pageId, version, basePath, pageItem: null, request, cancellationToken).ConfigureAwait(false);
+            : await RenderVersionAsync(site, pageId, version, basePath, pageItem: null, request, cancellationToken, formState).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -259,7 +260,7 @@ internal sealed class PageResponder(
     /// item stopped being live since they were found (016 FR-030).
     /// </summary>
     public async Task<RenderedPage?> RenderItemAsync(
-        SiteDto site, Guid templatePageId, Guid itemId, string basePath, ListRequest request, CancellationToken cancellationToken)
+        SiteDto site, Guid templatePageId, Guid itemId, string basePath, ListRequest request, CancellationToken cancellationToken, FormState? formState = null)
     {
         ArgumentNullException.ThrowIfNull(site);
 
@@ -272,11 +273,11 @@ internal sealed class PageResponder(
         var item = (await items.GetAsync(site.Id, [itemId], cancellationToken).ConfigureAwait(false)).GetValueOrDefault(itemId);
         return item is null
             ? null
-            : await RenderVersionAsync(site, templatePageId, version, basePath, item, request, cancellationToken).ConfigureAwait(false);
+            : await RenderVersionAsync(site, templatePageId, version, basePath, item, request, cancellationToken, formState).ConfigureAwait(false);
     }
 
     private async Task<RenderedPage> RenderVersionAsync(
-        SiteDto site, Guid pageId, LivePageVersion version, string basePath, PublishedItem? pageItem, ListRequest request, CancellationToken cancellationToken)
+        SiteDto site, Guid pageId, LivePageVersion version, string basePath, PublishedItem? pageItem, ListRequest request, CancellationToken cancellationToken, FormState? formState = null)
     {
         var design = await designs.GetLiveAsync(site.Id, cancellationToken).ConfigureAwait(false);
 
@@ -348,7 +349,7 @@ internal sealed class PageResponder(
         var inputs = new RenderInputs(
             title, version.Document, design.Document, components, targets, files, site.DefaultLanguage, basePath, fetched.Data,
             seo, site, request.Path, pageItem is not null, request.Params.Pages, ancestors,
-            menus, menuItems, itemPatterns, pageId, pageItem?.Id);
+            menus, menuItems, itemPatterns, pageId, pageItem?.Id, formState);
         metrics.Rendered();
         return Render(inputs, renderer, context => LogBroken(context, site.Id, pageId));
     }
@@ -385,7 +386,11 @@ internal sealed class PageResponder(
         afterRender?.Invoke(context);
         var document = PageShell.Write(inputs.Title, inputs.Language, inputs.BasePath, context.Tokens, context.NodeRules, body.ToString(), head, structuredData);
         return new RenderedPage(
-            Encoding.UTF8.GetBytes(document.Html), document.StyleHash, context.NavigationScriptWritten ? NavScript.Hash : null);
+            Encoding.UTF8.GetBytes(document.Html),
+            document.StyleHash,
+            context.NavigationScriptWritten ? NavScript.Hash : null,
+            context.FormScriptWritten ? FormScript.Hash : null,
+            [.. context.FormActionOrigins]);
     }
 
     /// <summary>
@@ -437,7 +442,7 @@ internal sealed class PageResponder(
 
         var headers = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
-            ["Content-Security-Policy"] = ContentSecurityPolicy(page.StyleHash, page.ScriptHash),
+            ["Content-Security-Policy"] = ContentSecurityPolicy(page.StyleHash, page.ScriptHash, page.FormScriptHash, page.FormActionOrigins),
             ["X-Content-Type-Options"] = "nosniff",
             ["Referrer-Policy"] = "strict-origin-when-cross-origin",
             ["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()",
@@ -453,18 +458,27 @@ internal sealed class PageResponder(
 
     /// <summary>
     /// The strictest policy the page allows: its own stylesheet and exactly its one style
-    /// element, images from the site, and the two allow-listed video players (PR-12).
+    /// element, images from the site, and the two allow-listed video players (PR-12). A page with
+    /// a form may also post and fetch to the site, and be redirected to its forms' external
+    /// redirect targets (018 research FS-11); other pages post nowhere.
     /// </summary>
-    public static string ContentSecurityPolicy(string styleHash, string? scriptHash = null) =>
-        "default-src 'none'; " +
-        // 024 NV-14: exactly the navigation script, and only on a page that carries it.
-        (scriptHash is null ? string.Empty : $"script-src 'sha256-{scriptHash}'; ") +
-        $"style-src 'self' 'sha256-{styleHash}'; " +
-        "img-src 'self'; " +
-        "frame-src https://www.youtube-nocookie.com https://player.vimeo.com; " +
-        "base-uri 'none'; " +
-        "form-action 'none'; " +
-        "frame-ancestors 'self'";
+    public static string ContentSecurityPolicy(
+        string styleHash, string? scriptHash = null, string? formScriptHash = null, IReadOnlyList<string>? formActionOrigins = null)
+    {
+        // 024 NV-14 and 018 FS-10: exactly the scripts the page carries, each by its hash.
+        string[] scripts = [.. new[] { scriptHash, formScriptHash }.OfType<string>().Select(h => $"'sha256-{h}'")];
+        var hasForm = formScriptHash is not null;
+
+        return "default-src 'none'; " +
+            (scripts.Length == 0 ? string.Empty : $"script-src {string.Join(' ', scripts)}; ") +
+            $"style-src 'self' 'sha256-{styleHash}'; " +
+            "img-src 'self'; " +
+            (hasForm ? "connect-src 'self'; " : string.Empty) +
+            "frame-src https://www.youtube-nocookie.com https://player.vimeo.com; " +
+            "base-uri 'none'; " +
+            (hasForm ? $"form-action {string.Join(' ', ["'self'", .. formActionOrigins ?? []])}; " : "form-action 'none'; ") +
+            "frame-ancestors 'self'";
+    }
 }
 
 /// <summary>

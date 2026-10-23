@@ -37,6 +37,9 @@
     <!-- 016 research TB-09: how bound dates and numbers read, shared with the editor. -->
     <EmbeddedResource Include="..\..\..\..\docs\contracts\binding-expression\formats.json"
                       LogicalName="QuickBuilder.Rendering.BindingFormats.json" />
+    <!-- 018 research FS-10: the form script, admitted by its hash; the admin's tests read the same file. -->
+    <EmbeddedResource Include="Resources\form-script.js"
+                      LogicalName="QuickBuilder.Rendering.form-script.js" />
   </ItemGroup>
 
   <ItemGroup>

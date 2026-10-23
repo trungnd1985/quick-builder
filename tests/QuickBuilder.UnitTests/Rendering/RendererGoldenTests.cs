@@ -37,8 +37,8 @@ public sealed class RendererGoldenTests
 
     /// <summary>
     /// FR-028: no published page built from the core blocks ships JavaScript. A page with a
-    /// Navigation block carries exactly one script, the navigation one, which its policy admits by
-    /// hash (024 research NV-14); nothing else.
+    /// Navigation block carries exactly one script, the navigation one, and a page with a form the
+    /// form one, each admitted by hash (024 research NV-14, 018 FS-10); nothing else.
     /// </summary>
     [Theory]
     [MemberData(nameof(Examples))]
@@ -49,6 +49,13 @@ public sealed class RendererGoldenTests
         {
             Assert.Equal(1, html.Split(QuickBuilder.Rendering.Rendering.Navigation.NavScript.Element).Length - 1);
             html = html.Replace(QuickBuilder.Rendering.Rendering.Navigation.NavScript.Element, string.Empty, StringComparison.Ordinal);
+        }
+
+        // 018 research FS-10: a page with a form carries exactly one form script, admitted by hash.
+        if (html.Contains("class=\"qb-form\"", StringComparison.Ordinal))
+        {
+            Assert.Equal(1, html.Split(QuickBuilder.Rendering.Rendering.Forms.FormScript.Element).Length - 1);
+            html = html.Replace(QuickBuilder.Rendering.Rendering.Forms.FormScript.Element, string.Empty, StringComparison.Ordinal);
         }
 
         Assert.DoesNotContain("<script", html, StringComparison.OrdinalIgnoreCase);

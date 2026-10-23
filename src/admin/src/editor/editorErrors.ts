@@ -65,6 +65,10 @@ export const DOCUMENT_RULES: readonly string[] = [
   'page_param_taken',
   // 017: search metadata belongs to pages (page-schema.md §3, rule 22).
   'seo_in_component',
+  // 018: forms (page-schema.md §3, rules 26–27).
+  'too_many_forms',
+  'form_in_list',
+  'duplicate_field_id',
 ]
 
 /** Server error codes the editor and the design screen can receive. */
