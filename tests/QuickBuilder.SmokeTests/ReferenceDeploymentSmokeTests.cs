@@ -45,7 +45,11 @@ public sealed class ReferenceDeploymentSmokeTests(ITestOutputHelper output) : IA
         if (!await _deployment.StartAsync().ConfigureAwait(false))
         {
             output.WriteLine("Docker is not available; smoke test will skip.");
+            return;
         }
+
+        // 019 FR-007: the release gate's evidence of which bytes it tested.
+        output.WriteLine($"image: {_deployment.RanImage}");
     }
 
     public Task DisposeAsync() => _deployment.StopAsync();

@@ -1,0 +1,113 @@
+name: Promote release
+
+# 019 FR-009a, research RL-06: the maintainer's approval of a release candidate. Run it from the
+# Actions tab with the tag once the draft release's notes are right; only people with write
+# access can. GitHub Free offers no required reviewers on a private repository's environments,
+# so approval is this deliberate, manual run instead.
+#
+# It refuses unless the Release run for the tag succeeded (every gate passed) and the draft
+# carries no failure banner. It tags exactly the digest the gates tested, read from the draft's
+# digests.txt (no rebuild, nobody types a digest), and publishes the notes.
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: The release candidate's tag, e.g. v0.1.0 or v0.1.0-rc.1
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  packages: write
+  actions: read
+
+concurrency:
+  group: release-${{ inputs.tag }}
+  cancel-in-progress: false
+
+env:
+  IMAGE: ghcr.io/trungnd1985/quickbuilder
+  TAG: ${{ inputs.tag }}
+  GH_TOKEN: ${{ github.token }}
+  GH_REPO: ${{ github.repository }}
+
+jobs:
+  promote:
+    name: Promote ${{ inputs.tag }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag }}
+          fetch-depth: 0
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: The candidate passed every gate
+        run: |
+          conclusion=$(gh run list --workflow release.yml --branch "$TAG" --event push --limit 1 --json conclusion --jq '.[0].conclusion // ""')
+          if [ "$conclusion" != "success" ]; then
+            echo "::error::The Release run for ${TAG} did not succeed (${conclusion:-no run}). Fix it and tag again; nothing was promoted."
+            exit 1
+          fi
+          draft=$(gh release view "$TAG" --json isDraft --jq '.isDraft')
+          if [ "$draft" != "true" ]; then
+            echo "::error::${TAG} has no draft release waiting (already published?)."
+            exit 1
+          fi
+          if gh release view "$TAG" --json body --jq '.body' | grep -q '\*\*Not available'; then
+            echo "::error::The draft of ${TAG} says a gate failed."
+            exit 1
+          fi
+
+      - name: The tested digest
+        id: candidate
+        run: |
+          gh release download "$TAG" --pattern digests.txt --dir candidate
+          reference=$(head -n1 candidate/digests.txt)
+          digest="${reference#*@}"
+          case "$digest" in sha256:*) ;; *) echo "::error::digests.txt does not name a digest: ${reference}"; exit 1 ;; esac
+          echo "digest=${digest}" >> "$GITHUB_OUTPUT"
+
+      - name: Version, and whether the moving tags move
+        id: version
+        run: |
+          dotnet build tools/QuickBuilder.Release --configuration Release --nologo -v q
+          list=$(gh release list --exclude-drafts --exclude-pre-releases --limit 200 --json tagName --jq '[.[].tagName] | join(" ")')
+          dotnet tools/QuickBuilder.Release/bin/Release/net10.0/qb-release.dll version check --tag "$TAG" --available "$list" | tee -a "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Tag the tested image
+        run: |
+          version="${{ steps.version.outputs.version }}"
+          digest="${{ steps.candidate.outputs.digest }}"
+          # FR-005: an exact version never moves to a different build; promoting again is a no-op.
+          existing=$(docker buildx imagetools inspect "${IMAGE}:${version}" --format '{{json .Manifest}}' 2>/dev/null | jq -r '.digest' || true)
+          if [ -n "$existing" ] && [ "$existing" != "null" ] && [ "$existing" != "$digest" ]; then
+            echo "::error::${version} is already published as ${existing}."
+            exit 1
+          fi
+          tags=(-t "${IMAGE}:${version}")
+          if [ "${{ steps.version.outputs.highest }}" = "true" ]; then
+            IFS=. read -r major minor _ <<< "$version"
+            tags+=(-t "${IMAGE}:${major}.${minor}" -t "${IMAGE}:${major}" -t "${IMAGE}:latest")
+          fi
+          docker buildx imagetools create "${tags[@]}" "${IMAGE}@${digest}"
+
+      - name: Publish the release
+        run: |
+          flags=(--draft=false)
+          [ "${{ steps.version.outputs.prerelease }}" = "true" ] && flags+=(--prerelease)
+          [ "${{ steps.version.outputs.highest }}" = "true" ] && flags+=(--latest)
+          gh release edit "$TAG" "${flags[@]}"
+          echo "Published ${TAG}: ${IMAGE}:${{ steps.version.outputs.version }} (${{ steps.candidate.outputs.digest }})" >> "$GITHUB_STEP_SUMMARY"

@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using QuickBuilder.Editor.Contracts;
 using QuickBuilder.Editor.Contracts.Events;
 using QuickBuilder.Editor.Features.DesignPublishing;
@@ -58,7 +59,11 @@ public static class EditorModule
         }
 
         services.AddScoped<EditorAccess>();
-        services.AddScoped<IDesignTokenReader, DesignTokenReader>();
+        // 019 RL-19: token sets are read at the current schema version. A replaceable
+        // singleton, so tests can give the chain a step that fails.
+        services.AddSingleton(sp => new DesignTokenUpgrades(DesignTokenUpgrades.CreateChain(), sp.GetRequiredService<ILogger<DesignTokenUpgrades>>()));
+        services.AddScoped<DesignTokenReader>();
+        services.AddScoped<IDesignTokenReader>(sp => sp.GetRequiredService<DesignTokenReader>());
 
         // Stateless; loads the token schema once.
         services.AddSingleton<TokenSetValidator>();

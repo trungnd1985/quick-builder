@@ -31,7 +31,7 @@ internal sealed record GetDesignTokensQuery(Guid SiteId) : IQuery<Result<DesignT
 /// <summary>
 /// A site's design tokens: what it saved, or the defaults with version 0 (research ED-14).
 /// </summary>
-internal sealed class GetDesignTokensHandler(IDesignTokenReader tokens, EditorAccess access, DesignPublishing.DesignPublicationReads publication)
+internal sealed class GetDesignTokensHandler(DesignTokenReader tokens, EditorAccess access, DesignPublishing.DesignPublicationReads publication)
     : IQueryHandler<GetDesignTokensQuery, Result<DesignTokensResponse>>
 {
     public async Task<Result<DesignTokensResponse>> HandleAsync(GetDesignTokensQuery query, CancellationToken cancellationToken)
@@ -43,8 +43,11 @@ internal sealed class GetDesignTokensHandler(IDesignTokenReader tokens, EditorAc
             return Result.Failure<DesignTokensResponse>(EditorErrors.SiteNotFound);
         }
 
-        var set = await tokens.ReadAsync(query.SiteId, cancellationToken).ConfigureAwait(false);
-        return Result.Success(await DesignTokensResponses.FromAsync(set, access, publication, cancellationToken).ConfigureAwait(false));
+        // 019 FR-021: at the current schema version; a set that cannot be used is refused.
+        var set = await tokens.ReadCurrentAsync(query.SiteId, cancellationToken).ConfigureAwait(false);
+        return set.IsFailure
+            ? Result.Failure<DesignTokensResponse>(set.Error)
+            : Result.Success(await DesignTokensResponses.FromAsync(set.Value, access, publication, cancellationToken).ConfigureAwait(false));
     }
 }
 

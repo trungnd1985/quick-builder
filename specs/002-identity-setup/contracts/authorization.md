@@ -208,6 +208,19 @@ Designers build them ("Designer builds, Editor writes", 010). See
 - **Publishing** menus (publish, unpublish, schedule, roll back) needs
   `pages.publishing.manage`, as for pages and components.
 
+### Registered by 019
+
+The release pipeline and upgrade safety (019) add one, registered by Identity. Version numbers
+help an attacker, so only Administrators see the running release
+([019 installation-version.md §4](../../019-release-upgrade-safety/contracts/installation-version.md)).
+
+| Capability | Scope | Administrator | Designer | Editor |
+|---|---|---|---|---|
+| `identity.installation.view` | Installation | ✓ | — | — |
+
+- **`identity.installation.view`**: `GET /api/v1/identity/installation`, the running release,
+  its revision, the version the database records and an upgrade in progress.
+
 ### Registered by 018
 
 Forms and submissions (018) add three, registered by the Forms module. Editors answer

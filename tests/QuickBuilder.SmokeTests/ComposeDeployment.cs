@@ -39,8 +39,45 @@ internal sealed class ComposeDeployment(params string[] overrideFiles)
 
     private static readonly TimeSpan ReadyTimeout = TimeSpan.FromMinutes(3);
 
-    private readonly string _files = string.Concat(
-        new[] { "docker-compose.yml" }.Concat(overrideFiles).Select(f => $"-f {f} "));
+    /// <summary>
+    /// The published image to run instead of building this checkout (019 research RL-10):
+    /// the release workflow sets it to the candidate's digest, so the gates test exactly the
+    /// bytes operators will pull. Null means build.
+    /// </summary>
+    public static string? PublishedImage { get; } =
+        Environment.GetEnvironmentVariable("QB_SMOKE_IMAGE") is { Length: > 0 } image ? image : null;
+
+    /// <summary>
+    /// The image the next compose command runs, chosen by the test rather than by building or
+    /// by <c>QB_SMOKE_IMAGE</c>. The release upgrade gate sets it step by step: the previous
+    /// release, then the candidate, then the previous release again (019 snapshot.md §4).
+    /// </summary>
+    public string? Image { get; set; }
+
+    /// <summary>
+    /// Whether this deployment only ever runs images it is told to (<see cref="Image"/> or
+    /// <c>QB_SMOKE_IMAGE</c>) and never builds this checkout.
+    /// </summary>
+    public bool ExplicitImages { get; init; }
+
+    /// <summary>
+    /// The reference file; then the build override unless an image is named; then the
+    /// reference-shape limits for the release gates; then the caller's overrides, last so
+    /// they win.
+    /// </summary>
+    private string Files => string.Concat(
+        new[] { "docker-compose.yml" }
+            .Concat(Builds ? ["docker-compose.build.yml"] : [])
+            .Concat(Environment.GetEnvironmentVariable("QB_GATE") == "1" ? ["docker-compose.gate.yml"] : [])
+            .Concat(overrideFiles)
+            .Select(f => $"-f {f} "));
+
+    private bool Builds => !ExplicitImages && PublishedImage is null;
+
+    private string? ImageToRun => Image ?? PublishedImage;
+
+    /// <summary>What ran: the published image's repository digest, or the local build.</summary>
+    public string? RanImage { get; private set; }
 
     public string RepositoryRoot { get; } = FindRepositoryRoot();
 
@@ -70,13 +107,37 @@ internal sealed class ComposeDeployment(params string[] overrideFiles)
         // installation, and a leftover database would let a broken migration path pass.
         await ComposeAsync("down -v").ConfigureAwait(false);
 
-        var build = await ComposeAsync("build").ConfigureAwait(false);
-        Assert.True(build.ExitCode == 0, $"docker compose build failed:\n{build.Output}");
+        if (Builds)
+        {
+            var build = await ComposeAsync("build").ConfigureAwait(false);
+            Assert.True(build.ExitCode == 0, $"docker compose build failed:\n{build.Output}");
+            RanImage = "quickbuilder:local (built from this checkout)";
+        }
+        else
+        {
+            var pull = await ComposeAsync("pull app").ConfigureAwait(false);
+            Assert.True(pull.ExitCode == 0, $"docker compose pull failed for {PublishedImage}:\n{pull.Output}");
+            var digest = await RunAsync("docker", $"image inspect --format \"{{{{index .RepoDigests 0}}}}\" {PublishedImage}").ConfigureAwait(false);
+            RanImage = digest.ExitCode == 0 ? digest.Output.Trim() : PublishedImage;
+        }
 
         SinceUp.Start();
         var up = await ComposeAsync("up -d").ConfigureAwait(false);
         Assert.True(up.ExitCode == 0, $"docker compose up failed:\n{up.Output}");
         return true;
+    }
+
+    /// <summary>
+    /// Records whether Docker answers, for tests that drive the deployment step by step instead
+    /// of through <see cref="StartAsync"/>, so <see cref="StopAsync"/> still cleans up.
+    /// </summary>
+    public async Task<bool> DetectDockerAsync()
+    {
+        DockerAvailable = (await RunAsync("docker", "info").ConfigureAwait(false)).ExitCode == 0;
+        Assert.False(
+            !DockerAvailable && Environment.GetEnvironmentVariable("QB_SMOKE_REQUIRE_DOCKER") == "1",
+            "QB_SMOKE_REQUIRE_DOCKER is set, but 'docker info' failed.");
+        return DockerAvailable;
     }
 
     public async Task StopAsync()
@@ -98,7 +159,7 @@ internal sealed class ComposeDeployment(params string[] overrideFiles)
 
     /// <summary>Runs <c>docker compose</c> with this deployment's files.</summary>
     public Task<(int ExitCode, string Output)> ComposeAsync(string arguments) =>
-        RunAsync("docker", $"compose -p {ProjectName} {_files}{arguments}");
+        RunAsync("docker", $"compose -p {ProjectName} {Files}{arguments}");
 
     /// <summary>
     /// Finds the setup code in the container's log stream, as an operator would with
@@ -169,6 +230,13 @@ internal sealed class ComposeDeployment(params string[] overrideFiles)
                 Environment = { ["QUICKBUILDER_PORT"] = Port.ToString(System.Globalization.CultureInfo.InvariantCulture) },
             },
         };
+
+        // Compose reads the image to run from QUICKBUILDER_IMAGE (docker-compose.yml); in
+        // build mode the override names its own.
+        if (ImageToRun is { } image)
+        {
+            process.StartInfo.Environment["QUICKBUILDER_IMAGE"] = image;
+        }
 
         process.Start();
 

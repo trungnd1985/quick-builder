@@ -16,7 +16,12 @@ namespace QuickBuilder.Rendering.Rendering;
 internal sealed class PageRenderer(IEnumerable<IBlockRenderer> renderers)
 {
     /// <summary>The page schema versions this renderer renders (FR-029).</summary>
-    public static IReadOnlySet<int> SupportedSchemaVersions { get; } = new HashSet<int> { 1 };
+    /// <remarks>
+    /// 019 RL-19: only the current one. Pages reads every stored document through its upgrade
+    /// chain before handing it over, so an older version reaches the renderer upgraded, and one
+    /// that cannot be used arrives with a version not listed here and fails safely.
+    /// </remarks>
+    public static IReadOnlySet<int> SupportedSchemaVersions { get; } = new HashSet<int> { QuickBuilder.Pages.Contracts.PageSchema.CurrentVersion };
 
     /// <summary>The style scope of the page's own nodes; components get their own.</summary>
     public const string PageScope = "p.";

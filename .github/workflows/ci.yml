@@ -187,10 +187,43 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # D-15: build for the runner architecture only. Multi-arch publishing belongs to
-      # the release spec, which is out of scope for this feature.
+      # D-15: build for the runner architecture only. Multi-arch publishing is the release
+      # workflow's (019, release.yml).
       - name: Build image
-        run: docker build -t quickbuilder:ci .
+        run: docker build -t quickbuilder:local .
+
+  # 019 FR-017, research RL-12, RL-16: a migration that shipped in a release never changes, and
+  # a change operators must hear about carries a release-note fragment. Full history, so the
+  # latest release tag is there to compare with; before the first release there is none, and
+  # the check passes with a notice.
+  release-checks:
+    name: Release checks
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Find the latest release
+        id: latest
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag=$(gh release list --exclude-drafts --exclude-pre-releases --limit 1 --json tagName --jq '.[0].tagName // ""')
+          echo "tag=${tag}" >> "$GITHUB_OUTPUT"
+
+      - name: Shipped migrations are unchanged
+        run: dotnet run --project tools/QuickBuilder.Release -- migrations check --since "${{ steps.latest.outputs.tag }}"
+
+      - name: Operator-visible changes carry a release-note fragment
+        if: github.event_name == 'pull_request'
+        run: dotnet run --project tools/QuickBuilder.Release -- fragment check --base "origin/${{ github.base_ref }}"
 
   # 012 FR-041: the reference deployment journey, on the built image with the reference
   # compose file. A required check: if the image, the compose file or the journey

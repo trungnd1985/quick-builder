@@ -18,6 +18,16 @@ internal static class EditorErrors
 
     internal static Error SiteNotFound { get; } = Error.NotFound("sites.not_found", "No such site.");
 
+    /// <summary>019 FR-026: stored by a newer release; this one neither shows nor overwrites it.</summary>
+    internal static Error DocumentTooNew { get; } = Error.Conflict(
+        "editor.document_too_new",
+        "These design tokens were saved by a newer version of QuickBuilder and cannot be opened here. Nothing was changed.");
+
+    /// <summary>019 FR-025: an older token set that could not be brought up to date.</summary>
+    internal static Error DocumentUpgradeFailed { get; } = Error.Validation(
+        "editor.document_upgrade_failed",
+        "These design tokens were saved by an older version of QuickBuilder and could not be brought up to date. Ask your administrator to check the logs.");
+
     internal static Error OutOfDate { get; } = Error.Conflict(
         "editor.out_of_date",
         "The design tokens were changed by someone else since you opened them. Reload and try again.");

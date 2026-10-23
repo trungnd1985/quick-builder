@@ -42,10 +42,12 @@ services:
       start_period: 10s
 
   app:
-    image: quickbuilder:latest
-    build:
-      context: .
-      dockerfile: Dockerfile
+    # The published release image (019). Install from the docker-compose.yml attached to a
+    # release: it names an exact version here, and upgrading means changing that version
+    # (docs/operations.md, "Upgrading and rolling back"). To build from this checkout
+    # instead, add the build override:
+    #   docker compose -f docker-compose.yml -f docker-compose.build.yml up -d --build
+    image: ${QUICKBUILDER_IMAGE:-ghcr.io/trungnd1985/quickbuilder:0}
     restart: unless-stopped
     depends_on:
       db:

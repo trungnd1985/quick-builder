@@ -2,6 +2,7 @@ using System.Text.Json.Nodes;
 using Microsoft.EntityFrameworkCore;
 using QuickBuilder.Cms.Domain;
 using QuickBuilder.Cms.Features.Items;
+using QuickBuilder.Shared.Kernel.Results;
 
 namespace QuickBuilder.Cms.Infrastructure;
 
@@ -10,8 +11,45 @@ namespace QuickBuilder.Cms.Infrastructure;
 /// schedules and the names of the members involved.
 /// </summary>
 /// <remarks>Admin reads for a site named by the caller, always through <see cref="CmsDbContext.ForSite{T}"/>.</remarks>
-internal sealed class ItemReads(CmsDbContext database, CmsAccess access, QuickBuilder.Pages.Contracts.ITemplateReader templates)
+internal sealed class ItemReads(CmsDbContext database, CmsAccess access, QuickBuilder.Pages.Contracts.ITemplateReader templates, Schema.CollectionSchemaUpgrades upgrades)
 {
+    /// <summary>
+    /// One item for the admin, its values read at the current version (019 FR-021); refused when
+    /// they cannot be used, not found when the item does not exist there.
+    /// </summary>
+    public async Task<Result<ItemResponse>> ReadAsync(Guid siteId, Guid collectionId, Guid itemId, CancellationToken cancellationToken)
+    {
+        var item = await database.ForSite<Item>(siteId)
+            .AsNoTracking()
+            .SingleOrDefaultAsync(i => i.Id == itemId && i.CollectionId == collectionId, cancellationToken)
+            .ConfigureAwait(false);
+        if (item is null)
+        {
+            return Result.Failure<ItemResponse>(CmsErrors.ItemNotFound);
+        }
+
+        var draft = upgrades.UpgradedForEditing("item", item.Id, item.Draft.RootElement.GetRawText());
+        if (draft.IsFailure)
+        {
+            return Result.Failure<ItemResponse>(draft.Error);
+        }
+
+        JsonObject? published = null;
+        if (item.Published is { } stored)
+        {
+            var current = upgrades.UpgradedForEditing("item", item.Id, stored.RootElement.GetRawText());
+            if (current.IsFailure)
+            {
+                return Result.Failure<ItemResponse>(current.Error);
+            }
+
+            published = current.Value is { } upgradedPublished ? JsonNode.Parse(upgradedPublished.GetRawText())!.AsObject() : null;
+        }
+
+        return Result.Success(await ToResponseAsync(
+            item, [], cancellationToken, draft.Value is { } upgradedDraft ? JsonNode.Parse(upgradedDraft.GetRawText())!.AsObject() : null, published).ConfigureAwait(false));
+    }
+
     /// <summary>One item of a collection, or null when it does not exist there.</summary>
     public async Task<ItemResponse?> GetAsync(Guid siteId, Guid collectionId, Guid itemId, CancellationToken cancellationToken)
     {
@@ -24,7 +62,14 @@ internal sealed class ItemReads(CmsDbContext database, CmsAccess access, QuickBu
     }
 
     /// <summary>The response for an item, read as it is now; <paramref name="unpublishedReferences"/> only after a publish.</summary>
-    public async Task<ItemResponse> ToResponseAsync(Item item, IReadOnlyList<ItemRefResponse> unpublishedReferences, CancellationToken cancellationToken)
+    /// <param name="draftValues">The draft values at the current version, when the caller read them so (019).</param>
+    /// <param name="publishedValues">Likewise for the published values.</param>
+    public async Task<ItemResponse> ToResponseAsync(
+        Item item,
+        IReadOnlyList<ItemRefResponse> unpublishedReferences,
+        CancellationToken cancellationToken,
+        JsonObject? draftValues = null,
+        JsonObject? publishedValues = null)
     {
         ArgumentNullException.ThrowIfNull(item);
 
@@ -59,8 +104,8 @@ internal sealed class ItemReads(CmsDbContext database, CmsAccess access, QuickBu
             item.PublishedAtUtc,
             item.Revision,
             schemaRevision,
-            draft.Write(),
-            item.PublishedValues()?.Write(),
+            draftValues ?? draft.Write(),
+            publishedValues ?? item.PublishedValues()?.Write(),
             item.PublishedSlug,
             item.LiveVersion,
             Report(report),

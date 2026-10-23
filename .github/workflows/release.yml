@@ -1,0 +1,395 @@
+name: Release
+
+# 019 research RL-04, contracts/release-pipeline.md. A version tag is the only thing that
+# publishes an image (FR-002). The image is built for amd64 and arm64, pushed by digest, and
+# every gate tests that digest: the reference journey, an arm64 boot, and upgrades from earlier
+# releases' snapshots. A candidate waits as a draft release until the maintainer approves it by
+# running the Promote release workflow (promote.yml), which tags the tested digest and
+# publishes the notes, without rebuilding anything.
+#
+# arm64 runs on ARM64_RUNNER (a repository variable) when set, e.g. ubuntu-24.04-arm, which
+# GitHub offers free to public repositories only; otherwise on ubuntu-latest under QEMU.
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+      - 'v[0-9]+.[0-9]+.[0-9]+-rc.[0-9]+'
+
+permissions:
+  contents: write
+  packages: write
+
+concurrency:
+  group: release-${{ github.ref_name }}
+  cancel-in-progress: false
+
+env:
+  IMAGE: ghcr.io/trungnd1985/quickbuilder
+  DOTNET_NOLOGO: true
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+
+jobs:
+  # Fails fast, before anything is built: the tag is the next release, no shipped migration
+  # changed, a patch changes no stored data, and the notes are complete (RL-12, RL-13, RL-16).
+  prepare:
+    name: Prepare
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      kind: ${{ steps.version.outputs.kind }}
+      previous: ${{ steps.version.outputs.previous }}
+      prerelease: ${{ steps.version.outputs.prerelease }}
+      highest: ${{ steps.version.outputs.highest }}
+      suffix: ${{ steps.suffix.outputs.suffix }}
+      sources: ${{ steps.sources.outputs.sources }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Build the release tool
+        run: |
+          dotnet build tools/QuickBuilder.Release --configuration Release --nologo -v q
+          echo "QB_RELEASE=dotnet tools/QuickBuilder.Release/bin/Release/net10.0/qb-release.dll" >> "$GITHUB_ENV"
+
+      - name: Available releases
+        id: available
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          list=$(gh release list --exclude-drafts --exclude-pre-releases --limit 200 --json tagName --jq '[.[].tagName] | join(" ")')
+          echo "list=${list}" >> "$GITHUB_OUTPUT"
+
+      - name: The tag is the next release
+        id: version
+        run: $QB_RELEASE version check --tag "${GITHUB_REF_NAME}" --available "${{ steps.available.outputs.list }}" | tee -a "$GITHUB_OUTPUT"
+
+      - name: The build's version suffix
+        id: suffix
+        run: |
+          # Empty for a release; the rc label for a release candidate (RL-01).
+          version="${{ steps.version.outputs.version }}"
+          case "$version" in *-*) echo "suffix=${version#*-}" >> "$GITHUB_OUTPUT" ;; *) echo "suffix=" >> "$GITHUB_OUTPUT" ;; esac
+
+      - name: Shipped migrations are unchanged
+        run: |
+          previous="${{ steps.version.outputs.previous }}"
+          since=$([ "$previous" = "none" ] && echo "" || echo "v${previous}")
+          $QB_RELEASE migrations check --since "${since}"
+
+      - name: A patch changes no stored data
+        if: steps.version.outputs.kind == 'patch'
+        run: $QB_RELEASE patch check --since "${{ steps.version.outputs.minor_base }}"
+
+      - name: Upgrade sources
+        id: sources
+        run: $QB_RELEASE upgrade-sources --version "${{ steps.version.outputs.version }}" --available "${{ steps.available.outputs.list }}" | tee -a "$GITHUB_OUTPUT"
+
+      # RL-16: release and upgrade notes from the template, the fragments and git. Refuses a
+      # breaking change outside a major, a missing section, or configuration keys the
+      # configuration guide does not match.
+      - name: Notes
+        run: |
+          previous="${{ steps.version.outputs.previous }}"
+          since=$([ "$previous" = "none" ] && echo "pre-0.1.0-baseline" || echo "v${previous}")
+          $QB_RELEASE notes --version "${{ steps.version.outputs.version }}" --previous "${since}" \
+            --sources '${{ steps.sources.outputs.sources }}' --kind "${{ steps.version.outputs.kind }}" --out notes.md
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: notes
+          path: notes.md
+          retention-days: 7
+
+  # RL-03: each architecture on its own runner, pushed by digest only; no tag yet. Without a
+  # native arm64 runner, arm64 builds under QEMU: slower, same image.
+  build:
+    name: Build (${{ matrix.arch }})
+    needs: prepare
+    strategy:
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-latest
+          - arch: arm64
+            runner: ${{ vars.ARM64_RUNNER || 'ubuntu-latest' }}
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-qemu-action@v3
+        if: matrix.arch == 'arm64' && !vars.ARM64_RUNNER
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Build and push by digest
+        id: push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/${{ matrix.arch }}
+          build-args: |
+            QB_VERSION_SUFFIX=${{ needs.prepare.outputs.suffix }}
+            QB_VERSION=${{ needs.prepare.outputs.version }}
+            QB_REVISION=${{ github.sha }}
+          outputs: type=image,name=${{ env.IMAGE }},push-by-digest=true,name-canonical=true,push=true
+          provenance: false
+
+      - name: Keep the digest
+        run: |
+          mkdir -p digests
+          echo "${{ steps.push.outputs.digest }}" > "digests/${{ matrix.arch }}"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: digest-${{ matrix.arch }}
+          path: digests/${{ matrix.arch }}
+          retention-days: 1
+
+  # One index for both architectures, tagged only sha-<12>. Its digest is the candidate.
+  manifest:
+    name: Manifest
+    needs: build
+    runs-on: ubuntu-latest
+    outputs:
+      digest: ${{ steps.index.outputs.digest }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: digest-*
+          path: digests
+          merge-multiple: true
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Join the architectures
+        id: index
+        run: |
+          short="${GITHUB_SHA::12}"
+          docker buildx imagetools create -t "${IMAGE}:sha-${short}" \
+            "${IMAGE}@$(cat digests/amd64)" "${IMAGE}@$(cat digests/arm64)"
+          digest=$(docker buildx imagetools inspect "${IMAGE}:sha-${short}" --format '{{json .Manifest}}' | jq -r '.digest')
+          echo "digest=${digest}" >> "$GITHUB_OUTPUT"
+          echo "Candidate: ${IMAGE}@${digest}" >> "$GITHUB_STEP_SUMMARY"
+
+  # FR-007: the reference journey on the published bytes, with the reference shape's limits.
+  smoke:
+    name: Smoke (published image)
+    needs: manifest
+    runs-on: ubuntu-latest
+    env:
+      QB_SMOKE_IMAGE: ${{ format('{0}@{1}', 'ghcr.io/trungnd1985/quickbuilder', needs.manifest.outputs.digest) }}
+      QB_SMOKE_REQUIRE_DOCKER: '1'
+      QB_GATE: '1'
+      QB_SMOKE_LOG_DIR: ${{ github.workspace }}/compose-logs
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: The reference journey
+        run: dotnet test tests/QuickBuilder.SmokeTests --configuration Release --filter "Category=Smoke" --logger "console;verbosity=normal"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: compose-logs-smoke
+          path: compose-logs/
+          retention-days: 90
+
+  # FR-010, RL-11: the arm64 image starts, migrates and serves, on arm64 (emulated under QEMU
+  # without a native runner, so it gets more time).
+  arm64-boot:
+    name: Boot (arm64)
+    needs: manifest
+    runs-on: ${{ vars.ARM64_RUNNER || 'ubuntu-latest' }}
+    env:
+      DOCKER_DEFAULT_PLATFORM: linux/arm64
+      QUICKBUILDER_IMAGE: ${{ format('{0}@{1}', 'ghcr.io/trungnd1985/quickbuilder', needs.manifest.outputs.digest) }}
+      QUICKBUILDER_PORT: '18080'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-qemu-action@v3
+        if: ${{ !vars.ARM64_RUNNER }}
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Start and wait for ready
+        run: |
+          docker compose -p qb-arm64 up -d
+          docker compose -p qb-arm64 exec -T app uname -m
+          for i in $(seq 1 300); do
+            if curl -fs "http://127.0.0.1:18080/health/ready" > /dev/null; then echo "ready after $((i * 2))s"; break; fi
+            sleep 2
+          done
+          curl -fs "http://127.0.0.1:18080/health/ready"
+          curl -fs "http://127.0.0.1:18080/api/v1/identity/status" | jq -e '.setupRequired == true'
+
+      - name: Keep the logs
+        if: always()
+        run: |
+          mkdir -p compose-logs
+          docker compose -p qb-arm64 logs --no-color > compose-logs/arm64.log || true
+          docker compose -p qb-arm64 down -v || true
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: compose-logs-arm64
+          path: compose-logs/
+          retention-days: 90
+
+  # FR-008, RL-09, RL-14, RL-18: one leg per upgrade source. The leg from the previous release
+  # (or the baseline) also writes this release's snapshot and drills the rollback.
+  upgrade:
+    name: Upgrade from ${{ matrix.source }}
+    needs: [prepare, manifest]
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        source: ${{ fromJSON(needs.prepare.outputs.sources) }}
+    env:
+      QB_SMOKE_IMAGE: ${{ format('{0}@{1}', 'ghcr.io/trungnd1985/quickbuilder', needs.manifest.outputs.digest) }}
+      QB_UPGRADE_FROM: ${{ matrix.source }}
+      QB_RELEASE_VERSION: ${{ needs.prepare.outputs.version }}
+      QB_SMOKE_REQUIRE_DOCKER: '1'
+      QB_GATE: '1'
+      QB_SMOKE_LOG_DIR: ${{ github.workspace }}/compose-logs
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # The baseline leg builds the image at the pre-0.1.0-baseline tag.
+          fetch-depth: 0
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: The source's snapshot
+        if: matrix.source != 'baseline'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p snapshot-in
+          gh release download "v${{ matrix.source }}" --pattern "quickbuilder-${{ matrix.source }}-*" --dir snapshot-in
+          echo "QB_SNAPSHOT_DIR=${{ github.workspace }}/snapshot-in" >> "$GITHUB_ENV"
+          echo "QB_PREVIOUS_IMAGE=${IMAGE}:${{ matrix.source }}" >> "$GITHUB_ENV"
+
+      - name: This leg writes the release's snapshot
+        if: matrix.source == 'baseline' || matrix.source == needs.prepare.outputs.previous
+        run: |
+          mkdir -p snapshot-out
+          echo "QB_SNAPSHOT_OUT=${{ github.workspace }}/snapshot-out" >> "$GITHUB_ENV"
+
+      - name: Upgrade, compare, restart, roll back
+        run: dotnet test tests/QuickBuilder.SmokeTests --configuration Release --filter "Category=ReleaseUpgrade" --logger "console;verbosity=normal"
+
+      - uses: actions/upload-artifact@v4
+        if: env.QB_SNAPSHOT_OUT != ''
+        with:
+          name: snapshot
+          path: snapshot-out/
+          retention-days: 7
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: compose-logs-upgrade-${{ matrix.source }}
+          path: compose-logs/
+          retention-days: 90
+
+  # RL-05: a draft release, with what an operator needs, and a banner when a gate failed.
+  candidate:
+    name: Candidate
+    needs: [prepare, build, manifest, smoke, arm64-boot, upgrade]
+    if: always() && needs.prepare.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: snapshot
+          path: snapshot-out
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: notes
+          path: prepared
+
+      - name: Release files
+        run: |
+          version="${{ needs.prepare.outputs.version }}"
+          mkdir -p assets
+          # The compose file operators install from: an exact version, never a moving tag.
+          sed "s#\${QUICKBUILDER_IMAGE:-ghcr.io/trungnd1985/quickbuilder:0}#\${QUICKBUILDER_IMAGE:-ghcr.io/trungnd1985/quickbuilder:${version}}#" docker-compose.yml > assets/docker-compose.yml
+          grep -q "quickbuilder:${version}" assets/docker-compose.yml
+          echo "${IMAGE}@${{ needs.manifest.outputs.digest }}" > assets/digests.txt
+          cp snapshot-out/* assets/ 2>/dev/null || true
+
+      - name: Notes
+        run: |
+          failed=""
+          for gate in build:${{ needs.build.result }} manifest:${{ needs.manifest.result }} smoke:${{ needs.smoke.result }} arm64-boot:${{ needs.arm64-boot.result }} upgrade:${{ needs.upgrade.result }}; do
+            [ "${gate#*:}" = "success" ] || failed="${failed} ${gate%%:*}"
+          done
+          {
+            if [ -n "$failed" ]; then
+              echo "> **Not available:${failed} failed** — ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+              echo
+            fi
+            # The image the gates tested, by digest: approval points the exact tag at it.
+            sed "s#{{CANDIDATE}}#\`${{ needs.manifest.outputs.digest }}\`#" prepared/notes.md
+          } > notes.md
+
+      - name: Draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="${GITHUB_REF_NAME}"
+          if gh release view "$tag" > /dev/null 2>&1; then
+            gh release edit "$tag" --draft --notes-file notes.md
+            gh release upload "$tag" assets/* --clobber
+          else
+            gh release create "$tag" --draft --verify-tag --title "QuickBuilder ${{ needs.prepare.outputs.version }}" --notes-file notes.md assets/*
+          fi
+          echo "Draft ready. Read its notes, then run **Promote release** with \`${tag}\` to publish it." >> "$GITHUB_STEP_SUMMARY"

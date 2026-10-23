@@ -4,6 +4,7 @@ using Microsoft.Extensions.Options;
 using QuickBuilder.Host.Configuration;
 using QuickBuilder.Shared.Infrastructure.Commands;
 using QuickBuilder.Shared.Infrastructure.Migrations;
+using QuickBuilder.Shared.Infrastructure.Migrations.Platform;
 using QuickBuilder.Sites.Contracts;
 
 namespace QuickBuilder.Host;
@@ -99,6 +100,9 @@ internal static class StartupTasks
 /// </remarks>
 internal sealed class MigrateCommand(ModuleMigrationRunner runner, ILogger<MigrateCommand> logger) : IHostCommand
 {
+    /// <summary>019: the database belongs to a newer release, or is too old to upgrade directly.</summary>
+    internal const int RefusedExitCode = 3;
+
     public string Name => "migrate";
 
     public async Task<int> RunAsync(IReadOnlyList<string> args, IServiceProvider services, CancellationToken cancellationToken)
@@ -110,6 +114,11 @@ internal sealed class MigrateCommand(ModuleMigrationRunner runner, ILogger<Migra
             await runner.RunAsync(force: true, cancellationToken).ConfigureAwait(false);
             logger.LogInformation("Migrations applied. Exiting.");
             return 0;
+        }
+        catch (InstallationIncompatibleException)
+        {
+            // 019 data-model §2: the runner has logged why at Critical; nothing was changed.
+            return RefusedExitCode;
         }
         catch (Exception ex)
         {

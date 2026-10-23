@@ -37,11 +37,28 @@
     <ProjectReference Include="..\..\src\Modules\Rendering\QuickBuilder.Rendering.Contracts\QuickBuilder.Rendering.Contracts.csproj" />
     <ProjectReference Include="..\..\src\Modules\Forms\QuickBuilder.Forms\QuickBuilder.Forms.csproj" />
     <ProjectReference Include="..\..\src\Modules\Forms\QuickBuilder.Forms.Contracts\QuickBuilder.Forms.Contracts.csproj" />
+    <!--
+      019 RL-22: the release tool's rules are unit-tested here. Aliased because the tool
+      compiles in Shared.Infrastructure's SemanticVersion too; tests reach it through
+      `extern alias releasetool`.
+    -->
+    <ProjectReference Include="..\..\tools\QuickBuilder.Release\QuickBuilder.Release.csproj" Aliases="releasetool" />
   </ItemGroup>
 
   <!-- 013 T045: images generated at test time (tests/fixtures/media/ImageFixtures.cs). -->
   <ItemGroup>
     <Compile Include="../fixtures/media/ImageFixtures.cs" Link="Fixtures/ImageFixtures.cs" />
+  </ItemGroup>
+
+  <!--
+    019 T017, T018: the release gate's pure helpers. They live with the gate in SmokeTests,
+    which CI never runs on pull requests, so their unit tests compile them in here.
+  -->
+  <ItemGroup>
+    <Compile Include="../QuickBuilder.SmokeTests/Release/VisibleForm.cs" Link="Release/Gate/VisibleForm.cs" />
+    <Compile Include="../QuickBuilder.SmokeTests/Release/Expectations.cs" Link="Release/Gate/Expectations.cs" />
+    <Compile Include="../QuickBuilder.SmokeTests/Release/ExpectationComparer.cs" Link="Release/Gate/ExpectationComparer.cs" />
+    <Compile Include="../QuickBuilder.SmokeTests/Release/VisibleChangeAllowList.cs" Link="Release/Gate/VisibleChangeAllowList.cs" />
   </ItemGroup>
 
 </Project>

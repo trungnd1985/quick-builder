@@ -24,6 +24,12 @@ public enum StartupPhase
     /// so an operator can read the reason from the probe and the logs.
     /// </summary>
     Failed,
+
+    /// <summary>
+    /// 019 RL-08: the database belongs to a newer release, or is too old to upgrade directly.
+    /// Nothing was changed; only the refusal host answers, and the log says what to do.
+    /// </summary>
+    Incompatible,
 }
 
 /// <summary>

@@ -22,8 +22,7 @@ internal sealed class GetCollectionHandler(CollectionReads reads, CmsAccess acce
             return Result.Failure<CollectionResponse>(CmsErrors.SiteNotFound);
         }
 
-        var collection = await reads.OneAsync(query.SiteId, query.CollectionId, cancellationToken).ConfigureAwait(false);
-        return collection is null ? Result.Failure<CollectionResponse>(CmsErrors.CollectionNotFound) : Result.Success(collection);
+        return await reads.ReadAsync(query.SiteId, query.CollectionId, cancellationToken).ConfigureAwait(false);
     }
 }
 

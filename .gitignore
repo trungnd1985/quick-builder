@@ -437,3 +437,8 @@ TestResults/
 coverage/
 # Admin assets are built into the host at image build time, never committed.
 src/QuickBuilder.Host/wwwroot/admin/
+
+# 019: source folders that the Visual Studio build-output patterns above would catch:
+# the release tests and the release notes. Build output stays under bin/ and obj/.
+!tests/*/Release/
+!docs/releases/

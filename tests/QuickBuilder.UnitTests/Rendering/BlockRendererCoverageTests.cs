@@ -30,16 +30,23 @@ public sealed class BlockRendererCoverageTests
         Assert.Equal(schemaTypes, rendererTypes);
     }
 
+    /// <remarks>
+    /// 019 RL-19: the renderer renders the current version, and every older version that exists
+    /// reaches it through a step of Pages' upgrade chain (constitution Principle VI: every
+    /// version still present must render).
+    /// </remarks>
     [Fact]
     public void The_renderer_renders_every_schema_version_that_exists()
     {
         var versions = Directory.GetFiles(RepositoryFiles.Path("docs", "contracts", "page-schema"), "v*.schema.json")
             .Select(f => int.Parse(Path.GetFileName(f)[1..].Split('.')[0], System.Globalization.CultureInfo.InvariantCulture))
             .ToList();
+        var steps = QuickBuilder.Pages.Infrastructure.Schema.PageSchemaUpgrades.Create().Pages.Steps.Select(s => s.From).ToList();
 
         Assert.NotEmpty(versions);
-        Assert.All(versions, v => Assert.Contains(v, PageRenderer.SupportedSchemaVersions));
-        Assert.All(PageSchema.SupportedVersions, v => Assert.Contains(v, PageRenderer.SupportedSchemaVersions));
+        Assert.Equal([PageSchema.CurrentVersion], PageRenderer.SupportedSchemaVersions);
+        Assert.All(versions, v => Assert.True(v == PageSchema.CurrentVersion || steps.Contains(v), $"Page schema version {v} neither renders nor upgrades."));
+        Assert.All(PageSchema.SupportedVersions, v => Assert.True(v == PageSchema.CurrentVersion || steps.Contains(v)));
     }
 
     [Fact]
@@ -50,8 +57,10 @@ public sealed class BlockRendererCoverageTests
             .Select(f => int.Parse(Path.GetFileName(f)[1..].Split('.')[0], System.Globalization.CultureInfo.InvariantCulture))
             .ToList();
 
+        var steps = QuickBuilder.Pages.Infrastructure.Schema.MenuSchemaUpgrades.Create().Menus.Steps.Select(s => s.From).ToList();
+
         Assert.NotEmpty(versions);
-        Assert.All(versions, v => Assert.Contains(v, MenuModel.SupportedSchemaVersions));
-        Assert.Contains(MenuSchema.CurrentVersion, MenuModel.SupportedSchemaVersions);
+        Assert.Equal([MenuSchema.CurrentVersion], MenuModel.SupportedSchemaVersions);
+        Assert.All(versions, v => Assert.True(v == MenuSchema.CurrentVersion || steps.Contains(v), $"Menu schema version {v} neither renders nor upgrades."));
     }
 }

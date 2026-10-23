@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using QuickBuilder.Pages.Domain;
 using QuickBuilder.Pages.Infrastructure;
+using QuickBuilder.Pages.Infrastructure.Schema;
 using QuickBuilder.Shared.Infrastructure.Dispatch;
 using QuickBuilder.Shared.Kernel.Authorization;
 using QuickBuilder.Shared.Kernel.Dispatch;
@@ -96,7 +97,7 @@ internal sealed class GetHistoryHandler(
     }
 }
 
-internal sealed class GetVersionHandler(PagesDbContext database, PagesAccess access, PublishingWrites publishing)
+internal sealed class GetVersionHandler(PagesDbContext database, PagesAccess access, PublishingWrites publishing, StoredDocuments stored)
     : IQueryHandler<GetVersionQuery, Result<VersionContentResponse>>
 {
     public async Task<Result<VersionContentResponse>> HandleAsync(GetVersionQuery query, CancellationToken cancellationToken)
@@ -117,13 +118,20 @@ internal sealed class GetVersionHandler(PagesDbContext database, PagesAccess acc
             return Result.Failure<VersionContentResponse>(PagesErrors.VersionNotFound);
         }
 
+        // 019 FR-021: a retained version is shown at the current schema version; the row keeps
+        // the version it was published with (FR-023a).
+        var document = stored.ForEditing(query.SubjectKind, query.SubjectId, version.Document, version.SchemaVersion);
+        if (document.IsFailure)
+        {
+            return Result.Failure<VersionContentResponse>(document.Error);
+        }
+
         var names = await access.NamesAsync([version.PublishedBy], cancellationToken).ConfigureAwait(false);
-        using var document = JsonDocument.Parse(version.Document);
 
         return Result.Success(new VersionContentResponse(
             version.Number,
-            version.SchemaVersion,
-            document.RootElement.Clone(),
+            StoredDocuments.CurrentVersion(query.SubjectKind),
+            document.Value,
             version.Title,
             version.Kind,
             version.RestoredFromNumber,
@@ -143,6 +151,7 @@ internal sealed class CopyVersionToDraftHandler(
     PublishingWrites publishing,
     DraftWrites drafts,
     MenuWrites menus,
+    StoredDocuments stored,
     TimeProvider clock)
     : ICommandHandler<CopyVersionToDraftCommand, Result<DraftResponse>>
 {
@@ -169,13 +178,21 @@ internal sealed class CopyVersionToDraftHandler(
             return Result.Failure<DraftResponse>(PagesErrors.VersionNotFound);
         }
 
+        // 019 FR-022: an older version becomes a current-version draft; one that cannot be used
+        // is refused before anything changes.
+        var content = stored.ForEditing(subject.Kind, subject.Id, version.Document, version.SchemaVersion);
+        if (content.IsFailure)
+        {
+            return Result.Failure<DraftResponse>(content.Error);
+        }
+
         // Saved with the draft, so the entry exists exactly when the copy does.
         publishing.Log(command.SiteId, subject, LogActions.CopiedToDraft, clock.GetUtcNow(), access.Actor, versionNumber: version.Number);
 
         if (subject.IsMenu)
         {
             // 024 NV-04: through the menu's own save path, so rule 8 and the target index hold.
-            var replaced = await menus.ReplaceDraftAsync(command.SiteId, subject.Id, version.Document, command.DraftVersion, cancellationToken)
+            var replaced = await menus.ReplaceDraftAsync(command.SiteId, subject.Id, content.Value.GetRawText(), command.DraftVersion, cancellationToken)
                 .ConfigureAwait(false);
             if (replaced.IsFailure)
             {
@@ -186,10 +203,9 @@ internal sealed class CopyVersionToDraftHandler(
             return Result.Success(await menus.DraftResponseAsync(command.SiteId, subject.Id, cancellationToken).ConfigureAwait(false));
         }
 
-        using var document = JsonDocument.Parse(version.Document);
         var saved = subject.IsPage
-            ? await drafts.SavePageDraftAsync(command.SiteId, subject.Id, document.RootElement, command.DraftVersion, clientKeepsEveryFormat: true, cancellationToken).ConfigureAwait(false)
-            : await drafts.SaveComponentDraftAsync(command.SiteId, subject.Id, document.RootElement, command.DraftVersion, clientKeepsEveryFormat: true, cancellationToken).ConfigureAwait(false);
+            ? await drafts.SavePageDraftAsync(command.SiteId, subject.Id, content.Value, command.DraftVersion, clientKeepsEveryFormat: true, cancellationToken).ConfigureAwait(false)
+            : await drafts.SaveComponentDraftAsync(command.SiteId, subject.Id, content.Value, command.DraftVersion, clientKeepsEveryFormat: true, cancellationToken).ConfigureAwait(false);
 
         if (saved.IsFailure)
         {

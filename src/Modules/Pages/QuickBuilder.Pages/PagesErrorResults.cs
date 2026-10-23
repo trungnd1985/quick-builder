@@ -83,11 +83,14 @@ internal static class PagesErrorResults
             or "pages.menu_in_use_by_published_content"
             // 018 form-block.md rule 28.
             or "pages.form_invalid"
-            or "pages.form_redirect_not_live" => StatusCodes.Status409Conflict,
+            or "pages.form_redirect_not_live"
+            // 019 contracts/schema-upgrades.md §3.
+            or "pages.document_too_new" => StatusCodes.Status409Conflict,
         "pages.seo_restricted" => StatusCodes.Status403Forbidden,
         "redirects.import_too_large" => StatusCodes.Status413PayloadTooLarge,
         "pages.document_too_large" => StatusCodes.Status413PayloadTooLarge,
-        "pages.image_alt_missing" => StatusCodes.Status422UnprocessableEntity,
+        "pages.image_alt_missing"
+            or "pages.document_upgrade_failed" => StatusCodes.Status422UnprocessableEntity,
         _ when code.EndsWith("not_found", StringComparison.Ordinal) => StatusCodes.Status404NotFound,
         _ => StatusCodes.Status400BadRequest,
     };

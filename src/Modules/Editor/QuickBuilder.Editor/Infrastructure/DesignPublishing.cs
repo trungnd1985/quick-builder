@@ -21,7 +21,8 @@ namespace QuickBuilder.Editor.Infrastructure;
 /// </remarks>
 internal sealed class DesignPublishing(
     EditorDbContext database,
-    IDesignTokenReader tokens,
+    DesignTokenReader tokens,
+    DesignTokenUpgrades upgrades,
     EditorAccess access,
     TimeProvider clock,
     ILogger<DesignPublishing> logger)
@@ -32,7 +33,14 @@ internal sealed class DesignPublishing(
     public Task<Result<DesignPublication>> PublishAsync(Guid siteId, uint version, CancellationToken cancellationToken) =>
         RunAsync(siteId, async (publication, now) =>
         {
-            var draft = await tokens.ReadAsync(siteId, cancellationToken).ConfigureAwait(false);
+            // 019 FR-022: published at the current schema version; a set that cannot be used is refused.
+            var current = await tokens.ReadCurrentAsync(siteId, cancellationToken).ConfigureAwait(false);
+            if (current.IsFailure)
+            {
+                return Result.Failure<DesignVersion>(current.Error);
+            }
+
+            var draft = current.Value;
             if (draft.Version != version)
             {
                 return Result.Failure<DesignVersion>(EditorErrors.OutOfDate);
@@ -52,9 +60,15 @@ internal sealed class DesignPublishing(
                 .FirstOrDefaultAsync(v => v.Number == versionNumber, cancellationToken)
                 .ConfigureAwait(false);
 
-            return source is null
-                ? Result.Failure<DesignVersion>(EditorErrors.DesignVersionNotFound)
-                : Result.Success(publication.Rollback(source, access.Actor, now));
+            if (source is null)
+            {
+                return Result.Failure<DesignVersion>(EditorErrors.DesignVersionNotFound);
+            }
+
+            var current = upgrades.ForEditing("design-version", siteId, source.Document, source.SchemaVersion);
+            return current.IsFailure
+                ? Result.Failure<DesignVersion>(current.Error)
+                : Result.Success(publication.Rollback(source, current.Value.GetRawText(), DesignTokens.CurrentVersion, access.Actor, now));
         }, cancellationToken);
 
     private async Task<Result<DesignPublication>> RunAsync(

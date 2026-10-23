@@ -72,9 +72,10 @@ internal static partial class MenuModel
     /// <summary>
     /// The menu schema versions this renderer reads (024 contracts/menu.md §6). A live menu of
     /// another version renders nothing rather than something wrong; a build test fails when the
-    /// contract gains a version this set lacks.
+    /// contract gains a version this set lacks. 019 RL-19: only the current version; Pages upgrades
+    /// older menus before handing them over.
     /// </summary>
-    public static IReadOnlySet<int> SupportedSchemaVersions { get; } = new HashSet<int> { 1 };
+    public static IReadOnlySet<int> SupportedSchemaVersions { get; } = new HashSet<int> { QuickBuilder.Pages.Contracts.MenuSchema.CurrentVersion };
 
     public static List<ResolvedEntry> Resolve(JsonElement document, RenderInputs inputs)
     {

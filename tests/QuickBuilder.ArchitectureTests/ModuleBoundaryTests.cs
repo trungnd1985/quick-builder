@@ -386,6 +386,28 @@ public sealed class ModuleBoundaryTests
     }
 
     /// <summary>
+    /// Only the migration runner reaches the <c>platform</c> record (019 research RL-07,
+    /// contracts/installation-version.md §2).
+    /// </summary>
+    /// <remarks>
+    /// The context is internal, so the compiler already keeps modules and the host out; this
+    /// keeps the rest of shared code out too. Everything else reads the record through
+    /// <c>IInstallationVersion</c>, whose implementation lives beside the runner.
+    /// </remarks>
+    [Fact]
+    public void Only_the_migration_runner_touches_the_platform_record()
+    {
+        var result = Types.InAssembly(SharedInfrastructure)
+            .That()
+            .DoNotResideInNamespace("QuickBuilder.Shared.Infrastructure.Migrations")
+            .ShouldNot()
+            .HaveDependencyOn("QuickBuilder.Shared.Infrastructure.Migrations.Platform.PlatformDbContext")
+            .GetResult();
+
+        Assert.True(result.IsSuccessful, Describe(result, "shared code outside the migration runner uses PlatformDbContext"));
+    }
+
+    /// <summary>
     /// A module's internals stay invisible outside it (FR-005).
     /// </summary>
     /// <remarks>

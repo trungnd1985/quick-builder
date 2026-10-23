@@ -1,8 +1,110 @@
 # Operations
 
-Running an installation: claiming it the first time, getting back in when nobody can sign
-in, and what the application keeps. Every setting mentioned here is described in
+Running an installation: upgrading it and going back, claiming it the first time, getting
+back in when nobody can sign in, and what the application keeps. Every setting mentioned here is described in
 [configuration](configuration.md).
+
+## Upgrading and rolling back
+
+QuickBuilder is upgraded by replacing the image: the new release migrates the database on
+start, and nothing else is needed. Every release is tested this way, from the release before
+it and from the first release of its major version, on a database that earlier release wrote,
+before it is published (019).
+
+The sections called "Upgrading from feature …" further down describe upgrades between the
+builds made before the first release, 0.1.0. From 0.1.0 on, each release's upgrade notes take
+their place.
+
+### Before you upgrade
+
+1. **Read the notes of every release between yours and the one you want**, on the
+   [releases page](https://github.com/trungnd1985/quick-builder/releases). "Upgrade notes"
+   lists manual steps, changed configuration keys, database migrations and work done in the
+   background after the upgrade. A section that does not apply says "None."
+2. **Find the release you run**: Settings → About this installation (Administrators), or the
+   first line the application logs at every start (`QuickBuilder 0.2.0 (5f549ae1c2d3)`).
+3. **Back up the database and the media volume, together.** That backup is the only way
+   back: migrations only move forward, and there is no downgrade.
+
+   ```bash
+   docker compose stop app
+   docker compose exec -T db pg_dump -U quickbuilder -d quickbuilder --format=custom > quickbuilder.dump
+   docker run --rm -v quick-builder_media-data:/data:ro -v "$PWD":/out postgres:16-alpine \
+     tar -czf /out/quickbuilder-media.tar.gz -C /data .
+   ```
+
+   Use your compose project's volume name (`docker volume ls`); `quick-builder_media-data` is
+   the reference compose file's in a folder named `quick-builder`. With S3 or Azure Blob
+   storage, back up the bucket or container with your provider's tools instead of the tar.
+   These are shell commands for Linux and macOS. On Windows run them in WSL, or in Git Bash
+   with `MSYS_NO_PATHCONV=1` set, so paths like `/out` reach Docker unchanged.
+
+### Upgrade
+
+1. In the `docker-compose.yml` you installed from, change the image to the exact version you
+   want, for example `ghcr.io/trungnd1985/quickbuilder:0.3.0` (or set `QUICKBUILDER_IMAGE`).
+   Prefer exact versions to moving tags (`0`, `0.3`, `latest`), so a `docker compose pull`
+   never upgrades you by surprise.
+2. `docker compose pull app && docker compose up -d`
+3. Watch it come back: `docker compose logs -f app` shows `QuickBuilder 0.3.0`, the
+   migrations applied, then `Database at 0.3.0`. `/health/ready` answers `200` when it is
+   ready. Settings → About this installation shows the new release.
+
+Run every instance of an installation on the same release. Stop all of them before
+upgrading: zero-downtime rolling upgrades are not supported.
+
+### After you upgrade
+
+Some releases rewrite data in the background once the application is ready (the notes say so
+under "Background work after upgrading"). Sites keep working while it runs. Caches refill on
+their own; the first visit of each page after an upgrade may be slower.
+
+### Upgrade path
+
+Any release upgrades directly from **any earlier release of the same major version**, and
+from the last minor release of the previous major. Throughout 0.x, every 0.x release
+upgrades from every earlier one. To cross more than that, upgrade in steps: first to the last
+minor of your major, then to the next major.
+
+### When QuickBuilder refuses to start
+
+If the database belongs to a newer release, or is too old for this release to upgrade
+directly, QuickBuilder changes nothing and refuses to start. `/health/ready` answers `503`
+with `"state": "Incompatible"`, every other address answers `503`, and the log has one line
+saying which release migrated the database, which release is running, and what to do. The
+container stays up so you can read it; it does not restart in a loop.
+
+- **"Database was migrated by QuickBuilder X; this is Y"**: an older image was started
+  after a newer one had upgraded the database. Start release X (or newer) again, or roll back
+  as below. An older patch of the same minor (0.3.1 on a database 0.3.2 upgraded) is allowed
+  and starts normally.
+- **"… upgrades from F or newer"**: the database is too old for a direct upgrade. Upgrade to
+  release F first, then to the one you want.
+
+### Rolling back
+
+Rolling back means restoring the backup you took before upgrading. Anything written after the
+upgrade is lost, and **without that backup there is no way back**.
+
+1. `docker compose down` (keep the volumes for now if you want to look at them later).
+2. Restore the database into an empty volume, and the media:
+
+   ```bash
+   docker compose down -v
+   docker compose up -d --wait db
+   docker compose exec -T db pg_restore -U quickbuilder -d quickbuilder --no-owner --role=quickbuilder < quickbuilder.dump
+   docker compose create app
+   docker run --rm -v quick-builder_media-data:/data -v "$PWD":/in postgres:16-alpine \
+     sh -c "tar -xzf /in/quickbuilder-media.tar.gz -C /data && chown -R 1654:1654 /data"
+   ```
+
+   `1654` is the `app` user of the image; `docker run --rm --entrypoint id <image> -u` prints
+   it if in doubt.
+3. Set the image back to the exact release you ran before, and `docker compose up -d`.
+4. Check `/health/ready` and Settings → About this installation.
+
+The release pipeline runs this procedure on every release, from a real snapshot, so the steps
+above are the ones that are tested.
 
 ## First-run setup
 

@@ -45,7 +45,8 @@ internal static class EditorErrorResults
 
     internal static int StatusFor(string code) => code switch
     {
-        "editor.out_of_date" => StatusCodes.Status409Conflict,
+        "editor.out_of_date" or "editor.document_too_new" => StatusCodes.Status409Conflict,
+        "editor.document_upgrade_failed" => StatusCodes.Status422UnprocessableEntity,
         "editor.tokens_too_large" => StatusCodes.Status413PayloadTooLarge,
         _ when code.EndsWith("not_found", StringComparison.Ordinal) => StatusCodes.Status404NotFound,
         _ => StatusCodes.Status400BadRequest,

@@ -87,6 +87,11 @@ public static class PagesModule
         services.AddDbContext<PublishedReadDbContext>(options => options
             .UseNpgsql(ReadOnlyConnection.From(connectionString))
             .UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking));
+        // 019 RL-19: every stored document is read at the current version before it leaves
+        // the module. Replaceable singletons, so tests can give a chain a step that fails.
+        services.AddSingleton(Infrastructure.Schema.PageSchemaUpgrades.Create());
+        services.AddSingleton(Infrastructure.Schema.MenuSchemaUpgrades.Create());
+        services.AddSingleton<Infrastructure.Schema.StoredDocuments>();
         services.AddScoped<IPublishedContentReader, PublishedContentReader>();
 
         // 017 research SE-10, SE-12: redirects on the public path, and their use, counted in

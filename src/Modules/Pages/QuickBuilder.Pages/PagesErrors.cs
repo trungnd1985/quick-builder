@@ -31,6 +31,16 @@ internal static class PagesErrors
         "pages.admin_outdated",
         "This page of the admin is out of date. Reload it to keep editing; your last change was not saved.");
 
+    /// <summary>019 FR-026: stored by a newer release; this one neither shows nor overwrites it.</summary>
+    internal static Error DocumentTooNew { get; } = Error.Conflict(
+        "pages.document_too_new",
+        "This was saved by a newer version of QuickBuilder and cannot be opened here. Nothing was changed.");
+
+    /// <summary>019 FR-025: an older document that could not be brought up to date.</summary>
+    internal static Error DocumentUpgradeFailed { get; } = Error.Validation(
+        "pages.document_upgrade_failed",
+        "This was saved by an older version of QuickBuilder and could not be brought up to date. Replace it with a saved version, or ask your administrator to check the logs.");
+
     internal static Error NotFound { get; } = Error.NotFound("pages.not_found", "No such page on this site.");
 
     internal static Error ComponentNotFound { get; } =

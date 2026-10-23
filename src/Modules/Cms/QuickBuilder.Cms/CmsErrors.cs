@@ -20,6 +20,16 @@ internal static class CmsErrors
 
     internal static Error SiteNotFound { get; } = Error.NotFound("sites.not_found", "No such site.");
 
+    /// <summary>019 FR-026: stored by a newer release; this one neither shows nor overwrites it.</summary>
+    internal static Error DocumentTooNew { get; } = Error.Conflict(
+        "cms.document_too_new",
+        "This was saved by a newer version of QuickBuilder and cannot be opened here. Nothing was changed.");
+
+    /// <summary>019 FR-025: an older schema or item that could not be brought up to date.</summary>
+    internal static Error DocumentUpgradeFailed { get; } = Error.Validation(
+        "cms.document_upgrade_failed",
+        "This was saved by an older version of QuickBuilder and could not be brought up to date. Ask your administrator to check the logs.");
+
     internal static Error CollectionNotFound { get; } =
         Error.NotFound("cms.collection_not_found", "No such collection on this site.");
 

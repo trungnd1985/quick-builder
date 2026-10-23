@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    019 research RL-22: the release tool. Never shipped in the image; run by CI and by the
+    release workflow (dotnet run, project tools/QuickBuilder.Release, then the command).
+    BCL only: it shells out to git and never calls GitHub.
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>qb-release</AssemblyName>
+    <RootNamespace>QuickBuilder.Release</RootNamespace>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <!--
+    The server's own SemanticVersion, compiled in rather than referenced, so the tool and the
+    startup check order versions identically without the tool pulling in EF Core. The unit
+    tests reference this project under an alias for that reason.
+  -->
+  <ItemGroup>
+    <Compile Include="..\..\src\Shared\QuickBuilder.Shared.Infrastructure\Versioning\SemanticVersion.cs" Link="SemanticVersion.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="QuickBuilder.UnitTests" />
+  </ItemGroup>
+
+</Project>

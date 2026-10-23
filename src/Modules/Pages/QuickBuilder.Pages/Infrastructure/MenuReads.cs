@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using QuickBuilder.Pages.Domain;
 using QuickBuilder.Pages.Domain.Menus;
 using QuickBuilder.Pages.Features.Menus;
+using QuickBuilder.Shared.Kernel.Results;
 
 namespace QuickBuilder.Pages.Infrastructure;
 
@@ -11,7 +12,7 @@ namespace QuickBuilder.Pages.Infrastructure;
 /// A site holds at most 50 menus, so the list reads every draft and counts in memory; the queries
 /// are per table, not per menu.
 /// </remarks>
-internal sealed class MenuReads(PagesDbContext database, PagesAccess access, PublicationReads publications, MenuTargetStates targetStates)
+internal sealed class MenuReads(PagesDbContext database, PagesAccess access, PublicationReads publications, MenuTargetStates targetStates, Schema.StoredDocuments stored)
 {
     /// <summary>The site's menus, by name.</summary>
     public async Task<MenuListResponse> ListAsync(Guid siteId, CancellationToken cancellationToken)
@@ -23,6 +24,24 @@ internal sealed class MenuReads(PagesDbContext database, PagesAccess access, Pub
             await access.MenuPermissionsAsync(siteId, cancellationToken).ConfigureAwait(false));
     }
 
+    /// <summary>
+    /// One menu for the admin, its stored draft read at the current schema version (019
+    /// FR-021); refused when the draft cannot be used, not found when there is no such menu.
+    /// </summary>
+    public async Task<Result<MenuDetailResponse>> ReadAsync(Guid siteId, Guid menuId, CancellationToken cancellationToken)
+    {
+        var found = (await SummariesAsync(siteId, menuId, cancellationToken).ConfigureAwait(false)).SingleOrDefault();
+        if (found is null)
+        {
+            return Result.Failure<MenuDetailResponse>(PagesErrors.MenuNotFound);
+        }
+
+        var draft = stored.ForEditing(SubjectKinds.Menu, menuId, found.Document, found.SchemaVersion);
+        return draft.IsFailure
+            ? Result.Failure<MenuDetailResponse>(draft.Error)
+            : Result.Success(await DetailAsync(siteId, found, draft.Value, cancellationToken).ConfigureAwait(false));
+    }
+
     /// <summary>One menu with its draft and target states, or null when the site has no such menu.</summary>
     public async Task<MenuDetailResponse?> OneAsync(Guid siteId, Guid menuId, CancellationToken cancellationToken)
     {
@@ -32,8 +51,13 @@ internal sealed class MenuReads(PagesDbContext database, PagesAccess access, Pub
             return null;
         }
 
-        var s = found.Summary;
         using var draft = JsonDocument.Parse(found.Document);
+        return await DetailAsync(siteId, found, draft.RootElement.Clone(), cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task<MenuDetailResponse> DetailAsync(Guid siteId, Found found, JsonElement draft, CancellationToken cancellationToken)
+    {
+        var s = found.Summary;
         return new MenuDetailResponse(
             s.Id,
             s.Name,
@@ -45,7 +69,7 @@ internal sealed class MenuReads(PagesDbContext database, PagesAccess access, Pub
             s.CreatedAtUtc,
             s.UpdatedAtUtc,
             s.Publication,
-            draft.RootElement.Clone(),
+            draft,
             found.Targets,
             await access.MenuPermissionsAsync(siteId, cancellationToken).ConfigureAwait(false));
     }
@@ -54,7 +78,7 @@ internal sealed class MenuReads(PagesDbContext database, PagesAccess access, Pub
     public Task<bool> ExistsAsync(Guid siteId, Guid menuId, CancellationToken cancellationToken) =>
         database.ForSite<Menu>(siteId).AnyAsync(m => m.Id == menuId, cancellationToken);
 
-    private sealed record Found(MenuResponse Summary, string Document, IReadOnlyList<MenuTargetStateResponse> Targets);
+    private sealed record Found(MenuResponse Summary, string Document, int SchemaVersion, IReadOnlyList<MenuTargetStateResponse> Targets);
 
     private async Task<List<Found>> SummariesAsync(Guid siteId, Guid? menuId, CancellationToken cancellationToken)
     {
@@ -74,7 +98,7 @@ internal sealed class MenuReads(PagesDbContext database, PagesAccess access, Pub
                 m.Version,
                 m.CreatedAtUtc,
                 m.UpdatedAtUtc,
-                Draft = database.ForSite<MenuDraft>(siteId).Where(d => d.MenuId == m.Id).Select(d => new { d.Document, d.Version }).First(),
+                Draft = database.ForSite<MenuDraft>(siteId).Where(d => d.MenuId == m.Id).Select(d => new { d.Document, d.Version, d.SchemaVersion }).First(),
             })
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
@@ -134,6 +158,7 @@ internal sealed class MenuReads(PagesDbContext database, PagesAccess access, Pub
                         r.UpdatedAtUtc,
                         publication[r.Id]),
                     r.Draft.Document,
+                    r.Draft.SchemaVersion,
                     targetStatesOfMenu);
             }),
         ];
