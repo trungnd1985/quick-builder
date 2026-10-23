@@ -221,6 +221,10 @@ jobs:
       - name: Shipped migrations are unchanged
         run: dotnet run --project tools/QuickBuilder.Release -- migrations check --since "${{ steps.latest.outputs.tag }}"
 
+      - name: Operator-visible changes carry a release-note fragment
+        if: github.event_name == 'pull_request'
+        run: dotnet run --project tools/QuickBuilder.Release -- fragment check --base "origin/${{ github.base_ref }}"
+
   # 012 FR-041: the reference deployment journey, on the built image with the reference
   # compose file. A required check: if the image, the compose file or the journey
   # (setup → create page → publish → view) breaks, the build fails. QB_SMOKE_REQUIRE_DOCKER

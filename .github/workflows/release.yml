@@ -88,6 +88,22 @@ jobs:
         id: sources
         run: $QB_RELEASE upgrade-sources --version "${{ steps.version.outputs.version }}" --available "${{ steps.available.outputs.list }}" | tee -a "$GITHUB_OUTPUT"
 
+      # RL-16: release and upgrade notes from the template, the fragments and git. Refuses a
+      # breaking change outside a major, a missing section, or configuration keys the
+      # configuration guide does not match.
+      - name: Notes
+        run: |
+          previous="${{ steps.version.outputs.previous }}"
+          since=$([ "$previous" = "none" ] && echo "pre-0.1.0-baseline" || echo "v${previous}")
+          $QB_RELEASE notes --version "${{ steps.version.outputs.version }}" --previous "${since}" \
+            --sources '${{ steps.sources.outputs.sources }}' --kind "${{ steps.version.outputs.kind }}" --out notes.md
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: notes
+          path: notes.md
+          retention-days: 7
+
   # RL-03: each architecture on its own runner, pushed by digest only; no tag yet.
   build:
     name: Build (${{ matrix.arch }})
@@ -322,6 +338,11 @@ jobs:
           name: snapshot
           path: snapshot-out
 
+      - uses: actions/download-artifact@v4
+        with:
+          name: notes
+          path: prepared
+
       - name: Release files
         run: |
           version="${{ needs.prepare.outputs.version }}"
@@ -343,9 +364,8 @@ jobs:
               echo "> **Not available:${failed} failed** — ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
               echo
             fi
-            echo "# QuickBuilder ${{ needs.prepare.outputs.version }}"
-            echo
-            echo "Candidate image: \`${IMAGE}@${{ needs.manifest.outputs.digest }}\`"
+            # The image the gates tested, by digest: approval points the exact tag at it.
+            sed "s#{{CANDIDATE}}#\`${{ needs.manifest.outputs.digest }}\`#" prepared/notes.md
           } > notes.md
 
       - name: Draft release

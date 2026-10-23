@@ -24,6 +24,9 @@ internal static class Program
           upgrade-sources --version X.Y.Z [--available "..."]
           migrations check [--since <tag>]
           patch check --since <tag>
+          notes --version X.Y.Z --previous <tag> --out <file> [--sources '["0.1.0"]'] [--kind patch]
+          fragment check --base <ref>
+          archive --version X.Y.Z
         """;
 
     public static int Main(string[] args) => Run(args, Console.Out, Console.Error, Directory.GetCurrentDirectory());
@@ -73,6 +76,32 @@ internal static class Program
 
                 case "patch check":
                     return Report(PatchRules.Check(repositoryRoot, Required(options, "since")), output, error, "Nothing in this patch changes stored data.");
+
+                case "notes":
+                    {
+                        var sources = options.TryGetValue("sources", out var json) ? JsonSerializer.Deserialize<string[]>(json) ?? [] : [];
+                        var notes = NotesAssembler.Assemble(
+                            repositoryRoot,
+                            SemanticVersion.Parse(Required(options, "version")),
+                            Required(options, "previous"),
+                            sources,
+                            options.GetValueOrDefault("kind") == "patch",
+                            DateOnly.FromDateTime(DateTime.UtcNow));
+                        File.WriteAllText(Required(options, "out"), notes);
+                        output.WriteLine($"Notes written to {options["out"]}.");
+                        return Pass;
+                    }
+
+                case "fragment check":
+                    return Report(FragmentCheck.Check(repositoryRoot, Required(options, "base")), output, error, "Release-note fragments are in order.");
+
+                case "archive":
+                    {
+                        var version = SemanticVersion.Parse(Required(options, "version"));
+                        ReleaseArchive.Archive(repositoryRoot, version);
+                        output.WriteLine($"Fragments of {version} archived; VersionPrefix is now {version.Major}.{version.Minor + 1}.0.");
+                        return Pass;
+                    }
 
                 default:
                     error.WriteLine($"Unknown command '{command}'.");

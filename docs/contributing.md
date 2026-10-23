@@ -324,6 +324,73 @@ Anything that would make a stored document invalid — removing or renaming a ty
 making a prop required — is a **breaking** change: it needs `v2.schema.json`, a forward
 migration of stored drafts and the other steps in §6, in the same pull request.
 
+## Release-note fragments
+
+Every pull request that changes something operators must hear about adds a fragment,
+`docs/releases/unreleased/<issue>-<slug>.md`; the release tool assembles them into the
+release's notes ([019 release-notes.md](../specs/019-release-upgrade-safety/contracts/release-notes.md)).
+CI requires one when a pull request adds a migration or changes `docs/configuration.md`, a
+contract under `docs/contracts/` (examples aside) or `docker-compose.yml`.
+
+```markdown
+---
+issue: 42
+kind: changed            # added | changed | fixed | security
+breaking: false          # true only in a new major version; the release is refused otherwise
+config:
+  added: [Forms:Something]   # exactly the keys docs/configuration.md gained…
+  changed: []
+  removed: []                # …and lost; the tool checks
+background: ["Items are indexed again after the upgrade."]
+caches: []
+manual: ["Set Forms:Something before upgrading."]
+---
+One to five sentences of what changed, for the highlights.
+```
+
+Lists are one-line flow lists; quote an item that holds a comma. The tool derives the
+migrations and raised schema versions itself, so a fragment does not repeat them.
+
+A change that deliberately alters what visitors see on existing pages (a default text, a
+block's output) also adds `docs/releases/unreleased/<issue>-visible-changes.json`, naming the
+pages and the reason; without it the release's upgrade test fails on those pages:
+
+```json
+{ "issue": 42, "reason": "Form buttons read 'Send' instead of 'Submit'.",
+  "pages": [ { "host": "*", "path": "/contact" } ] }
+```
+
+## Adding stored data
+
+A feature that stores a new kind of data adds a step to the release content journey,
+`tests/QuickBuilder.SmokeTests/Release/ContentJourney.cs`, through the admin API. Each release
+runs the journey on top of the previous release's snapshot and keeps the result as its own
+snapshot, so the next release's upgrade test checks the new data survives
+([019 snapshot.md](../specs/019-release-upgrade-safety/contracts/snapshot.md)). Use invented
+data only, and never schedule anything before 2099: a snapshot is restored months later.
+
+## Making a release
+
+Releases are cut by the maintainer
+([019 release-pipeline.md §7](../specs/019-release-upgrade-safety/contracts/release-pipeline.md)):
+
+1. Everything for the release is merged and `main` is green. `VersionPrefix` in
+   `Directory.Build.props` is the version you are about to release. A new major also sets
+   `QbUpgradeFloor` to the last minor of the previous major (`x.y.0`).
+2. Tag and push: `git tag v0.3.0 && git push origin v0.3.0`. A release candidate is
+   `v0.3.0-rc.1`: it runs every gate and never moves `latest`.
+3. The Release workflow checks the tag, builds the image for amd64 and arm64, and tests the
+   published digest: the reference journey, an arm64 boot, and upgrades from earlier releases'
+   snapshots, with a rollback drill. A draft release appears with the notes, the pinned
+   compose file and the new snapshot (≤ 60 minutes).
+4. Read the draft notes; add anything to "Known issues". Approve the `release` environment's
+   deployment: the tested image gets its version tags and the release is published.
+5. Open a pull request with `dotnet run --project tools/QuickBuilder.Release -- archive
+   --version 0.3.0`: the fragments move to `docs/releases/0.3.0/` and `VersionPrefix` moves on.
+
+A patch release (`x.y.z`, z > 0) may not add a migration or raise a content schema version;
+the workflow refuses it. A migration that shipped is never edited; CI refuses that too.
+
 ## Raising a schema version
 
 Versioned contracts (page schema, bindings, menus, design tokens, collection schema) stay at
