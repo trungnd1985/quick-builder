@@ -50,4 +50,14 @@
     <Compile Include="../fixtures/media/ImageFixtures.cs" Link="Fixtures/ImageFixtures.cs" />
   </ItemGroup>
 
+  <!--
+    019 T017, T018: the release gate's pure helpers. They live with the gate in SmokeTests,
+    which CI never runs on pull requests, so their unit tests compile them in here.
+  -->
+  <ItemGroup>
+    <Compile Include="../QuickBuilder.SmokeTests/Release/VisibleForm.cs" Link="Release/Gate/VisibleForm.cs" />
+    <Compile Include="../QuickBuilder.SmokeTests/Release/Expectations.cs" Link="Release/Gate/Expectations.cs" />
+    <Compile Include="../QuickBuilder.SmokeTests/Release/ExpectationComparer.cs" Link="Release/Gate/ExpectationComparer.cs" />
+  </ItemGroup>
+
 </Project>

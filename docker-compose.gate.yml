@@ -1,0 +1,12 @@
+# QuickBuilder — release gate override (019 analysis U5).
+#
+# For the release pipeline's gates only, never for an installation. GitHub's runners are
+# larger than the reference setup the constitution measures against (2 vCPU, 4 GB RAM,
+# Principle VIII), so without limits "ready within 5 minutes" (SC-001) would be measured on
+# a faster machine than operators have. The smoke and upgrade tests layer this file when
+# QB_GATE=1.
+
+services:
+  app:
+    cpus: 2
+    mem_limit: 4g
