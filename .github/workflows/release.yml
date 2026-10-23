@@ -230,7 +230,6 @@ jobs:
     needs: manifest
     runs-on: ${{ vars.ARM64_RUNNER || 'ubuntu-latest' }}
     env:
-      DOCKER_DEFAULT_PLATFORM: linux/arm64
       QUICKBUILDER_IMAGE: ${{ format('{0}@{1}', 'ghcr.io/trungnd1985/quickbuilder', needs.manifest.outputs.digest) }}
       QUICKBUILDER_PORT: '18080'
     steps:
@@ -245,7 +244,11 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ github.token }}
 
+      # Only here: set for the whole job, it also made setup-qemu pull the arm64 binfmt helper,
+      # which cannot run before QEMU is installed.
       - name: Start and wait for ready
+        env:
+          DOCKER_DEFAULT_PLATFORM: linux/arm64
         run: |
           docker compose -p qb-arm64 up -d
           docker compose -p qb-arm64 exec -T app uname -m
