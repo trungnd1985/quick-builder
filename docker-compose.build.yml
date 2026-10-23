@@ -1,0 +1,17 @@
+# QuickBuilder — build override (019 research RL-10).
+#
+# docker-compose.yml runs the published release image. Layer this file over it to build the
+# image from this checkout instead — for development, and for the pull-request smoke and
+# performance tests, which must test the code under review:
+#
+#   docker compose -f docker-compose.yml -f docker-compose.build.yml up -d --build
+#
+# The image it builds reports a "-dev" version (Directory.Build.props), so it can never be
+# mistaken for a release.
+
+services:
+  app:
+    image: quickbuilder:local
+    build:
+      context: .
+      dockerfile: Dockerfile

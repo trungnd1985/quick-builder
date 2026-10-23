@@ -203,7 +203,8 @@ switch ($Command) {
         Require docker 'Install Docker Desktop: https://www.docker.com/products/docker-desktop/'
         Say "Building and starting QuickBuilder (the first build takes a few minutes)…"
         # --remove-orphans: leaving `cloud` mode stops its emulator and second instance.
-        Compose up -d --build --remove-orphans
+        # 019: docker-compose.yml runs the published image; this script runs this checkout.
+        Compose -f docker-compose.yml -f docker-compose.build.yml up -d --build --remove-orphans
         Wait-Ready "http://127.0.0.1:$Port"
         Write-Host ""
         Show-SetupCode
@@ -233,9 +234,9 @@ switch ($Command) {
         Require docker 'Install Docker Desktop: https://www.docker.com/products/docker-desktop/'
         $env:QB_STORAGE = if ($Azure) { 'AzureBlob' } else { 'S3' }
         Say "Starting two instances on $($env:QB_STORAGE) storage…"
-        Compose build app
+        Compose -f docker-compose.yml -f docker-compose.build.yml build app
         $storageProfile = if ($Azure) { 'azure' } else { 's3' }
-        Compose -f docker-compose.yml -f docker-compose.storage.yml --profile $storageProfile up -d --remove-orphans
+        Compose -f docker-compose.yml -f docker-compose.build.yml -f docker-compose.storage.yml --profile $storageProfile up -d --remove-orphans
         Wait-Ready "http://127.0.0.1:$Port"
         Write-Host ""
         Show-SetupCode

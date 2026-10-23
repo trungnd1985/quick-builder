@@ -17,9 +17,11 @@ using QuickBuilder.Shared.Infrastructure.Caching;
 using QuickBuilder.Shared.Infrastructure.Commands;
 using QuickBuilder.Shared.Infrastructure.Email;
 using QuickBuilder.Shared.Infrastructure.Migrations;
+using QuickBuilder.Shared.Infrastructure.Migrations.Platform;
 using QuickBuilder.Shared.Infrastructure.Outbox;
 using QuickBuilder.Shared.Infrastructure.Startup;
 using QuickBuilder.Shared.Infrastructure.Storage;
+using QuickBuilder.Shared.Infrastructure.Versioning;
 using QuickBuilder.Sites;
 using Serilog;
 
@@ -88,8 +90,15 @@ builder.Services
 builder.Services.AddEmail();
 
 // --- Shared services ---------------------------------------------------------------
+// 019 RL-01: what this build is. Read from the Host assembly, not the entry assembly: under
+// tests the entry assembly is the test runner.
+var applicationVersion = ApplicationVersion.FromAssembly(typeof(Program).Assembly);
+builder.Services.AddSingleton(applicationVersion);
 builder.Services.AddSingleton<IOutboxSettingsProvider, OutboxSettingsProvider>();
 builder.Services.AddSharedInfrastructure();
+
+// 019 RL-07: the migration runner's own record of which release migrated the database.
+builder.Services.AddPlatformDatabase(builder.Configuration);
 
 // 003: file storage. The host names its own directories so the local provider can refuse
 // to live inside any of them (research M-05), without Shared.Infrastructure depending on
@@ -126,6 +135,9 @@ builder.Services
     .AddApplicationPart(typeof(FormsModule).Assembly);
 
 var app = builder.Build();
+
+// 019 FR-006: every start, command or server, says which release it is before anything else.
+app.Logger.LogInformation("QuickBuilder {Version}", applicationVersion.Describe());
 
 // --- Commands ----------------------------------------------------------------------
 // `dotnet QuickBuilder.Host.dll <command>` runs a registered IHostCommand and exits

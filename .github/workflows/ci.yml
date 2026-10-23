@@ -190,7 +190,7 @@ jobs:
       # D-15: build for the runner architecture only. Multi-arch publishing belongs to
       # the release spec, which is out of scope for this feature.
       - name: Build image
-        run: docker build -t quickbuilder:ci .
+        run: docker build -t quickbuilder:local .
 
   # 012 FR-041: the reference deployment journey, on the built image with the reference
   # compose file. A required check: if the image, the compose file or the journey

@@ -45,4 +45,7 @@
     <Project Path="tests/QuickBuilder.SmokeTests/QuickBuilder.SmokeTests.csproj" />
     <Project Path="tests/QuickBuilder.UnitTests/QuickBuilder.UnitTests.csproj" />
   </Folder>
+  <Folder Name="/tools/">
+    <Project Path="tools/QuickBuilder.Release/QuickBuilder.Release.csproj" />
+  </Folder>
 </Solution>

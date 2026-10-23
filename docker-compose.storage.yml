@@ -10,8 +10,8 @@
 #
 # By hand, layered over docker-compose.yml, with the profile of the provider you want:
 #
-#   docker compose -f docker-compose.yml -f docker-compose.storage.yml --profile s3 up -d
-#   QB_STORAGE=AzureBlob docker compose -f docker-compose.yml -f docker-compose.storage.yml --profile azure up -d
+#   docker compose -f docker-compose.yml -f docker-compose.build.yml -f docker-compose.storage.yml --profile s3 up -d
+#   QB_STORAGE=AzureBlob docker compose -f docker-compose.yml -f docker-compose.build.yml -f docker-compose.storage.yml --profile azure up -d
 #
 # Adds:
 #   - localstack (profile s3)  an S3-compatible service, with bucket `qb-media` created at start;
@@ -98,7 +98,9 @@ services:
       <<: *storage-env
 
   app2:
-    image: quickbuilder:latest
+    # The same image as `app`: the build override's, or the published one named by
+    # QUICKBUILDER_IMAGE (019).
+    image: ${QUICKBUILDER_IMAGE:-quickbuilder:local}
     restart: unless-stopped
     depends_on:
       <<: *storage-dependencies

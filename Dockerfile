@@ -70,10 +70,19 @@ COPY src/admin/src/editor/blocks/blocks.css src/admin/src/editor/blocks/blocks.c
 # The admin build output goes into wwwroot before publish, so it ships inside the image.
 COPY --from=admin /admin/dist/ src/QuickBuilder.Host/wwwroot/admin/
 
+# 019 research RL-01: the release number comes from Directory.Build.props (VersionPrefix);
+# these only say whether this build IS that release. A plain `docker build` leaves the
+# suffix "dev", so a local image never claims a release it is not. The release workflow
+# passes an empty suffix (or the tag's rc label) and the commit. .git is not in the build
+# context, so the revision must be passed rather than discovered.
+ARG QB_VERSION_SUFFIX=dev
+ARG QB_REVISION=
 RUN dotnet publish src/QuickBuilder.Host/QuickBuilder.Host.csproj \
       --configuration Release \
       --no-restore \
-      --output /app
+      --output /app \
+      -p:VersionSuffix="${QB_VERSION_SUFFIX}" \
+      -p:SourceRevisionId="${QB_REVISION}"
 
 # 013 research MV-09: the portable publish copies libvips natives for every RID the Media
 # module references (win-x64, linux-x64 and both musl builds). Keep only the one this
@@ -90,6 +99,16 @@ COPY THIRD-PARTY-NOTICES.md /app/THIRD-PARTY-NOTICES.md
 # --- Stage 3: runtime --------------------------------------------------------------
 FROM mcr.microsoft.com/dotnet/aspnet:10.0-alpine AS runtime
 WORKDIR /app
+
+# 019 research RL-02: OCI labels. `source` links the registry package to the repository;
+# version and revision say which release and commit this image is.
+ARG QB_VERSION=
+ARG QB_REVISION=
+LABEL org.opencontainers.image.source="https://github.com/trungnd1985/quick-builder" \
+      org.opencontainers.image.title="QuickBuilder" \
+      org.opencontainers.image.version="${QB_VERSION}" \
+      org.opencontainers.image.revision="${QB_REVISION}" \
+      org.opencontainers.image.licenses="MIT"
 
 # 003 research M-06: uploaded media lives outside /app, on a volume, so replacing the image
 # never loses a file. The directory is created and owned by `app` here; a fresh named

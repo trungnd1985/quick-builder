@@ -13,6 +13,22 @@
   </PropertyGroup>
 
   <!--
+    019 research RL-01: the one place the release number lives.
+    - VersionPrefix is the NEXT release. The release pipeline refuses a tag vX.Y.Z unless it
+      equals this; after a release, `qb-release archive` bumps it.
+    - VersionSuffix marks every build that is not a release. The pipeline empties it (or
+      sets the tag's -rc.N label); a -dev build sorts below the release it leads to.
+    - QbUpgradeFloor is the oldest release whose database this build upgrades (FR-031):
+      0.0.0 throughout 0.x, the last minor of the previous major from 1.0.0 on. The Host
+      writes it into its assembly metadata for the startup check (data-model §2).
+  -->
+  <PropertyGroup>
+    <VersionPrefix>0.1.0</VersionPrefix>
+    <VersionSuffix>dev</VersionSuffix>
+    <QbUpgradeFloor>0.0.0</QbUpgradeFloor>
+  </PropertyGroup>
+
+  <!--
     FR-013a / D-07: reading across sites must go through the one annotated helper in
     Shared.Infrastructure. Banning the API here makes any other attempt a build error
     rather than something a reviewer has to spot.

@@ -39,8 +39,26 @@ internal sealed class ComposeDeployment(params string[] overrideFiles)
 
     private static readonly TimeSpan ReadyTimeout = TimeSpan.FromMinutes(3);
 
+    /// <summary>
+    /// The published image to run instead of building this checkout (019 research RL-10):
+    /// the release workflow sets it to the candidate's digest, so the gates test exactly the
+    /// bytes operators will pull. Null means build.
+    /// </summary>
+    public static string? PublishedImage { get; } =
+        Environment.GetEnvironmentVariable("QB_SMOKE_IMAGE") is { Length: > 0 } image ? image : null;
+
+    /// <summary>
+    /// The reference file, then either nothing (a published image) or the build override, then
+    /// the caller's overrides. The build override comes before them so they still win.
+    /// </summary>
     private readonly string _files = string.Concat(
-        new[] { "docker-compose.yml" }.Concat(overrideFiles).Select(f => $"-f {f} "));
+        new[] { "docker-compose.yml" }
+            .Concat(PublishedImage is null ? ["docker-compose.build.yml"] : [])
+            .Concat(overrideFiles)
+            .Select(f => $"-f {f} "));
+
+    /// <summary>What ran: the published image's repository digest, or the local build.</summary>
+    public string? RanImage { get; private set; }
 
     public string RepositoryRoot { get; } = FindRepositoryRoot();
 
@@ -70,8 +88,19 @@ internal sealed class ComposeDeployment(params string[] overrideFiles)
         // installation, and a leftover database would let a broken migration path pass.
         await ComposeAsync("down -v").ConfigureAwait(false);
 
-        var build = await ComposeAsync("build").ConfigureAwait(false);
-        Assert.True(build.ExitCode == 0, $"docker compose build failed:\n{build.Output}");
+        if (PublishedImage is null)
+        {
+            var build = await ComposeAsync("build").ConfigureAwait(false);
+            Assert.True(build.ExitCode == 0, $"docker compose build failed:\n{build.Output}");
+            RanImage = "quickbuilder:local (built from this checkout)";
+        }
+        else
+        {
+            var pull = await ComposeAsync("pull app").ConfigureAwait(false);
+            Assert.True(pull.ExitCode == 0, $"docker compose pull failed for {PublishedImage}:\n{pull.Output}");
+            var digest = await RunAsync("docker", $"image inspect --format \"{{{{index .RepoDigests 0}}}}\" {PublishedImage}").ConfigureAwait(false);
+            RanImage = digest.ExitCode == 0 ? digest.Output.Trim() : PublishedImage;
+        }
 
         SinceUp.Start();
         var up = await ComposeAsync("up -d").ConfigureAwait(false);
@@ -169,6 +198,13 @@ internal sealed class ComposeDeployment(params string[] overrideFiles)
                 Environment = { ["QUICKBUILDER_PORT"] = Port.ToString(System.Globalization.CultureInfo.InvariantCulture) },
             },
         };
+
+        // Compose reads the image to run from QUICKBUILDER_IMAGE (docker-compose.yml); in
+        // build mode the override names its own.
+        if (PublishedImage is not null)
+        {
+            process.StartInfo.Environment["QUICKBUILDER_IMAGE"] = PublishedImage;
+        }
 
         process.Start();
 

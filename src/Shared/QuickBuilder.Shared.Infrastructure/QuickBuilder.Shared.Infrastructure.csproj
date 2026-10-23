@@ -17,6 +17,10 @@
     <PackageReference Include="Azure.Identity" />
     <PackageReference Include="MailKit" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Binder" />
+    <!-- 019 RL-07: generates the platform schema's migrations, as each module does its own. -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
   </ItemGroup>
 
   <PropertyGroup>
