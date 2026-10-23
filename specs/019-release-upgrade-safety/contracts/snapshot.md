@@ -96,9 +96,9 @@ counted fails the capture ("unknown table").
 | 4 | Compare records | every counted table: count ≥ before; no table missing (SC-002) |
 | 5 | Sign in every member; open every draft | 200 each (US1 scenario 3) |
 | 6 | Wait until background rewrites are done (no `cms.items` below the current index version, polled in SQL, ≤ 5 min), compare pages again | same as 3 (FR-019) |
-| 7 | Restart the app; compare `pg_stat_user_tables` write counters before/after | zero inserts/updates/deletes outside volatile tables (SC-007, FR-016) |
+| 7 | Restart the app; compare a fingerprint of every table's rows with their `xmin` before/after (`ReleaseExpectations.FingerprintTablesAsync`) | zero inserts/updates/deletes outside volatile tables (SC-007, FR-016) |
 | 8 | *Previous-release leg only*: run the content journey of `V`, capture expectations, dump → new bundle artifact | journey succeeds |
-| 9 | *Previous-release leg only*: start the **previous** image on the upgraded database | readiness `Incompatible` within 30 s; Critical log line names both versions; write counters unchanged (SC-006) |
+| 9 | *Previous-release leg only*: start the **previous** image on the upgraded database | readiness `Incompatible` within 30 s; Critical log line names both versions; the fingerprint is unchanged (SC-006) |
 | 10 | *Previous-release leg only*: rollback drill — restore the source bundle, start the previous image | ready; pages and records as in the source expectations (FR-036, SC-010) |
 
 Step 9 is skipped when the previous release has the same major.minor as `V` (a patch: the

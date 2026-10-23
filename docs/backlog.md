@@ -124,3 +124,21 @@ Deferred by 035 (richer rich text; see specs/035-rich-text-formats/plan.md):
     target ids) and the site search settings; page metadata already travels in documents
   - **#22 draft previews**: preview responses must write `noindex` and never appear in the
     sitemap
+
+## Deferred by 019 (release pipeline and upgrade safety)
+
+- Image signing (cosign), SBOMs and provenance attestations on release images
+- A second registry (Docker Hub) beside GHCR
+- A bulk rewrite of stored documents to a new schema version, needed only to retire old
+  upgrade steps (019 clarification Q4)
+- Row checksums for the release content journey's tables (the upgrade gate counts rows, so a
+  deleted row offset by an added one is not caught)
+- Waiting for every background rewrite in the upgrade gate, not only the Cms index backfill
+- Zero-downtime rolling upgrades and automatic downgrade (out of scope by the spec)
+- Driving the editor in a browser during the release gates (exception E-5, until #25)
+- Obligations on later features:
+  - a feature that stores a new kind of data adds a step to
+    `tests/QuickBuilder.SmokeTests/Release/ContentJourney.cs`;
+  - a breaking content schema change follows "Raising a schema version" in
+    docs/contributing.md (an upgrade step with golden files, never in a patch);
+  - every pull request with operator-visible change adds a release-note fragment.

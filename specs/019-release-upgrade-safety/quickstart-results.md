@@ -64,3 +64,17 @@ Image built from this branch (`0.1.0-dev`), reference compose file, project `qb-
 Found on the way: ASP.NET Core inserts authentication and authorization middleware by itself
 when their services exist, and Identity's fallback policy answered 401 before the refusal
 pipeline; the refusal pipeline now switches that off.
+
+## T085 — the rest of the quickstart (2026-10-23)
+
+| § | What ran | Result |
+|---|---|---|
+| 1 | Unit, architecture and the 019 integration suites; `qb-release migrations check --since 5f549ae` and `notes --version 0.1.0 --previous 5f549ae` on this repository | All green. No shipped migration changed since the pre-019 commit. The 0.1.0 notes have every section, 16 fragments, the `platform` migration listed, "None." where empty. |
+| 2 | The refusal on a real container | See above. |
+| 3, 4 | A release-candidate run and the negative runs | **Not run**: they need a tag pushed to GitHub, the `release` environment and GHCR (T004, T044). |
+| 5 | The guide's backup and rollback commands, by hand on a real stack: set up, back up (`pg_dump` to stdout, media tar), remove the volumes, restore (`pg_restore` from stdin, untar, `chown 1654`), start | Ready (200); the pre-backup administrator signs in; the media file comes back owned by the image's user. The gate drills the same procedure on every release (T028: 15 s). Found: Git Bash on Windows rewrites `/out`-style paths; the guide now says to use WSL or `MSYS_NO_PATHCONV=1`. |
+| 6 | `migrate` twice; restart on an upgraded database | Exit 0 both times and zero writes the second time (`MigrateCommandTests`, `MigrationRerunTests`); a restart wrote nothing (T028 step 7). |
+
+Timings: upgrade from the baseline to ready in 2 s, rollback in 15 s, whole upgrade leg about a
+minute — on a workstation, not the reference shape. SC-001's five minutes and SC-011's 60 minutes
+are measured in the first release-candidate run (T044).

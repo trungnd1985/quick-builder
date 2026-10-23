@@ -319,8 +319,8 @@ produces complete notes; quickstart §5 by hand; the rollback step of the upgrad
 ## Phase 8: Polish & Cross-Cutting Concerns
 
 - [ ] T082 Run coverage and confirm at least 80 % line coverage on `SHARED/Migrations/` (runner and `Platform/`), `SHARED/Versioning/`, `SHARED/Schemas/` and `HOST/Startup/RefusalHost.cs`; add tests where it falls short. Shared.Infrastructure and Host are already in `WF/ci.yml`'s per-package gate.
-- [ ] T083 [P] Update `docs/backlog.md` with the deferred items of plan.md (signing and SBOM, a second registry, bulk rewrite, the visible-change allow-list, rolling upgrades, automatic downgrade).
-- [ ] T084 Removed: resolved during analysis (finding I1); spec.md FR-030 now matches research RL-08. Nothing to do.
+- [X] T083 [P] Update `docs/backlog.md` with the deferred items of plan.md (signing and SBOM, a second registry, bulk rewrite, the visible-change allow-list, rolling upgrades, automatic downgrade).
+- [X] T084 Removed: resolved during analysis (finding I1); spec.md FR-030 now matches research RL-08. Nothing to do.
 - [ ] T085 Run quickstart.md §1–§6 end to end, including the remaining negative runs of §4 and the rollback by hand of §5; record results, times (SC-001, SC-006, SC-010, SC-011) and deviations in `specs/019-release-upgrade-safety/quickstart-results.md`.
 - [ ] T086 Open the pull request for branch `019-release-upgrade-safety`, closing #19, listing the constitution clarification and its approval, the manual steps of T004, the operator impact and upgrade notes from plan.md, and the plan for cutting `v0.1.0` immediately after merge (release-pipeline.md §7): until it is approved, the reference compose names an image that does not exist yet (plan Risks).
 

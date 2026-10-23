@@ -115,7 +115,7 @@ Settings → **About this installation** (Administrators only): "QuickBuilder 0.
 | Test | Proves |
 |---|---|
 | `InstallationGateTests` (unit) | every row of data-model §2, including `-dev` and `-rc` versions, floors, `M` handling |
-| `InstallationStartupTests` (integration) | fresh, pre-release (baseline-shaped DB), same, patch-down, newer-minor refusal, too-old refusal, interrupted upgrade resumed; refusal writes nothing (row counts and `pg_stat` counters) |
+| `InstallationStartupTests` (integration) | fresh, pre-release (baseline-shaped DB), same, patch-down, newer-minor refusal, too-old refusal, interrupted upgrade resumed; refusal writes nothing (a fingerprint of every row with its `xmin`); too-old refusals are unit-tested only, since the floor comes from the build |
 | `RefusalHostTests` (integration) | the three responses of §3, base path, no hosted service registered |
 | `MigrateCommandTests` (integration) | exit code 3 on refusal, 0 on a second run with zero writes |
 | `InstallationEndpointTests` (integration) | 200 for Administrators, 403 for Designer and Editor, 401 anonymous; listed in `EndpointCatalog` |

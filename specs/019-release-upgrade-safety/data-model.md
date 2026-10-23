@@ -9,7 +9,7 @@ product: in the git repository (version, floor, note fragments) and in GitHub re
 ## 1. `platform.database_version` (new schema, new table)
 
 Owned by the migration infrastructure in Shared.Infrastructure (RL-07), through
-`PlatformDbContext` and its own history table `platform.__ef_migrations_history`. Migration
+`PlatformDbContext` and its own history table `platform."__EFMigrationsHistory"` (named as the modules name theirs). Migration
 `Initial` creates the schema and the table. Additive changes only, forever.
 
 | Column | Type | Null | Meaning |

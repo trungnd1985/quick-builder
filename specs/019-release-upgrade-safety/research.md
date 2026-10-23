@@ -158,7 +158,7 @@ trail, needing no bot or token. **Rejected**: a manual `workflow_dispatch` "prom
 
 **Decision**: the record lives in a new schema **`platform`**, owned by the migration
 infrastructure in Shared.Infrastructure, with its own `PlatformDbContext`, EF migrations and
-history table `platform.__ef_migrations_history`. One table, `platform.database_version`, one row
+history table `platform."__EFMigrationsHistory"` (named as the modules name theirs). One table, `platform.database_version`, one row
 (data-model §1). The runner migrates `platform` first, then reads and checks the record, then
 migrates the modules (RL-08). Changes to `platform` are additive only, forever, so an older
 release can always read the row a newer one wrote.
@@ -475,7 +475,7 @@ and stored on the next save or publish".
 **Decision** (FR-015, FR-016, FR-018):
 
 - **Re-run** (SC-007): `MigrationRerunTests` restores the baseline snapshot into
-  Testcontainers PostgreSQL, migrates, records `pg_stat_user_tables` insert/update/delete
+  Testcontainers PostgreSQL, migrates, fingerprints every row with its `xmin` (statistics views are flushed late from PostgreSQL 15 on), records insert/update/delete
   counters, runs the runner again (both `RunAsync(force: false)` and the `migrate` command
   path) and asserts zero new writes outside `platform` and the history tables. The release
   `upgrade` leg repeats this on the real image (restart the app, compare counters).

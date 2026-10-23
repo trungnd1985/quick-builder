@@ -36,6 +36,8 @@ their place.
    Use your compose project's volume name (`docker volume ls`); `quick-builder_media-data` is
    the reference compose file's in a folder named `quick-builder`. With S3 or Azure Blob
    storage, back up the bucket or container with your provider's tools instead of the tar.
+   These are shell commands for Linux and macOS. On Windows run them in WSL, or in Git Bash
+   with `MSYS_NO_PATHCONV=1` set, so paths like `/out` reach Docker unchanged.
 
 ### Upgrade
 
