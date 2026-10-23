@@ -1,19 +1,26 @@
 <!--
 Sync Impact Report
-Version change: 2.4.0 → 2.5.0
+Version change: 2.5.0 → 2.5.1
 Modified principles:
-  - I. Modular Monolith with Vertical Slices: the module list gains `Forms`.
-    Adding a module to the closed list is a new normative element, which is a
-    MINOR change under the Governance versioning rule.
+  - I. Modular Monolith with Vertical Slices: names the migration runner and
+    its database version record (schema `platform`, own EF migrations) among
+    what `QuickBuilder.Shared.Infrastructure` holds. The runner has lived there
+    since 001 (D-04); the record is its own bookkeeping, not module data.
+  - VI. Content Schemas Are Versioned Contracts: states that the forward
+    migration of stored data may be an upgrade step applied when a document is
+    read and stored on its next save or publish; no bulk rewrite is required.
+  Both are clarifications of existing rules, a PATCH change under the
+  Governance versioning rule.
 Modified sections: none.
-Reason: feature 018 (forms and submissions, issue #18) needs a home for
-  submissions from anonymous visitors, their email notifications, rate limits
-  and retention, which belong to no existing module
-  (specs/018-forms-submissions/research.md FS-01). Approved by the maintainer
-  on 2026-10-22 (/speckit-analyze finding C1).
+Reason: feature 019 (release pipeline and upgrade safety, issue #19) must check
+  the database version before any module migrates
+  (specs/019-release-upgrade-safety/research.md RL-07) and upgrades old
+  documents on read (RL-19, clarification Q4). Approved by the maintainer on
+  2026-10-23 (/speckit-analyze findings C1, C2).
 Affected specs/plans:
-  - specs/018-forms-submissions/ — plan.md records this amendment.
-  - No earlier spec is affected: no existing module changes owner or scope.
+  - specs/019-release-upgrade-safety/ — plan.md records this amendment.
+  - docs/contracts/page-schema.md §6 and binding-expression.md are updated to
+    match in the same PR.
 Templates requiring updates:
   - .specify/templates/*: none. Templates read this constitution at runtime.
 Follow-up TODOs: none.
@@ -44,8 +51,9 @@ this document wins; changing it requires the amendment process in Governance.
 - `QuickBuilder.Host` only composes modules, middleware and configuration; it
   contains no business logic. Shared code lives in `QuickBuilder.Shared.Kernel`
   (Result type, event abstractions) and `QuickBuilder.Shared.Infrastructure`
-  (site context, outbox, storage/cache providers), and MUST stay small and free
-  of module-specific concepts.
+  (site context, outbox, storage/cache providers, and the migration runner with
+  its database version record in a `platform` schema with its own migrations),
+  and MUST stay small and free of module-specific concepts.
 
 **Inside a module**
 - Code is organised by feature (vertical slice), not by technical layer: each
@@ -144,8 +152,10 @@ vertical slices keep each Spec Kit feature in one place with little ceremony.
   editor and the renderer. They live in `docs/contracts/` and in a shared
   schema package; both sides MUST validate against the same definition.
 - Every stored document carries a `schemaVersion`. Breaking changes require a
-  new version plus a forward migration of stored data; the renderer MUST be
-  able to render every version still present in the database.
+  new version plus a forward migration of stored data, which may be an upgrade
+  step applied when a document is read and stored on its next save or publish
+  (no bulk rewrite is required); the renderer MUST be able to render every
+  version still present in the database.
 - Collection fields are identified by a stable, immutable field ID. Display
   names and slugs may change; IDs never do. Stored item data is keyed by
   field ID.
@@ -280,4 +290,4 @@ a constitution amendment is approved first.
 - Any exception to a MUST rule is recorded in the plan's Complexity Tracking
   section with justification and a follow-up task to remove it.
 
-**Version**: 2.5.0 | **Ratified**: 2026-09-22 | **Last Amended**: 2026-10-22
+**Version**: 2.5.1 | **Ratified**: 2026-09-22 | **Last Amended**: 2026-10-23
