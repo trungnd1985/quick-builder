@@ -58,6 +58,7 @@
     <Compile Include="../QuickBuilder.SmokeTests/Release/VisibleForm.cs" Link="Release/Gate/VisibleForm.cs" />
     <Compile Include="../QuickBuilder.SmokeTests/Release/Expectations.cs" Link="Release/Gate/Expectations.cs" />
     <Compile Include="../QuickBuilder.SmokeTests/Release/ExpectationComparer.cs" Link="Release/Gate/ExpectationComparer.cs" />
+    <Compile Include="../QuickBuilder.SmokeTests/Release/VisibleChangeAllowList.cs" Link="Release/Gate/VisibleChangeAllowList.cs" />
   </ItemGroup>
 
 </Project>

@@ -16,15 +16,19 @@ internal static class ExpectationComparer
 {
     /// <summary>
     /// Every page before must exist after with the same status and visible form; every counted
-    /// table must keep at least as many rows (a migration may derive rows, never lose any).
+    /// table must keep at least as many rows (a migration may derive rows, never lose any). A
+    /// page whose visible form changed passes only when <paramref name="allowList"/> names it
+    /// (FR-012a), and every allow-list entry must excuse at least one page.
     /// </summary>
-    public static ComparisonResult Compare(Expectations before, Expectations after)
+    public static ComparisonResult Compare(Expectations before, Expectations after, VisibleChangeAllowList? allowList = null)
     {
         ArgumentNullException.ThrowIfNull(before);
         ArgumentNullException.ThrowIfNull(after);
+        allowList ??= VisibleChangeAllowList.Empty;
 
         var failures = new List<string>();
         var allowed = new List<string>();
+        var used = new HashSet<VisibleChangeEntry>();
         var pagesAfter = after.Pages.ToDictionary(p => p.Address, StringComparer.Ordinal);
 
         foreach (var page in before.Pages)
@@ -43,9 +47,23 @@ internal static class ExpectationComparer
 
             if (now.Fingerprint != page.Fingerprint)
             {
-                failures.Add($"{page.Address}: what visitors see changed.\n{Diff(page.Text, now.Text)}");
+                if (allowList.Excusing(page) is { } entry)
+                {
+                    used.Add(entry);
+                    allowed.Add($"{page.Address}: changed as #{entry.Issue} says ({entry.Reason}).\n{Diff(page.Text, now.Text)}");
+                }
+                else
+                {
+                    failures.Add($"{page.Address}: what visitors see changed.\n{Diff(page.Text, now.Text)}");
+                }
             }
         }
+
+        // Stale: the snapshot has pages the entry names, and none of them changed. An entry whose
+        // pages this snapshot does not hold (an older upgrade source) simply does not apply.
+        failures.AddRange(allowList.Entries
+            .Where(e => !used.Contains(e) && before.Pages.Any(p => allowList.Excusing(p) == e))
+            .Select(e => $"{e.File}: unused allow-list entry #{e.Issue}: no page it names changed. Remove it."));
 
         foreach (var (table, count) in before.Records.OrderBy(r => r.Key, StringComparer.Ordinal))
         {

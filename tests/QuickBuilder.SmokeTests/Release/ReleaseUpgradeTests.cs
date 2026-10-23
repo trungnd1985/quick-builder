@@ -52,6 +52,7 @@ public sealed class ReleaseUpgradeTests(ITestOutputHelper output)
                 ? await BaselineAsync(deployment, work).ConfigureAwait(true)
                 : (new SnapshotBundle(Required("QB_SNAPSHOT_DIR"), from), Required("QB_PREVIOUS_IMAGE"));
             var before = source.ReadExpectations();
+            var allowList = VisibleChangeAllowList.Load(Path.Combine(deployment.RepositoryRoot, "docs", "releases", "unreleased"));
             var administrator = before.Members.First(m => m.Role == "Administrator");
             output.WriteLine($"upgrading {from} ({before.Pages.Count} pages, {before.Records.Count} tables) with {candidate}");
 
@@ -66,7 +67,13 @@ public sealed class ReleaseUpgradeTests(ITestOutputHelper output)
 
             // --- 3–4. Pages and records (SC-002) -------------------------------------------
             var after = await ReleaseExpectations.CaptureAsync(deployment, admin, releaseVersion, from, before.Members, before.Drafts).ConfigureAwait(true);
-            AssertSame(ExpectationComparer.Compare(before, after), "steps 3–4");
+            var compared = ExpectationComparer.Compare(before, after, allowList);
+            AssertSame(compared, "steps 3–4");
+            foreach (var change in compared.Allowed)
+            {
+                output.WriteLine($"allowed visible change: {change}");
+            }
+
             output.WriteLine($"steps 3–4: {before.Pages.Count} pages and {before.Records.Count} tables as before");
 
             // --- 5. Every member signs in; every draft opens ------------------------------
@@ -86,7 +93,7 @@ public sealed class ReleaseUpgradeTests(ITestOutputHelper output)
             // --- 6. Background rewrites finish; pages still the same (FR-019) -------------
             await WaitForBackgroundWorkAsync(deployment).ConfigureAwait(true);
             var settled = await ReleaseExpectations.CapturePagesAsync(admin).ConfigureAwait(true);
-            AssertSame(ExpectationComparer.Compare(before, after with { Pages = settled }), "step 6");
+            AssertSame(ExpectationComparer.Compare(before, after with { Pages = settled }, allowList), "step 6");
             output.WriteLine("step 6: background work done; pages unchanged");
 
             // --- 7. A restart writes nothing (FR-016, SC-007) ------------------------------
