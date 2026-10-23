@@ -326,7 +326,8 @@ produces complete notes; quickstart §5 by hand; the rollback step of the upgrad
 - [X] T084 Removed: resolved during analysis (finding I1); spec.md FR-030 now matches research RL-08. Nothing to do.
 - [X] T085 Run quickstart.md §1–§6 end to end, including the remaining negative runs of §4 and the rollback by hand of §5; record results, times (SC-001, SC-006, SC-010, SC-011) and deviations in `specs/019-release-upgrade-safety/quickstart-results.md`.
   *Done as*: §1, §2, §5 and §6 ran (quickstart-results.md); §3 and §4 need GitHub and wait for T004 and T044.
-- [ ] T086 Open the pull request for branch `019-release-upgrade-safety`, closing #19, listing the constitution clarification and its approval, the manual steps of T004, the operator impact and upgrade notes from plan.md, and the plan for cutting `v0.1.0` immediately after merge (release-pipeline.md §7): until it is approved, the reference compose names an image that does not exist yet (plan Risks).
+- [X] T086 Open the pull request for branch `019-release-upgrade-safety`, closing #19, listing the constitution clarification and its approval, the manual steps of T004, the operator impact and upgrade notes from plan.md, and the plan for cutting `v0.1.0` immediately after merge (release-pipeline.md §7): until it is approved, the reference compose names an image that does not exist yet (plan Risks).
+  *Done as*: https://github.com/trungnd1985/quick-builder/pull/41 (2026-10-24).
 
 ---
 
