@@ -1,3 +1,6 @@
+  *Changed 2026-10-24*: the job moved to `WF/promote.yml`, run by hand with the tag: it refuses unless the Release run for the tag succeeded and the draft has no failure banner, and reads the tested digest from the draft's `digests.txt`.
+  *Changed 2026-10-24*: native arm64 runners are free for public repositories only, so arm64 builds under QEMU on `ubuntu-latest` unless the repository variable `ARM64_RUNNER` names a native runner. The `arm64-boot` job likewise, with `DOCKER_DEFAULT_PLATFORM=linux/arm64`.
+  *Changed 2026-10-24*: the repository is private on GitHub Free, which offers no required reviewers on environments. Only the `pre-0.1.0-baseline` tag is needed; approval is the manual **Promote release** workflow (`WF/promote.yml`).
 ---
 
 description: "Task list for 019-release-upgrade-safety"

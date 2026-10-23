@@ -9,7 +9,10 @@
   'v[0-9]+.[0-9]+.[0-9]+-rc.[0-9]+']`. Nothing else publishes an image (FR-002).
 - `permissions: contents: write` (draft releases, assets), `packages: write` (GHCR).
 - `concurrency: release-${{ github.ref_name }}`, `cancel-in-progress: false`.
-- GitHub environment **`release`**: required reviewer = the maintainer; deployment branches
+- **Approval** is the manually run workflow `.github/workflows/promote.yml` (§4). GitHub Free
+  offers no required reviewers on a private repository's environments; a `workflow_dispatch`
+  run, which only people with write access can start, is the approval instead. (Was: the
+  GitHub environment **`release`** with the maintainer as required reviewer; deployment branches
   and tags restricted to `v*`.
 
 ## 2. Jobs
@@ -17,13 +20,13 @@
 | Job | Runner | Needs | Does | Fails when |
 |---|---|---|---|---|
 | `prepare` | ubuntu-latest | — | checkout (full history); `gh release list` → available versions; `qb-release version check`; `migrations check --since <previous>`; `patch check` (patch tags); `notes` → `notes.md` artifact; `upgrade-sources` → matrix JSON | tag ≠ `VersionPrefix`; edited migration; patch rule; notes rule; floor not set for a new major |
-| `build` | matrix: ubuntu-latest (amd64), ubuntu-24.04-arm (arm64) | prepare | `docker buildx build --platform linux/<arch> --build-arg QB_VERSION_SUFFIX= --build-arg QB_REVISION=<sha> --label …  --output type=image,push-by-digest=true,name-canonical=true,push=true` → digest artifact | build error |
+| `build` | matrix: ubuntu-latest (amd64); arm64 on `vars.ARM64_RUNNER` (e.g. ubuntu-24.04-arm, free for public repositories only) or else ubuntu-latest under QEMU | prepare | `docker buildx build --platform linux/<arch> --build-arg QB_VERSION_SUFFIX= --build-arg QB_REVISION=<sha> --label …  --output type=image,push-by-digest=true,name-canonical=true,push=true` → digest artifact | build error |
 | `manifest` | ubuntu-latest | build | `imagetools create -t ghcr.io/…:sha-<12> <amd64>@… <arm64>@…`; output `index_digest` | — |
 | `smoke` | ubuntu-latest | manifest | `QB_SMOKE_IMAGE=ghcr.io/…@<index_digest>`, `QB_SMOKE_REQUIRE_DOCKER=1`; `dotnet test tests/QuickBuilder.SmokeTests --filter Category=Smoke`; upload compose logs | journey fails |
-| `arm64-boot` | ubuntu-24.04-arm | manifest | compose up with the candidate; wait `/health/ready` ≤ 3 min; `GET /api/v1/identity/status` is setup mode; upload logs | not ready |
+| `arm64-boot` | `vars.ARM64_RUNNER` or ubuntu-latest under QEMU (`DOCKER_DEFAULT_PLATFORM=linux/arm64`, up to 10 minutes) | manifest | compose up with the candidate; wait `/health/ready` ≤ 3 min; `GET /api/v1/identity/status` is setup mode; upload logs | not ready |
 | `upgrade` | ubuntu-latest, matrix over upgrade sources | manifest | `--filter Category=ReleaseUpgrade` with `QB_UPGRADE_FROM=<version or baseline>`, `QB_SMOKE_IMAGE`; downloads the source's snapshot assets (or builds the baseline, RL-15); the leg from the previous release also writes the new snapshot bundle as an artifact | any check of contracts/snapshot.md §4, rollback drill (RL-18) |
 | `candidate` | ubuntu-latest | all above, `if: always()` | create/update the **draft** release `vX.Y.Z`: notes (with the failure banner if any gate failed), assets: snapshot bundle, `docker-compose.yml` pinned to `X.Y.Z`, `digests.txt` | — |
-| `promote` | ubuntu-latest, `environment: release` | candidate and every gate succeeded | §4 | exact tag exists on another digest |
+| `promote` | — (moved to `promote.yml`, run by hand) | — | §4 | exact tag exists on another digest |
 
 Every job that starts containers uploads `compose-logs-<job>` on failure, kept 90 days.
 
@@ -36,6 +39,11 @@ Every job that starts containers uploads `compose-logs-<job>` on failure, kept 9
 - `docker run … dotnet QuickBuilder.Host.dll` logs `QuickBuilder X.Y.Z+<sha>` first.
 
 ## 4. Promote
+
+`promote.yml`, `workflow_dispatch` with input `tag`. Before anything else it refuses unless the
+Release run for that tag concluded `success`, a draft release exists for it, and the draft
+bears no "Not available" banner. The digest comes from the draft's `digests.txt`; the version,
+and whether the moving tags move, from `qb-release version check` at the tag.
 
 1. `docker buildx imagetools inspect ghcr.io/…:X.Y.Z` — if it exists and its digest ≠
    `index_digest`, fail: "X.Y.Z is already published as <digest>" (FR-005). If equal, skip to 3.
@@ -73,7 +81,7 @@ Every job that starts containers uploads `compose-logs-<job>` on failure, kept 9
 1. Merge everything for the release; `main` is green.
 2. `git tag vX.Y.Z && git push origin vX.Y.Z` (the tag must equal `VersionPrefix`).
 3. Wait for the candidate (≤ 60 min, SC-011). Read the draft notes.
-4. Approve the `release` environment deployment → the release is available.
+4. Run **Promote release** (Actions tab) with the tag → the release is available.
 5. Open a PR with `qb-release archive --version X.Y.Z` (fragments archived, prefix bumped).
 
 First release only: after step 3, make the GHCR package public (package settings →

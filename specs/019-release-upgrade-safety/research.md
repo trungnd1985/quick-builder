@@ -95,6 +95,11 @@ has flaked on .NET; native arm64 runners are free for public repositories and ke
 candidate under SC-011's 60 minutes. Building on both natives also proves the arm64 image
 starts (FR-010, RL-11) on real hardware.
 
+**As built (GitHub Free, private repository)**: native arm64 runners are free only for public
+repositories, so arm64 builds and boots under QEMU on `ubuntu-latest` unless the repository
+variable `ARM64_RUNNER` names a native runner. Slower (the 60-minute target is at risk), same
+image.
+
 **Rejected**: one `buildx --platform linux/amd64,linux/arm64` under QEMU (slow); cross-
 compiling with `--platform=$BUILDPLATFORM` and `-r linux-musl-arm64` (works for .NET, but the
 libvips native selection and the Node stage would need separate handling for a gain the
@@ -137,6 +142,12 @@ release is the highest published, non-pre-release tag below the new version.
 the spec needs; no store of our own. Operators find versions where they find the source.
 
 ## RL-06 Approval: a protected environment
+
+**As built**: GitHub Free has no required reviewers on a private repository's environments.
+Approval is the manual workflow `promote.yml` (contracts/release-pipeline.md §4): only people
+with write access can run it, it refuses unless the Release run succeeded and the draft has no
+failure banner, and it reads the tested digest from the draft's `digests.txt`, so nobody
+types a digest. The rest of this decision stands.
 
 **Decision** (clarification Q2): the `promote` job runs in the GitHub environment `release`,
 configured with the maintainer as required reviewer and restricted to `v*` tags. It depends

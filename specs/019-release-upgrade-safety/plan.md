@@ -24,7 +24,8 @@ Operators upgrade by changing one image tag. To make that safe, this feature:
   arm64 on native runners, pushes it to GHCR by digest, and tests *that* digest: the
   reference smoke journey, an arm64 boot, and upgrade runs from earlier releases' database
   snapshots. Passing candidates wait as draft GitHub releases until the maintainer approves
-  the `release` environment; approval tags the tested digest and publishes the notes.
+  it by running the Promote release workflow (GitHub Free has no required reviewers on a
+  private repository); approval tags the tested digest and publishes the notes.
 - **Keeps a chain of real snapshots.** Each release's upgrade run, after passing, adds its
   own content journey to the upgraded database and attaches the dump, media and an
   expectations file to the release. The next release restores it, boots, and compares what
@@ -314,8 +315,15 @@ clarification rather than recorded as exceptions.
 
 - **arm64 runners unavailable or slow** (`ubuntu-24.04-arm` is a GitHub-hosted label for
   public repositories).
-  - *Mitigation*: the build job can fall back to QEMU for arm64 with a workflow input; only
-    the 60-minute target suffers.
+  - *As built*: the repository is private on GitHub Free, so arm64 runs under QEMU on
+    `ubuntu-latest` by default; the repository variable `ARM64_RUNNER` switches to a native
+    runner. Emulation slows the arm64 build and boot, so the 60-minute target (SC-011) is at
+    risk until the repository is public or a native runner is available.
+- **A private repository hides the releases page from operators**: GHCR images can be public
+  while the repository is private, but release notes, the pinned compose file and the upgrade
+  notes on GitHub Releases are not visible to anyone outside it.
+  - *Mitigation*: make the repository public before announcing 0.1.0, or publish the notes
+    and compose file somewhere operators can read them. A decision for the maintainer.
 - **Visible-form comparison too strict**: a deliberate change to visible output (a renamed
   default text) fails the gate.
   - *Mitigation*: built in this feature (FR-012a, analysis U3): a reviewed

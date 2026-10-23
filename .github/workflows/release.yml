@@ -1,11 +1,14 @@
 name: Release
 
 # 019 research RL-04, contracts/release-pipeline.md. A version tag is the only thing that
-# publishes an image (FR-002). The image is built for amd64 and arm64 on native runners, pushed
-# by digest, and every gate tests that digest: the reference journey, an arm64 boot, and
-# upgrades from earlier releases' snapshots. A candidate waits as a draft release until the
-# maintainer approves the `release` environment; approval tags the tested digest and publishes
-# the notes, without rebuilding anything.
+# publishes an image (FR-002). The image is built for amd64 and arm64, pushed by digest, and
+# every gate tests that digest: the reference journey, an arm64 boot, and upgrades from earlier
+# releases' snapshots. A candidate waits as a draft release until the maintainer approves it by
+# running the Promote release workflow (promote.yml), which tags the tested digest and
+# publishes the notes, without rebuilding anything.
+#
+# arm64 runs on ARM64_RUNNER (a repository variable) when set, e.g. ubuntu-24.04-arm, which
+# GitHub offers free to public repositories only; otherwise on ubuntu-latest under QEMU.
 
 on:
   push:
@@ -104,7 +107,8 @@ jobs:
           path: notes.md
           retention-days: 7
 
-  # RL-03: each architecture on its own runner, pushed by digest only; no tag yet.
+  # RL-03: each architecture on its own runner, pushed by digest only; no tag yet. Without a
+  # native arm64 runner, arm64 builds under QEMU: slower, same image.
   build:
     name: Build (${{ matrix.arch }})
     needs: prepare
@@ -114,10 +118,13 @@ jobs:
           - arch: amd64
             runner: ubuntu-latest
           - arch: arm64
-            runner: ubuntu-24.04-arm
+            runner: ${{ vars.ARM64_RUNNER || 'ubuntu-latest' }}
     runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v4
+
+      - uses: docker/setup-qemu-action@v3
+        if: matrix.arch == 'arm64' && !vars.ARM64_RUNNER
 
       - uses: docker/setup-buildx-action@v3
 
@@ -216,16 +223,21 @@ jobs:
           path: compose-logs/
           retention-days: 90
 
-  # FR-010, RL-11: the arm64 image starts, migrates and serves, on arm64.
+  # FR-010, RL-11: the arm64 image starts, migrates and serves, on arm64 (emulated under QEMU
+  # without a native runner, so it gets more time).
   arm64-boot:
     name: Boot (arm64)
     needs: manifest
-    runs-on: ubuntu-24.04-arm
+    runs-on: ${{ vars.ARM64_RUNNER || 'ubuntu-latest' }}
     env:
+      DOCKER_DEFAULT_PLATFORM: linux/arm64
       QUICKBUILDER_IMAGE: ${{ format('{0}@{1}', 'ghcr.io/trungnd1985/quickbuilder', needs.manifest.outputs.digest) }}
       QUICKBUILDER_PORT: '18080'
     steps:
       - uses: actions/checkout@v4
+
+      - uses: docker/setup-qemu-action@v3
+        if: ${{ !vars.ARM64_RUNNER }}
 
       - uses: docker/login-action@v3
         with:
@@ -236,7 +248,8 @@ jobs:
       - name: Start and wait for ready
         run: |
           docker compose -p qb-arm64 up -d
-          for i in $(seq 1 90); do
+          docker compose -p qb-arm64 exec -T app uname -m
+          for i in $(seq 1 300); do
             if curl -fs "http://127.0.0.1:18080/health/ready" > /dev/null; then echo "ready after $((i * 2))s"; break; fi
             sleep 2
           done
@@ -379,45 +392,4 @@ jobs:
           else
             gh release create "$tag" --draft --verify-tag --title "QuickBuilder ${{ needs.prepare.outputs.version }}" --notes-file notes.md assets/*
           fi
-
-  # RL-06: waits for the maintainer. Tags the tested digest (no rebuild) and publishes the notes.
-  promote:
-    name: Promote
-    needs: [prepare, manifest, smoke, arm64-boot, upgrade, candidate]
-    runs-on: ubuntu-latest
-    environment: release
-    steps:
-      - uses: docker/setup-buildx-action@v3
-
-      - uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ github.token }}
-
-      - name: Tag the tested image
-        run: |
-          version="${{ needs.prepare.outputs.version }}"
-          digest="${{ needs.manifest.outputs.digest }}"
-          # FR-005: an exact version never moves to a different build.
-          existing=$(docker buildx imagetools inspect "${IMAGE}:${version}" --format '{{json .Manifest}}' 2>/dev/null | jq -r '.digest' || true)
-          if [ -n "$existing" ] && [ "$existing" != "null" ] && [ "$existing" != "$digest" ]; then
-            echo "::error::${version} is already published as ${existing}."
-            exit 1
-          fi
-          tags=(-t "${IMAGE}:${version}")
-          if [ "${{ needs.prepare.outputs.highest }}" = "true" ]; then
-            IFS=. read -r major minor _ <<< "$version"
-            tags+=(-t "${IMAGE}:${major}.${minor}" -t "${IMAGE}:${major}" -t "${IMAGE}:latest")
-          fi
-          docker buildx imagetools create "${tags[@]}" "${IMAGE}@${digest}"
-
-      - name: Publish the release
-        env:
-          GH_TOKEN: ${{ github.token }}
-          GH_REPO: ${{ github.repository }}
-        run: |
-          flags=(--draft=false)
-          [ "${{ needs.prepare.outputs.prerelease }}" = "true" ] && flags+=(--prerelease)
-          [ "${{ needs.prepare.outputs.highest }}" = "true" ] && flags+=(--latest)
-          gh release edit "${GITHUB_REF_NAME}" "${flags[@]}"
+          echo "Draft ready. Read its notes, then run **Promote release** with \`${tag}\` to publish it." >> "$GITHUB_STEP_SUMMARY"

@@ -8,7 +8,9 @@ to run and what to look for.
 ## 0. Prerequisites
 
 - Docker with Buildx; .NET 10 SDK; `gh` signed in with access to the repository.
-- The GitHub environment `release` exists with the maintainer as required reviewer, limited
+- Approval is the **Promote release** workflow (no environment needed). For native arm64
+  builds on a public repository, set the repository variable `ARM64_RUNNER=ubuntu-24.04-arm`.
+- (Was: the GitHub environment `release` with the maintainer as required reviewer, limited
   to `v*` tags (contracts/release-pipeline.md §1).
 - Tag `pre-0.1.0-baseline` on commit `5f549ae` is pushed (RL-15).
 - For a dry run without publishing a real version, use a release-candidate tag

@@ -383,8 +383,9 @@ Releases are cut by the maintainer
    published digest: the reference journey, an arm64 boot, and upgrades from earlier releases'
    snapshots, with a rollback drill. A draft release appears with the notes, the pinned
    compose file and the new snapshot (≤ 60 minutes).
-4. Read the draft notes; add anything to "Known issues". Approve the `release` environment's
-   deployment: the tested image gets its version tags and the release is published.
+4. Read the draft notes; add anything to "Known issues". Then run **Promote release** from the
+   Actions tab with the tag. It refuses unless every gate passed, gives the tested image its
+   version tags (no rebuild) and publishes the release.
 5. Open a pull request with `dotnet run --project tools/QuickBuilder.Release -- archive
    --version 0.3.0`: the fragments move to `docs/releases/0.3.0/` and `VersionPrefix` moves on.
 
