@@ -31,7 +31,7 @@ internal sealed class GetPageDraftHandler(PagesDbContext database, PageReads rea
 
         return draft is null
             ? Result.Failure<DraftResponse>(PagesErrors.NotFound)
-            : Result.Success(await reads.DraftAsync(draft, cancellationToken).ConfigureAwait(false));
+            : await reads.ReadDraftAsync(draft, SubjectKinds.Page, query.PageId, cancellationToken).ConfigureAwait(false);
     }
 }
 

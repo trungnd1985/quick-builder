@@ -13,7 +13,7 @@ namespace QuickBuilder.Cms.Infrastructure;
 /// published values through its collection's title field, never from the draft-derived
 /// <c>name</c> column the admin list sorts on.
 /// </remarks>
-internal sealed class PublishedItemReader(CmsPublishedReadDbContext database) : IPublishedItemReader
+internal sealed class PublishedItemReader(CmsPublishedReadDbContext database, Schema.CollectionSchemaUpgrades upgrades) : IPublishedItemReader
 {
     private static readonly Func<CmsPublishedReadDbContext, Guid, Guid, string, CancellationToken, Task<PublishedItemRef?>> BySlug =
         EF.CompileAsyncQuery((CmsPublishedReadDbContext db, Guid siteId, Guid collectionId, string slug, CancellationToken _) =>
@@ -125,7 +125,18 @@ internal sealed class PublishedItemReader(CmsPublishedReadDbContext database) : 
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
 
-        return rows.ToDictionary(r => r.Id, r => Parse(r.Schema));
+        // 019 RL-19: at the current version; a schema that cannot be used is left out, so its
+        // lists and item pages show nothing rather than something wrong.
+        var schemas = new Dictionary<Guid, JsonElement>(rows.Count);
+        foreach (var row in rows)
+        {
+            if (upgrades.ForRendering("collection", row.Id, Parse(row.Schema)) is { } current)
+            {
+                schemas[row.Id] = current;
+            }
+        }
+
+        return schemas;
     }
 
     public Task<int> CountPublishedAsync(Guid siteId, Guid collectionId, CancellationToken cancellationToken = default) =>
@@ -177,7 +188,16 @@ internal sealed class PublishedItemReader(CmsPublishedReadDbContext database) : 
         {
             using (row)
             {
-                result[row.Id] = ToItem(row, titles.GetValueOrDefault(row.CollectionId));
+                // 019 RL-19: values at the current version; an item whose values cannot be used
+                // is left out, as an unrenderable item, and every other item still shows.
+                if (row.Published is null)
+                {
+                    result[row.Id] = ToItem(row, titles.GetValueOrDefault(row.CollectionId), default);
+                }
+                else if (upgrades.ForRendering("item", row.Id, row.Published.RootElement) is { } values)
+                {
+                    result[row.Id] = ToItem(row, titles.GetValueOrDefault(row.CollectionId), values.Clone());
+                }
             }
         }
 
@@ -185,11 +205,14 @@ internal sealed class PublishedItemReader(CmsPublishedReadDbContext database) : 
     }
 
     /// <summary>A row as a contract item, its values detached from the row's buffer.</summary>
-    internal static PublishedItem ToItem(PublishedItemRow row, string? titleFieldId)
+    internal static PublishedItem ToItem(PublishedItemRow row, string? titleFieldId) =>
+        ToItem(row, titleFieldId, row?.Published?.RootElement.Clone() ?? default);
+
+    /// <summary>A row as a contract item with <paramref name="values"/> already read at the current version.</summary>
+    internal static PublishedItem ToItem(PublishedItemRow row, string? titleFieldId, JsonElement values)
     {
         ArgumentNullException.ThrowIfNull(row);
 
-        var values = row.Published?.RootElement.Clone() ?? default;
         string? name = null;
         if (titleFieldId is not null
             && values.ValueKind == JsonValueKind.Object

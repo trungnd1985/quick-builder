@@ -118,6 +118,11 @@ public static class CmsModule
         services.AddDbContext<CmsPublishedReadDbContext>(options => options
             .UseNpgsql(ReadOnlyConnection.From(connectionString))
             .UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking));
+        // 019 RL-19: schemas and item values are read at the current version before they leave
+        // the module. A replaceable singleton, so tests can give the chain a step that fails.
+        services.AddSingleton(sp => new Infrastructure.Schema.CollectionSchemaUpgrades(
+            Infrastructure.Schema.CollectionSchemaUpgrades.CreateChain(),
+            sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Infrastructure.Schema.CollectionSchemaUpgrades>>()));
         services.AddScoped<QuickBuilder.Cms.Contracts.Publishing.IPublishedItemReader, PublishedItemReader>();
         services.AddScoped<QuickBuilder.Cms.Contracts.ICollectionSchemaReader, CollectionSchemaReader>();
 

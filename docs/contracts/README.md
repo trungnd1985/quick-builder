@@ -14,4 +14,7 @@ the renderer, and both validate against the same definition.
 | Menu documents (a site's menus, shown by the Navigation block) | [menu.md](menu.md) | [menu/v1.schema.json](menu/v1.schema.json), with golden examples under [menu/examples/](menu/examples/) | 024 |
 
 Changing anything here needs the contract document, the schema file and, for a breaking
-change, the forward migration of stored data, all in the same pull request.
+change, an upgrade step from the previous version with golden files under
+`<contract>/upgrades/v<N-1>-to-v<N>/`, all in the same pull request. Stored documents are
+upgraded when read and stored at the new version on their next save or publish; see
+[specs/019-release-upgrade-safety/contracts/schema-upgrades.md](../../specs/019-release-upgrade-safety/contracts/schema-upgrades.md).

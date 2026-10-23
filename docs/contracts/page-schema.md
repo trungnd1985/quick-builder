@@ -352,13 +352,19 @@ neither listed here nor impossible to produce.
   prop required, or narrowing a value. A breaking change needs all of these in one PR:
   1. `vN.schema.json` beside the older files;
   2. this document updated, with a "Changes from vN-1" section;
-  3. a forward migration that rewrites every stored document still at `N-1`;
-  4. validators accepting `N`;
-  5. the renderer able to render every version still present in the database.
+  3. an upgrade step from `N-1` to `N` with golden files under
+     `page-schema/upgrades/vN-1-to-vN/`, registered in Pages' chain. Stored documents are
+     upgraded when they are read and stored at `N` on their next save or publish; they are
+     never rewritten in bulk (constitution 2.5.1, Principle VI;
+     [specs/019-release-upgrade-safety/contracts/schema-upgrades.md](../../specs/019-release-upgrade-safety/contracts/schema-upgrades.md));
+  4. validators accepting `N`, and the drafts' `CHECK (schema_version = N-1)` relaxed to
+     `BETWEEN 1 AND N`;
+  5. never in a patch release (019 FR-034a).
 - `schemaVersion` in the document and the `schema_version` column always agree.
-- The renderer lists the schema versions it renders. `BlockRendererCoverageTests` fails the
-  build when `page-schema/` holds a `vN.schema.json` the renderer does not list, so a new
-  version cannot merge without rendering support (012; Principle VI).
+- The renderer renders the current version only: Pages reads every stored document through
+  its upgrade chain before handing it over (019). `BlockRendererCoverageTests` fails the build
+  when `page-schema/` holds a `vN.schema.json` that is neither current nor upgraded by a step,
+  and `SchemaUpgradeCoverageTests` when a step has no golden files (Principle VI).
 
 **Additions in 016 (still version 1)**: an optional envelope `bindingVersion`; an optional
 `bind` prop on `heading`, `text`, `rich-text`, `image` and `button`; the node types

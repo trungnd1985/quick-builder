@@ -36,6 +36,7 @@ internal sealed class PublishingWrites(
     PageParamRules pageParams,
     RedirectOffers redirectOffers,
     TimeProvider clock,
+    Schema.StoredDocuments stored,
     ILogger<PublishingWrites> logger)
 {
     // Every racer but one loses each round, so n concurrent publishes of one subject need up to
@@ -153,7 +154,16 @@ internal sealed class PublishingWrites(
                 return Result.Failure(PagesErrors.VersionNotFound);
             }
 
-            var referenced = DependencyExtractor.Components(source.Document);
+            // 019 FR-022: the version goes live again at the current schema version; its row keeps
+            // the one it was published with (FR-023a). One that cannot be used is refused.
+            var upgraded = stored.ForEditing(subject.Kind, subject.Id, source.Document, source.SchemaVersion);
+            if (upgraded.IsFailure)
+            {
+                return Result.Failure(upgraded.Error);
+            }
+
+            var document = upgraded.Value.GetRawText();
+            var referenced = DependencyExtractor.Components(document);
             if (referenced.Count > 0)
             {
                 var existing = await database.ForSite<Component>(siteId)
@@ -170,7 +180,7 @@ internal sealed class PublishingWrites(
             }
 
             // 024 FR-003a: a version showing a menu that was deleted since cannot come back.
-            var shownMenus = subject.IsMenu ? [] : DependencyExtractor.Menus(source.Document);
+            var shownMenus = subject.IsMenu ? [] : DependencyExtractor.Menus(document);
             if (shownMenus.Count > 0)
             {
                 var existingMenus = await database.ForSite<Domain.Menus.Menu>(siteId)
@@ -188,7 +198,7 @@ internal sealed class PublishingWrites(
 
             return await PublishContentAsync(
                     subject,
-                    new DraftContent(source.Document, source.SchemaVersion, Version: 0),
+                    new DraftContent(document, Schema.StoredDocuments.CurrentVersion(subject.Kind), Version: 0),
                     source.Title,
                     fromDraftVersion: null,
                     VersionKinds.Rollback,

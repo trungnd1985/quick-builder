@@ -13,13 +13,13 @@ namespace QuickBuilder.Cms.Infrastructure;
 /// with a site of its own: the same read-only connection, the same published-only mapping,
 /// and its query filters on exactly the site the request names.
 /// </remarks>
-internal sealed class SitePublishedItems(DbContextOptions<CmsPublishedReadDbContext> options)
+internal sealed class SitePublishedItems(DbContextOptions<CmsPublishedReadDbContext> options, Schema.CollectionSchemaUpgrades upgrades)
 {
     /// <summary>A reader over <paramref name="siteId"/>'s published items; dispose it after use.</summary>
     public Scoped For(Guid siteId)
     {
         var database = new CmsPublishedReadDbContext(options, new FixedSite(siteId));
-        return new Scoped(database, new PublishedItemReader(database));
+        return new Scoped(database, new PublishedItemReader(database, upgrades));
     }
 
     /// <summary>A reader and the context it owns.</summary>

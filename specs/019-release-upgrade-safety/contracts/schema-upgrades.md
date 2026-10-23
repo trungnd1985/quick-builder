@@ -48,23 +48,25 @@ Every place an owning module hands a stored document to anyone else goes through
 |---|---|
 | Pages | `PublishedContentReader` (live pages, components, menus → Rendering), `PageReads` and `ComponentReads` (draft and version reads → admin), menu draft reads, the publish and rollback paths (`PublishingWrites` reads the source content) |
 | Editor | design draft reads, `PublishedDesignReader` |
-| Cms | collection reads, `ItemReads.ReadValues` (accepts `≤ current` instead of `== current`, then upgrades) |
+| Cms | `PublishedItemReader` (schemas and item values to Rendering), `CollectionSchemaReader` (schemas to Pages), `CollectionReads.ReadAsync` and `ItemReads.ReadAsync` (the admin) |
 
 Results:
 
 | Result | Rendering | Admin API | Save / publish |
 |---|---|---|---|
 | Current, Upgraded | renders | returns the current-version document with `schemaVersion = current` | stores at current (FR-022) |
-| TooNew | the page fails as unrenderable (012 behaviour); others unaffected | `409 document_too_new` problem, read-only | refused with `409 document_too_new` |
+| TooNew | the document is handed over empty, so its page renders no content (012 behaviour); others unaffected | `409 document_too_new` problem, read-only | refused with `409 document_too_new` |
 | Failed | as TooNew | `422 document_upgrade_failed` problem | refused until the draft is replaced |
 
 Exceptions:
 - **Design tokens**: a published design that is TooNew or Failed falls back to the default
   tokens for rendering, as a site with no published design does, and is logged. A site-wide
   document must not make every page of the site fail.
-- **Item values**: `ItemReads.ReadValues` returns a distinct too-new result, not the
-  "malformed" null, so the admin answers `409 document_too_new` and Rendering treats only that
-  item as unrenderable.
+- **Collections and items**: Rendering leaves out a collection schema or an item whose values
+  cannot be used (its lists and item page show nothing of it). `ItemReads.ReadValues` is not a
+  read site: it checks request input, which clients always send at the current version.
+- **Why empty, not the stored text**: the page renderer reads the version inside the document,
+  and an old document that failed to upgrade would still say it is an old, renderable one.
 
 Published history rows are never rewritten (FR-023a). Rolling back to one publishes its
 upgraded document at the current version.

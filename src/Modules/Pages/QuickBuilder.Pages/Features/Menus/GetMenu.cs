@@ -21,9 +21,7 @@ internal sealed class GetMenuHandler(MenuReads reads, PagesAccess access) : IQue
             return Result.Failure<MenuDetailResponse>(PagesErrors.SiteNotFound);
         }
 
-        return await reads.OneAsync(query.SiteId, query.MenuId, cancellationToken).ConfigureAwait(false) is { } menu
-            ? Result.Success(menu)
-            : Result.Failure<MenuDetailResponse>(PagesErrors.MenuNotFound);
+        return await reads.ReadAsync(query.SiteId, query.MenuId, cancellationToken).ConfigureAwait(false);
     }
 }
 

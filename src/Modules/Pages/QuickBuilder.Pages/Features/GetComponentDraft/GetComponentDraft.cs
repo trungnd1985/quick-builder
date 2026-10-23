@@ -31,7 +31,7 @@ internal sealed class GetComponentDraftHandler(PagesDbContext database, PageRead
 
         return draft is null
             ? Result.Failure<DraftResponse>(PagesErrors.ComponentNotFound)
-            : Result.Success(await reads.DraftAsync(draft, cancellationToken).ConfigureAwait(false));
+            : await reads.ReadDraftAsync(draft, SubjectKinds.Component, query.ComponentId, cancellationToken).ConfigureAwait(false);
     }
 }
 

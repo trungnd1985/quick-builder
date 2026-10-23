@@ -11,8 +11,12 @@ namespace QuickBuilder.Pages.Infrastructure;
 /// <remarks>
 /// <see cref="FindLiveByPathAsync"/> runs on every public request, so it is a compiled query
 /// on <c>ux_pages_site_path</c> joined to the publication's primary key.
+/// <para>
+/// 019 RL-19: every document handed over is read through its contract's upgrade chain
+/// (<see cref="Schema.StoredDocuments"/>), so Rendering only ever receives current versions.
+/// </para>
 /// </remarks>
-internal sealed class PublishedContentReader(PublishedReadDbContext database) : IPublishedContentReader
+internal sealed class PublishedContentReader(PublishedReadDbContext database, Schema.StoredDocuments stored) : IPublishedContentReader
 {
     // 016 research TB-02: a template has no address of its own, so it is never found by path.
     private static readonly Func<PublishedReadDbContext, Guid, string, CancellationToken, Task<LivePageRef?>> LiveByPath =
@@ -120,7 +124,7 @@ internal sealed class PublishedContentReader(PublishedReadDbContext database) : 
 
         return version is null
             ? null
-            : new LivePageVersion(version.Row.SchemaVersion, Parse(version.Row.Document), version.Row.Title ?? string.Empty);
+            : Live(SubjectKinds.Page, version, (number, document) => new LivePageVersion(number, document, version.Row.Title ?? string.Empty));
     }
 
     public async Task<IReadOnlyDictionary<Guid, LiveDocument>> GetLiveComponentsAsync(
@@ -137,7 +141,7 @@ internal sealed class PublishedContentReader(PublishedReadDbContext database) : 
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
 
-        return versions.ToDictionary(v => v.SubjectId, v => new LiveDocument(v.Row.SchemaVersion, Parse(v.Row.Document)));
+        return versions.ToDictionary(v => v.SubjectId, v => Live(SubjectKinds.Component, v, (number, document) => new LiveDocument(number, document)));
     }
 
     public async Task<IReadOnlyDictionary<Guid, PageLinkTarget>> GetLinkTargetsAsync(
@@ -196,7 +200,7 @@ internal sealed class PublishedContentReader(PublishedReadDbContext database) : 
         // 024 NV-05: a menu version's title is the menu's name when it was published.
         return versions.ToDictionary(
             v => v.SubjectId,
-            v => new LiveMenu(v.Row.SchemaVersion, Parse(v.Row.Document), v.Row.Title ?? string.Empty));
+            v => Live(SubjectKinds.Menu, v, (number, document) => new LiveMenu(number, document, v.Row.Title ?? string.Empty)));
     }
 
     public Task<bool> IsHomePageLiveAsync(Guid siteId, CancellationToken cancellationToken = default) =>
@@ -256,10 +260,12 @@ internal sealed class PublishedContentReader(PublishedReadDbContext database) : 
         select new LiveVersion(publication.SubjectId, version);
 
     // Parsed once per read and detached from the pooled buffer, so the caller may keep it.
-    private static JsonElement Parse(string document)
+    /// <summary>A live version at the current schema version, or marked unrenderable (019 FR-025, FR-026).</summary>
+    private T Live<T>(string subjectKind, LiveVersion live, Func<int, JsonElement, T> create)
     {
-        using var parsed = JsonDocument.Parse(document);
-        return parsed.RootElement.Clone();
+        using var parsed = JsonDocument.Parse(live.Row.Document);
+        var (number, document) = stored.ForRendering(subjectKind, live.SubjectId, parsed.RootElement, live.Row.SchemaVersion);
+        return create(number, document.Clone());
     }
 
     private sealed record LiveVersion(Guid SubjectId, VersionRow Row);

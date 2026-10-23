@@ -177,3 +177,13 @@ bytes are identical in both cases** (`NotFoundParityTests`).
 
 The cache being unavailable or cleared never changes a response, only its latency
 (FR-034).
+
+## Schema versions (019)
+
+Rendering receives page, component and menu documents, design tokens, collection schemas and
+item values at the current schema version only: each owning module reads stored documents
+through its upgrade chain before handing them over
+([019 schema-upgrades.md §3](../../019-release-upgrade-safety/contracts/schema-upgrades.md)).
+A document stored by a newer release, or one that cannot be upgraded, arrives empty: its page
+renders no content, every other page renders. A published design that cannot be used falls
+back to the default tokens.

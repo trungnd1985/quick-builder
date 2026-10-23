@@ -10,7 +10,7 @@ namespace QuickBuilder.Editor.Infrastructure;
 /// <summary>
 /// <see cref="IPublishedDesignReader"/> over a read-only context (012 research PR-06, PR-17).
 /// </summary>
-internal sealed class PublishedDesignReader(PublishedDesignReadDbContext database) : IPublishedDesignReader
+internal sealed class PublishedDesignReader(PublishedDesignReadDbContext database, DesignTokenUpgrades upgrades) : IPublishedDesignReader
 {
     private static readonly Func<PublishedDesignReadDbContext, Guid, CancellationToken, Task<int>> LiveNumber =
         EF.CompileAsyncQuery((PublishedDesignReadDbContext db, Guid siteId, CancellationToken _) =>
@@ -38,8 +38,11 @@ internal sealed class PublishedDesignReader(PublishedDesignReadDbContext databas
             return new PublishedDesign(0, DesignTokens.CurrentVersion, DefaultDesignTokens.Document);
         }
 
-        using var document = JsonDocument.Parse(live.Document);
-        return new PublishedDesign(live.Number, live.SchemaVersion, document.RootElement.Clone());
+        // 019 RL-19: at the current schema version. One that cannot be used falls back to the
+        // defaults, as a site with no published design does, rather than failing every page.
+        return upgrades.ForRendering(siteId, live.Document, live.SchemaVersion) is { } current
+            ? new PublishedDesign(live.Number, DesignTokens.CurrentVersion, current)
+            : new PublishedDesign(live.Number, DesignTokens.CurrentVersion, DefaultDesignTokens.Document);
     }
 }
 

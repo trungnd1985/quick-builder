@@ -324,6 +324,28 @@ Anything that would make a stored document invalid — removing or renaming a ty
 making a prop required — is a **breaking** change: it needs `v2.schema.json`, a forward
 migration of stored drafts and the other steps in §6, in the same pull request.
 
+## Raising a schema version
+
+Versioned contracts (page schema, bindings, menus, design tokens, collection schema) stay at
+version 1 for additive changes. A breaking change raises the version, in one pull request,
+never in a patch release ([019 schema-upgrades.md §5](../specs/019-release-upgrade-safety/contracts/schema-upgrades.md)):
+
+1. `vN.schema.json` beside the older files, and the contract document's "Changes from vN-1".
+2. `CurrentVersion` raised; the validators (C# and TypeScript) accept `N`.
+3. An `ISchemaUpgradeStep` with `From = N-1`, registered in the owning module's chain
+   (`PageSchemaUpgrades`, `MenuSchemaUpgrades`, `DesignTokenUpgrades`,
+   `CollectionSchemaUpgrades`), with golden pairs under
+   `docs/contracts/<contract>/upgrades/vN-1-to-vN/` (`*.in.json`, `*.out.json`).
+   *Guards*: `SchemaUpgradeCoverageTests`, `SchemaUpgradeGoldenTests`, `BlockRendererCoverageTests`.
+4. A migration relaxing `CHECK (schema_version = N-1)` to `BETWEEN 1 AND N` on
+   `pages.page_drafts`, `pages.component_drafts`, `pages.menu_drafts`,
+   `editor.design_token_sets` or `cms.collections`, whichever the contract stores in.
+5. A release-note fragment (the release tool also lists the raise by itself).
+
+Stored documents are not rewritten: each module reads them through its chain before they
+leave it, and they are stored at `N` on their next save or publish. A read path that hands a
+stored document to anyone else must take its module's chain (`SchemaReadCoverageTests`).
+
 ## Tests
 
 | Project | What belongs there |

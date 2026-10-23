@@ -184,8 +184,10 @@ scope operand names exactly one of `field` and `current`.
 - This is version 1. Additive changes stay in version 1: a new built-in value, format,
   operator, bindable property or block.
 - Removing or renaming any of them, or changing the meaning of `scope` or `empty`, needs
-  `bindingVersion: 2`, a forward migration of stored documents, versions and schedules,
-  and renderer support for both, in one PR (Principle VI).
+  `bindingVersion: 2` and an upgrade step from 1 with golden files under
+  `binding-expression/upgrades/v1-to-v2/`, in one PR. Pages runs it on every stored page
+  document when it is read, after the page schema's own chain; documents are stored at the
+  new version on their next save or publish (019 contracts/schema-upgrades.md; Principle VI).
 
 ## 8. Golden examples
 

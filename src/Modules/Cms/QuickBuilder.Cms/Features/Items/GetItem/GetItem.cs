@@ -21,8 +21,7 @@ internal sealed class GetItemHandler(ItemReads reads, CmsAccess access) : IQuery
             return Result.Failure<ItemResponse>(CmsErrors.SiteNotFound);
         }
 
-        var item = await reads.GetAsync(query.SiteId, query.CollectionId, query.ItemId, cancellationToken).ConfigureAwait(false);
-        return item is null ? Result.Failure<ItemResponse>(CmsErrors.ItemNotFound) : Result.Success(item);
+        return await reads.ReadAsync(query.SiteId, query.CollectionId, query.ItemId, cancellationToken).ConfigureAwait(false);
     }
 }
 

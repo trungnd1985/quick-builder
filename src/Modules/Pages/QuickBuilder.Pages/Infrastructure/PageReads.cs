@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using QuickBuilder.Pages.Domain;
 using QuickBuilder.Pages.Features;
+using QuickBuilder.Pages.Infrastructure.Schema;
+using QuickBuilder.Shared.Kernel.Results;
 
 namespace QuickBuilder.Pages.Infrastructure;
 
@@ -8,7 +10,7 @@ namespace QuickBuilder.Pages.Infrastructure;
 /// The read side of the page tree: one projection per shape, shared by every slice that
 /// returns it (research P-16, P-20).
 /// </summary>
-internal sealed class PageReads(PagesDbContext database, PagesAccess access, PublicationReads publications)
+internal sealed class PageReads(PagesDbContext database, PagesAccess access, PublicationReads publications, StoredDocuments stored)
 {
     /// <summary>
     /// The whole tree in one query, assembled depth-first in memory: parents before
@@ -105,6 +107,29 @@ internal sealed class PageReads(PagesDbContext database, PagesAccess access, Pub
 
         var names = await access.NamesAsync([draft.UpdatedBy], cancellationToken).ConfigureAwait(false);
         return new DraftSummaryResponse(draft.SchemaVersion, draft.Version, draft.UpdatedAtUtc, PagesAccess.Reference(draft.UpdatedBy, names));
+    }
+
+    /// <summary>
+    /// A stored draft for the admin, at the current schema version (019 FR-021): an older one
+    /// is upgraded in memory and stored only when saved; one that cannot be used is refused.
+    /// </summary>
+    public async Task<Result<DraftResponse>> ReadDraftAsync(Draft draft, string subjectKind, Guid subjectId, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(draft);
+
+        var current = stored.ForEditing(subjectKind, subjectId, draft.Document, draft.SchemaVersion);
+        if (current.IsFailure)
+        {
+            return Result.Failure<DraftResponse>(current.Error);
+        }
+
+        var names = await access.NamesAsync([draft.UpdatedBy], cancellationToken).ConfigureAwait(false);
+        return Result.Success(new DraftResponse(
+            StoredDocuments.CurrentVersion(subjectKind),
+            draft.Version,
+            draft.UpdatedAtUtc,
+            PagesAccess.Reference(draft.UpdatedBy, names),
+            current.Value));
     }
 
     /// <summary>A draft with its document, parsed so the response carries JSON, not a string.</summary>

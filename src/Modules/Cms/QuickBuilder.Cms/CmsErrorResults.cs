@@ -62,7 +62,10 @@ internal static class CmsErrorResults
             or "cms.item_not_published"
             or "cms.item_referenced"
             or "cms.schedule_pending"
-            or "cms.collection_used_by_pages" => StatusCodes.Status409Conflict,
+            or "cms.collection_used_by_pages"
+            // 019 contracts/schema-upgrades.md §3.
+            or "cms.document_too_new" => StatusCodes.Status409Conflict,
+        "cms.document_upgrade_failed" => StatusCodes.Status422UnprocessableEntity,
         "cms.proposal_too_large" or "cms.item_too_large" => StatusCodes.Status413PayloadTooLarge,
         _ when code.EndsWith("not_found", StringComparison.Ordinal) => StatusCodes.Status404NotFound,
         _ => StatusCodes.Status400BadRequest,

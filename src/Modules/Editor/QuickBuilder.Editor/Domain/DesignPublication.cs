@@ -55,13 +55,17 @@ internal sealed class DesignPublication : ISiteOwned
         return version;
     }
 
-    /// <summary>Publishes a retained version again, as the next version. The draft is not touched.</summary>
-    public DesignVersion Rollback(DesignVersion source, Guid actor, DateTimeOffset now)
+    /// <summary>
+    /// Publishes a retained version again, as the next version. The draft is not touched. The
+    /// document goes live at the current schema version (019 FR-022); the source keeps its own.
+    /// </summary>
+    public DesignVersion Rollback(DesignVersion source, string currentDocument, int currentSchemaVersion, Guid actor, DateTimeOffset now)
     {
         ArgumentNullException.ThrowIfNull(source);
+        ArgumentException.ThrowIfNullOrEmpty(currentDocument);
 
         var version = new DesignVersion(
-            SiteId, NextNumber, source.SchemaVersion, source.Document, DesignVersionKinds.Rollback, source.Number, actor, now);
+            SiteId, NextNumber, currentSchemaVersion, currentDocument, DesignVersionKinds.Rollback, source.Number, actor, now);
         MakeLive(version, tokenSetVersion: null, actor, now);
         return version;
     }

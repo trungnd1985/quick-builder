@@ -14,7 +14,7 @@ namespace QuickBuilder.Cms.Infrastructure;
 /// surface, or in an event handler, where no site is resolved, and name the site explicitly.
 /// A site holds tens of collections at most, so scanning their schemas is cheap.
 /// </remarks>
-internal sealed class CollectionSchemaReader(CmsDbContext database) : ICollectionSchemaReader
+internal sealed class CollectionSchemaReader(CmsDbContext database, Schema.CollectionSchemaUpgrades upgrades) : ICollectionSchemaReader
 {
     public async Task<IReadOnlySet<Guid>> ExistingAsync(Guid siteId, IReadOnlyCollection<Guid> collectionIds, CancellationToken cancellationToken = default)
     {
@@ -54,11 +54,18 @@ internal sealed class CollectionSchemaReader(CmsDbContext database) : ICollectio
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
 
-        return rows.ToDictionary(r => r.Id, r =>
+        // 019 RL-19: at the current version; a schema that cannot be used is left out.
+        var schemas = new Dictionary<Guid, JsonElement>(rows.Count);
+        foreach (var row in rows)
         {
-            using var parsed = JsonDocument.Parse(r.Schema);
-            return parsed.RootElement.Clone();
-        });
+            using var parsed = JsonDocument.Parse(row.Schema);
+            if (upgrades.ForRendering("collection", row.Id, parsed.RootElement) is { } current)
+            {
+                schemas[row.Id] = current.Clone();
+            }
+        }
+
+        return schemas;
     }
 
     public async Task<IReadOnlyList<Guid>> CollectionsReferencingAsync(Guid siteId, Guid collectionId, CancellationToken cancellationToken = default)
