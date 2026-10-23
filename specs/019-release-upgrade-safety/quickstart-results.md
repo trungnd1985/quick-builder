@@ -78,3 +78,18 @@ pipeline; the refusal pipeline now switches that off.
 Timings: upgrade from the baseline to ready in 2 s, rollback in 15 s, whole upgrade leg about a
 minute — on a workstation, not the reference shape. SC-001's five minutes and SC-011's 60 minutes
 are measured in the first release-candidate run (T044).
+
+## T082 — coverage (2026-10-23)
+
+Full non-smoke run with coverage: 59 architecture, 2,420 unit and 1,340 integration tests
+passed (3 skipped: Unix-only storage permission tests). Line coverage of the 019 critical paths:
+
+| Code | Lines |
+|---|---|
+| `InstallationGate`, `PlatformRecord`, `InstallationVersion`, `SchemaUpgradeChain`, `ApplicationVersion`, `StoredDocuments`, `RefusalHost`, `GetInstallation` | 100 % |
+| `SemanticVersion` 97.6 %, `CollectionSchemaUpgrades` 95.8 %, `DesignTokenUpgrades` 95.5 %, `SchemaRead` 92.3 % | |
+| `ModuleMigrationRunner` | 83.2 % |
+| `InstallationPreflight` | 63.4 % → its "cannot decide" paths covered by `InstallationPreflightTests` (added) |
+| Packages: QuickBuilder.Shared.Infrastructure 89.6 %, QuickBuilder.Host 92.6 % | above the 80 % gate |
+
+`PlatformDbContextFactory` (design time only) is not run by tests, as for every module.
