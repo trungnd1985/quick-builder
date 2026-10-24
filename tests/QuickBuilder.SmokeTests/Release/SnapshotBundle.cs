@@ -72,9 +72,11 @@ internal sealed class SnapshotBundle(string directory, string version)
         await Must(deployment.ComposeAsync("down -v"), "removing the deployment").ConfigureAwait(false);
         await Must(deployment.ComposeAsync("up -d --wait db"), "starting the database").ConfigureAwait(false);
 
-        await Must(deployment.ComposeAsync($"cp \"{DumpFile}\" db:/tmp/snapshot.dump"), "copying the dump in").ConfigureAwait(false);
+        // Not the name DumpAsync writes: on Linux the copy keeps the runner's owner, and
+        // pg_dump, running as postgres, could not overwrite it later.
+        await Must(deployment.ComposeAsync($"cp \"{DumpFile}\" db:/tmp/restore.dump"), "copying the dump in").ConfigureAwait(false);
         await Must(
-            deployment.ComposeAsync("exec -T db pg_restore -U quickbuilder -d quickbuilder --no-owner --role=quickbuilder --exit-on-error /tmp/snapshot.dump"),
+            deployment.ComposeAsync("exec -T db pg_restore -U quickbuilder -d quickbuilder --no-owner --role=quickbuilder --exit-on-error /tmp/restore.dump"),
             "pg_restore").ConfigureAwait(false);
 
         // The volume exists once the app container is created; the owner is whoever the
