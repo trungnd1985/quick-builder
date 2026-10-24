@@ -93,3 +93,39 @@ passed (3 skipped: Unix-only storage permission tests). Line coverage of the 019
 | Packages: QuickBuilder.Shared.Infrastructure 89.6 %, QuickBuilder.Host 92.6 % | above the 80 % gate |
 
 `PlatformDbContextFactory` (design time only) is not run by tests, as for every module.
+
+## T044 — the first release candidates on GitHub (2026-10-24)
+
+Quickstart §3. Each run built on `ubuntu-latest`, arm64 under QEMU (no `ARM64_RUNNER`).
+
+| Tag | Run | Result |
+|---|---|---|
+| `v0.1.0-rc.1` | [40006932794](https://github.com/trungnd1985/quick-builder/actions/runs/40006932794) | Failed: the upgrade gate parsed the image's user from `docker run` output that also held the pull progress; the arm64 boot set `DOCKER_DEFAULT_PLATFORM` for the whole job, so setup-qemu pulled an arm64 helper it could not run. Fixed in #42. |
+| `v0.1.0-rc.2` | [40048536868](https://github.com/trungnd1985/quick-builder/actions/runs/40048536868) | Failed at upgrade step 8: `pg_dump` could not overwrite the restored `/tmp/snapshot.dump`, which `compose cp` left owned by the runner on Linux (Docker Desktop hid it). Steps 2–7 passed; ready 4 s after start. Fixed in #43. |
+| `v0.1.0-rc.3` | [40054875621](https://github.com/trungnd1985/quick-builder/actions/runs/40054875621) | **Every job passed**; promoted by [40056884687](https://github.com/trungnd1985/quick-builder/actions/runs/40056884687). |
+
+The failed drafts carried "Not available: …" banners, so Promote would have refused them.
+None of the three failures was in QuickBuilder itself; all were in the gates, and all were
+Linux-runner differences a Windows workstation could not show.
+
+`v0.1.0-rc.3`:
+
+- Digest `sha256:ec197eb0a3499b386ccb8fffce2befd524222ec87e3ac5b202c0431f3ee840ce`, linux/amd64 and linux/arm64.
+- Tag → candidate: 28 min (02:36:28 → 03:04:35 UTC), within SC-011's 60 minutes. The arm64
+  build under QEMU took 23 of them (amd64: 2).
+- Smoke journey against the published digest: passed (1 min 30 s).
+- arm64 boot: `uname -m` = `aarch64`, ready after 168 s under emulation (budget 3 min, FR-010).
+- Upgrade from the baseline: all 10 steps passed in 3 min 11 s, and the draft carries the
+  0.1.0-rc.3 snapshot (dump 197 KB, media 1.7 MB, expectations). Up → ready was 4 s in the
+  rc.2 run (xUnit prints the step lines only on failure), within SC-001's five minutes.
+- Notes: every section present, no unreplaced markers, "Tested in this release from: `baseline`".
+- Promote: the release is a published pre-release; the registry has `0.1.0-rc.3` on the
+  tested digest and no `latest`, `0.1` or `0`, as a release candidate should.
+
+Still to do for T044:
+
+- GHCR package `quickbuilder` is **private**; the maintainer makes it public (Package settings
+  → Change visibility; there is no API for it), then
+  `docker logout ghcr.io && docker pull ghcr.io/trungnd1985/quickbuilder:0.1.0-rc.3`.
+- The negative runs of quickstart §4 (setup wizard returning 500; a migration deleting a page
+  row) on a scratch branch.
