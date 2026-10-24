@@ -80,8 +80,8 @@ internal sealed class SnapshotBundle(string directory, string version)
         // The volume exists once the app container is created; the owner is whoever the
         // image runs as, so new uploads after the restore can still be written.
         await Must(deployment.ComposeAsync("create app"), "creating the application container").ConfigureAwait(false);
-        var owner = (await Must(deployment.RunAsync("docker", $"run --rm --entrypoint id {appImage} -u"), "reading the image's user").ConfigureAwait(false)).Trim();
-        var group = (await Must(deployment.RunAsync("docker", $"run --rm --entrypoint id {appImage} -g"), "reading the image's group").ConfigureAwait(false)).Trim();
+        var owner = (await Must(deployment.RunAsync("docker", $"run --rm --quiet --entrypoint id {appImage} -u"), "reading the image's user").ConfigureAwait(false)).Trim();
+        var group = (await Must(deployment.RunAsync("docker", $"run --rm --quiet --entrypoint id {appImage} -g"), "reading the image's group").ConfigureAwait(false)).Trim();
         _ = int.Parse(owner, CultureInfo.InvariantCulture);
         _ = int.Parse(group, CultureInfo.InvariantCulture);
 
