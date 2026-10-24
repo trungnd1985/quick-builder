@@ -122,10 +122,13 @@ Linux-runner differences a Windows workstation could not show.
 - Promote: the release is a published pre-release; the registry has `0.1.0-rc.3` on the
   tested digest and no `latest`, `0.1` or `0`, as a release candidate should.
 
+- Public image (FR-003), 2026-10-24: the maintainer made the GHCR package public (Package
+  settings → Change visibility; there is no API for it). After `docker logout ghcr.io`, the
+  pull of `0.1.0-rc.3` succeeded and the index lists linux/amd64 and linux/arm64. The release's
+  own `docker-compose.yml`, downloaded from the release, started with no credentials: ready
+  after 6 s, `setupRequired: true`, first log line `QuickBuilder 0.1.0-rc.3 (65aef83e4543)`.
+
 Still to do for T044:
 
-- GHCR package `quickbuilder` is **private**; the maintainer makes it public (Package settings
-  → Change visibility; there is no API for it), then
-  `docker logout ghcr.io && docker pull ghcr.io/trungnd1985/quickbuilder:0.1.0-rc.3`.
 - The negative runs of quickstart §4 (setup wizard returning 500; a migration deleting a page
   row) on a scratch branch.
