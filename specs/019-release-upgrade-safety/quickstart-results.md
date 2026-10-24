@@ -128,7 +128,18 @@ Linux-runner differences a Windows workstation could not show.
   own `docker-compose.yml`, downloaded from the release, started with no credentials: ready
   after 6 s, `setupRequired: true`, first log line `QuickBuilder 0.1.0-rc.3 (65aef83e4543)`.
 
-Still to do for T044:
+`v0.1.0`, the first release (2026-10-24), from the same commit as rc.3 (`65aef83`):
+
+- Release run [40119339246](https://github.com/trungnd1985/quick-builder/actions/runs/40119339246):
+  every job passed; tag → candidate 27 min (18:08:35 → 18:35:31 UTC); upgrade from the
+  baseline passed; the draft carries the 0.1.0 snapshot.
+- Promote run [40121481941](https://github.com/trungnd1985/quick-builder/actions/runs/40121481941):
+  the release is published and marked Latest; `0.1.0`, `0.1`, `0` and `latest` all name
+  `sha256:fac3b8727f4d0b6ea94b5ae1a75764f0edaec6399ff29bfdaa6732beb036647e`.
+- `qb-release archive --version 0.1.0`: the 16 fragments moved to `docs/releases/0.1.0/`;
+  `VersionPrefix` is 0.2.0.
+
+Skipped at the maintainer's decision (2026-10-25):
 
 - The negative runs of quickstart §4 (setup wizard returning 500; a migration deleting a page
   row) on a scratch branch.
