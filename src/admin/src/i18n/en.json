@@ -2801,6 +2801,10 @@
       "editHere": "Edit here instead",
       "edit": "Edit",
       "reload": "Reload latest"
+    },
+    "marker": {
+      "editing": "{name} is editing — since {since}",
+      "stale": "{name} — inactive, since {since}"
     }
   }
 }

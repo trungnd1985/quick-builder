@@ -21,6 +21,8 @@ import { checkItem, isMalformed, SLUG_FIELD } from './itemValueRules'
 import ConflictDialog from '../../../editing/ConflictDialog.vue'
 import { conflictFrom, type ConflictDetails } from '../../../editing/conflict'
 import { changedFields as fieldsChangedBetween } from '../../../editing/itemDiff'
+import PresenceBanner from '../../../editing/PresenceBanner.vue'
+import { useEditingSession } from '../../../editing/useEditingSession'
 
 const { t, te } = useI18n()
 const route = useRoute()
@@ -52,6 +54,12 @@ const showHistory = ref(false)
 const conflict = ref<{ details: ConflictDetails | null; fields: string[] } | null>(null)
 const readOnly = ref(false)
 const reloading = ref(false)
+/** 023: the item's editing session: who else has it open, and the soft lock. */
+const editing = useEditingSession(() => ({ siteId: siteId.value, kind: 'item', documentId: itemId.value ?? '', collectionId: collectionId.value }))
+let editingFor: string | null = null
+const editingBusy = ref(false)
+/** Read-only after a conflict (FR-008), or while someone else holds the lock (FR-009). */
+const formReadOnly = computed(() => readOnly.value || (item.value !== null && editing.status.value !== 'editing'))
 let slugTimer: ReturnType<typeof setTimeout> | undefined
 
 const schema = computed<SchemaDocument | null>(() => collection.value?.schema ?? null)
@@ -99,6 +107,11 @@ async function load(): Promise<void> {
     ])
     collection.value = loadedCollection
     startFrom(loadedItem, loadedCollection.schema)
+    if ((loadedItem?.id ?? null) !== editingFor) {
+      editing.stop()
+      editingFor = loadedItem?.id ?? null
+      if (editingFor) void editing.start()
+    }
   } catch (caught) {
     loadError.value = itemErrorMessage(t, te, caught)
   } finally {
@@ -122,11 +135,28 @@ function setValue(fieldId: string, value: unknown): void {
   if (!slugEdited.value && fieldId === titleField.value?.id) {
     slug.value = slugify(typeof value === 'string' ? value : '')
   }
+  edited()
 }
 
 function editSlug(next: string): void {
   slugEdited.value = true
   slug.value = next
+  edited()
+}
+
+/** 023 research CE-04: every edit is activity, and the first one claims the item's lock. */
+function edited(): void {
+  if (!item.value) return
+  editing.noteActivity()
+  if (editing.presence.value?.role !== 'holder') void claimOrRevert()
+}
+
+/** Takes the lock, or, when someone else got it first, puts the saved values back. */
+async function claimOrRevert(): Promise<boolean> {
+  if (!item.value) return true
+  const ok = await editing.ensureLock()
+  if (!ok && item.value && collection.value) startFrom(item.value, collection.value.schema)
+  return ok
 }
 
 // The slug is checked as it changes; only the save decides.
@@ -150,12 +180,14 @@ function useSuggestion(): void {
 }
 
 async function save(): Promise<void> {
-  if (!collection.value || saving.value || readOnly.value) return
+  if (!collection.value || saving.value || formReadOnly.value) return
   message.value = null
   if (malformed.value.length > 0) {
     focusSummary()
     return
   }
+
+  if (item.value && !(await claimOrRevert())) return
 
   saving.value = true
   const body = {
@@ -166,7 +198,7 @@ async function save(): Promise<void> {
 
   try {
     const result = item.value
-      ? await itemsApi.save(siteId.value, collectionId.value, item.value.id, { ...body, revision: item.value.revision, draftRevision: item.value.draftRevision })
+      ? await itemsApi.save(siteId.value, collectionId.value, item.value.id, { ...body, revision: item.value.revision, draftRevision: item.value.draftRevision }, editing.headers())
       : await itemsApi.create(siteId.value, collectionId.value, body)
     const created = item.value === null
     startFrom(result, collection.value.schema)
@@ -198,6 +230,9 @@ async function refused(caught: unknown): Promise<void> {
     message.value = { kind: 'error', text: itemErrorMessage(t, te, caught) }
   } else if (code === 'cms.admin_outdated') {
     message.value = { kind: 'outdated', text: t('cms.items.form.outdated') }
+  } else if (code === 'editing.lock_held') {
+    // 023 research CE-07: another session holds the lock now; the entries stay, read-only.
+    editing.lockLost()
   } else if (code === 'cms.item_conflict') {
     message.value = { kind: 'conflict', text: t('cms.items.form.conflict') }
     await showConflict(caught)
@@ -232,6 +267,33 @@ async function showConflict(caught: unknown): Promise<void> {
 function keepViewing(): void {
   conflict.value = null
   readOnly.value = true
+}
+
+/** The item became free: load the latest, then take the lock (research CE-14). */
+async function editAgain(): Promise<void> {
+  editingBusy.value = true
+  try {
+    editing.acknowledge()
+    await load()
+    await editing.ensureLock()
+  } finally {
+    editingBusy.value = false
+  }
+}
+
+/** Takes over a stale lock, or moves this member's own lock here, then loads the latest. */
+async function lockAction(action: () => Promise<boolean>): Promise<void> {
+  editingBusy.value = true
+  try {
+    if (await action()) await load()
+  } finally {
+    editingBusy.value = false
+  }
+}
+
+async function reloadAfterLoss(): Promise<void> {
+  editing.acknowledge()
+  await reloadLatest()
 }
 
 async function reloadLatest(): Promise<void> {
@@ -305,6 +367,7 @@ function onBeforeUnload(event: BeforeUnloadEvent): void {
 }
 onMounted(() => window.addEventListener('beforeunload', onBeforeUnload))
 onBeforeUnmount(() => {
+  editing.stop()
   window.removeEventListener('beforeunload', onBeforeUnload)
   clearTimeout(slugTimer)
 })
@@ -377,7 +440,7 @@ onBeforeUnmount(() => {
           <button
             type="submit"
             class="primary"
-            :disabled="saving || readOnly"
+            :disabled="saving || formReadOnly"
           >
             {{ saving ? t('cms.items.form.saving') : t('cms.items.form.saveDraft') }}
           </button>
@@ -393,6 +456,17 @@ onBeforeUnmount(() => {
         </div>
       </header>
 
+      <PresenceBanner
+        v-if="item"
+        kind="item"
+        :status="editing.status.value"
+        :presence="editing.presence.value"
+        :busy="editingBusy"
+        @take-over="lockAction(editing.takeOver)"
+        @move-here="lockAction(editing.moveHere)"
+        @edit="editAgain"
+        @reload="reloadAfterLoss"
+      />
       <ConflictDialog
         v-if="conflict"
         kind="item"
@@ -462,7 +536,7 @@ onBeforeUnmount(() => {
       <!-- 023: after a conflict the entries stay on screen, read-only, to copy from. -->
       <fieldset
         class="item-form__fields"
-        :disabled="readOnly"
+        :disabled="formReadOnly"
       >
         <legend class="visually-hidden">
           {{ t('cms.items.form.fieldsLegend') }}

@@ -220,7 +220,7 @@ frees it; same-member tabs move the lock; another site sees nothing.
 
 ### Tests for User Story 2 ⚠️
 
-- [ ] T024 [P] [US2] Create `ITESTS/Editor/EditingSessionEndpointsTests.cs` (ManualClock), covering:
+- [X] T024 [P] [US2] Create `ITESTS/Editor/EditingSessionEndpointsTests.cs` (ManualClock), covering:
   - open → viewer, and `others` lists the other sessions;
   - heartbeat returns presence, and `active` moves `last_activity_at` only for the holder;
   - claim with no holder → holder, and claiming again is idempotent;
@@ -234,9 +234,11 @@ frees it; same-member tabs move the lock; another site sees nothing.
   - `GET …/editing?kind=` lists live holders with `stale`;
   - a member without the edit capability gets `access: view-only` and refused claims;
   - a member with no role on the site gets 404 everywhere.
-- [ ] T025 [P] [US2] Create `ITESTS/Concurrency/LockRaceTests.cs` (FR-010, FR-025): 200 parallel claims on one document yield exactly one holder. The same holds with claims split across two app hosts built from `ITESTS/Infrastructure/QuickBuilderApp.cs` on one database. Repeat for takeover races once US3 lands (mark those cases for T047).
-- [ ] T026 [P] [US2] Create `ITESTS/Isolation/Probes/EditingIsolationProbe.cs`: site B's members cannot open, heartbeat, claim, move, release or list sessions of site A, and A's holders never appear in B's responses (FR-013). Register it so that `ITESTS/Isolation/IsolationCoverageTests.cs` stays green.
-- [ ] T027 [P] [US2] Create `ADMINTESTS/editing/useEditingSession.spec.ts` (fake timers, mocked API), covering:
+  *Done as*: 8 tests in `ITESTS/Editor/EditingSessionEndpointsTests.cs`, on an `EditingScenario` (`ITESTS/Editor/EditingApi.cs`) with a hand-moved clock. Releasing a session that is not the caller's, or is already gone, answers 404 `editing.session_gone` rather than 204, so the isolation suite can prove another site's session is out of reach (contract updated).
+- [X] T025 [P] [US2] Create `ITESTS/Concurrency/LockRaceTests.cs` (FR-010, FR-025): 200 parallel claims on one document yield exactly one holder. The same holds with claims split across two app hosts built from `ITESTS/Infrastructure/QuickBuilderApp.cs` on one database. Repeat for takeover races once US3 lands (mark those cases for T047).
+  *Done as*: 200 parallel claims (20 Designers × 10 tabs), and the same split across two app hosts on one database: one holder each time, and every instance names the same one. The takeover race is added in T047.
+- [X] T026 [P] [US2] Create `ITESTS/Isolation/Probes/EditingIsolationProbe.cs`: site B's members cannot open, heartbeat, claim, move, release or list sessions of site A, and A's holders never appear in B's responses (FR-013). Register it so that `ITESTS/Isolation/IsolationCoverageTests.cs` stays green.
+- [X] T027 [P] [US2] Create `ADMINTESTS/editing/useEditingSession.spec.ts` (fake timers, mocked API), covering:
   - open on load;
   - a heartbeat every 10 s and at once on `visibilitychange`;
   - `active` reported only after a change;
@@ -247,40 +249,45 @@ frees it; same-member tabs move the lock; another site sees nothing.
     before sign-out;
   - `session_gone` reopens the session;
   - every save sends `X-QB-Editing-Session`.
-- [ ] T028 [P] [US2] Create `ADMINTESTS/editing/PresenceBanner.spec.ts` (with axe): the holder text with since, the "also viewing" names for the holder, the `locked-self` state with "Edit here instead", and the `view-only` text. Changes are announced in a polite live region.
-- [ ] T029 [P] [US2] Extend `ADMINTESTS/pageTreeView.spec.ts`, `ADMINTESTS/componentsView.spec.ts` and the item list spec under `ADMINTESTS/cms/`: `LockMarker` shows the holder and since, refreshes every 15 s while visible, and stops when hidden.
+- [X] T028 [P] [US2] Create `ADMINTESTS/editing/PresenceBanner.spec.ts` (with axe): the holder text with since, the "also viewing" names for the holder, the `locked-self` state with "Edit here instead", and the `view-only` text. Changes are announced in a polite live region.
+- [X] T029 [P] [US2] Extend `ADMINTESTS/pageTreeView.spec.ts`, `ADMINTESTS/componentsView.spec.ts` and the item list spec under `ADMINTESTS/cms/`: `LockMarker` shows the holder and since, refreshes every 15 s while visible, and stops when hidden.
 
 ### Implementation for User Story 2
 
-- [ ] T030 [US2] Create `EDITORM/Features/EditingSessions/EditingResponses.cs` (the `Presence` and holder-list shapes of editing-api.yaml; names from `IUserDirectory`, `serverNow` from `TimeProvider`) and `EDITORM/Infrastructure/EditingPresence.cs` (one query for a document's live sessions, and the projection to `Presence` for a given session).
-- [ ] T031 [US2] Create `EDITORM/Features/EditingSessions/OpenSession.cs` (`POST editing-sessions`; view capability; `collectionId` required for items) and `Heartbeat.cs` (own session only; `Seen(active)`; when `MayEditAsync` is false and the session holds the lock, release it and answer `access: view-only`; gone → `editing.session_gone`).
-- [ ] T032 [US2] Create `EDITORM/Features/EditingSessions/Claim.cs`. In one transaction:
+- [X] T030 [US2] Create `EDITORM/Features/EditingSessions/EditingResponses.cs` (the `Presence` and holder-list shapes of editing-api.yaml; names from `IUserDirectory`, `serverNow` from `TimeProvider`) and `EDITORM/Infrastructure/EditingPresence.cs` (one query for a document's live sessions, and the projection to `Presence` for a given session).
+  *Done as*: `EditingResponses.cs` holds the shapes. The reads and the atomic writes are in `EDITORM/Infrastructure/EditingSessionStore.cs` instead of a separate `EditingPresence.cs`: heartbeats, claims and transfers are single `ExecuteUpdate` statements whose `WHERE` states the rule, so a tracked entity never writes back a lock that a takeover just moved.
+- [X] T031 [US2] Create `EDITORM/Features/EditingSessions/OpenSession.cs` (`POST editing-sessions`; view capability; `collectionId` required for items) and `Heartbeat.cs` (own session only; `Seen(active)`; when `MayEditAsync` is false and the session holds the lock, release it and answer `access: view-only`; gone → `editing.session_gone`).
+- [X] T032 [US2] Create `EDITORM/Features/EditingSessions/Claim.cs`. In one transaction:
   1. `ExecuteDelete` the document's gone holder row;
   2. set `holds_lock` on the caller's row;
   3. map a unique violation on `ux_editing_sessions_holder` to `editing.lock_held` naming the live holder.
 
   The claim is idempotent for the holder and requires the edit capability.
-- [ ] T033 [US2] Create `EDITORM/Features/EditingSessions/MoveHere.cs`. In one transaction, release the named holder session, which must belong to the caller, recording `lost_lock_reason = moved`; then claim. No takeover row is written.
-- [ ] T034 [US2] Create `EDITORM/Features/EditingSessions/Release.cs` (`DELETE`; own session; 204 even when gone) and `ListHolders.cs` (`GET …/editing?kind=&collectionId=`; view capability; live holders only). Register all slices in `EDITORM/EditorModule.cs` and `ITESTS/Infrastructure/EndpointCatalog.cs`, then run T024 to T026 until they pass.
-- [ ] T035 [P] [US2] Create `ADMIN/api/editing.ts` (typed calls for every editing operation; release uses `fetch(…, { keepalive: true })` with the `X-QuickBuilder-Request` header), and add the `X-QB-Editing-Session` header option to draft saves in `ADMIN/api/request.ts`, `ADMIN/api/pages.ts` and `ADMIN/api/items.ts`.
-- [ ] T036 [US2] Create `ADMIN/editing/useEditingSession.ts` per admin-editing.md §1 and §2, covering:
+- [X] T033 [US2] Create `EDITORM/Features/EditingSessions/MoveHere.cs`. In one transaction, release the named holder session, which must belong to the caller, recording `lost_lock_reason = moved`; then claim. No takeover row is written.
+- [X] T034 [US2] Create `EDITORM/Features/EditingSessions/Release.cs` (`DELETE`; own session; 204 even when gone) and `ListHolders.cs` (`GET …/editing?kind=&collectionId=`; view capability; live holders only). Register all slices in `EDITORM/EditorModule.cs` and `ITESTS/Infrastructure/EndpointCatalog.cs`, then run T024 to T026 until they pass.
+  *Done as*: Every editing action declares `[RequireCapability(PageContentCapabilities.View)]` (see Conventions). `AuthorizationDeclarationTests` and the architecture tests pass.
+- [X] T035 [P] [US2] Create `ADMIN/api/editing.ts` (typed calls for every editing operation; release uses `fetch(…, { keepalive: true })` with the `X-QuickBuilder-Request` header), and add the `X-QB-Editing-Session` header option to draft saves in `ADMIN/api/request.ts`, `ADMIN/api/pages.ts` and `ADMIN/api/items.ts`.
+- [X] T036 [US2] Create `ADMIN/editing/useEditingSession.ts` per admin-editing.md §1 and §2, covering:
   - the session lifecycle;
   - heartbeat timer and visibility handling;
   - the activity flag;
   - the claim gate;
   - the read-only reasons `locked`, `locked-self`, `moved`, `view-only` and `free`;
   - release on router leave and on `pagehide`.
+  *Done as*: Opening the session is not awaited by the editor (SC-007); the first claim waits for it, and a session that opens after its editor moved on is released (a generation counter).
 
   Continue until T027 passes.
-- [ ] T037 [US2] Integrate `useEditingSession` with the editor:
+- [X] T037 [US2] Integrate `useEditingSession` with the editor:
   - In `ADMIN/editor/state/editorStore.ts`, add the new `ReadOnlyReason` values and a hook that makes the first `apply` call claim the lock.
   - In `ADMIN/editor/state/autosave.ts`, hold saving until the session holds the lock, and revert pending changes without history when the claim is refused.
   - In `ADMIN/editor/EditorView.vue`, open the session for pages and components.
-- [ ] T038 [US2] Integrate `useEditingSession` with `ADMIN/features/cms/items/ItemFormView.vue`: claim on the first input, make the form read-only while locked, and send the session header on save.
-- [ ] T039 [US2] Create `ADMIN/editing/PresenceBanner.vue` (texts of admin-editing.md §4; "Edit here instead" calls `move`; one polite live region) until T028 passes, and show it in `EditorView.vue` and `ItemFormView.vue`.
-- [ ] T040 [P] [US2] Create `ADMIN/editing/usePresenceList.ts` (15 s refresh while the document is visible) and `ADMIN/editing/LockMarker.vue`. Show them in `ADMIN/features/pages/PageTreeView.vue`, `ADMIN/features/pages/ComponentsView.vue` and `ADMIN/features/cms/items/ItemListView.vue`, until T029 passes.
-- [ ] T041 [US2] In `ADMIN/app/authStore.ts`, release every open editing session before sign-out (best effort, never blocking sign-out).
-- [ ] T042 [US2] Add the US2 strings to `ADMIN/i18n/en.json`.
+  *Done as*: The first change claims at once through `store.onChange`, and autosave asks again through a new `beforeSave` option; a refused claim reverts to the saved document and clears history. A save refused as `editing.lock_held` stops autosave in a new `locked` state.
+- [X] T038 [US2] Integrate `useEditingSession` with `ADMIN/features/cms/items/ItemFormView.vue`: claim on the first input, make the form read-only while locked, and send the session header on save.
+- [X] T039 [US2] Create `ADMIN/editing/PresenceBanner.vue` (texts of admin-editing.md §4; "Edit here instead" calls `move`; one polite live region) until T028 passes, and show it in `EditorView.vue` and `ItemFormView.vue`.
+- [X] T040 [P] [US2] Create `ADMIN/editing/usePresenceList.ts` (15 s refresh while the document is visible) and `ADMIN/editing/LockMarker.vue`. Show them in `ADMIN/features/pages/PageTreeView.vue`, `ADMIN/features/pages/ComponentsView.vue` and `ADMIN/features/cms/items/ItemListView.vue`, until T029 passes.
+- [X] T041 [US2] In `ADMIN/app/authStore.ts`, release every open editing session before sign-out (best effort, never blocking sign-out).
+  *Done as*: In `ADMIN/App.vue`, where sign-out happens, through `editingApi.releaseAll()`.
+- [X] T042 [US2] Add the US2 strings to `ADMIN/i18n/en.json`.
 
 **Checkpoint**: quickstart §2 passes. US1 and US2 together are the first demo of locks.
 

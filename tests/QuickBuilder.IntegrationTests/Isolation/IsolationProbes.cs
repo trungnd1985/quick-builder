@@ -20,6 +20,7 @@ public static class IsolationProbes
         new SeoIsolationProbe(),
         new MenuIsolationProbe(),
         new FormsIsolationProbe(),
+        new EditingIsolationProbe(),
     ];
 
     public static TheoryData<string> Names

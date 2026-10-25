@@ -11,6 +11,8 @@ import { itemsApi, type ItemList, type ListQuery } from '../../../api/items'
 import ItemFilters from './ItemFilters.vue'
 import ItemPager from './ItemPager.vue'
 import ItemStatusBadge from './ItemStatusBadge.vue'
+import LockMarker from '../../../editing/LockMarker.vue'
+import { usePresenceList } from '../../../editing/usePresenceList'
 import { itemErrorMessage } from './itemErrors'
 import { useItemRefs } from './itemRefs'
 import { ITEM_REFS } from './itemRefsKey'
@@ -22,6 +24,8 @@ const router = useRouter()
 
 const siteId = computed(() => String(route.params.siteId))
 const collectionId = computed(() => String(route.params.collectionId))
+/** 023 FR-012: who is editing which item. */
+const editing = usePresenceList(() => ({ siteId: siteId.value, kind: 'item', collectionId: collectionId.value }))
 provide(ITEM_REFS, useItemRefs(() => siteId.value))
 
 const SEARCH_DELAY_MS = 300
@@ -74,6 +78,7 @@ async function loadItems(): Promise<void> {
 }
 
 onMounted(async () => {
+  editing.start()
   await Promise.all([loadCollection(), loadItems()])
 })
 watch(() => route.query, () => {
@@ -222,6 +227,10 @@ const itemLink = (itemId: string) => ({
               <RouterLink :to="itemLink(item.id)">
                 {{ item.name ?? t('cms.items.list.untitled', { slug: item.slug }) }}
               </RouterLink>
+              <LockMarker
+                v-if="editing.holderOf(item.id)"
+                :holder="editing.holderOf(item.id)!"
+              />
             </th>
             <td><code>{{ item.slug }}</code></td>
             <td>

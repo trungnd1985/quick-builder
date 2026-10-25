@@ -188,12 +188,12 @@ public sealed class EditingSessionEndpointsTests(DatabaseFixture database)
 
         // Only one's own session can be released; anyone else's id is not found.
         var bens = EditingApi.SessionId(await EditingApi.OpenOkAsync(ben, scenario.SiteA, "page", pricing));
-        Assert.Equal(HttpStatusCode.NoContent, (await EditingApi.ReleaseAsync(ben, scenario.SiteA, annas)).StatusCode);
+        await PagesApi.RefusedAsync(await EditingApi.ReleaseAsync(ben, scenario.SiteA, annas), HttpStatusCode.NotFound, "editing.session_gone");
         Assert.NotNull(EditingApi.Lock(await EditingApi.HeartbeatOkAsync(ben, scenario.SiteA, bens)));
         await PagesApi.RefusedAsync(await EditingApi.HeartbeatAsync(ben, scenario.SiteA, annas), HttpStatusCode.NotFound, "editing.session_gone");
 
         Assert.Equal(HttpStatusCode.NoContent, (await EditingApi.ReleaseAsync(anna, scenario.SiteA, annas)).StatusCode);
-        Assert.Equal(HttpStatusCode.NoContent, (await EditingApi.ReleaseAsync(anna, scenario.SiteA, annas)).StatusCode);
+        await PagesApi.RefusedAsync(await EditingApi.ReleaseAsync(anna, scenario.SiteA, annas), HttpStatusCode.NotFound, "editing.session_gone");
         Assert.Null(EditingApi.Lock(await EditingApi.HeartbeatOkAsync(ben, scenario.SiteA, bens)));
         Assert.Empty((await EditingApi.HoldersOkAsync(ben, scenario.SiteA, "page")).GetProperty("holders").EnumerateArray());
     }

@@ -159,6 +159,27 @@ describe('ItemFormView', () => {
     expect((screen.getByLabelText(/Title/) as HTMLInputElement).closest('fieldset')!.disabled).toBe(false)
   })
 
+  it('is read-only while someone else holds the lock, and names them (023 FR-009)', async () => {
+    const lock = { holderSessionId: 's-anna', holder: { id: 'u-anna', displayName: 'Anna Tran' }, since: '2026-10-25T09:50:00Z', stale: false, inactiveSeconds: 5, isYou: false, isYourOtherSession: false }
+    let held = true
+    const calls: Call[] = []
+    await renderAt(ItemFormView, EDIT, server((call) => {
+      calls.push(call)
+      if (call.url.endsWith('/editing-sessions') && call.method === 'POST') {
+        return { status: 201, body: { sessionId: 's-me', serverNow: '2026-10-25T10:00:00Z', role: 'viewer', access: 'edit', lock: held ? lock : null, lostLock: null, others: [] } }
+      }
+      if (call.url.endsWith('/claim')) return { status: 200, body: { sessionId: 's-me', serverNow: '2026-10-25T10:00:00Z', role: 'holder', access: 'edit', lock: { ...lock, holderSessionId: 's-me', isYou: true }, lostLock: null, others: [] } }
+      return undefined
+    }))
+    await loaded(en.cms.items.form.loading)
+
+    await waitFor(() => expect(screen.getByText(/Anna Tran is editing this item/)).toBeTruthy())
+    expect((screen.getByLabelText(/Title/) as HTMLInputElement).closest('fieldset')!.disabled).toBe(true)
+    expect((screen.getByRole('button', { name: en.cms.items.form.saveDraft }) as HTMLButtonElement).disabled).toBe(true)
+    expect(calls.some((c) => c.url.endsWith('/claim'))).toBe(false)
+    held = false
+  })
+
   it('keeps the input when fields are being updated', async () => {
     await renderAt(ItemFormView, EDIT, server((call) => (call.method === 'PUT' ? problem(409, 'cms.items_being_updated') : undefined)))
     await loaded(en.cms.items.form.loading)

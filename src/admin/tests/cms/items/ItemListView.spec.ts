@@ -33,6 +33,17 @@ describe('ItemListView', () => {
     expect(await violations(container)).toEqual([])
   })
 
+  it('marks the items someone is editing, for this collection only (023 FR-012)', async () => {
+    const holders = { serverNow: '2026-10-25T10:00:00Z', holders: [{ documentId: 'id-1', holder: { id: 'u-anna', displayName: 'Anna Tran' }, since: '2026-10-25T09:50:00Z', stale: true }] }
+    const list = server(() => page(2))
+    const { container, calls } = await renderAt(ItemListView, BASE, (call) => (call.url.includes('/editing?') ? { status: 200, body: holders } : list(call)))
+
+    await waitFor(() => expect(container.querySelector('.editing-marker')).toBeTruthy())
+    expect(container.querySelector('.editing-marker')!.closest('tr')!.textContent).toContain('Post 1')
+    expect(container.querySelector('.editing-marker--stale')).toBeTruthy()
+    expect(calls.find((c) => c.url.includes('/editing?'))!.url).toContain(`kind=item&collectionId=${COLLECTION}`)
+  })
+
   it('keeps search, filters, sort and page in the address and asks the server for them', async () => {
     const { calls, router } = await renderAt(ItemListView, `${BASE}?q=linen&status=changed&field.f6=o2&sort=name&dir=asc&page=2&size=50`, server(() => page(1, 120)))
     await loaded(en.cms.items.list.loading)

@@ -160,7 +160,8 @@ paths:
       summary: Release (leave the document); sent on route leave, pagehide (keepalive) and sign-out
       x-capability: signed in (own session)
       responses:
-        '204': { description: Released, or already gone. }
+        '204': { description: Released. }
+        '404': { description: '`editing.session_gone`: no such session of the caller (already released or lapsed, or another site). The admin ignores it.' }
   /api/v1/editor/sites/{siteId}/editing:
     parameters:
       - $ref: '#/components/parameters/SiteId'
