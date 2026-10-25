@@ -53,6 +53,38 @@ public sealed class LockRaceTests(DatabaseFixture database)
         }
     }
 
+    [Fact]
+    public async Task Of_ten_takeovers_of_one_stale_lock_at_once_exactly_one_succeeds_and_one_is_recorded()
+    {
+        using var scenario = await EditingScenario.CreateAsync(database, "lock-race-takeover");
+        var page = await scenario.PageAsync("pricing");
+        var (anna, _) = await scenario.MemberAsync("Anna Tran", scenario.SiteA, SystemRole.Designer);
+        var annas = EditingApi.SessionId(await EditingApi.OpenOkAsync(anna, scenario.SiteA, "page", page));
+        await EditingApi.ClaimOkAsync(anna, scenario.SiteA, annas);
+
+        var takers = new List<Opened>();
+        for (var m = 0; m < 10; m++)
+        {
+            var (client, _) = await scenario.MemberAsync($"Taker {m}", scenario.SiteA, SystemRole.Designer);
+            takers.Add(new Opened(client, EditingApi.SessionId(await EditingApi.OpenOkAsync(client, scenario.SiteA, "page", page))));
+        }
+
+        // Thirty-one minutes with everyone present and Anna doing nothing.
+        for (var i = 0; i < 31; i++)
+        {
+            scenario.Clock.Advance(TimeSpan.FromMinutes(1));
+            await EditingApi.HeartbeatOkAsync(anna, scenario.SiteA, annas);
+            await Task.WhenAll(takers.Select(t => EditingApi.HeartbeatOkAsync(t.Client, scenario.SiteA, t.SessionId)));
+        }
+
+        var responses = await Task.WhenAll(takers.Select(t => EditingApi.TakeOverAsync(t.Client, scenario.SiteA, t.SessionId, annas)));
+
+        Assert.Single(responses, r => r.StatusCode == HttpStatusCode.OK);
+        Assert.All(responses.Where(r => r.StatusCode != HttpStatusCode.OK), r => Assert.Equal(HttpStatusCode.Conflict, r.StatusCode));
+        Assert.Equal(1, await HoldersAsync(scenario, page));
+        Assert.Equal(1, await scenario.ReadAsync(d => EditingScenario.Everything<EditingTakeover>(d).CountAsync()));
+    }
+
     private sealed record Opened(HttpClient Client, Guid SessionId);
 
     /// <summary>Twenty Designers with ten tabs each, spread over the given instances, all viewing the page.</summary>

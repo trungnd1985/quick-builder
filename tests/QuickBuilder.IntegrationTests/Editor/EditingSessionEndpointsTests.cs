@@ -232,4 +232,101 @@ public sealed class EditingSessionEndpointsTests(DatabaseFixture database)
         Assert.Equal(HttpStatusCode.NotFound, (await EditingApi.OpenAsync(bea, scenario.SiteA, "page", page)).StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, (await EditingApi.HoldersAsync(bea, scenario.SiteA, "page")).StatusCode);
     }
+
+    [Fact]
+    public async Task Only_a_stale_lock_can_be_taken_over_and_the_takeover_is_recorded_and_told()
+    {
+        using var scenario = await EditingScenario.CreateAsync(database, "editing-takeover");
+        var (anna, annaId) = await scenario.MemberAsync("Anna Tran", scenario.SiteA, SystemRole.Designer);
+        var (ben, benId) = await scenario.MemberAsync("Ben Hale", scenario.SiteA, SystemRole.Designer);
+        var page = await scenario.PageAsync("pricing");
+        var annas = EditingApi.SessionId(await EditingApi.OpenOkAsync(anna, scenario.SiteA, "page", page));
+        var bens = EditingApi.SessionId(await EditingApi.OpenOkAsync(ben, scenario.SiteA, "page", page));
+        await EditingApi.ClaimOkAsync(anna, scenario.SiteA, annas);
+
+        // Active: no takeover (FR-009).
+        var active = await PagesApi.RefusedAsync(await EditingApi.TakeOverAsync(ben, scenario.SiteA, bens, annas), HttpStatusCode.Conflict, "editing.not_stale");
+        Assert.Equal("Anna Tran", active.Body.GetProperty("holder").GetProperty("displayName").GetString());
+
+        // Anna leaves her laptop open: present, but no change for 30 minutes.
+        for (var i = 0; i < 30; i++)
+        {
+            scenario.Clock.Advance(TimeSpan.FromMinutes(1));
+            await EditingApi.HeartbeatOkAsync(anna, scenario.SiteA, annas);
+            await EditingApi.HeartbeatOkAsync(ben, scenario.SiteA, bens);
+        }
+
+        // Naming a holder that is not the holder fails cleanly.
+        await PagesApi.RefusedAsync(await EditingApi.TakeOverAsync(ben, scenario.SiteA, bens, Guid.NewGuid()), HttpStatusCode.Conflict, "editing.not_stale");
+
+        var taken = await PagesApi.OkAsync(await EditingApi.TakeOverAsync(ben, scenario.SiteA, bens, annas));
+        Assert.Equal("holder", EditingApi.Role(taken));
+
+        var annaSees = await EditingApi.HeartbeatOkAsync(anna, scenario.SiteA, annas);
+        Assert.Equal("viewer", EditingApi.Role(annaSees));
+        var lost = annaSees.GetProperty("lostLock");
+        Assert.Equal("takeover", lost.GetProperty("reason").GetString());
+        Assert.Equal("Ben Hale", lost.GetProperty("by").GetProperty("displayName").GetString());
+        Assert.Equal(benId, EditingApi.Lock(annaSees)!.Value.GetProperty("holder").GetProperty("id").GetGuid());
+
+        var record = Assert.Single(await scenario.ReadAsync(d => EditingScenario.Everything<EditingTakeover>(d).ToListAsync()));
+        Assert.Equal((annaId, benId, page, "page"), (record.FromUserId, record.ToUserId, record.DocumentId, record.DocumentKind));
+        Assert.Equal(30 * 60, record.StaleForSeconds);
+
+        // Anna cannot take it straight back: Ben is active.
+        await PagesApi.RefusedAsync(await EditingApi.TakeOverAsync(anna, scenario.SiteA, annas, bens), HttpStatusCode.Conflict, "editing.not_stale");
+    }
+
+    [Fact]
+    public async Task One_s_own_session_is_moved_not_taken_over_and_a_takeover_needs_the_edit_capability()
+    {
+        using var scenario = await EditingScenario.CreateAsync(database, "editing-takeover-checks");
+        var (anna, annaId) = await scenario.MemberAsync("Anna Tran", scenario.SiteA, SystemRole.Designer);
+        var annaTab2 = await scenario.AnotherSessionAsync(annaId);
+        var (edna, _) = await scenario.MemberAsync("Edna Ray", scenario.SiteA, SystemRole.Editor);
+        var header = (await PagesApi.CreateComponentOkAsync(scenario.Admin, scenario.SiteA, "Header")).GetProperty("id").GetGuid();
+        var first = EditingApi.SessionId(await EditingApi.OpenOkAsync(anna, scenario.SiteA, "component", header));
+        var second = EditingApi.SessionId(await EditingApi.OpenOkAsync(annaTab2, scenario.SiteA, "component", header));
+        var ednas = EditingApi.SessionId(await EditingApi.OpenOkAsync(edna, scenario.SiteA, "component", header));
+        await EditingApi.ClaimOkAsync(anna, scenario.SiteA, first);
+
+        for (var i = 0; i < 31; i++)
+        {
+            scenario.Clock.Advance(TimeSpan.FromMinutes(1));
+            await EditingApi.HeartbeatOkAsync(anna, scenario.SiteA, first);
+            await EditingApi.HeartbeatOkAsync(annaTab2, scenario.SiteA, second);
+            await EditingApi.HeartbeatOkAsync(edna, scenario.SiteA, ednas);
+        }
+
+        await PagesApi.RefusedAsync(await EditingApi.TakeOverAsync(annaTab2, scenario.SiteA, second, first), HttpStatusCode.Conflict, "editing.not_stale");
+        await PagesApi.RefusedAsync(await EditingApi.TakeOverAsync(edna, scenario.SiteA, ednas, first), HttpStatusCode.Forbidden, "editing.forbidden");
+        Assert.Equal(0, await scenario.ReadAsync(d => EditingScenario.Everything<EditingTakeover>(d).CountAsync()));
+    }
+
+    [Fact]
+    public async Task A_holder_who_reconnects_after_expiry_gets_the_lock_back_only_if_it_is_free()
+    {
+        using var scenario = await EditingScenario.CreateAsync(database, "editing-reconnect");
+        var (anna, _) = await scenario.MemberAsync("Anna Tran", scenario.SiteA, SystemRole.Designer);
+        var (ben, _) = await scenario.MemberAsync("Ben Hale", scenario.SiteA, SystemRole.Designer);
+        var page = await scenario.PageAsync("pricing");
+        var annas = EditingApi.SessionId(await EditingApi.OpenOkAsync(anna, scenario.SiteA, "page", page));
+        await EditingApi.ClaimOkAsync(anna, scenario.SiteA, annas);
+
+        // Anna's network drops for three minutes: her session lapses.
+        scenario.Clock.Advance(TimeSpan.FromMinutes(3));
+        await PagesApi.RefusedAsync(await EditingApi.HeartbeatAsync(anna, scenario.SiteA, annas), HttpStatusCode.NotFound, "editing.session_gone");
+
+        // Nobody took it: a new session claims it again.
+        var again = EditingApi.SessionId(await EditingApi.OpenOkAsync(anna, scenario.SiteA, "page", page));
+        Assert.Equal("holder", EditingApi.Role(await EditingApi.ClaimOkAsync(anna, scenario.SiteA, again)));
+
+        // This time Ben claims it while she is away: she sees him as the holder.
+        scenario.Clock.Advance(TimeSpan.FromMinutes(3));
+        var bens = EditingApi.SessionId(await EditingApi.OpenOkAsync(ben, scenario.SiteA, "page", page));
+        await EditingApi.ClaimOkAsync(ben, scenario.SiteA, bens);
+        var third = await EditingApi.OpenOkAsync(anna, scenario.SiteA, "page", page);
+        Assert.Equal("Ben Hale", EditingApi.Lock(third)!.Value.GetProperty("holder").GetProperty("displayName").GetString());
+        await PagesApi.RefusedAsync(await EditingApi.ClaimAsync(anna, scenario.SiteA, EditingApi.SessionId(third)), HttpStatusCode.Conflict, "editing.lock_held");
+    }
 }

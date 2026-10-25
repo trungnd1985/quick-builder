@@ -144,7 +144,9 @@ internal sealed class EditingSessionStore(EditorDbContext database, IUserDirecto
         DateTimeOffset now,
         CancellationToken cancellationToken)
     {
-        await using var transaction = await database.Database.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
+        // Joins the caller's transaction when there is one (a takeover also writes its record).
+        var owned = database.Database.CurrentTransaction is null;
+        await using var transaction = owned ? await database.Database.BeginTransactionAsync(cancellationToken).ConfigureAwait(false) : null;
         var cutoff = now - EditingRules.Expiry;
         var holder = database.ForSite<EditingSession>(session.SiteId).Where(s =>
             s.Id == holderSessionId
@@ -169,12 +171,20 @@ internal sealed class EditingSessionStore(EditorDbContext database, IUserDirecto
             .ConfigureAwait(false);
         if (released != 1)
         {
-            await transaction.RollbackAsync(CancellationToken.None).ConfigureAwait(false);
+            if (transaction is not null)
+            {
+                await transaction.RollbackAsync(CancellationToken.None).ConfigureAwait(false);
+            }
+
             return false;
         }
 
         await TakeAsync(session.SiteId, session.Id, now, cancellationToken).ConfigureAwait(false);
-        await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
+        if (transaction is not null)
+        {
+            await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
+        }
+
         return true;
     }
 

@@ -219,4 +219,43 @@ describe('autosave', () => {
     autosave.reset()
     expect(autosave.conflict.value).toBeNull()
   })
+
+  it('stops in the locked state when another session holds the lock, and never sends again (023 research CE-07)', async () => {
+    const store = useEditorStore()
+    const root: ContentNode = { id: 'root', type: 'root', props: {}, children: [{ id: 's', type: 'section', props: {}, children: [{ id: 'h', type: 'heading', props: { text: 'Hi' }, children: [] }] }] }
+    store.root = root
+    store.savedRoot = root
+    store.baseVersion = 3
+    const save = vi.fn().mockRejectedValue(refused(409, 'editing.lock_held'))
+    const onLockLost = vi.fn()
+    const autosave = createAutosave(store, save, { onLockLost })
+
+    store.apply(setProp(store.root!, 'h', 'text', 'A'))
+    await vi.advanceTimersByTimeAsync(2100)
+
+    expect(autosave.state.value).toBe('locked')
+    expect(onLockLost).toHaveBeenCalledTimes(1)
+    store.apply(setProp(store.root!, 'h', 'text', 'AB'))
+    await vi.advanceTimersByTimeAsync(10_000)
+    expect(save).toHaveBeenCalledTimes(1)
+  })
+
+  it('holds a save back until the lock is held, and saves nothing when it is refused (023 research CE-04)', async () => {
+    const store = useEditorStore()
+    const root: ContentNode = { id: 'root', type: 'root', props: {}, children: [{ id: 's', type: 'section', props: {}, children: [{ id: 'h', type: 'heading', props: { text: 'Hi' }, children: [] }] }] }
+    store.root = root
+    store.savedRoot = root
+    store.baseVersion = 3
+    const save = vi.fn(async () => ({ version: 4 }))
+    const beforeSave = vi.fn().mockResolvedValueOnce(false).mockResolvedValue(true)
+    const autosave = createAutosave(store, save, { beforeSave })
+
+    store.apply(setProp(store.root!, 'h', 'text', 'A'))
+    await vi.advanceTimersByTimeAsync(2100)
+    expect(save).not.toHaveBeenCalled()
+    expect(autosave.state.value).toBe('dirty')
+
+    await autosave.saveNow()
+    expect(save).toHaveBeenCalledTimes(1)
+  })
 })

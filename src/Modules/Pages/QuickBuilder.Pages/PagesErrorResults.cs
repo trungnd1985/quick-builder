@@ -58,6 +58,7 @@ internal static class PagesErrorResults
             or "pages.has_children"
             or "pages.home_page"
             or "pages.out_of_date"
+            or "editing.lock_held"
             or "pages.admin_outdated"
             or "pages.duplicate_component_name"
             or "pages.component_in_use"

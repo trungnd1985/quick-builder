@@ -3,6 +3,7 @@ using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Npgsql;
+using QuickBuilder.Editor.Contracts;
 using QuickBuilder.Pages.Contracts;
 using QuickBuilder.Pages.Domain;
 using QuickBuilder.Pages.Features;
@@ -30,6 +31,7 @@ internal sealed partial class DraftWrites(
     CollectionUseRows uses,
     PageParamRules pageParams,
     ILogger<DraftWrites> logger,
+    IEditingLocks locks,
     TimeProvider clock)
 {
     /// <summary>
@@ -79,6 +81,7 @@ internal sealed partial class DraftWrites(
         JsonElement document,
         uint version,
         bool clientKeepsEveryFormat,
+        Guid? editingSession,
         CancellationToken cancellationToken)
     {
         var text = document.GetRawText();
@@ -134,6 +137,11 @@ internal sealed partial class DraftWrites(
             return Result.Failure<DraftResponse>(pageParamTaken);
         }
 
+        if (await FenceAsync(siteId, EditingDocumentKinds.Page, pageId, editingSession, cancellationToken).ConfigureAwait(false) is { } held)
+        {
+            return Result.Failure<DraftResponse>(held);
+        }
+
         if (draft.Version != version)
         {
             return await ConflictAsync(draft, cancellationToken).ConfigureAwait(false);
@@ -171,6 +179,7 @@ internal sealed partial class DraftWrites(
         JsonElement document,
         uint version,
         bool clientKeepsEveryFormat,
+        Guid? editingSession,
         CancellationToken cancellationToken)
     {
         var text = document.GetRawText();
@@ -203,6 +212,11 @@ internal sealed partial class DraftWrites(
         if (!clientKeepsEveryFormat && UsesExtendedFormats(draft.Document))
         {
             return Result.Failure<DraftResponse>(PagesErrors.AdminOutdated);
+        }
+
+        if (await FenceAsync(siteId, EditingDocumentKinds.Component, componentId, editingSession, cancellationToken).ConfigureAwait(false) is { } held)
+        {
+            return Result.Failure<DraftResponse>(held);
         }
 
         if (draft.Version != version)
@@ -263,6 +277,28 @@ internal sealed partial class DraftWrites(
             .Where(id => !existing.Exists(u => u.MenuId == id))
             .Select(id => new Domain.Menus.MenuUsage(siteId, subjectKind, subjectId, id)));
     }
+
+    /// <summary>
+    /// 023 research CE-07, FR-018: a save from an editing session that does not hold the lock,
+    /// while another session does, is refused before anything is written; no session, or no live
+    /// lock, leaves it to the version check (FR-026). Logged with ids only.
+    /// </summary>
+    private async Task<Error?> FenceAsync(Guid siteId, string kind, Guid documentId, Guid? editingSession, CancellationToken cancellationToken)
+    {
+        var check = await locks.CheckWriteAsync(siteId, kind, documentId, editingSession, cancellationToken).ConfigureAwait(false);
+        if (check.Allowed || check.HolderUserId is not { } holder)
+        {
+            return null;
+        }
+
+        var names = await access.NamesAsync([holder], cancellationToken).ConfigureAwait(false);
+        LogLockHeld(logger, siteId, kind, documentId, access.Actor, holder);
+        return PagesErrors.LockHeld(holder, names.GetValueOrDefault(holder) ?? string.Empty, check.HolderSince ?? DateTimeOffset.MinValue);
+    }
+
+    [LoggerMessage(Level = LogLevel.Information,
+        Message = "Draft save refused, another session holds the lock: site {SiteId}, {Kind} {DocumentId}, by {ActorId}; held by {HolderId}")]
+    private static partial void LogLockHeld(ILogger logger, Guid siteId, string kind, Guid documentId, Guid actorId, Guid holderId);
 
     /// <summary>
     /// 023 research CE-09, FR-003, FR-024: the refusal of an out-of-date draft save, naming who

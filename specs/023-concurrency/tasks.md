@@ -309,7 +309,7 @@ end the session.
 
 ### Tests for User Story 3 ⚠️
 
-- [ ] T043 [P] [US3] Extend `ITESTS/Editor/EditingSessionEndpointsTests.cs` with takeover:
+- [X] T043 [P] [US3] Extend `ITESTS/Editor/EditingSessionEndpointsTests.cs` with takeover:
   - an active lock → `editing.not_stale`;
   - a stale lock (clock +30 min) → success, a takeover row with `stale_for_seconds`, and
     the former holder's heartbeat shows `lostLock {reason: takeover, by, at}`;
@@ -318,13 +318,13 @@ end the session.
 
   Also cover: a holder who reconnects after expiry gets the lock back only when it is free;
   otherwise they see the new holder (FR-019).
-- [ ] T044 [P] [US3] Create `ITESTS/Concurrency/DraftFencingTests.cs` (CE-07):
+- [X] T044 [P] [US3] Create `ITESTS/Concurrency/DraftFencingTests.cs` (CE-07):
   - a page, component or item draft save with the header of a session that does not hold a
     live lock, while another session does, gets `409 editing.lock_held` and stores nothing;
   - with the holder's header, or with no header, saves follow the version check only;
   - with no live lock at all (holder gone, or sessions table emptied), saves still work and
     stay version-checked (FR-026).
-- [ ] T045 [P] [US3] Create `ITESTS/Editor/EditingCleanupTests.cs`:
+- [X] T045 [P] [US3] Create `ITESTS/Editor/EditingCleanupTests.cs`:
   - `PageDeleted`, `ComponentDeleted`, `ItemDeleted` and `CollectionDeleted` delete the
     matching sessions, run twice for idempotency, and the next heartbeat gets
     `editing.session_gone`;
@@ -333,7 +333,8 @@ end the session.
     dedicated test that Principle V requires for the filter bypass in T051;
   - removing a holder's role makes the next heartbeat release the lock with
     `access: view-only`.
-- [ ] T046 [P] [US3] Extend `ADMINTESTS/editing/useEditingSession.spec.ts` and `PresenceBanner.spec.ts`:
+  *Done as*: The permission case changes the holder's grant in the Identity database directly, as no endpoint changes a role in one step; the next heartbeat answers `access: view-only` with the lock released.
+- [X] T046 [P] [US3] Extend `ADMINTESTS/editing/useEditingSession.spec.ts` and `PresenceBanner.spec.ts`:
   - `locked-stale` shows "inactive for n min" and Take over, which asks for confirmation;
   - `taken-over` after `lostLock` or after a save refused with `editing.lock_held`;
   - in that state no save is ever sent, and Reload is offered;
@@ -341,19 +342,23 @@ end the session.
 
 ### Implementation for User Story 3
 
-- [ ] T047 [US3] Create `EDITORM/Features/EditingSessions/TakeOver.cs` (CE-05). In one transaction:
+- [X] T047 [US3] Create `EDITORM/Features/EditingSessions/TakeOver.cs` (CE-05). In one transaction:
   1. release the named holder only if it is still the holder and stale by `EditingRules.CanTakeOver`, setting `lost_lock_*`;
   2. claim for the caller;
   3. insert `EditingTakeover`;
   4. log the takeover with ids and the stale duration only.
+  *Done as*: The transfer and the takeover record commit in one transaction (`TransferAsync` joins the caller's transaction). A takeover race of 10 members on one stale lock gives one success, nine `editing.not_stale` and one record (`LockRaceTests`).
 
   Register it and run T043 until it passes. Add the takeover race cases to `ITESTS/Concurrency/LockRaceTests.cs`.
-- [ ] T048 [US3] Create `EDITORM/Infrastructure/EditingLocks.cs` implementing `IEditingLocks.CheckWriteAsync` (one indexed `AsNoTracking` read of the live holder) and register it in `EDITORM/EditorModule.cs`.
-- [ ] T049 [US3] Fence page and component draft saves: read `EditingHeaders.Session` in `PAGES/Features/SavePageDraft/SavePageDraft.cs` and `PAGES/Features/SaveComponentDraft/SaveComponentDraft.cs`, pass it into `PAGES/Infrastructure/DraftWrites.cs`, and call `IEditingLocks.CheckWriteAsync` after validation and before the version comparison. On `HeldByOther`, return `PagesErrors.LockHeld` (code `editing.lock_held`, holder name via `IUserDirectory`) and log it with ids only.
-- [ ] T050 [US3] Fence item draft saves the same way in `CMS/Features/Items/SaveItemDraft/SaveItemDraft.cs` and `CMS/Infrastructure/ItemWrites.cs`, adding `CmsErrors.LockHeld` in `CMS/CmsErrors.cs`. Run T044 until it passes.
-- [ ] T051 [US3] Create `EDITORM/Features/ReleaseDeletedDocuments/ReleaseDeletedDocumentsHandler.cs`, handling `PageDeleted`, `ComponentDeleted`, `ItemDeleted` and `CollectionDeleted` idempotently with `ExecuteDelete`, and `EDITORM/Infrastructure/EditingSessionCleanupService.cs` (a hosted service running every minute: delete gone rows, delete takeovers older than 90 days). The handlers act on the event's site through the normal site filter. The cleanup service runs outside any site and bypasses the global filter (`IgnoreQueryFilters`) only for these two deletes. Each such place carries a code comment citing Principle V and research CE-03/CE-12. Register both, and run T045 until it passes.
-- [ ] T052 [US3] In `ADMIN/editing/useEditingSession.ts` and `ADMIN/editing/PresenceBanner.vue`, add the `locked-stale` and `taken-over` states, Take over with confirmation, and the reconnect handling. In `ADMIN/editor/state/autosave.ts` and `ItemFormView.vue`, treat `editing.lock_held` on save as `taken-over`. Continue until T046 passes.
-- [ ] T053 [US3] Add the US3 strings to `ADMIN/i18n/en.json`.
+- [X] T048 [US3] Create `EDITORM/Infrastructure/EditingLocks.cs` implementing `IEditingLocks.CheckWriteAsync` (one indexed `AsNoTracking` read of the live holder) and register it in `EDITORM/EditorModule.cs`.
+- [X] T049 [US3] Fence page and component draft saves: read `EditingHeaders.Session` in `PAGES/Features/SavePageDraft/SavePageDraft.cs` and `PAGES/Features/SaveComponentDraft/SaveComponentDraft.cs`, pass it into `PAGES/Infrastructure/DraftWrites.cs`, and call `IEditingLocks.CheckWriteAsync` after validation and before the version comparison. On `HeldByOther`, return `PagesErrors.LockHeld` (code `editing.lock_held`, holder name via `IUserDirectory`) and log it with ids only.
+  *Done as*: `DraftWrites.FenceAsync` runs after validation and before the version comparison, for pages and components. Copying a version into a draft (`PublishingHistory`) passes no session, so the version check alone decides, as the spec's edge case expects.
+- [X] T050 [US3] Fence item draft saves the same way in `CMS/Features/Items/SaveItemDraft/SaveItemDraft.cs` and `CMS/Infrastructure/ItemWrites.cs`, adding `CmsErrors.LockHeld` in `CMS/CmsErrors.cs`. Run T044 until it passes.
+- [X] T051 [US3] Create `EDITORM/Features/ReleaseDeletedDocuments/ReleaseDeletedDocumentsHandler.cs`, handling `PageDeleted`, `ComponentDeleted`, `ItemDeleted` and `CollectionDeleted` idempotently with `ExecuteDelete`, and `EDITORM/Infrastructure/EditingSessionCleanupService.cs` (a hosted service running every minute: delete gone rows, delete takeovers older than 90 days). The handlers act on the event's site through the normal site filter. The cleanup service runs outside any site and bypasses the global filter (`IgnoreQueryFilters`) only for these two deletes. Each such place carries a code comment citing Principle V and research CE-03/CE-12. Register both, and run T045 until it passes.
+  *Done as*: The cleanup service's two `AcrossAllSites` deletes carry the Principle V comment; `EditingCleanupTests` proves live rows and recent takeovers of every site are kept.
+- [X] T052 [US3] In `ADMIN/editing/useEditingSession.ts` and `ADMIN/editing/PresenceBanner.vue`, add the `locked-stale` and `taken-over` states, Take over with confirmation, and the reconnect handling. In `ADMIN/editor/state/autosave.ts` and `ItemFormView.vue`, treat `editing.lock_held` on save as `taken-over`. Continue until T046 passes.
+  *Done as*: Most of it landed with US2 (`useEditingSession` statuses, `PresenceBanner` actions, the editor and item form handlers). Here: autosave stops in `locked` on `editing.lock_held` and reports it, with specs.
+- [X] T053 [US3] Add the US3 strings to `ADMIN/i18n/en.json`.
 
 **Checkpoint**: quickstart §3 passes.
 

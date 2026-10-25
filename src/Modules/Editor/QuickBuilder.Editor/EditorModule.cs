@@ -6,6 +6,10 @@ using QuickBuilder.Editor.Contracts;
 using QuickBuilder.Editor.Contracts.Events;
 using QuickBuilder.Editor.Features.DesignPublishing;
 using QuickBuilder.Editor.Features.EditingSessions;
+using QuickBuilder.Editor.Features.ReleaseDeletedDocuments;
+using QuickBuilder.Cms.Contracts.Events;
+using QuickBuilder.Pages.Contracts.Events;
+using QuickBuilder.Shared.Kernel.Events;
 using QuickBuilder.Editor.Features.GetDesignTokens;
 using QuickBuilder.Editor.Features.SaveDesignTokens;
 using QuickBuilder.Editor.Infrastructure;
@@ -94,6 +98,15 @@ public static class EditorModule
         services.AddScoped<ICommandHandler<ReleaseCommand, Result>, ReleaseHandler>();
         services.AddScoped<IQueryHandler<ListHoldersQuery, Result<HoldersResponse>>, ListHoldersHandler>();
         services.AddScoped<IValidator<ListHoldersQuery>, ListHoldersValidator>();
+        services.AddScoped<ICommandHandler<TakeOverCommand, Result<PresenceResponse>>, TakeOverHandler>();
+        services.AddScoped<IEditingLocks, EditingLocks>();
+        services.AddScoped<ReleaseDeletedDocumentsHandler>();
+        services.AddScoped<IIntegrationEventHandler<PageDeleted>>(sp => sp.GetRequiredService<ReleaseDeletedDocumentsHandler>());
+        services.AddScoped<IIntegrationEventHandler<ComponentDeleted>>(sp => sp.GetRequiredService<ReleaseDeletedDocumentsHandler>());
+        services.AddScoped<IIntegrationEventHandler<ItemDeleted>>(sp => sp.GetRequiredService<ReleaseDeletedDocumentsHandler>());
+        services.AddScoped<IIntegrationEventHandler<CollectionDeleted>>(sp => sp.GetRequiredService<ReleaseDeletedDocumentsHandler>());
+        services.AddSingleton<EditingSessionCleanupService>();
+        services.AddHostedService(sp => sp.GetRequiredService<EditingSessionCleanupService>());
 
         return services;
     }

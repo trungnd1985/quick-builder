@@ -154,6 +154,13 @@ internal static class CmsErrors
         ("changeKind", changeKind),
         ("changedAtUtc", changedAtUtc));
 
+    /// <summary>023 research CE-07: the save came from a session that does not hold the item's lock.</summary>
+    internal static Error LockHeld(Guid holderId, string holderName, DateTimeOffset since) => With(
+        Error.Conflict("editing.lock_held", "Someone else is editing this item now. Nothing was saved."),
+        ("holder", new { id = holderId, displayName = holderName }),
+        ("since", since),
+        ("stale", false));
+
     internal static Error SchemaChanged(int schemaRevision) => With(
         Error.Conflict("cms.schema_changed", "The fields of this collection changed since you opened this item. Reload the form; your entries are kept."),
         ("schemaRevision", schemaRevision));

@@ -23,6 +23,7 @@ internal sealed class EditingIsolationProbe : ISiteIsolationProbe
         "POST api/v1/editor/sites/{siteId:guid}/editing-sessions/{sessionId:guid}/heartbeat",
         "POST api/v1/editor/sites/{siteId:guid}/editing-sessions/{sessionId:guid}/claim",
         "POST api/v1/editor/sites/{siteId:guid}/editing-sessions/{sessionId:guid}/move",
+        "POST api/v1/editor/sites/{siteId:guid}/editing-sessions/{sessionId:guid}/takeover",
         "DELETE api/v1/editor/sites/{siteId:guid}/editing-sessions/{sessionId:guid}",
     ];
 
@@ -46,6 +47,7 @@ internal sealed class EditingIsolationProbe : ISiteIsolationProbe
         yield return new ProbeRequest(HttpMethod.Post, $"{session}/heartbeat", ProbeKind.Addressed, new { active = true });
         yield return new ProbeRequest(HttpMethod.Post, $"{session}/claim", ProbeKind.Addressed, new { });
         yield return new ProbeRequest(HttpMethod.Post, $"{session}/move", ProbeKind.Addressed, new { holderSessionId = other.Ids[0] });
+        yield return new ProbeRequest(HttpMethod.Post, $"{session}/takeover", ProbeKind.Addressed, new { holderSessionId = other.Ids[0] });
         yield return new ProbeRequest(HttpMethod.Delete, session, ProbeKind.Addressed);
         yield return new ProbeRequest(HttpMethod.Get, $"/api/v1/editor/sites/{siteId}/editing?kind=page", ProbeKind.Listing);
     }

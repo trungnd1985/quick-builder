@@ -204,8 +204,8 @@ internal sealed class CopyVersionToDraftHandler(
         }
 
         var saved = subject.IsPage
-            ? await drafts.SavePageDraftAsync(command.SiteId, subject.Id, content.Value, command.DraftVersion, clientKeepsEveryFormat: true, cancellationToken).ConfigureAwait(false)
-            : await drafts.SaveComponentDraftAsync(command.SiteId, subject.Id, content.Value, command.DraftVersion, clientKeepsEveryFormat: true, cancellationToken).ConfigureAwait(false);
+            ? await drafts.SavePageDraftAsync(command.SiteId, subject.Id, content.Value, command.DraftVersion, clientKeepsEveryFormat: true, editingSession: null, cancellationToken).ConfigureAwait(false)
+            : await drafts.SaveComponentDraftAsync(command.SiteId, subject.Id, content.Value, command.DraftVersion, clientKeepsEveryFormat: true, editingSession: null, cancellationToken).ConfigureAwait(false);
 
         if (saved.IsFailure)
         {

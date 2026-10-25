@@ -37,6 +37,16 @@ internal static class PagesErrors
         ("changedAtUtc", changedAtUtc),
         ("currentVersion", currentVersion));
 
+    /// <summary>
+    /// 023 research CE-07: the save came from an editing session that does not hold the lock,
+    /// while another session does. Nothing was stored.
+    /// </summary>
+    internal static Error LockHeld(Guid holderId, string holderName, DateTimeOffset since) => With(
+        Error.Conflict("editing.lock_held", "Someone else is editing this now. Nothing was saved."),
+        ("holder", new { id = holderId, displayName = holderName }),
+        ("since", since),
+        ("stale", false));
+
     /// <summary>035 FR-020: an admin from before 035 would drop rich text formats it does not know.</summary>
     internal static Error AdminOutdated { get; } = Error.Conflict(
         "pages.admin_outdated",
