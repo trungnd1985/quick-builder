@@ -18,6 +18,11 @@ export interface ProblemDetails {
   rule?: string
   /** A JSON Pointer to where a document or token set failed. */
   pointer?: string
+  /** An out-of-date draft save: who saved the newer version, and when (023 research CE-09). */
+  changedBy?: { id: string; displayName: string } | null
+  changedAtUtc?: string
+  /** For items: `member` or `schema_change`. */
+  changeKind?: string
   /** A `media.in_use` refusal's usage summary (013 contracts/media-api.yaml). */
   usage?: {
     places: number

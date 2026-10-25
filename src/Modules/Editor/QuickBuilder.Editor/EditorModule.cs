@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using QuickBuilder.Editor.Contracts;
 using QuickBuilder.Editor.Contracts.Events;
 using QuickBuilder.Editor.Features.DesignPublishing;
+using QuickBuilder.Editor.Features.EditingSessions;
 using QuickBuilder.Editor.Features.GetDesignTokens;
 using QuickBuilder.Editor.Features.SaveDesignTokens;
 using QuickBuilder.Editor.Infrastructure;
@@ -81,6 +82,18 @@ public static class EditorModule
         services.AddScoped<IQueryHandler<ListDesignVersionsQuery, Result<DesignVersionsResponse>>, ListDesignVersionsHandler>();
         services.AddScoped<IQueryHandler<GetDesignVersionQuery, Result<DesignVersionResponse>>, GetDesignVersionHandler>();
         services.AddSingleton<IEventTypeRegistration>(new EventTypeRegistration<DesignPublished>());
+
+        // 023: editing sessions, presence and soft locks.
+        services.AddScoped<EditingAccess>();
+        services.AddScoped<EditingSessionStore>();
+        services.AddScoped<ICommandHandler<OpenSessionCommand, Result<PresenceResponse>>, OpenSessionHandler>();
+        services.AddScoped<IValidator<OpenSessionCommand>, OpenSessionValidator>();
+        services.AddScoped<ICommandHandler<HeartbeatCommand, Result<PresenceResponse>>, HeartbeatHandler>();
+        services.AddScoped<ICommandHandler<ClaimCommand, Result<PresenceResponse>>, ClaimHandler>();
+        services.AddScoped<ICommandHandler<MoveHereCommand, Result<PresenceResponse>>, MoveHereHandler>();
+        services.AddScoped<ICommandHandler<ReleaseCommand, Result>, ReleaseHandler>();
+        services.AddScoped<IQueryHandler<ListHoldersQuery, Result<HoldersResponse>>, ListHoldersHandler>();
+        services.AddScoped<IValidator<ListHoldersQuery>, ListHoldersValidator>();
 
         return services;
     }

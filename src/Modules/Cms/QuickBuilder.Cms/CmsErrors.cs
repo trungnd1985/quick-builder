@@ -142,6 +142,18 @@ internal static class CmsErrors
         Error.Conflict("cms.item_conflict", "This item was changed by someone else since you opened it. Reload and try again."),
         ("currentRevision", currentRevision));
 
+    /// <summary>
+    /// 023 research CE-09: a draft save refused because the draft changed since the form loaded
+    /// it, naming who changed it (null for a schema change) and when.
+    /// </summary>
+    internal static Error ItemDraftConflict(int currentRevision, int currentDraftRevision, Guid? changedById, string? changedByName, string changeKind, DateTimeOffset changedAtUtc) => With(
+        Error.Conflict("cms.item_conflict", "This item was changed by someone else since you opened it. Nothing was overwritten."),
+        ("currentRevision", currentRevision),
+        ("currentDraftRevision", currentDraftRevision),
+        ("changedBy", changedById is { } id ? new { id, displayName = changedByName ?? string.Empty } : null),
+        ("changeKind", changeKind),
+        ("changedAtUtc", changedAtUtc));
+
     internal static Error SchemaChanged(int schemaRevision) => With(
         Error.Conflict("cms.schema_changed", "The fields of this collection changed since you opened this item. Reload the form; your entries are kept."),
         ("schemaRevision", schemaRevision));

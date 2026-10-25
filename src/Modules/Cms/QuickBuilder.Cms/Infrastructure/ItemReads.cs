@@ -111,7 +111,10 @@ internal sealed class ItemReads(CmsDbContext database, CmsAccess access, QuickBu
             Report(report),
             differs,
             unpublishedReferences,
-            await AddressAsync(item, cancellationToken).ConfigureAwait(false));
+            await AddressAsync(item, cancellationToken).ConfigureAwait(false))
+        {
+            DraftRevision = item.DraftRevision,
+        };
     }
 
     /// <summary>

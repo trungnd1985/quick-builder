@@ -216,14 +216,15 @@ export const pagesApi = {
   pageDraft: (siteId: string, pageId: string): Promise<Draft> =>
     request<Draft>(`${page(siteId, pageId)}/draft`),
 
-  savePageDraft: (siteId: string, pageId: string, body: SaveDraftRequest): Promise<Draft> =>
-    request<Draft>(`${page(siteId, pageId)}/draft`, { method: 'PUT', body: JSON.stringify(body) }),
+  /** 023 research CE-07: an open editor sends its editing session, so a session that lost the lock cannot save. */
+  savePageDraft: (siteId: string, pageId: string, body: SaveDraftRequest, headers: Record<string, string> = {}): Promise<Draft> =>
+    request<Draft>(`${page(siteId, pageId)}/draft`, { method: 'PUT', body: JSON.stringify(body), headers }),
 
   componentDraft: (siteId: string, componentId: string): Promise<Draft> =>
     request<Draft>(`${component(siteId, componentId)}/draft`),
 
-  saveComponentDraft: (siteId: string, componentId: string, body: SaveDraftRequest): Promise<Draft> =>
-    request<Draft>(`${component(siteId, componentId)}/draft`, { method: 'PUT', body: JSON.stringify(body) }),
+  saveComponentDraft: (siteId: string, componentId: string, body: SaveDraftRequest, headers: Record<string, string> = {}): Promise<Draft> =>
+    request<Draft>(`${component(siteId, componentId)}/draft`, { method: 'PUT', body: JSON.stringify(body), headers }),
 
   getComponent: (siteId: string, componentId: string): Promise<Component> =>
     request<Component>(component(siteId, componentId)),

@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Npgsql;
 using QuickBuilder.Cms.Domain;
+using QuickBuilder.Identity.Contracts;
 using QuickBuilder.Shared.Kernel.Results;
 
 namespace QuickBuilder.Cms.Infrastructure;
@@ -10,13 +12,19 @@ namespace QuickBuilder.Cms.Infrastructure;
 /// <param name="ExpectedRevision">The item revision the request was based on, when it states one.</param>
 /// <param name="ExpectedSchemaRevision">The schema revision the form was built from, for draft saves (research IT-07).</param>
 /// <param name="Actor">Who acts: the signed-in user, or for a scheduled run, who set the schedule.</param>
+/// <param name="ExpectedDraftRevision">
+/// 023 research CE-08: for draft saves, the draft revision the form loaded. Compared instead of
+/// <paramref name="ExpectedRevision"/>, so publishing, unpublishing and schedules by someone
+/// else do not refuse the save.
+/// </param>
 internal sealed record ItemWriteRequest(
     Guid SiteId,
     Guid CollectionId,
     Guid? ItemId,
     int? ExpectedRevision,
     int? ExpectedSchemaRevision,
-    Guid Actor);
+    Guid Actor,
+    int? ExpectedDraftRevision = null);
 
 /// <summary>What an item operation works with inside <see cref="ItemWrites"/>, and how it says what it changed.</summary>
 internal sealed class ItemWriteContext(
@@ -110,19 +118,47 @@ internal sealed class ItemWriteContext(
 /// </list>
 /// <c>ItemWritesOnlyTests</c> keeps every item write on this path.
 /// </remarks>
-internal sealed class ItemWrites(
+internal sealed partial class ItemWrites(
     CmsDbContext database,
     CollectionWriteGate gate,
     ItemValidation validation,
     ItemIndexer indexer,
     SlugAvailability slugs,
+    IUserDirectory users,
+    ILogger<ItemWrites> logger,
     TimeProvider clock)
 {
+    /// <summary>Returned by one attempt when it lost a race to a write that did not change the draft.</summary>
+    private static readonly Error RetryDraftSave = Error.Conflict("cms.internal_retry", "Retry.");
+
     /// <summary>
     /// Runs <paramref name="operation"/> as one item write. It returns the item to answer with
     /// (null when there is none, as after a delete), read again after the commit by the caller.
     /// </summary>
+    /// <remarks>
+    /// A draft save based on the latest draft revision can still lose the row to a publish or a
+    /// schedule change committed a moment earlier (the item's revision is the concurrency
+    /// token). That is not a conflict with anyone's draft (023 research CE-08), so the save is
+    /// tried once more.
+    /// </remarks>
     public async Task<Result<Item?>> ExecuteAsync(
+        ItemWriteRequest request,
+        Func<ItemWriteContext, Task<Result<Item?>>> operation,
+        CancellationToken cancellationToken)
+    {
+        var result = await ExecuteOnceAsync(request, operation, cancellationToken).ConfigureAwait(false);
+        if (!IsRetry(result))
+        {
+            return result;
+        }
+
+        result = await ExecuteOnceAsync(request, operation, cancellationToken).ConfigureAwait(false);
+        return IsRetry(result) ? await DraftConflictAsync(request, cancellationToken).ConfigureAwait(false) : result;
+
+        static bool IsRetry(Result<Item?> attempt) => attempt.IsFailure && ReferenceEquals(attempt.Error, RetryDraftSave);
+    }
+
+    private async Task<Result<Item?>> ExecuteOnceAsync(
         ItemWriteRequest request,
         Func<ItemWriteContext, Task<Result<Item?>>> operation,
         CancellationToken cancellationToken)
@@ -158,7 +194,15 @@ internal sealed class ItemWrites(
                     return await FailAsync(CmsErrors.ItemNotFound).ConfigureAwait(false);
                 }
 
-                if (request.ExpectedRevision is { } expected && expected != item.Revision)
+                if (request.ExpectedDraftRevision is { } expectedDraft)
+                {
+                    if (expectedDraft != item.DraftRevision)
+                    {
+                        await RollBackAsync().ConfigureAwait(false);
+                        return await DraftConflictAsync(request, cancellationToken).ConfigureAwait(false);
+                    }
+                }
+                else if (request.ExpectedRevision is { } expected && expected != item.Revision)
                 {
                     return await FailAsync(CmsErrors.ItemConflict(item.Revision)).ConfigureAwait(false);
                 }
@@ -200,6 +244,20 @@ internal sealed class ItemWrites(
             }
 
             return result;
+        }
+        catch (DbUpdateConcurrencyException) when (request.ExpectedDraftRevision is { } expectedDraft)
+        {
+            await RollBackAsync().ConfigureAwait(false);
+            var currentDraft = await CurrentDraftRevisionAsync(request, cancellationToken).ConfigureAwait(false);
+            if (currentDraft is null)
+            {
+                return Result.Failure<Item?>(CmsErrors.ItemNotFound);
+            }
+
+            // Someone published or scheduled, not saved the draft: try again (see ExecuteAsync).
+            return owned && currentDraft == expectedDraft
+                ? Result.Failure<Item?>(RetryDraftSave)
+                : await DraftConflictAsync(request, cancellationToken).ConfigureAwait(false);
         }
         catch (DbUpdateConcurrencyException)
         {
@@ -270,6 +328,51 @@ internal sealed class ItemWrites(
             .SingleOrDefaultAsync(cancellationToken)
             .ConfigureAwait(false);
     }
+
+    private async Task<int?> CurrentDraftRevisionAsync(ItemWriteRequest request, CancellationToken cancellationToken)
+    {
+        database.ChangeTracker.Clear();
+        return await database.ForSite<Item>(request.SiteId)
+            .AsNoTracking()
+            .Where(i => i.Id == request.ItemId)
+            .Select(i => (int?)i.DraftRevision)
+            .SingleOrDefaultAsync(cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// 023 research CE-09, FR-003, FR-024: the refusal of a draft save, naming who changed the
+    /// draft and when, read from the stored item; and its log entry, with ids only.
+    /// </summary>
+    private async Task<Result<Item?>> DraftConflictAsync(ItemWriteRequest request, CancellationToken cancellationToken)
+    {
+        database.ChangeTracker.Clear();
+        var current = await database.ForSite<Item>(request.SiteId)
+            .AsNoTracking()
+            .Where(i => i.Id == request.ItemId)
+            .Select(i => new { i.Revision, i.DraftRevision, i.DraftChangedBy, i.DraftChangeKind, i.DraftChangedAtUtc })
+            .SingleOrDefaultAsync(cancellationToken)
+            .ConfigureAwait(false);
+        if (current is null)
+        {
+            return Result.Failure<Item?>(CmsErrors.ItemNotFound);
+        }
+
+        string? name = null;
+        if (current.DraftChangedBy is { } changedBy)
+        {
+            var found = await users.FindManyAsync([changedBy], cancellationToken).ConfigureAwait(false);
+            name = found.FirstOrDefault(u => u.Id == changedBy)?.DisplayName;
+        }
+
+        LogDraftConflict(logger, request.SiteId, request.CollectionId, request.ItemId, request.Actor, current.DraftChangedBy, current.DraftChangeKind);
+        return Result.Failure<Item?>(CmsErrors.ItemDraftConflict(
+            current.Revision, current.DraftRevision, current.DraftChangedBy, name, current.DraftChangeKind, current.DraftChangedAtUtc));
+    }
+
+    [LoggerMessage(Level = LogLevel.Information,
+        Message ="Item draft save refused as out of date: site {SiteId}, collection {CollectionId}, item {ItemId}, by {ActorId}; the draft was changed by {ChangedById} ({ChangeKind})")]
+    private static partial void LogDraftConflict(ILogger logger, Guid siteId, Guid collectionId, Guid? itemId, Guid actorId, Guid? changedById, string changeKind);
 
     private static string? Constraint(DbUpdateException exception, string sqlState) =>
         exception.InnerException is PostgresException postgres && postgres.SqlState == sqlState ? postgres.ConstraintName : null;

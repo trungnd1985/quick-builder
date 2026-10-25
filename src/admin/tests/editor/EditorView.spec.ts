@@ -223,8 +223,12 @@ describe('EditorView — building a page (US1)', () => {
     await fireEvent.keyDown(option(container, 'text'), { key: 'Enter' })
     await vi.advanceTimersByTimeAsync(2100)
 
-    await waitFor(() => expect(screen.getByText(en.editor.readOnly.conflict)).toBeTruthy())
+    // 023 FR-006: the conflict dialog first; keeping this version leads to 011's read-only banner.
+    const dialog = await screen.findByRole('alertdialog')
+    expect(dialog.textContent).toContain(en.editing.conflict.nothingOverwritten)
     expect(screen.queryByRole('button', { name: /overwrite/i })).toBeNull()
+    await fireEvent.click(within(dialog).getByRole('button', { name: en.editing.conflict.keepViewing }))
+    await waitFor(() => expect(screen.getByText(en.editor.readOnly.conflict)).toBeTruthy())
 
     // Still read-only: nothing changes, but copying works.
     const text = store.root!.children[0].children.find((c) => c.type === 'text')!

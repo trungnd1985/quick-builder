@@ -69,6 +69,12 @@ public sealed record ItemResponse(
 {
     /// <summary>017 FR-029, FR-032: whether this change asked for a redirect of the item's old address.</summary>
     public bool RedirectRequested { get; init; }
+
+    /// <summary>
+    /// 023 research CE-08: moves only when the draft does. A draft save sends it back as
+    /// <see cref="DraftRequest.DraftRevision"/>, so a publish by someone else does not refuse it.
+    /// </summary>
+    public int DraftRevision { get; init; }
 }
 
 /// <summary>
@@ -117,7 +123,12 @@ public sealed record ReferrerListResponse(IReadOnlyList<ReferrerResponse> Referr
 public sealed record SlugAvailabilityResponse(bool Available, string Suggestion);
 
 /// <summary>A draft as the form sends it (contracts/items-api.yaml, <c>DraftInput</c>).</summary>
-public sealed record DraftRequest(string? Slug, JsonElement? Values, int SchemaRevision, int Revision);
+/// <param name="Revision">The item revision the form loaded: what an admin from before 023 sends.</param>
+/// <param name="DraftRevision">
+/// 023 research CE-08: the draft revision the form loaded. When sent, a save compares it instead
+/// of <paramref name="Revision"/>, so only a change to the draft refuses it.
+/// </param>
+public sealed record DraftRequest(string? Slug, JsonElement? Values, int SchemaRevision, int Revision, int? DraftRevision = null);
 
 /// <summary>A publish, unpublish or rollback (contracts/items-api.yaml, <c>PublishingInput</c>).</summary>
 /// <param name="RedirectOldAddress">017 FR-029, publish and rollback: redirect the old address when the slug changes.</param>

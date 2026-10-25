@@ -42,3 +42,13 @@ internal static class ItemStatuses
             && JsonNode.DeepEquals(a.Write(), b.Write());
     }
 }
+
+/// <summary>Who made an item's last draft change (023 research CE-09).</summary>
+internal static class ItemDraftChangeKinds
+{
+    /// <summary>A member saved it, created the item, or copied a version into it.</summary>
+    public const string Member = "member";
+
+    /// <summary>A collection schema change rewrote it (014); no member did.</summary>
+    public const string SchemaChange = "schema_change";
+}

@@ -18,6 +18,9 @@ import { errorCodeOf, itemErrorMessage, problemMessage } from './itemErrors'
 import { useItemRefs } from './itemRefs'
 import { ITEM_REFS } from './itemRefsKey'
 import { checkItem, isMalformed, SLUG_FIELD } from './itemValueRules'
+import ConflictDialog from '../../../editing/ConflictDialog.vue'
+import { conflictFrom, type ConflictDetails } from '../../../editing/conflict'
+import { changedFields as fieldsChangedBetween } from '../../../editing/itemDiff'
 
 const { t, te } = useI18n()
 const route = useRoute()
@@ -45,6 +48,10 @@ const saving = ref(false)
 const loadError = ref<string | null>(null)
 const message = ref<{ kind: 'error' | 'info' | 'conflict' | 'outdated'; text: string } | null>(null)
 const showHistory = ref(false)
+/** 023 FR-006, FR-007: a refused save: who changed the item, which fields, and whether the form is kept read-only. */
+const conflict = ref<{ details: ConflictDetails | null; fields: string[] } | null>(null)
+const readOnly = ref(false)
+const reloading = ref(false)
 let slugTimer: ReturnType<typeof setTimeout> | undefined
 
 const schema = computed<SchemaDocument | null>(() => collection.value?.schema ?? null)
@@ -83,6 +90,8 @@ function startFrom(next: Item | null, schemaDocument: SchemaDocument): void {
 async function load(): Promise<void> {
   loading.value = true
   loadError.value = null
+  conflict.value = null
+  readOnly.value = false
   try {
     const [loadedCollection, loadedItem] = await Promise.all([
       cmsApi.get(siteId.value, collectionId.value),
@@ -141,7 +150,7 @@ function useSuggestion(): void {
 }
 
 async function save(): Promise<void> {
-  if (!collection.value || saving.value) return
+  if (!collection.value || saving.value || readOnly.value) return
   message.value = null
   if (malformed.value.length > 0) {
     focusSummary()
@@ -157,7 +166,7 @@ async function save(): Promise<void> {
 
   try {
     const result = item.value
-      ? await itemsApi.save(siteId.value, collectionId.value, item.value.id, { ...body, revision: item.value.revision })
+      ? await itemsApi.save(siteId.value, collectionId.value, item.value.id, { ...body, revision: item.value.revision, draftRevision: item.value.draftRevision })
       : await itemsApi.create(siteId.value, collectionId.value, body)
     const created = item.value === null
     startFrom(result, collection.value.schema)
@@ -191,12 +200,46 @@ async function refused(caught: unknown): Promise<void> {
     message.value = { kind: 'outdated', text: t('cms.items.form.outdated') }
   } else if (code === 'cms.item_conflict') {
     message.value = { kind: 'conflict', text: t('cms.items.form.conflict') }
+    await showConflict(caught)
   } else if (code === 'cms.schema_changed') {
     await reloadSchema()
   } else if (code === 'cms.collection_not_found') {
     message.value = { kind: 'error', text: t('cms.items.errors.item_not_found') }
   } else {
     message.value = { kind: 'error', text: itemErrorMessage(t, te, caught) }
+  }
+}
+
+/**
+ * 023 FR-006, FR-007: says who changed the item and which fields, comparing the draft this form
+ * loaded with the latest one. The member keeps their entries, read-only, or reloads.
+ */
+async function showConflict(caught: unknown): Promise<void> {
+  const details = conflictFrom(caught)
+  let fields: string[] = []
+  if (item.value && schema.value) {
+    try {
+      const latest = await itemsApi.get(siteId.value, collectionId.value, item.value.id)
+      fields = fieldsChangedBetween(item.value.draft.values, latest.draft.values, schema.value.fields).map((f) => f.label)
+      if (latest.slug !== item.value.slug) fields = [t('cms.items.form.slug'), ...fields]
+    } catch {
+      fields = []
+    }
+  }
+  conflict.value = { details, fields }
+}
+
+function keepViewing(): void {
+  conflict.value = null
+  readOnly.value = true
+}
+
+async function reloadLatest(): Promise<void> {
+  reloading.value = true
+  try {
+    await load()
+  } finally {
+    reloading.value = false
   }
 }
 
@@ -334,7 +377,7 @@ onBeforeUnmount(() => {
           <button
             type="submit"
             class="primary"
-            :disabled="saving"
+            :disabled="saving || readOnly"
           >
             {{ saving ? t('cms.items.form.saving') : t('cms.items.form.saveDraft') }}
           </button>
@@ -349,6 +392,16 @@ onBeforeUnmount(() => {
           </button>
         </div>
       </header>
+
+      <ConflictDialog
+        v-if="conflict"
+        kind="item"
+        :conflict="conflict.details"
+        :changed-fields="conflict.fields"
+        :reloading="reloading"
+        @reload="reloadLatest"
+        @keep-viewing="keepViewing"
+      />
 
       <ItemPublishBar
         v-if="item"
@@ -406,56 +459,65 @@ onBeforeUnmount(() => {
         </ul>
       </div>
 
-      <div class="item-field">
-        <label
-          for="item-slug"
-          class="item-field__label"
-        >{{ t('cms.items.form.slug') }}</label>
-        <p
-          id="item-slug-help"
-          class="help"
-        >
-          {{ t('cms.items.form.slugHelp') }}
-        </p>
-        <input
-          id="item-slug"
-          type="text"
-          :value="slug"
-          aria-describedby="item-slug-help item-slug-error"
-          :aria-invalid="!!problemOf('slug') || !!slugSuggestion"
-          @input="editSlug(($event.target as HTMLInputElement).value)"
-        >
-        <p
-          id="item-slug-error"
-          class="field-error"
-        >
-          <template v-if="slugSuggestion">
-            {{ t('cms.items.form.slugTaken', { suggestion: slugSuggestion }) }}
-            <button
-              type="button"
-              class="link"
-              @click="useSuggestion"
-            >
-              {{ t('cms.items.form.useSuggestion', { suggestion: slugSuggestion }) }}
-            </button>
-          </template>
-          <template v-else-if="problemOf('slug')">
-            {{ problemMessage(t, te, problemOf('slug')!) }}
-          </template>
-        </p>
-      </div>
+      <!-- 023: after a conflict the entries stay on screen, read-only, to copy from. -->
+      <fieldset
+        class="item-form__fields"
+        :disabled="readOnly"
+      >
+        <legend class="visually-hidden">
+          {{ t('cms.items.form.fieldsLegend') }}
+        </legend>
+        <div class="item-field">
+          <label
+            for="item-slug"
+            class="item-field__label"
+          >{{ t('cms.items.form.slug') }}</label>
+          <p
+            id="item-slug-help"
+            class="help"
+          >
+            {{ t('cms.items.form.slugHelp') }}
+          </p>
+          <input
+            id="item-slug"
+            type="text"
+            :value="slug"
+            aria-describedby="item-slug-help item-slug-error"
+            :aria-invalid="!!problemOf('slug') || !!slugSuggestion"
+            @input="editSlug(($event.target as HTMLInputElement).value)"
+          >
+          <p
+            id="item-slug-error"
+            class="field-error"
+          >
+            <template v-if="slugSuggestion">
+              {{ t('cms.items.form.slugTaken', { suggestion: slugSuggestion }) }}
+              <button
+                type="button"
+                class="link"
+                @click="useSuggestion"
+              >
+                {{ t('cms.items.form.useSuggestion', { suggestion: slugSuggestion }) }}
+              </button>
+            </template>
+            <template v-else-if="problemOf('slug')">
+              {{ problemMessage(t, te, problemOf('slug')!) }}
+            </template>
+          </p>
+        </div>
 
-      <ItemField
-        v-for="field in schema.fields"
-        :key="field.id"
-        :field="field"
-        :value="values[field.id]"
-        :site-id="siteId"
-        :item-id="item?.id ?? null"
-        :problem="problemOf(field.id)"
-        :changed="changedFields.has(field.id)"
-        @update:value="setValue(field.id, $event)"
-      />
+        <ItemField
+          v-for="field in schema.fields"
+          :key="field.id"
+          :field="field"
+          :value="values[field.id]"
+          :site-id="siteId"
+          :item-id="item?.id ?? null"
+          :problem="problemOf(field.id)"
+          :changed="changedFields.has(field.id)"
+          @update:value="setValue(field.id, $event)"
+        />
+      </fieldset>
     </form>
 
     <ItemHistoryPanel

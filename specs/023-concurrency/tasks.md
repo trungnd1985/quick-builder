@@ -156,11 +156,13 @@ intact; the dialog names the member and time.
 
 ### Tests for User Story 1 ⚠️
 
-- [ ] T010 [P] [US1] Create `ITESTS/Concurrency/OverlappingDraftWritesTests.cs` (SC-001): 1,000 pairs of overlapping draft writes, spread over pages, components and items, from two members using the same base version. Expect zero overwrites (each stored draft equals exactly one of the pair), and every refusal carries `changedBy` naming the other member and a `changedAtUtc`.
-- [ ] T011 [P] [US1] Extend `ITESTS/Pages/` draft save tests (the existing page and component draft suites) with: `pages.out_of_date` carries `changedBy {id, displayName}`, `changedAtUtc` and `currentVersion`; an unchanged request shape from an old client still gets the code.
-- [ ] T012 [P] [US1] Create `ITESTS/Cms/Items/ItemPublishDoesNotConflictTests.cs`: after member B publishes, unpublishes or schedules the item, member A's draft save with the latest `draftRevision` succeeds. A save based on an older draft revision gets `cms.item_conflict` with `changeKind: member`, `changedBy`, `changedAtUtc` and `currentDraftRevision`. A save with no `draftRevision` falls back to `revision` (today's behaviour). After a schema change rewrites the draft, the refusal says `changeKind: schema_change` with `changedBy: null`. Copy-to-draft also moves `draftRevision`.
-- [ ] T013 [P] [US1] Create `UTESTS/Cms/ItemDraftRevisionTests.cs`: `SaveDraft` and `CopyToDraft` increment `DraftRevision` and set `DraftChangedBy`, `DraftChangedAtUtc` and `DraftChangeKind = member`. `Migrate` increments it and sets `schema_change` only when the draft values change. `Publish`, `Unpublish` and `RecordSchedule` do not move it.
-- [ ] T014 [P] [US1] Create `ADMINTESTS/editing/ConflictDialog.spec.ts` (with axe), covering:
+- [X] T010 [P] [US1] Create `ITESTS/Concurrency/OverlappingDraftWritesTests.cs` (SC-001): 1,000 pairs of overlapping draft writes, spread over pages, components and items, from two members using the same base version. Expect zero overwrites (each stored draft equals exactly one of the pair), and every refusal carries `changedBy` naming the other member and a `changedAtUtc`.
+  *Done as*: 1,000 pairs in 12 s: 8 pages, 8 components and 8 items, each round a pair per document from two Designers on the same base. Zero overwrites; every refusal names the stored writer.
+- [X] T011 [P] [US1] Extend `ITESTS/Pages/` draft save tests (the existing page and component draft suites) with: `pages.out_of_date` carries `changedBy {id, displayName}`, `changedAtUtc` and `currentVersion`; an unchanged request shape from an old client still gets the code.
+  *Done as*: In a new file, `ITESTS/Pages/DraftConflictDetailsTests.cs`, so the 010 suites stay as they were. `PagesApi.DocumentWithText` was added for documents that differ by one heading.
+- [X] T012 [P] [US1] Create `ITESTS/Cms/Items/ItemPublishDoesNotConflictTests.cs`: after member B publishes, unpublishes or schedules the item, member A's draft save with the latest `draftRevision` succeeds. A save based on an older draft revision gets `cms.item_conflict` with `changeKind: member`, `changedBy`, `changedAtUtc` and `currentDraftRevision`. A save with no `draftRevision` falls back to `revision` (today's behaviour). After a schema change rewrites the draft, the refusal says `changeKind: schema_change` with `changedBy: null`. Copy-to-draft also moves `draftRevision`.
+- [X] T013 [P] [US1] Create `UTESTS/Cms/ItemDraftRevisionTests.cs`: `SaveDraft` and `CopyToDraft` increment `DraftRevision` and set `DraftChangedBy`, `DraftChangedAtUtc` and `DraftChangeKind = member`. `Migrate` increments it and sets `schema_change` only when the draft values change. `Publish`, `Unpublish` and `RecordSchedule` do not move it.
+- [X] T014 [P] [US1] Create `ADMINTESTS/editing/ConflictDialog.spec.ts` (with axe), covering:
   - the text names the member and time, or the system change;
   - the dialog states that nothing was overwritten;
   - Reload asks for confirmation;
@@ -168,30 +170,35 @@ intact; the dialog names the member and time.
   - there is no overwrite action;
   - focus starts on the first action;
   - the item variant lists changed fields.
-- [ ] T015 [P] [US1] Create `ADMINTESTS/editing/itemDiff.spec.ts`: values are compared by field id; added, removed and changed fields are reported; equal JSON with a different key order is not a change; reference and rich-text values compare structurally.
-- [ ] T016 [P] [US1] Extend `ADMINTESTS/editor/autosave.spec.ts`: two quick saves in one session never produce a conflict (FR-004), and a 409 with `changedBy` stores the details for the dialog.
+- [X] T015 [P] [US1] Create `ADMINTESTS/editing/itemDiff.spec.ts`: values are compared by field id; added, removed and changed fields are reported; equal JSON with a different key order is not a change; reference and rich-text values compare structurally.
+- [X] T016 [P] [US1] Extend `ADMINTESTS/editor/autosave.spec.ts`: two quick saves in one session never produce a conflict (FR-004), and a 409 with `changedBy` stores the details for the dialog.
 
 ### Implementation for User Story 1
 
-- [ ] T017 [US1] In `PAGES/Infrastructure/DraftWrites.cs`, return the conflict details on both `OutOfDate` paths (the version comparison and `DbUpdateConcurrencyException`): reload the draft's `UpdatedBy`, `UpdatedAtUtc` and `Version` with no tracking, and resolve the name through `IUserDirectory`. Add `PagesErrors.DraftOutOfDate(changedBy, changedAtUtc, currentVersion)` in `PAGES/PagesErrors.cs`, keeping the code `pages.out_of_date`, and map the extra fields in `PAGES/PagesErrorResults.cs`. Log each refusal with the site, the document kind and id, and the two member ids only (FR-024). Other `OutOfDate` uses stay unchanged.
-- [ ] T018 [US1] In `CMS/Domain/Item.cs`, add `DraftRevision`, `DraftChangedBy`, `DraftChangedAtUtc` and `DraftChangeKind`, maintained by `ReplaceDraft` callers (`SaveDraft`, `CopyToDraft`) and by `Migrate` when the draft changed (CE-08), until T013 passes. Map the columns in `CMS/Infrastructure/CmsDbContext.cs` and generate `CMS/Infrastructure/Migrations/<ts>_AddItemDraftRevision.cs` with a backfill (`draft_revision = revision`, `draft_changed_by = updated_by`, `draft_changed_at_utc = updated_at_utc`, `draft_change_kind = 'member'`).
-- [ ] T019 [US1] In `CMS/Infrastructure/ItemWrites.cs` and `CMS/Features/Items/ItemResponses.cs`:
+- [X] T017 [US1] In `PAGES/Infrastructure/DraftWrites.cs`, return the conflict details on both `OutOfDate` paths (the version comparison and `DbUpdateConcurrencyException`): reload the draft's `UpdatedBy`, `UpdatedAtUtc` and `Version` with no tracking, and resolve the name through `IUserDirectory`. Add `PagesErrors.DraftOutOfDate(changedBy, changedAtUtc, currentVersion)` in `PAGES/PagesErrors.cs`, keeping the code `pages.out_of_date`, and map the extra fields in `PAGES/PagesErrorResults.cs`. Log each refusal with the site, the document kind and id, and the two member ids only (FR-024). Other `OutOfDate` uses stay unchanged.
+  *Done as*: Both paths go through `DraftWrites.ConflictAsync`, which reads the stored draft again without tracking (the tracked one may be the loser) and logs ids only.
+- [X] T018 [US1] In `CMS/Domain/Item.cs`, add `DraftRevision`, `DraftChangedBy`, `DraftChangedAtUtc` and `DraftChangeKind`, maintained by `ReplaceDraft` callers (`SaveDraft`, `CopyToDraft`) and by `Migrate` when the draft changed (CE-08), until T013 passes. Map the columns in `CMS/Infrastructure/CmsDbContext.cs` and generate `CMS/Infrastructure/Migrations/<ts>_AddItemDraftRevision.cs` with a backfill (`draft_revision = revision`, `draft_changed_by = updated_by`, `draft_changed_at_utc = updated_at_utc`, `draft_change_kind = 'member'`).
+  *Done as*: The backfill and database defaults (`draft_revision` 1, `draft_change_kind` member, `draft_changed_at_utc` now()) are in `AddItemDraftRevision`: SQL seeding in `SitemapTests` and the smoke tests writes rows without these columns.
+- [X] T019 [US1] In `CMS/Infrastructure/ItemWrites.cs` and `CMS/Features/Items/ItemResponses.cs`:
   - add an optional `DraftRevision` to `DraftRequest`;
   - draft saves compare it when present, else `Revision`;
   - `CmsErrors.ItemConflict` gains `changedBy`, `changeKind`, `changedAtUtc` and `currentDraftRevision` for draft saves (`CMS/CmsErrors.cs`);
   - item responses include `draftRevision`;
   - each draft conflict refusal is logged with ids and the change kind only (FR-024).
+  *Done as*: A draft save based on the latest draft revision can still lose the row to a publish committed a moment earlier, because `revision` stays the concurrency token. `ItemWrites` retries such a save once when the draft revision is unchanged (CE-08). Refusals are logged with ids and the change kind only.
 
   Continue until T012 passes.
-- [ ] T020 [P] [US1] Create `ADMIN/editing/itemDiff.ts` (`changedFields(loaded, latest, fields)` returning field ids and labels) until T015 passes.
-- [ ] T021 [US1] Create `ADMIN/editing/ConflictDialog.vue` (`role="alertdialog"`) per admin-editing.md §3, without the copy action (US4 adds it). Wire it into `ADMIN/editor/EditorView.vue` in place of the conflict branch of `ADMIN/editor/ConflictBanner.vue`; the banner keeps the other reasons. Store `changedBy` and `changedAtUtc` from the 409 in `ADMIN/editor/state/autosave.ts`. Continue until T014 and T016 pass.
-- [ ] T022 [US1] In `ADMIN/features/cms/items/ItemFormView.vue` and `ADMIN/api/items.ts`:
+- [X] T020 [P] [US1] Create `ADMIN/editing/itemDiff.ts` (`changedFields(loaded, latest, fields)` returning field ids and labels) until T015 passes.
+- [X] T021 [US1] Create `ADMIN/editing/ConflictDialog.vue` (`role="alertdialog"`) per admin-editing.md §3, without the copy action (US4 adds it). Wire it into `ADMIN/editor/EditorView.vue` in place of the conflict branch of `ADMIN/editor/ConflictBanner.vue`; the banner keeps the other reasons. Store `changedBy` and `changedAtUtc` from the 409 in `ADMIN/editor/state/autosave.ts`. Continue until T014 and T016 pass.
+  *Done as*: `ConflictDialog.vue` and `conflict.ts` live in `ADMIN/editing/`. 011's banner still shows every other read-only reason, and the `conflict` reason after Keep viewing. Focus moves to the first action on the next tick, after the dialog is in the document.
+- [X] T022 [US1] In `ADMIN/features/cms/items/ItemFormView.vue` and `ADMIN/api/items.ts`:
   - send `draftRevision`;
   - on `cms.item_conflict`, fetch the latest item and show `ConflictDialog` with the `itemDiff` field list;
   - Keep viewing keeps the entered values read-only.
+  *Done as*: The fields and the slug sit in one `fieldset` that a conflict disables, so Keep viewing keeps the entries visible and read-only; Reload clears it.
 
   Extend `ADMINTESTS/features/cms/items/ItemFormView.spec.ts`.
-- [ ] T023 [US1] Add the US1 strings (dialog texts, system-change text, field list heading) to `ADMIN/i18n/en.json`, and update `specs/010-page-tree-components/contracts/` and `specs/015-cms-items/contracts/` with the new conflict fields and `draftRevision`.
+- [X] T023 [US1] Add the US1 strings (dialog texts, system-change text, field list heading) to `ADMIN/i18n/en.json`, and update `specs/010-page-tree-components/contracts/` and `specs/015-cms-items/contracts/` with the new conflict fields and `draftRevision`.
 
 **Checkpoint**: quickstart §1 passes, except the copy action.
 

@@ -39,8 +39,15 @@ internal sealed class SaveItemDraftHandler(ItemWrites writes, ItemReads reads, C
 
         var (slug, values) = draft.Value;
         var written = await writes.ExecuteAsync(
+                // 023 research CE-08: a form that states its draft revision is checked on that alone.
                 new ItemWriteRequest(
-                    command.SiteId, command.CollectionId, command.ItemId, command.Request.Revision, command.Request.SchemaRevision, access.Actor),
+                    command.SiteId,
+                    command.CollectionId,
+                    command.ItemId,
+                    command.Request.DraftRevision is null ? command.Request.Revision : null,
+                    command.Request.SchemaRevision,
+                    access.Actor,
+                    command.Request.DraftRevision),
                 async context =>
                 {
                     var item = context.Item!;

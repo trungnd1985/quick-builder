@@ -17,6 +17,10 @@ import BlockPalette from './palette/BlockPalette.vue'
 import PropertyPanel from './panel/PropertyPanel.vue'
 import LayerView from './layers/LayerView.vue'
 import ConflictBanner from './ConflictBanner.vue'
+import ConflictDialog from '../editing/ConflictDialog.vue'
+import type { ConflictDetails } from '../editing/conflict'
+import PresenceBanner from '../editing/PresenceBanner.vue'
+import { LOCK_STATUSES, useEditingSession, type EditingStatus } from '../editing/useEditingSession'
 import RecoveryDialog from './RecoveryDialog.vue'
 import EditorTopBar from './EditorTopBar.vue'
 import SampleItemPicker from './SampleItemPicker.vue'
@@ -60,6 +64,9 @@ const sitePresentation = computed(() => {
 const announcement = ref('')
 const notice = ref('')
 const saveState = ref<Autosave['state']['value']>('saved')
+/** 023 FR-006: the conflict dialog, open from a refused save until the member chooses. */
+const conflictDialog = ref(false)
+const conflict = ref<ConflictDetails | null>(null)
 const history = shallowRef<History | null>(null)
 
 /**
@@ -83,6 +90,10 @@ const offer = shallowRef<RecoveryOffer | null>(null)
 const reloading = ref(false)
 let autosave: Autosave | null = null
 const cleanups: (() => void)[] = []
+/** 023: this editor's editing session: presence, the soft lock, and the header its saves carry. */
+const editing = useEditingSession(() => ({ siteId: props.siteId, kind: props.kind, documentId: props.documentId }))
+const editingBusy = ref(false)
+const isLockReason = (reason: string | undefined): boolean => reason !== undefined && LOCK_STATUSES.has(reason as EditingStatus)
 const previewWidth = usePreviewWidth(auth.user?.id ?? 'anonymous')
 
 const backTo = computed(() =>
@@ -143,27 +154,50 @@ async function open(): Promise<void> {
     return
   }
 
+  // 023: the session opens beside the draft and is not waited for (SC-007): the lock state
+  // arrives through the status watch, and the first claim waits for the session itself.
+  void editing.start()
   await store.load(props.siteId, props.kind, props.documentId)
 
   if (store.loadState === 'not-found' || store.loadState === 'forbidden') {
     // Nothing to offer for a document that is gone or no longer this member's to edit.
+    editing.stop()
     void removeRecovery(recoveryKey())
     return
   }
-  if (store.loadState !== 'ready') return
+  if (store.loadState !== 'ready') {
+    editing.stop()
+    return
+  }
 
   history.value = createHistory(store)
   autosave = createAutosave(
     store,
     (document, version) =>
       props.kind === 'page'
-        ? pagesApi.savePageDraft(props.siteId, props.documentId, { document, version })
-        : pagesApi.saveComponentDraft(props.siteId, props.documentId, { document, version }),
-    { onSaved: (saved: ContentNode) => {
-      if (store.root === saved) void removeRecovery(recoveryKey())
-    } },
+        ? pagesApi.savePageDraft(props.siteId, props.documentId, { document, version }, editing.headers())
+        : pagesApi.saveComponentDraft(props.siteId, props.documentId, { document, version }, editing.headers()),
+    {
+      onSaved: (saved: ContentNode) => {
+        if (store.root === saved) void removeRecovery(recoveryKey())
+      },
+      // 023 research CE-04: nothing is saved before this session holds the lock.
+      beforeSave: claimOrRevert,
+      onLockLost: () => editing.lockLost(),
+    },
   )
   cleanups.push(watch(autosave.state, (state) => (saveState.value = state), { immediate: true }))
+  // 023: every change counts as activity, and the first one claims the lock at once.
+  cleanups.push(store.onChange(() => {
+    editing.noteActivity()
+    if (editing.presence.value?.role !== 'holder') void claimOrRevert()
+  }))
+  cleanups.push(watch(editing.status, applyLockStatus, { immediate: true }))
+  cleanups.push(watch(autosave.state, (state) => {
+    if (state !== 'conflict') return
+    conflict.value = autosave?.conflict.value ?? null
+    conflictDialog.value = true
+  }))
   keepRecoveryCopies()
 
   if (auth.user && store.root && !store.readOnly) {
@@ -202,6 +236,7 @@ async function saveBeforePublish(): Promise<number | null> {
 }
 
 function close(): void {
+  editing.stop()
   autosave?.dispose()
   autosave = null
   history.value?.dispose()
@@ -237,14 +272,86 @@ async function reloadLatest(): Promise<void> {
   try {
     const draft = await fetchDraft()
     store.replaceWithDraft((draft.document as unknown as ContentDocument).root, draft.version)
+    conflictDialog.value = false
     history.value?.clear()
     autosave?.reset()
+    applyLockStatus(editing.status.value)
     void removeRecovery(recoveryKey())
     announce(t('editor.conflict.reloaded'))
   } catch {
     notice.value = t('editor.errors.server.unexpected')
   } finally {
     reloading.value = false
+  }
+}
+
+/** 023 research CE-04: the lock went to someone else, so the change on screen is taken back. */
+function revertToSaved(): void {
+  if (!store.savedRoot || store.root === store.savedRoot) return
+  store.restore({ root: store.savedRoot, selection: store.selection })
+  history.value?.clear()
+}
+
+async function claimOrRevert(): Promise<boolean> {
+  const ok = await editing.ensureLock()
+  if (!ok) revertToSaved()
+  return ok
+}
+
+/** Shows the lock's state as the editor's read-only state; 011's own reasons are left alone. */
+function applyLockStatus(status: EditingStatus): void {
+  const current = store.readOnly?.reason
+  if (status === 'editing') {
+    if (isLockReason(current)) store.setReadOnly(null)
+    return
+  }
+  if (current && !isLockReason(current)) return
+  store.setReadOnly({ reason: status })
+}
+
+/** The document became free: load the latest if it changed, then take the lock (research CE-14). */
+async function editAgain(): Promise<void> {
+  editingBusy.value = true
+  try {
+    const draft = await fetchDraft()
+    if (draft.version !== store.baseVersion) {
+      store.replaceWithDraft((draft.document as unknown as ContentDocument).root, draft.version)
+      history.value?.clear()
+    }
+    editing.acknowledge()
+    autosave?.reset()
+    await editing.ensureLock()
+    applyLockStatus(editing.status.value)
+  } catch {
+    notice.value = t('editor.errors.server.unexpected')
+  } finally {
+    editingBusy.value = false
+  }
+}
+
+/** After a takeover or a move: reload the latest version, then show who holds the lock now. */
+async function reloadAfterLoss(): Promise<void> {
+  editing.acknowledge()
+  await reloadLatest()
+}
+
+/** "Edit here instead" (FR-014), then the latest version, which the other tab may have saved. */
+async function moveHere(): Promise<void> {
+  editingBusy.value = true
+  try {
+    if (await editing.moveHere()) await reloadLatest()
+  } finally {
+    editingBusy.value = false
+  }
+}
+
+/** Takes over a stale lock (FR-017, FR-018), then loads the latest saved version. */
+async function takeOver(): Promise<void> {
+  editingBusy.value = true
+  try {
+    if (await editing.takeOver()) await reloadLatest()
+  } finally {
+    editingBusy.value = false
   }
 }
 
@@ -415,8 +522,27 @@ defineExpose({ autosave: () => autosave, history })
           @read-only="openRecoveryReadOnly"
           @discard="discardRecovery"
         />
+        <PresenceBanner
+          v-if="versionNumber === undefined && store.loadState === 'ready'"
+          :kind="kind"
+          :status="editing.status.value"
+          :presence="editing.presence.value"
+          :busy="editingBusy"
+          @take-over="takeOver"
+          @move-here="moveHere"
+          @edit="editAgain"
+          @reload="reloadAfterLoss"
+        />
+        <ConflictDialog
+          v-if="conflictDialog"
+          :kind="kind"
+          :conflict="conflict"
+          :reloading="reloading"
+          @reload="reloadLatest"
+          @keep-viewing="conflictDialog = false"
+        />
         <ConflictBanner
-          v-if="store.readOnly"
+          v-if="store.readOnly && !conflictDialog && !isLockReason(store.readOnly.reason)"
           :state="store.readOnly"
           :title="title"
           :reloading="reloading"

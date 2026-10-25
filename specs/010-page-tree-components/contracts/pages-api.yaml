@@ -272,7 +272,8 @@ paths:
         '409':
           $ref: '#/components/responses/Problem'
           description: |
-            `pages.out_of_date`, or `pages.admin_outdated` (added by 035): the request does not
+            `pages.out_of_date` (from 023 with `changedBy` (`{ id, displayName }`), `changedAtUtc`
+            and `currentVersion`, research CE-09), or `pages.admin_outdated` (added by 035): the request does not
             carry `X-QB-Rich-Text: 2` while the stored draft uses a 035 rich text format.
         '413':
           $ref: '#/components/responses/Problem'
@@ -446,7 +447,8 @@ paths:
         '409':
           $ref: '#/components/responses/Problem'
           description: |
-            `pages.out_of_date`, or `pages.admin_outdated` (added by 035): the request does not
+            `pages.out_of_date` (from 023 with `changedBy` (`{ id, displayName }`), `changedAtUtc`
+            and `currentVersion`, research CE-09), or `pages.admin_outdated` (added by 035): the request does not
             carry `X-QB-Rich-Text: 2` while the stored draft uses a 035 rich text format.
         '413':
           $ref: '#/components/responses/Problem'

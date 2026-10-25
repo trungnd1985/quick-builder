@@ -1,6 +1,7 @@
 using System.Text;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Npgsql;
 using QuickBuilder.Pages.Contracts;
 using QuickBuilder.Pages.Domain;
@@ -20,7 +21,7 @@ namespace QuickBuilder.Pages.Infrastructure;
 /// <c>SaveChanges</c> as the draft; the usage foreign keys then make a reference to another
 /// site's component, or to one deleted a moment ago, impossible to commit.
 /// </remarks>
-internal sealed class DraftWrites(
+internal sealed partial class DraftWrites(
     PagesDbContext database,
     IPageDocumentValidator validator,
     PagesAccess access,
@@ -28,6 +29,7 @@ internal sealed class DraftWrites(
     QuickBuilder.Cms.Contracts.ICollectionSchemaReader collections,
     CollectionUseRows uses,
     PageParamRules pageParams,
+    ILogger<DraftWrites> logger,
     TimeProvider clock)
 {
     /// <summary>
@@ -134,7 +136,7 @@ internal sealed class DraftWrites(
 
         if (draft.Version != version)
         {
-            return Result.Failure<DraftResponse>(PagesErrors.OutOfDate);
+            return await ConflictAsync(draft, cancellationToken).ConfigureAwait(false);
         }
 
         draft.Replace(text, checkedDocument.SchemaVersion, access.Actor, clock);
@@ -205,7 +207,7 @@ internal sealed class DraftWrites(
 
         if (draft.Version != version)
         {
-            return Result.Failure<DraftResponse>(PagesErrors.OutOfDate);
+            return await ConflictAsync(draft, cancellationToken).ConfigureAwait(false);
         }
 
         draft.Replace(text, checkedDocument.SchemaVersion, access.Actor, clock);
@@ -262,6 +264,46 @@ internal sealed class DraftWrites(
             .Select(id => new Domain.Menus.MenuUsage(siteId, subjectKind, subjectId, id)));
     }
 
+    /// <summary>
+    /// 023 research CE-09, FR-003, FR-024: the refusal of an out-of-date draft save, naming who
+    /// saved the stored version, when, and its version, read again from the database (the
+    /// tracked draft may be the one that lost); and its log entry, with ids only.
+    /// </summary>
+    private async Task<Result<DraftResponse>> ConflictAsync(Draft draft, CancellationToken cancellationToken)
+    {
+        var (kind, id) = draft switch
+        {
+            PageDraft page => (SubjectKinds.Page, page.PageId),
+            ComponentDraft component => (SubjectKinds.Component, component.ComponentId),
+            _ => throw new InvalidOperationException($"Unknown draft type {draft.GetType().Name}."),
+        };
+
+        var stored = kind == SubjectKinds.Page
+            ? await database.ForSite<PageDraft>(draft.SiteId).AsNoTracking()
+                .Where(d => d.PageId == id)
+                .Select(d => new { d.UpdatedBy, d.UpdatedAtUtc, d.Version })
+                .SingleOrDefaultAsync(cancellationToken).ConfigureAwait(false)
+            : await database.ForSite<ComponentDraft>(draft.SiteId).AsNoTracking()
+                .Where(d => d.ComponentId == id)
+                .Select(d => new { d.UpdatedBy, d.UpdatedAtUtc, d.Version })
+                .SingleOrDefaultAsync(cancellationToken).ConfigureAwait(false);
+
+        if (stored is null)
+        {
+            // Deleted while we were saving.
+            return Result.Failure<DraftResponse>(kind == SubjectKinds.Page ? PagesErrors.NotFound : PagesErrors.ComponentNotFound);
+        }
+
+        var names = await access.NamesAsync([stored.UpdatedBy], cancellationToken).ConfigureAwait(false);
+        LogDraftConflict(logger, draft.SiteId, kind, id, access.Actor, stored.UpdatedBy);
+        return Result.Failure<DraftResponse>(PagesErrors.DraftOutOfDate(
+            stored.UpdatedBy, names.GetValueOrDefault(stored.UpdatedBy) ?? string.Empty, stored.UpdatedAtUtc, stored.Version));
+    }
+
+    [LoggerMessage(Level = LogLevel.Information,
+        Message = "Draft save refused as out of date: site {SiteId}, {Kind} {DocumentId}, by {ActorId}; the stored draft was saved by {ChangedById}")]
+    private static partial void LogDraftConflict(ILogger logger, Guid siteId, string kind, Guid documentId, Guid actorId, Guid changedById);
+
     private async Task<Result<DraftResponse>> SaveAsync(Draft draft, CancellationToken cancellationToken)
     {
         try
@@ -271,7 +313,7 @@ internal sealed class DraftWrites(
         catch (DbUpdateConcurrencyException)
         {
             // Someone saved between our read and our write.
-            return Result.Failure<DraftResponse>(PagesErrors.OutOfDate);
+            return await ConflictAsync(draft, cancellationToken).ConfigureAwait(false);
         }
         catch (DbUpdateException ex) when (ex.InnerException is PostgresException
         {

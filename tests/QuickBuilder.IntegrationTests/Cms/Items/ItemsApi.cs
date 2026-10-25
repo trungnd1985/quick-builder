@@ -24,6 +24,12 @@ internal static class ItemsApi
         ? new { slug, values = new JsonObject { ["schemaVersion"] = 1, ["values"] = values }, schemaRevision }
         : new { slug, values = new JsonObject { ["schemaVersion"] = 1, ["values"] = values }, schemaRevision, revision };
 
+    /// <summary>A draft body based on a draft revision (023 research CE-08), as the admin sends it from 023 on.</summary>
+    public static object DraftOf(string slug, JsonObject values, int schemaRevision, int draftRevision) =>
+        new { slug, values = new JsonObject { ["schemaVersion"] = 1, ["values"] = values }, schemaRevision, draftRevision };
+
+    public static int DraftRevision(JsonElement item) => item.GetProperty("draftRevision").GetInt32();
+
     public static Task<HttpResponseMessage> CreateAsync(HttpClient client, Guid siteId, Guid collectionId, object body) =>
         client.PostAsJsonAsync(new Uri(ItemsPath(siteId, collectionId), UriKind.Relative), body);
 

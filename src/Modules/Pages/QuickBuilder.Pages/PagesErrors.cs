@@ -26,6 +26,17 @@ internal static class PagesErrors
         "pages.out_of_date",
         "This was changed by someone else since you opened it. Reload and try again.");
 
+    /// <summary>
+    /// 023 research CE-09, FR-003: a draft save refused because the draft changed since it was
+    /// loaded, naming who saved the newer version, when, and its version. Same code as
+    /// <see cref="OutOfDate"/>, so admins from before 023 still recognise it.
+    /// </summary>
+    internal static Error DraftOutOfDate(Guid changedById, string changedByName, DateTimeOffset changedAtUtc, uint currentVersion) => With(
+        Error.Conflict("pages.out_of_date", "This was changed by someone else since you opened it. Nothing was overwritten."),
+        ("changedBy", new { id = changedById, displayName = changedByName }),
+        ("changedAtUtc", changedAtUtc),
+        ("currentVersion", currentVersion));
+
     /// <summary>035 FR-020: an admin from before 035 would drop rich text formats it does not know.</summary>
     internal static Error AdminOutdated { get; } = Error.Conflict(
         "pages.admin_outdated",

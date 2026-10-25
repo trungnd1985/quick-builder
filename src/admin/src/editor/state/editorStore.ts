@@ -22,6 +22,8 @@ import { useSitesStore } from '../../app/sitesStore'
 /** Why the document cannot be changed right now (FR-028, FR-029, ED-19). */
 /** `version`: a published version, opened from the history (012 FR-013). */
 export type ReadOnlyReason = 'conflict' | 'forbidden' | 'gone' | 'invalid' | 'outdated' | 'recovery' | 'version'
+  /** 023: someone else holds the editing lock, or it was taken over or moved (contracts/admin-editing.md §2). */
+  | 'locked' | 'locked-stale' | 'locked-self' | 'taken-over' | 'moved' | 'view-only' | 'free'
 
 export interface ReadOnlyState {
   reason: ReadOnlyReason

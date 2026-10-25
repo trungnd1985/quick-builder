@@ -153,6 +153,32 @@ internal static class PagesApi
         return await SaveDraftAsync(client, ownerPath, documentJson, draft.GetProperty("version").GetUInt32()).ConfigureAwait(false);
     }
 
+    /// <summary>A valid page or component document showing <paramref name="text"/> in one heading.</summary>
+    public static string DocumentWithText(string text) =>
+        JsonSerializer.Serialize(new
+        {
+            schemaVersion = 1,
+            root = new
+            {
+                id = "root",
+                type = "root",
+                props = new { },
+                children = new[]
+                {
+                    new
+                    {
+                        id = "section",
+                        type = "section",
+                        props = new { },
+                        children = new[]
+                        {
+                            new { id = "title", type = "heading", props = new { text, level = 2 }, children = Array.Empty<object>() },
+                        },
+                    },
+                },
+            },
+        });
+
     /// <summary>A valid page document referencing the given components.</summary>
     public static string DocumentReferencing(params Guid[] componentIds) =>
         JsonSerializer.Serialize(new

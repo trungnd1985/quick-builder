@@ -123,16 +123,47 @@ describe('ItemFormView', () => {
     expect(screen.getByText(en.cms.items.form.fieldChanged)).toBeTruthy()
   })
 
-  it('offers to reload when someone else changed the item, and keeps the input when fields are being updated', async () => {
-    let refusal = 'cms.item_conflict'
-    await renderAt(ItemFormView, EDIT, server((call) => (call.method === 'PUT' ? problem(409, refusal) : undefined)))
+  it('names who changed the item and which fields, keeps the entries read-only, and reloads (023 FR-006, FR-007)', async () => {
+    let gets = 0
+    const calls: Call[] = []
+    await renderAt(ItemFormView, EDIT, server((call) => {
+      calls.push(call)
+      if (call.method === 'PUT') {
+        return problem(409, 'cms.item_conflict', { changedBy: { id: 'u-ben', displayName: 'Ben Hale' }, changeKind: 'member', changedAtUtc: '2026-10-25T10:42:00Z' })
+      }
+      if (call.method === 'GET' && call.url.endsWith(`/items/${ITEM}`)) {
+        gets++
+        return { status: 200, body: gets === 1 ? item() : item({ draftRevision: 3, draft: { schemaVersion: 1, values: { f1: 'Title by Ben' } } }) }
+      }
+      return undefined
+    }))
     await loaded(en.cms.items.form.loading)
 
     await fireEvent.update(screen.getByLabelText(/Title/), 'Mine')
     await fireEvent.click(screen.getByRole('button', { name: en.cms.items.form.saveDraft }))
-    await waitFor(() => expect(screen.getByRole('button', { name: en.cms.items.form.reload })).toBeTruthy())
 
-    refusal = 'cms.items_being_updated'
+    const dialog = await screen.findByRole('alertdialog')
+    expect(dialog.textContent).toContain('Ben Hale')
+    expect(dialog.textContent).toContain(en.editing.conflict.nothingOverwritten)
+    expect(within(within(dialog).getByRole('list')).getAllByRole('listitem').map((li) => li.textContent?.trim())).toEqual(['Title'])
+    // The save stated the draft revision the form loaded (023 research CE-08).
+    expect(calls.find((c) => c.method === 'PUT')!.body).toMatchObject({ draftRevision: 2, revision: 3 })
+
+    await fireEvent.click(within(dialog).getByRole('button', { name: en.editing.conflict.keepViewing }))
+    expect((screen.getByLabelText(/Title/) as HTMLInputElement).value).toBe('Mine')
+    expect((screen.getByLabelText(/Title/) as HTMLInputElement).closest('fieldset')!.disabled).toBe(true)
+    expect((screen.getByRole('button', { name: en.cms.items.form.saveDraft }) as HTMLButtonElement).disabled).toBe(true)
+
+    await fireEvent.click(screen.getByRole('button', { name: en.cms.items.form.reload }))
+    await waitFor(() => expect((screen.getByLabelText(/Title/) as HTMLInputElement).value).toBe('Title by Ben'))
+    expect((screen.getByLabelText(/Title/) as HTMLInputElement).closest('fieldset')!.disabled).toBe(false)
+  })
+
+  it('keeps the input when fields are being updated', async () => {
+    await renderAt(ItemFormView, EDIT, server((call) => (call.method === 'PUT' ? problem(409, 'cms.items_being_updated') : undefined)))
+    await loaded(en.cms.items.form.loading)
+
+    await fireEvent.update(screen.getByLabelText(/Title/), 'Mine')
     await fireEvent.click(screen.getByRole('button', { name: en.cms.items.form.saveDraft }))
     await waitFor(() => expect(screen.getByText(en.cms.items.errors.items_being_updated)).toBeTruthy())
     expect((screen.getByLabelText(/Title/) as HTMLInputElement).value).toBe('Mine')

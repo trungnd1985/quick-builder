@@ -1,0 +1,50 @@
+/* Concurrent editing (023): the conflict dialog, presence banner and lock markers. */
+
+.editing-conflict {
+  margin: 0;
+  padding: 1rem;
+  background: #fff6e5;
+  border-bottom: 1px solid #b26a00;
+}
+
+.editing-conflict h2 {
+  font-size: 1rem;
+  margin: 0 0 0.25rem;
+}
+
+.editing-conflict p,
+.editing-conflict ul {
+  margin: 0 0 0.75rem;
+}
+
+.editing-conflict__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.editing-presence__banner {
+  margin: 0;
+  padding: 0.5rem 1rem;
+  background: #eef4ff;
+  border-bottom: 1px solid var(--accent);
+}
+
+.editing-presence__banner--blocked {
+  background: #fff6e5;
+  border-bottom-color: #b26a00;
+}
+
+.editing-presence__banner p {
+  margin: 0 0 0.25rem;
+}
+
+.editing-presence__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.editing-presence__actions:empty {
+  display: none;
+}
