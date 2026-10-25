@@ -52,9 +52,11 @@ Shorthand used below:
     requires:
     - the copy endpoints declare `[RequireCapability(...)]` with the create capability;
     - the editing-session actions, whose capability depends on the document kind, declare
-      `[RequireSignedIn]`. Their handlers check the kind's view or edit capability through
-      `EditingAccess` (research CE-16) and answer 404 for a site the member cannot see, as
-      other site-scoped endpoints do;
+      `[RequireCapability(PageContentCapabilities.View)]`, which every site role holds, so a
+      member with no role on the site gets the usual 404. Their handlers then check the
+      kind's view or edit capability through `EditingAccess` (research CE-16). (Changed
+      during T009 from `[RequireSignedIn]`, which would have needed the 404 rebuilt by
+      hand.);
   - dispatches through `IDispatcher`;
   - refuses with the codes in [data-model.md §5](./data-model.md);
   - is registered in the module's `<Module>Module.cs` and listed in
@@ -82,8 +84,8 @@ Shorthand used below:
 
 **Purpose**: the feature's documents and the two new module edges.
 
-- [ ] T001 Commit `specs/023-concurrency/` (spec, plan, research, data model, contracts, quickstart, checklist, tasks) as the first commit on branch `023-concurrency`, referencing #23.
-- [ ] T002 Add the project references of module-surface.md §1: `EDITORM/QuickBuilder.Editor.csproj` → `src/Modules/Cms/QuickBuilder.Cms.Contracts`, and `CMS/QuickBuilder.Cms.csproj` → `src/Modules/Editor/QuickBuilder.Editor.Contracts`. Allow both edges in `ATESTS/ModuleBoundaryTests.cs` with a comment citing research CE-21, and keep `Editor_contracts_reference_only_the_kernel` green.
+- [X] T001 Commit `specs/023-concurrency/` (spec, plan, research, data model, contracts, quickstart, checklist, tasks) as the first commit on branch `023-concurrency`, referencing #23.
+- [X] T002 Add the project references of module-surface.md §1: `EDITORM/QuickBuilder.Editor.csproj` → `src/Modules/Cms/QuickBuilder.Cms.Contracts`, and `CMS/QuickBuilder.Cms.csproj` → `src/Modules/Editor/QuickBuilder.Editor.Contracts`. Allow both edges in `ATESTS/ModuleBoundaryTests.cs` with a comment citing research CE-21, and keep `Editor_contracts_reference_only_the_kernel` green.
 
 ---
 
@@ -99,12 +101,13 @@ Shorthand used below:
 
 ### Contracts (module-surface.md §2, §3)
 
-- [ ] T003 [P] Create `EDITORC/EditingDocumentKinds.cs` (`page`, `component`, `item`), `EDITORC/EditingHeaders.cs` (`X-QB-Editing-Session`) and `EDITORC/IEditingLocks.cs` with `EditingWriteCheck` exactly as module-surface.md §2, with XML docs citing CE-07.
-- [ ] T004 [P] Create `CMSC/ItemCapabilities.cs` (`CollectionsView`, `ItemsEdit`) and make `CMS/CmsCapabilities.cs` alias them, as `PagesCapabilities` aliases `PageContentCapabilities` (CE-16). No capability string changes.
+- [X] T003 [P] Create `EDITORC/EditingDocumentKinds.cs` (`page`, `component`, `item`), `EDITORC/EditingHeaders.cs` (`X-QB-Editing-Session`) and `EDITORC/IEditingLocks.cs` with `EditingWriteCheck` exactly as module-surface.md §2, with XML docs citing CE-07.
+  *Done as*: All three are in `EDITORC/IEditingLocks.cs`, as `IDesignTokenReader.cs` keeps its DTO beside the interface. `EditingHeaders.Parse` and `EditingWriteCheck.HeldBy` were added for the callers.
+- [X] T004 [P] Create `CMSC/ItemCapabilities.cs` (`CollectionsView`, `ItemsEdit`) and make `CMS/CmsCapabilities.cs` alias them, as `PagesCapabilities` aliases `PageContentCapabilities` (CE-16). No capability string changes.
 
 ### Domain (data-model §1, CE-02 to CE-06)
 
-- [ ] T005 [P] Write `UTESTS/Editor/EditingRulesTests.cs` (fake clock), covering:
+- [X] T005 [P] Write `UTESTS/Editor/EditingRulesTests.cs` (fake clock), covering:
   - gone at exactly 2 min since `last_seen_at`;
   - stale at exactly 30 min since `last_activity_at`;
   - a viewer with no activity is never stale;
@@ -115,11 +118,11 @@ Shorthand used below:
   - activity is ignored for viewers.
 
   The tests must fail first.
-- [ ] T006 Create `EDITORM/Domain/EditingRules.cs` (constants and pure decisions), `EDITORM/Domain/EditingSession.cs` (aggregate with `ISiteOwned`: `Open`, `Seen(active, now)`, `TakeLock(now)`, `LoseLock(byUser, reason, now)`; invariants: `lock_taken_at` and `last_activity_at` are set if and only if `holds_lock`; `lost_lock_*` all set or all null) and `EDITORM/Domain/EditingTakeover.cs`, until T005 passes.
+- [X] T006 Create `EDITORM/Domain/EditingRules.cs` (constants and pure decisions), `EDITORM/Domain/EditingSession.cs` (aggregate with `ISiteOwned`: `Open`, `Seen(active, now)`, `TakeLock(now)`, `LoseLock(byUser, reason, now)`; invariants: `lock_taken_at` and `last_activity_at` are set if and only if `holds_lock`; `lost_lock_*` all set or all null) and `EDITORM/Domain/EditingTakeover.cs`, until T005 passes.
 
 ### Database (data-model §1)
 
-- [ ] T007 Map `editing_sessions` and `editing_takeovers` in `EDITORM/Infrastructure/EditorDbContext.cs`:
+- [X] T007 Map `editing_sessions` and `editing_takeovers` in `EDITORM/Infrastructure/EditorDbContext.cs`:
   - the global site filter;
   - the partial unique index `ux_editing_sessions_holder` on `(site_id, document_kind, document_id) WHERE holds_lock`;
   - the document and `last_seen_at` indexes;
@@ -130,8 +133,9 @@ Shorthand used below:
 
 ### Errors and access (data-model §5, CE-16)
 
-- [ ] T008 [P] Add `editing.lock_held` (with `holder`, `since`, `stale`), `editing.not_stale` (with `holder`, `since`, `inactiveSeconds`), `editing.session_gone` and `editing.forbidden` to `EDITORM/EditorErrors.cs`, and map them in `EDITORM/EditorErrorResults.cs` (409, 409, 404, 403).
-- [ ] T009 Create `EDITORM/Infrastructure/EditingAccess.cs`: the kind-to-capability table of CE-16 (`PageContentCapabilities`, `pages.components.manage` through a constant in Editor citing Pages' value, and `ItemCapabilities`), `MayViewAsync(siteId, kind)` and `MayEditAsync(siteId, kind)` over `IAccessEvaluator`. Add unit cases to `UTESTS/Editor/EditingAccessTests.cs`.
+- [X] T008 [P] Add `editing.lock_held` (with `holder`, `since`, `stale`), `editing.not_stale` (with `holder`, `since`, `inactiveSeconds`), `editing.session_gone` and `editing.forbidden` to `EDITORM/EditorErrors.cs`, and map them in `EDITORM/EditorErrorResults.cs` (409, 409, 404, 403).
+- [X] T009 Create `EDITORM/Infrastructure/EditingAccess.cs`: the kind-to-capability table of CE-16 (`PageContentCapabilities`, `pages.components.manage` through a constant in Editor citing Pages' value, and `ItemCapabilities`), `MayViewAsync(siteId, kind)` and `MayEditAsync(siteId, kind)` over `IAccessEvaluator`. Add unit cases to `UTESTS/Editor/EditingAccessTests.cs`.
+  *Done as*: `pages.components.manage` moved to `PageContentCapabilities.ComponentsManage` in Pages.Contracts (aliased by `PagesCapabilities`), so Editor repeats no string. The Editor unit tests (46) and architecture tests (59) pass.
 
 **Checkpoint**: the migration applies, the rules pass, and no endpoint exists yet.
 

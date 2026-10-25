@@ -46,6 +46,9 @@ internal static class EditorErrorResults
     internal static int StatusFor(string code) => code switch
     {
         "editor.out_of_date" or "editor.document_too_new" => StatusCodes.Status409Conflict,
+        "editing.lock_held" or "editing.not_stale" => StatusCodes.Status409Conflict,
+        "editing.session_gone" => StatusCodes.Status404NotFound,
+        "editing.forbidden" => StatusCodes.Status403Forbidden,
         "editor.document_upgrade_failed" => StatusCodes.Status422UnprocessableEntity,
         "editor.tokens_too_large" => StatusCodes.Status413PayloadTooLarge,
         _ when code.EndsWith("not_found", StringComparison.Ordinal) => StatusCodes.Status404NotFound,
@@ -54,6 +57,7 @@ internal static class EditorErrorResults
 
     private static string TitleFor(int status) => status switch
     {
+        StatusCodes.Status403Forbidden => "Forbidden",
         StatusCodes.Status404NotFound => "Not found",
         StatusCodes.Status409Conflict => "Conflict",
         StatusCodes.Status413PayloadTooLarge => "Too large",

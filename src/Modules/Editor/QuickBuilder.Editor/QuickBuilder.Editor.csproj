@@ -20,6 +20,8 @@
     <ProjectReference Include="..\QuickBuilder.Editor.Contracts\QuickBuilder.Editor.Contracts.csproj" />
     <!-- For the shared subset validator of content contracts (Pages.Contracts.Schema). -->
     <ProjectReference Include="..\..\Pages\QuickBuilder.Pages.Contracts\QuickBuilder.Pages.Contracts.csproj" />
+    <!-- Item deletions and item capabilities, for editing sessions (023 research CE-21). -->
+    <ProjectReference Include="..\..\Cms\QuickBuilder.Cms.Contracts\QuickBuilder.Cms.Contracts.csproj" />
     <ProjectReference Include="..\..\Sites\QuickBuilder.Sites.Contracts\QuickBuilder.Sites.Contracts.csproj" />
     <ProjectReference Include="..\..\Identity\QuickBuilder.Identity.Contracts\QuickBuilder.Identity.Contracts.csproj" />
   </ItemGroup>

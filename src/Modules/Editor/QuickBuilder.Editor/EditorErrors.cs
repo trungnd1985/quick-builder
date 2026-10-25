@@ -65,6 +65,29 @@ internal static class EditorErrors
         Error.Validation("editor.content_widths_order", "The content widths must go from narrowest to widest: Narrow, then Normal, then Wide."),
         ("pointer", "/contentWidths"));
 
+    /// <summary>023 data-model §5: someone else's session holds the document's lock.</summary>
+    internal static Error LockHeld(Guid holderId, string holderName, DateTimeOffset since, bool stale) => With(
+        Error.Conflict("editing.lock_held", "Someone else is editing this. Nothing was changed."),
+        ("holder", new { id = holderId, displayName = holderName }),
+        ("since", since),
+        ("stale", stale));
+
+    /// <summary>023 data-model §5: a takeover of a lock that is active, or held by someone else now.</summary>
+    internal static Error NotStale(Guid holderId, string holderName, DateTimeOffset since, int inactiveSeconds) => With(
+        Error.Conflict("editing.not_stale", "This lock can't be taken over: its holder is active again, or someone else holds it now."),
+        ("holder", new { id = holderId, displayName = holderName }),
+        ("since", since),
+        ("inactiveSeconds", inactiveSeconds));
+
+    /// <summary>The session expired, was released, or its document was deleted. The admin opens a new one.</summary>
+    internal static Error SessionGone { get; } = Error.NotFound(
+        "editing.session_gone",
+        "This editing session has ended. Reopen the document.");
+
+    internal static Error EditingForbidden { get; } = Error.Conflict(
+        "editing.forbidden",
+        "You can't edit this.");
+
     /// <summary>The extra problem fields attached to <paramref name="error"/>, if any.</summary>
     internal static IReadOnlyDictionary<string, object?>? ExtensionsOf(Error error) =>
         ExtensionsByError.TryGetValue(error, out var extensions) ? extensions : null;

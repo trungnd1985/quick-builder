@@ -21,6 +21,8 @@
     <ProjectReference Include="..\QuickBuilder.Cms.Contracts\QuickBuilder.Cms.Contracts.csproj" />
     <ProjectReference Include="..\..\Pages\QuickBuilder.Pages.Contracts\QuickBuilder.Pages.Contracts.csproj" />
     <ProjectReference Include="..\..\Media\QuickBuilder.Media.Contracts\QuickBuilder.Media.Contracts.csproj" />
+    <!-- IEditingLocks, to fence item draft saves (023 research CE-07, CE-21). -->
+    <ProjectReference Include="..\..\Editor\QuickBuilder.Editor.Contracts\QuickBuilder.Editor.Contracts.csproj" />
     <ProjectReference Include="..\..\Sites\QuickBuilder.Sites.Contracts\QuickBuilder.Sites.Contracts.csproj" />
     <ProjectReference Include="..\..\Identity\QuickBuilder.Identity.Contracts\QuickBuilder.Identity.Contracts.csproj" />
   </ItemGroup>

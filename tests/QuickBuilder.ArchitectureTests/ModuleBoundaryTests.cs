@@ -210,6 +210,8 @@ public sealed class ModuleBoundaryTests
             "QuickBuilder.Media.Contracts",
             "QuickBuilder.Sites.Contracts",
             "QuickBuilder.Identity.Contracts",
+            // 023 research CE-07, CE-21: item draft saves are fenced by editing sessions.
+            "QuickBuilder.Editor.Contracts",
         ];
 
         var references = typeof(Cms.CmsModule).Assembly
@@ -233,6 +235,8 @@ public sealed class ModuleBoundaryTests
             "QuickBuilder.Media -> QuickBuilder.Cms.Contracts",
             "QuickBuilder.Pages -> QuickBuilder.Cms.Contracts",
             "QuickBuilder.Rendering -> QuickBuilder.Cms.Contracts",
+            // 023 research CE-21: editing sessions end when items or collections are deleted.
+            "QuickBuilder.Editor -> QuickBuilder.Cms.Contracts",
         ];
 
         Assert.All(dependents, edge => Assert.Contains(edge, allowedDependents));

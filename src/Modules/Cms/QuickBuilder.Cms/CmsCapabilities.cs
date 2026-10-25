@@ -14,7 +14,7 @@ namespace QuickBuilder.Cms;
 internal static class CmsCapabilities
 {
     /// <summary>See collections, their schemas, history and previews. Every site role.</summary>
-    public const string CollectionsView = "cms.collections.view";
+    public const string CollectionsView = QuickBuilder.Cms.Contracts.ItemCapabilities.CollectionsView;
 
     /// <summary>Create, save and delete collections. Designer.</summary>
     public const string CollectionsManage = "cms.collections.manage";
@@ -23,7 +23,7 @@ internal static class CmsCapabilities
     /// Create, save, duplicate and delete items, and copy a version into the draft. Every site
     /// role (015 clarification Q1, research IT-16).
     /// </summary>
-    public const string ItemsEdit = "cms.items.edit";
+    public const string ItemsEdit = QuickBuilder.Cms.Contracts.ItemCapabilities.ItemsEdit;
 
     /// <summary>
     /// Publish, unpublish, schedule and roll back items. Every site role (015 clarification Q1);

@@ -25,7 +25,7 @@ internal static class PagesCapabilities
     public const string PageDraftsEdit = QuickBuilder.Pages.Contracts.PageContentCapabilities.DraftsEdit;
 
     /// <summary>Create, rename and delete components, and save their drafts. Designer.</summary>
-    public const string ComponentsManage = "pages.components.manage";
+    public const string ComponentsManage = QuickBuilder.Pages.Contracts.PageContentCapabilities.ComponentsManage;
 
     /// <summary>
     /// List, create, change, delete, import and export the site's redirects. Designer (017
