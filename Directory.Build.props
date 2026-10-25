@@ -23,7 +23,7 @@
       writes it into its assembly metadata for the startup check (data-model §2).
   -->
   <PropertyGroup>
-    <VersionPrefix>0.1.0</VersionPrefix>
+    <VersionPrefix>0.2.0</VersionPrefix>
     <VersionSuffix>dev</VersionSuffix>
     <QbUpgradeFloor>0.0.0</QbUpgradeFloor>
   </PropertyGroup>
