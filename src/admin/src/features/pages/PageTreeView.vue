@@ -7,6 +7,7 @@ import { cmsApi, type CollectionSummary } from '../../api/cms'
 import { useSitesStore } from '../../app/sitesStore'
 import PublicationBadge from '../publishing/PublicationBadge.vue'
 import LockMarker from '../../editing/LockMarker.vue'
+import HolderWarning from '../../editing/HolderWarning.vue'
 import { usePresenceList } from '../../editing/usePresenceList'
 import PublishMenu from '../publishing/PublishMenu.vue'
 import { liveAddressCount } from '../publishing/addressWarning'
@@ -731,6 +732,12 @@ function whoSaved(value: PageDetail): string {
       @confirm="confirm"
       @cancel="close"
     >
+      <!-- 023 research CE-17: deleting stops whoever is editing it. -->
+      <HolderWarning
+        v-if="editing.holderOf(dialog.page.id)"
+        :name="editing.holderOf(dialog.page.id)!.holder.displayName"
+        action="delete"
+      />
       <!-- 024 FR-026: the menus that point here keep a broken entry, which visitors do not see. -->
       <MenuReferencesNote
         :site-id="siteId"

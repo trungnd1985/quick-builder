@@ -2283,7 +2283,8 @@
           "rescheduled": "Moved the {action} schedule to {when}",
           "scheduleCancelled": "Cancelled the {action} schedule",
           "scheduleFailed": "The scheduled {action} failed: {reason}",
-          "copiedToDraft": "Copied version {number} into the draft"
+          "copiedToDraft": "Copied version {number} into the draft",
+          "createdAsCopy": "Created as a copy of another item"
         },
         "actions": {
           "publish": "publish",
@@ -2805,6 +2806,24 @@
     "marker": {
       "editing": "{name} is editing — since {since}",
       "stale": "{name} — inactive, since {since}"
+    },
+    "copy": {
+      "save": "Save my version as a copy",
+      "saving": "Saving a copy…",
+      "saved": "Your version was saved as a copy, not published:",
+      "open": "Open the copy",
+      "notAllowed": "You can copy blocks from your version and paste them later, or ask a Designer to save it as a copy.",
+      "dropped": "These fields no longer exist or could not hold the values, so they were left out: {fields}.",
+      "pageTitle": "{title} (copy)",
+      "componentName": "{name} (copy)",
+      "failed": "The copy could not be saved: {reason}",
+      "origin": "This is a copy made by {name} on {when}, from the version saved at {saved}.",
+      "original": "Open the original"
+    },
+    "warnings": {
+      "publish": "{name} is editing this now. Publishing uses the saved draft; changes they have not saved yet will not be included.",
+      "delete": "{name} is editing this now. Deleting it stops their editing, and their unsaved changes are lost.",
+      "copyToDraft": "{name} is editing this now. Copying a version into the draft replaces what they saved, and their next save will be refused as out of date."
     }
   }
 }

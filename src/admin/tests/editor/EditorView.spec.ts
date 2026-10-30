@@ -246,6 +246,38 @@ describe('EditorView — building a page (US1)', () => {
     expect(store.root!.children[0].children.map((c) => c.type)).toEqual(['heading', 'text'])
   })
 
+  it('opens unsaved changes read-only, with Save as a copy, when someone else holds the lock (023 research CE-18)', async () => {
+    const { writeRecovery, clearRecoveryForUser } = await import('../../src/editor/state/recovery')
+    const { useAuthStore } = await import('../../src/app/authStore')
+    const server = stubServer(emptyDocument(), { version: 7 })
+    const sessions = '/api/v1/editor/sites/33333333-3333-3333-3333-333333333333/editing-sessions'
+    server.script(`POST ${sessions}`, { status: 201, body: { sessionId: 's-me', serverNow: '2026-10-25T10:00:00Z', role: 'viewer', access: 'edit', lock: null, lostLock: null, others: [] } })
+    server.script(`POST ${sessions}/s-me/claim`, { status: 409, body: { title: 'x', status: 409, errorCode: 'editing.lock_held' } })
+    const page = { status: 200, body: { id: '44444444-4444-4444-4444-444444444444', title: 'About', slug: 'about', path: '/about', permissions: { canManageStructure: true, canEditPageDrafts: true, canManageComponents: true } } }
+    server.script('GET /api/v1/pages/sites/33333333-3333-3333-3333-333333333333/pages/44444444-4444-4444-4444-444444444444', page, page, page, page)
+
+    const { setActivePinia, createPinia } = await import('pinia')
+    const pinia = createPinia()
+    setActivePinia(pinia)
+    useAuthStore().signedIn({ id: 'u1', displayName: 'Dana', email: 'd@example.test', isAdministrator: true, siteRoles: [] })
+    await clearRecoveryForUser('u1')
+    await writeRecovery({
+      userId: 'u1', siteId: '33333333-3333-3333-3333-333333333333', kind: 'page', documentId: '44444444-4444-4444-4444-444444444444',
+      document: documentWith({ id: 'r', type: 'section', props: {}, children: [] }) as never, baseVersion: 7,
+    })
+
+    await mountEditor('page', pinia)
+    const store = useEditorStore()
+    await waitFor(() => expect(screen.getByRole('alertdialog')).toBeTruthy())
+
+    await fireEvent.click(screen.getByRole('button', { name: en.editor.recovery.restore }))
+    await waitFor(() => expect(store.readOnly?.reason).toBe('recovery'))
+    expect(store.root!.children.map((c) => c.id)).toEqual(['r'])
+    expect(server.calls.some((c) => c.method === 'PUT')).toBe(false)
+    await waitFor(() => expect(screen.getByRole('button', { name: en.editing.copy.save })).toBeTruthy())
+    await clearRecoveryForUser('u1')
+  })
+
   it('offers unsaved changes from an earlier visit, and restores them only when asked (US3 #8)', async () => {
     const { writeRecovery, clearRecoveryForUser } = await import('../../src/editor/state/recovery')
     const { useAuthStore } = await import('../../src/app/authStore')
@@ -269,7 +301,8 @@ describe('EditorView — building a page (US1)', () => {
     expect(store.root!.children).toHaveLength(0)
 
     await fireEvent.click(screen.getByRole('button', { name: en.editor.recovery.restore }))
-    expect(store.root!.children.map((c) => c.id)).toEqual(['r'])
+    // 023 research CE-18: restored once this session may take the lock.
+    await waitFor(() => expect(store.root!.children.map((c) => c.id)).toEqual(['r']))
     await clearRecoveryForUser('u1')
   })
 

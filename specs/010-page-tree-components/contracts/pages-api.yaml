@@ -7,6 +7,12 @@ info:
     components of one site. All of it is on the **administrative surface**. The site is
     named in the route and is never inferred from the host (001 FR-011b). Nothing here is
     public, and nothing here changes what visitors see (Principle VII).
+  x-changed-by-023: |
+    Feature 023 adds `POST /sites/{siteId}/pages/{pageId}/copies` and
+    `POST /sites/{siteId}/components/{componentId}/copies` (save the member's version as a new,
+    unpublished page or component, with `copyOrigin`), and `copyOrigin` on pages and components.
+    Draft saves accept `X-QB-Editing-Session` and may refuse `409 editing.lock_held`. See
+    specs/023-concurrency/contracts/editing-api.yaml.
 
     Every error body is `application/problem+json` in 001's shape, with `errorCode` and
     `traceId`. Authentication, setup, CSRF and site-visibility failures (401, 403

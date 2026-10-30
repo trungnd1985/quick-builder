@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { fireEvent, render, screen, waitFor } from '@testing-library/vue'
 import axe from 'axe-core'
+import { createMemoryHistory, createRouter } from 'vue-router'
 import en from '../../src/i18n/en.json'
 import ConflictDialog from '../../src/editing/ConflictDialog.vue'
 import { i18n } from '../editor/harness'
@@ -59,5 +60,29 @@ describe('ConflictDialog', () => {
 
     const list = screen.getByRole('list', { name: en.editing.conflict.changedFields })
     expect(Array.from(list.querySelectorAll('li')).map((li) => li.textContent)).toEqual(['Title', 'Summary'])
+  })
+
+  it('offers to save the version as a copy only with the create permission (023 FR-020a)', async () => {
+    const { emitted, rerender } = show({ canSaveCopy: true })
+
+    await fireEvent.click(screen.getByRole('button', { name: en.editing.copy.save }))
+    expect(emitted().saveCopy).toHaveLength(1)
+    expect(screen.queryByText(en.editing.copy.notAllowed)).toBeNull()
+
+    await rerender({ canSaveCopy: false })
+    expect(screen.queryByRole('button', { name: en.editing.copy.save })).toBeNull()
+    expect(screen.getByText(en.editing.copy.notAllowed)).toBeTruthy()
+  })
+
+  it('links to the copy once saved, and names the fields it could not keep', async () => {
+    const router = createRouter({ history: createMemoryHistory(), routes: [{ path: '/:pathMatch(.*)*', component: { template: '<div />' } }] })
+    render(ConflictDialog, {
+      props: { kind: 'item', conflict: ben, reloading: false, canSaveCopy: true, copy: { to: '/items/copy', label: en.editing.copy.open }, droppedFields: ['Reading time'] },
+      global: { plugins: [i18n, router] },
+    })
+
+    expect(screen.getByRole('link', { name: en.editing.copy.open }).getAttribute('href')).toBe('/items/copy')
+    expect(screen.getByRole('status').textContent).toContain('Reading time')
+    expect(screen.queryByRole('button', { name: en.editing.copy.save })).toBeNull()
   })
 })

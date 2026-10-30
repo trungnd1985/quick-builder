@@ -442,3 +442,5 @@ src/QuickBuilder.Host/wwwroot/admin/
 # the release tests and the release notes. Build output stays under bin/ and obj/.
 !tests/*/Release/
 !docs/releases/
+
+.fake

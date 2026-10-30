@@ -159,6 +159,22 @@ namespace QuickBuilder.Cms.Infrastructure.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("collection_id");
 
+                    b.Property<DateTimeOffset?>("CopiedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("copied_at_utc");
+
+                    b.Property<Guid?>("CopiedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("copied_by");
+
+                    b.Property<Guid?>("CopiedFromId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("copied_from_id");
+
+                    b.Property<DateTimeOffset?>("CopiedFromSavedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("copied_from_saved_at_utc");
+
                     b.Property<DateTimeOffset>("CreatedAtUtc")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at_utc");
@@ -301,6 +317,8 @@ namespace QuickBuilder.Cms.Infrastructure.Migrations
 
                     b.ToTable("items", "cms", t =>
                         {
+                            t.HasCheckConstraint("ck_items_copy_origin", "(copied_from_id IS NULL) = (copied_from_saved_at_utc IS NULL) AND (copied_from_id IS NULL) = (copied_by IS NULL) AND (copied_from_id IS NULL) = (copied_at_utc IS NULL)");
+
                             t.HasCheckConstraint("ck_items_draft_change_kind", "(draft_change_kind = 'member') OR (draft_change_kind = 'schema_change' AND draft_changed_by IS NULL)");
 
                             t.HasCheckConstraint("ck_items_draft_revision", "draft_revision >= 1");

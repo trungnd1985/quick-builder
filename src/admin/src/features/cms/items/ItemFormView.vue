@@ -24,7 +24,7 @@ import { changedFields as fieldsChangedBetween } from '../../../editing/itemDiff
 import PresenceBanner from '../../../editing/PresenceBanner.vue'
 import { useEditingSession } from '../../../editing/useEditingSession'
 
-const { t, te } = useI18n()
+const { t, te, d } = useI18n()
 const route = useRoute()
 const router = useRouter()
 
@@ -58,6 +58,17 @@ const reloading = ref(false)
 const editing = useEditingSession(() => ({ siteId: siteId.value, kind: 'item', documentId: itemId.value ?? '', collectionId: collectionId.value }))
 let editingFor: string | null = null
 const editingBusy = ref(false)
+/** The name of whoever else holds the item's lock, for publish, delete and history warnings. */
+const otherHolder = computed(() => {
+  const lock = editing.presence.value?.lock
+  return lock && !lock.isYou ? lock.holder.displayName : null
+})
+/** 023 FR-020: the version on screen, kept as a new unpublished item. */
+const copying = ref(false)
+const savedCopy = ref<{ to: { name: string; params: Record<string, string> }; label: string } | null>(null)
+const droppedLabels = ref<string[]>([])
+/** The states whose entries the member may keep as a copy: a conflict kept on screen, or a lost lock. */
+const mayKeepAsCopy = computed(() => item.value !== null && (readOnly.value || conflict.value !== null || editing.status.value === 'taken-over'))
 /** Read-only after a conflict (FR-008), or while someone else holds the lock (FR-009). */
 const formReadOnly = computed(() => readOnly.value || (item.value !== null && editing.status.value !== 'editing'))
 let slugTimer: ReturnType<typeof setTimeout> | undefined
@@ -100,6 +111,8 @@ async function load(): Promise<void> {
   loadError.value = null
   conflict.value = null
   readOnly.value = false
+  savedCopy.value = null
+  droppedLabels.value = []
   try {
     const [loadedCollection, loadedItem] = await Promise.all([
       cmsApi.get(siteId.value, collectionId.value),
@@ -291,6 +304,25 @@ async function lockAction(action: () => Promise<boolean>): Promise<void> {
   }
 }
 
+/** 023 FR-020, FR-022: saves what the form holds as a new item; fields that could not be kept are named. */
+async function saveCopy(): Promise<void> {
+  if (!item.value || copying.value) return
+  copying.value = true
+  try {
+    const copy = await itemsApi.copy(siteId.value, collectionId.value, item.value.id, {
+      slug: slug.value,
+      values: { schemaVersion: 1, values: values.value },
+      baseSavedAtUtc: item.value.updatedAtUtc,
+    })
+    droppedLabels.value = (copy.droppedFields ?? []).map(fieldName)
+    savedCopy.value = { to: { name: 'site-collection-item', params: { siteId: siteId.value, collectionId: collectionId.value, itemId: copy.id } }, label: t('editing.copy.open') }
+  } catch (caught) {
+    message.value = { kind: 'error', text: t('editing.copy.failed', { reason: itemErrorMessage(t, te, caught) }) }
+  } finally {
+    copying.value = false
+  }
+}
+
 async function reloadAfterLoss(): Promise<void> {
   editing.acknowledge()
   await reloadLatest()
@@ -473,9 +505,45 @@ onBeforeUnmount(() => {
         :conflict="conflict.details"
         :changed-fields="conflict.fields"
         :reloading="reloading"
+        :can-save-copy="true"
+        :copying="copying"
+        :copy="savedCopy"
+        :dropped-fields="droppedLabels"
         @reload="reloadLatest"
         @keep-viewing="keepViewing"
+        @save-copy="saveCopy"
       />
+      <p
+        v-if="!conflict && mayKeepAsCopy"
+        class="editing-copy"
+      >
+        <template v-if="savedCopy">
+          {{ t('editing.copy.saved') }}
+          <RouterLink :to="savedCopy.to">
+            {{ savedCopy.label }}
+          </RouterLink>
+          <template v-if="droppedLabels.length > 0">
+            {{ t('editing.copy.dropped', { fields: droppedLabels.join(', ') }) }}
+          </template>
+        </template>
+        <button
+          v-else
+          type="button"
+          :disabled="copying"
+          @click="saveCopy"
+        >
+          {{ copying ? t('editing.copy.saving') : t('editing.copy.save') }}
+        </button>
+      </p>
+      <p
+        v-if="item?.copyOrigin"
+        class="help"
+      >
+        {{ t('editing.copy.origin', { name: item.copyOrigin.copiedBy.name, when: d(new Date(item.copyOrigin.copiedAtUtc), 'short'), saved: d(new Date(item.copyOrigin.sourceSavedAtUtc), 'short') }) }}
+        <RouterLink :to="{ name: 'site-collection-item', params: { siteId, collectionId, itemId: item.copyOrigin.sourceId } }">
+          {{ t('editing.copy.original') }}
+        </RouterLink>
+      </p>
 
       <ItemPublishBar
         v-if="item"
@@ -483,6 +551,7 @@ onBeforeUnmount(() => {
         :collection-id="collectionId"
         :item="item"
         :dirty="dirty"
+        :editing-by="otherHolder"
         @changed="onItemChanged"
         @deleted="onDeleted"
         @duplicated="onDuplicated"
@@ -600,6 +669,7 @@ onBeforeUnmount(() => {
       :site-id="siteId"
       :collection-id="collectionId"
       :item="item"
+      :editing-by="otherHolder"
       @changed="onItemChanged"
       @close="showHistory = false"
     />

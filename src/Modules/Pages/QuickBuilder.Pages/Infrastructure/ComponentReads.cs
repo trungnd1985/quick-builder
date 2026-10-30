@@ -34,6 +34,10 @@ internal sealed class ComponentReads(PagesDbContext database, PagesAccess access
                 c.Version,
                 c.CreatedAtUtc,
                 c.UpdatedAtUtc,
+                c.CopiedFromId,
+                c.CopiedFromSavedAtUtc,
+                c.CopiedBy,
+                c.CopiedAtUtc,
                 UsageCount = database.ForSite<ComponentUsage>(siteId).Count(u => u.ComponentId == c.Id),
                 Draft = database.ForSite<ComponentDraft>(siteId)
                     .Where(d => d.ComponentId == c.Id)
@@ -43,7 +47,7 @@ internal sealed class ComponentReads(PagesDbContext database, PagesAccess access
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
 
-        var names = await access.NamesAsync(rows.Select(r => r.Draft.UpdatedBy), cancellationToken).ConfigureAwait(false);
+        var names = await access.NamesAsync(rows.Select(r => r.Draft.UpdatedBy).Concat(rows.Where(r => r.CopiedBy != null).Select(r => r.CopiedBy!.Value)), cancellationToken).ConfigureAwait(false);
 
         // 012 FR-007: each component's publication state.
         var publication = await publications
@@ -64,7 +68,12 @@ internal sealed class ComponentReads(PagesDbContext database, PagesAccess access
                     PagesAccess.Reference(r.Draft.UpdatedBy, names)),
                 r.CreatedAtUtc,
                 r.UpdatedAtUtc,
-                publication[r.Id])),
+                publication[r.Id])
+            {
+                CopyOrigin = r is { CopiedFromId: { } source, CopiedFromSavedAtUtc: { } saved, CopiedBy: { } by, CopiedAtUtc: { } at }
+                    ? new CopyOriginResponse(source, saved, PagesAccess.Reference(by, names), at)
+                    : null,
+            }),
         ];
     }
 }

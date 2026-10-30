@@ -55,6 +55,8 @@ export const useEditorStore = defineStore('editor', () => {
   const documentId = ref('')
   const root = shallowRef<ContentNode | null>(null)
   const baseVersion = ref(0)
+  /** 023 FR-021: when the version this session is based on was saved, for a copy's origin. */
+  const baseSavedAtUtc = ref<string | null>(null)
   const savedRoot = shallowRef<ContentNode | null>(null)
   const selection = ref<string | null>(null)
   const tokens = shallowRef<TokenSet>(defaultTokens)
@@ -122,9 +124,10 @@ export const useEditorStore = defineStore('editor', () => {
   }
 
   /** Records that the draft now stored on the server is `saved`, at `version`. */
-  function markSaved(saved: ContentNode, version: number): void {
+  function markSaved(saved: ContentNode, version: number, savedAtUtc?: string): void {
     savedRoot.value = saved
     baseVersion.value = version
+    if (savedAtUtc) baseSavedAtUtc.value = savedAtUtc
   }
 
   function setReadOnly(state: ReadOnlyState | null): void {
@@ -155,6 +158,7 @@ export const useEditorStore = defineStore('editor', () => {
       root.value = loaded.root
       savedRoot.value = loaded.root
       baseVersion.value = draft.version
+      baseSavedAtUtc.value = draft.updatedAtUtc
       tokens.value = designTokens.document
 
       const language = useSitesStore().sites.find((s) => s.id === site)?.defaultLanguage ?? 'en'
@@ -205,10 +209,11 @@ export const useEditorStore = defineStore('editor', () => {
   }
 
   /** Replaces the whole document with a fresh draft from the server (Reload latest, ED-15). */
-  function replaceWithDraft(loaded: ContentNode, version: number): void {
+  function replaceWithDraft(loaded: ContentNode, version: number, savedAtUtc?: string): void {
     root.value = loaded
     savedRoot.value = loaded
     baseVersion.value = version
+    if (savedAtUtc) baseSavedAtUtc.value = savedAtUtc
     selection.value = null
     readOnly.value = null
   }
@@ -223,6 +228,7 @@ export const useEditorStore = defineStore('editor', () => {
     documentId,
     root,
     baseVersion,
+    baseSavedAtUtc,
     savedRoot,
     selection,
     tokens,

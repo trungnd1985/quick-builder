@@ -73,6 +73,22 @@ namespace QuickBuilder.Pages.Infrastructure.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<DateTimeOffset?>("CopiedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("copied_at_utc");
+
+                    b.Property<Guid?>("CopiedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("copied_by");
+
+                    b.Property<Guid?>("CopiedFromId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("copied_from_id");
+
+                    b.Property<DateTimeOffset?>("CopiedFromSavedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("copied_from_saved_at_utc");
+
                     b.Property<DateTimeOffset>("CreatedAtUtc")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at_utc");
@@ -115,7 +131,10 @@ namespace QuickBuilder.Pages.Infrastructure.Migrations
                         .IsUnique()
                         .HasDatabaseName("ux_components_site_name");
 
-                    b.ToTable("components", "pages");
+                    b.ToTable("components", "pages", t =>
+                        {
+                            t.HasCheckConstraint("ck_components_copy_origin", "(copied_from_id IS NULL) = (copied_from_saved_at_utc IS NULL) AND (copied_from_id IS NULL) = (copied_by IS NULL) AND (copied_from_id IS NULL) = (copied_at_utc IS NULL)");
+                        });
                 });
 
             modelBuilder.Entity("QuickBuilder.Pages.Domain.ComponentDraft", b =>
@@ -457,6 +476,22 @@ namespace QuickBuilder.Pages.Infrastructure.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<DateTimeOffset?>("CopiedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("copied_at_utc");
+
+                    b.Property<Guid?>("CopiedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("copied_by");
+
+                    b.Property<Guid?>("CopiedFromId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("copied_from_id");
+
+                    b.Property<DateTimeOffset?>("CopiedFromSavedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("copied_from_saved_at_utc");
+
                     b.Property<DateTimeOffset>("CreatedAtUtc")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at_utc");
@@ -549,6 +584,8 @@ namespace QuickBuilder.Pages.Infrastructure.Migrations
 
                     b.ToTable("pages", "pages", t =>
                         {
+                            t.HasCheckConstraint("ck_pages_copy_origin", "(copied_from_id IS NULL) = (copied_from_saved_at_utc IS NULL) AND (copied_from_id IS NULL) = (copied_by IS NULL) AND (copied_from_id IS NULL) = (copied_at_utc IS NULL)");
+
                             t.HasCheckConstraint("ck_pages_depth", "depth BETWEEN 1 AND 10");
 
                             t.HasCheckConstraint("ck_pages_home_top_level", "NOT is_home OR (parent_id IS NULL AND path = '/')");

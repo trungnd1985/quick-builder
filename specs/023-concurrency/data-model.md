@@ -139,4 +139,4 @@ id. History is item-scoped already, so the copy's history shows where it came fr
 | + `editing.not_stale` | 409 | `holder`, `since`, `inactiveSeconds` | Takeover of a lock that is active, or whose holder changed. |
 | + `editing.session_gone` | 404 | | Heartbeat or claim on an expired or deleted session; the admin opens a new one. |
 | + `editing.forbidden` | 403 | | No edit capability for a claim; no view capability to open. |
-| + `pages.copy_forbidden` / `cms.copy_forbidden` | 403 | | Copy without the create capability. |
+| (existing) `identity.forbidden` | 403 | | Copy without the create capability; the endpoint's capability check answers it. |

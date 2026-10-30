@@ -45,6 +45,9 @@ public sealed record PageTreeResponse(IReadOnlyList<PageNodeResponse> Pages, Per
 public sealed record UserReferenceResponse(Guid Id, string? DisplayName);
 
 /// <summary>A draft without its document.</summary>
+/// <summary>023 FR-021: where a copy came from: the source, the version the member had loaded (by when it was saved), who and when.</summary>
+public sealed record CopyOriginResponse(Guid SourceId, DateTimeOffset SourceSavedAtUtc, UserReferenceResponse CopiedBy, DateTimeOffset CopiedAtUtc);
+
 public sealed record DraftSummaryResponse(int SchemaVersion, uint Version, DateTimeOffset UpdatedAtUtc, UserReferenceResponse UpdatedBy);
 
 /// <summary>One page with its draft's metadata.</summary>
@@ -69,6 +72,9 @@ public sealed record PageDetailResponse(
     /// <summary>016 TB-12: what the change did to item addresses; empty when nothing.</summary>
     public IReadOnlyList<SetPageTemplate.TemplateWarningResponse> Warnings { get; init; } = [];
 
+    /// <summary>023 FR-021: set on a page made by "save my version as a copy".</summary>
+    public CopyOriginResponse? CopyOrigin { get; init; }
+
     /// <summary>017 FR-028: what the accepted redirect offer did; null when none was accepted.</summary>
     public RedirectOutcomeResponse? Redirects { get; init; }
 }
@@ -90,7 +96,11 @@ public sealed record ComponentResponse(
     DraftSummaryResponse Draft,
     DateTimeOffset CreatedAtUtc,
     DateTimeOffset UpdatedAtUtc,
-    PublicationResponse Publication);
+    PublicationResponse Publication)
+{
+    /// <summary>023 FR-021: set on a component made by "save my version as a copy".</summary>
+    public CopyOriginResponse? CopyOrigin { get; init; }
+}
 
 /// <summary>A site's components, by name.</summary>
 public sealed record ComponentListResponse(IReadOnlyList<ComponentResponse> Components, PermissionsResponse Permissions);

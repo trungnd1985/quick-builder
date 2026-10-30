@@ -13,6 +13,12 @@ info:
     Errors are `application/problem+json` with `errorCode` and the extensions in
     data-model.md §6. Times are UTC ISO 8601. Request bodies over 1 MiB get `413`.
     Every write that can conflict takes the item `revision` it was based on.
+  x-changed-by-023: |
+    Feature 023 adds `POST /sites/{siteId}/collections/{collectionId}/items/{itemId}/copies`
+    (save the form's values as a new unpublished item; `droppedFields` names what could not be
+    kept), `copyOrigin` on items, the history kind `createdAsCopy`, and on draft saves the
+    `X-QB-Editing-Session` header and `409 editing.lock_held`. See
+    specs/023-concurrency/contracts/editing-api.yaml.
 servers:
   - url: /api/v1/cms
 paths:

@@ -575,9 +575,31 @@ simply expires keeps that user's copies (only that user is ever offered them).
 
 ### Two people on one page
 
-A save made after someone else's is refused, never overwritten. The editor shows the
-refused version read-only so blocks can be copied, and **Reload latest** brings in the
-saved one.
+Everyone who opens a page, component or item sees who else has it open. The first person
+to change it holds it, and the others see it read-only, with who is editing and since when,
+until it is free. A holder who has changed nothing for 30 minutes can be taken over; the
+takeover is recorded (`editor.editing_takeovers`, kept 90 days, ids only). Leaving the
+editor, closing the tab or signing out frees it at once; a crashed browser or lost network
+frees it within 2 minutes.
+
+A save made after someone else's is still refused, never overwritten, and now says who
+saved and when. The member can reload the latest version, keep viewing theirs read-only to
+copy from it, or save it as a new unpublished page, component or item.
+
+- **Request rate**: each open editor or item form sends a small request every 10 seconds
+  (and lists of pages, components and items one every 15 seconds while shown). A reverse
+  proxy that rate-limits `/api/v1/` must allow this.
+- **Several instances**: locks live in PostgreSQL, so every instance agrees on who holds a
+  document with no shared cache configured.
+- **Old tabs**: an admin tab open from before the upgrade has no lock, but its saves are
+  still refused rather than overwriting. Reload it to get presence and locks.
+
+### Upgrading to feature 023
+
+- Four additive migrations: the `editor.editing_sessions` and `editor.editing_takeovers`
+  tables, copy-origin columns on pages, components and items, and a draft revision on items
+  (filled from each item's current revision).
+- No stored document changes, and no configuration changes are needed.
 
 ### Upgrading from feature 010
 

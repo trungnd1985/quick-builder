@@ -65,11 +65,18 @@
 
 .editing-marker::before {
   /* A pencil, with empty alternative text: the label says it all. */
-  content: "¸E" / "";
+  content: "\270E" / "";
 }
 
 .editing-marker--stale {
   background: #f2f2f2;
   color: #444;
   border-color: #888;
+}
+
+.editing-warning {
+  margin: 0.25rem 0;
+  padding: 0.25rem 0.5rem;
+  border-left: 3px solid #b26a00;
+  background: #fff6e5;
 }

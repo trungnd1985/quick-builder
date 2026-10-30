@@ -6,10 +6,12 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { itemsApi, refusalOf, type HistoryEvent, type Item, type ItemHistory, type Version } from '../../../api/items'
 import ConfirmDialog from '../../sites/ConfirmDialog.vue'
+import HolderWarning from '../../../editing/HolderWarning.vue'
 import RedirectOfferCheckbox from '../../../components/RedirectOfferCheckbox.vue'
 import { errorCodeOf, itemErrorMessage, problemMessage } from './itemErrors'
 
-const props = defineProps<{ siteId: string; collectionId: string; item: Item }>()
+/** `editingBy`: someone else holds the editing lock (023 research CE-17). */
+const props = defineProps<{ siteId: string; collectionId: string; item: Item; editingBy?: string | null }>()
 const emit = defineEmits<{ changed: [item: Item]; close: [] }>()
 const { t, te, d } = useI18n()
 
@@ -195,6 +197,11 @@ async function confirm(): Promise<void> {
       @confirm="confirm"
       @cancel="confirming = null"
     >
+      <HolderWarning
+        v-if="editingBy"
+        :name="editingBy"
+        :action="confirming.action === 'copy' ? 'copyToDraft' : 'publish'"
+      />
       <RedirectOfferCheckbox
         v-if="movesAddress"
         id="item-history-redirect"

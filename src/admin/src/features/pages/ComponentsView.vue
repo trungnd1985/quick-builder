@@ -8,6 +8,7 @@ import PublishMenu from '../publishing/PublishMenu.vue'
 import ConfirmDialog from '../sites/ConfirmDialog.vue'
 import ComponentUsagesPanel from './ComponentUsagesPanel.vue'
 import LockMarker from '../../editing/LockMarker.vue'
+import HolderWarning from '../../editing/HolderWarning.vue'
 import { usePresenceList } from '../../editing/usePresenceList'
 import { isOutOfDate, pageErrorMessage } from './pageErrors'
 
@@ -362,6 +363,7 @@ async function confirmDelete(): Promise<void> {
                 :title="component.name"
                 :publication="component.publication"
                 :can-publish="canPublish"
+                :editing-by="editing.holderOf(component.id)?.holder.displayName ?? null"
                 @changed="load()"
               />
             </td>
@@ -420,6 +422,12 @@ async function confirmDelete(): Promise<void> {
       danger
       @confirm="confirmDelete"
       @cancel="pendingDelete = null"
-    />
+    >
+      <HolderWarning
+        v-if="editing.holderOf(pendingDelete.id)"
+        :name="editing.holderOf(pendingDelete.id)!.holder.displayName"
+        action="delete"
+      />
+    </ConfirmDialog>
   </section>
 </template>

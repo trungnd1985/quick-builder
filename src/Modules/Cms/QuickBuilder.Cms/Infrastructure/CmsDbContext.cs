@@ -134,6 +134,9 @@ internal sealed class CmsDbContext(DbContextOptions<CmsDbContext> options, ISite
                 // 023 data-model §3.1.
                 t.HasCheckConstraint("ck_items_draft_revision", "draft_revision >= 1");
                 t.HasCheckConstraint(
+                    "ck_items_copy_origin",
+                    "(copied_from_id IS NULL) = (copied_from_saved_at_utc IS NULL) AND (copied_from_id IS NULL) = (copied_by IS NULL) AND (copied_from_id IS NULL) = (copied_at_utc IS NULL)");
+                t.HasCheckConstraint(
                     "ck_items_draft_change_kind",
                     "(draft_change_kind = 'member') OR (draft_change_kind = 'schema_change' AND draft_changed_by IS NULL)");
             });

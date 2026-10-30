@@ -25,7 +25,7 @@ export type SaveState = 'saved' | 'dirty' | 'saving' | 'retrying' | 'conflict' |
 export const STOPPED_STATES: ReadonlySet<SaveState> = new Set(['conflict', 'locked', 'forbidden', 'gone', 'invalid', 'outdated'])
 
 /** How a document reaches the server. */
-export type SaveDraft = (document: ContentDocument, version: number) => Promise<{ version: number }>
+export type SaveDraft = (document: ContentDocument, version: number) => Promise<{ version: number; updatedAtUtc?: string }>
 
 export interface AutosaveOptions {
   debounceMs?: number
@@ -144,7 +144,7 @@ export function createAutosave(
     state.value = 'saving'
     try {
       const saved = await save(document, store.baseVersion)
-      store.markSaved(sending, saved.version)
+      store.markSaved(sending, saved.version, saved.updatedAtUtc)
       attempt = 0
       reason.value = null
       options.onSaved?.(sending)

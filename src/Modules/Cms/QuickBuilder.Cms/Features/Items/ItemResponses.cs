@@ -75,7 +75,16 @@ public sealed record ItemResponse(
     /// <see cref="DraftRequest.DraftRevision"/>, so a publish by someone else does not refuse it.
     /// </summary>
     public int DraftRevision { get; init; }
+
+    /// <summary>023 FR-021: set on an item made by "save my version as a copy".</summary>
+    public CopyOriginResponse? CopyOrigin { get; init; }
+
+    /// <summary>023 FR-022: after a copy, the field ids whose values could not be kept. Empty otherwise.</summary>
+    public IReadOnlyList<string> DroppedFields { get; init; } = [];
 }
+
+/// <summary>023 FR-021: where a copy came from: the source item, the version the member had loaded (by when it was saved), who and when.</summary>
+public sealed record CopyOriginResponse(Guid SourceId, DateTimeOffset SourceSavedAtUtc, MemberResponse CopiedBy, DateTimeOffset CopiedAtUtc);
 
 /// <summary>
 /// Where visitors find an item (016 FR-007): <see cref="Path"/> under its collection's live

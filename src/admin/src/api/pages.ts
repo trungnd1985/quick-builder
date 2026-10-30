@@ -77,7 +77,25 @@ export interface DraftSummary {
   updatedBy: UserReference
 }
 
+/** 023 FR-021: where a copy came from. */
+export interface CopyOrigin {
+  sourceId: string
+  sourceSavedAtUtc: string
+  copiedBy: UserReference
+  copiedAtUtc: string
+}
+
+/** 023 research CE-11: the member's version, saved as a new document. */
+export interface CopyRequest {
+  document: unknown
+  baseSavedAtUtc: string
+  title?: string
+  name?: string
+}
+
 export interface PageDetail extends PageNode {
+  /** 023: set on a page made by "save my version as a copy". */
+  copyOrigin?: CopyOrigin | null
   /** 016: what a create or rename did to item addresses. */
   warnings?: TemplateWarning[]
   /** 017: present when a redirect offer was accepted. */
@@ -107,6 +125,8 @@ export interface Component {
   updatedAtUtc: string
   /** Whether and what visitors see (012). */
   publication: Publication
+  /** 023: set on a component made by "save my version as a copy". */
+  copyOrigin?: CopyOrigin | null
 }
 
 export interface ComponentList {
@@ -225,6 +245,14 @@ export const pagesApi = {
 
   saveComponentDraft: (siteId: string, componentId: string, body: SaveDraftRequest, headers: Record<string, string> = {}): Promise<Draft> =>
     request<Draft>(`${component(siteId, componentId)}/draft`, { method: 'PUT', body: JSON.stringify(body), headers }),
+
+  /** 023 FR-020: a new page after this one, holding the member's version; unpublished. */
+  copyPage: (siteId: string, pageId: string, body: CopyRequest): Promise<PageDetail> =>
+    request<PageDetail>(`${page(siteId, pageId)}/copies`, { method: 'POST', body: JSON.stringify(body) }),
+
+  /** 023 FR-020: a new component holding the member's version, used by no page. */
+  copyComponent: (siteId: string, componentId: string, body: CopyRequest): Promise<Component> =>
+    request<Component>(`${component(siteId, componentId)}/copies`, { method: 'POST', body: JSON.stringify(body) }),
 
   getComponent: (siteId: string, componentId: string): Promise<Component> =>
     request<Component>(component(siteId, componentId)),

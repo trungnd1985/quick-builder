@@ -98,6 +98,16 @@ internal sealed class Item : AggregateRoot, ISiteOwned, IDisposable
     /// <summary>One of <see cref="ItemDraftChangeKinds"/>.</summary>
     public string DraftChangeKind { get; private set; }
 
+    /// <summary>023 FR-021: the item this one is a copy of; null unless made by "save my version as a copy".</summary>
+    public Guid? CopiedFromId { get; private set; }
+
+    /// <summary>When the source version the member had loaded was saved.</summary>
+    public DateTimeOffset? CopiedFromSavedAtUtc { get; private set; }
+
+    public Guid? CopiedBy { get; private set; }
+
+    public DateTimeOffset? CopiedAtUtc { get; private set; }
+
     /// <summary>The title field's draft value, or null (research IT-11).</summary>
     public string? Name { get; private set; }
 
@@ -206,6 +216,27 @@ internal sealed class Item : AggregateRoot, ISiteOwned, IDisposable
         Touch(actor, now);
         DraftChanged(actor, ItemDraftChangeKinds.Member, now);
         Raise(new ItemDraftSavedEvent(SiteId, CollectionId, Id, now));
+    }
+
+    /// <summary>
+    /// 023 FR-020, FR-021: a new draft item holding the member's version of this one, recording
+    /// where it came from. No published values, versions or schedules.
+    /// </summary>
+    public Item CopyAsNew(string slug, ItemValues draft, DateTimeOffset sourceSavedAtUtc, Guid actor, DateTimeOffset now)
+    {
+        ArgumentNullException.ThrowIfNull(draft);
+        EnsureSlug(slug);
+
+        var copy = new Item(SiteId, CollectionId, slug, draft.ToDocument(), actor, now)
+        {
+            CopiedFromId = Id,
+            CopiedFromSavedAtUtc = sourceSavedAtUtc,
+            CopiedBy = actor,
+            CopiedAtUtc = now,
+        };
+        copy._newHistory.Add(ItemHistoryEntry.For(copy, ItemHistoryKinds.CreatedAsCopy, actor, now));
+        copy.Raise(new ItemCreatedEvent(SiteId, CollectionId, copy.Id, now));
+        return copy;
     }
 
     /// <summary>

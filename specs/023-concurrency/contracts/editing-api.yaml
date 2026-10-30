@@ -212,17 +212,17 @@ paths:
           application/json:
             schema:
               type: object
-              required: [document, baseVersion, title]
+              required: [document, baseSavedAtUtc]
               additionalProperties: false
               properties:
                 document: { type: object, description: A page document (page-schema contract). }
-                baseVersion: { type: integer, description: The draft version the member loaded. }
-                title: { type: string, maxLength: 200, description: 'The localised "<title> (copy)".' }
+                baseSavedAtUtc: { type: string, format: date-time, description: When the draft version the member loaded was saved (the copy origin). }
+                title: { type: string, maxLength: 200, description: 'The localised "<title> (copy)"; the original title when absent.' }
       responses:
         '201':
           description: The new page (unpublished) with its `copyOrigin`.
         '400': { description: '`pages.invalid_document`, with the failed rule.' }
-        '403': { description: '`pages.copy_forbidden`.' }
+        '403': { description: '`identity.forbidden` (no `pages.structure.manage`, or `pages.components.manage` for a component).' }
   /api/v1/pages/sites/{siteId}/components/{componentId}/copies:
     parameters:
       - $ref: '#/components/parameters/SiteId'
@@ -239,16 +239,17 @@ paths:
           application/json:
             schema:
               type: object
-              required: [document, baseVersion, name]
+              required: [document, baseSavedAtUtc]
               additionalProperties: false
               properties:
                 document: { type: object }
-                baseVersion: { type: integer }
-                name: { type: string, maxLength: 100 }
+                baseSavedAtUtc: { type: string, format: date-time }
+                name: { type: string, maxLength: 100, description: 'The localised "<name> (copy)"; a number is added when another component has it.' }
       responses:
         '201': { description: The new component, used by no page, with its `copyOrigin`. }
-        '400': { description: '`pages.invalid_document` or `pages.duplicate_component_name`.' }
-        '403': { description: '`pages.copy_forbidden`.' }
+        '400': { description: '`pages.invalid_document`.' }
+        '409': { description: '`pages.duplicate_component_name`, when another component took the name a moment before.' }
+        '403': { description: '`identity.forbidden` (no `pages.structure.manage`, or `pages.components.manage` for a component).' }
   /api/v1/cms/sites/{siteId}/collections/{collectionId}/items/{itemId}/copies:
     parameters:
       - $ref: '#/components/parameters/SiteId'
@@ -269,19 +270,18 @@ paths:
           application/json:
             schema:
               type: object
-              required: [values, schemaRevision, baseDraftRevision]
+              required: [values, baseSavedAtUtc]
               additionalProperties: false
               properties:
                 slug: { type: string, description: Made unique when taken. }
                 values: { type: object, description: Draft values keyed by field id. }
-                schemaRevision: { type: integer }
-                baseDraftRevision: { type: integer }
+                baseSavedAtUtc: { type: string, format: date-time }
       responses:
         '201':
           description: |
             The new item (unpublished) with its `copyOrigin`, and `droppedFields`: field ids
             whose values could not be kept because the field no longer exists.
-        '403': { description: '`cms.copy_forbidden`.' }
+        '403': { description: '`identity.forbidden`.' }
 components:
   parameters:
     SiteId:

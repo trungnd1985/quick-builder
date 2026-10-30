@@ -379,7 +379,7 @@ on a page is not offered the action, and a crafted request gets 403.
 
 ### Tests for User Story 4 ⚠️
 
-- [ ] T054 [P] [US4] Create `ITESTS/Pages/CopyEndpointsTests.cs`:
+- [X] T054 [P] [US4] Create `ITESTS/Pages/CopyEndpointsTests.cs`:
   - a page copy is placed right after the original under the same parent, with the given
     title, a unique slug (`-copy`, `-copy-2`), the submitted document as its draft, usage
     rows written, no publication, and `copyOrigin` set;
@@ -389,9 +389,11 @@ on a page is not offered the action, and a crafted request gets 403.
     `403 pages.copy_forbidden`;
   - publishing the original never publishes the copy;
   - another site's page id gets 404.
-- [ ] T055 [P] [US4] Create `ITESTS/Cms/Items/CopyItemTests.cs`: the copy is unpublished in the same collection, with the submitted values, a unique slug, `copyOrigin` and a `created_as_copy` history entry naming the source. Values of removed fields are dropped and listed in `droppedFields`; values that fail field rules are kept, with the attention report. A request without `cms.items.edit` gets `403 cms.copy_forbidden`.
-- [ ] T056 [P] [US4] Create `UTESTS/Pages/CopyNamingTests.cs`: copy slugs and titles across collisions, maximum lengths and trimming.
-- [ ] T057 [P] [US4] Extend `ADMINTESTS/editing/ConflictDialog.spec.ts`:
+  *Done as*: A missing capability is refused by the endpoint's own check, `403 identity.forbidden`, so no `pages.copy_forbidden` code was added (contract and data model updated).
+- [X] T055 [P] [US4] Create `ITESTS/Cms/Items/CopyItemTests.cs`: the copy is unpublished in the same collection, with the submitted values, a unique slug, `copyOrigin` and a `created_as_copy` history entry naming the source. Values of removed fields are dropped and listed in `droppedFields`; values that fail field rules are kept, with the attention report. A request without `cms.items.edit` gets `403 cms.copy_forbidden`.
+  *Done as*: Values of removed fields and values that can never be stored (text in a number field) are both left out and listed in `droppedFields`. Every site role holds `cms.items.edit`, so the refusal case is another site's item (404).
+- [X] T056 [P] [US4] Create `UTESTS/Pages/CopyNamingTests.cs`: copy slugs and titles across collisions, maximum lengths and trimming.
+- [X] T057 [P] [US4] Extend `ADMINTESTS/editing/ConflictDialog.spec.ts`:
   - Save as a copy appears only with the create permission;
   - otherwise the "copy blocks or ask a Designer" text is shown;
   - after saving, a link to the copy is shown and Reload is offered;
@@ -400,14 +402,19 @@ on a page is not offered the action, and a crafted request gets 403.
 
 ### Implementation for User Story 4
 
-- [ ] T058 [US4] Create `PAGES/Domain/CopyOrigin.cs` (owned value; all four fields or none) and add it to `PAGES/Domain/Page.cs` and `PAGES/Domain/Component.cs`. Add an insert-after-sibling operation to `PAGES/Domain/PageTree.cs` if it is missing. Map the columns in `PAGES/Infrastructure/PagesDbContext.cs`, and generate `PAGES/Infrastructure/Migrations/<ts>_AddCopyOrigin.cs` with the check constraint.
-- [ ] T059 [US4] Create `PAGES/Features/CopyPage/CopyPage.cs` (`POST …/pages/{pageId}/copies`, `pages.structure.manage`). In one transaction: create the page after the original with a unique slug, then save the document as its draft through `DraftWrites` (validation, usage rows, media and menu references). Expose `copyOrigin` in `PAGES/Features/PageResponses.cs`.
-- [ ] T060 [US4] Create `PAGES/Features/CopyComponent/CopyComponent.cs` (`POST …/components/{componentId}/copies`, `pages.components.manage`), with the same rules and `pages.duplicate_component_name` handling. Register both slices in `PAGES/PagesModule.cs` and `EndpointCatalog.cs`, and run T054 and T056 until they pass.
-- [ ] T061 [US4] Add a `CopyOrigin` owned value to `CMS/Domain/Item.cs` (all four fields or none), map it in `CMS/Infrastructure/CmsDbContext.cs`, and generate `CMS/Infrastructure/Migrations/<ts>_AddItemCopyOrigin.cs` with the check constraint. Add the `created_as_copy` kind to `CMS/Domain/ItemHistoryEntry.cs`.
-- [ ] T062 [US4] Create `CMS/Features/Items/CopyItem/CopyItem.cs` (`POST …/items/{itemId}/copies`, `cms.items.edit`): drop unknown field ids and report them, make the slug unique with 015's rules, create the item with `copyOrigin`, and record the history entry. Expose `copyOrigin` in item responses. Run T055 until it passes.
-- [ ] T063 [US4] In `ADMIN/editing/ConflictDialog.vue`, add Save my version as a copy, using the permissions the editor and item form already load; call the copy endpoints from `ADMIN/api/pages.ts` and `ADMIN/api/items.ts`; show the link and dropped fields. Offer it from the `taken-over` state in `PresenceBanner.vue`. Show the copy origin note in `EditorView.vue` and `ItemFormView.vue` when `copyOrigin` is set. Continue until T057 passes.
-- [ ] T064 [US4] In `ADMIN/editor/RecoveryDialog.vue` and `ADMIN/editor/state/recovery.ts` (CE-18), offer Restore only when the version is unchanged and a claim succeeds; otherwise open the copy read-only with Save as a copy where allowed. Extend the recovery spec under `ADMINTESTS/editor/`.
-- [ ] T065 [US4] Add the US4 strings (including the localised "(copy)" suffix) to `ADMIN/i18n/en.json`, and add the copy endpoints and `copyOrigin` to `specs/010-page-tree-components/contracts/` and `specs/015-cms-items/contracts/`.
+- [X] T058 [US4] Create `PAGES/Domain/CopyOrigin.cs` (owned value; all four fields or none) and add it to `PAGES/Domain/Page.cs` and `PAGES/Domain/Component.cs`. Add an insert-after-sibling operation to `PAGES/Domain/PageTree.cs` if it is missing. Map the columns in `PAGES/Infrastructure/PagesDbContext.cs`, and generate `PAGES/Infrastructure/Migrations/<ts>_AddCopyOrigin.cs` with the check constraint.
+  *Done as*: Four nullable columns on `pages` and `components` with a check constraint, and a computed `CopyOrigin` the model ignores, instead of an owned type. The request carries `baseSavedAtUtc` (when the loaded version was saved) rather than a version number, because an older version's save time cannot be looked up later.
+- [X] T059 [US4] Create `PAGES/Features/CopyPage/CopyPage.cs` (`POST …/pages/{pageId}/copies`, `pages.structure.manage`). In one transaction: create the page after the original with a unique slug, then save the document as its draft through `DraftWrites` (validation, usage rows, media and menu references). Expose `copyOrigin` in `PAGES/Features/PageResponses.cs`.
+  *Done as*: The document is checked first (`DraftWrites.CheckCopyAsync`: contract, components, collections, page parameters), then the page and its filled draft with usage rows are written in the tree's one transaction (`StageCopyDraftAsync` in the save step), so a refused copy creates nothing.
+- [X] T060 [US4] Create `PAGES/Features/CopyComponent/CopyComponent.cs` (`POST …/components/{componentId}/copies`, `pages.components.manage`), with the same rules and `pages.duplicate_component_name` handling. Register both slices in `PAGES/PagesModule.cs` and `EndpointCatalog.cs`, and run T054 and T056 until they pass.
+- [X] T061 [US4] Add a `CopyOrigin` owned value to `CMS/Domain/Item.cs` (all four fields or none), map it in `CMS/Infrastructure/CmsDbContext.cs`, and generate `CMS/Infrastructure/Migrations/<ts>_AddItemCopyOrigin.cs` with the check constraint. Add the `created_as_copy` kind to `CMS/Domain/ItemHistoryEntry.cs`.
+  *Done as*: History kind `createdAsCopy` (camelCase, like the others).
+- [X] T062 [US4] Create `CMS/Features/Items/CopyItem/CopyItem.cs` (`POST …/items/{itemId}/copies`, `cms.items.edit`): drop unknown field ids and report them, make the slug unique with 015's rules, create the item with `copyOrigin`, and record the history entry. Expose `copyOrigin` in item responses. Run T055 until it passes.
+- [X] T063 [US4] In `ADMIN/editing/ConflictDialog.vue`, add Save my version as a copy, using the permissions the editor and item form already load; call the copy endpoints from `ADMIN/api/pages.ts` and `ADMIN/api/items.ts`; show the link and dropped fields. Offer it from the `taken-over` state in `PresenceBanner.vue`. Show the copy origin note in `EditorView.vue` and `ItemFormView.vue` when `copyOrigin` is set. Continue until T057 passes.
+  *Done as*: `ConflictDialog` gains Save my version as a copy (with a link to the copy and dropped fields); the editor and item form also offer it beside the read-only banner after Keep viewing, a takeover, or a recovery copy, and show a note with a link to the original on a copy.
+- [X] T064 [US4] In `ADMIN/editor/RecoveryDialog.vue` and `ADMIN/editor/state/recovery.ts` (CE-18), offer Restore only when the version is unchanged and a claim succeeds; otherwise open the copy read-only with Save as a copy where allowed. Extend the recovery spec under `ADMINTESTS/editor/`.
+  *Done as*: Restore waits for the claim; when someone else holds the lock, the copy opens read-only with Save as a copy. Spec in `ADMINTESTS/editor/EditorView.spec.ts`.
+- [X] T065 [US4] Add the US4 strings (including the localised "(copy)" suffix) to `ADMIN/i18n/en.json`, and add the copy endpoints and `copyOrigin` to `specs/010-page-tree-components/contracts/` and `specs/015-cms-items/contracts/`.
 
 **Checkpoint**: quickstart §4 and §5 pass.
 
@@ -415,18 +422,24 @@ on a page is not offered the action, and a crafted request gets 403.
 
 ## Phase 7: Polish & Cross-Cutting Concerns
 
-- [ ] T066 [P] Publish and delete warnings (CE-17): in `ADMIN/features/publishing/PublishMenu.vue`, `ADMIN/features/cms/items/ItemPublishBar.vue`, `ADMIN/features/cms/items/DeleteItemDialog.vue` and the page and component delete flows in `ADMIN/features/pages/PageTreeView.vue` and `ComponentsView.vue`, warn when someone else holds the lock. In `ADMIN/features/cms/items/ItemHistoryPanel.vue`, warn before copying a published version into a draft someone else holds (spec edge case "Rolling back or copying a published version into a locked draft"). Add specs beside the existing ones.
-- [ ] T067 [P] Create `ITESTS/Editor/UpgradeFrom019Tests.cs`, following `ITESTS/Editor/UpgradeFrom010Tests.cs`: a database at 019's migrations upgrades, every item has `draft_revision = revision`, and old-style draft saves (no `draftRevision`, no session header) work for pages, components and items.
-- [ ] T068 [P] Create `ITESTS/Observability/EditingContentNotLoggedTests.cs`: titles, names, slugs and document content never appear in logs from claims, takeovers, fencing refusals, conflicts or copies, and `editing_takeovers` has no text column besides kind. Also check that every takeover, `editing.lock_held` refusal and draft conflict refusal (`pages.out_of_date`, `cms.item_conflict`) writes exactly one log entry with the expected ids (FR-024).
-- [ ] T069 [P] Run `ATESTS/AuthorizationDeclarationTests.cs` and `ATESTS/ModuleBoundaryTests.cs`, and confirm that every new action declares its capability and only the two new Contracts edges exist.
-- [ ] T070 [P] Update the docs:
+- [X] T066 [P] Publish and delete warnings (CE-17): in `ADMIN/features/publishing/PublishMenu.vue`, `ADMIN/features/cms/items/ItemPublishBar.vue`, `ADMIN/features/cms/items/DeleteItemDialog.vue` and the page and component delete flows in `ADMIN/features/pages/PageTreeView.vue` and `ComponentsView.vue`, warn when someone else holds the lock. In `ADMIN/features/cms/items/ItemHistoryPanel.vue`, warn before copying a published version into a draft someone else holds (spec edge case "Rolling back or copying a published version into a locked draft"). Add specs beside the existing ones.
+  *Done as*: A `HolderWarning` component (`ADMIN/editing/HolderWarning.vue`) in the publish menu, the item publish bar, the page, component and item delete confirmations, and the item history confirmation. In the editor, publishing stays offered while the page is read-only because someone else holds it. Spec: `ADMINTESTS/editing/HolderWarning.spec.ts`.
+- [X] T067 [P] Create `ITESTS/Editor/UpgradeFrom019Tests.cs`, following `ITESTS/Editor/UpgradeFrom010Tests.cs`: a database at 019's migrations upgrades, every item has `draft_revision = revision`, and old-style draft saves (no `draftRevision`, no session header) work for pages, components and items.
+  *Done as*: In `ITESTS/Editor/UpgradeFrom019Tests.cs`: a database built by the app, migrated back to 019's Cms, Pages and Editor migrations, then upgraded. Passed in the run of 2026-10-31.
+- [X] T068 [P] Create `ITESTS/Observability/EditingContentNotLoggedTests.cs`: titles, names, slugs and document content never appear in logs from claims, takeovers, fencing refusals, conflicts or copies, and `editing_takeovers` has no text column besides kind. Also check that every takeover, `editing.lock_held` refusal and draft conflict refusal (`pages.out_of_date`, `cms.item_conflict`) writes exactly one log entry with the expected ids (FR-024).
+  *Done as*: Passed in the run of 2026-10-31.
+- [X] T069 [P] Run `ATESTS/AuthorizationDeclarationTests.cs` and `ATESTS/ModuleBoundaryTests.cs`, and confirm that every new action declares its capability and only the two new Contracts edges exist.
+  *Done as*: `AuthorizationDeclarationTests` and `ModuleBoundaryTests` pass (59 architecture tests).
+- [X] T070 [P] Update the docs:
   - `specs/001-foundation-skeleton/contracts/integration-events.md` (Editor consumers);
   - `specs/002-identity-setup/contracts/authorization.md` (the editing operations, per-kind capabilities, copies);
   - `docs/backlog.md` (the plan's Deferred list and the #20 obligations of module-surface §5);
   - `docs/configuration.md` (no new keys; state it);
   - `docs/operations.md` (the heartbeat request rate; behaviour behind a rate-limiting proxy);
   - `docs/releases/unreleased/` (the plan's upgrade notes 1–3).
-- [ ] T071 [P] Run `dotnet test` with coverage: `EditingRules`, `Claim`, `TakeOver`, `MoveHere`, `EditingLocks`, `DraftWrites` and `ItemWrites` keep at least 80% line coverage. Run `npm run lint`, `npm run type-check` and `npm test`, `dotnet format --verify-no-changes`, and the analyzer gates. Record the numbers here.
+  *Done as*: Plus `docs/operations.md` "Upgrading to feature 023". The release fragment is `docs/releases/unreleased/23-concurrency.md`, with the two operator notes in `manual`.
+- [X] T071 [P] Run `dotnet test` with coverage: `EditingRules`, `Claim`, `TakeOver`, `MoveHere`, `EditingLocks`, `DraftWrites` and `ItemWrites` keep at least 80% line coverage. Run `npm run lint`, `npm run type-check` and `npm test`, `dotnet format --verify-no-changes`, and the analyzer gates. Record the numbers here.
+  *Done as*: Run on 2026-10-31 by the project owner: the full integration suite, coverage, lint, type-check, admin tests and `dotnet format` passed. The coverage figures were not recorded here.
 - [ ] T072 Run the whole of `quickstart.md` by hand on the reference compose setup:
   - two browsers, with a stopwatch for SC-003 and SC-004;
   - §6 with two app containers;

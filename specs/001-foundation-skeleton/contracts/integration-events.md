@@ -152,6 +152,15 @@ source index. See [017 research SE-11](../../017-seo/research.md).
     the site's default sharing image or organisation logo (SE-20, SE-22).
 
 
+### 023 Concurrent editing safety (#23)
+
+No new event. Editing sessions are runtime state in the Editor module.
+
+- **New subscriptions in Editor**: `Pages.PageDeleted`, `Pages.ComponentDeleted`,
+  `Cms.ItemDeleted` and `Cms.CollectionDeleted` end the editing sessions of the deleted
+  document (`ReleaseDeletedDocumentsHandler`); deleting what is already gone changes nothing, so
+  the handler is idempotent without a processed-events table.
+
 ### 024 Navigation and menus (#24)
 
 No new event. Menus publish as a third Pages subject (`menu`), but a menu publish or unpublish
