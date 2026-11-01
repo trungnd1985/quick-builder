@@ -58,6 +58,10 @@ internal sealed class PagesIsolationProbe : ISiteIsolationProbe
         "DELETE api/v1/pages/sites/{siteId:guid}/pages/{pageId:guid}/schedules/unpublish",
         "PUT api/v1/pages/sites/{siteId:guid}/components/{componentId:guid}/schedules/publish",
         "DELETE api/v1/pages/sites/{siteId:guid}/components/{componentId:guid}/schedules/publish",
+
+        // 023: another site's page or component cannot be copied.
+        "POST api/v1/pages/sites/{siteId:guid}/pages/{pageId:guid}/copies",
+        "POST api/v1/pages/sites/{siteId:guid}/components/{componentId:guid}/copies",
     ];
 
     /// <summary>012: an address shaped like each site's own published page, never issued.</summary>
@@ -115,6 +119,7 @@ internal sealed class PagesIsolationProbe : ISiteIsolationProbe
             yield return new ProbeRequest(HttpMethod.Put, $"{page}/schedules/unpublish", ProbeKind.Addressed, new { dueAtUtc = DateTimeOffset.UtcNow.AddDays(1) });
             yield return new ProbeRequest(HttpMethod.Delete, $"{page}/schedules/publish", ProbeKind.Addressed);
             yield return new ProbeRequest(HttpMethod.Delete, $"{page}/schedules/unpublish", ProbeKind.Addressed);
+            yield return new ProbeRequest(HttpMethod.Post, $"{page}/copies", ProbeKind.Addressed, new { document, baseSavedAtUtc = DateTimeOffset.UtcNow, title = "Probe" });
         }
 
         var component = $"/api/v1/pages/sites/{siteId}/components/{other.Ids[2]}";
@@ -132,6 +137,7 @@ internal sealed class PagesIsolationProbe : ISiteIsolationProbe
         yield return new ProbeRequest(HttpMethod.Post, $"{component}/versions/1/copy-to-draft", ProbeKind.Addressed, new { draftVersion = 0 });
         yield return new ProbeRequest(HttpMethod.Put, $"{component}/schedules/publish", ProbeKind.Addressed, new { dueAtUtc = DateTimeOffset.UtcNow.AddDays(1), draftVersion = 0 });
         yield return new ProbeRequest(HttpMethod.Delete, $"{component}/schedules/publish", ProbeKind.Addressed);
+        yield return new ProbeRequest(HttpMethod.Post, $"{component}/copies", ProbeKind.Addressed, new { document, baseSavedAtUtc = DateTimeOffset.UtcNow, name = "Probe" });
 
         yield return new ProbeRequest(HttpMethod.Get, $"/api/v1/pages/sites/{siteId}/pages", ProbeKind.Listing);
         yield return new ProbeRequest(HttpMethod.Get, $"/api/v1/pages/sites/{siteId}/components", ProbeKind.Listing);

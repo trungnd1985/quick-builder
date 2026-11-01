@@ -87,7 +87,8 @@ public sealed class UpgradeFrom019Tests(DatabaseFixture database)
         await using var db = new NpgsqlConnection(connection);
         await db.OpenAsync();
         await using var command = new NpgsqlCommand(sql, db);
-        return (await command.ExecuteScalarAsync())?.ToString();
+        // SQL NULL comes back as DBNull, not null.
+        return await command.ExecuteScalarAsync() is { } value and not DBNull ? value.ToString() : null;
     }
 
     /// <summary>A site with a page and a post, published once and saved again, on the given database.</summary>
