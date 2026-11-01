@@ -371,7 +371,7 @@ internal sealed partial class ItemWrites(
     }
 
     [LoggerMessage(Level = LogLevel.Information,
-        Message ="Item draft save refused as out of date: site {SiteId}, collection {CollectionId}, item {ItemId}, by {ActorId}; the draft was changed by {ChangedById} ({ChangeKind})")]
+        Message = "Item draft save refused as out of date: site {SiteId}, collection {CollectionId}, item {ItemId}, by {ActorId}; the draft was changed by {ChangedById} ({ChangeKind})")]
     private static partial void LogDraftConflict(ILogger logger, Guid siteId, Guid collectionId, Guid? itemId, Guid actorId, Guid? changedById, string changeKind);
 
     private static string? Constraint(DbUpdateException exception, string sqlState) =>
