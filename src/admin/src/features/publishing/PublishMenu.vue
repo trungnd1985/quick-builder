@@ -13,6 +13,7 @@ import RedirectToPagePicker, { type PickablePage } from '../../components/Redire
 import PublicationBadge from './PublicationBadge.vue'
 import ScheduleDialog from './ScheduleDialog.vue'
 import MenuReferencesNote from '../menus/MenuReferencesNote.vue'
+import HolderWarning from '../../editing/HolderWarning.vue'
 import { publishingErrorMessage } from './errorMessages'
 import { currentDraftVersion, currentPublication, historyRoute as routeToHistory, historyRouteName } from './subjects'
 
@@ -28,6 +29,8 @@ const props = defineProps<{
    * version to publish; without it, the current saved draft is published.
    */
   beforePublish?: () => Promise<number | null>
+  /** 023 research CE-17: someone else holds the editing lock; publishing warns about it. */
+  editingBy?: string | null
 }>()
 
 const emit = defineEmits<{
@@ -135,6 +138,11 @@ async function scheduled(): Promise<void> {
     :aria-label="t('publishing.menu.label')"
   >
     <PublicationBadge :publication="publication" />
+    <HolderWarning
+      v-if="canPublish && editingBy"
+      :name="editingBy"
+      action="publish"
+    />
 
     <button
       v-if="canPublish"

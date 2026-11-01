@@ -7,9 +7,11 @@ import { itemsApi, refusalOf, type Item, type Referrer } from '../../../api/item
 import { errorCodeOf, itemErrorMessage } from './itemErrors'
 import RedirectToPagePicker, { type PickablePage } from '../../../components/RedirectToPagePicker.vue'
 import { pagesApi } from '../../../api/pages'
+import HolderWarning from '../../../editing/HolderWarning.vue'
 import MenuReferencesNote from '../../menus/MenuReferencesNote.vue'
 
-const props = defineProps<{ siteId: string; collectionId: string; item: Item }>()
+/** `editingBy`: someone else holds the editing lock (023 research CE-17). */
+const props = defineProps<{ siteId: string; collectionId: string; item: Item; editingBy?: string | null }>()
 const emit = defineEmits<{ deleted: []; cancel: [] }>()
 const { t, te } = useI18n()
 
@@ -90,6 +92,11 @@ function onKeydown(event: KeyboardEvent): void {
         <div id="delete-item-body">
           <template v-if="total === 0">
             <p>{{ t('cms.items.delete.confirm') }}</p>
+            <HolderWarning
+              v-if="editingBy"
+              :name="editingBy"
+              action="delete"
+            />
             <p v-if="item.status !== 'draft'">
               <strong>{{ t('cms.items.delete.live') }}</strong>
             </p>

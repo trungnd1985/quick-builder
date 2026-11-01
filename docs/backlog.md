@@ -125,6 +125,17 @@ Deferred by 035 (richer rich text; see specs/035-rich-text-formats/plan.md):
   - **#22 draft previews**: preview responses must write `noindex` and never appear in the
     sitemap
 
+## Deferred by 023 (concurrent editing safety)
+
+- Push updates (server-sent events or WebSocket) for faster presence than the 10-second heartbeat
+- Operator settings for the lock expiry (2 minutes) and stale period (30 minutes)
+- A screen listing takeovers (they are recorded in `editor.editing_takeovers`, kept 90 days)
+- Locks for site settings, design tokens, collection schemas and menus
+- Releasing locks at once when a sign-in session is revoked (they lapse within 2 minutes; this needs an Identity session event)
+- "Ask to edit" requests (023 clarification Q5: not wanted now)
+- Real-time co-editing and merging (out of scope by the spec)
+- Obligations on #20 (site export): copies are ordinary pages, components and items and export with their `copyOrigin`; editing sessions and takeover records are not exported
+
 ## Deferred by 019 (release pipeline and upgrade safety)
 
 - Image signing (cosign), SBOMs and provenance attestations on release images

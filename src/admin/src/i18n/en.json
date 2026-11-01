@@ -874,6 +874,7 @@
         "saving": "Saving…",
         "retrying": "Not saved — trying again",
         "conflict": "Not saved — changed elsewhere",
+        "locked": "Not saved — someone else is editing",
         "forbidden": "Not saved — no permission",
         "gone": "Not saved — the page is gone",
         "invalid": "Not saved — the page could not be checked",
@@ -2193,7 +2194,8 @@
         "timeZone": "Times are in {zone}.",
         "loading": "Loading the item…",
         "outdated": "This page of the admin is out of date, so your last change was not saved. Reload the page to keep editing.",
-        "reloadPage": "Reload the page"
+        "reloadPage": "Reload the page",
+        "fieldsLegend": "The item’s fields"
       },
       "inputs": {
         "pickImage": "Choose an image…",
@@ -2281,7 +2283,8 @@
           "rescheduled": "Moved the {action} schedule to {when}",
           "scheduleCancelled": "Cancelled the {action} schedule",
           "scheduleFailed": "The scheduled {action} failed: {reason}",
-          "copiedToDraft": "Copied version {number} into the draft"
+          "copiedToDraft": "Copied version {number} into the draft",
+          "createdAsCopy": "Created as a copy of another item"
         },
         "actions": {
           "publish": "publish",
@@ -2760,6 +2763,67 @@
       "trappedKept": "Caught as spam",
       "trappedDropped": "Caught and dropped",
       "rateLimited": "Over the rate limit"
+    }
+  },
+  "editing": {
+    "kinds": {
+      "page": "page",
+      "component": "component",
+      "item": "item"
+    },
+    "conflict": {
+      "title": "Someone else changed this {what}",
+      "byMember": "{name} saved this {what} at {when}.",
+      "byFieldChange": "The collection’s fields were updated at {when}, which changed this item.",
+      "byUnknown": "Someone else saved this {what} after you opened it.",
+      "nothingOverwritten": "Nothing was overwritten, and your changes were not saved.",
+      "changedFields": "Fields that changed",
+      "choices": "Reload the latest version, or keep viewing yours to copy what you want to keep.",
+      "reload": "Reload latest",
+      "reloading": "Reloading…",
+      "keepViewing": "Keep viewing my version",
+      "confirmReload": "Reload the latest version? Changes you have not copied will be lost. Anything you copied stays on the clipboard, ready to paste."
+    },
+    "presence": {
+      "locked": "{name} is editing this {what} — since {since}.",
+      "stale": "{name} has been editing this {what} since {since}, but has done nothing for {minutes} minutes.",
+      "self": "You are editing this {what} in another tab or browser.",
+      "takenOver": "{name} took over editing at {time}. Changes you made after that were not saved.",
+      "takenOverByUnknown": "{name} is editing this now. Your last changes were not saved.",
+      "someoneElse": "Someone else",
+      "moved": "You moved editing of this {what} to another tab or browser.",
+      "viewOnly": "You can view this {what}, but not change it.",
+      "viewOnlyHeld": "You can view this {what}, but not change it. {name} is editing it — since {since}.",
+      "free": "Nobody is editing this {what} now.",
+      "alsoViewing": "Also viewing: {names}.",
+      "readOnlyHelp": "You can view it and copy from it, but not change it until they finish.",
+      "takeOver": "Take over",
+      "confirmTakeOver": "Take over editing from {name}? Their editor will become read-only, and anything they have not saved will not be saved.",
+      "editHere": "Edit here instead",
+      "edit": "Edit",
+      "reload": "Reload latest"
+    },
+    "marker": {
+      "editing": "{name} is editing — since {since}",
+      "stale": "{name} — inactive, since {since}"
+    },
+    "copy": {
+      "save": "Save my version as a copy",
+      "saving": "Saving a copy…",
+      "saved": "Your version was saved as a copy, not published:",
+      "open": "Open the copy",
+      "notAllowed": "You can copy blocks from your version and paste them later, or ask a Designer to save it as a copy.",
+      "dropped": "These fields no longer exist or could not hold the values, so they were left out: {fields}.",
+      "pageTitle": "{title} (copy)",
+      "componentName": "{name} (copy)",
+      "failed": "The copy could not be saved: {reason}",
+      "origin": "This is a copy made by {name} on {when}, from the version saved at {saved}.",
+      "original": "Open the original"
+    },
+    "warnings": {
+      "publish": "{name} is editing this now. Publishing uses the saved draft; changes they have not saved yet will not be included.",
+      "delete": "{name} is editing this now. Deleting it stops their editing, and their unsaved changes are lost.",
+      "copyToDraft": "{name} is editing this now. Copying a version into the draft replaces what they saved, and their next save will be refused as out of date."
     }
   }
 }

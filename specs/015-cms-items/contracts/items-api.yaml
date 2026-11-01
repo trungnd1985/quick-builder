@@ -13,6 +13,12 @@ info:
     Errors are `application/problem+json` with `errorCode` and the extensions in
     data-model.md §6. Times are UTC ISO 8601. Request bodies over 1 MiB get `413`.
     Every write that can conflict takes the item `revision` it was based on.
+  x-changed-by-023: |
+    Feature 023 adds `POST /sites/{siteId}/collections/{collectionId}/items/{itemId}/copies`
+    (save the form's values as a new unpublished item; `droppedFields` names what could not be
+    kept), `copyOrigin` on items, the history kind `createdAsCopy`, and on draft saves the
+    `X-QB-Editing-Session` header and `409 editing.lock_held`. See
+    specs/023-concurrency/contracts/editing-api.yaml.
 servers:
   - url: /api/v1/cms
 paths:
@@ -118,11 +124,18 @@ paths:
                 - $ref: '#/components/schemas/DraftInput'
                 - type: object
                   required: [revision]
-                  properties: { revision: { type: integer } }
+                  properties:
+                    revision: { type: integer }
+                    draftRevision:
+                      type: integer
+                      description: |
+                        Added by 023 (research CE-08): the draft revision the form loaded. When sent, the
+                        save is compared with it instead of `revision`, so a publish, unpublish or
+                        schedule change by someone else does not refuse it.
       responses:
         '200': { description: Saved., content: { application/json: { schema: { $ref: '#/components/schemas/Item' } } } }
         '400': { description: '`cms.invalid_item`.' }
-        '409': { description: '`cms.item_conflict`, `cms.schema_changed`, `cms.item_slug_taken`, `cms.items_being_updated`; `cms.admin_outdated` (added by 035: no `X-QB-Rich-Text: 2` while the stored draft uses a 035 rich text format).' }
+        '409': { description: '`cms.item_conflict` (from 023 with `changedBy` (`{ id, displayName }`, null for a schema change), `changeKind` (`member` or `schema_change`), `changedAtUtc` and `currentDraftRevision` when `draftRevision` was sent), `cms.schema_changed`, `cms.item_slug_taken`, `cms.items_being_updated`; `cms.admin_outdated` (added by 035: no `X-QB-Rich-Text: 2` while the stored draft uses a 035 rich text format).' }
     delete:
       summary: Delete the item permanently
       description: Requires `cms.items.edit`. Refused while other items refer to it (FR-008).
@@ -426,6 +439,7 @@ components:
           properties:
             collectionId: { type: string, format: uuid }
             revision: { type: integer }
+            draftRevision: { type: integer, description: 'Added by 023 (research CE-08): moves only when the draft does.' }
             schemaRevision: { type: integer }
             draft: { $ref: '#/components/schemas/ValuesDocument' }
             published:

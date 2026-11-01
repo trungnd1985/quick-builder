@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
+using QuickBuilder.Editor.Contracts;
 using QuickBuilder.Pages.Contracts;
 using QuickBuilder.Pages.Infrastructure;
 using QuickBuilder.Shared.Infrastructure.Dispatch;
@@ -13,7 +14,7 @@ namespace QuickBuilder.Pages.Features.SavePageDraft;
 /// <summary>The whole new document, and the draft <see cref="Version"/> the caller last saw.</summary>
 public sealed record SaveDraftRequest(JsonElement Document, uint Version);
 
-internal sealed record SavePageDraftCommand(Guid SiteId, Guid PageId, JsonElement Document, uint Version, bool ClientKeepsEveryFormat)
+internal sealed record SavePageDraftCommand(Guid SiteId, Guid PageId, JsonElement Document, uint Version, bool ClientKeepsEveryFormat, Guid? EditingSession = null)
     : ICommand<Result<DraftResponse>>;
 
 internal sealed class SavePageDraftValidator : IValidator<SavePageDraftCommand>
@@ -41,7 +42,7 @@ internal sealed class SavePageDraftHandler(DraftWrites drafts, PagesAccess acces
             return Result.Failure<DraftResponse>(PagesErrors.SiteNotFound);
         }
 
-        return await drafts.SavePageDraftAsync(command.SiteId, command.PageId, command.Document, command.Version, command.ClientKeepsEveryFormat, cancellationToken)
+        return await drafts.SavePageDraftAsync(command.SiteId, command.PageId, command.Document, command.Version, command.ClientKeepsEveryFormat, command.EditingSession, cancellationToken)
             .ConfigureAwait(false);
     }
 }
@@ -64,7 +65,13 @@ public sealed class SavePageDraftController(IDispatcher dispatcher) : Controller
         ArgumentNullException.ThrowIfNull(request);
 
         var result = await dispatcher.SendAsync(
-            new SavePageDraftCommand(siteId, pageId, request.Document, request.Version, RichTextRules.KnowsEveryFormat(Request.Headers[RichTextRules.ClientHeader].FirstOrDefault())),
+            new SavePageDraftCommand(
+                siteId,
+                pageId,
+                request.Document,
+                request.Version,
+                RichTextRules.KnowsEveryFormat(Request.Headers[RichTextRules.ClientHeader].FirstOrDefault()),
+                EditingHeaders.Parse(Request.Headers[EditingHeaders.Session].FirstOrDefault())),
             cancellationToken).ConfigureAwait(false);
 
         return result.IsFailure ? PagesErrorResults.ToActionResult(result.Error) : Ok(result.Value);

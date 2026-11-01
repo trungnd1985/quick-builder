@@ -14,6 +14,9 @@ internal static class ItemHistoryKinds
     public const string ScheduleCancelled = "scheduleCancelled";
     public const string ScheduleFailed = "scheduleFailed";
     public const string CopiedToDraft = "copiedToDraft";
+
+    /// <summary>023 FR-020: created by "save my version as a copy"; the item's copy origin says from what.</summary>
+    public const string CreatedAsCopy = "createdAsCopy";
 }
 
 /// <summary>

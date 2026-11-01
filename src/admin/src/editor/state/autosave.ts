@@ -4,6 +4,7 @@
 //   saving ──ok──▶ saved (or dirty, if it changed meanwhile)
 //   saving ──network, 429, 502–504──▶ retrying ──backoff / Retry now──▶ saving
 //   saving ──409 out of date──▶ conflict   } each stops autosave and makes the
+//   saving ──409 lock held──▶ locked        } (023: another session holds the lock)
 //   saving ──403──▶ forbidden              } editor read-only; the member's
 //   saving ──404──▶ gone                   } version stays on screen
 //   saving ──400 invalid document──▶ invalid, or before sending when the pre-check fails
@@ -13,17 +14,18 @@
 
 import { ref, watch, type Ref } from 'vue'
 import { ApiError } from '../../api/request'
+import { conflictFrom, type ConflictDetails } from '../../editing/conflict'
 import { validateDocument } from '../schema/documentValidator'
 import { contentDocument } from '../schema/bindingDocumentRules'
 import type { ContentDocument, ContentNode } from '../schema/schema'
 import type { useEditorStore } from './editorStore'
 
-export type SaveState = 'saved' | 'dirty' | 'saving' | 'retrying' | 'conflict' | 'forbidden' | 'gone' | 'invalid' | 'outdated'
+export type SaveState = 'saved' | 'dirty' | 'saving' | 'retrying' | 'conflict' | 'locked' | 'forbidden' | 'gone' | 'invalid' | 'outdated'
 
-export const STOPPED_STATES: ReadonlySet<SaveState> = new Set(['conflict', 'forbidden', 'gone', 'invalid', 'outdated'])
+export const STOPPED_STATES: ReadonlySet<SaveState> = new Set(['conflict', 'locked', 'forbidden', 'gone', 'invalid', 'outdated'])
 
 /** How a document reaches the server. */
-export type SaveDraft = (document: ContentDocument, version: number) => Promise<{ version: number }>
+export type SaveDraft = (document: ContentDocument, version: number) => Promise<{ version: number; updatedAtUtc?: string }>
 
 export interface AutosaveOptions {
   debounceMs?: number
@@ -31,6 +33,13 @@ export interface AutosaveOptions {
   backoffMs?: readonly number[]
   /** Told when the store's document has been saved (the recovery copy is dropped then). */
   onSaved?: (saved: ContentNode) => void
+  /**
+   * 023 research CE-04: asked before every save; false holds it back. The editor answers by
+   * taking the editing lock, and reverts the change itself when the lock is someone else's.
+   */
+  beforeSave?: () => Promise<boolean>
+  /** 023 research CE-07: a save was refused because another session holds the lock. */
+  onLockLost?: () => void
 }
 
 export interface Autosave {
@@ -39,6 +48,8 @@ export interface Autosave {
   retryAt: Ref<number | null>
   /** The error code of the last refusal, when stopped. */
   reason: Ref<string | null>
+  /** After a conflict: who saved the newer version and when (023 FR-003), when the server says. */
+  conflict: Ref<ConflictDetails | null>
   saveNow: () => Promise<void>
   retryNow: () => Promise<void>
   /** After Reload latest: back to saved, autosave running again. */
@@ -59,6 +70,7 @@ export function createAutosave(
   const state = ref<SaveState>('saved')
   const retryAt = ref<number | null>(null)
   const reason = ref<string | null>(null)
+  const conflict = ref<ConflictDetails | null>(null)
 
   let timer: ReturnType<typeof setTimeout> | null = null
   let attempt = 0
@@ -124,10 +136,15 @@ export function createAutosave(
 
     inFlight = true
     changedWhileSaving = false
+    if (options.beforeSave && !(await options.beforeSave())) {
+      inFlight = false
+      if (!stopped()) state.value = store.root === store.savedRoot ? 'saved' : 'dirty'
+      return
+    }
     state.value = 'saving'
     try {
       const saved = await save(document, store.baseVersion)
-      store.markSaved(sending, saved.version)
+      store.markSaved(sending, saved.version, saved.updatedAtUtc)
       attempt = 0
       reason.value = null
       options.onSaved?.(sending)
@@ -151,7 +168,17 @@ export function createAutosave(
       const code = error.errorCode ?? null
       // 035 FR-020: this tab's admin is older than the content it would save over.
       if (error.status === 409 && code === 'pages.admin_outdated') return stop('outdated', code)
-      if (error.status === 409) return stop('conflict', code)
+      if (error.status === 409 && code === 'editing.lock_held') {
+        clearTimer()
+        state.value = 'locked'
+        reason.value = code
+        options.onLockLost?.()
+        return
+      }
+      if (error.status === 409) {
+        conflict.value = conflictFrom(error)
+        return stop('conflict', code)
+      }
       if (error.status === 403) return stop('forbidden', code)
       if (error.status === 404) return stop('gone', code)
       if (error.status === 400 || error.status === 413) {
@@ -179,6 +206,7 @@ export function createAutosave(
     clearTimer()
     attempt = 0
     reason.value = null
+    conflict.value = null
     state.value = 'saved'
   }
 
@@ -189,5 +217,5 @@ export function createAutosave(
     unwatch()
   }
 
-  return { state, retryAt, reason, saveNow, retryNow, reset, dispose }
+  return { state, retryAt, reason, conflict, saveNow, retryNow, reset, dispose }
 }

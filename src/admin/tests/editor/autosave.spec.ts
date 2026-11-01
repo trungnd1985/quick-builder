@@ -185,4 +185,77 @@ describe('autosave', () => {
     expect(save.mock.calls.at(-1)![1]).toBe(8)
     expect(autosave.state.value).toBe('saved')
   })
+
+  it('never reports its own quick saves as a conflict: each one is based on the last (023 FR-004)', async () => {
+    let version = 3
+    const save = vi.fn(async (_document: unknown, based: number) => {
+      if (based !== version) throw refused(409, 'pages.out_of_date')
+      return { version: ++version }
+    })
+    const { autosave, change } = setup(save)
+
+    for (const text of ['A', 'AB', 'ABC', 'ABCD']) {
+      change(text)
+      await vi.advanceTimersByTimeAsync(2100)
+    }
+
+    expect(save).toHaveBeenCalledTimes(4)
+    expect(save.mock.calls.map((call) => call[1])).toEqual([3, 4, 5, 6])
+    expect(autosave.state.value).toBe('saved')
+    expect(autosave.conflict.value).toBeNull()
+  })
+
+  it('keeps who changed the draft and when, for the conflict dialog (023 FR-003)', async () => {
+    const changedBy = { id: 'u-ben', displayName: 'Ben Hale' }
+    const save = vi.fn().mockRejectedValue(refused(409, 'pages.out_of_date', { changedBy, changedAtUtc: '2026-10-25T10:42:00Z', currentVersion: 12 }))
+    const { autosave, change } = setup(save)
+
+    change('A')
+    await vi.advanceTimersByTimeAsync(2100)
+
+    expect(autosave.state.value).toBe('conflict')
+    expect(autosave.conflict.value).toEqual({ changedBy, changedAtUtc: '2026-10-25T10:42:00Z', changeKind: 'member' })
+
+    autosave.reset()
+    expect(autosave.conflict.value).toBeNull()
+  })
+
+  it('stops in the locked state when another session holds the lock, and never sends again (023 research CE-07)', async () => {
+    const store = useEditorStore()
+    const root: ContentNode = { id: 'root', type: 'root', props: {}, children: [{ id: 's', type: 'section', props: {}, children: [{ id: 'h', type: 'heading', props: { text: 'Hi' }, children: [] }] }] }
+    store.root = root
+    store.savedRoot = root
+    store.baseVersion = 3
+    const save = vi.fn().mockRejectedValue(refused(409, 'editing.lock_held'))
+    const onLockLost = vi.fn()
+    const autosave = createAutosave(store, save, { onLockLost })
+
+    store.apply(setProp(store.root!, 'h', 'text', 'A'))
+    await vi.advanceTimersByTimeAsync(2100)
+
+    expect(autosave.state.value).toBe('locked')
+    expect(onLockLost).toHaveBeenCalledTimes(1)
+    store.apply(setProp(store.root!, 'h', 'text', 'AB'))
+    await vi.advanceTimersByTimeAsync(10_000)
+    expect(save).toHaveBeenCalledTimes(1)
+  })
+
+  it('holds a save back until the lock is held, and saves nothing when it is refused (023 research CE-04)', async () => {
+    const store = useEditorStore()
+    const root: ContentNode = { id: 'root', type: 'root', props: {}, children: [{ id: 's', type: 'section', props: {}, children: [{ id: 'h', type: 'heading', props: { text: 'Hi' }, children: [] }] }] }
+    store.root = root
+    store.savedRoot = root
+    store.baseVersion = 3
+    const save = vi.fn(async () => ({ version: 4 }))
+    const beforeSave = vi.fn().mockResolvedValueOnce(false).mockResolvedValue(true)
+    const autosave = createAutosave(store, save, { beforeSave })
+
+    store.apply(setProp(store.root!, 'h', 'text', 'A'))
+    await vi.advanceTimersByTimeAsync(2100)
+    expect(save).not.toHaveBeenCalled()
+    expect(autosave.state.value).toBe('dirty')
+
+    await autosave.saveNow()
+    expect(save).toHaveBeenCalledTimes(1)
+  })
 })

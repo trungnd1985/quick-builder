@@ -69,7 +69,22 @@ public sealed record ItemResponse(
 {
     /// <summary>017 FR-029, FR-032: whether this change asked for a redirect of the item's old address.</summary>
     public bool RedirectRequested { get; init; }
+
+    /// <summary>
+    /// 023 research CE-08: moves only when the draft does. A draft save sends it back as
+    /// <see cref="DraftRequest.DraftRevision"/>, so a publish by someone else does not refuse it.
+    /// </summary>
+    public int DraftRevision { get; init; }
+
+    /// <summary>023 FR-021: set on an item made by "save my version as a copy".</summary>
+    public CopyOriginResponse? CopyOrigin { get; init; }
+
+    /// <summary>023 FR-022: after a copy, the field ids whose values could not be kept. Empty otherwise.</summary>
+    public IReadOnlyList<string> DroppedFields { get; init; } = [];
 }
+
+/// <summary>023 FR-021: where a copy came from: the source item, the version the member had loaded (by when it was saved), who and when.</summary>
+public sealed record CopyOriginResponse(Guid SourceId, DateTimeOffset SourceSavedAtUtc, MemberResponse CopiedBy, DateTimeOffset CopiedAtUtc);
 
 /// <summary>
 /// Where visitors find an item (016 FR-007): <see cref="Path"/> under its collection's live
@@ -117,7 +132,12 @@ public sealed record ReferrerListResponse(IReadOnlyList<ReferrerResponse> Referr
 public sealed record SlugAvailabilityResponse(bool Available, string Suggestion);
 
 /// <summary>A draft as the form sends it (contracts/items-api.yaml, <c>DraftInput</c>).</summary>
-public sealed record DraftRequest(string? Slug, JsonElement? Values, int SchemaRevision, int Revision);
+/// <param name="Revision">The item revision the form loaded: what an admin from before 023 sends.</param>
+/// <param name="DraftRevision">
+/// 023 research CE-08: the draft revision the form loaded. When sent, a save compares it instead
+/// of <paramref name="Revision"/>, so only a change to the draft refuses it.
+/// </param>
+public sealed record DraftRequest(string? Slug, JsonElement? Values, int SchemaRevision, int Revision, int? DraftRevision = null);
 
 /// <summary>A publish, unpublish or rollback (contracts/items-api.yaml, <c>PublishingInput</c>).</summary>
 /// <param name="RedirectOldAddress">017 FR-029, publish and rollback: redirect the old address when the slug changes.</param>

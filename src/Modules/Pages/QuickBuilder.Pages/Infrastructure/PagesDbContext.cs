@@ -148,6 +148,8 @@ internal sealed class PagesDbContext(DbContextOptions<PagesDbContext> options, I
             entity.ToTable("pages", Schema, t =>
             {
                 t.HasCheckConstraint("ck_pages_position", "position >= 0");
+                // 023 data-model §2.1: a copy's origin is all there or not at all.
+                t.HasCheckConstraint("ck_pages_copy_origin", "(copied_from_id IS NULL) = (copied_from_saved_at_utc IS NULL) AND (copied_from_id IS NULL) = (copied_by IS NULL) AND (copied_from_id IS NULL) = (copied_at_utc IS NULL)");
                 t.HasCheckConstraint("ck_pages_slug", "slug ~ '^[a-z0-9]+(-[a-z0-9]+)*$'");
                 t.HasCheckConstraint("ck_pages_depth", $"depth BETWEEN 1 AND {PageAddresses.MaxDepth}");
                 t.HasCheckConstraint("ck_pages_home_top_level", "NOT is_home OR (parent_id IS NULL AND path = '/')");
@@ -198,6 +200,7 @@ internal sealed class PagesDbContext(DbContextOptions<PagesDbContext> options, I
                 .HasDatabaseName("ux_pages_site_template_collection");
 
             entity.Ignore(e => e.IsTemplate);
+            entity.Ignore(e => e.CopyOrigin);
 
             entity.HasQueryFilter(e => e.SiteId == CurrentSiteId);
         });
@@ -222,7 +225,9 @@ internal sealed class PagesDbContext(DbContextOptions<PagesDbContext> options, I
 
         modelBuilder.Entity<Component>(entity =>
         {
-            entity.ToTable("components", Schema);
+            entity.ToTable("components", Schema, t =>
+                // 023 data-model §2.1.
+                t.HasCheckConstraint("ck_components_copy_origin", "(copied_from_id IS NULL) = (copied_from_saved_at_utc IS NULL) AND (copied_from_id IS NULL) = (copied_by IS NULL) AND (copied_from_id IS NULL) = (copied_at_utc IS NULL)"));
 
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Id).ValueGeneratedNever();
@@ -231,6 +236,7 @@ internal sealed class PagesDbContext(DbContextOptions<PagesDbContext> options, I
             entity.Property(e => e.Name).HasColumnType("citext").HasMaxLength(Component.MaxNameLength).IsRequired();
             entity.Property(e => e.Version).IsRowVersion().HasColumnName("xmin").HasColumnType("xid");
             entity.Ignore(e => e.DomainEvents);
+            entity.Ignore(e => e.CopyOrigin);
 
             entity
                 .HasIndex(e => new { e.SiteId, e.Name })

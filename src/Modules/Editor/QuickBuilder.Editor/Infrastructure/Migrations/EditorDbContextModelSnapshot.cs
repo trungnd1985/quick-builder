@@ -150,6 +150,141 @@ namespace QuickBuilder.Editor.Infrastructure.Migrations
                         });
                 });
 
+            modelBuilder.Entity("QuickBuilder.Editor.Domain.EditingSession", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid?>("CollectionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("collection_id");
+
+                    b.Property<Guid>("DocumentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("document_id");
+
+                    b.Property<string>("DocumentKind")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("document_kind");
+
+                    b.Property<bool>("HoldsLock")
+                        .HasColumnType("boolean")
+                        .HasColumnName("holds_lock");
+
+                    b.Property<DateTimeOffset?>("LastActivityAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_activity_at");
+
+                    b.Property<DateTimeOffset>("LastSeenAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_seen_at");
+
+                    b.Property<DateTimeOffset?>("LockTakenAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("lock_taken_at");
+
+                    b.Property<DateTimeOffset?>("LostLockAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("lost_lock_at");
+
+                    b.Property<string>("LostLockReason")
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("lost_lock_reason");
+
+                    b.Property<Guid?>("LostLockToUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("lost_lock_to_user_id");
+
+                    b.Property<DateTimeOffset>("OpenedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("opened_at");
+
+                    b.Property<Guid>("SiteId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("site_id");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_editing_sessions");
+
+                    b.HasIndex("LastSeenAt")
+                        .HasDatabaseName("ix_editing_sessions_last_seen_at");
+
+                    b.HasIndex(new[] { "SiteId", "DocumentKind", "DocumentId" }, "ix_editing_sessions_document")
+                        .HasDatabaseName("ix_editing_sessions_document");
+
+                    b.HasIndex(new[] { "SiteId", "DocumentKind", "DocumentId" }, "ux_editing_sessions_holder")
+                        .IsUnique()
+                        .HasDatabaseName("ux_editing_sessions_holder")
+                        .HasFilter("holds_lock");
+
+                    b.ToTable("editing_sessions", "editor", t =>
+                        {
+                            t.HasCheckConstraint("ck_editing_sessions_collection", "(document_kind = 'item') = (collection_id IS NOT NULL)");
+
+                            t.HasCheckConstraint("ck_editing_sessions_kind", "document_kind IN ('page', 'component', 'item')");
+
+                            t.HasCheckConstraint("ck_editing_sessions_lock", "holds_lock = (lock_taken_at IS NOT NULL) AND holds_lock = (last_activity_at IS NOT NULL)");
+
+                            t.HasCheckConstraint("ck_editing_sessions_lost", "(lost_lock_reason IS NULL AND lost_lock_at IS NULL AND lost_lock_to_user_id IS NULL) OR (lost_lock_reason IN ('takeover', 'moved') AND lost_lock_at IS NOT NULL AND lost_lock_to_user_id IS NOT NULL)");
+                        });
+                });
+
+            modelBuilder.Entity("QuickBuilder.Editor.Domain.EditingTakeover", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("DocumentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("document_id");
+
+                    b.Property<string>("DocumentKind")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("document_kind");
+
+                    b.Property<Guid>("FromUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("from_user_id");
+
+                    b.Property<Guid>("SiteId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("site_id");
+
+                    b.Property<int>("StaleForSeconds")
+                        .HasColumnType("integer")
+                        .HasColumnName("stale_for_seconds");
+
+                    b.Property<DateTimeOffset>("TakenAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("taken_at");
+
+                    b.Property<Guid>("ToUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("to_user_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_editing_takeovers");
+
+                    b.HasIndex("SiteId", "TakenAt")
+                        .HasDatabaseName("ix_editing_takeovers_site_id_taken_at");
+
+                    b.ToTable("editing_takeovers", "editor", t =>
+                        {
+                            t.HasCheckConstraint("ck_editing_takeovers_kind", "document_kind IN ('page', 'component', 'item')");
+                        });
+                });
+
             modelBuilder.Entity("QuickBuilder.Shared.Infrastructure.Outbox.OutboxMessage", b =>
                 {
                     b.Property<Guid>("Id")

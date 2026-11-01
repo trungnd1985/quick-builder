@@ -2,17 +2,22 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using QuickBuilder.Cms.Contracts.Events;
 using QuickBuilder.Editor.Contracts;
 using QuickBuilder.Editor.Contracts.Events;
 using QuickBuilder.Editor.Features.DesignPublishing;
+using QuickBuilder.Editor.Features.EditingSessions;
 using QuickBuilder.Editor.Features.GetDesignTokens;
+using QuickBuilder.Editor.Features.ReleaseDeletedDocuments;
 using QuickBuilder.Editor.Features.SaveDesignTokens;
 using QuickBuilder.Editor.Infrastructure;
+using QuickBuilder.Pages.Contracts.Events;
 using QuickBuilder.Shared.Infrastructure.Data;
 using QuickBuilder.Shared.Infrastructure.Modules;
 using QuickBuilder.Shared.Infrastructure.MultiSite;
 using QuickBuilder.Shared.Infrastructure.Outbox;
 using QuickBuilder.Shared.Kernel.Dispatch;
+using QuickBuilder.Shared.Kernel.Events;
 using QuickBuilder.Shared.Kernel.Results;
 using QuickBuilder.Shared.Kernel.Validation;
 
@@ -81,6 +86,27 @@ public static class EditorModule
         services.AddScoped<IQueryHandler<ListDesignVersionsQuery, Result<DesignVersionsResponse>>, ListDesignVersionsHandler>();
         services.AddScoped<IQueryHandler<GetDesignVersionQuery, Result<DesignVersionResponse>>, GetDesignVersionHandler>();
         services.AddSingleton<IEventTypeRegistration>(new EventTypeRegistration<DesignPublished>());
+
+        // 023: editing sessions, presence and soft locks.
+        services.AddScoped<EditingAccess>();
+        services.AddScoped<EditingSessionStore>();
+        services.AddScoped<ICommandHandler<OpenSessionCommand, Result<PresenceResponse>>, OpenSessionHandler>();
+        services.AddScoped<IValidator<OpenSessionCommand>, OpenSessionValidator>();
+        services.AddScoped<ICommandHandler<HeartbeatCommand, Result<PresenceResponse>>, HeartbeatHandler>();
+        services.AddScoped<ICommandHandler<ClaimCommand, Result<PresenceResponse>>, ClaimHandler>();
+        services.AddScoped<ICommandHandler<MoveHereCommand, Result<PresenceResponse>>, MoveHereHandler>();
+        services.AddScoped<ICommandHandler<ReleaseCommand, Result>, ReleaseHandler>();
+        services.AddScoped<IQueryHandler<ListHoldersQuery, Result<HoldersResponse>>, ListHoldersHandler>();
+        services.AddScoped<IValidator<ListHoldersQuery>, ListHoldersValidator>();
+        services.AddScoped<ICommandHandler<TakeOverCommand, Result<PresenceResponse>>, TakeOverHandler>();
+        services.AddScoped<IEditingLocks, EditingLocks>();
+        services.AddScoped<ReleaseDeletedDocumentsHandler>();
+        services.AddScoped<IIntegrationEventHandler<PageDeleted>>(sp => sp.GetRequiredService<ReleaseDeletedDocumentsHandler>());
+        services.AddScoped<IIntegrationEventHandler<ComponentDeleted>>(sp => sp.GetRequiredService<ReleaseDeletedDocumentsHandler>());
+        services.AddScoped<IIntegrationEventHandler<ItemDeleted>>(sp => sp.GetRequiredService<ReleaseDeletedDocumentsHandler>());
+        services.AddScoped<IIntegrationEventHandler<CollectionDeleted>>(sp => sp.GetRequiredService<ReleaseDeletedDocumentsHandler>());
+        services.AddSingleton<EditingSessionCleanupService>();
+        services.AddHostedService(sp => sp.GetRequiredService<EditingSessionCleanupService>());
 
         return services;
     }

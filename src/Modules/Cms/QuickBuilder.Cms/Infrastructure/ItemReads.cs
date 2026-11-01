@@ -82,7 +82,9 @@ internal sealed class ItemReads(CmsDbContext database, CmsAccess access, QuickBu
 
         var schedules = await PendingAsync(item.SiteId, [item.Id], cancellationToken).ConfigureAwait(false);
         var mine = schedules.GetValueOrDefault(item.Id) ?? [];
-        var names = await access.NamesAsync(mine.Select(s => s.CreatedBy).Append(item.UpdatedBy), cancellationToken).ConfigureAwait(false);
+        var names = await access.NamesAsync(
+                mine.Select(s => s.CreatedBy).Append(item.UpdatedBy).Concat(item.CopiedBy is { } copier ? [copier] : []), cancellationToken)
+            .ConfigureAwait(false);
 
         var draft = item.DraftValues();
         var captured = mine.FirstOrDefault(s => s.Action == ItemScheduleActions.Publish);
@@ -111,7 +113,13 @@ internal sealed class ItemReads(CmsDbContext database, CmsAccess access, QuickBu
             Report(report),
             differs,
             unpublishedReferences,
-            await AddressAsync(item, cancellationToken).ConfigureAwait(false));
+            await AddressAsync(item, cancellationToken).ConfigureAwait(false))
+        {
+            DraftRevision = item.DraftRevision,
+            CopyOrigin = item is { CopiedFromId: { } source, CopiedFromSavedAtUtc: { } saved, CopiedBy: { } by, CopiedAtUtc: { } at }
+                ? new CopyOriginResponse(source, saved, Member(by, names), at)
+                : null,
+        };
     }
 
     /// <summary>

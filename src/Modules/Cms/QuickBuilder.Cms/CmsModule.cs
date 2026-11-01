@@ -9,6 +9,7 @@ using QuickBuilder.Cms.Features.GetCollection;
 using QuickBuilder.Cms.Features.GetSchemaHistory;
 using QuickBuilder.Cms.Features.Items;
 using QuickBuilder.Cms.Features.Items.CheckSlug;
+using QuickBuilder.Cms.Features.Items.CopyItem;
 using QuickBuilder.Cms.Features.Items.CreateItem;
 using QuickBuilder.Cms.Features.Items.DeleteItem;
 using QuickBuilder.Cms.Features.Items.DuplicateItem;
@@ -152,6 +153,8 @@ public static class CmsModule
         services.AddScoped<IQueryHandler<ListItemReferrersQuery, Result<ReferrerListResponse>>, ListItemReferrersHandler>();
         services.AddScoped<ICommandHandler<DeleteItemCommand, Result>, DeleteItemHandler>();
         services.AddScoped<ICommandHandler<DuplicateItemCommand, Result<ItemResponse>>, DuplicateItemHandler>();
+        // 023 research CE-11: "save my version as a copy".
+        services.AddScoped<ICommandHandler<CopyItemCommand, Result<ItemResponse>>, CopyItemHandler>();
         services.AddScoped<IQueryHandler<LookupItemsQuery, Result<ItemLookupResponse>>, LookupItemsHandler>();
 
         // 016 research TB-14: the editor's list preview, over published data of the named site.

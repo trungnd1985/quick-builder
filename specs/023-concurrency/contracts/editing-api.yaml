@@ -1,0 +1,356 @@
+openapi: 3.1.0
+info:
+  title: QuickBuilder admin API additions for concurrent editing safety
+  version: v1
+  description: |
+    Admin API additions and changes for specs/023-concurrency (research CE-01 to CE-18).
+    Every operation is site-scoped and declares a capability. For editing sessions the
+    capability depends on the document kind (research CE-16):
+    - page: view `pages.content.view`, edit `pages.page_drafts.edit`
+    - component: view `pages.content.view`, edit `pages.components.manage`
+    - item: view `cms.collections.view`, edit `cms.items.edit`
+    Opening a session needs the view capability; claim, takeover and move need the edit
+    capability. Heartbeat and release only act on the caller's own session.
+    A user with no role on the site gets the same `404` as for a site that does not exist.
+    Errors are `application/problem+json` with `errorCode` (data-model.md §5).
+
+    Changed operations (shapes otherwise unchanged):
+    - Page and component draft saves (`PUT …/pages/{pageId}/draft`,
+      `PUT …/components/{componentId}/draft`) and item draft saves
+      (`PUT …/items/{itemId}/draft`) accept the optional header `X-QB-Editing-Session`. When
+      it is sent and another live session holds the document's lock, they refuse
+      `409 editing.lock_held` (CE-07).
+    - `409 pages.out_of_date` from those draft saves adds `changedBy`, `changedAtUtc` and
+      `currentVersion`. `409 cms.item_conflict` from item draft saves adds `changedBy`,
+      `changeKind`, `changedAtUtc` and `currentDraftRevision` (CE-09).
+    - The item draft save body accepts the optional `draftRevision`. Item responses include
+      `draftRevision` and `copyOrigin` (CE-08, CE-11). Page and component responses include
+      `copyOrigin`.
+paths:
+  /api/v1/editor/sites/{siteId}/editing-sessions:
+    parameters:
+      - $ref: '#/components/parameters/SiteId'
+    post:
+      summary: Open an editing session (as a viewer) for a document
+      x-capability: kind view capability
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [kind, documentId]
+              additionalProperties: false
+              properties:
+                kind: { $ref: '#/components/schemas/DocumentKind' }
+                documentId: { type: string, format: uuid }
+                collectionId: { type: string, format: uuid, description: Required for items. }
+      responses:
+        '201':
+          description: The new session and who else has the document open.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Presence' }
+        '403': { $ref: '#/components/responses/Problem' }
+  /api/v1/editor/sites/{siteId}/editing-sessions/{sessionId}/heartbeat:
+    parameters:
+      - $ref: '#/components/parameters/SiteId'
+      - $ref: '#/components/parameters/SessionId'
+    post:
+      summary: Keep the session alive, report activity, and read presence
+      description: |
+        Sent every 10 seconds (CE-03). `active` is true when the holder made a change or
+        an editing action since the previous heartbeat (CE-05); it is ignored for viewers.
+        When the caller has lost the kind's edit capability, a held lock is released and
+        `access` is `view-only` (FR-019).
+      x-capability: kind view capability (own session)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [active]
+              additionalProperties: false
+              properties:
+                active: { type: boolean }
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Presence' }
+        '404':
+          description: '`editing.session_gone`: the session expired or the document was deleted.'
+  /api/v1/editor/sites/{siteId}/editing-sessions/{sessionId}/claim:
+    parameters:
+      - $ref: '#/components/parameters/SiteId'
+      - $ref: '#/components/parameters/SessionId'
+    post:
+      summary: Take the lock on the first change (CE-04)
+      description: |
+        Succeeds when no live session holds the lock (a gone holder is cleared first).
+        Idempotent for the current holder.
+      x-capability: kind edit capability (own session)
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Presence' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+        '409':
+          description: '`editing.lock_held`: another session holds it; body names the holder.'
+  /api/v1/editor/sites/{siteId}/editing-sessions/{sessionId}/takeover:
+    parameters:
+      - $ref: '#/components/parameters/SiteId'
+      - $ref: '#/components/parameters/SessionId'
+    post:
+      summary: Take over a stale lock held by another member (FR-017, FR-018)
+      x-capability: kind edit capability (own session)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [holderSessionId]
+              additionalProperties: false
+              properties:
+                holderSessionId:
+                  type: string
+                  format: uuid
+                  description: The holder the caller saw; the takeover fails if it changed.
+      responses:
+        '200':
+          description: The caller holds the lock; a takeover record was written.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Presence' }
+        '409':
+          description: '`editing.not_stale`: the lock is active again, or held by someone else now.'
+  /api/v1/editor/sites/{siteId}/editing-sessions/{sessionId}/move:
+    parameters:
+      - $ref: '#/components/parameters/SiteId'
+      - $ref: '#/components/parameters/SessionId'
+    post:
+      summary: '"Edit here instead": move the caller''s own lock to this session (FR-014)'
+      x-capability: kind edit capability (own session)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [holderSessionId]
+              additionalProperties: false
+              properties:
+                holderSessionId: { type: string, format: uuid }
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Presence' }
+        '409':
+          description: '`editing.lock_held`: the holder is not one of the caller''s sessions any more.'
+  /api/v1/editor/sites/{siteId}/editing-sessions/{sessionId}:
+    parameters:
+      - $ref: '#/components/parameters/SiteId'
+      - $ref: '#/components/parameters/SessionId'
+    delete:
+      summary: Release (leave the document); sent on route leave, pagehide (keepalive) and sign-out
+      x-capability: signed in (own session)
+      responses:
+        '204': { description: Released. }
+        '404': { description: '`editing.session_gone`: no such session of the caller (already released or lapsed, or another site). The admin ignores it.' }
+  /api/v1/editor/sites/{siteId}/editing:
+    parameters:
+      - $ref: '#/components/parameters/SiteId'
+    get:
+      summary: Current lock holders of one kind, for markers in lists (FR-012, CE-15)
+      x-capability: kind view capability
+      parameters:
+        - in: query
+          name: kind
+          required: true
+          schema: { $ref: '#/components/schemas/DocumentKind' }
+        - in: query
+          name: collectionId
+          schema: { type: string, format: uuid }
+          description: For items, narrows to one collection.
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [serverNow, holders]
+                properties:
+                  serverNow: { type: string, format: date-time }
+                  holders:
+                    type: array
+                    items:
+                      type: object
+                      required: [documentId, holder, since, stale]
+                      properties:
+                        documentId: { type: string, format: uuid }
+                        holder: { $ref: '#/components/schemas/Member' }
+                        since: { type: string, format: date-time }
+                        stale: { type: boolean }
+  /api/v1/pages/sites/{siteId}/pages/{pageId}/copies:
+    parameters:
+      - $ref: '#/components/parameters/SiteId'
+      - in: path
+        name: pageId
+        required: true
+        schema: { type: string, format: uuid }
+    post:
+      summary: Save the member's version of a page as a new page after it (FR-020, CE-11)
+      x-capability: pages.structure.manage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [document, baseSavedAtUtc]
+              additionalProperties: false
+              properties:
+                document: { type: object, description: A page document (page-schema contract). }
+                baseSavedAtUtc: { type: string, format: date-time, description: When the draft version the member loaded was saved (the copy origin). }
+                title: { type: string, maxLength: 200, description: 'The localised "<title> (copy)"; the original title when absent.' }
+      responses:
+        '201':
+          description: The new page (unpublished) with its `copyOrigin`.
+        '400': { description: '`pages.invalid_document`, with the failed rule.' }
+        '403': { description: '`identity.forbidden` (no `pages.structure.manage`, or `pages.components.manage` for a component).' }
+  /api/v1/pages/sites/{siteId}/components/{componentId}/copies:
+    parameters:
+      - $ref: '#/components/parameters/SiteId'
+      - in: path
+        name: componentId
+        required: true
+        schema: { type: string, format: uuid }
+    post:
+      summary: Save the member's version of a component as a new component (FR-020)
+      x-capability: pages.components.manage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [document, baseSavedAtUtc]
+              additionalProperties: false
+              properties:
+                document: { type: object }
+                baseSavedAtUtc: { type: string, format: date-time }
+                name: { type: string, maxLength: 100, description: 'The localised "<name> (copy)"; a number is added when another component has it.' }
+      responses:
+        '201': { description: The new component, used by no page, with its `copyOrigin`. }
+        '400': { description: '`pages.invalid_document`.' }
+        '409': { description: '`pages.duplicate_component_name`, when another component took the name a moment before.' }
+        '403': { description: '`identity.forbidden` (no `pages.structure.manage`, or `pages.components.manage` for a component).' }
+  /api/v1/cms/sites/{siteId}/collections/{collectionId}/items/{itemId}/copies:
+    parameters:
+      - $ref: '#/components/parameters/SiteId'
+      - in: path
+        name: collectionId
+        required: true
+        schema: { type: string, format: uuid }
+      - in: path
+        name: itemId
+        required: true
+        schema: { type: string, format: uuid }
+    post:
+      summary: Save the member's version of an item as a new item (FR-020, FR-022)
+      x-capability: cms.items.edit
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [values, baseSavedAtUtc]
+              additionalProperties: false
+              properties:
+                slug: { type: string, description: Made unique when taken. }
+                values: { type: object, description: Draft values keyed by field id. }
+                baseSavedAtUtc: { type: string, format: date-time }
+      responses:
+        '201':
+          description: |
+            The new item (unpublished) with its `copyOrigin`, and `droppedFields`: field ids
+            whose values could not be kept because the field no longer exists.
+        '403': { description: '`identity.forbidden`.' }
+components:
+  parameters:
+    SiteId:
+      in: path
+      name: siteId
+      required: true
+      schema: { type: string, format: uuid }
+    SessionId:
+      in: path
+      name: sessionId
+      required: true
+      schema: { type: string, format: uuid }
+  responses:
+    Problem:
+      description: A refusal; see data-model.md §5.
+      content:
+        application/problem+json:
+          schema: { type: object }
+  schemas:
+    DocumentKind:
+      type: string
+      enum: [page, component, item]
+    Member:
+      type: object
+      required: [id, displayName]
+      properties:
+        id: { type: string, format: uuid }
+        displayName: { type: string }
+    Presence:
+      type: object
+      description: What one session needs to show; all times are server time (CE-05).
+      required: [sessionId, serverNow, role, access, others]
+      properties:
+        sessionId: { type: string, format: uuid }
+        serverNow: { type: string, format: date-time }
+        role:
+          type: string
+          enum: [viewer, holder]
+        access:
+          type: string
+          enum: [edit, view-only]
+          description: view-only when the caller lacks the kind's edit capability.
+        lock:
+          description: The current holder, when there is one.
+          type: object
+          required: [holderSessionId, holder, since, stale, inactiveSeconds, isYou, isYourOtherSession]
+          properties:
+            holderSessionId: { type: string, format: uuid }
+            holder: { $ref: '#/components/schemas/Member' }
+            since: { type: string, format: date-time }
+            stale: { type: boolean }
+            inactiveSeconds: { type: integer }
+            isYou: { type: boolean, description: This session holds it. }
+            isYourOtherSession: { type: boolean, description: Another session of the same user holds it. }
+        lostLock:
+          description: Set once after this session lost the lock (takeover or move).
+          type: object
+          required: [at, by, reason]
+          properties:
+            at: { type: string, format: date-time }
+            by: { $ref: '#/components/schemas/Member' }
+            reason: { type: string, enum: [takeover, moved] }
+        others:
+          description: Other live sessions on the document (viewers and holder), one entry per member and session.
+          type: array
+          items:
+            type: object
+            required: [member, since, holdsLock]
+            properties:
+              member: { $ref: '#/components/schemas/Member' }
+              since: { type: string, format: date-time }
+              holdsLock: { type: boolean }

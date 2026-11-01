@@ -151,6 +151,24 @@ describe('PageTreeView — the structure (US1)', () => {
     expect(await violations(container)).toEqual([])
   })
 
+  it('marks the pages someone is editing, with their name and since when (023 FR-012)', async () => {
+    const calls = stubFetch(sampleTree(), {
+      [`GET /api/v1/editor/sites/${SITE}/editing`]: [{
+        status: 200,
+        body: { serverNow: '2026-10-25T10:00:00Z', holders: [{ documentId: 'about', holder: { id: 'u-anna', displayName: 'Anna Tran' }, since: '2026-10-25T09:50:00Z', stale: false }] },
+      }],
+    })
+    const { container } = await renderView()
+
+    await waitFor(() => expect(container.querySelector('.editing-marker')).toBeTruthy())
+    const marked = container.querySelector('.editing-marker')!.closest('tr')!
+    expect(marked.querySelector('td')?.textContent?.trim()).toBe('/about')
+    expect(marked.textContent).toContain('Anna Tran is editing')
+    expect(container.querySelectorAll('.editing-marker')).toHaveLength(1)
+    expect(calls.some((c) => c.url.includes('/editing?kind=page'))).toBe(true)
+    expect(await violations(container)).toEqual([])
+  })
+
   it('shows the empty state for a site without pages', async () => {
     stubFetch({ pages: [], permissions: designer })
     await renderView()

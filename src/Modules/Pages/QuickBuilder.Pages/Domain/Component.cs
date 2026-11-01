@@ -53,6 +53,32 @@ internal sealed class Component : AggregateRoot, ISiteOwned
     /// <summary>The concurrency token, mapped to <c>xmin</c>, sent to clients as <c>version</c>.</summary>
     public uint Version { get; private set; }
 
+    /// <summary>023 FR-021: the component this one is a copy of; null unless made by "save my version as a copy".</summary>
+    public Guid? CopiedFromId { get; private set; }
+
+    /// <summary>When the source version the member had loaded was saved.</summary>
+    public DateTimeOffset? CopiedFromSavedAtUtc { get; private set; }
+
+    public Guid? CopiedBy { get; private set; }
+
+    public DateTimeOffset? CopiedAtUtc { get; private set; }
+
+    /// <summary>The copy origin, when this is a copy.</summary>
+    public CopyOrigin? CopyOrigin =>
+        CopiedFromId is { } source && CopiedFromSavedAtUtc is { } saved && CopiedBy is { } by && CopiedAtUtc is { } at
+            ? new CopyOrigin(source, saved, by, at)
+            : null;
+
+    /// <summary>Records that this component was made as a copy (023 FR-020, FR-021).</summary>
+    public void MarkCopyOf(CopyOrigin origin)
+    {
+        ArgumentNullException.ThrowIfNull(origin);
+        CopiedFromId = origin.SourceId;
+        CopiedFromSavedAtUtc = origin.SourceSavedAtUtc;
+        CopiedBy = origin.CopiedBy;
+        CopiedAtUtc = origin.CopiedAtUtc;
+    }
+
     public static Result<Component> Create(Guid siteId, string? name, Guid actor, TimeProvider clock)
     {
         ArgumentNullException.ThrowIfNull(clock);

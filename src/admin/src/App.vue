@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
+import { editingApi } from './api/editing'
 import { identityApi } from './api/identity'
 import { useAuthStore } from './app/authStore'
 import { clearClipboard } from './editor/state/clipboard'
@@ -16,6 +17,8 @@ async function signOut(): Promise<void> {
   // 011 FR-030 (spec Edge Cases, "shared computer"): the editor's unsaved-change copies and
   // clipboard are this user's; the next person to sign in on this browser must not see them.
   const userId = auth.user?.id
+  // 023 FR-015: open documents are left first, so nobody waits for their locks to lapse.
+  await editingApi.releaseAll()
   try {
     await identityApi.signOut()
   } finally {

@@ -53,6 +53,7 @@ export function item(extra: Partial<Item> = {}): Item {
     ...summary(),
     collectionId: COLLECTION,
     revision: 3,
+    draftRevision: 2,
     schemaRevision: 2,
     draft: { schemaVersion: 1, values: { f1: 'Hello world' } },
     published: null,

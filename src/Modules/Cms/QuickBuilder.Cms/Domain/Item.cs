@@ -38,6 +38,10 @@ internal sealed class Item : AggregateRoot, ISiteOwned, IDisposable
         Draft = draft;
         Status = ItemStatuses.Draft;
         Revision = 1;
+        DraftRevision = 1;
+        DraftChangedBy = actor == Guid.Empty ? null : actor;
+        DraftChangedAtUtc = now;
+        DraftChangeKind = ItemDraftChangeKinds.Member;
         NextVersionNumber = 1;
         SearchText = string.Empty;
         CreatedAtUtc = now;
@@ -53,6 +57,7 @@ internal sealed class Item : AggregateRoot, ISiteOwned, IDisposable
         Slug = string.Empty;
         Status = string.Empty;
         SearchText = string.Empty;
+        DraftChangeKind = ItemDraftChangeKinds.Member;
     }
 
     public Guid Id { get; private set; }
@@ -77,6 +82,31 @@ internal sealed class Item : AggregateRoot, ISiteOwned, IDisposable
 
     /// <summary>+1 on every write, and on every schema migration that rewrites the item.</summary>
     public int Revision { get; private set; }
+
+    /// <summary>
+    /// +1 on every change to the draft only: saves, copies into the draft, and schema changes
+    /// that rewrite it (023 research CE-08). Draft saves compare it, so a publish by someone else
+    /// does not refuse the next save.
+    /// </summary>
+    public int DraftRevision { get; private set; }
+
+    /// <summary>Who last changed the draft; null for a schema change (023 research CE-09).</summary>
+    public Guid? DraftChangedBy { get; private set; }
+
+    public DateTimeOffset DraftChangedAtUtc { get; private set; }
+
+    /// <summary>One of <see cref="ItemDraftChangeKinds"/>.</summary>
+    public string DraftChangeKind { get; private set; }
+
+    /// <summary>023 FR-021: the item this one is a copy of; null unless made by "save my version as a copy".</summary>
+    public Guid? CopiedFromId { get; private set; }
+
+    /// <summary>When the source version the member had loaded was saved.</summary>
+    public DateTimeOffset? CopiedFromSavedAtUtc { get; private set; }
+
+    public Guid? CopiedBy { get; private set; }
+
+    public DateTimeOffset? CopiedAtUtc { get; private set; }
 
     /// <summary>The title field's draft value, or null (research IT-11).</summary>
     public string? Name { get; private set; }
@@ -184,7 +214,29 @@ internal sealed class Item : AggregateRoot, ISiteOwned, IDisposable
 
         ReplaceDraft(slug, draft);
         Touch(actor, now);
+        DraftChanged(actor, ItemDraftChangeKinds.Member, now);
         Raise(new ItemDraftSavedEvent(SiteId, CollectionId, Id, now));
+    }
+
+    /// <summary>
+    /// 023 FR-020, FR-021: a new draft item holding the member's version of this one, recording
+    /// where it came from. No published values, versions or schedules.
+    /// </summary>
+    public Item CopyAsNew(string slug, ItemValues draft, DateTimeOffset sourceSavedAtUtc, Guid actor, DateTimeOffset now)
+    {
+        ArgumentNullException.ThrowIfNull(draft);
+        EnsureSlug(slug);
+
+        var copy = new Item(SiteId, CollectionId, slug, draft.ToDocument(), actor, now)
+        {
+            CopiedFromId = Id,
+            CopiedFromSavedAtUtc = sourceSavedAtUtc,
+            CopiedBy = actor,
+            CopiedAtUtc = now,
+        };
+        copy._newHistory.Add(ItemHistoryEntry.For(copy, ItemHistoryKinds.CreatedAsCopy, actor, now));
+        copy.Raise(new ItemCreatedEvent(SiteId, CollectionId, copy.Id, now));
+        return copy;
     }
 
     /// <summary>
@@ -265,6 +317,7 @@ internal sealed class Item : AggregateRoot, ISiteOwned, IDisposable
 
         ReplaceDraft(version.Slug, version.ReadValues());
         Touch(actor, now);
+        DraftChanged(actor, ItemDraftChangeKinds.Member, now);
         _newHistory.Add(ItemHistoryEntry.For(this, ItemHistoryKinds.CopiedToDraft, actor, now, versionNumber: version.Number));
         Raise(new ItemDraftSavedEvent(SiteId, CollectionId, Id, now));
     }
@@ -299,8 +352,11 @@ internal sealed class Item : AggregateRoot, ISiteOwned, IDisposable
         ArgumentNullException.ThrowIfNull(draft);
         ArgumentNullException.ThrowIfNull(clock);
 
+        var migrated = draft.ToDocument();
+        var draftChanged = !JsonElement.DeepEquals(Draft.RootElement, migrated.RootElement);
+
         Draft.Dispose();
-        Draft = draft.ToDocument();
+        Draft = migrated;
         if (Published is not null && published is not null)
         {
             Published.Dispose();
@@ -309,6 +365,12 @@ internal sealed class Item : AggregateRoot, ISiteOwned, IDisposable
 
         Revision++;
         UpdatedAtUtc = clock.GetUtcNow();
+
+        // 023 research CE-09: an open form learns the draft changed, and that no member did it.
+        if (draftChanged)
+        {
+            DraftChanged(null, ItemDraftChangeKinds.SchemaChange, UpdatedAtUtc);
+        }
     }
 
     /// <summary>What <c>ItemIndexer</c> derived from the item (research IT-11).</summary>
@@ -362,6 +424,14 @@ internal sealed class Item : AggregateRoot, ISiteOwned, IDisposable
         Revision++;
         UpdatedAtUtc = now;
         UpdatedBy = actor;
+    }
+
+    private void DraftChanged(Guid? actor, string kind, DateTimeOffset now)
+    {
+        DraftRevision++;
+        DraftChangedBy = actor;
+        DraftChangedAtUtc = now;
+        DraftChangeKind = kind;
     }
 
     private static void EnsureSlug(string slug)

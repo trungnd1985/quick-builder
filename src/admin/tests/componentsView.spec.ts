@@ -106,6 +106,17 @@ describe('ComponentsView (US4)', () => {
     expect(calls.find((c) => c.method === 'POST')?.body).toEqual({ name: 'Footer' })
   })
 
+  it('marks the components someone is editing (023 FR-012)', async () => {
+    stubFetch({ components: [component('h', 'Header', 1), component('f', 'Footer', 1)], permissions: designer }, {
+      [`GET /api/v1/editor/sites/${SITE}/editing`]: [{ status: 200, body: { serverNow: '2026-10-25T10:00:00Z', holders: [{ documentId: 'f', holder: { id: 'u-anna', displayName: 'Anna Tran' }, since: '2026-10-25T09:50:00Z', stale: false }] } }],
+    })
+    const { container } = await renderView()
+
+    await waitFor(() => expect(container.querySelector('.editing-marker')).toBeTruthy())
+    expect(container.querySelector('.editing-marker')!.closest('tr')!.textContent).toContain('Footer')
+    expect(container.querySelectorAll('.editing-marker')).toHaveLength(1)
+  })
+
   it('shows the empty state and a duplicate-name refusal', async () => {
     stubFetch({ components: [], permissions: designer }, {
       [`POST /api/v1/pages/sites/${SITE}/components`]: [{ status: 409, body: { errorCode: 'pages.duplicate_component_name', title: 'x', status: 409 } }],

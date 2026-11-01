@@ -159,6 +159,22 @@ namespace QuickBuilder.Cms.Infrastructure.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("collection_id");
 
+                    b.Property<DateTimeOffset?>("CopiedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("copied_at_utc");
+
+                    b.Property<Guid?>("CopiedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("copied_by");
+
+                    b.Property<Guid?>("CopiedFromId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("copied_from_id");
+
+                    b.Property<DateTimeOffset?>("CopiedFromSavedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("copied_from_saved_at_utc");
+
                     b.Property<DateTimeOffset>("CreatedAtUtc")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at_utc");
@@ -171,6 +187,30 @@ namespace QuickBuilder.Cms.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("jsonb")
                         .HasColumnName("draft");
+
+                    b.Property<string>("DraftChangeKind")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasDefaultValue("member")
+                        .HasColumnName("draft_change_kind");
+
+                    b.Property<DateTimeOffset>("DraftChangedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("draft_changed_at_utc")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<Guid?>("DraftChangedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("draft_changed_by");
+
+                    b.Property<int>("DraftRevision")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1)
+                        .HasColumnName("draft_revision");
 
                     b.Property<DateTimeOffset?>("FirstPublishedAtUtc")
                         .HasColumnType("timestamp with time zone")
@@ -277,6 +317,12 @@ namespace QuickBuilder.Cms.Infrastructure.Migrations
 
                     b.ToTable("items", "cms", t =>
                         {
+                            t.HasCheckConstraint("ck_items_copy_origin", "(copied_from_id IS NULL) = (copied_from_saved_at_utc IS NULL) AND (copied_from_id IS NULL) = (copied_by IS NULL) AND (copied_from_id IS NULL) = (copied_at_utc IS NULL)");
+
+                            t.HasCheckConstraint("ck_items_draft_change_kind", "(draft_change_kind = 'member') OR (draft_change_kind = 'schema_change' AND draft_changed_by IS NULL)");
+
+                            t.HasCheckConstraint("ck_items_draft_revision", "draft_revision >= 1");
+
                             t.HasCheckConstraint("ck_items_published_slug", "(published IS NULL) = (published_slug IS NULL)");
 
                             t.HasCheckConstraint("ck_items_revision", "revision >= 1");

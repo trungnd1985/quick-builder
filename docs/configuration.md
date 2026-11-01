@@ -182,6 +182,12 @@ how late one can be.
 Feature 024 adds no configuration keys. Menu limits (50 menus per site, 300 entries, three
 levels) are part of the menu contract, not settings.
 
+## Editing sessions
+
+Feature 023 adds no configuration keys. A lock lapses 2 minutes after its editor stops
+answering and becomes stale after 30 minutes without a change; both are fixed in this
+release. Locks are kept in PostgreSQL, so they work across instances without a shared cache.
+
 ## Email
 
 Outgoing email sends form notifications and the test email (018). All keys are optional:

@@ -8,7 +8,7 @@
 import { computed, onBeforeUnmount, onMounted, provide, ref, shallowRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { onBeforeRouteLeave } from 'vue-router'
-import { pagesApi } from '../api/pages'
+import { pagesApi, type CopyOrigin } from '../api/pages'
 import type { Publication } from '../api/publishing'
 import { useAuthStore } from '../app/authStore'
 import PublishMenu from '../features/publishing/PublishMenu.vue'
@@ -17,6 +17,10 @@ import BlockPalette from './palette/BlockPalette.vue'
 import PropertyPanel from './panel/PropertyPanel.vue'
 import LayerView from './layers/LayerView.vue'
 import ConflictBanner from './ConflictBanner.vue'
+import ConflictDialog from '../editing/ConflictDialog.vue'
+import type { ConflictDetails } from '../editing/conflict'
+import PresenceBanner from '../editing/PresenceBanner.vue'
+import { LOCK_STATUSES, useEditingSession, type EditingStatus } from '../editing/useEditingSession'
 import RecoveryDialog from './RecoveryDialog.vue'
 import EditorTopBar from './EditorTopBar.vue'
 import SampleItemPicker from './SampleItemPicker.vue'
@@ -26,6 +30,7 @@ import { refusalKey } from './editorErrors'
 import { definitionOf } from './blocks/registry'
 import type { ContentDocument, ContentNode, DocumentKind } from './schema/schema'
 import { CURRENT_SCHEMA_VERSION } from './schema/limits'
+import { contentDocument } from './schema/bindingDocumentRules'
 import { createAutosave, type Autosave } from './state/autosave'
 import { useEditorStore } from './state/editorStore'
 import { createHistory, pageHistoryKey, type History } from './state/history'
@@ -60,6 +65,9 @@ const sitePresentation = computed(() => {
 const announcement = ref('')
 const notice = ref('')
 const saveState = ref<Autosave['state']['value']>('saved')
+/** 023 FR-006: the conflict dialog, open from a refused save until the member chooses. */
+const conflictDialog = ref(false)
+const conflict = ref<ConflictDetails | null>(null)
 const history = shallowRef<History | null>(null)
 
 /**
@@ -83,6 +91,18 @@ const offer = shallowRef<RecoveryOffer | null>(null)
 const reloading = ref(false)
 let autosave: Autosave | null = null
 const cleanups: (() => void)[] = []
+/** 023: this editor's editing session: presence, the soft lock, and the header its saves carry. */
+const editing = useEditingSession(() => ({ siteId: props.siteId, kind: props.kind, documentId: props.documentId }))
+const editingBusy = ref(false)
+/** 023 FR-020a: whether this member may create a page or component, so may save a copy. */
+const canSaveCopy = ref(false)
+const copying = ref(false)
+const savedCopy = ref<{ to: { name: string; params: Record<string, string> }; label: string } | null>(null)
+/** 023 FR-021: shown when the open document is itself a copy. */
+const copyOrigin = ref<CopyOrigin | null>(null)
+/** The read-only states whose version the member may keep as a copy. */
+const copyableReason = computed(() => ['conflict', 'recovery', 'taken-over'].includes(store.readOnly?.reason ?? ''))
+const isLockReason = (reason: string | undefined): boolean => reason !== undefined && LOCK_STATUSES.has(reason as EditingStatus)
 const previewWidth = usePreviewWidth(auth.user?.id ?? 'anonymous')
 
 const backTo = computed(() =>
@@ -143,27 +163,50 @@ async function open(): Promise<void> {
     return
   }
 
+  // 023: the session opens beside the draft and is not waited for (SC-007): the lock state
+  // arrives through the status watch, and the first claim waits for the session itself.
+  void editing.start()
   await store.load(props.siteId, props.kind, props.documentId)
 
   if (store.loadState === 'not-found' || store.loadState === 'forbidden') {
     // Nothing to offer for a document that is gone or no longer this member's to edit.
+    editing.stop()
     void removeRecovery(recoveryKey())
     return
   }
-  if (store.loadState !== 'ready') return
+  if (store.loadState !== 'ready') {
+    editing.stop()
+    return
+  }
 
   history.value = createHistory(store)
   autosave = createAutosave(
     store,
     (document, version) =>
       props.kind === 'page'
-        ? pagesApi.savePageDraft(props.siteId, props.documentId, { document, version })
-        : pagesApi.saveComponentDraft(props.siteId, props.documentId, { document, version }),
-    { onSaved: (saved: ContentNode) => {
-      if (store.root === saved) void removeRecovery(recoveryKey())
-    } },
+        ? pagesApi.savePageDraft(props.siteId, props.documentId, { document, version }, editing.headers())
+        : pagesApi.saveComponentDraft(props.siteId, props.documentId, { document, version }, editing.headers()),
+    {
+      onSaved: (saved: ContentNode) => {
+        if (store.root === saved) void removeRecovery(recoveryKey())
+      },
+      // 023 research CE-04: nothing is saved before this session holds the lock.
+      beforeSave: claimOrRevert,
+      onLockLost: () => editing.lockLost(),
+    },
   )
   cleanups.push(watch(autosave.state, (state) => (saveState.value = state), { immediate: true }))
+  // 023: every change counts as activity, and the first one claims the lock at once.
+  cleanups.push(store.onChange(() => {
+    editing.noteActivity()
+    if (editing.presence.value?.role !== 'holder') void claimOrRevert()
+  }))
+  cleanups.push(watch(editing.status, applyLockStatus, { immediate: true }))
+  cleanups.push(watch(autosave.state, (state) => {
+    if (state !== 'conflict') return
+    conflict.value = autosave?.conflict.value ?? null
+    conflictDialog.value = true
+  }))
   keepRecoveryCopies()
 
   if (auth.user && store.root && !store.readOnly) {
@@ -183,12 +226,17 @@ async function loadHeader(): Promise<void> {
       canPublish.value = page.permissions?.canPublish === true
       pagePath.value = page.path ?? '/'
       canManageStructure.value = page.permissions?.canManageStructure === true
+      canSaveCopy.value = canManageStructure.value
+      copyOrigin.value = page.copyOrigin ?? null
     } else {
       const component = await pagesApi.getComponent(props.siteId, props.documentId)
       title.value = component.name
       publication.value = component.publication ?? null
       // Whether this member may publish is a site permission, sent with the component list.
-      canPublish.value = (await pagesApi.components(props.siteId).catch(() => null))?.permissions?.canPublish === true
+      const permissions = (await pagesApi.components(props.siteId).catch(() => null))?.permissions
+      canPublish.value = permissions?.canPublish === true
+      canSaveCopy.value = permissions?.canManageComponents === true
+      copyOrigin.value = component.copyOrigin ?? null
     }
   } catch {
     title.value = ''
@@ -202,6 +250,7 @@ async function saveBeforePublish(): Promise<number | null> {
 }
 
 function close(): void {
+  editing.stop()
   autosave?.dispose()
   autosave = null
   history.value?.dispose()
@@ -209,9 +258,16 @@ function close(): void {
   while (cleanups.length > 0) cleanups.pop()!()
 }
 
-/** Restore: the unsaved changes come back and are saved (US3 #8). */
-function restoreRecovery(): void {
+/**
+ * Restore: the unsaved changes come back and are saved (US3 #8) — when this session can take
+ * the lock (023 research CE-18). Otherwise they open read-only, to copy from or save as a copy.
+ */
+async function restoreRecovery(): Promise<void> {
   if (!offer.value) return
+  if (!(await editing.ensureLock())) {
+    openRecoveryReadOnly()
+    return
+  }
   store.restore({ root: offer.value.record.document.root, selection: null })
   offer.value = null
   announce(t('editor.recovery.restored'))
@@ -236,15 +292,109 @@ async function reloadLatest(): Promise<void> {
   reloading.value = true
   try {
     const draft = await fetchDraft()
-    store.replaceWithDraft((draft.document as unknown as ContentDocument).root, draft.version)
+    store.replaceWithDraft((draft.document as unknown as ContentDocument).root, draft.version, draft.updatedAtUtc)
+    conflictDialog.value = false
     history.value?.clear()
     autosave?.reset()
+    applyLockStatus(editing.status.value)
     void removeRecovery(recoveryKey())
     announce(t('editor.conflict.reloaded'))
   } catch {
     notice.value = t('editor.errors.server.unexpected')
   } finally {
     reloading.value = false
+  }
+}
+
+/** 023 research CE-04: the lock went to someone else, so the change on screen is taken back. */
+function revertToSaved(): void {
+  if (!store.savedRoot || store.root === store.savedRoot) return
+  store.restore({ root: store.savedRoot, selection: store.selection })
+  history.value?.clear()
+}
+
+async function claimOrRevert(): Promise<boolean> {
+  const ok = await editing.ensureLock()
+  if (!ok) revertToSaved()
+  return ok
+}
+
+/** Shows the lock's state as the editor's read-only state; 011's own reasons are left alone. */
+function applyLockStatus(status: EditingStatus): void {
+  const current = store.readOnly?.reason
+  if (status === 'editing') {
+    if (isLockReason(current)) store.setReadOnly(null)
+    return
+  }
+  if (current && !isLockReason(current)) return
+  store.setReadOnly({ reason: status })
+}
+
+/** The document became free: load the latest if it changed, then take the lock (research CE-14). */
+async function editAgain(): Promise<void> {
+  editingBusy.value = true
+  try {
+    const draft = await fetchDraft()
+    if (draft.version !== store.baseVersion) {
+      store.replaceWithDraft((draft.document as unknown as ContentDocument).root, draft.version, draft.updatedAtUtc)
+      history.value?.clear()
+    }
+    editing.acknowledge()
+    autosave?.reset()
+    await editing.ensureLock()
+    applyLockStatus(editing.status.value)
+  } catch {
+    notice.value = t('editor.errors.server.unexpected')
+  } finally {
+    editingBusy.value = false
+  }
+}
+
+/** After a takeover or a move: reload the latest version, then show who holds the lock now. */
+async function reloadAfterLoss(): Promise<void> {
+  editing.acknowledge()
+  await reloadLatest()
+}
+
+/** "Edit here instead" (FR-014), then the latest version, which the other tab may have saved. */
+async function moveHere(): Promise<void> {
+  editingBusy.value = true
+  try {
+    if (await editing.moveHere()) await reloadLatest()
+  } finally {
+    editingBusy.value = false
+  }
+}
+
+/** Takes over a stale lock (FR-017, FR-018), then loads the latest saved version. */
+async function takeOver(): Promise<void> {
+  editingBusy.value = true
+  try {
+    if (await editing.takeOver()) await reloadLatest()
+  } finally {
+    editingBusy.value = false
+  }
+}
+
+/** 023 FR-020: the version on screen, saved as a new unpublished page or component. */
+async function saveCopy(): Promise<void> {
+  if (!store.root || copying.value) return
+  copying.value = true
+  try {
+    const document: ContentDocument = contentDocument(store.root)
+    const body = { document, baseSavedAtUtc: store.baseSavedAtUtc ?? new Date().toISOString() }
+    if (props.kind === 'page') {
+      const copy = await pagesApi.copyPage(props.siteId, props.documentId, { ...body, title: t('editing.copy.pageTitle', { title: title.value }) })
+      savedCopy.value = { to: { name: 'page-editor', params: { siteId: props.siteId, pageId: copy.id } }, label: t('editing.copy.open') }
+    } else {
+      const copy = await pagesApi.copyComponent(props.siteId, props.documentId, { ...body, name: t('editing.copy.componentName', { name: title.value }) })
+      savedCopy.value = { to: { name: 'component-editor', params: { siteId: props.siteId, componentId: copy.id } }, label: t('editing.copy.open') }
+    }
+    announce(t('editing.copy.saved'))
+  } catch (error) {
+    notice.value = t('editing.copy.failed', { reason: error instanceof Error ? error.message : '' })
+  } finally {
+    copying.value = false
   }
 }
 
@@ -324,7 +474,8 @@ defineExpose({ autosave: () => autosave, history })
         :subject-id="documentId"
         :title="title"
         :publication="publication"
-        :can-publish="canPublish && !store.readOnly"
+        :can-publish="canPublish && (!store.readOnly || isLockReason(store.readOnly.reason))"
+        :editing-by="editing.presence.value?.lock && !editing.presence.value.lock.isYou ? editing.presence.value.lock.holder.displayName : null"
         :before-publish="saveBeforePublish"
         @changed="(next) => (publication = next)"
         @refused="selectRefused"
@@ -415,8 +566,59 @@ defineExpose({ autosave: () => autosave, history })
           @read-only="openRecoveryReadOnly"
           @discard="discardRecovery"
         />
+        <PresenceBanner
+          v-if="versionNumber === undefined && store.loadState === 'ready'"
+          :kind="kind"
+          :status="editing.status.value"
+          :presence="editing.presence.value"
+          :busy="editingBusy"
+          @take-over="takeOver"
+          @move-here="moveHere"
+          @edit="editAgain"
+          @reload="reloadAfterLoss"
+        />
+        <ConflictDialog
+          v-if="conflictDialog"
+          :kind="kind"
+          :conflict="conflict"
+          :reloading="reloading"
+          :can-save-copy="canSaveCopy"
+          :copying="copying"
+          :copy="savedCopy"
+          @reload="reloadLatest"
+          @keep-viewing="conflictDialog = false"
+          @save-copy="saveCopy"
+        />
+        <p
+          v-if="!conflictDialog && copyableReason && canSaveCopy"
+          class="editing-copy"
+        >
+          <RouterLink
+            v-if="savedCopy"
+            :to="savedCopy.to"
+          >
+            {{ savedCopy.label }}
+          </RouterLink>
+          <button
+            v-else
+            type="button"
+            :disabled="copying"
+            @click="saveCopy"
+          >
+            {{ copying ? t('editing.copy.saving') : t('editing.copy.save') }}
+          </button>
+        </p>
+        <p
+          v-if="copyOrigin"
+          class="editing-copy-origin help"
+        >
+          {{ t('editing.copy.origin', { name: copyOrigin.copiedBy.displayName ?? '', when: new Date(copyOrigin.copiedAtUtc).toLocaleString(), saved: new Date(copyOrigin.sourceSavedAtUtc).toLocaleString() }) }}
+          <RouterLink :to="{ name: kind === 'page' ? 'page-editor' : 'component-editor', params: { siteId, [kind === 'page' ? 'pageId' : 'componentId']: copyOrigin.sourceId } }">
+            {{ t('editing.copy.original') }}
+          </RouterLink>
+        </p>
         <ConflictBanner
-          v-if="store.readOnly"
+          v-if="store.readOnly && !conflictDialog && !isLockReason(store.readOnly.reason)"
           :state="store.readOnly"
           :title="title"
           :reloading="reloading"

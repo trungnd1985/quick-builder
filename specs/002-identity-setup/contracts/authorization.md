@@ -208,6 +208,20 @@ Designers build them ("Designer builds, Editor writes", 010). See
 - **Publishing** menus (publish, unpublish, schedule, roll back) needs
   `pages.publishing.manage`, as for pages and components.
 
+### Notes from 023
+
+Concurrent editing safety (023) adds no capability; it checks the ones that already decide who
+may view and change each kind of document ([023 research CE-16](../../023-concurrency/research.md#ce-16-capabilities-by-kind-without-new-capabilities)).
+
+- **Editing sessions** (`/api/v1/editor/sites/{siteId}/editing-sessions…` and `…/editing`)
+  declare `pages.content.view`, which every site role holds. The handler then requires the
+  document kind's own capability: viewing a page or component needs `pages.content.view`, an
+  item `cms.collections.view`; claiming, taking over or moving a lock needs
+  `pages.page_drafts.edit`, `pages.components.manage` or `cms.items.edit`. A session acts only
+  for its own user.
+- **Copies** declare the create capability of their kind: `pages.structure.manage` for a page
+  copy, `pages.components.manage` for a component copy, `cms.items.edit` for an item copy.
+
 ### Registered by 019
 
 The release pipeline and upgrade safety (019) add one, registered by Identity. Version numbers

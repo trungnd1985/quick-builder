@@ -9,6 +9,8 @@ using QuickBuilder.Pages.Contracts.Events;
 using QuickBuilder.Pages.Contracts.Publishing;
 using QuickBuilder.Pages.Contracts.Redirects;
 using QuickBuilder.Pages.Features;
+using QuickBuilder.Pages.Features.CopyComponent;
+using QuickBuilder.Pages.Features.CopyPage;
 using QuickBuilder.Pages.Features.CreateComponent;
 using QuickBuilder.Pages.Features.CreatePage;
 using QuickBuilder.Pages.Features.DeleteComponent;
@@ -186,6 +188,9 @@ public static class PagesModule
 
         services.AddScoped<IQueryHandler<ListComponentsQuery, Result<ComponentListResponse>>, ListComponentsHandler>();
         services.AddScoped<ICommandHandler<CreateComponentCommand, Result<ComponentResponse>>, CreateComponentHandler>();
+        // 023 research CE-11: "save my version as a copy".
+        services.AddScoped<ICommandHandler<CopyPageCommand, Result<PageDetailResponse>>, CopyPageHandler>();
+        services.AddScoped<ICommandHandler<CopyComponentCommand, Result<ComponentResponse>>, CopyComponentHandler>();
         services.AddScoped<IValidator<CreateComponentCommand>, CreateComponentValidator>();
         services.AddScoped<IQueryHandler<GetComponentQuery, Result<ComponentResponse>>, GetComponentHandler>();
         services.AddScoped<ICommandHandler<RenameComponentCommand, Result<ComponentResponse>>, RenameComponentHandler>();

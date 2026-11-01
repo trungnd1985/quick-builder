@@ -85,6 +85,32 @@ internal sealed class Page : ISiteOwned
 
     public bool IsTemplate => TemplateCollectionId is not null;
 
+    /// <summary>023 FR-021: the page this one is a copy of; null unless made by "save my version as a copy".</summary>
+    public Guid? CopiedFromId { get; private set; }
+
+    /// <summary>When the source version the member had loaded was saved.</summary>
+    public DateTimeOffset? CopiedFromSavedAtUtc { get; private set; }
+
+    public Guid? CopiedBy { get; private set; }
+
+    public DateTimeOffset? CopiedAtUtc { get; private set; }
+
+    /// <summary>The copy origin, when this is a copy.</summary>
+    public CopyOrigin? CopyOrigin =>
+        CopiedFromId is { } source && CopiedFromSavedAtUtc is { } saved && CopiedBy is { } by && CopiedAtUtc is { } at
+            ? new CopyOrigin(source, saved, by, at)
+            : null;
+
+    /// <summary>Records that this page was made as a copy (023 FR-020, FR-021).</summary>
+    public void MarkCopyOf(CopyOrigin origin)
+    {
+        ArgumentNullException.ThrowIfNull(origin);
+        CopiedFromId = origin.SourceId;
+        CopiedFromSavedAtUtc = origin.SourceSavedAtUtc;
+        CopiedBy = origin.CopiedBy;
+        CopiedAtUtc = origin.CopiedAtUtc;
+    }
+
     /// <summary>
     /// Moves when <em>this</em> page is changed: its title, slug, parent, place or home flag
     /// (research P-05). A change to another page — renumbering the siblings around a move,

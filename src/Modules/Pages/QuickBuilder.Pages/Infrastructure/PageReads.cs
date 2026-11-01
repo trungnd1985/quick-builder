@@ -57,6 +57,10 @@ internal sealed class PageReads(PagesDbContext database, PagesAccess access, Pub
                 Row = new Row(p.Id, p.ParentId, p.Position, p.Depth, p.Title, p.Slug, p.Path, p.IsHome, p.Version, p.TemplateCollectionId),
                 p.CreatedAtUtc,
                 p.UpdatedAtUtc,
+                p.CopiedFromId,
+                p.CopiedFromSavedAtUtc,
+                p.CopiedBy,
+                p.CopiedAtUtc,
             })
             .FirstOrDefaultAsync(cancellationToken)
             .ConfigureAwait(false);
@@ -92,7 +96,22 @@ internal sealed class PageReads(PagesDbContext database, PagesAccess access, Pub
             page.UpdatedAtUtc,
             await access.PermissionsAsync(siteId, cancellationToken).ConfigureAwait(false),
             node.Publication,
-            node.TemplateCollectionId);
+            node.TemplateCollectionId)
+        {
+            CopyOrigin = await CopyOriginAsync(page.CopiedFromId, page.CopiedFromSavedAtUtc, page.CopiedBy, page.CopiedAtUtc, cancellationToken).ConfigureAwait(false),
+        };
+    }
+
+    /// <summary>023 FR-021: the copy origin as a response, with the name of who made the copy.</summary>
+    internal async Task<CopyOriginResponse?> CopyOriginAsync(Guid? sourceId, DateTimeOffset? savedAt, Guid? by, DateTimeOffset? at, CancellationToken cancellationToken)
+    {
+        if (sourceId is not { } source || savedAt is not { } saved || by is not { } copier || at is not { } when)
+        {
+            return null;
+        }
+
+        var names = await access.NamesAsync([copier], cancellationToken).ConfigureAwait(false);
+        return new CopyOriginResponse(source, saved, PagesAccess.Reference(copier, names), when);
     }
 
     /// <summary>The summary of the one draft <paramref name="query"/> selects.</summary>

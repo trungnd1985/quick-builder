@@ -6,6 +6,9 @@ import { pagesApi, type PageDetail, type PageNode, type PageTree, type TemplateW
 import { cmsApi, type CollectionSummary } from '../../api/cms'
 import { useSitesStore } from '../../app/sitesStore'
 import PublicationBadge from '../publishing/PublicationBadge.vue'
+import LockMarker from '../../editing/LockMarker.vue'
+import HolderWarning from '../../editing/HolderWarning.vue'
+import { usePresenceList } from '../../editing/usePresenceList'
 import PublishMenu from '../publishing/PublishMenu.vue'
 import { liveAddressCount } from '../publishing/addressWarning'
 import ConfirmDialog from '../sites/ConfirmDialog.vue'
@@ -40,6 +43,8 @@ const siteId = computed(() => String(route.params.siteId))
 const siteName = computed(() => sites.sites.find((s) => s.id === siteId.value)?.name ?? '')
 
 const tree = ref<PageTree | null>(null)
+/** 023 FR-012: who is editing which page. */
+const editing = usePresenceList(() => ({ siteId: siteId.value, kind: 'page' }))
 const loading = ref(true)
 const loadError = ref<string | null>(null)
 const selectedId = ref<string | null>(null)
@@ -81,6 +86,7 @@ const siblings = computed(() =>
 const selectedIndex = computed(() => siblings.value.findIndex((p) => p.id === selectedId.value))
 
 onMounted(async () => {
+  editing.start()
   if (sites.sites.length === 0) {
     await sites.load().catch(() => undefined)
   }
@@ -638,6 +644,10 @@ function whoSaved(value: PageDetail): string {
                     class="badge"
                   >{{ t('pages.table.template', { collection: collectionName(page.templateCollectionId) }) }}</span>
                   <PublicationBadge :publication="page.publication" />
+                  <LockMarker
+                    v-if="editing.holderOf(page.id)"
+                    :holder="editing.holderOf(page.id)!"
+                  />
                 </span>
               </th>
               <td class="page-address">
@@ -722,6 +732,12 @@ function whoSaved(value: PageDetail): string {
       @confirm="confirm"
       @cancel="close"
     >
+      <!-- 023 research CE-17: deleting stops whoever is editing it. -->
+      <HolderWarning
+        v-if="editing.holderOf(dialog.page.id)"
+        :name="editing.holderOf(dialog.page.id)!.holder.displayName"
+        action="delete"
+      />
       <!-- 024 FR-026: the menus that point here keep a broken entry, which visitors do not see. -->
       <MenuReferencesNote
         :site-id="siteId"

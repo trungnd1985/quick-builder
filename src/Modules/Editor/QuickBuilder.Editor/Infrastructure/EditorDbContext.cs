@@ -28,6 +28,10 @@ internal sealed class EditorDbContext(DbContextOptions<EditorDbContext> options,
 
     internal DbSet<DesignVersion> DesignVersions => Set<DesignVersion>();
 
+    internal DbSet<EditingSession> EditingSessions => Set<EditingSession>();
+
+    internal DbSet<EditingTakeover> EditingTakeovers => Set<EditingTakeover>();
+
     internal DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
 
     /// <summary>
@@ -98,6 +102,51 @@ internal sealed class EditorDbContext(DbContextOptions<EditorDbContext> options,
             entity.Property(e => e.SchemaVersion).HasColumnType("smallint");
             entity.Property(e => e.Document).HasColumnType("jsonb").IsRequired();
             entity.Property(e => e.Kind).HasMaxLength(16);
+
+            entity.HasQueryFilter(e => e.SiteId == CurrentSiteId);
+        });
+
+        // 023 data-model §1.1: one row per open editor tab. The partial unique index is what
+        // lets at most one session hold a document's lock, on every instance (FR-010, CE-02).
+        modelBuilder.Entity<EditingSession>(entity =>
+        {
+            entity.ToTable("editing_sessions", Schema, t =>
+            {
+                t.HasCheckConstraint("ck_editing_sessions_kind", "document_kind IN ('page', 'component', 'item')");
+                t.HasCheckConstraint("ck_editing_sessions_collection", "(document_kind = 'item') = (collection_id IS NOT NULL)");
+                t.HasCheckConstraint(
+                    "ck_editing_sessions_lock",
+                    "holds_lock = (lock_taken_at IS NOT NULL) AND holds_lock = (last_activity_at IS NOT NULL)");
+                t.HasCheckConstraint(
+                    "ck_editing_sessions_lost",
+                    "(lost_lock_reason IS NULL AND lost_lock_at IS NULL AND lost_lock_to_user_id IS NULL)"
+                    + " OR (lost_lock_reason IN ('takeover', 'moved') AND lost_lock_at IS NOT NULL AND lost_lock_to_user_id IS NOT NULL)");
+            });
+
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).ValueGeneratedNever();
+            entity.Property(e => e.DocumentKind).HasMaxLength(16);
+            entity.Property(e => e.LostLockReason).HasMaxLength(16);
+
+            // Two indexes on the same columns, so each is named: EF merges unnamed ones.
+            entity.HasIndex(e => new { e.SiteId, e.DocumentKind, e.DocumentId }, "ux_editing_sessions_holder")
+                .IsUnique()
+                .HasFilter("holds_lock");
+            entity.HasIndex(e => new { e.SiteId, e.DocumentKind, e.DocumentId }, "ix_editing_sessions_document");
+            entity.HasIndex(e => e.LastSeenAt);
+
+            entity.HasQueryFilter(e => e.SiteId == CurrentSiteId);
+        });
+
+        modelBuilder.Entity<EditingTakeover>(entity =>
+        {
+            entity.ToTable("editing_takeovers", Schema, t =>
+                t.HasCheckConstraint("ck_editing_takeovers_kind", "document_kind IN ('page', 'component', 'item')"));
+
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).ValueGeneratedNever();
+            entity.Property(e => e.DocumentKind).HasMaxLength(16);
+            entity.HasIndex(e => new { e.SiteId, e.TakenAt });
 
             entity.HasQueryFilter(e => e.SiteId == CurrentSiteId);
         });

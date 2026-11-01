@@ -70,6 +70,12 @@ export interface ItemRef {
 export interface Item extends ItemSummary {
   collectionId: string
   revision: number
+  /** 023 research CE-08: moves only when the draft does; a draft save sends it back. */
+  draftRevision: number
+  /** 023 FR-021: set on an item made by "save my version as a copy". */
+  copyOrigin?: { sourceId: string; sourceSavedAtUtc: string; copiedBy: Member; copiedAtUtc: string } | null
+  /** 023 FR-022: after a copy, the fields whose values could not be kept. */
+  droppedFields?: string[]
   schemaRevision: number
   draft: ValuesDocument
   published: ValuesDocument | null
@@ -134,6 +140,8 @@ export type HistoryKind =
   | 'scheduleCancelled'
   | 'scheduleFailed'
   | 'copiedToDraft'
+  /** 023: created by "save my version as a copy". */
+  | 'createdAsCopy'
 
 export interface HistoryEvent {
   kind: HistoryKind
@@ -219,12 +227,16 @@ export const itemsApi = {
 
   get: (siteId: string, collectionId: string, itemId: string): Promise<Item> => request<Item>(one(siteId, collectionId, itemId)),
 
-  save: (siteId: string, collectionId: string, itemId: string, body: DraftInput & { revision: number }): Promise<Item> =>
-    request<Item>(one(siteId, collectionId, itemId), { method: 'PUT', body: JSON.stringify(body) }),
+  save: (siteId: string, collectionId: string, itemId: string, body: DraftInput & { revision: number; draftRevision?: number }, headers: Record<string, string> = {}): Promise<Item> =>
+    request<Item>(one(siteId, collectionId, itemId), { method: 'PUT', body: JSON.stringify(body), headers }),
 
   /** 017 FR-032: with `redirectToPageId`, a live item's address redirects there. */
   remove: (siteId: string, collectionId: string, itemId: string, revision: number, redirectToPageId: string | null = null): Promise<void> =>
     request<void>(`${one(siteId, collectionId, itemId)}?revision=${revision}${redirectToPageId ? `&redirectToPageId=${encodeURIComponent(redirectToPageId)}` : ''}`, { method: 'DELETE' }),
+
+  /** 023 FR-020, FR-022: a new unpublished item holding the form's values; values the fields cannot hold are left out. */
+  copy: (siteId: string, collectionId: string, itemId: string, body: { slug: string; values: ValuesDocument; baseSavedAtUtc: string }): Promise<Item> =>
+    request<Item>(`${one(siteId, collectionId, itemId)}/copies`, { method: 'POST', body: JSON.stringify(body) }),
 
   duplicate: (siteId: string, collectionId: string, itemId: string): Promise<Item> =>
     request<Item>(`${one(siteId, collectionId, itemId)}/duplicate`, post({})),

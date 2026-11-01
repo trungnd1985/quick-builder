@@ -7,6 +7,9 @@ import { useSitesStore } from '../../app/sitesStore'
 import PublishMenu from '../publishing/PublishMenu.vue'
 import ConfirmDialog from '../sites/ConfirmDialog.vue'
 import ComponentUsagesPanel from './ComponentUsagesPanel.vue'
+import LockMarker from '../../editing/LockMarker.vue'
+import HolderWarning from '../../editing/HolderWarning.vue'
+import { usePresenceList } from '../../editing/usePresenceList'
 import { isOutOfDate, pageErrorMessage } from './pageErrors'
 
 // 010 US4: a site's shared components — create, rename, see who uses them, delete the
@@ -18,6 +21,8 @@ const route = useRoute()
 const sites = useSitesStore()
 
 const siteId = computed(() => String(route.params.siteId))
+/** 023 FR-012: who is editing which component. */
+const editing = usePresenceList(() => ({ siteId: siteId.value, kind: 'component' }))
 const siteName = computed(() => sites.sites.find((s) => s.id === siteId.value)?.name ?? '')
 
 const list = ref<ComponentList | null>(null)
@@ -41,6 +46,7 @@ const canManage = computed(() => list.value?.permissions.canManageComponents ===
 const canPublish = computed(() => list.value?.permissions.canPublish === true)
 
 onMounted(async () => {
+  editing.start()
   if (sites.sites.length === 0) {
     await sites.load().catch(() => undefined)
   }
@@ -332,6 +338,10 @@ async function confirmDelete(): Promise<void> {
               </form>
               <template v-else>
                 {{ component.name }}
+                <LockMarker
+                  v-if="editing.holderOf(component.id)"
+                  :holder="editing.holderOf(component.id)!"
+                />
               </template>
             </th>
             <td>
@@ -353,6 +363,7 @@ async function confirmDelete(): Promise<void> {
                 :title="component.name"
                 :publication="component.publication"
                 :can-publish="canPublish"
+                :editing-by="editing.holderOf(component.id)?.holder.displayName ?? null"
                 @changed="load()"
               />
             </td>
@@ -411,6 +422,12 @@ async function confirmDelete(): Promise<void> {
       danger
       @confirm="confirmDelete"
       @cancel="pendingDelete = null"
-    />
+    >
+      <HolderWarning
+        v-if="editing.holderOf(pendingDelete.id)"
+        :name="editing.holderOf(pendingDelete.id)!.holder.displayName"
+        action="delete"
+      />
+    </ConfirmDialog>
   </section>
 </template>

@@ -14,9 +14,11 @@ import RedirectToPagePicker, { type PickablePage } from '../../../components/Red
 import { pagesApi } from '../../../api/pages'
 import DeleteItemDialog from './DeleteItemDialog.vue'
 import ItemScheduleDialog from './ItemScheduleDialog.vue'
+import HolderWarning from '../../../editing/HolderWarning.vue'
 import { errorCodeOf, itemErrorMessage } from './itemErrors'
 
-const props = defineProps<{ siteId: string; collectionId: string; item: Item; dirty: boolean }>()
+/** `editingBy`: someone else holds the editing lock (023 research CE-17). */
+const props = defineProps<{ siteId: string; collectionId: string; item: Item; dirty: boolean; editingBy?: string | null }>()
 const emit = defineEmits<{ changed: [item: Item]; deleted: []; duplicated: [copy: Item] }>()
 const { t, te, d } = useI18n()
 
@@ -161,6 +163,11 @@ function scheduled(next: Item): void {
     role="group"
     :aria-label="t('cms.items.publish.label')"
   >
+    <HolderWarning
+      v-if="editingBy"
+      :name="editingBy"
+      action="publish"
+    />
     <button
       type="button"
       class="primary"
@@ -262,6 +269,7 @@ function scheduled(next: Item): void {
       :site-id="siteId"
       :collection-id="collectionId"
       :item="item"
+      :editing-by="editingBy"
       @deleted="emit('deleted')"
       @cancel="deleting = false"
     />

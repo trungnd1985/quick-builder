@@ -22,6 +22,8 @@ import { useSitesStore } from '../../app/sitesStore'
 /** Why the document cannot be changed right now (FR-028, FR-029, ED-19). */
 /** `version`: a published version, opened from the history (012 FR-013). */
 export type ReadOnlyReason = 'conflict' | 'forbidden' | 'gone' | 'invalid' | 'outdated' | 'recovery' | 'version'
+  /** 023: someone else holds the editing lock, or it was taken over or moved (contracts/admin-editing.md §2). */
+  | 'locked' | 'locked-stale' | 'locked-self' | 'taken-over' | 'moved' | 'view-only' | 'free'
 
 export interface ReadOnlyState {
   reason: ReadOnlyReason
@@ -53,6 +55,8 @@ export const useEditorStore = defineStore('editor', () => {
   const documentId = ref('')
   const root = shallowRef<ContentNode | null>(null)
   const baseVersion = ref(0)
+  /** 023 FR-021: when the version this session is based on was saved, for a copy's origin. */
+  const baseSavedAtUtc = ref<string | null>(null)
   const savedRoot = shallowRef<ContentNode | null>(null)
   const selection = ref<string | null>(null)
   const tokens = shallowRef<TokenSet>(defaultTokens)
@@ -120,9 +124,10 @@ export const useEditorStore = defineStore('editor', () => {
   }
 
   /** Records that the draft now stored on the server is `saved`, at `version`. */
-  function markSaved(saved: ContentNode, version: number): void {
+  function markSaved(saved: ContentNode, version: number, savedAtUtc?: string): void {
     savedRoot.value = saved
     baseVersion.value = version
+    if (savedAtUtc) baseSavedAtUtc.value = savedAtUtc
   }
 
   function setReadOnly(state: ReadOnlyState | null): void {
@@ -153,6 +158,7 @@ export const useEditorStore = defineStore('editor', () => {
       root.value = loaded.root
       savedRoot.value = loaded.root
       baseVersion.value = draft.version
+      baseSavedAtUtc.value = draft.updatedAtUtc
       tokens.value = designTokens.document
 
       const language = useSitesStore().sites.find((s) => s.id === site)?.defaultLanguage ?? 'en'
@@ -203,10 +209,11 @@ export const useEditorStore = defineStore('editor', () => {
   }
 
   /** Replaces the whole document with a fresh draft from the server (Reload latest, ED-15). */
-  function replaceWithDraft(loaded: ContentNode, version: number): void {
+  function replaceWithDraft(loaded: ContentNode, version: number, savedAtUtc?: string): void {
     root.value = loaded
     savedRoot.value = loaded
     baseVersion.value = version
+    if (savedAtUtc) baseSavedAtUtc.value = savedAtUtc
     selection.value = null
     readOnly.value = null
   }
@@ -221,6 +228,7 @@ export const useEditorStore = defineStore('editor', () => {
     documentId,
     root,
     baseVersion,
+    baseSavedAtUtc,
     savedRoot,
     selection,
     tokens,

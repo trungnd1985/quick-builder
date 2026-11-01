@@ -778,6 +778,14 @@ a.button-link.primary {
   margin-bottom: 1.25rem;
 }
 
+/* 023: the fields sit in one fieldset, so a conflict can make them all read-only at once. */
+.item-form__fields {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
 .item-field__label {
   display: block;
   font-weight: 600;

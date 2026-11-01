@@ -19,4 +19,10 @@ public static class PageContentCapabilities
     /// people editing a page or a component need (016 research TB-17).
     /// </summary>
     public const string DraftsEdit = "pages.page_drafts.edit";
+
+    /// <summary>
+    /// Create, rename, delete and save shared components. Designer. Editor asks for it to
+    /// decide who may hold a component's editing lock (023 research CE-16).
+    /// </summary>
+    public const string ComponentsManage = "pages.components.manage";
 }

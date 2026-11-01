@@ -1,7 +1,9 @@
 using System.Text;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Npgsql;
+using QuickBuilder.Editor.Contracts;
 using QuickBuilder.Pages.Contracts;
 using QuickBuilder.Pages.Domain;
 using QuickBuilder.Pages.Features;
@@ -20,7 +22,7 @@ namespace QuickBuilder.Pages.Infrastructure;
 /// <c>SaveChanges</c> as the draft; the usage foreign keys then make a reference to another
 /// site's component, or to one deleted a moment ago, impossible to commit.
 /// </remarks>
-internal sealed class DraftWrites(
+internal sealed partial class DraftWrites(
     PagesDbContext database,
     IPageDocumentValidator validator,
     PagesAccess access,
@@ -28,6 +30,8 @@ internal sealed class DraftWrites(
     QuickBuilder.Cms.Contracts.ICollectionSchemaReader collections,
     CollectionUseRows uses,
     PageParamRules pageParams,
+    ILogger<DraftWrites> logger,
+    IEditingLocks locks,
     TimeProvider clock)
 {
     /// <summary>
@@ -71,12 +75,84 @@ internal sealed class DraftWrites(
             ? ValidationResult.Invalid(new ValidationFailure("document", "A document is required."))
             : ValidationResult.Valid();
 
+    /// <summary>A document that passed every check a draft save makes, ready to be the draft of a new copy.</summary>
+    internal sealed record CheckedCopy(string Text, int SchemaVersion, IReadOnlyCollection<Guid> ReferencedComponents);
+
+    /// <summary>
+    /// 023 research CE-11: the checks of a draft save, for the document of a copy that does not
+    /// exist yet: the contract, its components and collections, and page parameters. Nothing is
+    /// loaded or written, so a refused copy creates nothing.
+    /// </summary>
+    public async Task<Result<CheckedCopy>> CheckCopyAsync(Guid siteId, JsonElement document, DocumentKind kind, CancellationToken cancellationToken)
+    {
+        var text = document.GetRawText();
+        var checkedDocument = validator.Validate(Encoding.UTF8.GetBytes(text), kind);
+        if (!checkedDocument.IsValid)
+        {
+            return Result.Failure<CheckedCopy>(PagesErrors.InvalidDocument(checkedDocument));
+        }
+
+        var referenced = checkedDocument.ReferencedComponentIds;
+        if (referenced.Count > 0)
+        {
+            var known = await database.ForSite<Component>(siteId)
+                .CountAsync(c => referenced.Contains(c.Id), cancellationToken)
+                .ConfigureAwait(false);
+            if (known != referenced.Count)
+            {
+                return Result.Failure<CheckedCopy>(PagesErrors.UnknownComponent);
+            }
+        }
+
+        if (await CheckCollectionsAsync(siteId, checkedDocument, cancellationToken).ConfigureAwait(false) is { } unknownCollection)
+        {
+            return Result.Failure<CheckedCopy>(unknownCollection);
+        }
+
+        // Rule 21 (016 FR-027): a new page shows its components; a new component is shown by no page.
+        if (kind == DocumentKind.Page
+            && await pageParams.CheckPageAsync(siteId, text, live: false, cancellationToken).ConfigureAwait(false) is { } pageParamTaken)
+        {
+            return Result.Failure<CheckedCopy>(pageParamTaken);
+        }
+
+        return Result.Success(new CheckedCopy(text, checkedDocument.SchemaVersion, [.. referenced]));
+    }
+
+    /// <summary>
+    /// Adds the draft of a new copy holding <paramref name="copy"/>, with its usage rows, to the
+    /// change tracker; the caller's save commits them with the page or component.
+    /// </summary>
+    public async Task StageCopyDraftAsync(Guid siteId, string subjectKind, Guid subjectId, CheckedCopy copy, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(copy);
+
+        Draft draft = subjectKind == SubjectKinds.Page
+            ? PageDraft.CreateEmpty(siteId, subjectId, access.Actor, clock)
+            : ComponentDraft.CreateEmpty(siteId, subjectId, access.Actor, clock);
+        draft.Replace(copy.Text, copy.SchemaVersion, access.Actor, clock);
+        if (draft is PageDraft pageDraft)
+        {
+            database.PageDrafts.Add(pageDraft);
+            database.ComponentUsages.AddRange(copy.ReferencedComponents.Select(id => new ComponentUsage(siteId, subjectId, id)));
+        }
+        else
+        {
+            database.ComponentDrafts.Add((ComponentDraft)draft);
+        }
+
+        await ReplaceMediaReferencesAsync(siteId, subjectKind, subjectId, copy.Text, cancellationToken).ConfigureAwait(false);
+        await ReplaceMenuUsagesAsync(siteId, subjectKind, subjectId, copy.Text, cancellationToken).ConfigureAwait(false);
+        await uses.StageAsync(siteId, subjectKind, subjectId, CollectionUsageStates.Draft, copy.Text, null, cancellationToken).ConfigureAwait(false);
+    }
+
     public async Task<Result<DraftResponse>> SavePageDraftAsync(
         Guid siteId,
         Guid pageId,
         JsonElement document,
         uint version,
         bool clientKeepsEveryFormat,
+        Guid? editingSession,
         CancellationToken cancellationToken)
     {
         var text = document.GetRawText();
@@ -132,9 +208,14 @@ internal sealed class DraftWrites(
             return Result.Failure<DraftResponse>(pageParamTaken);
         }
 
+        if (await FenceAsync(siteId, EditingDocumentKinds.Page, pageId, editingSession, cancellationToken).ConfigureAwait(false) is { } held)
+        {
+            return Result.Failure<DraftResponse>(held);
+        }
+
         if (draft.Version != version)
         {
-            return Result.Failure<DraftResponse>(PagesErrors.OutOfDate);
+            return await ConflictAsync(draft, cancellationToken).ConfigureAwait(false);
         }
 
         draft.Replace(text, checkedDocument.SchemaVersion, access.Actor, clock);
@@ -169,6 +250,7 @@ internal sealed class DraftWrites(
         JsonElement document,
         uint version,
         bool clientKeepsEveryFormat,
+        Guid? editingSession,
         CancellationToken cancellationToken)
     {
         var text = document.GetRawText();
@@ -203,9 +285,14 @@ internal sealed class DraftWrites(
             return Result.Failure<DraftResponse>(PagesErrors.AdminOutdated);
         }
 
+        if (await FenceAsync(siteId, EditingDocumentKinds.Component, componentId, editingSession, cancellationToken).ConfigureAwait(false) is { } held)
+        {
+            return Result.Failure<DraftResponse>(held);
+        }
+
         if (draft.Version != version)
         {
-            return Result.Failure<DraftResponse>(PagesErrors.OutOfDate);
+            return await ConflictAsync(draft, cancellationToken).ConfigureAwait(false);
         }
 
         draft.Replace(text, checkedDocument.SchemaVersion, access.Actor, clock);
@@ -262,6 +349,68 @@ internal sealed class DraftWrites(
             .Select(id => new Domain.Menus.MenuUsage(siteId, subjectKind, subjectId, id)));
     }
 
+    /// <summary>
+    /// 023 research CE-07, FR-018: a save from an editing session that does not hold the lock,
+    /// while another session does, is refused before anything is written; no session, or no live
+    /// lock, leaves it to the version check (FR-026). Logged with ids only.
+    /// </summary>
+    private async Task<Error?> FenceAsync(Guid siteId, string kind, Guid documentId, Guid? editingSession, CancellationToken cancellationToken)
+    {
+        var check = await locks.CheckWriteAsync(siteId, kind, documentId, editingSession, cancellationToken).ConfigureAwait(false);
+        if (check.Allowed || check.HolderUserId is not { } holder)
+        {
+            return null;
+        }
+
+        var names = await access.NamesAsync([holder], cancellationToken).ConfigureAwait(false);
+        LogLockHeld(logger, siteId, kind, documentId, access.Actor, holder);
+        return PagesErrors.LockHeld(holder, names.GetValueOrDefault(holder) ?? string.Empty, check.HolderSince ?? DateTimeOffset.MinValue);
+    }
+
+    [LoggerMessage(Level = LogLevel.Information,
+        Message = "Draft save refused, another session holds the lock: site {SiteId}, {Kind} {DocumentId}, by {ActorId}; held by {HolderId}")]
+    private static partial void LogLockHeld(ILogger logger, Guid siteId, string kind, Guid documentId, Guid actorId, Guid holderId);
+
+    /// <summary>
+    /// 023 research CE-09, FR-003, FR-024: the refusal of an out-of-date draft save, naming who
+    /// saved the stored version, when, and its version, read again from the database (the
+    /// tracked draft may be the one that lost); and its log entry, with ids only.
+    /// </summary>
+    private async Task<Result<DraftResponse>> ConflictAsync(Draft draft, CancellationToken cancellationToken)
+    {
+        var (kind, id) = draft switch
+        {
+            PageDraft page => (SubjectKinds.Page, page.PageId),
+            ComponentDraft component => (SubjectKinds.Component, component.ComponentId),
+            _ => throw new InvalidOperationException($"Unknown draft type {draft.GetType().Name}."),
+        };
+
+        var stored = kind == SubjectKinds.Page
+            ? await database.ForSite<PageDraft>(draft.SiteId).AsNoTracking()
+                .Where(d => d.PageId == id)
+                .Select(d => new { d.UpdatedBy, d.UpdatedAtUtc, d.Version })
+                .SingleOrDefaultAsync(cancellationToken).ConfigureAwait(false)
+            : await database.ForSite<ComponentDraft>(draft.SiteId).AsNoTracking()
+                .Where(d => d.ComponentId == id)
+                .Select(d => new { d.UpdatedBy, d.UpdatedAtUtc, d.Version })
+                .SingleOrDefaultAsync(cancellationToken).ConfigureAwait(false);
+
+        if (stored is null)
+        {
+            // Deleted while we were saving.
+            return Result.Failure<DraftResponse>(kind == SubjectKinds.Page ? PagesErrors.NotFound : PagesErrors.ComponentNotFound);
+        }
+
+        var names = await access.NamesAsync([stored.UpdatedBy], cancellationToken).ConfigureAwait(false);
+        LogDraftConflict(logger, draft.SiteId, kind, id, access.Actor, stored.UpdatedBy);
+        return Result.Failure<DraftResponse>(PagesErrors.DraftOutOfDate(
+            stored.UpdatedBy, names.GetValueOrDefault(stored.UpdatedBy) ?? string.Empty, stored.UpdatedAtUtc, stored.Version));
+    }
+
+    [LoggerMessage(Level = LogLevel.Information,
+        Message = "Draft save refused as out of date: site {SiteId}, {Kind} {DocumentId}, by {ActorId}; the stored draft was saved by {ChangedById}")]
+    private static partial void LogDraftConflict(ILogger logger, Guid siteId, string kind, Guid documentId, Guid actorId, Guid changedById);
+
     private async Task<Result<DraftResponse>> SaveAsync(Draft draft, CancellationToken cancellationToken)
     {
         try
@@ -271,7 +420,7 @@ internal sealed class DraftWrites(
         catch (DbUpdateConcurrencyException)
         {
             // Someone saved between our read and our write.
-            return Result.Failure<DraftResponse>(PagesErrors.OutOfDate);
+            return await ConflictAsync(draft, cancellationToken).ConfigureAwait(false);
         }
         catch (DbUpdateException ex) when (ex.InnerException is PostgresException
         {

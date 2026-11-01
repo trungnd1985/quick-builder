@@ -130,6 +130,15 @@ internal sealed class CmsDbContext(DbContextOptions<CmsDbContext> options, ISite
                 t.HasCheckConstraint("ck_items_status", "status IN ('draft', 'published', 'changed')");
                 t.HasCheckConstraint("ck_items_revision", "revision >= 1");
                 t.HasCheckConstraint("ck_items_published_slug", "(published IS NULL) = (published_slug IS NULL)");
+
+                // 023 data-model §3.1.
+                t.HasCheckConstraint("ck_items_draft_revision", "draft_revision >= 1");
+                t.HasCheckConstraint(
+                    "ck_items_copy_origin",
+                    "(copied_from_id IS NULL) = (copied_from_saved_at_utc IS NULL) AND (copied_from_id IS NULL) = (copied_by IS NULL) AND (copied_from_id IS NULL) = (copied_at_utc IS NULL)");
+                t.HasCheckConstraint(
+                    "ck_items_draft_change_kind",
+                    "(draft_change_kind = 'member') OR (draft_change_kind = 'schema_change' AND draft_changed_by IS NULL)");
             });
 
             entity.HasKey(e => e.Id);
@@ -140,6 +149,11 @@ internal sealed class CmsDbContext(DbContextOptions<CmsDbContext> options, ISite
             entity.Property(e => e.PublishedSlug).HasMaxLength(SlugRules.MaxLength);
             entity.Property(e => e.Status).HasMaxLength(10).IsRequired();
             entity.Property(e => e.Revision).IsConcurrencyToken();
+            // 023: database defaults too, for rows written by SQL rather than by the model (bulk
+            // seeding); the model always sets all four.
+            entity.Property(e => e.DraftRevision).HasDefaultValue(1);
+            entity.Property(e => e.DraftChangeKind).HasMaxLength(16).IsRequired().HasDefaultValue(ItemDraftChangeKinds.Member);
+            entity.Property(e => e.DraftChangedAtUtc).HasDefaultValueSql("now()");
 
             // 015 analysis I2: a title may be 10,000 characters, so the name is text and is
             // sorted and indexed on its first 256 (research IT-14).
