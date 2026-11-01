@@ -440,7 +440,7 @@ on a page is not offered the action, and a crafted request gets 403.
   *Done as*: Plus `docs/operations.md` "Upgrading to feature 023". The release fragment is `docs/releases/unreleased/23-concurrency.md`, with the two operator notes in `manual`.
 - [X] T071 [P] Run `dotnet test` with coverage: `EditingRules`, `Claim`, `TakeOver`, `MoveHere`, `EditingLocks`, `DraftWrites` and `ItemWrites` keep at least 80% line coverage. Run `npm run lint`, `npm run type-check` and `npm test`, `dotnet format --verify-no-changes`, and the analyzer gates. Record the numbers here.
   *Done as*: Run on 2026-10-31 by the project owner: the full integration suite, coverage, lint, type-check, admin tests and `dotnet format` passed. The coverage figures were not recorded here.
-- [ ] T072 Run the whole of `quickstart.md` by hand on the reference compose setup:
+- [X] T072 Run the whole of `quickstart.md` by hand on the reference compose setup:
   - two browsers, with a stopwatch for SC-003 and SC-004;
   - §6 with two app containers;
   - §7 with a screen reader (exception E-5);
@@ -448,7 +448,8 @@ on a page is not offered the action, and a crafted request gets 403.
   - §10: the SC-005 usability check with at least five team members.
 
   Record the results in `specs/023-concurrency/quickstart-results.md`.
-- [ ] T073 Open the PR closing #23, with the plan's operator impact, upgrade notes and the FR-015 spec alignment in the description.
+  *Done as*: Skipped at the maintainer’s decision on 2026-11-01. `quickstart-results.md` maps each section to the automated tests and lists the checks not run by hand.
+- [X] T073 Open the PR closing #23, with the plan's operator impact, upgrade notes and the FR-015 spec alignment in the description.
 
 ---
 
