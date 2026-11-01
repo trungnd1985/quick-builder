@@ -7,8 +7,8 @@ maintainer's decision on 2026-11-01.
 
 | Quickstart section | Proven by | Result |
 |---|---|---|
-| §1 No overwrite (SC-001) | `ITESTS/Concurrency/OverlappingDraftWritesTests.cs`, `DraftConflictDetailsTests.cs`, `ITESTS/Cms/Items/ItemPublishDoesNotConflictTests.cs`, `ADMINTESTS/editing/ConflictDialog.spec.ts` | pass |
-| §2 Presence and the lock (SC-002, SC-003) | `ITESTS/Editor/EditingSessionEndpointsTests.cs`, `LockRaceTests.cs`, `ADMINTESTS/editing/PresenceBanner.spec.ts`, `useEditingSession.spec.ts` | pass |
+| §1 No overwrite (SC-001) | `ITESTS/Concurrency/OverlappingDraftWritesTests.cs`, `ITESTS/Pages/DraftConflictDetailsTests.cs`, `ITESTS/Cms/Items/ItemPublishDoesNotConflictTests.cs`, `ADMINTESTS/editing/ConflictDialog.spec.ts` | pass |
+| §2 Presence and the lock (SC-002, SC-003) | `ITESTS/Editor/EditingSessionEndpointsTests.cs`, `ITESTS/Concurrency/LockRaceTests.cs`, `ADMINTESTS/editing/PresenceBanner.spec.ts`, `useEditingSession.spec.ts` | pass |
 | §3 Stale locks, takeover, release and expiry (SC-004) | `UTESTS/Editor/EditingRulesTests.cs`, `EditingSessionEndpointsTests.cs`, `ITESTS/Editor/EditingCleanupTests.cs` | pass |
 | §4 Save a copy | `ITESTS/Pages/CopyEndpointsTests.cs`, `ITESTS/Cms/Items/CopyItemTests.cs` | pass |
 | §5 Recovery | `ADMINTESTS/editor/autosave.spec.ts` | pass |
