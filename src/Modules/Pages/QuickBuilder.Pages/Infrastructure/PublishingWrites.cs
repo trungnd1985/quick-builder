@@ -824,7 +824,7 @@ internal sealed class PublishingWrites(
         return publication;
     }
 
-    private async Task ReplaceDependenciesAsync(Guid siteId, Subject subject, string document, CancellationToken cancellationToken)
+    internal async Task ReplaceDependenciesAsync(Guid siteId, Subject subject, string document, CancellationToken cancellationToken)
     {
         await database.ForSite<LiveDependency>(siteId)
             .Where(d => d.SubjectKind == subject.Kind && d.SubjectId == subject.Id)

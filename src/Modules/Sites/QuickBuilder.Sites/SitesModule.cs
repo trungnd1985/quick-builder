@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
+using QuickBuilder.Shared.Infrastructure.Commands;
 using QuickBuilder.Shared.Infrastructure.Modules;
 using QuickBuilder.Shared.Infrastructure.MultiSite;
 using QuickBuilder.Shared.Infrastructure.Outbox;
@@ -17,6 +19,9 @@ using QuickBuilder.Sites.Features.GetSite;
 using QuickBuilder.Sites.Features.ListLanguages;
 using QuickBuilder.Sites.Features.ListSites;
 using QuickBuilder.Sites.Features.RemoveHostName;
+using QuickBuilder.Sites.Contracts.Transfer;
+using QuickBuilder.Sites.Features.Transfer;
+using QuickBuilder.Sites.Features.Transfer.Engine;
 using QuickBuilder.Sites.Features.UpdateSearchSettings;
 using QuickBuilder.Sites.Features.UpdateSearchVisibility;
 using QuickBuilder.Sites.Features.UpdateSettings;
@@ -52,6 +57,9 @@ public static class SitesModule
                 // Each module keeps its own migrations history table inside its own schema
                 // (FR-022), so two modules can never contend over one history table.
                 npgsql.MigrationsHistoryTable("__EFMigrationsHistory", SitesDbContext.Schema));
+
+            // 020 research ST-07: content writes pause while an import applies to the site.
+            options.AddInterceptors(provider.GetRequiredService<QuickBuilder.Shared.Infrastructure.Data.SiteWriteGateInterceptor>());
         });
 
         // Lets the host migrate and health-check this module without knowing anything
@@ -62,6 +70,13 @@ public static class SitesModule
         // final configuration when first needed rather than at registration.
         services.AddSingleton(sp => SitesOptions.From(sp.GetRequiredService<IConfiguration>()));
         services.AddSingleton<SiteDtoMapper>();
+
+        // 020: site export and import settings, validated at startup naming the key.
+        services
+            .AddOptions<SiteTransferOptions>()
+            .Bind(configuration.GetSection(SiteTransferOptions.SectionName))
+            .ValidateOnStart();
+        services.AddSingleton<IValidateOptions<SiteTransferOptions>, SiteTransferOptionsValidator>();
 
         // The module's public read surface. Scoped: it remembers the sites loaded during
         // one request and nothing longer (research S-01, S-02). The write paths use the
@@ -102,6 +117,38 @@ public static class SitesModule
 
         services.AddScoped<IQueryHandler<ListLanguagesQuery, ListLanguagesResponse>, ListLanguagesHandler>();
 
+        // 020: site export and import (research ST-15, ST-16).
+        services.AddScoped<TransferJobStore>();
+        services.AddScoped<ISiteArchivePart, SitesArchivePart>();
+        services.AddScoped<ExportRunner>();
+        services.AddScoped<ITransferRunner>(sp => sp.GetRequiredService<ExportRunner>());
+        services.AddScoped<CheckRunner>();
+        services.AddScoped<ITransferRunner>(sp => sp.GetRequiredService<CheckRunner>());
+        services.AddScoped<ImportRunner>();
+        services.AddScoped<ITransferRunner>(sp => sp.GetRequiredService<ImportRunner>());
+        services.AddScoped<NewSiteOptions>();
+        services.AddScoped<ICommandHandler<CreateUploadCommand, Result<TransferResponse>>, CreateUploadHandler>();
+        services.AddScoped<ICommandHandler<UploadArchiveCommand, Result>, UploadArchiveHandler>();
+        services.AddScoped<ICommandHandler<CheckArchiveCommand, Result<TransferResponse>>, CheckArchiveHandler>();
+        services.AddScoped<ICommandHandler<ConfirmImportCommand, Result<TransferResponse>>, ConfirmImportHandler>();
+        services.AddScoped<ICommandHandler<StartExportCommand, Result<TransferResponse>>, StartExportHandler>();
+        services.AddScoped<ICommandHandler<DeleteArchiveCommand, Result>, DeleteArchiveHandler>();
+        services.AddScoped<IQueryHandler<DownloadArchiveQuery, Result<ArchiveDownload>>, DownloadArchiveHandler>();
+        services.AddScoped<IQueryHandler<GetTransferQuery, Result<TransferResponse>>, GetTransferHandler>();
+        services.AddScoped<IQueryHandler<ListTransfersQuery, IReadOnlyList<TransferResponse>>, ListTransfersHandler>();
+        services.AddScoped<ICommandHandler<CancelTransferCommand, Result<TransferResponse>>, CancelTransferHandler>();
+        services.AddSingleton<TransferWorker>();
+
+        // 020 FR-032: sites export | check | import for operators (contracts/operator-commands.md).
+        services.AddSingleton<IHostCommand, SitesCommand>();
+        services.AddHostedService(sp => sp.GetRequiredService<TransferWorker>());
+        services.AddSingleton<TransferRetentionService>();
+        services.AddHostedService(sp => sp.GetRequiredService<TransferRetentionService>());
+        foreach (var transferEvent in TransferEventTypes)
+        {
+            services.AddSingleton(transferEvent);
+        }
+
         // The public placeholder that reported the resolved site (001) is gone: since 012 the
         // Rendering module answers the public surface with published pages.
 
@@ -116,6 +163,14 @@ public static class SitesModule
 
         return services;
     }
+
+    private static readonly IEventTypeRegistration[] TransferEventTypes =
+    [
+        new EventTypeRegistration<SiteExportFinished>(),
+        new EventTypeRegistration<SiteImportFinished>(),
+        new EventTypeRegistration<SiteArchiveDownloaded>(),
+        new EventTypeRegistration<SiteArchiveDeleted>(),
+    ];
 }
 
 /// <summary>Describes the module's database to the host (FR-024, D-04).</summary>

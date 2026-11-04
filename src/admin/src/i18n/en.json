@@ -2825,5 +2825,190 @@
       "delete": "{name} is editing this now. Deleting it stops their editing, and their unsaved changes are lost.",
       "copyToDraft": "{name} is editing this now. Copying a version into the draft replaces what they saved, and their next save will be refused as out of date."
     }
+  },
+  "transfer": {
+    "progress": {
+      "exportTitle": "Exporting the site",
+      "importTitle": {
+        "new_site": "Importing as a new site",
+        "merge": "Importing into this site",
+        "restore": "Restoring this site"
+      },
+      "waiting": "Waiting to start…",
+      "startedBy": "Started by {name}, {when}",
+      "startedByOperator": "Started from the command line, {when}",
+      "label": "Progress: {step}",
+      "announce": "{step}: {percent} percent",
+      "cancel": "Cancel",
+      "cancelling": "Stopping…",
+      "confirmCancelExport": "Stop this export? No archive will be kept.",
+      "confirmCancelImport": "Stop this import? Nothing it did so far will be kept."
+    },
+    "steps": {
+      "checking": "Checking the archive",
+      "reading": "Reading the archive",
+      "sites": "Site settings",
+      "media": "Media files",
+      "design": "Design",
+      "cms": "Collections and items",
+      "pages": "Pages, components, menus and redirects",
+      "committing": "Finishing",
+      "pre_restore": "Exporting the current site first"
+    },
+    "states": {
+      "uploading": "Uploading",
+      "uploaded": "Uploaded",
+      "queued": "Waiting",
+      "checking": "Checking",
+      "refused": "The archive was refused. Nothing was changed.",
+      "awaiting_confirmation": "Checked. Waiting for you to confirm.",
+      "confirmed": "Confirmed",
+      "running": "Running",
+      "succeeded": "Finished.",
+      "failed": "Failed. Nothing was changed.",
+      "cancelled": "Cancelled. Nothing was changed.",
+      "expired": "Expired"
+    },
+    "tab": {
+      "heading": "Export and import",
+      "intro": "Export the whole site to one archive file, to keep as a backup, move to another installation or reuse as a starting point."
+    },
+    "export": {
+      "start": "Export site",
+      "busy": "An export or import of this site is running. Wait for it to finish.",
+      "started": "The export has started. You can leave this page; it keeps running.",
+      "ready": "Latest export",
+      "readyBody": "Made {when}, {size}. You can download it until {expires}.",
+      "download": "Download archive",
+      "delete": "Delete archive",
+      "confirmDelete": "Delete this archive now? It cannot be downloaded afterwards.",
+      "deleted": "The archive was deleted.",
+      "problems": "One problem was found | {count} problems were found"
+    },
+    "problems": {
+      "media_missing": "A media file ({id}) had no stored bytes. Its details are in the archive, its content is not."
+    },
+    "kinds": {
+      "page": "one page | {count} pages",
+      "component": "one shared component | {count} shared components",
+      "collection": "one collection | {count} collections",
+      "item": "one item | {count} items",
+      "menu": "one menu | {count} menus",
+      "redirect": "one redirect | {count} redirects",
+      "media_file": "one media file | {count} media files"
+    },
+    "recent": {
+      "heading": "Recent exports and imports",
+      "what": "What",
+      "who": "Started by",
+      "when": "When",
+      "outcome": "Outcome",
+      "export": "Export",
+      "operator": "Command line"
+    },
+    "errors": {
+      "transfer_busy": "This site already has an export or import running. Try again when it has finished.",
+      "transfer_not_found": "This transfer no longer exists.",
+      "transfer_archive_gone": "The archive has expired or was deleted.",
+      "transfer_finished": "This transfer has already finished.",
+      "forbidden": "Only administrators can export and import sites.",
+      "unknown": "The request could not be completed. Try again.",
+      "transfer_too_large": "The archive is larger than this installation accepts as an upload. Ask the operator to use the \"sites import\" command.",
+      "transfer_warnings_not_accepted": "The check found warnings. Accept them to import.",
+      "transfer_invalid_options": "These options cannot be used for this import.",
+      "transfer_check_expired": "The check is more than 24 hours old. Upload the archive again.",
+      "transfer_target_changed": "The site changed since the check. Check the archive again.",
+      "sites_host_name_taken": "That host name is already used by another site.",
+      "site_import_in_progress": "This site is being imported into. Try again when the import has finished.",
+      "transfer_confirmation_mismatch": "The name you typed does not match the site’s name.",
+      "transfer_restore_not_allowed": "This archive was not exported from this site, so it cannot restore it."
+    },
+    "import": {
+      "entry": "Import site",
+      "heading": "Import a site",
+      "subtitle": "Create a new site from an archive exported by this or another installation. The archive is checked first; nothing changes until you confirm.",
+      "file": "Archive file (.qbsite)",
+      "upload": "Upload and check",
+      "uploading": "Uploading… {percent}%",
+      "refused": "This archive cannot be imported. Nothing was changed.",
+      "name": "Name of the new site",
+      "defaultName": "{name} (imported)",
+      "hostName": "Host name of the new site",
+      "hostNameHelp": "Every host name of the archive is used by another site here, so the new site needs one of its own.",
+      "startFresh": "Start fresh: import content as unpublished drafts, without history",
+      "acceptWarnings": "I have read the warnings above and want to import anyway",
+      "confirm": "Import",
+      "checked": "What the archive holds"
+    },
+    "check": {
+      "archive": "Archive",
+      "archiveBody": "Exported from “{name}” by release {release}, {when}.",
+      "sameSite": "This archive was exported from this site.",
+      "versions": "Content to upgrade",
+      "upgrade": "{contract} version {from} will be upgraded to {to}.",
+      "errors": "One problem stops the import | {count} problems stop the import",
+      "warnings": "One warning | {count} warnings",
+      "hostNamesLeftOut": "Host names used by another site here, which will not be added",
+      "conflicts": "One conflict | {count} conflicts",
+      "pastSchedules": "Schedules whose time has passed, which will not run",
+      "pastSchedule": "{label}, due {when}"
+    },
+    "report": {
+      "heading": "Import finished",
+      "imported": "Imported {what}.",
+      "leftOut": "Left out",
+      "droppedSchedules": "Schedules dropped because their time had passed",
+      "historicalAuthors": "One author of the archive is not a user here; their name is kept as history. | {count} authors of the archive are not users here; their names are kept as history.",
+      "openSite": "Open the site",
+      "reasons": {
+        "host_name_taken": "used by another site here",
+        "media_missing": "its content was not in the archive",
+        "media_refused": "its type is not accepted here"
+      }
+    },
+    "banner": {
+      "importing": "This site is being imported into. Changes are paused until it finishes (started at {when}).",
+      "finished": "The import has finished. Reload to see the site as it is now.",
+      "reload": "Reload"
+    },
+    "merge": {
+      "heading": "Import into this site",
+      "intro": "Add an archive’s content to this site. Nothing is removed, and host names and availability stay as they are.",
+      "check": "Check archive for import",
+      "policy": "When the archive and this site both have a document",
+      "policies": {
+        "replace": {
+          "label": "Replace",
+          "help": "— this site’s document keeps its place and takes the archive’s content; its earlier versions stay in its history."
+        },
+        "skip": {
+          "label": "Skip",
+          "help": "— this site’s document stays as it is, and the archive’s content refers to it."
+        },
+        "rename": {
+          "label": "Rename",
+          "help": "— the archive’s document is added beside it under a new address or name."
+        }
+      },
+      "confirm": "Import into this site"
+    },
+    "restore": {
+      "heading": "Restore from archive",
+      "intro": "Make this site match an archive exported from it. Content the archive does not hold is removed.",
+      "check": "Check archive for restore",
+      "open": "Restore…",
+      "title": "Restore “{name}” from this archive?",
+      "body": "The site will match the archive. Host names and availability do not change.",
+      "removals": "Nothing is removed | One document is removed | {count} documents are removed",
+      "returns": "Nothing comes back | One document comes back | {count} documents come back",
+      "changes": "Nothing changes | One document changes | {count} documents change",
+      "fieldChange": "Field {field}: {lost} values will be lost.",
+      "backupFirst": "The site as it is now is exported first and kept for 7 days, so you can undo the restore.",
+      "typeName": "Type the site name, {name}, to confirm",
+      "nameMismatch": "The name does not match. Type it exactly as shown.",
+      "cancel": "Cancel",
+      "confirm": "Restore the site",
+      "restoring": "Restoring…"
+    }
   }
 }

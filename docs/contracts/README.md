@@ -12,6 +12,7 @@ the renderer, and both validate against the same definition.
 | Binding expressions (block properties bound to item fields, and collection lists) | [binding-expression.md](binding-expression.md) | `$defs` of [page-schema/v1.schema.json](page-schema/v1.schema.json), with golden examples under [binding-expression/examples/](binding-expression/examples/) | 016 |
 | Structured data types (what an item page describes itself as) | [structured-data.md](structured-data.md) | [structured-data/types.json](structured-data/types.json), with golden examples under [structured-data/examples/](structured-data/examples/) | 017 |
 | Menu documents (a site's menus, shown by the Navigation block) | [menu.md](menu.md) | [menu/v1.schema.json](menu/v1.schema.json), with golden examples under [menu/examples/](menu/examples/) | 024 |
+| Site archives (a site exported to one file, for import elsewhere) | [site-archive.md](site-archive.md) | [site-archive/manifest.v1.schema.json](site-archive/manifest.v1.schema.json), with an example under [site-archive/examples/](site-archive/examples/) and the golden archive [tests/fixtures/archives/0.2.qbsite](../../tests/fixtures/archives/0.2.qbsite) | 020 |
 
 Changing anything here needs the contract document, the schema file and, for a breaking
 change, an upgrade step from the previous version with golden files under

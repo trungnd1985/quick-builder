@@ -479,7 +479,9 @@ public sealed class ModuleBoundaryTests
             .Order(StringComparer.Ordinal)
             .ToList();
 
-        Assert.Equal(["QuickBuilder.Identity.Domain.RoleGrant"], exempted);
+        // 020 data-model §1: a transfer job is installation data; a new-site import has no
+        // site until it commits.
+        Assert.Equal(["QuickBuilder.Identity.Domain.RoleGrant", "QuickBuilder.Sites.Domain.TransferJob"], exempted);
         Assert.All(
             exempted,
             name => Assert.False(string.IsNullOrWhiteSpace(

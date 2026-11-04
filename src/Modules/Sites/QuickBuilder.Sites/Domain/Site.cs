@@ -124,6 +124,62 @@ internal sealed class Site
         string? primaryHostName,
         string? scheme,
         string? defaultLanguage,
+        TimeProvider clock) =>
+        Create(id: null, name, hostNames, primaryHostName, scheme, defaultLanguage, clock);
+
+    /// <summary>
+    /// A site imported from an archive (020 FR-020): created through the same rules as any new
+    /// site, under the id the import allocated before any part applied, with the archive's
+    /// search settings and, when the source was disabled, disabled (spec edge case).
+    /// </summary>
+    public static Result<Site> Import(
+        Guid id,
+        string name,
+        IEnumerable<string> hostNames,
+        string? primaryHostName,
+        string scheme,
+        string defaultLanguage,
+        bool enabled,
+        ImportedSearchSettings search,
+        Guid actorUserId,
+        TimeProvider clock)
+    {
+        ArgumentNullException.ThrowIfNull(search);
+
+        var created = Create(id, name, hostNames, primaryHostName, scheme, defaultLanguage, clock);
+        if (created.IsFailure)
+        {
+            return created;
+        }
+
+        var site = created.Value;
+        var settings = site.ChangeSearchSettings(search.TitleSuffix, search.DefaultImageId, search.OrganisationName, search.OrganisationLogoId, actorUserId, clock);
+        if (settings.IsFailure)
+        {
+            return Result.Failure<Site>(settings.Error);
+        }
+
+        var visibility = site.ChangeSearchVisibility(search.Discouraged, search.RobotsRules, search.RedirectOtherHosts, actorUserId, clock);
+        if (visibility.IsFailure)
+        {
+            return Result.Failure<Site>(visibility.Error);
+        }
+
+        if (!enabled)
+        {
+            site.Disable(clock);
+        }
+
+        return Result.Success(site);
+    }
+
+    private static Result<Site> Create(
+        Guid? id,
+        string name,
+        IEnumerable<string> hostNames,
+        string? primaryHostName,
+        string? scheme,
+        string? defaultLanguage,
         TimeProvider clock)
     {
         ArgumentNullException.ThrowIfNull(hostNames);
@@ -147,7 +203,7 @@ internal sealed class Site
             return Result.Failure<Site>(UnsupportedLanguage());
         }
 
-        var site = new Site(Guid.CreateVersion7(), trimmedName, parsedScheme, language, clock.GetUtcNow())
+        var site = new Site(id ?? Guid.CreateVersion7(), trimmedName, parsedScheme, language, clock.GetUtcNow())
         {
             // 017 research SE-07: new sites answer on their primary host name only; sites
             // created before 017 keep the column's default, off.
@@ -403,3 +459,13 @@ internal sealed class Site
         "sites.primary_host_name_invalid",
         "The primary host name must be one of the site's host names.");
 }
+
+/// <summary>The search settings an imported site starts with (020; 017 FR-006, FR-014).</summary>
+internal sealed record ImportedSearchSettings(
+    string? TitleSuffix,
+    Guid? DefaultImageId,
+    string? OrganisationName,
+    Guid? OrganisationLogoId,
+    bool Discouraged,
+    string? RobotsRules,
+    bool RedirectOtherHosts);

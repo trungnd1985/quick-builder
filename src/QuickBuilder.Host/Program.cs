@@ -108,6 +108,10 @@ builder.Services.AddFileStorage(
     [AppContext.BaseDirectory, builder.Environment.ContentRootPath, builder.Environment.WebRootPath]);
 
 builder.Services.AddSingleton<IHostCommand, MigrateCommand>();
+
+// 020: the operator's own files for `sites export` and `sites import`; modules never touch
+// the file system themselves (003 FR-019).
+builder.Services.AddSingleton<IOperatorFiles, OperatorFiles>();
 builder.Services.AddTelemetry(builder.Configuration);
 
 // --- Modules -----------------------------------------------------------------------

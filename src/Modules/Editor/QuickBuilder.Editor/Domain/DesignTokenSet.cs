@@ -62,6 +62,16 @@ internal sealed class DesignTokenSet : ISiteOwned
         return new DesignTokenSet(siteId, document, schemaVersion, actor, clock.GetUtcNow());
     }
 
+    /// <summary>
+    /// A site's token draft as an imported archive holds it (020 FR-021): its document, already
+    /// validated by the import's check, and who last changed it and when.
+    /// </summary>
+    public static DesignTokenSet Import(Guid siteId, string document, int schemaVersion, Guid updatedBy, DateTimeOffset updatedAtUtc)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(document);
+        return new DesignTokenSet(siteId, document, schemaVersion, updatedBy, updatedAtUtc);
+    }
+
     /// <summary>Replaces the document with one that has already passed validation.</summary>
     public void Replace(string document, int schemaVersion, Guid actor, TimeProvider clock)
     {

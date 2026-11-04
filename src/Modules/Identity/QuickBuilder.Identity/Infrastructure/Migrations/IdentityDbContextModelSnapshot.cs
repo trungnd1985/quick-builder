@@ -25,6 +25,36 @@ namespace QuickBuilder.Identity.Infrastructure.Migrations
             NpgsqlModelBuilderExtensions.HasPostgresExtension(modelBuilder, "citext");
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("QuickBuilder.Identity.Domain.HistoricalAuthor", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("DisplayName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("display_name");
+
+                    b.Property<DateTimeOffset>("ImportedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("imported_at_utc");
+
+                    b.Property<Guid>("SourceUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("source_user_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_historical_authors");
+
+                    b.HasIndex("SourceUserId")
+                        .IsUnique()
+                        .HasDatabaseName("ux_historical_authors_source");
+
+                    b.ToTable("historical_authors", "identity");
+                });
+
             modelBuilder.Entity("QuickBuilder.Identity.Domain.Installation", b =>
                 {
                     b.Property<short>("Id")

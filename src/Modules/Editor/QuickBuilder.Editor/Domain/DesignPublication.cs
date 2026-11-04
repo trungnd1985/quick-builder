@@ -45,6 +45,18 @@ internal sealed class DesignPublication : ISiteOwned
 
     public static DesignPublication Start(Guid siteId) => new(siteId);
 
+    /// <summary>
+    /// A site's design publication as an imported archive holds it (020 FR-021): the live
+    /// version number and the next one, with the versions themselves imported beside it.
+    /// </summary>
+    public static DesignPublication Import(Guid siteId, int liveNumber, int nextNumber, DateTimeOffset liveSinceUtc, Guid liveBy) => new(siteId)
+    {
+        LiveNumber = liveNumber,
+        NextNumber = Math.Max(nextNumber, liveNumber + 1),
+        LiveSinceUtc = liveSinceUtc,
+        LiveBy = liveBy,
+    };
+
     /// <summary>Publishes a copy of the draft token set as the next version.</summary>
     public DesignVersion Publish(string document, int schemaVersion, long tokenSetVersion, Guid actor, DateTimeOffset now)
     {

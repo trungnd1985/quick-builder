@@ -47,6 +47,8 @@ export function createAppRouter(history: RouterHistory = createWebHistory('/admi
       { path: '/sign-in', name: 'sign-in', component: SignInView, meta: { bare: true, public: true } },
       { path: '/set-password', name: 'set-password', component: SetPasswordView, meta: { bare: true, public: true } },
       { path: '/sites', name: 'sites', component: SitesView },
+      // 020: import an archive as a new site; before /sites/:siteId so 'import' is not an id.
+      { path: '/sites/import', name: 'site-import', component: () => import('../features/transfer/ImportSiteView.vue') },
       { path: '/sites/:siteId', name: 'site', component: SiteDetailView },
       { path: '/sites/:siteId/media', name: 'site-media', component: MediaLibraryView },
       { path: '/sites/:siteId/pages', name: 'site-pages', component: PageTreeView },

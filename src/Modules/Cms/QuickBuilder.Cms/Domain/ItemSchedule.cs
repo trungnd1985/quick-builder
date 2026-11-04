@@ -30,7 +30,7 @@ internal static class ItemScheduleStates
 /// reviewed (FR-025). The due message in the Cms outbox carries <see cref="Revision"/>: moving
 /// the time increments it, which turns the old message into a no-op.
 /// </remarks>
-internal sealed class ItemSchedule : ISiteOwned, IDisposable
+internal sealed partial class ItemSchedule : ISiteOwned, IDisposable
 {
     private ItemSchedule(Guid siteId, Guid itemId, string action, Guid createdBy, DateTimeOffset now)
     {

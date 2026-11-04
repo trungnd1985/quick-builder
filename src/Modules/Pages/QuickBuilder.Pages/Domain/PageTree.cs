@@ -34,7 +34,7 @@ namespace QuickBuilder.Pages.Domain;
 /// (FR-006) holds by construction.
 /// </para>
 /// </remarks>
-internal sealed class PageTree : AggregateRoot, ISiteOwned
+internal sealed partial class PageTree : AggregateRoot, ISiteOwned
 {
     private readonly List<Page> _pages = [];
 

@@ -101,6 +101,71 @@ public abstract class FileStorageConformanceTests : IDisposable
         await AssertAbsentAsync(KeyA);
     }
 
+    // --- Unknown length -----------------------------------------------------------------
+
+    /// <summary>
+    /// A site export pipes its ZIP straight into storage, so the content cannot seek and its
+    /// length is unknown until it ends (020 research ST-16). 70 MiB crosses the S3 multipart
+    /// threshold and several Azure blocks.
+    /// </summary>
+    [Fact]
+    public Task A_write_from_a_pipe_of_unknown_length_stores_the_whole_object() =>
+        WriteFromPipeAndVerifyAsync(70L * 1024 * 1024);
+
+    /// <summary>The same at archive scale (020 T001). Run with the performance suites.</summary>
+    [Fact]
+    [Trait("Category", "Performance")]
+    public Task A_five_gigabyte_write_from_a_pipe_stores_the_whole_object() =>
+        WriteFromPipeAndVerifyAsync(5L * 1024 * 1024 * 1024);
+
+    private async Task WriteFromPipeAndVerifyAsync(long size)
+    {
+        var pipe = new System.IO.Pipelines.Pipe();
+        using var written = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+
+        var producer = Task.Run(async () =>
+        {
+            var chunk = RandomBytes(1024 * 1024);
+            try
+            {
+                for (long sent = 0; sent < size; sent += chunk.Length)
+                {
+                    var length = (int)Math.Min(chunk.Length, size - sent);
+                    written.AppendData(chunk, 0, length);
+                    await pipe.Writer.WriteAsync(chunk.AsMemory(0, length));
+                }
+
+                await pipe.Writer.CompleteAsync();
+            }
+            catch (Exception ex)
+            {
+                await pipe.Writer.CompleteAsync(ex);
+                throw;
+            }
+        });
+
+        await using (var content = pipe.Reader.AsStream())
+        {
+            Assert.False(content.CanSeek);
+            await Storage.WriteAsync(KeyA, content);
+        }
+
+        await producer;
+
+        await using var stored = await Storage.OpenReadAsync(KeyA);
+        Assert.NotNull(stored);
+        Assert.Equal(size, stored.Length);
+        using var read = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+        var buffer = new byte[1024 * 1024];
+        int count;
+        while ((count = await stored.Content.ReadAsync(buffer)) > 0)
+        {
+            read.AppendData(buffer, 0, count);
+        }
+
+        Assert.Equal(written.GetHashAndReset(), read.GetHashAndReset());
+    }
+
     // --- Partial reads ------------------------------------------------------------------
 
     [Fact]

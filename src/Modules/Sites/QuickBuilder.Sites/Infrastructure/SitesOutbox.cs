@@ -14,19 +14,36 @@ namespace QuickBuilder.Sites.Infrastructure;
 internal static class SitesOutbox
 {
     internal static void Add<TEvent>(SitesDbContext database, TEvent integrationEvent)
-        where TEvent : IIntegrationEvent
+        where TEvent : IIntegrationEvent =>
+        Add(database, PendingEvent.Of(integrationEvent));
+
+    internal static void Add(SitesDbContext database, PendingEvent pending)
     {
         ArgumentNullException.ThrowIfNull(database);
-        ArgumentNullException.ThrowIfNull(integrationEvent);
+        ArgumentNullException.ThrowIfNull(pending);
 
         database.OutboxMessages.Add(new OutboxMessage
         {
             Id = Guid.CreateVersion7(),
-            EventType = TEvent.EventType,
-            Payload = JsonSerializer.Serialize(integrationEvent),
-            OccurredAtUtc = integrationEvent.OccurredAtUtc,
-            AvailableAtUtc = integrationEvent.OccurredAtUtc,
+            EventType = pending.EventType,
+            Payload = pending.Payload,
+            OccurredAtUtc = pending.OccurredAtUtc,
+            AvailableAtUtc = pending.OccurredAtUtc,
             TraceId = System.Diagnostics.Activity.Current?.TraceId.ToString(),
         });
+    }
+}
+
+/// <summary>
+/// An event serialised with its contract name, so code that handles events of several types
+/// can pass them around before they are added (020: transfer outcomes).
+/// </summary>
+internal sealed record PendingEvent(string EventType, string Payload, DateTimeOffset OccurredAtUtc)
+{
+    public static PendingEvent Of<TEvent>(TEvent integrationEvent)
+        where TEvent : IIntegrationEvent
+    {
+        ArgumentNullException.ThrowIfNull(integrationEvent);
+        return new(TEvent.EventType, JsonSerializer.Serialize(integrationEvent), integrationEvent.OccurredAtUtc);
     }
 }

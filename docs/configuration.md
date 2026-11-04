@@ -162,6 +162,15 @@ Every site serves its media files at `/_media/{id}.{ext}` on its own host names.
 `/_media` path is reserved on every site host: if a reverse proxy handled that path
 itself, it must stop.
 
+## Site export and import
+
+| Key | Default | Range | Meaning |
+|---|---|---|---|
+| `SiteTransfer:MaxUploadSizeBytes` | `10737418240` (10 GiB) | 1,048,576 – 107,374,182,400 | The largest archive the admin accepts as an upload for import. A larger upload is refused with `transfer.too_large`. The `sites import` command reads archives from disk and has no limit. A reverse proxy in front of the app usually limits request bodies too (for example nginx `client_max_body_size`); raise it for `/api/v1/transfers/uploads`. |
+
+Archives kept for download in the admin are stored with the media storage provider, under
+`<site>/transfers/`, and are deleted 7 days after the export finishes.
+
 ## Outbox
 
 | Key | Default | Meaning |

@@ -67,6 +67,13 @@ async function submit(): Promise<void> {
           {{ t('sites.subtitle') }}
         </p>
       </div>
+      <RouterLink
+        v-if="canCreate"
+        class="button-link"
+        :to="{ name: 'site-import' }"
+      >
+        {{ t('transfer.import.entry') }}
+      </RouterLink>
       <button
         v-if="canCreate"
         type="button"

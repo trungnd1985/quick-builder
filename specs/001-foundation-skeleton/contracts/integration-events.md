@@ -184,6 +184,28 @@ No new event: nothing needs to know about submissions yet (webhooks are out of s
   is idempotent without a processed-events row and indifferent to delivery order. It runs in a
   scope resolved to the event's site, because it reads through the public path's reader.
 
+### 020 Site export and import (#20)
+
+Four new events, published by Sites when a transfer ends or its archive is used. They carry
+ids, the mode, the outcome and a failure code only, never a name, title or content
+(Principle IX). See [020 research ST-19](../../020-site-export-import/research.md).
+
+| Event | When | Payload beyond the envelope |
+|---|---|---|
+| `Sites.SiteExportFinished` | an export ends, whatever the outcome | `transferId`, `siteId`, `outcome` (`succeeded`, `failed`, `cancelled`), `trigger` (`admin`, `cli`, `pre_restore`), `actorUserId` (null for the command), `failureCode` |
+| `Sites.SiteImportFinished` | an import ends, whatever the outcome | `transferId`, `siteId` (null when a new site was never committed), `mode` (`new_site`, `merge`, `restore`), `outcome`, `trigger`, `actorUserId`, `failureCode` |
+| `Sites.SiteArchiveDownloaded` | an Administrator downloads an export | `transferId`, `siteId`, `actorUserId` |
+| `Sites.SiteArchiveDeleted` | a stored archive is deleted, by an Administrator or by retention (`actorUserId` null) | `transferId`, `siteId`, `actorUserId` |
+
+- **New subscriptions in Identity**: all four are recorded as security events
+  (`site_exported`, `site_imported`, `site_restored`, `site_transfer_failed`,
+  `site_transfer_cancelled`, `site_archive_downloaded`, `site_archive_deleted`) by
+  `RecordSiteSecurityEvents`.
+- **Existing events raised by an import**: each module's part writes the events its own writes
+  would write, in the import's single transaction, so they are dispatched only after the commit
+  and the usual consumers rebuild their state (cache, sitemap, form registry, list refresh,
+  media variants). See [020 contracts/archive-parts.md](../../020-site-export-import/contracts/archive-parts.md) §2.
+
 ---
 
 ## Delivery guarantees

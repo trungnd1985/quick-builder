@@ -20,7 +20,7 @@ internal static class ItemVersionKinds
 /// copy of the item, so removed values leave it too (research IT-12, 014 FR-024); fill-in
 /// values are never written to it, because it records what was published.
 /// </remarks>
-internal sealed class ItemVersion : ISiteOwned, IDisposable
+internal sealed partial class ItemVersion : ISiteOwned, IDisposable
 {
     internal ItemVersion(
         Guid siteId,

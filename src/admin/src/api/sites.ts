@@ -28,6 +28,8 @@ export interface SitePermissions {
   canManageSearch?: boolean
   /** 017: discourage search engines, robots rules, host name redirect (Administrators). */
   canManageSearchVisibility?: boolean
+  /** 020: export and import the site (Administrators). */
+  canTransfer?: boolean
 }
 
 /** 017 FR-006: how the site presents itself to search engines and link previews. */
@@ -65,6 +67,17 @@ export interface Site {
   /** 017. Absent from servers before 017. */
   search?: SiteSearch
   searchVisibility?: SiteSearchVisibility
+  /** 020 FR-028: the export or import holding the site's transfer slot, on the single-site read. */
+  transfer?: SiteTransfer | null
+}
+
+/** 020: while `kind` is `import` and `state` is `running`, the site's changes are paused. */
+export interface SiteTransfer {
+  id: string
+  kind: 'export' | 'import'
+  mode: 'new_site' | 'merge' | 'restore' | null
+  state: string
+  startedAtUtc: string
 }
 
 export interface SiteSettings {

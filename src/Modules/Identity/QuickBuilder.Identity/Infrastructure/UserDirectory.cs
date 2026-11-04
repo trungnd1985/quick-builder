@@ -18,12 +18,26 @@ internal sealed class UserDirectory(IdentityDbContext database) : IUserDirectory
             return [];
         }
 
-        return await database.Users
+        var users = await database.Users
             .AsNoTracking()
             .Where(u => userIds.Contains(u.Id))
-            .Select(u => new UserSummaryDto(u.Id, u.DisplayName))
+            .Select(u => new UserSummaryDto(u.Id, u.DisplayName, false))
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
+        if (users.Count == userIds.Count)
+        {
+            return users;
+        }
+
+        // 020 research ST-14: authors of an imported site who are not users here.
+        var missing = userIds.Except(users.Select(u => u.Id)).ToList();
+        var historical = await database.HistoricalAuthors
+            .AsNoTracking()
+            .Where(h => missing.Contains(h.Id))
+            .Select(h => new UserSummaryDto(h.Id, h.DisplayName, true))
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+        return [.. users, .. historical];
     }
 
     public Task<string?> OwnEmailAsync(Guid userId, CancellationToken cancellationToken = default) =>

@@ -31,6 +31,18 @@ internal sealed class ExceptionHandlingMiddleware(RequestDelegate next, ILogger<
         {
             await WriteValidationProblemAsync(context, ex).ConfigureAwait(false);
         }
+        catch (QuickBuilder.Shared.Infrastructure.Data.SiteImportInProgressException)
+        {
+            // 020 research ST-07: an expected refusal, not a failure; nothing is logged as an error.
+            await WriteProblemAsync(
+                context,
+                StatusCodes.Status423Locked,
+                "https://quickbuilder.dev/errors/site/import_in_progress",
+                "The site is being imported into",
+                QuickBuilder.Shared.Infrastructure.Data.SiteImportInProgressException.Code,
+                "Changes to this site are paused until its import finishes.",
+                Activity.Current?.TraceId.ToString() ?? context.TraceIdentifier).ConfigureAwait(false);
+        }
         catch (Exception ex)
         {
             // FR-031a: the trace id in the log is the same value returned to the caller,

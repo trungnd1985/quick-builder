@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://quickbuilder.dev/contracts/site-archive/manifest.v1.schema.json",
+  "title": "Site archive manifest, format 1",
+  "description": "manifest.json of a .qbsite archive (docs/contracts/site-archive.md §2). Uses only the keywords SchemaSubsetValidator interprets.",
+  "type": "object",
+  "required": ["format", "release", "createdAtUtc", "source", "parts", "counts", "problems", "entries"],
+  "additionalProperties": false,
+  "properties": {
+    "format": { "const": 1 },
+    "release": {
+      "description": "The semantic version of the release that wrote the archive.",
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(-[0-9A-Za-z.-]+)?(\\+[0-9A-Za-z.-]+)?$"
+    },
+    "createdAtUtc": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$"
+    },
+    "source": {
+      "type": "object",
+      "required": ["siteId", "siteName", "enabled"],
+      "additionalProperties": false,
+      "properties": {
+        "siteId": { "type": "string", "format": "uuid" },
+        "siteName": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "enabled": { "type": "boolean" }
+      }
+    },
+    "parts": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/part" } },
+    "counts": {
+      "description": "Rows per kind (page, component, collection, item, menu, redirect, media_file, …) and media_bytes.",
+      "type": "object",
+      "additionalProperties": { "type": "integer", "minimum": 0 }
+    },
+    "problems": { "type": "array", "items": { "$ref": "#/$defs/problem" } },
+    "entries": { "type": "array", "items": { "$ref": "#/$defs/entry" } }
+  },
+  "$defs": {
+    "part": {
+      "type": "object",
+      "required": ["name", "version", "contracts"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string", "pattern": "^[a-z0-9-]{1,64}$" },
+        "version": { "type": "integer", "minimum": 1 },
+        "contracts": {
+          "description": "The highest schema version of each content contract the part's documents use.",
+          "type": "object",
+          "additionalProperties": { "type": "integer", "minimum": 1 }
+        }
+      }
+    },
+    "problem": {
+      "type": "object",
+      "required": ["code", "kind", "id"],
+      "additionalProperties": false,
+      "properties": {
+        "code": { "type": "string", "pattern": "^[a-z_]+\\.[a-z_]+$" },
+        "kind": { "type": "string", "pattern": "^[a-z_]+$" },
+        "id": { "type": "string", "format": "uuid" }
+      }
+    },
+    "entry": {
+      "type": "object",
+      "required": ["name", "length", "sha256"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^(authors\\.jsonl|parts/[a-z0-9-]{1,64}/[a-z0-9-]{1,64}\\.jsonl|media/[0-9a-f]{32})$"
+        },
+        "length": { "type": "integer", "minimum": 0 },
+        "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+      }
+    }
+  }
+}

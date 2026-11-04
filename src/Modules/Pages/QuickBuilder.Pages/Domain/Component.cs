@@ -14,7 +14,7 @@ namespace QuickBuilder.Pages.Domain;
 /// key refuses the delete of a used component in the database, where no race can get past
 /// it.
 /// </remarks>
-internal sealed class Component : AggregateRoot, ISiteOwned
+internal sealed partial class Component : AggregateRoot, ISiteOwned
 {
     public const int MaxNameLength = 100;
 

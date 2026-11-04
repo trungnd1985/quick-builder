@@ -1,7 +1,11 @@
 namespace QuickBuilder.Identity.Contracts;
 
 /// <summary>Who someone is, as another module may show it.</summary>
-public sealed record UserSummaryDto(Guid Id, string DisplayName);
+/// <param name="IsHistorical">
+/// 020 research ST-14: a member of an imported site who is not a user here; shown with
+/// "(imported)".
+/// </param>
+public sealed record UserSummaryDto(Guid Id, string DisplayName, bool IsHistorical = false);
 
 /// <summary>
 /// How other modules name the people behind recorded actions — "published by …" — without

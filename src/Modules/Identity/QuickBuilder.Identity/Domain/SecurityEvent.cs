@@ -33,6 +33,15 @@ internal static class SecurityEventTypes
     public const string SiteDisabled = "site_disabled";
     public const string SiteEnabled = "site_enabled";
 
+    // 020 research ST-19: site export and import, recorded from the Sites module's events.
+    public const string SiteExported = "site_exported";
+    public const string SiteImported = "site_imported";
+    public const string SiteRestored = "site_restored";
+    public const string SiteTransferFailed = "site_transfer_failed";
+    public const string SiteTransferCancelled = "site_transfer_cancelled";
+    public const string SiteArchiveDownloaded = "site_archive_downloaded";
+    public const string SiteArchiveDeleted = "site_archive_deleted";
+
     public static readonly IReadOnlySet<string> All = new HashSet<string>(StringComparer.Ordinal)
     {
         SetupCompleted, SetupCodeRejected, SignIn, ClientBlocked, SignOut, SessionsRevoked,
@@ -40,6 +49,8 @@ internal static class SecurityEventTypes
         AccountReactivated, GrantsChanged, SetPasswordLinkIssued, SetPasswordLinkUsed,
         KnownDeviceRevoked, OperatorRecoveryUsed,
         SiteHostNameAdded, SiteHostNameRemoved, SiteDisabled, SiteEnabled,
+        SiteExported, SiteImported, SiteRestored, SiteTransferFailed, SiteTransferCancelled,
+        SiteArchiveDownloaded, SiteArchiveDeleted,
     };
 }
 

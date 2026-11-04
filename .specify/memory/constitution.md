@@ -1,26 +1,28 @@
 <!--
 Sync Impact Report
-Version change: 2.5.0 → 2.5.1
+Version change: 2.5.1 → 2.6.0
 Modified principles:
-  - I. Modular Monolith with Vertical Slices: names the migration runner and
-    its database version record (schema `platform`, own EF migrations) among
-    what `QuickBuilder.Shared.Infrastructure` holds. The runner has lived there
-    since 001 (D-04); the record is its own bookkeeping, not module data.
-  - VI. Content Schemas Are Versioned Contracts: states that the forward
-    migration of stored data may be an upgrade step applied when a document is
-    read and stored on its next save or publish; no bulk rewrite is required.
-  Both are clarifications of existing rules, a PATCH change under the
-  Governance versioning rule.
+  - I. Modular Monolith with Vertical Slices: the rule "No database
+    transaction spans more than one module" gains one named exception. The
+    parts of one site export or import (feature 020) share one transaction
+    through `ISiteTransferSession`. Each part still reads and writes only its
+    own module's tables through its own `DbContext`, and an architecture test
+    limits joining the shared transaction to archive parts.
+  This adds a bounded exception to an existing MUST rule without removing or
+  redefining the principle, so it is a MINOR change under the Governance
+  versioning rule.
 Modified sections: none.
-Reason: feature 019 (release pipeline and upgrade safety, issue #19) must check
-  the database version before any module migrates
-  (specs/019-release-upgrade-safety/research.md RL-07) and upgrades old
-  documents on read (RL-19, clarification Q4). Approved by the maintainer on
-  2026-10-23 (/speckit-analyze findings C1, C2).
+Reason: feature 020 (site export and import, issue #20) needs an export that
+  reflects one point in time while members keep editing (spec FR-005), and an
+  import that is all or nothing, also after a crash (FR-018). With one
+  PostgreSQL database this is one transaction on one connection
+  (specs/020-site-export-import/research.md ST-04, ST-05). The alternatives
+  (staging tables in five modules with roll-forward, or compensation by
+  restore) were much larger and weaker. Approved by the maintainer on
+  2026-11-02 (/speckit-analyze finding C1, plan exception E-7).
 Affected specs/plans:
-  - specs/019-release-upgrade-safety/ — plan.md records this amendment.
-  - docs/contracts/page-schema.md §6 and binding-expression.md are updated to
-    match in the same PR.
+  - specs/020-site-export-import/ — plan.md records this amendment, and E-7
+    is closed by it.
 Templates requiring updates:
   - .specify/templates/*: none. Templates read this constitution at runtime.
 Follow-up TODOs: none.
@@ -76,7 +78,12 @@ this document wins; changing it requires the amendment process in Governance.
   a database outbox in the same transaction as the change, then dispatched by
   a background worker. Handlers MUST be idempotent. No message broker is
   required.
-- No database transaction spans more than one module.
+- No database transaction spans more than one module, except the parts of one
+  site export or import, which share one transaction through
+  `ISiteTransferSession` so that an export is one point in time and an import
+  is all or nothing (feature 020). Each part still reads and writes only its
+  own module's tables through its own `DbContext`, and an architecture test
+  limits joining that transaction to archive parts.
 
 **Data**
 - One PostgreSQL database; each module owns its own schema (`pages`, `cms`,
@@ -290,4 +297,4 @@ a constitution amendment is approved first.
 - Any exception to a MUST rule is recorded in the plan's Complexity Tracking
   section with justification and a follow-up task to remove it.
 
-**Version**: 2.5.1 | **Ratified**: 2026-09-22 | **Last Amended**: 2026-10-23
+**Version**: 2.6.0 | **Ratified**: 2026-09-22 | **Last Amended**: 2026-11-02

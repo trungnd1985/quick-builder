@@ -37,6 +37,9 @@ internal sealed class IdentityDbContext(DbContextOptions<IdentityDbContext> opti
 
     internal DbSet<SecurityEvent> SecurityEvents => Set<SecurityEvent>();
 
+    /// <summary>020: names of imported sites' members who are not users here (data-model §2).</summary>
+    internal DbSet<HistoricalAuthor> HistoricalAuthors => Set<HistoricalAuthor>();
+
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         ArgumentNullException.ThrowIfNull(optionsBuilder);
@@ -76,6 +79,16 @@ internal sealed class IdentityDbContext(DbContextOptions<IdentityDbContext> opti
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Id).ValueGeneratedNever();
             entity.Property(e => e.SetupCode).HasMaxLength(12);
+        });
+
+        // 020 data-model §2: a name, not an account.
+        modelBuilder.Entity<HistoricalAuthor>(entity =>
+        {
+            entity.ToTable("historical_authors", Schema);
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).ValueGeneratedNever();
+            entity.Property(e => e.DisplayName).HasMaxLength(HistoricalAuthor.MaxDisplayNameLength).IsRequired();
+            entity.HasIndex(e => e.SourceUserId).IsUnique().HasDatabaseName("ux_historical_authors_source");
         });
 
         modelBuilder.Entity<User>(entity =>

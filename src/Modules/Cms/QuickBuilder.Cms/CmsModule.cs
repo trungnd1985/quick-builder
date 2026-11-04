@@ -65,6 +65,9 @@ public static class CmsModule
             options.UseNpgsql(connectionString, npgsql =>
                 // Each module keeps its own migrations history table in its own schema.
                 npgsql.MigrationsHistoryTable("__EFMigrationsHistory", CmsDbContext.Schema));
+
+            // 020 research ST-07: content writes pause while an import applies to the site.
+            options.AddInterceptors(provider.GetRequiredService<QuickBuilder.Shared.Infrastructure.Data.SiteWriteGateInterceptor>());
         });
 
         services.AddSingleton<IModuleDatabaseProvider, CmsDatabaseProvider>();
@@ -173,6 +176,9 @@ public static class CmsModule
         // Research IT-11: items using a deleted or replaced media file are checked again.
         services.AddScoped<IIntegrationEventHandler<FileDeleted>, ReindexItemsForMediaHandler>();
         services.AddScoped<IIntegrationEventHandler<FileChanged>, ReindexItemsForMediaHandler>();
+
+        // 020: this module's share of a site archive (contracts/archive-parts.md).
+        services.AddScoped<QuickBuilder.Sites.Contracts.Transfer.ISiteArchivePart, QuickBuilder.Cms.Features.Transfer.CmsArchivePart>();
 
         return services;
     }
