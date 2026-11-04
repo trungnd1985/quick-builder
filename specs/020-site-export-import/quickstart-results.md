@@ -29,7 +29,7 @@ Line coverage from the transfer unit and integration tests together (coverlet, m
 | `SITES/Features/Transfer/Engine/` | 84.0% | 844/1005 |
 | `SITES/Domain/IdMap.cs` | 94.1% | 96/102 |
 | `SITESC/Transfer/ConflictRules.cs` | 97.3% | 36/37 |
-| `Shared/…/Data/SiteWriteGateInterceptor.cs` (the write gate as built) | 79.4% | 85/107 |
+| `Shared/…/Data/SiteWriteGateInterceptor.cs` (the write gate as built) | 89.7% | 96/107 |
 | `SitesArchivePart.Import.cs` | 92.5% | 124/134 |
 | `MediaArchivePart.Import.cs` | 90.2% | 230/255 |
 | `DesignArchivePart.Import.cs` | 84.0% | 137/163 |
@@ -38,8 +38,11 @@ Line coverage from the transfer unit and integration tests together (coverlet, m
 | `PagesArchivePart.Merge.cs` | 92.5% | 356/385 |
 | `SitesCommand.cs` | 83.1% | 359/432 |
 
-The write gate is just under 80%. Its uncovered lines are the synchronous `SaveChanges`
-overrides, which no module's write path uses, and the exception's convenience constructors.
+The write gate was at 79.4%; `ITESTS/Transfer/SiteWriteGateInterceptorTests.cs` (2026-11-05)
+covers its synchronous saves, a failed save and the exception, which brings it to 89.7% from
+the gate tests alone. Still uncovered: the cancelled-save hook (EF Core stops a cancelled save
+before it calls the hook), the guard for an event with no context, and the early return for a
+save of no site rows, which the rest of the suite reaches.
 
 ## Performance (T091, SC-002)
 
