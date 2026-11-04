@@ -77,7 +77,10 @@ public sealed class ArchiveRefusalTests(DatabaseFixture database)
 
         await PagesApi.OkAsync(await TransferApi.ConfirmAsync(scenario.Admin, id, new
         {
-            newSiteName = "Copy", newSiteHostName = "copy.test", acceptWarnings = true, checkFingerprint = transfer.GetProperty("checkFingerprint").GetString(),
+            newSiteName = "Copy",
+            newSiteHostName = "copy.test",
+            acceptWarnings = true,
+            checkFingerprint = transfer.GetProperty("checkFingerprint").GetString(),
         }).ConfigureAwait(true), System.Net.HttpStatusCode.Accepted).ConfigureAwait(true);
         await TransferApi.RunWorkerAsync(scenario.App).ConfigureAwait(true);
 

@@ -61,7 +61,9 @@ public sealed class ImportFailureTests(DatabaseFixture database)
         var checkedTransfer = await TransferApi.CheckAsync(importer, site.Admin, id, "new_site").ConfigureAwait(true);
         await PagesApi.OkAsync(await TransferApi.ConfirmAsync(site.Admin, id, new
         {
-            newSiteName = "Doomed", newSiteHostName = "doomed.test", acceptWarnings = true,
+            newSiteName = "Doomed",
+            newSiteHostName = "doomed.test",
+            acceptWarnings = true,
             checkFingerprint = checkedTransfer.GetProperty("checkFingerprint").GetString(),
         }).ConfigureAwait(true), HttpStatusCode.Accepted).ConfigureAwait(true);
         await TransferApi.RunWorkerAsync(importer).ConfigureAwait(true);

@@ -151,7 +151,8 @@ public sealed class TransferPerformanceTests(DatabaseFixture database, ITestOutp
 
                 Thread.Sleep(50);
             }
-        }) { IsBackground = true, Name = "perf sampler" };
+        })
+        { IsBackground = true, Name = "perf sampler" };
         sampler.Start();
 
         var value = await work().ConfigureAwait(false);
