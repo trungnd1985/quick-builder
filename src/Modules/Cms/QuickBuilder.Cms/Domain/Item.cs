@@ -22,7 +22,7 @@ namespace QuickBuilder.Cms.Domain;
 /// published values (SC-004).
 /// </para>
 /// </remarks>
-internal sealed class Item : AggregateRoot, ISiteOwned, IDisposable
+internal sealed partial class Item : AggregateRoot, ISiteOwned, IDisposable
 {
     /// <summary>Published versions kept per item, never deleting the live one (FR-023).</summary>
     public const int KeptVersions = 50;

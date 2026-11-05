@@ -57,7 +57,9 @@ export interface Autosave {
   dispose: () => void
 }
 
-const TEMPORARY_STATUSES = new Set([0, 408, 429, 500, 502, 503, 504])
+// 423: an import is applying to the site (020 FR-028). The changes stay on screen and are
+// sent again after it; a document the import replaced is then refused as out of date.
+const TEMPORARY_STATUSES = new Set([0, 408, 423, 429, 500, 502, 503, 504])
 
 export function createAutosave(
   store: ReturnType<typeof useEditorStore>,

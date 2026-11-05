@@ -28,7 +28,7 @@ internal static class ItemHistoryKinds
 /// <see cref="ScheduleAction"/> set to that schedule's action. Draft saves are not entries;
 /// the item's own last-change fields show the latest.
 /// </remarks>
-internal sealed class ItemHistoryEntry : ISiteOwned
+internal sealed partial class ItemHistoryEntry : ISiteOwned
 {
     private ItemHistoryEntry(Guid siteId, Guid itemId, string kind, Guid by, DateTimeOffset at)
     {

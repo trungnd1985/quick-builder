@@ -39,6 +39,19 @@ internal static class SitesCapabilities
     /// </summary>
     public const string SearchVisibilityManage = "sites.search_visibility.manage";
 
+    /// <summary>
+    /// Export a site, follow its exports and download the archives (020 FR-035). Administrator
+    /// only: an archive holds every draft and setting of the site.
+    /// </summary>
+    public const string TransferExport = "sites.transfer.export";
+
+    /// <summary>
+    /// Upload, check and import archives, and act on any transfer by its id (020 FR-035).
+    /// Installation-wide: an import may create a site, and <c>/api/transfers/…</c> routes have
+    /// no site to scope by (020 analysis I3). Administrator only.
+    /// </summary>
+    public const string TransferImport = "sites.transfer.import";
+
     public static IEnumerable<CapabilityDefinition> All =>
     [
         new(Create, CapabilityScope.Installation, []),
@@ -48,5 +61,7 @@ internal static class SitesCapabilities
         new(AvailabilityManage, CapabilityScope.Site, []),
         new(SearchManage, CapabilityScope.Site, [SystemRole.Designer]),
         new(SearchVisibilityManage, CapabilityScope.Site, []),
+        new(TransferExport, CapabilityScope.Site, []),
+        new(TransferImport, CapabilityScope.Installation, []),
     ];
 }

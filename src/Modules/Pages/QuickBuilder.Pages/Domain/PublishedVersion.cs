@@ -11,7 +11,7 @@ namespace QuickBuilder.Pages.Domain;
 /// content may be removed by retention (PR-15) or with its subject, while the log entry
 /// that records it stays.
 /// </remarks>
-internal sealed class PublishedVersion : ISiteOwned
+internal sealed partial class PublishedVersion : ISiteOwned
 {
     internal PublishedVersion(
         Guid siteId,

@@ -56,6 +56,15 @@ writes its result with `Console.Out` directly, not through Serilog.
 
 ---
 
+## Commands of later features
+
+- `media check-storage` (013): [docs/operations.md](../../../docs/operations.md#storage-consistency-check).
+- `sites export | check | import` (020): [contracts/operator-commands.md](../../020-site-export-import/contracts/operator-commands.md).
+  They read and write the operator's files through `IOperatorFiles`, which the host
+  implements: modules never use the file system themselves.
+
+---
+
 ## Extension mechanism (for module authors)
 
 `QuickBuilder.Shared.Infrastructure` defines:

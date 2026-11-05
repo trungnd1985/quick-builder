@@ -19,6 +19,9 @@ internal sealed class SitesDbContext(DbContextOptions<SitesDbContext> options, I
 
     internal DbSet<SiteHostName> HostNames => Set<SiteHostName>();
 
+    /// <summary>020: exports, uploads and imports (data-model §1).</summary>
+    internal DbSet<TransferJob> TransferJobs => Set<TransferJob>();
+
     internal DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
 
     internal DbSet<ProcessedEvent> ProcessedEvents => Set<ProcessedEvent>();
@@ -147,6 +150,54 @@ internal sealed class SitesDbContext(DbContextOptions<SitesDbContext> options, I
             // filter has to reference CurrentSiteId on this context — see its remarks for
             // why a captured ISiteContext silently filters against the wrong site.
             entity.HasQueryFilter(h => h.SiteId == CurrentSiteId);
+        });
+
+        // 020 data-model §1. Installation data ([InstallationScoped]): a new-site import has no
+        // site until it commits, so there is no query filter, and every read that concerns a
+        // site names it explicitly.
+        modelBuilder.Entity<TransferJob>(entity =>
+        {
+            entity.ToTable("transfer_jobs", Schema, t =>
+            {
+                t.HasCheckConstraint("ck_transfer_jobs_kind", "kind IN ('export', 'import')");
+                t.HasCheckConstraint("ck_transfer_jobs_trigger", "trigger IN ('admin', 'cli', 'pre_restore')");
+                t.HasCheckConstraint("ck_transfer_jobs_mode", "mode IS NULL OR mode IN ('new_site', 'merge', 'restore')");
+                t.HasCheckConstraint("ck_transfer_jobs_policy", "conflict_policy IS NULL OR conflict_policy IN ('replace', 'skip', 'rename')");
+                t.HasCheckConstraint("ck_transfer_jobs_percent", "percent BETWEEN 0 AND 100");
+            });
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).ValueGeneratedNever();
+            entity.Property(e => e.Kind).IsRequired();
+            entity.Property(e => e.Trigger).IsRequired();
+            entity.Property(e => e.State).IsRequired();
+            entity.Property(e => e.NewSiteName).HasMaxLength(TransferJob.MaxSiteNameLength);
+            entity.Property(e => e.NewSiteHostName).HasColumnType("citext").HasMaxLength(SiteHostName.MaxLength);
+            entity.Property(e => e.Manifest).HasColumnType("jsonb");
+            entity.Property(e => e.CheckResult).HasColumnType("jsonb");
+            entity.Property(e => e.Summary).HasColumnType("jsonb");
+            entity.Property(e => e.Report).HasColumnType("jsonb");
+            entity.Property(e => e.Version).IsRowVersion().HasColumnName("xmin").HasColumnType("xid");
+
+            // One active transfer per site (FR-010). The predicate is TransferJob.HoldsSiteSlot
+            // in SQL: a check holds no slot, nor does a restore's own pre-restore export
+            // (analysis I1, I2).
+            entity
+                .HasIndex(e => e.SiteId)
+                .IsUnique()
+                .HasFilter(TransferStates.HoldingSlotSql)
+                .HasDatabaseName("ux_transfer_jobs_active_site");
+
+            entity
+                .HasIndex(e => new { e.State, e.CreatedAtUtc })
+                .HasFilter("state IN ('queued', 'confirmed')")
+                .HasDatabaseName("ix_transfer_jobs_claim");
+
+            entity
+                .HasIndex(e => e.ArchiveExpiresAtUtc)
+                .HasFilter("archive_key IS NOT NULL")
+                .HasDatabaseName("ix_transfer_jobs_expiry");
+
+            entity.HasIndex(e => new { e.SiteId, e.CreatedAtUtc }).HasDatabaseName("ix_transfer_jobs_site");
         });
 
         modelBuilder.AddOutbox(Schema);

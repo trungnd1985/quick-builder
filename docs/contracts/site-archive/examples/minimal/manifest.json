@@ -1,0 +1,43 @@
+{
+  "format": 1,
+  "release": "0.2.0-dev",
+  "createdAtUtc": "2026-11-02T16:15:38Z",
+  "source": {
+    "siteId": "01a19d0b-71d6-7743-aee1-cf7a6fc49d30",
+    "siteName": "Site A",
+    "enabled": true
+  },
+  "parts": [
+    {
+      "name": "sites",
+      "version": 1,
+      "contracts": {}
+    }
+  ],
+  "counts": {
+    "host_names": 1
+  },
+  "problems": [],
+  "entries": [
+    {
+      "name": "parts/sites/settings.jsonl",
+      "length": 198,
+      "sha256": "5c9020d0f2e7981c8c78d8588189f5019f6b283272b3cc65e5183fdd96779038"
+    },
+    {
+      "name": "parts/sites/host-names.jsonl",
+      "length": 87,
+      "sha256": "3b57e61c5c0214fe5343d65b6599fbf1988727b7b50d56e1e572dc7f728228c8"
+    },
+    {
+      "name": "parts/sites/search.jsonl",
+      "length": 175,
+      "sha256": "164c14af5016b7812d702ca2b575217a6b26536962ab2e8bb93ba3a7b63f0ab9"
+    },
+    {
+      "name": "authors.jsonl",
+      "length": 81,
+      "sha256": "971db8d7ba756b110c859e3b2e972a9e7372bd872d03545415d6bd9aebdb612f"
+    }
+  ]
+}

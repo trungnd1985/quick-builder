@@ -8,6 +8,7 @@ import { useAuthStore } from '../../app/authStore'
 import AvailabilityPanel from './AvailabilityPanel.vue'
 import SearchSettingsPanel from './SearchSettingsPanel.vue'
 import SearchVisibilityPanel from './SearchVisibilityPanel.vue'
+import TransferTab from '../transfer/TransferTab.vue'
 import HostNameList from './HostNameList.vue'
 import LanguageSelect from './LanguageSelect.vue'
 import { isOutOfDate, siteErrorMessage } from './siteErrors'
@@ -357,6 +358,8 @@ watch(siteId, load)
         :site="site"
         @updated="show"
       />
+
+      <TransferTab :site="site" />
     </template>
   </section>
 </template>

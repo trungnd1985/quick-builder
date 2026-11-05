@@ -37,7 +37,11 @@ internal sealed class RecordSiteSecurityEventsHandler(IdentityDbContext database
     IIntegrationEventHandler<HostNameAdded>,
     IIntegrationEventHandler<HostNameRemoved>,
     IIntegrationEventHandler<SiteDisabled>,
-    IIntegrationEventHandler<SiteEnabled>
+    IIntegrationEventHandler<SiteEnabled>,
+    IIntegrationEventHandler<SiteExportFinished>,
+    IIntegrationEventHandler<SiteImportFinished>,
+    IIntegrationEventHandler<SiteArchiveDownloaded>,
+    IIntegrationEventHandler<SiteArchiveDeleted>
 {
     public Task HandleAsync(HostNameAdded integrationEvent, CancellationToken cancellationToken)
     {
@@ -83,12 +87,75 @@ internal sealed class RecordSiteSecurityEventsHandler(IdentityDbContext database
             cancellationToken);
     }
 
+    // 020 research ST-19: site export and import. The outcome decides the event type, so an
+    // auditor filtering on site_imported sees only imports that committed.
+
+    public Task HandleAsync(SiteExportFinished integrationEvent, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(integrationEvent);
+        var (type, outcome) = integrationEvent.Outcome switch
+        {
+            "succeeded" => (SecurityEventTypes.SiteExported, SecurityEventOutcomes.Succeeded),
+            "cancelled" => (SecurityEventTypes.SiteTransferCancelled, SecurityEventOutcomes.Succeeded),
+            _ => (SecurityEventTypes.SiteTransferFailed, SecurityEventOutcomes.Failed),
+        };
+        return RecordAsync(
+            integrationEvent,
+            type,
+            integrationEvent.ActorUserId,
+            new TransferEventDetails(integrationEvent.TransferId, integrationEvent.SiteId, Mode: null, integrationEvent.Trigger, integrationEvent.FailureCode, integrationEvent.Trigger == "cli"),
+            cancellationToken,
+            outcome);
+    }
+
+    public Task HandleAsync(SiteImportFinished integrationEvent, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(integrationEvent);
+        var (type, outcome) = integrationEvent.Outcome switch
+        {
+            "succeeded" when integrationEvent.Mode == "restore" => (SecurityEventTypes.SiteRestored, SecurityEventOutcomes.Succeeded),
+            "succeeded" => (SecurityEventTypes.SiteImported, SecurityEventOutcomes.Succeeded),
+            "cancelled" => (SecurityEventTypes.SiteTransferCancelled, SecurityEventOutcomes.Succeeded),
+            _ => (SecurityEventTypes.SiteTransferFailed, SecurityEventOutcomes.Failed),
+        };
+        return RecordAsync(
+            integrationEvent,
+            type,
+            integrationEvent.ActorUserId,
+            new TransferEventDetails(integrationEvent.TransferId, integrationEvent.SiteId, integrationEvent.Mode, integrationEvent.Trigger, integrationEvent.FailureCode, integrationEvent.Trigger == "cli"),
+            cancellationToken,
+            outcome);
+    }
+
+    public Task HandleAsync(SiteArchiveDownloaded integrationEvent, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(integrationEvent);
+        return RecordAsync(
+            integrationEvent,
+            SecurityEventTypes.SiteArchiveDownloaded,
+            integrationEvent.ActorUserId,
+            new TransferEventDetails(integrationEvent.TransferId, integrationEvent.SiteId, Mode: null, Trigger: null, FailureCode: null, Operator: false),
+            cancellationToken);
+    }
+
+    public Task HandleAsync(SiteArchiveDeleted integrationEvent, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(integrationEvent);
+        return RecordAsync(
+            integrationEvent,
+            SecurityEventTypes.SiteArchiveDeleted,
+            integrationEvent.ActorUserId,
+            new TransferEventDetails(integrationEvent.TransferId, integrationEvent.SiteId, Mode: null, Trigger: null, FailureCode: null, Operator: false),
+            cancellationToken);
+    }
+
     private async Task RecordAsync(
         IIntegrationEvent integrationEvent,
         string eventType,
         Guid? actorUserId,
-        SiteEventDetails details,
-        CancellationToken cancellationToken)
+        SecurityEventDetails details,
+        CancellationToken cancellationToken,
+        string outcome = SecurityEventOutcomes.Succeeded)
     {
         var marker = new ProcessedEvent
         {
@@ -110,7 +177,7 @@ internal sealed class RecordSiteSecurityEventsHandler(IdentityDbContext database
         database.Set<ProcessedEvent>().Add(marker);
         database.SecurityEvents.Add(SecurityEvent.Create(
             eventType,
-            SecurityEventOutcomes.Succeeded,
+            outcome,
             integrationEvent.OccurredAtUtc,
             actorUserId,
             subjectUserId: null,

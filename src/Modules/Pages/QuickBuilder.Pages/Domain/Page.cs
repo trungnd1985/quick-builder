@@ -16,7 +16,7 @@ namespace QuickBuilder.Pages.Domain;
 /// 2,000-page tree never loads 2,000 documents (research P-08).
 /// </para>
 /// </remarks>
-internal sealed class Page : ISiteOwned
+internal sealed partial class Page : ISiteOwned
 {
     public const int MaxTitleLength = 200;
 

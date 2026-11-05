@@ -80,6 +80,9 @@ public static class PagesModule
             options.UseNpgsql(connectionString, npgsql =>
                 // Each module keeps its own migrations history table in its own schema.
                 npgsql.MigrationsHistoryTable("__EFMigrationsHistory", PagesDbContext.Schema));
+
+            // 020 research ST-07: content writes pause while an import applies to the site.
+            options.AddInterceptors(provider.GetRequiredService<QuickBuilder.Shared.Infrastructure.Data.SiteWriteGateInterceptor>());
         });
 
         services.AddSingleton<IModuleDatabaseProvider, PagesDatabaseProvider>();
@@ -259,6 +262,9 @@ public static class PagesModule
 
         // 011 research ED-16: the token usage count the admin asks before deleting a token.
         services.AddScoped<IQueryHandler<GetTokenUsageQuery, Result<TokenUsageResponse>>, GetTokenUsageHandler>();
+
+        // 020: this module's share of a site archive (contracts/archive-parts.md).
+        services.AddScoped<QuickBuilder.Sites.Contracts.Transfer.ISiteArchivePart, QuickBuilder.Pages.Features.Transfer.PagesArchivePart>();
 
         return services;
     }

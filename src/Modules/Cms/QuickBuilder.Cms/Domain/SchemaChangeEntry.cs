@@ -12,7 +12,7 @@ namespace QuickBuilder.Cms.Domain;
 /// The summary holds keys, names and labels as they were at that revision, so the history
 /// reads correctly after later renames. It never holds item values or example items.
 /// </remarks>
-internal sealed class SchemaChangeEntry : ISiteOwned
+internal sealed partial class SchemaChangeEntry : ISiteOwned
 {
     private SchemaChangeEntry(Guid collectionId, int revision, Guid siteId, DateTimeOffset changedAtUtc, Guid changedBy, string summary)
     {

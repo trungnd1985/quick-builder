@@ -41,7 +41,21 @@ public sealed class DatabaseFixture : IAsyncLifetime
 
     public Task InitializeAsync() => _container.StartAsync();
 
-    public Task DisposeAsync() => _container.DisposeAsync().AsTask();
+    public async Task DisposeAsync()
+    {
+        try
+        {
+            await _container.DisposeAsync().ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            // Removing the container deletes the volume holding every database the run created,
+            // one per test class, and on CI runners that can outlast the Docker client's 100 s
+            // timeout once every test has passed. The resource reaper (WithCleanUp) removes the
+            // container and its volume when the test process exits, so a timeout here is not a
+            // test failure.
+        }
+    }
 
     /// <summary>
     /// Creates a fresh database and returns its connection string.

@@ -24,7 +24,23 @@ internal static class ErrorResults
                 or "sites.primary_host_name_removal"
                 or "sites.last_host_name"
                 or "sites.out_of_date" => StatusCodes.Status409Conflict,
-            "sites.not_found" => StatusCodes.Status404NotFound,
+            "sites.not_found" or "transfer.not_found" => StatusCodes.Status404NotFound,
+
+            // 020 data-model §5.
+            "transfer.busy"
+                or "transfer.not_checkable"
+                or "transfer.not_confirmable"
+                or "transfer.check_expired"
+                or "transfer.target_changed"
+                or "transfer.finished"
+                or "transfer.changed"
+                or "transfer.restore_not_allowed" => StatusCodes.Status409Conflict,
+            "transfer.invalid_options"
+                or "transfer.confirmation_mismatch"
+                or "transfer.warnings_not_accepted" => StatusCodes.Status422UnprocessableEntity,
+            "transfer.too_large" => StatusCodes.Status413PayloadTooLarge,
+            "transfer.archive_gone" => StatusCodes.Status410Gone,
+            "site.import_in_progress" => StatusCodes.Status423Locked,
             _ when error.Code.EndsWith("_not_found", StringComparison.Ordinal) => StatusCodes.Status404NotFound,
             _ => StatusCodes.Status400BadRequest,
         };
@@ -50,6 +66,9 @@ internal static class ErrorResults
     {
         StatusCodes.Status404NotFound => "Not found",
         StatusCodes.Status409Conflict => "Conflict",
+        StatusCodes.Status410Gone => "Gone",
+        StatusCodes.Status413PayloadTooLarge => "Too large",
+        StatusCodes.Status423Locked => "The site is being imported into",
         _ => "The request could not be completed",
     };
 }

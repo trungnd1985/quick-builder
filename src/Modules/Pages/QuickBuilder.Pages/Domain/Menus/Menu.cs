@@ -12,7 +12,7 @@ namespace QuickBuilder.Pages.Domain.Menus;
 /// changed; visitors see the name a version was published with (NV-05). Menus raise no
 /// integration events: nothing outside Pages consumes them (data-model §6).
 /// </remarks>
-internal sealed class Menu : ISiteOwned
+internal sealed partial class Menu : ISiteOwned
 {
     public const int MaxNameLength = 100;
 

@@ -55,6 +55,9 @@ public static class MediaModule
             options.UseNpgsql(connectionString, npgsql =>
                 // Each module keeps its own migrations history table in its own schema.
                 npgsql.MigrationsHistoryTable("__EFMigrationsHistory", MediaDbContext.Schema));
+
+            // 020 research ST-07: content writes pause while an import applies to the site.
+            options.AddInterceptors(provider.GetRequiredService<QuickBuilder.Shared.Infrastructure.Data.SiteWriteGateInterceptor>());
         });
 
         services.AddSingleton<IModuleDatabaseProvider, MediaDatabaseProvider>();
@@ -143,6 +146,9 @@ public static class MediaModule
         services.AddSingleton<IEventTypeRegistration>(new EventTypeRegistration<FileDeleted>());
         // 013 MV-17: replaced files, recorded dimensions and failed variants refresh them too.
         services.AddSingleton<IEventTypeRegistration>(new EventTypeRegistration<FileChanged>());
+
+        // 020: this module's share of a site archive (contracts/archive-parts.md).
+        services.AddScoped<QuickBuilder.Sites.Contracts.Transfer.ISiteArchivePart, QuickBuilder.Media.Features.Transfer.MediaArchivePart>();
 
         return services;
     }

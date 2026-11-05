@@ -22,6 +22,9 @@ public static class SharedInfrastructureRegistration
     {
         ArgumentNullException.ThrowIfNull(services);
 
+        // 020 research ST-07: one gate for every content module context.
+        services.AddSingleton<Data.SiteWriteGateInterceptor>();
+
         services.AddSingleton(TimeProvider.System);
         services.AddSingleton<StartupState>();
         services.AddSingleton<ModuleMigrationRunner>();

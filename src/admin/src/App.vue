@@ -7,6 +7,7 @@ import { useAuthStore } from './app/authStore'
 import { clearClipboard } from './editor/state/clipboard'
 import { clearRecoveryForUser } from './editor/state/recovery'
 import SearchHiddenBanner from './components/SearchHiddenBanner.vue'
+import SiteImportBanner from './features/transfer/SiteImportBanner.vue'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -43,6 +44,7 @@ async function signOut(): Promise<void> {
     tabindex="-1"
   >
     <SearchHiddenBanner />
+    <SiteImportBanner />
     <RouterView />
   </main>
 
@@ -115,6 +117,7 @@ async function signOut(): Promise<void> {
           tabindex="-1"
         >
           <SearchHiddenBanner />
+          <SiteImportBanner />
           <RouterView />
         </main>
       </div>

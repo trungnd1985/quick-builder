@@ -23,6 +23,7 @@ import { conflictFrom, type ConflictDetails } from '../../../editing/conflict'
 import { changedFields as fieldsChangedBetween } from '../../../editing/itemDiff'
 import PresenceBanner from '../../../editing/PresenceBanner.vue'
 import { useEditingSession } from '../../../editing/useEditingSession'
+import { isImportPaused } from '../../transfer/importLock'
 
 const { t, te, d } = useI18n()
 const route = useRoute()
@@ -69,8 +70,11 @@ const savedCopy = ref<{ to: { name: string; params: Record<string, string> }; la
 const droppedLabels = ref<string[]>([])
 /** The states whose entries the member may keep as a copy: a conflict kept on screen, or a lost lock. */
 const mayKeepAsCopy = computed(() => item.value !== null && (readOnly.value || conflict.value !== null || editing.status.value === 'taken-over'))
-/** Read-only after a conflict (FR-008), or while someone else holds the lock (FR-009). */
-const formReadOnly = computed(() => readOnly.value || (item.value !== null && editing.status.value !== 'editing'))
+/**
+ * Read-only after a conflict (FR-008), while someone else holds the lock (FR-009), or while an
+ * import applies to the site (020 FR-028).
+ */
+const formReadOnly = computed(() => readOnly.value || isImportPaused(siteId.value) || (item.value !== null && editing.status.value !== 'editing'))
 let slugTimer: ReturnType<typeof setTimeout> | undefined
 
 const schema = computed<SchemaDocument | null>(() => collection.value?.schema ?? null)

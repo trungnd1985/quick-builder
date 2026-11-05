@@ -20,7 +20,7 @@ namespace QuickBuilder.Cms.Domain;
 /// field is removed (FR-006).
 /// </para>
 /// </remarks>
-internal sealed class Collection : AggregateRoot, ISiteOwned
+internal sealed partial class Collection : AggregateRoot, ISiteOwned
 {
     private CollectionSchemaDocument? _schema;
 

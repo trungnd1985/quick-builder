@@ -101,11 +101,16 @@ public static class IdentityModule
 
         // 009: site changes that alter what the public can reach become security events
         // (FR-028). One handler, deduplicating in Identity's own processed_events.
+        services.AddScoped<IHistoricalAuthors, HistoricalAuthors>();
         services.AddScoped<RecordSiteSecurityEventsHandler>();
         services.AddScoped<IIntegrationEventHandler<HostNameAdded>>(sp => sp.GetRequiredService<RecordSiteSecurityEventsHandler>());
         services.AddScoped<IIntegrationEventHandler<HostNameRemoved>>(sp => sp.GetRequiredService<RecordSiteSecurityEventsHandler>());
         services.AddScoped<IIntegrationEventHandler<SiteDisabled>>(sp => sp.GetRequiredService<RecordSiteSecurityEventsHandler>());
         services.AddScoped<IIntegrationEventHandler<SiteEnabled>>(sp => sp.GetRequiredService<RecordSiteSecurityEventsHandler>());
+        services.AddScoped<IIntegrationEventHandler<SiteExportFinished>>(sp => sp.GetRequiredService<RecordSiteSecurityEventsHandler>());
+        services.AddScoped<IIntegrationEventHandler<SiteImportFinished>>(sp => sp.GetRequiredService<RecordSiteSecurityEventsHandler>());
+        services.AddScoped<IIntegrationEventHandler<SiteArchiveDownloaded>>(sp => sp.GetRequiredService<RecordSiteSecurityEventsHandler>());
+        services.AddScoped<IIntegrationEventHandler<SiteArchiveDeleted>>(sp => sp.GetRequiredService<RecordSiteSecurityEventsHandler>());
         services.AddHostedService<IdentityStartupChecks>();
 
         // Retention (FR-029a). A singleton as well as a hosted service, so the sweep can be

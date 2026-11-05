@@ -27,7 +27,14 @@ public sealed record SiteResponse(
     DateTimeOffset UpdatedAtUtc,
     SitePermissionsResponse Permissions,
     SiteSearchResponse Search,
-    SiteSearchVisibilityResponse SearchVisibility);
+    SiteSearchVisibilityResponse SearchVisibility,
+    SiteTransferResponse? Transfer = null);
+
+/// <summary>
+/// The export or import that holds the site's transfer slot, if any (020 FR-010, FR-028). While
+/// an import is <c>running</c>, the site's content writes answer 423 and the admin shows a banner.
+/// </summary>
+public sealed record SiteTransferResponse(Guid Id, string Kind, string? Mode, string State, DateTimeOffset StartedAtUtc);
 
 /// <summary>The site's search settings (017 FR-006, seo-api.yaml <c>SiteSearch</c>).</summary>
 /// <param name="UpdatedBy">Who last changed the search settings or visibility (FR-021).</param>
@@ -57,14 +64,16 @@ public sealed record SitePermissionsResponse(
     bool CanManageHostNames,
     bool CanManageAvailability,
     bool CanManageSearch = false,
-    bool CanManageSearchVisibility = false);
+    bool CanManageSearchVisibility = false,
+    bool CanTransfer = false);
 
 internal static class SiteResponses
 {
     internal static async Task<SiteResponse> BuildAsync(
         SiteDto site,
         IAccessEvaluator access,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        SiteTransferResponse? transfer = null)
     {
         ArgumentNullException.ThrowIfNull(site);
         ArgumentNullException.ThrowIfNull(access);
@@ -74,7 +83,9 @@ internal static class SiteResponses
             await access.HasCapabilityAsync(SitesCapabilities.ManageHostNames, site.Id, cancellationToken).ConfigureAwait(false),
             await access.HasCapabilityAsync(SitesCapabilities.AvailabilityManage, site.Id, cancellationToken).ConfigureAwait(false),
             await access.HasCapabilityAsync(SitesCapabilities.SearchManage, site.Id, cancellationToken).ConfigureAwait(false),
-            await access.HasCapabilityAsync(SitesCapabilities.SearchVisibilityManage, site.Id, cancellationToken).ConfigureAwait(false));
+            await access.HasCapabilityAsync(SitesCapabilities.SearchVisibilityManage, site.Id, cancellationToken).ConfigureAwait(false),
+            // 020: export and import, Administrators only (FR-035).
+            await access.HasCapabilityAsync(SitesCapabilities.TransferExport, site.Id, cancellationToken).ConfigureAwait(false));
 
         return new SiteResponse(
             site.Id,
@@ -101,7 +112,8 @@ internal static class SiteResponses
                 site.Search.OrganisationName,
                 site.Search.OrganisationLogoId,
                 site.Search.UpdatedBy),
-            new SiteSearchVisibilityResponse(site.Search.Discouraged, site.Search.RobotsRules, site.RedirectOtherHostNames));
+            new SiteSearchVisibilityResponse(site.Search.Discouraged, site.Search.RobotsRules, site.RedirectOtherHostNames),
+            transfer);
     }
 
     internal static async Task<IReadOnlyList<SiteResponse>> BuildAsync(

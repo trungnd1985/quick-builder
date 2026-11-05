@@ -1,0 +1,165 @@
+openapi: 3.1.0
+info:
+  title: QuickBuilder site transfer API (020)
+  version: "1"
+  description: |
+    Export, upload, check, import and restore of a whole site (spec FR-006 … FR-035).
+    Every operation requires a signed-in Administrator: `sites.transfer.export` is
+    site-scoped and `sites.transfer.import` is installation-scoped, and neither is granted to
+    Designer or Editor (FR-035). Errors are RFC 9457 problems with a machine-readable `code`
+    (data-model §5). Labels in check results and reports are shown to Administrators only.
+    Routes without `{siteId}` (`/transfers/…`) use the installation capability
+    `sites.transfer.import`; both capabilities are Administrator-only.
+servers:
+  - url: /api/v1
+paths:
+  /sites/{siteId}/exports:
+    post:
+      operationId: startExport
+      summary: Queue an export of the site (FR-006)
+      x-capability: sites.transfer.export
+      parameters: [{ $ref: "#/components/parameters/siteId" }]
+      responses:
+        "202": { description: Queued, content: { application/json: { schema: { $ref: "#/components/schemas/Transfer" } } } }
+        "409": { $ref: "#/components/responses/Problem" }   # transfer.busy
+  /sites/{siteId}/transfers:
+    get:
+      operationId: listSiteTransfers
+      summary: Recent exports and imports of the site, newest first (90 days)
+      x-capability: sites.transfer.export
+      parameters: [{ $ref: "#/components/parameters/siteId" }]
+      responses:
+        "200": { description: OK, content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/Transfer" } } } } }
+  /transfers/uploads:
+    post:
+      operationId: createUpload
+      summary: Reserve an upload; returns the job id to PUT the archive to
+      x-capability: sites.transfer.import
+      responses:
+        "201": { description: Created, content: { application/json: { schema: { $ref: "#/components/schemas/Transfer" } } } }
+  /transfers/uploads/{transferId}:
+    put:
+      operationId: uploadArchive
+      summary: Stream the archive body into storage, unbuffered (ST-17)
+      x-capability: sites.transfer.import
+      parameters: [{ $ref: "#/components/parameters/transferId" }]
+      requestBody:
+        required: true
+        content: { application/zip: { schema: { type: string, format: binary } }, application/octet-stream: { schema: { type: string, format: binary } } }
+      responses:
+        "204": { description: Stored; state becomes `uploaded` }
+        "413": { $ref: "#/components/responses/Problem" }   # transfer.too_large
+  /transfers/{transferId}/check:
+    post:
+      operationId: checkArchive
+      summary: Check the uploaded archive against a target (FR-011 … FR-016)
+      x-capability: sites.transfer.import
+      parameters: [{ $ref: "#/components/parameters/transferId" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [mode]
+              properties:
+                mode: { enum: [new_site, merge, restore] }
+                targetSiteId: { type: string, format: uuid, description: "merge and restore" }
+      responses:
+        "202": { description: Checking; poll the transfer, content: { application/json: { schema: { $ref: "#/components/schemas/Transfer" } } } }
+        "409": { $ref: "#/components/responses/Problem" }   # transfer.busy, transfer.restore_not_allowed
+  /transfers/{transferId}/confirm:
+    post:
+      operationId: confirmImport
+      summary: Start applying a checked archive
+      x-capability: sites.transfer.import
+      parameters: [{ $ref: "#/components/parameters/transferId" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                newSiteName: { type: string, maxLength: 200, description: "new_site, required" }
+                newSiteHostName: { type: string, maxLength: 253, description: "new_site; required when the archive's host names are all in use on this installation" }
+                startFresh: { type: boolean, default: false, description: "new_site only (FR-021a)" }
+                conflictPolicy: { enum: [replace, skip, rename], description: "merge, required" }
+                acceptWarnings: { type: boolean, description: "required when the check has warnings" }
+                confirmSiteName: { type: string, description: "restore, required; must equal the site's name (FR-027b)" }
+                checkFingerprint: { type: string, description: "from the check result the Administrator saw (ST-06)" }
+      responses:
+        "202": { description: Confirmed, content: { application/json: { schema: { $ref: "#/components/schemas/Transfer" } } } }
+        "409": { $ref: "#/components/responses/Problem" }   # transfer.target_changed, transfer.check_expired
+        "422": { $ref: "#/components/responses/Problem" }   # transfer.confirmation_mismatch, invalid options
+  /transfers/{transferId}:
+    get:
+      operationId: getTransfer
+      summary: State, progress, check result, summary or report
+      x-capability: sites.transfer.import
+      parameters: [{ $ref: "#/components/parameters/transferId" }]
+      responses:
+        "200": { description: OK, content: { application/json: { schema: { $ref: "#/components/schemas/Transfer" } } } }
+        "404": { $ref: "#/components/responses/Problem" }
+    delete:
+      operationId: deleteTransferArchive
+      summary: Delete the stored archive now (FR-008); the job row stays
+      x-capability: sites.transfer.import
+      parameters: [{ $ref: "#/components/parameters/transferId" }]
+      responses:
+        "204": { description: Deleted }
+  /transfers/{transferId}/cancel:
+    post:
+      operationId: cancelTransfer
+      summary: Request cancellation; an import rolls back (FR-007, FR-018)
+      x-capability: sites.transfer.import
+      parameters: [{ $ref: "#/components/parameters/transferId" }]
+      responses:
+        "202": { description: Cancellation requested }
+  /transfers/{transferId}/archive:
+    get:
+      operationId: downloadArchive
+      summary: Download a finished export; supports Range (FR-008)
+      x-capability: sites.transfer.import
+      parameters: [{ $ref: "#/components/parameters/transferId" }]
+      responses:
+        "200": { description: The archive, content: { application/zip: { schema: { type: string, format: binary } } } }
+        "206": { description: Partial content }
+        "410": { $ref: "#/components/responses/Problem" }   # expired or deleted
+components:
+  parameters:
+    siteId: { name: siteId, in: path, required: true, schema: { type: string, format: uuid } }
+    transferId: { name: transferId, in: path, required: true, schema: { type: string, format: uuid } }
+  responses:
+    Problem:
+      description: Problem
+      content: { application/problem+json: { schema: { type: object, required: [code], properties: { code: { type: string }, title: { type: string }, detail: { type: string } } } } }
+  schemas:
+    Transfer:
+      type: object
+      required: [id, kind, state, percent, createdAtUtc]
+      properties:
+        id: { type: string, format: uuid }
+        kind: { enum: [export, import] }
+        trigger: { enum: [admin, cli, pre_restore] }
+        mode: { enum: [new_site, merge, restore], nullable: true }
+        startFresh: { type: boolean }
+        conflictPolicy: { enum: [replace, skip, rename], nullable: true }
+        siteId: { type: string, format: uuid, nullable: true }
+        state: { enum: [uploaded, queued, checking, refused, awaiting_confirmation, confirmed, running, succeeded, failed, cancelled, expired] }
+        step: { type: string, nullable: true }
+        percent: { type: integer, minimum: 0, maximum: 100 }
+        archiveBytes: { type: integer, nullable: true }
+        archiveExpiresAtUtc: { type: string, format: date-time, nullable: true }
+        checkResult: { type: object, description: "data-model §3", nullable: true }
+        checkFingerprint: { type: string, nullable: true }
+        summary: { type: object, description: "export counts and problems (FR-009)", nullable: true }
+        report: { type: object, description: "data-model §4", nullable: true }
+        failureCode: { type: string, nullable: true }
+        preRestoreTransferId: { type: string, format: uuid, nullable: true }
+        startedBy: { type: object, nullable: true, properties: { id: { type: string }, displayName: { type: string } } }
+        createdAtUtc: { type: string, format: date-time }
+        finishedAtUtc: { type: string, format: date-time, nullable: true }
+x-changed-elsewhere:
+  - "GET /api/v1/sites/{siteId} gains `transfer: { id, kind, mode, state, startedAtUtc } | null` (ST-07)."
+  - "Every content write on a site whose import is applying answers 423 with code `site.import_in_progress` (ST-07)."

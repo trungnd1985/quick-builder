@@ -46,6 +46,9 @@ public static class EditorModule
             options.UseNpgsql(connectionString, npgsql =>
                 // Each module keeps its own migrations history table in its own schema.
                 npgsql.MigrationsHistoryTable("__EFMigrationsHistory", EditorDbContext.Schema));
+
+            // 020 research ST-07: content writes pause while an import applies to the site.
+            options.AddInterceptors(provider.GetRequiredService<QuickBuilder.Shared.Infrastructure.Data.SiteWriteGateInterceptor>());
         });
 
         services.AddSingleton<IModuleDatabaseProvider, EditorDatabaseProvider>();
@@ -107,6 +110,9 @@ public static class EditorModule
         services.AddScoped<IIntegrationEventHandler<CollectionDeleted>>(sp => sp.GetRequiredService<ReleaseDeletedDocumentsHandler>());
         services.AddSingleton<EditingSessionCleanupService>();
         services.AddHostedService(sp => sp.GetRequiredService<EditingSessionCleanupService>());
+
+        // 020: this module's share of a site archive (contracts/archive-parts.md).
+        services.AddScoped<QuickBuilder.Sites.Contracts.Transfer.ISiteArchivePart, QuickBuilder.Editor.Features.Transfer.DesignArchivePart>();
 
         return services;
     }

@@ -13,7 +13,7 @@ namespace QuickBuilder.Pages.Domain.Menus;
 /// changes. Not a <see cref="Draft"/>: that base type holds page-schema documents. It trusts
 /// its input; the save handler validates first.
 /// </remarks>
-internal sealed class MenuDraft : ISiteOwned
+internal sealed partial class MenuDraft : ISiteOwned
 {
     private MenuDraft(Guid siteId, Guid menuId, string document, int schemaVersion, Guid actor, DateTimeOffset now)
     {

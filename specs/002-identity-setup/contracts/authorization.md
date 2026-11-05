@@ -258,6 +258,26 @@ enquiries, so every site role reads submissions; deleting them for good is kept 
   `pages.publishing.manage`.
 - Whether email is configured (`GET /api/v1/forms/email-status`) needs only a signed-in user.
 
+### Registered by 020
+
+Site export and import (020) add two, registered by the Sites module. Both are held by
+Administrators only: an archive holds every draft and setting of a site, and an import can
+create or replace a site. See
+[020 contracts/transfer-api.yaml](../../020-site-export-import/contracts/transfer-api.yaml).
+
+| Capability | Scope | Administrator | Designer | Editor |
+|---|---|---|---|---|
+| `sites.transfer.export` | Site | ✓ | — | — |
+| `sites.transfer.import` | Installation | ✓ | — | — |
+
+- **`sites.transfer.export`**: start an export of a site and list its transfers
+  (`/api/v1/sites/{siteId}/…`).
+- **`sites.transfer.import`**: upload, check, confirm, follow, cancel, download and delete
+  transfers by id (`/api/v1/transfers/…`). These routes have no site to scope by, so they use
+  the installation capability.
+- While an import applies to a site, every content write on it is refused with
+  `423 site.import_in_progress`, whatever the caller's capabilities (020 research ST-07).
+
 ## 3. What a caller sees
 
 | Situation | Status | `errorCode` |

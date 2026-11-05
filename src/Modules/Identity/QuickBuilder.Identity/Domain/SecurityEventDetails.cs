@@ -38,3 +38,10 @@ internal sealed record OperatorCommandDetails(string Command) : SecurityEventDet
 /// auditor needs; it lives here, in the record, and never in a log line (FR-032).
 /// </summary>
 internal sealed record SiteEventDetails(Guid SiteId, string? HostName) : SecurityEventDetails;
+
+/// <summary>
+/// 020 research ST-19: a site export, import or archive action. Ids and codes only: never a
+/// site name, title or any content (Principle IX). <paramref name="Operator"/> marks the
+/// operator command, which has no member.
+/// </summary>
+internal sealed record TransferEventDetails(Guid TransferId, Guid? SiteId, string? Mode, string? Trigger, string? FailureCode, bool Operator) : SecurityEventDetails;

@@ -78,6 +78,19 @@ Deferred by 035 (richer rich text; see specs/035-rich-text-formats/plan.md):
   narrowing list refreshes by filter
 - Draft preview links for item pages (#22)
 
+## Deferred by 020 (site export and import)
+
+- Chunked, resumable uploads of archives in the admin (ST-17)
+- Encrypted or signed archives
+- Choosing a conflict policy per conflict or per kind of document
+- Stored content hashes for media files (ST-08; a merge hashes the target's files of the same size)
+- Resuming an interrupted export or import instead of failing it (ST-15)
+- Scheduled exports configured in the admin (today they are scripted with `sites export --all`)
+- Importing other products' formats
+- Combining individual design tokens of two schema versions in a merge (the target's design is kept)
+- Not yet automated: the render cache during an apply, a failing pre-restore export, two app
+  instances sharing the import lock, and the `sites` command's exit codes 1 and 3
+
 ## Deferred by 024 (navigation and menus)
 
 - Menus built automatically from the page tree or a collection
@@ -86,7 +99,7 @@ Deferred by 035 (richer rich text; see specs/035-rich-text-formats/plan.md):
 - Integration events for menu changes (no consumer yet)
 - Breadcrumb blocks (017 has the structured data)
 - Obligations on later features:
-  - **#20 site export and import**: carry, per menu, its id, name, draft, live version number,
+  - **#20 site export and import** (done in 020): carry, per menu, its id, name, draft, live version number,
     every retained version (document, number, kind, published by and at) and pending
     schedules. On import, remap menu documents' `pageId`, `itemId` and `collectionId`, and
     Navigation blocks' `menuId` in page and component drafts and versions; rebuild
@@ -101,7 +114,7 @@ Deferred by 035 (richer rich text; see specs/035-rich-text-formats/plan.md):
 - Trigram search for very large submission stores
 - Replying from the admin; assigning or tagging submissions
 - Obligations on later features:
-  - **#20 site export and import**: forms travel inside page and component documents; keep
+  - **#20 site export and import** (done in 020): forms travel inside page and component documents; keep
     node ids (form and field ids), and remap `redirect.pageId` and `consent.linkPageId` as
     other page links are. Submissions, the form registry, spam counters and the submission
     log are **not** exported (018 FR-040)
@@ -120,7 +133,7 @@ Deferred by 035 (richer rich text; see specs/035-rich-text-formats/plan.md):
 - A redirect for the item addresses of a template turned back into a page: a prefix redirect
   keeps the rest of the path, so it would need a "drop the rest" option
 - Obligations on later features:
-  - **#20 site export and import**: carry `pages.redirects` (remapping `page` and `item`
+  - **#20 site export and import** (done in 020): carry `pages.redirects` (remapping `page` and `item`
     target ids) and the site search settings; page metadata already travels in documents
   - **#22 draft previews**: preview responses must write `noindex` and never appear in the
     sitemap
@@ -134,7 +147,7 @@ Deferred by 035 (richer rich text; see specs/035-rich-text-formats/plan.md):
 - Releasing locks at once when a sign-in session is revoked (they lapse within 2 minutes; this needs an Identity session event)
 - "Ask to edit" requests (023 clarification Q5: not wanted now)
 - Real-time co-editing and merging (out of scope by the spec)
-- Obligations on #20 (site export): copies are ordinary pages, components and items and export with their `copyOrigin`; editing sessions and takeover records are not exported
+- Obligations on #20 (site export, done in 020): copies are ordinary pages, components and items and export with their `copyOrigin`; editing sessions and takeover records are not exported
 
 ## Deferred by 019 (release pipeline and upgrade safety)
 

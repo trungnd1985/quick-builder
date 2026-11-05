@@ -4,13 +4,14 @@ using QuickBuilder.Shared.Kernel.Authorization;
 using QuickBuilder.Shared.Kernel.Dispatch;
 using QuickBuilder.Shared.Kernel.Results;
 using QuickBuilder.Sites.Contracts;
+using QuickBuilder.Sites.Domain;
 using QuickBuilder.Sites.Infrastructure;
 
 namespace QuickBuilder.Sites.Features.GetSite;
 
 internal sealed record GetSiteQuery(Guid SiteId) : IQuery<Result<SiteResponse>>;
 
-internal sealed class GetSiteHandler(ISiteDirectory directory, IAccessEvaluator access)
+internal sealed class GetSiteHandler(ISiteDirectory directory, IAccessEvaluator access, TransferJobStore transfers)
     : IQueryHandler<GetSiteQuery, Result<SiteResponse>>
 {
     public async Task<Result<SiteResponse>> HandleAsync(GetSiteQuery query, CancellationToken cancellationToken)
@@ -23,9 +24,15 @@ internal sealed class GetSiteHandler(ISiteDirectory directory, IAccessEvaluator 
             return Result.Failure<SiteResponse>(Error.NotFound("sites.not_found", "No such site."));
         }
 
+        // 020 FR-028: the admin polls this while an import runs, to show and clear its banner.
+        var active = await transfers.ActiveForSiteAsync(site.Id, cancellationToken).ConfigureAwait(false);
+        var transfer = active is null
+            ? null
+            : new SiteTransferResponse(active.Id, active.Kind, active.Mode, active.State, active.ConfirmedAtUtc ?? active.CreatedAtUtc);
+
         // Every status: a disabled site stays fully visible on the administrative surface
         // (009 FR-019).
-        return Result.Success(await SiteResponses.BuildAsync(site, access, cancellationToken).ConfigureAwait(false));
+        return Result.Success(await SiteResponses.BuildAsync(site, access, cancellationToken, transfer).ConfigureAwait(false));
     }
 }
 

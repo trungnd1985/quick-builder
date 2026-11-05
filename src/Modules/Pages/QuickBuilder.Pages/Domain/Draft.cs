@@ -25,7 +25,7 @@ namespace QuickBuilder.Pages.Domain;
 /// deliberately not in the EF model: each derived type maps on its own.
 /// </para>
 /// </remarks>
-internal abstract class Draft : AggregateRoot, ISiteOwned
+internal abstract partial class Draft : AggregateRoot, ISiteOwned
 {
     /// <summary>A new document: a root with no children, in the current version (P-10).</summary>
     public const string EmptyDocument =

@@ -20,6 +20,8 @@
     <ProjectReference Include="..\..\..\Shared\QuickBuilder.Shared.Kernel\QuickBuilder.Shared.Kernel.csproj" />
     <ProjectReference Include="..\..\..\Shared\QuickBuilder.Shared.Infrastructure\QuickBuilder.Shared.Infrastructure.csproj" />
     <ProjectReference Include="..\QuickBuilder.Sites.Contracts\QuickBuilder.Sites.Contracts.csproj" />
+    <!-- 020 research ST-14: who started a transfer, and the authors an archive names. -->
+    <ProjectReference Include="..\..\Identity\QuickBuilder.Identity.Contracts\QuickBuilder.Identity.Contracts.csproj" />
   </ItemGroup>
 
   <ItemGroup>

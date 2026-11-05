@@ -243,6 +243,176 @@ namespace QuickBuilder.Sites.Infrastructure.Migrations
                     b.ToTable("site_host_names", "sites");
                 });
 
+            modelBuilder.Entity("QuickBuilder.Sites.Domain.TransferJob", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<long?>("ArchiveBytes")
+                        .HasColumnType("bigint")
+                        .HasColumnName("archive_bytes");
+
+                    b.Property<DateTimeOffset?>("ArchiveExpiresAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("archive_expires_at_utc");
+
+                    b.Property<string>("ArchiveKey")
+                        .HasColumnType("text")
+                        .HasColumnName("archive_key");
+
+                    b.Property<bool>("CancelRequested")
+                        .HasColumnType("boolean")
+                        .HasColumnName("cancel_requested");
+
+                    b.Property<string>("CheckFingerprint")
+                        .HasColumnType("text")
+                        .HasColumnName("check_fingerprint");
+
+                    b.Property<string>("CheckResult")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("check_result");
+
+                    b.Property<DateTimeOffset?>("CheckedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("checked_at_utc");
+
+                    b.Property<DateTimeOffset?>("ConfirmedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("confirmed_at_utc");
+
+                    b.Property<string>("ConflictPolicy")
+                        .HasColumnType("text")
+                        .HasColumnName("conflict_policy");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at_utc");
+
+                    b.Property<string>("FailureCode")
+                        .HasColumnType("text")
+                        .HasColumnName("failure_code");
+
+                    b.Property<DateTimeOffset?>("FinishedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("finished_at_utc");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("kind");
+
+                    b.Property<string>("LeaseOwner")
+                        .HasColumnType("text")
+                        .HasColumnName("lease_owner");
+
+                    b.Property<DateTimeOffset?>("LeaseUntilUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("lease_until_utc");
+
+                    b.Property<string>("Manifest")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("manifest");
+
+                    b.Property<string>("Mode")
+                        .HasColumnType("text")
+                        .HasColumnName("mode");
+
+                    b.Property<string>("NewSiteHostName")
+                        .HasMaxLength(253)
+                        .HasColumnType("citext")
+                        .HasColumnName("new_site_host_name");
+
+                    b.Property<string>("NewSiteName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("new_site_name");
+
+                    b.Property<short>("Percent")
+                        .HasColumnType("smallint")
+                        .HasColumnName("percent");
+
+                    b.Property<Guid?>("PreRestoreJobId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("pre_restore_job_id");
+
+                    b.Property<DateTimeOffset>("ProgressAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("progress_at_utc");
+
+                    b.Property<string>("Report")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("report");
+
+                    b.Property<Guid?>("SiteId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("site_id");
+
+                    b.Property<bool>("StartFresh")
+                        .HasColumnType("boolean")
+                        .HasColumnName("start_fresh");
+
+                    b.Property<Guid?>("StartedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("started_by");
+
+                    b.Property<string>("State")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("state");
+
+                    b.Property<string>("Step")
+                        .HasColumnType("text")
+                        .HasColumnName("step");
+
+                    b.Property<string>("Summary")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("summary");
+
+                    b.Property<string>("Trigger")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("trigger");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id")
+                        .HasName("pk_transfer_jobs");
+
+                    b.HasIndex("ArchiveExpiresAtUtc")
+                        .HasDatabaseName("ix_transfer_jobs_expiry")
+                        .HasFilter("archive_key IS NOT NULL");
+
+                    b.HasIndex("SiteId")
+                        .IsUnique()
+                        .HasDatabaseName("ux_transfer_jobs_active_site")
+                        .HasFilter("site_id IS NOT NULL AND trigger <> 'pre_restore' AND ((kind = 'export' AND state IN ('queued', 'running')) OR (kind = 'import' AND state IN ('confirmed', 'running')))");
+
+                    b.HasIndex("SiteId", "CreatedAtUtc")
+                        .HasDatabaseName("ix_transfer_jobs_site");
+
+                    b.HasIndex("State", "CreatedAtUtc")
+                        .HasDatabaseName("ix_transfer_jobs_claim")
+                        .HasFilter("state IN ('queued', 'confirmed')");
+
+                    b.ToTable("transfer_jobs", "sites", t =>
+                        {
+                            t.HasCheckConstraint("ck_transfer_jobs_kind", "kind IN ('export', 'import')");
+
+                            t.HasCheckConstraint("ck_transfer_jobs_mode", "mode IS NULL OR mode IN ('new_site', 'merge', 'restore')");
+
+                            t.HasCheckConstraint("ck_transfer_jobs_percent", "percent BETWEEN 0 AND 100");
+
+                            t.HasCheckConstraint("ck_transfer_jobs_policy", "conflict_policy IS NULL OR conflict_policy IN ('replace', 'skip', 'rename')");
+
+                            t.HasCheckConstraint("ck_transfer_jobs_trigger", "trigger IN ('admin', 'cli', 'pre_restore')");
+                        });
+                });
+
             modelBuilder.Entity("QuickBuilder.Sites.Domain.SiteHostName", b =>
                 {
                     b.HasOne("QuickBuilder.Sites.Domain.Site", null)
