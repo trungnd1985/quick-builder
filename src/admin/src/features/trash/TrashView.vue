@@ -248,7 +248,7 @@ function restored(published: boolean): void {
     <div
       role="tablist"
       :aria-label="t('trash.kinds')"
-      class="tabs"
+      class="trash-tabs"
     >
       <template
         v-for="tab in KINDS"
@@ -273,43 +273,56 @@ function restored(published: boolean): void {
       role="tabpanel"
       :aria-labelledby="`trash-tab-${kind}`"
     >
-      <label for="trash-search">{{ t('trash.search') }}</label>
-      <input
-        id="trash-search"
-        v-model="search"
-        type="search"
+      <div
+        class="trash-toolbar"
+        role="search"
       >
-
-      <div class="trash-filters">
-        <label for="trash-by">{{ t('trash.filter.by') }}</label>
-        <select
-          id="trash-by"
-          v-model="trashedBy"
-        >
-          <option value="">
-            {{ t('trash.filter.anyone') }}
-          </option>
-          <option
-            v-for="[id, name] in deleters"
-            :key="id"
-            :value="id"
+        <div class="field trash-toolbar__search">
+          <label for="trash-search">{{ t('trash.search') }}</label>
+          <input
+            id="trash-search"
+            v-model="search"
+            type="search"
           >
-            {{ name }}
-          </option>
-        </select>
-        <label for="trash-from">{{ t('trash.filter.from') }}</label>
-        <input
-          id="trash-from"
-          v-model="from"
-          type="date"
+        </div>
+        <div class="field">
+          <label for="trash-by">{{ t('trash.filter.by') }}</label>
+          <select
+            id="trash-by"
+            v-model="trashedBy"
+          >
+            <option value="">
+              {{ t('trash.filter.anyone') }}
+            </option>
+            <option
+              v-for="[id, name] in deleters"
+              :key="id"
+              :value="id"
+            >
+              {{ name }}
+            </option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="trash-from">{{ t('trash.filter.from') }}</label>
+          <input
+            id="trash-from"
+            v-model="from"
+            type="date"
+          >
+        </div>
+        <div class="field">
+          <label for="trash-to">{{ t('trash.filter.to') }}</label>
+          <input
+            id="trash-to"
+            v-model="to"
+            type="date"
+          >
+        </div>
+        <div
+          v-if="kind === 'item' || kind === 'file'"
+          class="field"
         >
-        <label for="trash-to">{{ t('trash.filter.to') }}</label>
-        <input
-          id="trash-to"
-          v-model="to"
-          type="date"
-        >
-        <template v-if="kind === 'item' || kind === 'file'">
           <label for="trash-place">{{ t(kind === 'item' ? 'trash.filter.collection' : 'trash.filter.folder') }}</label>
           <select
             id="trash-place"
@@ -326,7 +339,7 @@ function restored(published: boolean): void {
               {{ option.name }}
             </option>
           </select>
-        </template>
+        </div>
       </div>
 
       <div
@@ -527,3 +540,73 @@ function restored(published: boolean): void {
     />
   </section>
 </template>
+
+<style scoped>
+/* One tab per kind, underlined like a section switch rather than boxed like buttons. */
+.trash-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin: 1rem 0 1.25rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.trash-tabs [role='tab'] {
+  margin-bottom: -1px;
+  padding: 0.5rem 0.875rem;
+  border: 0;
+  border-bottom: 3px solid transparent;
+  border-radius: 0;
+  background: none;
+  color: var(--text-muted);
+}
+
+.trash-tabs [role='tab']:hover {
+  color: var(--text);
+}
+
+.trash-tabs [role='tab'][aria-selected='true'] {
+  border-bottom-color: var(--accent);
+  color: var(--text);
+  font-weight: 600;
+}
+
+/* Search takes the spare room; the filters beside it are as wide as their content (as in Media). */
+.trash-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 0.75rem 1rem;
+  margin-bottom: 1rem;
+}
+
+.trash-toolbar .field {
+  margin-bottom: 0;
+}
+
+.trash-toolbar__search {
+  flex: 1 1 16rem;
+  max-width: 28rem;
+}
+
+.trash-toolbar select,
+.trash-toolbar input[type='date'] {
+  width: auto;
+}
+
+.trash-toolbar :is(input, select) {
+  height: 2.5rem;
+}
+
+.trash-bulk {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.sites-table .actions {
+  justify-content: flex-end;
+}
+</style>
