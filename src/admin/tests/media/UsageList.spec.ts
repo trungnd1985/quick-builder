@@ -36,6 +36,7 @@ async function renderList(canDelete = true) {
       { path: '/', component: { template: '<div />' } },
       { path: '/sites/:siteId/pages/:pageId/edit', name: 'page-editor', component: { template: '<div />' } },
       { path: '/sites/:siteId/components/:componentId/edit', name: 'component-editor', component: { template: '<div />' } },
+      { path: '/sites/:siteId/trash', name: 'site-trash', component: { template: '<div />' } },
     ],
   })
   await router.push('/')
@@ -78,6 +79,17 @@ describe('UsageList', () => {
     await waitFor(() => expect(screen.getByText(/Used in 3 place/)).toBeTruthy())
     expect(screen.queryAllByRole('link')).toHaveLength(0)
     expect(screen.getByText(en.media.usage.liveRule)).toBeTruthy()
+  })
+
+  it('shows uses by content in the trash apart, linking to the trash (021 FR-027)', async () => {
+    stub({
+      summary: { places: 0, draftPlaces: 0, livePlaces: 0, historyOnlyPlaces: 0, inLiveUse: false },
+      places: [{ kind: 'page', id: PAGE, title: 'Old page', inDraft: true, live: false, inHistory: false, livePagesThroughComponent: null, inTrash: true }],
+    } as MediaUsage)
+    await renderList()
+
+    expect(await screen.findByRole('heading', { name: en.media.usage.trashed })).toBeTruthy()
+    expect(screen.getByRole('link', { name: 'Old page' }).getAttribute('href')).toContain('/trash')
   })
 
   it('says when nothing uses the file', async () => {

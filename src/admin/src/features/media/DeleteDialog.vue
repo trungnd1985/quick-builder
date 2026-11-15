@@ -3,6 +3,7 @@ import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { MediaFile } from '../../api/media'
 import UsageList from './UsageList.vue'
+import { restorableUntil, useTrashRetention } from '../trash/useTrashRetention'
 
 // 003 US3: deletion is permanent (clarification Q2), so it is confirmed in a modal that
 // says so. Focus moves in, stays in (Tab cycles within it), Escape cancels, and the caller
@@ -15,7 +16,9 @@ import UsageList from './UsageList.vue'
 const props = defineProps<{ siteId: string; file: MediaFile; busy: boolean }>()
 const emit = defineEmits<{ confirm: [options: { confirmInUse: boolean }]; cancel: [] }>()
 
-const { t } = useI18n()
+const { t, d } = useI18n()
+// 021 FR-002: until when the file can be restored.
+const retentionDays = useTrashRetention(props.siteId)
 const dialog = ref<HTMLElement | null>(null)
 const cancelButton = ref<HTMLButtonElement | null>(null)
 const understood = ref(false)
@@ -80,6 +83,9 @@ function onKeydown(event: KeyboardEvent): void {
       </h2>
       <p id="delete-media-body">
         {{ blocked ? t('media.errors.in_live_use') : inUse ? t('media.delete.inUseBody') : t('media.delete.body') }}
+      </p>
+      <p v-if="retentionDays && !blocked">
+        {{ t('trash.restorableUntil', { date: d(restorableUntil(retentionDays), 'short') }) }}
       </p>
 
       <UsageList

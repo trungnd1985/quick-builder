@@ -9,11 +9,16 @@ import RedirectToPagePicker, { type PickablePage } from '../../../components/Red
 import { pagesApi } from '../../../api/pages'
 import HolderWarning from '../../../editing/HolderWarning.vue'
 import MenuReferencesNote from '../../menus/MenuReferencesNote.vue'
+import { restorableUntil, useTrashRetention } from '../../trash/useTrashRetention'
+import { deleteLockHeldMessage } from '../../trash/lockHeld'
+import type { TrashReceipt } from '../../../api/trash'
 
 /** `editingBy`: someone else holds the editing lock (023 research CE-17). */
 const props = defineProps<{ siteId: string; collectionId: string; item: Item; editingBy?: string | null }>()
-const emit = defineEmits<{ deleted: []; cancel: [] }>()
-const { t, te } = useI18n()
+const emit = defineEmits<{ deleted: [receipt?: TrashReceipt]; cancel: [] }>()
+const { t, te, d } = useI18n()
+// 021 FR-002: until when the item can be restored.
+const retentionDays = useTrashRetention(props.siteId)
 
 const busy = ref(false)
 const error = ref<string | null>(null)
@@ -42,15 +47,14 @@ async function remove(): Promise<void> {
   busy.value = true
   error.value = null
   try {
-    await itemsApi.remove(props.siteId, props.collectionId, props.item.id, props.item.revision, hasAddress ? redirectToPageId.value : null)
-    emit('deleted')
+    emit('deleted', await itemsApi.remove(props.siteId, props.collectionId, props.item.id, props.item.revision, hasAddress ? redirectToPageId.value : null))
   } catch (caught) {
     if (errorCodeOf(caught) === 'cms.item_referenced') {
       const refusal = refusalOf(caught)
       referrers.value = refusal.referrers ?? []
       total.value = refusal.total ?? referrers.value.length
     } else {
-      error.value = itemErrorMessage(t, te, caught)
+      error.value = deleteLockHeldMessage(t, d, caught) ?? itemErrorMessage(t, te, caught)
     }
   } finally {
     busy.value = false
@@ -92,6 +96,9 @@ function onKeydown(event: KeyboardEvent): void {
         <div id="delete-item-body">
           <template v-if="total === 0">
             <p>{{ t('cms.items.delete.confirm') }}</p>
+            <p v-if="retentionDays">
+              {{ t('trash.restorableUntil', { date: d(restorableUntil(retentionDays), 'short') }) }}
+            </p>
             <HolderWarning
               v-if="editingBy"
               :name="editingBy"

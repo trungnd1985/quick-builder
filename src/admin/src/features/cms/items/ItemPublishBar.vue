@@ -13,13 +13,14 @@ import RedirectOfferCheckbox from '../../../components/RedirectOfferCheckbox.vue
 import RedirectToPagePicker, { type PickablePage } from '../../../components/RedirectToPagePicker.vue'
 import { pagesApi } from '../../../api/pages'
 import DeleteItemDialog from './DeleteItemDialog.vue'
+import type { TrashReceipt } from '../../../api/trash'
 import ItemScheduleDialog from './ItemScheduleDialog.vue'
 import HolderWarning from '../../../editing/HolderWarning.vue'
 import { errorCodeOf, itemErrorMessage } from './itemErrors'
 
 /** `editingBy`: someone else holds the editing lock (023 research CE-17). */
 const props = defineProps<{ siteId: string; collectionId: string; item: Item; dirty: boolean; editingBy?: string | null }>()
-const emit = defineEmits<{ changed: [item: Item]; deleted: []; duplicated: [copy: Item] }>()
+const emit = defineEmits<{ changed: [item: Item]; deleted: [receipt?: TrashReceipt]; duplicated: [copy: Item] }>()
 const { t, te, d } = useI18n()
 
 type Pending = 'publish' | 'unpublish' | null
@@ -270,7 +271,7 @@ function scheduled(next: Item): void {
       :collection-id="collectionId"
       :item="item"
       :editing-by="editingBy"
-      @deleted="emit('deleted')"
+      @deleted="(receipt) => emit('deleted', receipt)"
       @cancel="deleting = false"
     />
   </div>

@@ -6,6 +6,7 @@
 import { computed, onBeforeUnmount, onMounted, provide, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
+import MovedToTrashNotice from '../../trash/MovedToTrashNotice.vue'
 import { cmsApi, type Collection } from '../../../api/cms'
 import { itemsApi, type ItemList, type ListQuery } from '../../../api/items'
 import ItemFilters from './ItemFilters.vue'
@@ -23,6 +24,7 @@ const route = useRoute()
 const router = useRouter()
 
 const siteId = computed(() => String(route.params.siteId))
+const trashedUntil = computed(() => (typeof route.query.movedToTrash === 'string' ? route.query.movedToTrash : null))
 const collectionId = computed(() => String(route.params.collectionId))
 /** 023 FR-012: who is editing which item. */
 const editing = usePresenceList(() => ({ siteId: siteId.value, kind: 'item', collectionId: collectionId.value }))
@@ -104,6 +106,11 @@ const itemLink = (itemId: string) => ({
     class="item-list"
     aria-labelledby="item-list-heading"
   >
+    <MovedToTrashNotice
+      v-if="trashedUntil"
+      :site-id="siteId"
+      :purge-on-utc="trashedUntil"
+    />
     <p>
       <RouterLink :to="{ name: 'site-collection', params: { siteId, collectionId } }">
         {{ collection?.name ?? '' }}

@@ -6,6 +6,9 @@ import { pagesApi, type Component, type ComponentList } from '../../api/pages'
 import { useSitesStore } from '../../app/sitesStore'
 import PublishMenu from '../publishing/PublishMenu.vue'
 import ConfirmDialog from '../sites/ConfirmDialog.vue'
+import { restorableUntil, useTrashRetention } from '../trash/useTrashRetention'
+import { deleteLockHeldMessage } from '../trash/lockHeld'
+import MovedToTrashNotice from '../trash/MovedToTrashNotice.vue'
 import ComponentUsagesPanel from './ComponentUsagesPanel.vue'
 import LockMarker from '../../editing/LockMarker.vue'
 import HolderWarning from '../../editing/HolderWarning.vue'
@@ -16,11 +19,15 @@ import { isOutOfDate, pageErrorMessage } from './pageErrors'
 // unused. Editors see the list read-only (clarification Q3). A component in use cannot be
 // deleted; the refusal says how many pages use it, and the usages panel says which.
 
-const { t, te } = useI18n()
+const { t, te, d } = useI18n()
 const route = useRoute()
 const sites = useSitesStore()
 
 const siteId = computed(() => String(route.params.siteId))
+// 021 FR-002: the delete confirmation says until when the component can be restored.
+const retentionDays = useTrashRetention(String(route.params.siteId))
+const trashedUntil = ref<string | null>(null)
+const trashNote = computed(() => (retentionDays.value ? ' ' + t('trash.restorableUntil', { date: d(restorableUntil(retentionDays.value), 'short') }) : ''))
 /** 023 FR-012: who is editing which component. */
 const editing = usePresenceList(() => ({ siteId: siteId.value, kind: 'component' }))
 const siteName = computed(() => sites.sites.find((s) => s.id === siteId.value)?.name ?? '')
@@ -136,7 +143,8 @@ async function confirmDelete(): Promise<void> {
   deleteError.value = null
 
   try {
-    await pagesApi.removeComponent(siteId.value, component.id, component.version)
+    const receipt = await pagesApi.removeComponent(siteId.value, component.id, component.version)
+    trashedUntil.value = receipt?.purgeOnUtc ?? null
     pendingDelete.value = null
     status.value = t('components.status.deleted', { name: component.name })
     await load()
@@ -145,7 +153,7 @@ async function confirmDelete(): Promise<void> {
       pendingDelete.value = null
       outOfDate.value = true
     } else {
-      deleteError.value = pageErrorMessage(t, te, caught)
+      deleteError.value = deleteLockHeldMessage(t, d, caught) ?? pageErrorMessage(t, te, caught)
     }
   } finally {
     busy.value = false
@@ -171,6 +179,12 @@ async function confirmDelete(): Promise<void> {
         </p>
       </div>
     </header>
+
+    <MovedToTrashNotice
+      v-if="trashedUntil"
+      :site-id="siteId"
+      :purge-on-utc="trashedUntil"
+    />
 
     <p
       class="visually-hidden"
@@ -414,7 +428,7 @@ async function confirmDelete(): Promise<void> {
       v-if="pendingDelete"
       dialog-id="component-delete"
       :title="t('components.confirm.deleteTitle', { name: pendingDelete.name })"
-      :body="deleteError ?? t('components.confirm.deleteBody')"
+      :body="deleteError ?? t('components.confirm.deleteBody') + trashNote"
       :confirm-label="t('components.confirm.delete')"
       :cancel-label="t('components.confirm.cancel')"
       :busy-label="t('components.confirm.deleting')"

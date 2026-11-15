@@ -24,6 +24,8 @@ import { useSitesStore } from '../../app/sitesStore'
 export type ReadOnlyReason = 'conflict' | 'forbidden' | 'gone' | 'invalid' | 'outdated' | 'recovery' | 'version'
   /** 023: someone else holds the editing lock, or it was taken over or moved (contracts/admin-editing.md §2). */
   | 'locked' | 'locked-stale' | 'locked-self' | 'taken-over' | 'moved' | 'view-only' | 'free'
+  /** 021 TR-16: moved to the trash while open; the presence banner says by whom. */
+  | 'trashed'
 
 export interface ReadOnlyState {
   reason: ReadOnlyReason

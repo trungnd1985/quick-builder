@@ -287,6 +287,7 @@ async function deleted(collection: CollectionSummary): Promise<void> {
       :name="pendingDelete.name"
       :revision="pendingDelete.revision"
       :item-count="pendingDelete.itemCount"
+      :trashed-item-count="pendingDelete.trashedItemCount"
       @deleted="deleted(pendingDelete)"
       @cancel="pendingDelete = null"
     />

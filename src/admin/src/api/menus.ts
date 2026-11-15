@@ -24,6 +24,8 @@ export interface MenuTargetStatus {
   state: MenuTargetState
   /** The page's current title or the item's current name; null when deleted. */
   title: string | null
+  /** 021 FR-027: deleted, but only as far as the trash. */
+  inTrash?: boolean
 }
 
 /** One menu, as the list shows it. */

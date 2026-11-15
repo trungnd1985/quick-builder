@@ -194,6 +194,10 @@ watch(siteId, load)
         <RouterLink :to="{ name: 'site-redirects', params: { siteId: site.id } }">
           {{ t('sites.detail.redirects') }}
         </RouterLink>
+        <!-- 021: every site role may view some kind of trashed content; each tab checks its own. -->
+        <RouterLink :to="{ name: 'site-trash', params: { siteId: site.id } }">
+          {{ t('sites.detail.trash') }}
+        </RouterLink>
         <!-- 012 FR-017: the publish log is for Administrators; the server checks regardless. -->
         <RouterLink
           v-if="auth.isAdministrator"

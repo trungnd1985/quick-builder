@@ -2,6 +2,7 @@
 
 import type { Publication } from './publishing'
 import { request } from './request'
+import type { TrashReceipt } from './trash'
 
 export { ApiError, type ProblemDetails } from './request'
 
@@ -209,9 +210,9 @@ export const pagesApi = {
   makeHome: (siteId: string, pageId: string, version: number, redirectOldAddresses = false): Promise<PageTree> =>
     request<PageTree>(`${page(siteId, pageId)}/make-home`, { method: 'POST', body: JSON.stringify({ version, redirectOldAddresses }) }),
 
-  /** Deletes a page; 017 FR-032: with `redirectToPageId`, its address redirects there. */
-  remove: (siteId: string, pageId: string, version: number, redirectToPageId: string | null = null): Promise<void> =>
-    request<void>(
+  /** Moves a page to the trash (021 FR-001); 017 FR-032: with `redirectToPageId`, its address redirects there. */
+  remove: (siteId: string, pageId: string, version: number, redirectToPageId: string | null = null): Promise<TrashReceipt> =>
+    request<TrashReceipt>(
       `${page(siteId, pageId)}?version=${version}${redirectToPageId ? `&redirectToPageId=${encodeURIComponent(redirectToPageId)}` : ''}`,
       { method: 'DELETE' },
     ),
@@ -225,8 +226,9 @@ export const pagesApi = {
   renameComponent: (siteId: string, componentId: string, name: string, version: number): Promise<Component> =>
     request<Component>(component(siteId, componentId), { method: 'PUT', body: JSON.stringify({ name, version }) }),
 
-  removeComponent: (siteId: string, componentId: string, version: number): Promise<void> =>
-    request<void>(`${component(siteId, componentId)}?version=${version}`, { method: 'DELETE' }),
+  /** Moves a component to the trash (021 FR-001). */
+  removeComponent: (siteId: string, componentId: string, version: number): Promise<TrashReceipt> =>
+    request<TrashReceipt>(`${component(siteId, componentId)}?version=${version}`, { method: 'DELETE' }),
 
   usages: (siteId: string, componentId: string): Promise<PageReference[]> =>
     request<PageReference[]>(`${component(siteId, componentId)}/usages`),

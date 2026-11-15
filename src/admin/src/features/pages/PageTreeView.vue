@@ -20,6 +20,9 @@ import MoveDialog from './MoveDialog.vue'
 import PageFormDialog from './PageFormDialog.vue'
 import TemplateDialog from './TemplateDialog.vue'
 import { isOutOfDate, pageErrorMessage } from './pageErrors'
+import { restorableUntil, useTrashRetention } from '../trash/useTrashRetention'
+import { deleteLockHeldMessage } from '../trash/lockHeld'
+import MovedToTrashNotice from '../trash/MovedToTrashNotice.vue'
 
 // 010 US1, US2, US3 and US5: one site's page structure. The tree is a table in site order;
 // selecting a row brings up one toolbar of actions for that page, so a 2,000-page tree is
@@ -40,6 +43,9 @@ const route = useRoute()
 const sites = useSitesStore()
 
 const siteId = computed(() => String(route.params.siteId))
+// 021 FR-002: the delete confirmation says until when the page can be restored.
+const retentionDays = useTrashRetention(String(route.params.siteId))
+const trashNote = computed(() => (retentionDays.value ? ' ' + t('trash.restorableUntil', { date: d(restorableUntil(retentionDays.value), 'short') }) : ''))
 const siteName = computed(() => sites.sites.find((s) => s.id === siteId.value)?.name ?? '')
 
 const tree = ref<PageTree | null>(null)
@@ -57,6 +63,7 @@ const outOfDate = ref(false)
 const status = ref('')
 /** 016 TB-12: what the last change did to item addresses, as visible notes. */
 const notices = ref<string[]>([])
+const trashedUntil = ref<string | null>(null)
 // 017 FR-028, FR-032: the offers in the home page and delete confirmations.
 const redirectOldAddresses = ref(true)
 const redirectToPageId = ref<string | null>(null)
@@ -171,6 +178,7 @@ async function run(action: () => Promise<PageTree | void>, message: string, inDi
   actionError.value = null
   status.value = ''
   notices.value = []
+  trashedUntil.value = null
 
   try {
     const result = await action()
@@ -182,7 +190,7 @@ async function run(action: () => Promise<PageTree | void>, message: string, inDi
       outOfDate.value = true
       dialog.value = null
     } else if (inDialog) {
-      dialogError.value = pageErrorMessage(t, te, caught)
+      dialogError.value = deleteLockHeldMessage(t, d, caught) ?? pageErrorMessage(t, te, caught)
     } else {
       actionError.value = pageErrorMessage(t, te, caught)
     }
@@ -288,7 +296,11 @@ async function confirm(): Promise<void> {
     const index = pages.value.findIndex((p) => p.id === current.page.id)
     const previous = index > 0 ? pages.value[index - 1]!.id : null
     if (await run(
-      () => pagesApi.remove(siteId.value, current.page.id, current.page.version, redirectToPageId.value),
+      async () => {
+        // 021 FR-002: the result says until when it can be restored.
+        const receipt = await pagesApi.remove(siteId.value, current.page.id, current.page.version, redirectToPageId.value)
+        trashedUntil.value = receipt?.purgeOnUtc ?? null
+      },
       t('pages.status.deleted', { title: current.page.title }),
       true)) {
       dialog.value = null
@@ -401,6 +413,12 @@ function whoSaved(value: PageDetail): string {
     >
       {{ status }}
     </p>
+
+    <MovedToTrashNotice
+      v-if="trashedUntil"
+      :site-id="siteId"
+      :purge-on-utc="trashedUntil"
+    />
 
     <p
       v-for="(notice, index) in notices"
@@ -723,7 +741,7 @@ function whoSaved(value: PageDetail): string {
       v-if="dialog?.kind === 'delete'"
       dialog-id="page-delete"
       :title="t('pages.confirm.deleteTitle', { title: dialog.page.title })"
-      :body="dialogError ?? t('pages.confirm.deleteBody', { address: dialog.page.path })"
+      :body="dialogError ?? t('pages.confirm.deleteBody', { address: dialog.page.path }) + trashNote"
       :confirm-label="t('pages.confirm.delete')"
       :cancel-label="t('pages.confirm.cancel')"
       :busy-label="t('pages.confirm.deleting')"

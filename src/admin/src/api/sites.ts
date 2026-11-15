@@ -69,6 +69,8 @@ export interface Site {
   searchVisibility?: SiteSearchVisibility
   /** 020 FR-028: the export or import holding the site's transfer slot, on the single-site read. */
   transfer?: SiteTransfer | null
+  /** 021 FR-002: days deleted content stays in the trash, on the single-site read. */
+  trashRetentionDays?: number | null
 }
 
 /** 020: while `kind` is `import` and `state` is `running`, the site's changes are paused. */

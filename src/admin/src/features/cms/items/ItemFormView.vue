@@ -6,6 +6,7 @@
 // the field changes. A draft saves however incomplete; only malformed values are refused.
 import { computed, onBeforeUnmount, onMounted, provide, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import type { TrashReceipt } from '../../../api/trash'
 import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
 import { cmsApi, type Collection, type SchemaDocument } from '../../../api/cms'
 import { itemsApi, refusalOf, type Item, type Problem } from '../../../api/items'
@@ -381,9 +382,10 @@ function onItemChanged(next: Item): void {
   }
 }
 
-async function onDeleted(): Promise<void> {
+async function onDeleted(receipt?: TrashReceipt): Promise<void> {
   saved.value = snapshot()
-  await router.push({ name: 'site-collection-items', params: { siteId: siteId.value, collectionId: collectionId.value } })
+  // 021 FR-002: the list the member lands on says until when it can be restored.
+  await router.push({ name: 'site-collection-items', params: { siteId: siteId.value, collectionId: collectionId.value }, query: receipt ? { movedToTrash: receipt.purgeOnUtc } : {} })
 }
 
 async function onDuplicated(copy: Item): Promise<void> {
@@ -498,6 +500,8 @@ onBeforeUnmount(() => {
         :status="editing.status.value"
         :presence="editing.presence.value"
         :busy="editingBusy"
+        :trashed-by="editing.trashedBy.value"
+        :site-id="siteId"
         @take-over="lockAction(editing.takeOver)"
         @move-here="lockAction(editing.moveHere)"
         @edit="editAgain"

@@ -229,7 +229,7 @@ const dropClass = (id: string) => {
         v-if="stateOf(row.entry)"
         class="badge"
         :class="`menu-entry__state--${stateOf(row.entry)!.state}`"
-      >{{ t(`menus.tree.states.${stateOf(row.entry)!.state}`) }}</span>
+      >{{ t(`menus.tree.states.${stateOf(row.entry)!.state}`) }}<template v-if="stateOf(row.entry)!.inTrash">&#32;{{ t('trash.inTrashMarker') }}</template></span>
       <span
         v-if="row.entry.newTab"
         class="badge"

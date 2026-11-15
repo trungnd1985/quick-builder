@@ -59,6 +59,8 @@ export interface CollectionSummary {
   slug: string
   fieldCount: number
   itemCount: number
+  /** 021 FR-023: items in the trash, which go with the collection. */
+  trashedItemCount?: number
   revision: number
   updatedAtUtc: string
 }
@@ -78,6 +80,8 @@ export interface Collection {
   /** The revision at which the schema last changed; item forms send it back (015 research IT-07). */
   schemaRevision: number
   itemCount: number
+  /** 021 FR-023: items in the trash, which go with the collection. */
+  trashedItemCount?: number
   canManage: boolean
   createdAtUtc: string
   updatedAtUtc: string

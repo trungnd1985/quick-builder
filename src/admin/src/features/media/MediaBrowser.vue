@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import MovedToTrashNotice from '../trash/MovedToTrashNotice.vue'
 import { ApiError, mediaApi, type MediaFile, type MediaFolder, type MediaKind, type MediaListQuery, type MediaSort } from '../../api/media'
 import DeleteDialog from './DeleteDialog.vue'
 import FolderTree from './FolderTree.vue'
@@ -61,6 +62,7 @@ const folders = ref<MediaFolder[]>([])
 
 const list = ref<InstanceType<typeof MediaList> | null>(null)
 const tree = ref<InstanceType<typeof FolderTree> | null>(null)
+const trashedUntil = ref<string | null>(null)
 const pendingDelete = ref<MediaFile | null>(null)
 const deleteTrigger = ref<HTMLElement | null>(null)
 const deleting = ref(false)
@@ -224,7 +226,8 @@ async function confirmDelete(options: { confirmInUse: boolean }): Promise<void> 
 
   deleting.value = true
   try {
-    await mediaApi.remove(props.siteId, file.id, options)
+    const receipt = await mediaApi.remove(props.siteId, file.id, options)
+    trashedUntil.value = receipt?.purgeOnUtc ?? null
     files.value = files.value.filter((f) => f.id !== file.id)
     totalCount.value = Math.max(0, totalCount.value - 1)
     list.value?.announce(t('media.delete.done', { name: file.fileName }))
@@ -277,6 +280,11 @@ defineExpose({ reload: loadFirstPage, update })
     class="media-browser"
     :class="`media-browser--${mode}`"
   >
+    <MovedToTrashNotice
+      v-if="trashedUntil"
+      :site-id="siteId"
+      :purge-on-utc="trashedUntil"
+    />
     <FolderTree
       ref="tree"
       :site-id="siteId"

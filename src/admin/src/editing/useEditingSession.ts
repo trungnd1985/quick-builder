@@ -13,11 +13,19 @@
 import { computed, ref, shallowRef } from 'vue'
 import { editingApi, editingHeaders, type EditingKind, type Presence } from '../api/editing'
 import { ApiError } from '../api/request'
+import { entryOf, trashApi } from '../api/trash'
 
 export const HEARTBEAT_MS = 10_000
 
 /** Why this session may not change the document right now; `editing` when it may. */
-export type EditingStatus = 'editing' | 'locked' | 'locked-stale' | 'locked-self' | 'taken-over' | 'moved' | 'view-only' | 'free'
+export type EditingStatus = 'editing' | 'locked' | 'locked-stale' | 'locked-self' | 'taken-over' | 'moved' | 'view-only' | 'free' | 'trashed'
+
+/** 021 FR-008: who moved the open document to the trash, and when. */
+export interface TrashedBy {
+  name: string
+  at: string
+  canRestore: boolean
+}
 
 export interface EditingTarget {
   siteId: string
@@ -35,6 +43,8 @@ export function useEditingSession(target: () => EditingTarget) {
   /** The loss of the lock the member has already dealt with (reloaded after it). */
   const acknowledgedLoss = ref<string | null>(null)
   const stopped = ref(false)
+  /** 021 TR-16: the document was moved to the trash while open. */
+  const trashedBy = ref<TrashedBy | null>(null)
 
   let timer: ReturnType<typeof setInterval> | null = null
   let active = false
@@ -46,6 +56,7 @@ export function useEditingSession(target: () => EditingTarget) {
   const sessionId = computed(() => presence.value?.sessionId ?? null)
 
   const status = computed<EditingStatus>(() => {
+    if (trashedBy.value) return 'trashed'
     const now = presence.value
     if (!now) return 'editing'
     if (now.access === 'view-only') return 'view-only'
@@ -77,7 +88,9 @@ export function useEditingSession(target: () => EditingTarget) {
       take(await editingApi.heartbeat(target().siteId, current.sessionId, wasActive))
     } catch (error) {
       if (error instanceof ApiError && error.errorCode === 'editing.session_gone') {
-        // Expired (a sleeping laptop, a restart) or the document went: open a new session.
+        // Expired (a sleeping laptop, a restart) or the document went: open a new session,
+        // unless it went to the trash (021 TR-16).
+        if (await checkTrash()) return
         presence.value = null
         await openSession()
       } else if (error instanceof ApiError && error.status === 401) {
@@ -86,6 +99,19 @@ export function useEditingSession(target: () => EditingTarget) {
         // A network or server hiccup: try again on the next beat.
         active = active || wasActive
       }
+    }
+  }
+
+  /** Whether the document is in the trash; if so, stops the session and says who moved it (TR-16). */
+  async function checkTrash(): Promise<boolean> {
+    const { siteId, kind, documentId } = target()
+    try {
+      const entry = entryOf(await trashApi.get(siteId, kind, documentId))
+      trashedBy.value = { name: entry.trashedBy.displayName, at: entry.trashedAtUtc, canRestore: entry.canRestore }
+      stop()
+      return true
+    } catch {
+      return false
     }
   }
 
@@ -214,10 +240,10 @@ export function useEditingSession(target: () => EditingTarget) {
   /** The header the editor's draft saves carry. */
   const headers = (): Record<string, string> => editingHeaders(sessionId.value)
 
-  return { presence, status, mayEdit, sessionId, start, stop, beat, noteActivity, ensureLock, moveHere, takeOver, lockLost, acknowledge, headers }
+  return { presence, status, mayEdit, sessionId, trashedBy, checkTrash, start, stop, beat, noteActivity, ensureLock, moveHere, takeOver, lockLost, acknowledge, headers }
 }
 
 export type EditingSession = ReturnType<typeof useEditingSession>
 
 /** The statuses that come from locks, which the presence banner explains rather than 011's banner. */
-export const LOCK_STATUSES: ReadonlySet<EditingStatus> = new Set(['locked', 'locked-stale', 'locked-self', 'taken-over', 'moved', 'view-only', 'free'])
+export const LOCK_STATUSES: ReadonlySet<EditingStatus> = new Set(['locked', 'locked-stale', 'locked-self', 'taken-over', 'moved', 'view-only', 'free', 'trashed'])
