@@ -1,0 +1,293 @@
+openapi: 3.1.0
+info:
+  title: QuickBuilder trash (feature 021)
+  version: 0.21.0
+  description: |
+    Trash endpoints of the Pages, Cms and Media modules, plus the changed delete endpoints.
+    Every operation is on the administrative surface, names its site in the route, and
+    declares its capability (x-capability), checked server-side (Principle IX).
+    Entries of another site answer 404 like unknown ids (FR-029). Research: TR-09 … TR-19.
+
+paths:
+  # ---------------------------------------------------------------- changed deletes
+  /api/v1/pages/sites/{siteId}/pages/{pageId}:
+    delete:
+      summary: Move a page to the trash (was a permanent delete).
+      x-capability: pages.structure.manage
+      parameters:
+        - $ref: '#/components/parameters/siteId'
+        - { name: pageId, in: path, required: true, schema: { type: string, format: uuid } }
+        - { name: version, in: query, required: true, schema: { type: integer } }
+        - { name: redirectToPageId, in: query, schema: { type: string, format: uuid } }
+      responses:
+        '200': { description: In the trash, content: { application/json: { schema: { $ref: '#/components/schemas/TrashReceipt' } } } }
+        '404': { description: Not found (also when already in the trash) }
+        '409': { description: 'Existing refusals (has children, home page, published, out of date) or editing.lock_held', content: { application/problem+json: { schema: { $ref: '#/components/schemas/LockHeld' } } } }
+  /api/v1/pages/sites/{siteId}/components/{componentId}:
+    delete:
+      summary: Move a shared component to the trash. Same responses as the page delete.
+      x-capability: pages.components.manage
+      responses: { '200': { $ref: '#/components/responses/Receipt' } }
+  /api/v1/cms/sites/{siteId}/collections/{collectionId}/items/{itemId}:
+    delete:
+      summary: Move an item to the trash; a published item is unpublished as part of it.
+      x-capability: cms.items.edit
+      responses: { '200': { $ref: '#/components/responses/Receipt' } }
+  /api/v1/media/sites/{siteId}/files/{fileId}:
+    delete:
+      summary: Move a media file to the trash (013 confirmInUse and publish rules unchanged).
+      x-capability: media.own_files.delete
+      x-row-check: media.files.delete for another member's file; pages.publishing.manage when in live use
+      responses: { '200': { $ref: '#/components/responses/Receipt' } }
+
+  /api/v1/sites/{siteId}:
+    get:
+      summary: Existing site response; gains trashRetentionDays (integer) for the delete dialogs (FR-002).
+      x-capability: sites.view
+      responses: { '200': { description: 'SiteDto + trashRetentionDays' } }
+
+  # ---------------------------------------------------------------- lists and entries
+  /api/v1/pages/sites/{siteId}/trash/pages:
+    get:
+      summary: Trashed pages, newest first, keyset-paged (FR-010).
+      x-capability: pages.content.view
+      parameters:
+        - $ref: '#/components/parameters/siteId'
+        - $ref: '#/components/parameters/search'
+        - $ref: '#/components/parameters/trashedBy'
+        - $ref: '#/components/parameters/from'
+        - $ref: '#/components/parameters/to'
+        - $ref: '#/components/parameters/cursor'
+      responses:
+        '200': { description: Page of entries, content: { application/json: { schema: { $ref: '#/components/schemas/TrashList' } } } }
+  /api/v1/pages/sites/{siteId}/trash/components:
+    get: { summary: Trashed components, x-capability: pages.content.view, responses: { '200': { $ref: '#/components/responses/List' } } }
+  /api/v1/cms/sites/{siteId}/trash/items:
+    get:
+      summary: Trashed items; optional collectionId filter.
+      x-capability: cms.collections.view
+      parameters:
+        - { name: collectionId, in: query, schema: { type: string, format: uuid } }
+      responses: { '200': { $ref: '#/components/responses/List' } }
+  /api/v1/media/sites/{siteId}/trash/files:
+    get:
+      summary: Trashed files; optional folderId filter (original folder); response carries totalBytes (FR-012).
+      x-capability: media.files.view
+      parameters:
+        - { name: folderId, in: query, schema: { type: string, format: uuid } }
+      responses: { '200': { $ref: '#/components/responses/List' } }
+
+  /api/v1/pages/sites/{siteId}/trash/pages/{pageId}:
+    get:
+      summary: One trashed page with its last draft, read-only (FR-011); used by the editor after a 404 (TR-16).
+      x-capability: pages.content.view
+      responses:
+        '200': { description: Entry and draft, content: { application/json: { schema: { $ref: '#/components/schemas/TrashEntryDetail' } } } }
+        '404': { description: Not in the trash }
+    delete:
+      summary: Delete permanently (FR-021, FR-022).
+      x-capability: pages.trash.purge
+      responses: { '204': { description: Gone }, '404': { description: trash.not_in_trash } }
+  # Same GET/DELETE pair for:
+  #   /api/v1/pages/sites/{siteId}/trash/components/{componentId}   (pages.content.view / pages.trash.purge)
+  #   /api/v1/cms/sites/{siteId}/trash/items/{itemId}               (cms.collections.view / cms.trash.purge)
+  #   /api/v1/media/sites/{siteId}/trash/files/{fileId}             (media.files.view / media.trash.purge)
+
+  # ---------------------------------------------------------------- restore
+  /api/v1/pages/sites/{siteId}/trash/pages/{pageId}/restore-plan:
+    get:
+      summary: What a restore would do (TR-10).
+      x-capability: pages.structure.manage
+      parameters:
+        - { name: placement, in: query, schema: { $ref: '#/components/schemas/Placement' } }
+        - { name: parentId, in: query, schema: { type: string, format: uuid } }
+      responses:
+        '200': { description: Plan, content: { application/json: { schema: { $ref: '#/components/schemas/RestorePlan' } } } }
+  /api/v1/pages/sites/{siteId}/trash/pages/{pageId}/restore:
+    post:
+      summary: Restore a page, optionally with its parents, optionally publishing (TR-10, TR-11).
+      x-capability: pages.structure.manage
+      x-capability-when-publish: pages.publishing.manage
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/RestoreRequest' } } }
+      responses:
+        '200': { description: Restored, content: { application/json: { schema: { $ref: '#/components/schemas/RestoreResult' } } } }
+        '404': { description: trash.not_in_trash }
+        '409': { description: 'trash.plan_changed (body: new plan), pages.too_many_pages' }
+        '422': { description: 'trash.placement_required, trash.invalid_placement' }
+  # Same restore-plan/restore pair, with the kind's capabilities:
+  #   components: pages.components.manage (+ pages.publishing.manage when publish)
+  #   items:      cms.items.edit (+ cms.items.publish when publish)
+  #   files:      media.own_files.delete with row check (media.files.delete for others' files,
+  #               pages.publishing.manage when a live page uses the file); placement original|top|chosen with folderId; no publish
+
+  /api/v1/pages/sites/{siteId}/trash/restore:
+    post:
+      summary: Restore several pages and components; each entry carries its confirmed plan; per-entry outcome (FR-019).
+      x-capability: pages.content.view
+      x-row-check: the restore capability of each entry's kind
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [entries]
+              properties:
+                entries: { type: array, maxItems: 100, items: { $ref: '#/components/schemas/BulkRestoreEntry' } }
+      responses:
+        '200': { description: Outcomes, content: { application/json: { schema: { $ref: '#/components/schemas/BulkOutcome' } } } }
+  # Same for /api/v1/cms/sites/{siteId}/trash/restore (cms.items.edit; entries: id, confirmedAddress)
+  # and /api/v1/media/sites/{siteId}/trash/restore (media.own_files.delete; entries: id, confirmedAddress,
+  # placement, folderId). Neither has a kind: each module's trash holds one kind.
+
+  # ---------------------------------------------------------------- permanent delete in bulk
+  /api/v1/pages/sites/{siteId}/trash/purge:
+    post:
+      summary: Delete several entries permanently (up to 100).
+      x-capability: pages.trash.purge
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [entries]
+              properties:
+                entries: { type: array, maxItems: 100, items: { type: object, required: [kind, id], properties: { kind: { $ref: '#/components/schemas/Kind' }, id: { type: string, format: uuid } } } }
+      responses: { '200': { $ref: '#/components/responses/Bulk' } }
+  /api/v1/pages/sites/{siteId}/trash/empty:
+    post:
+      summary: Delete permanently every entry trashed at or before trashedUpTo (FR-021, TR-14).
+      x-capability: pages.trash.purge
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [trashedUpTo, expectedPages, expectedComponents]
+              properties:
+                trashedUpTo: { type: string, format: date-time }
+                expectedPages: { type: integer }
+                expectedComponents: { type: integer }
+      responses:
+        '200': { description: 'Purged counts: { pages, components, failed }' }
+        '409': { description: 'trash.count_changed (body: current counts)' }
+  # Same purge/empty pair for Cms (cms.trash.purge) and Media (media.trash.purge), except:
+  #   purge body:    { ids: [uuid] }
+  #   empty body:    { trashedUpTo, expectedItems } / { trashedUpTo, expectedFiles }
+  #   empty result:  { items, failed } / { files, failed }
+
+components:
+  parameters:
+    siteId: { name: siteId, in: path, required: true, schema: { type: string, format: uuid } }
+    search: { name: search, in: query, schema: { type: string, maxLength: 200 } }
+    trashedBy: { name: trashedBy, in: query, schema: { type: string, format: uuid } }
+    from: { name: from, in: query, schema: { type: string, format: date-time } }
+    to: { name: to, in: query, schema: { type: string, format: date-time } }
+    cursor: { name: cursor, in: query, schema: { type: string } }
+  responses:
+    Receipt: { description: In the trash, content: { application/json: { schema: { $ref: '#/components/schemas/TrashReceipt' } } } }
+    List: { description: Page of entries, content: { application/json: { schema: { $ref: '#/components/schemas/TrashList' } } } }
+    Bulk: { description: Per-entry outcome, content: { application/json: { schema: { $ref: '#/components/schemas/BulkOutcome' } } } }
+  schemas:
+    Kind: { type: string, enum: [page, component, item, file] }
+    Placement: { type: string, enum: [original, with_parents, chosen, top] }
+    TrashReceipt:
+      type: object
+      required: [trashedAtUtc, purgeOnUtc]
+      properties:
+        trashedAtUtc: { type: string, format: date-time }
+        purgeOnUtc: { type: string, format: date-time }
+    TrashEntry:
+      type: object
+      required: [kind, id, label, trashedAtUtc, trashedBy, purgeOnUtc]
+      properties:
+        kind: { $ref: '#/components/schemas/Kind' }
+        id: { type: string, format: uuid }
+        label: { type: string, description: 'Title, name or file name' }
+        address: { type: [string, 'null'], description: 'Path, slug or file name' }
+        place:
+          type: object
+          description: Where it was (FR-005)
+          properties:
+            parentId: { type: [string, 'null'], format: uuid }
+            parentLabel: { type: [string, 'null'] }
+            parentState: { type: string, enum: [live, trashed, gone, none] }
+            collectionId: { type: [string, 'null'], format: uuid }
+            collectionName: { type: [string, 'null'] }
+            folderId: { type: [string, 'null'], format: uuid }
+            folderName: { type: [string, 'null'] }
+        trashedAtUtc: { type: string, format: date-time }
+        trashedBy: { type: object, properties: { userId: { type: string, format: uuid }, displayName: { type: string } } }
+        purgeOnUtc: { type: string, format: date-time }
+        wasLive: { type: boolean }
+        hadSchedule: { type: boolean }
+        sizeBytes: { type: [integer, 'null'], description: Media only }
+        canRestore: { type: boolean }
+        canPurge: { type: boolean }
+    TrashList:
+      type: object
+      required: [entries]
+      properties:
+        entries: { type: array, items: { $ref: '#/components/schemas/TrashEntry' } }
+        nextCursor: { type: [string, 'null'] }
+        total: { type: integer }
+        totalBytes: { type: [integer, 'null'], description: Media only (FR-012) }
+    TrashEntryDetail:
+      allOf:
+        - $ref: '#/components/schemas/TrashEntry'
+        - type: object
+          properties:
+            draft: { description: 'Page/component document or item values, read-only' }
+    RestorePlan:
+      type: object
+      required: [placement, target, address, addressChanged]
+      properties:
+        placement: { $ref: '#/components/schemas/Placement' }
+        placementOptions: { type: array, items: { $ref: '#/components/schemas/Placement' } }
+        target: { type: object, properties: { parentId: { type: [string, 'null'] }, label: { type: string }, position: { type: integer } } }
+        parentsToRestore: { type: array, items: { type: object, properties: { id: { type: string }, label: { type: string }, address: { type: string } } } }
+        address: { type: string }
+        previousAddress: { type: string }
+        addressChanged: { type: boolean }
+        becomesHome: { type: boolean }
+        templateDropped: { type: boolean, description: TR-12 }
+        schemaIssues: { type: array, items: { type: string }, description: Items only (FR-018) }
+        wasLive: { type: boolean }
+        hadSchedule: { type: boolean }
+        canRestoreAndPublish: { type: boolean, description: 'Member may publish and a last live version exists (TR-11)' }
+    RestoreRequest:
+      type: object
+      required: [confirmedAddress]
+      properties:
+        placement: { $ref: '#/components/schemas/Placement', description: 'Defaults to original.' }
+        parentId: { type: [string, 'null'], format: uuid }
+        folderId: { type: [string, 'null'], format: uuid }
+        confirmedAddress: { type: string, description: 'The address the member saw; mismatch → trash.plan_changed' }
+        publish: { type: boolean, default: false }
+    RestoreResult:
+      type: object
+      properties:
+        restored: { type: array, items: { type: object, properties: { kind: { $ref: '#/components/schemas/Kind' }, id: { type: string }, address: { type: string } } } }
+        published: { type: boolean }
+    BulkRestoreEntry:
+      type: object
+      required: [kind, id, confirmedAddress]
+      properties:
+        kind: { $ref: '#/components/schemas/Kind' }
+        id: { type: string, format: uuid }
+        placement: { $ref: '#/components/schemas/Placement' }
+        parentId: { type: [string, 'null'], format: uuid }
+        confirmedAddress: { type: string }
+    BulkOutcome:
+      type: object
+      properties:
+        succeeded: { type: array, items: { type: string, format: uuid } }
+        failed: { type: array, items: { type: object, properties: { id: { type: string }, code: { type: string }, detail: { type: string } } } }
+    LockHeld:
+      type: object
+      properties:
+        code: { const: editing.lock_held }
+        holder: { type: object, properties: { id: { type: string }, displayName: { type: string } } }
+        since: { type: string, format: date-time }
+        stale: { type: boolean, const: false }
