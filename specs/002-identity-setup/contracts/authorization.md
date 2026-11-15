@@ -340,3 +340,16 @@ and a spec that justifies it.
    that changes apply on the next request (FR-017).
 5. Hiding a button in the admin shell is courtesy. The declaration is the enforcement
    (FR-024).
+
+## Trash (021)
+
+| Capability | Scope | Administrator | Designer | Editor |
+|---|---|---|---|---|
+| `pages.trash.purge` | Site | ✓ | — | — |
+| `cms.trash.purge` | Site | ✓ | — | — |
+| `media.trash.purge` | Site | ✓ | — | — |
+
+Permanent delete and emptying the trash need these. Viewing and restoring reuse the capabilities of
+viewing and deleting each kind; the endpoints are in `specs/021-soft-delete-trash/contracts/trash-api.yaml`.
+Restoring a file checks in the handler what deleting one checks: one's own upload or
+`media.files.delete`, and the publishing capability when a live page shows it.

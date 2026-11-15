@@ -92,3 +92,9 @@ The handlers are idempotent (deleting what is not there is a no-op). They are re
   `copyOrigin`.
 - `editing_sessions` and `editing_takeovers` are not exported. They are runtime and audit
   data, not content.
+
+## 6. Added by 021
+
+`IEditingLocks.FindActiveHolderAsync(siteId, kind, documentId, userId)` returns the member holding a live,
+not stale lock when that member is not `userId`, as `EditingHolder(UserId, Since)`. Pages and Cms call it
+before a delete and refuse with `editing.lock_held`. One indexed read, made before their transaction.

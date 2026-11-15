@@ -186,6 +186,15 @@ Scheduled publishes and unpublishes run through the outbox (012), so `Outbox:Ena
 must stay `true` on at least one instance for schedules to run, and `PollInterval` bounds
 how late one can be.
 
+## Trash
+
+| Key | Default | Allowed | Meaning |
+|---|---|---|---|
+| `Trash:RetentionDays` | `30` | 1 – 3650 | Days deleted pages, shared components, collection items and media files stay in their site's trash. After that an hourly job deletes them permanently. A change applies at once to everything already in the trash. An invalid value stops startup. |
+
+Files in the trash keep using storage until they are purged. To free space sooner, an Administrator can
+delete them permanently or empty the trash.
+
 ## Menus
 
 Feature 024 adds no configuration keys. Menu limits (50 menus per site, 300 entries, three

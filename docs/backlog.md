@@ -166,3 +166,10 @@ Deferred by 035 (richer rich text; see specs/035-rich-text-formats/plan.md):
   - a breaking content schema change follows "Raising a schema version" in
     docs/contributing.md (an upgrade step with golden files, never in a patch);
   - every pull request with operator-visible change adds a release-note fragment.
+
+## Deferred from #21 (trash)
+
+- Merge import of a document whose identity is in the trash (021 FR-030): replace it and take it out of the trash
+- Trash preview in the editor's read-only canvas, and a thumbnail for trashed images (021 FR-011; today it shows the draft's text and the file name)
+- "Undo" link in the toast after a delete
+- Per-site or per-kind retention periods

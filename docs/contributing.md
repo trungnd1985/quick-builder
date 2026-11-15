@@ -232,7 +232,7 @@ checks that you did it (009 FR-024, FR-025). Four obligations, detailed in
 1. **Mark the record.** The entity implements `ISiteOwned` and your `DbContext` declares
    `HasQueryFilter(e => e.SiteId == CurrentSiteId)` itself — see `SiteQueryFilterGuidance`
    for why a generic helper silently filters against the wrong site.
-   *Guard*: `SiteFilterCoverageTests` checks every module's model.
+   *Guard*: `QueryFilterCoverageTests` checks every module's model.
 2. **Cross sites only through `AcrossAllSites(reason)`**, with a reason a reviewer can judge
    and a test that exercises the read. *Guard*: the banned-API analyser.
 3. **Register an isolation probe.** Add a class implementing `ISiteIsolationProbe` under

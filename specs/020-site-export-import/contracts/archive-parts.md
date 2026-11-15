@@ -135,3 +135,11 @@ golden lines. Rows the module rebuilds (research ST-03) are never written.
 | every part | author ids, through `IAuthorMap` |
 
 Golden files: `docs/contracts/<contract>/remap/<case>/{input.json,map.json,expected.json}`.
+
+## 5. The trash (021)
+
+- **Export**: parts read through the filtered sets, so trashed rows are left out.
+- **Restore import**: the step that clears the site uses `IncludingTrash`, so the trash is emptied with
+  the rest of the site and the archive's ids cannot collide with trashed rows.
+- **Merge import**: matches live rows only. A document whose identity is in the trash is added under a
+  new id and the trashed copy stays in the trash (021 FR-030).
