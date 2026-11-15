@@ -91,7 +91,7 @@ Shorthand used below:
 
 **Purpose**: the feature's documents and the retention setting.
 
-- [ ] T001 Commit `specs/021-soft-delete-trash/` (spec, plan, research, data model, contracts, quickstart, checklist, tasks) as the first commit on branch `021-soft-delete-trash`, referencing #21.
+- [X] T001 Commit `specs/021-soft-delete-trash/` (spec, plan, research, data model, contracts, quickstart, checklist, tasks) as the first commit on branch `021-soft-delete-trash`, referencing #21.
 - [X] T002 [P] Write `UTESTS/Shared/TrashRetentionTests.cs`: `PurgeOn` adds exactly `RetentionDays` days; `DueBefore(now)` returns `now − RetentionDays`; a changed option changes every result (nothing cached). Must fail first.
 - [X] T003 Create `SHAREDI/Trash/TrashOptions.cs` (section `Trash`, `RetentionDays` int, default 30, `[Range(1, 3650)]`) and `SHAREDI/Trash/TrashRetention.cs` (`PurgeOn`, `DueBefore`, over `IOptionsMonitor<TrashOptions>`) until T002 passes. Register both in `HOST/Program.cs` with `BindConfiguration("Trash").ValidateDataAnnotations().ValidateOnStart()` beside the existing options, and add `"Trash": { "RetentionDays": 30 }` to `HOST/appsettings.json`.
 
