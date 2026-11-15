@@ -226,6 +226,12 @@ function restored(published: boolean): void {
 
 <template>
   <section aria-labelledby="trash-heading">
+    <p>
+      <RouterLink :to="{ name: 'site', params: { siteId } }">
+        {{ t('trash.back') }}
+      </RouterLink>
+    </p>
+
     <header class="page-header">
       <div>
         <h1 id="trash-heading">

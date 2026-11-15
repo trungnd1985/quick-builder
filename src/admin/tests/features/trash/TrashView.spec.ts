@@ -59,7 +59,10 @@ function serve(lists: Partial<Record<string, TrashList>>, forbidden: string[] = 
 async function renderView(tab = 'page') {
   const router = createRouter({
     history: createMemoryHistory(),
-    routes: [{ path: '/sites/:siteId/trash', name: 'site-trash', component: TrashView }],
+    routes: [
+      { path: '/sites/:siteId/trash', name: 'site-trash', component: TrashView },
+      { path: '/sites/:siteId', name: 'site', component: { template: '<div />' } },
+    ],
   })
   await router.push({ name: 'site-trash', params: { siteId: SITE }, query: { tab } })
   await router.isReady()
@@ -83,6 +86,14 @@ describe('TrashView', () => {
       runOnly: { type: 'rule', values: ['label', 'button-name', 'aria-valid-attr-value', 'aria-required-children', 'th-has-data-cells'] },
     })
     expect(results.violations.map((v) => v.id)).toEqual([])
+  })
+
+  it('links back to the site', async () => {
+    serve({})
+    await renderView()
+
+    const back = await screen.findByRole('link', { name: en.trash.back })
+    expect(back.getAttribute('href')).toBe(`/sites/${SITE}`)
   })
 
   it('offers no restore where the member may not restore', async () => {

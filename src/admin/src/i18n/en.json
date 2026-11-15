@@ -3016,6 +3016,7 @@
     }
   },
   "trash": {
+    "back": "Site settings",
     "title": "Trash",
     "intro": "Deleted pages, components, items and files of {site}. Restore one, or let it be deleted permanently on the date shown.",
     "kinds": "Kinds of content",
