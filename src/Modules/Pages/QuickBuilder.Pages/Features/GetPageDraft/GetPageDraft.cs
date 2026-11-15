@@ -26,6 +26,7 @@ internal sealed class GetPageDraftHandler(PagesDbContext database, PageReads rea
 
         var draft = await database.ForSite<PageDraft>(query.SiteId)
             .AsNoTracking()
+            .Where(d => database.ForSite<Page>(query.SiteId).Any(p => p.Id == d.PageId))
             .FirstOrDefaultAsync(d => d.PageId == query.PageId, cancellationToken)
             .ConfigureAwait(false);
 

@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using QuickBuilder.Shared.Infrastructure.Data;
 
 namespace QuickBuilder.Shared.Infrastructure.MultiSite;
 
@@ -6,8 +7,9 @@ namespace QuickBuilder.Shared.Infrastructure.MultiSite;
 /// The one permitted way to read across sites (FR-013a).
 /// </summary>
 /// <remarks>
-/// <c>IgnoreQueryFilters</c> is banned project-wide by BannedSymbols.txt with RS0030
-/// escalated to an error, so this file holds the only suppression in the codebase. Any
+/// Both <c>IgnoreQueryFilters</c> overloads are banned project-wide by BannedSymbols.txt
+/// with RS0030 escalated to an error, so this file and <c>TrashQuery</c> hold the only
+/// suppressions in the codebase. Any
 /// other attempt to escape the site filter fails the build at compile time rather than
 /// being something a reviewer has to notice.
 /// <para>
@@ -26,6 +28,10 @@ public static class CrossSiteQuery
     /// <summary>
     /// Reads across every site, bypassing the SiteId filter.
     /// </summary>
+    /// <remarks>
+    /// Lifts the site filter only; trashed rows stay hidden (021 TR-03). To see trashed rows
+    /// as well, combine with <c>TrashQuery.IncludingTrash</c> or <c>OnlyTrash</c>.
+    /// </remarks>
     /// <param name="source">The query to unfilter.</param>
     /// <param name="reason">
     /// Why this read legitimately spans sites. Required, non-empty, and written for a
@@ -39,7 +45,7 @@ public static class CrossSiteQuery
 
         // The single permitted use in the codebase. See the class remarks.
 #pragma warning disable RS0030 // Do not use banned APIs
-        return source.IgnoreQueryFilters();
+        return source.IgnoreQueryFilters([QueryFilters.Site]);
 #pragma warning restore RS0030
     }
 }

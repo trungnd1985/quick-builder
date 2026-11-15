@@ -81,7 +81,7 @@ public sealed class CollectionUsesTests(DatabaseFixture database)
         var list = await world.PageAsync("news");
         await PublishingApi.SaveAsync(world.Admin, PagesApi.PagePath(world.Site, list), ListOfPosts(world));
         var listVersion = (await PagesApi.OkAsync(await PagesApi.GetAsync(world.Admin, world.Site, list))).GetProperty("version").GetInt32();
-        Assert.Equal(HttpStatusCode.NoContent, (await PagesApi.DeleteAsync(world.Admin, world.Site, list, listVersion)).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await PagesApi.DeleteAsync(world.Admin, world.Site, list, listVersion)).StatusCode);
         Assert.Empty(await world.CollectionUsesAsync(list));
     }
 

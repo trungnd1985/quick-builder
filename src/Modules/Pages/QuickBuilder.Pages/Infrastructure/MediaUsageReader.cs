@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using QuickBuilder.Pages.Contracts.Media;
 using QuickBuilder.Pages.Domain;
+using QuickBuilder.Shared.Infrastructure.Trash;
 
 namespace QuickBuilder.Pages.Infrastructure;
 
@@ -35,14 +36,18 @@ internal sealed class MediaUsageReader(PagesDbContext database) : IMediaUsageRea
         var ids = result.Keys.ToList();
         var references = await ReferencesAsync(siteId, ids, cancellationToken).ConfigureAwait(false);
 
+        var trashed = await TrashedAsync(siteId, references, cancellationToken).ConfigureAwait(false);
         foreach (var group in references.GroupBy(r => r.MediaId))
         {
-            var places = Places(group);
+            // 021 FR-027: uses by trashed content are counted apart and never make it in use.
+            var all = Places(group);
+            var places = all.Where(p => !trashed.Contains(p.Id)).ToList();
             result[group.Key] = new MediaUsageSummary(
                 places.Count,
                 places.Count(p => p.InDraft),
                 places.Count(p => p.Live),
-                places.Count(p => p.InHistory && !p.InDraft && !p.Live));
+                places.Count(p => p.InHistory && !p.InDraft && !p.Live),
+                all.Count - places.Count);
         }
 
         return result;
@@ -61,7 +66,10 @@ internal sealed class MediaUsageReader(PagesDbContext database) : IMediaUsageRea
         var pageIds = places.Where(p => p.Kind == SubjectKinds.Page).Select(p => p.Id).ToList();
         var componentIds = places.Where(p => p.Kind == SubjectKinds.Component).Select(p => p.Id).ToList();
 
+        var trashed = await TrashedAsync(siteId, references, cancellationToken).ConfigureAwait(false);
+
         var pageTitles = await database.ForSite<Page>(siteId)
+            .IncludingTrash(TrashReason)
             .AsNoTracking()
             .Where(p => pageIds.Contains(p.Id))
             .Select(p => new { p.Id, p.Title })
@@ -69,6 +77,7 @@ internal sealed class MediaUsageReader(PagesDbContext database) : IMediaUsageRea
             .ConfigureAwait(false);
 
         var componentNames = await database.ForSite<Component>(siteId)
+            .IncludingTrash(TrashReason)
             .AsNoTracking()
             .Where(c => componentIds.Contains(c.Id))
             .Select(c => new { c.Id, c.Name })
@@ -93,7 +102,7 @@ internal sealed class MediaUsageReader(PagesDbContext database) : IMediaUsageRea
         [
             .. places
                 .Select(p => p.Kind == SubjectKinds.Page
-                    ? new MediaUsagePlace(p.Kind, p.Id, pageTitles.GetValueOrDefault(p.Id) ?? string.Empty, p.InDraft, p.Live, p.InHistory, null)
+                    ? new MediaUsagePlace(p.Kind, p.Id, pageTitles.GetValueOrDefault(p.Id) ?? string.Empty, p.InDraft, p.Live, p.InHistory, null, trashed.Contains(p.Id))
                     : new MediaUsagePlace(
                         p.Kind,
                         p.Id,
@@ -101,7 +110,8 @@ internal sealed class MediaUsageReader(PagesDbContext database) : IMediaUsageRea
                         p.InDraft,
                         p.Live,
                         p.InHistory,
-                        p.Live ? livePagesByComponent.GetValueOrDefault(p.Id) : null))
+                        p.Live ? livePagesByComponent.GetValueOrDefault(p.Id) : null,
+                        trashed.Contains(p.Id)))
                 .OrderBy(p => p.Kind == SubjectKinds.Page ? 0 : 1)
                 .ThenBy(p => p.Title, StringComparer.OrdinalIgnoreCase)
                 .ThenBy(p => p.Id),
@@ -109,6 +119,29 @@ internal sealed class MediaUsageReader(PagesDbContext database) : IMediaUsageRea
     }
 
     /// <summary>Every reference to the files, draft and published, with where it comes from.</summary>
+    private const string TrashReason = "Media usage says which uses are by content in the trash (021 TR-06, FR-027).";
+
+    /// <summary>The referring pages and components that are in the trash.</summary>
+    private async Task<HashSet<Guid>> TrashedAsync(Guid siteId, List<Reference> references, CancellationToken cancellationToken)
+    {
+        var pageIds = references.Where(r => r.Kind == SubjectKinds.Page).Select(r => r.SubjectId).Distinct().ToList();
+        var componentIds = references.Where(r => r.Kind == SubjectKinds.Component).Select(r => r.SubjectId).Distinct().ToList();
+        var trashed = new HashSet<Guid>();
+        if (pageIds.Count > 0)
+        {
+            trashed.UnionWith(await database.ForSite<Page>(siteId).OnlyTrash(TrashReason)
+                .Where(p => pageIds.Contains(p.Id)).Select(p => p.Id).ToListAsync(cancellationToken).ConfigureAwait(false));
+        }
+
+        if (componentIds.Count > 0)
+        {
+            trashed.UnionWith(await database.ForSite<Component>(siteId).OnlyTrash(TrashReason)
+                .Where(c => componentIds.Contains(c.Id)).Select(c => c.Id).ToListAsync(cancellationToken).ConfigureAwait(false));
+        }
+
+        return trashed;
+    }
+
     private async Task<List<Reference>> ReferencesAsync(Guid siteId, List<Guid> mediaIds, CancellationToken cancellationToken)
     {
         var drafts = await database.ForSite<DraftMediaReference>(siteId)

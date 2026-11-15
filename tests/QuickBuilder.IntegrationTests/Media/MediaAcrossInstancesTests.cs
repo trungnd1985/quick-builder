@@ -59,7 +59,7 @@ public sealed class MediaAcrossInstancesTests(DatabaseFixture database, S3Fixtur
         var fromBucket = await MediaApi.PublicAsync(_first.App, MediaScenario.HostA, variant);
         Assert.Equal(await produced.Content.ReadAsByteArrayAsync(), await fromBucket.Content.ReadAsByteArrayAsync());
 
-        Assert.Equal(HttpStatusCode.NoContent, (await MediaApi.DeleteAsync(_secondAdmin, _first.SiteA, file.Id)).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await MediaApi.DeleteAsync(_secondAdmin, _first.SiteA, file.Id)).StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, (await MediaApi.PublicAsync(_first.App, MediaScenario.HostA, file.PublicPath)).StatusCode);
         Assert.DoesNotContain((await LibraryApi.ListOkAsync(_first.Admin, _first.SiteA)).Items, f => f.Id == file.Id);
     }

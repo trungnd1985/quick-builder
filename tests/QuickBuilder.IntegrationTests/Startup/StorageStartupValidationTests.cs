@@ -26,6 +26,8 @@ public sealed class StorageStartupValidationTests(DatabaseFixture database) : IA
         { "Media:AllowedTypes:0", "image/svg+xml", "Media:AllowedTypes" },
         { "Media:MaxFileSizeBytes", "10", "Media:MaxFileSizeBytes" },
         { "Media:OrphanGracePeriod", "00:01:00", "Media:OrphanGracePeriod" },
+        { "Trash:RetentionDays", "0", "Trash:RetentionDays" },
+        { "Trash:RetentionDays", "3651", "Trash:RetentionDays" },
     };
 
     [Theory]

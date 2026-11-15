@@ -1,4 +1,5 @@
 using System.Net;
+using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -60,7 +61,7 @@ public sealed class MediaChangeRefreshTests(DatabaseFixture database) : IAsyncLi
         Assert.Contains(image, await VisitAsync("/through").ConfigureAwait(true), StringComparison.Ordinal);
         var before = await GenerationsAsync().ConfigureAwait(true);
 
-        Assert.Equal(HttpStatusCode.NoContent, (await QuickBuilder.IntegrationTests.Media.UsageScenario.DeleteAsync(_scenario.Admin, _scenario.SiteA, _file, confirmInUse: true).ConfigureAwait(true)).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await QuickBuilder.IntegrationTests.Media.UsageScenario.DeleteAsync(_scenario.Admin, _scenario.SiteA, _file, confirmInUse: true).ConfigureAwait(true)).StatusCode);
         await DispatchAsync().ConfigureAwait(true);
 
         var after = await GenerationsAsync().ConfigureAwait(true);
@@ -70,6 +71,38 @@ public sealed class MediaChangeRefreshTests(DatabaseFixture database) : IAsyncLi
 
         Assert.DoesNotContain(image, await VisitAsync("/direct").ConfigureAwait(true), StringComparison.Ordinal);
         Assert.DoesNotContain(image, await VisitAsync("/through").ConfigureAwait(true), StringComparison.Ordinal);
+    }
+
+    /// <summary>021 FR-026, SC-005: restoring the file brings it back on exactly the pages that show it.</summary>
+    [Fact]
+    public async Task Pages_showing_a_restored_file_are_refreshed_and_show_it_again()
+    {
+        var image = $"/_media/{_file:N}.png";
+
+        // Another instance, with a cache of its own and which handles no event itself (021 T051).
+        using var second = new QuickBuilderApp(_scenario.App.ConnectionString);
+        using var secondVisitor = second.CreateClientForHost(PagesScenario.HostA);
+        Assert.Contains(image, await secondVisitor.GetStringAsync(new Uri("/direct", UriKind.Relative)).ConfigureAwait(true), StringComparison.Ordinal);
+
+        Assert.Equal(HttpStatusCode.OK, (await QuickBuilder.IntegrationTests.Media.UsageScenario.DeleteAsync(_scenario.Admin, _scenario.SiteA, _file, confirmInUse: true).ConfigureAwait(true)).StatusCode);
+        await DispatchAsync().ConfigureAwait(true);
+        Assert.DoesNotContain(image, await VisitAsync("/direct").ConfigureAwait(true), StringComparison.Ordinal);
+        Assert.DoesNotContain(image, await secondVisitor.GetStringAsync(new Uri("/direct", UriKind.Relative)).ConfigureAwait(true), StringComparison.Ordinal);
+        var before = await GenerationsAsync().ConfigureAwait(true);
+
+        var restored = await _scenario.Admin.PostAsJsonAsync(
+            new Uri($"/api/v1/media/sites/{_scenario.SiteA}/trash/files/{_file}/restore", UriKind.Relative),
+            new { confirmedAddress = "top" }).ConfigureAwait(true);
+        Assert.Equal(HttpStatusCode.OK, restored.StatusCode);
+        await DispatchAsync().ConfigureAwait(true);
+
+        var after = await GenerationsAsync().ConfigureAwait(true);
+        Assert.Equal(before[_direct] + 1, after[_direct]);
+        Assert.Equal(before[_throughComponent] + 1, after[_throughComponent]);
+        Assert.Equal(before[_unrelated], after[_unrelated]);
+        Assert.Contains(image, await VisitAsync("/direct").ConfigureAwait(true), StringComparison.Ordinal);
+        Assert.Contains(image, await VisitAsync("/through").ConfigureAwait(true), StringComparison.Ordinal);
+        Assert.Contains(image, await secondVisitor.GetStringAsync(new Uri("/direct", UriKind.Relative)).ConfigureAwait(true), StringComparison.Ordinal);
     }
 
     [Fact]

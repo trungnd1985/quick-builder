@@ -50,7 +50,7 @@ public sealed class ItemRollbackTests(DatabaseFixture database)
         item = await ItemsApi.PublishOkAsync(scenario.Admin, scenario.Site, scenario.Posts, id, ItemsApi.Revision(item));
 
         // Version 1 named Ann; Ann is deleted (nothing refers to her any more but version 1).
-        Assert.Equal(HttpStatusCode.NoContent, (await ItemsApi.DeleteAsync(scenario.Admin, scenario.Site, scenario.People, ItemsApi.Id(ann), ItemsApi.Revision(ann))).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await ItemsApi.DeleteAsync(scenario.Admin, scenario.Site, scenario.People, ItemsApi.Id(ann), ItemsApi.Revision(ann))).StatusCode);
 
         var refused = await PagesApi.ProblemAsync(await ItemsApi.RollbackAsync(scenario.Admin, scenario.Site, scenario.Posts, id, 1, ItemsApi.Revision(item)));
         Assert.Equal("cms.version_not_publishable", refused.Code);

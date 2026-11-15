@@ -27,11 +27,13 @@ namespace QuickBuilder.Pages.Features.RefreshPagesShowingMedia;
 /// </para>
 /// </remarks>
 internal sealed class RefreshPagesShowingMediaHandler(IServiceScopeFactory scopes, IItemMediaUsageReader media, ISiteDirectory sites)
-    : IIntegrationEventHandler<FileDeleted>, IIntegrationEventHandler<FileChanged>
+    : IIntegrationEventHandler<FileDeleted>, IIntegrationEventHandler<FileChanged>, IIntegrationEventHandler<FileRestored>
 {
     private const string DeletedHandlerName = nameof(RefreshPagesShowingMediaHandler);
 
     private const string ChangedHandlerName = nameof(RefreshPagesShowingMediaHandler) + ".FileChanged";
+
+    private const string RestoredHandlerName = nameof(RefreshPagesShowingMediaHandler) + ".FileRestored";
 
     public Task HandleAsync(FileDeleted integrationEvent, CancellationToken cancellationToken)
     {
@@ -45,6 +47,14 @@ internal sealed class RefreshPagesShowingMediaHandler(IServiceScopeFactory scope
         ArgumentNullException.ThrowIfNull(integrationEvent);
         return RefreshAsync(
             integrationEvent.Id, integrationEvent.OccurredAtUtc, integrationEvent.SiteId, integrationEvent.FileId, ChangedHandlerName, cancellationToken);
+    }
+
+    /// <summary>021 FR-026: live pages that show a restored file show it again from their next request.</summary>
+    public Task HandleAsync(FileRestored integrationEvent, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(integrationEvent);
+        return RefreshAsync(
+            integrationEvent.Id, integrationEvent.OccurredAtUtc, integrationEvent.SiteId, integrationEvent.FileId, RestoredHandlerName, cancellationToken);
     }
 
     private Task RefreshAsync(

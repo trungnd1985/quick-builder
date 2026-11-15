@@ -86,7 +86,7 @@ internal sealed class PagesDbContext(DbContextOptions<PagesDbContext> options, I
     /// administrative surface (research P-15).
     /// </summary>
     /// <remarks>
-    /// The module's only <c>AcrossAllSites</c> call. The admin surface has no resolved site,
+    /// One of the module's two <c>AcrossAllSites</c> calls. The admin surface has no resolved site,
     /// so the query filters match nothing there; every Pages endpoint names its site in the
     /// route instead, and has already checked the caller may see it. Keeping the bypass and
     /// its <c>SiteId</c> predicate together here means no handler can drop one and keep the
@@ -99,6 +99,12 @@ internal sealed class PagesDbContext(DbContextOptions<PagesDbContext> options, I
         Set<T>()
             .AcrossAllSites("Admin operation on a site named explicitly in the route (001 FR-011b).")
             .Where(e => e.SiteId == siteId);
+
+    /// <summary>The rows of every site, for a background job (021 TR-13).</summary>
+    /// <remarks>The module's second and last <c>AcrossAllSites</c> call: the purge reads every site's trash.</remarks>
+    internal IQueryable<T> ForBackgroundWork<T>()
+        where T : class, ISiteOwned =>
+        Set<T>().AcrossAllSites("A background job reads every site; each row is then handled in its own site (021 TR-13).");
 
     /// <summary>
     /// Makes the next save update the tree's root row, so its <c>xmin</c> is checked and
@@ -140,7 +146,7 @@ internal sealed class PagesDbContext(DbContextOptions<PagesDbContext> options, I
                 .OnDelete(DeleteBehavior.Cascade);
             entity.Navigation(e => e.Pages).UsePropertyAccessMode(PropertyAccessMode.Field);
 
-            entity.HasQueryFilter(e => e.SiteId == CurrentSiteId);
+            entity.HasQueryFilter(QueryFilters.Site, e => e.SiteId == CurrentSiteId);
         });
 
         modelBuilder.Entity<Page>(entity =>
@@ -153,6 +159,16 @@ internal sealed class PagesDbContext(DbContextOptions<PagesDbContext> options, I
                 t.HasCheckConstraint("ck_pages_slug", "slug ~ '^[a-z0-9]+(-[a-z0-9]+)*$'");
                 t.HasCheckConstraint("ck_pages_depth", $"depth BETWEEN 1 AND {PageAddresses.MaxDepth}");
                 t.HasCheckConstraint("ck_pages_home_top_level", "NOT is_home OR (parent_id IS NULL AND path = '/')");
+
+                // 021 data-model §2: the trash columns are all set or all null, and a trashed
+                // page is detached from its parent, the home slot and its collection (TR-05).
+                t.HasCheckConstraint(
+                    "ck_pages_trash",
+                    "(trashed_at_utc IS NULL) = (trashed_by IS NULL) AND (trashed_at_utc IS NULL) = (trashed_path IS NULL) " +
+                    "AND (trashed_at_utc IS NULL) = (trashed_position IS NULL) AND (trashed_at_utc IS NULL) = (trashed_was_home IS NULL) " +
+                    "AND (trashed_at_utc IS NULL) = (trashed_had_schedule IS NULL) " +
+                    "AND (trashed_at_utc IS NOT NULL OR (trashed_parent_id IS NULL AND trashed_template_collection_id IS NULL)) " +
+                    "AND (trashed_at_utc IS NULL OR (parent_id IS NULL AND NOT is_home AND template_collection_id IS NULL))");
             });
 
             entity.HasKey(e => e.Id);
@@ -176,7 +192,22 @@ internal sealed class PagesDbContext(DbContextOptions<PagesDbContext> options, I
                 .OnDelete(DeleteBehavior.Restrict);
 
             // FR-006: the backstop behind the tree's own check, and rendering's lookup in #12.
-            entity.HasIndex(e => new { e.SiteId, e.Path }).IsUnique().HasDatabaseName("ux_pages_site_path");
+            // 021 TR-04: a trashed page frees its address (FR-004).
+            entity
+                .HasIndex(e => new { e.SiteId, e.Path })
+                .IsUnique()
+                .HasFilter("trashed_at_utc IS NULL")
+                .HasDatabaseName("ux_pages_site_path");
+
+            // 021 TR-19: the trash list, newest first.
+            entity
+                .HasIndex(e => new { e.SiteId, e.TrashedAtUtc, e.Id })
+                .IsDescending(false, true, false)
+                .HasFilter("trashed_at_utc IS NOT NULL")
+                .HasDatabaseName("ix_pages_trash");
+
+            entity.Property(e => e.TrashedPath).HasMaxLength(PageAddresses.MaxPathLength);
+            entity.Ignore(e => e.IsTrashed);
 
             // FR-003: at most one home page per site.
             entity
@@ -202,7 +233,8 @@ internal sealed class PagesDbContext(DbContextOptions<PagesDbContext> options, I
             entity.Ignore(e => e.IsTemplate);
             entity.Ignore(e => e.CopyOrigin);
 
-            entity.HasQueryFilter(e => e.SiteId == CurrentSiteId);
+            entity.HasQueryFilter(QueryFilters.Site, e => e.SiteId == CurrentSiteId);
+            entity.HasQueryFilter(QueryFilters.Trash, e => e.TrashedAtUtc == null);
         });
 
         modelBuilder.Entity<PageDraft>(entity =>
@@ -220,14 +252,22 @@ internal sealed class PagesDbContext(DbContextOptions<PagesDbContext> options, I
                 .HasForeignKey<PageDraft>(e => e.PageId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            entity.HasQueryFilter(e => e.SiteId == CurrentSiteId);
+            entity.HasQueryFilter(QueryFilters.Site, e => e.SiteId == CurrentSiteId);
         });
 
         modelBuilder.Entity<Component>(entity =>
         {
             entity.ToTable("components", Schema, t =>
+            {
                 // 023 data-model §2.1.
-                t.HasCheckConstraint("ck_components_copy_origin", "(copied_from_id IS NULL) = (copied_from_saved_at_utc IS NULL) AND (copied_from_id IS NULL) = (copied_by IS NULL) AND (copied_from_id IS NULL) = (copied_at_utc IS NULL)"));
+                t.HasCheckConstraint("ck_components_copy_origin", "(copied_from_id IS NULL) = (copied_from_saved_at_utc IS NULL) AND (copied_from_id IS NULL) = (copied_by IS NULL) AND (copied_from_id IS NULL) = (copied_at_utc IS NULL)");
+
+                // 021 data-model §2.
+                t.HasCheckConstraint(
+                    "ck_components_trash",
+                    "(trashed_at_utc IS NULL) = (trashed_by IS NULL) AND (trashed_at_utc IS NULL) = (trashed_was_live IS NULL) " +
+                    "AND (trashed_at_utc IS NULL) = (trashed_had_schedule IS NULL)");
+            });
 
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Id).ValueGeneratedNever();
@@ -238,12 +278,22 @@ internal sealed class PagesDbContext(DbContextOptions<PagesDbContext> options, I
             entity.Ignore(e => e.DomainEvents);
             entity.Ignore(e => e.CopyOrigin);
 
+            // 021 TR-04: a trashed component frees its name (FR-004).
             entity
                 .HasIndex(e => new { e.SiteId, e.Name })
                 .IsUnique()
+                .HasFilter("trashed_at_utc IS NULL")
                 .HasDatabaseName("ux_components_site_name");
 
-            entity.HasQueryFilter(e => e.SiteId == CurrentSiteId);
+            entity
+                .HasIndex(e => new { e.SiteId, e.TrashedAtUtc, e.Id })
+                .IsDescending(false, true, false)
+                .HasFilter("trashed_at_utc IS NOT NULL")
+                .HasDatabaseName("ix_components_trash");
+            entity.Ignore(e => e.IsTrashed);
+
+            entity.HasQueryFilter(QueryFilters.Site, e => e.SiteId == CurrentSiteId);
+            entity.HasQueryFilter(QueryFilters.Trash, e => e.TrashedAtUtc == null);
         });
 
         modelBuilder.Entity<ComponentDraft>(entity =>
@@ -261,7 +311,7 @@ internal sealed class PagesDbContext(DbContextOptions<PagesDbContext> options, I
                 .HasForeignKey<ComponentDraft>(e => e.ComponentId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            entity.HasQueryFilter(e => e.SiteId == CurrentSiteId);
+            entity.HasQueryFilter(QueryFilters.Site, e => e.SiteId == CurrentSiteId);
         });
 
         modelBuilder.Entity<ComponentUsage>(entity =>
@@ -288,7 +338,7 @@ internal sealed class PagesDbContext(DbContextOptions<PagesDbContext> options, I
 
             entity.HasIndex(e => new { e.SiteId, e.ComponentId }).HasDatabaseName("ix_component_usages_site_component");
 
-            entity.HasQueryFilter(e => e.SiteId == CurrentSiteId);
+            entity.HasQueryFilter(QueryFilters.Site, e => e.SiteId == CurrentSiteId);
         });
 
         ConfigurePublishing(modelBuilder);
@@ -338,7 +388,7 @@ internal sealed class PagesDbContext(DbContextOptions<PagesDbContext> options, I
                 .HasFilter("live_version_id IS NOT NULL")
                 .HasDatabaseName("ix_publications_site_live");
 
-            entity.HasQueryFilter(e => e.SiteId == CurrentSiteId);
+            entity.HasQueryFilter(QueryFilters.Site, e => e.SiteId == CurrentSiteId);
         });
 
         modelBuilder.Entity<PublishedVersion>(entity =>
@@ -370,7 +420,7 @@ internal sealed class PagesDbContext(DbContextOptions<PagesDbContext> options, I
                 .IsUnique()
                 .HasDatabaseName("ux_published_versions_subject_number");
 
-            entity.HasQueryFilter(e => e.SiteId == CurrentSiteId);
+            entity.HasQueryFilter(QueryFilters.Site, e => e.SiteId == CurrentSiteId);
         });
 
         modelBuilder.Entity<LiveDependency>(entity =>
@@ -392,7 +442,7 @@ internal sealed class PagesDbContext(DbContextOptions<PagesDbContext> options, I
                 .HasIndex(e => new { e.SiteId, e.TargetKind, e.TargetId })
                 .HasDatabaseName("ix_live_dependencies_target");
 
-            entity.HasQueryFilter(e => e.SiteId == CurrentSiteId);
+            entity.HasQueryFilter(QueryFilters.Site, e => e.SiteId == CurrentSiteId);
         });
 
         // 013 data-model.md §2.1, §2.2 (research MV-05): where media files are used.
@@ -407,7 +457,7 @@ internal sealed class PagesDbContext(DbContextOptions<PagesDbContext> options, I
             // "Where is this file used?" is the question Media asks.
             entity.HasIndex(e => new { e.SiteId, e.MediaId }).HasDatabaseName("ix_draft_media_references_media");
 
-            entity.HasQueryFilter(e => e.SiteId == CurrentSiteId);
+            entity.HasQueryFilter(QueryFilters.Site, e => e.SiteId == CurrentSiteId);
         });
 
         modelBuilder.Entity<VersionMediaReference>(entity =>
@@ -424,7 +474,7 @@ internal sealed class PagesDbContext(DbContextOptions<PagesDbContext> options, I
 
             entity.HasIndex(e => new { e.SiteId, e.MediaId }).HasDatabaseName("ix_version_media_references_media");
 
-            entity.HasQueryFilter(e => e.SiteId == CurrentSiteId);
+            entity.HasQueryFilter(QueryFilters.Site, e => e.SiteId == CurrentSiteId);
         });
 
         // 016 data-model §1.3 (research TB-13): where collections are used.
@@ -443,7 +493,7 @@ internal sealed class PagesDbContext(DbContextOptions<PagesDbContext> options, I
             // "Who uses this collection?" is the question Cms asks before a delete.
             entity.HasIndex(e => new { e.SiteId, e.CollectionId }).HasDatabaseName("ix_collection_uses_collection");
 
-            entity.HasQueryFilter(e => e.SiteId == CurrentSiteId);
+            entity.HasQueryFilter(QueryFilters.Site, e => e.SiteId == CurrentSiteId);
         });
 
         modelBuilder.Entity<PublishSchedule>(entity =>
@@ -478,7 +528,7 @@ internal sealed class PagesDbContext(DbContextOptions<PagesDbContext> options, I
                 .HasFilter("state = 'pending'")
                 .HasDatabaseName("ux_publish_schedules_pending");
 
-            entity.HasQueryFilter(e => e.SiteId == CurrentSiteId);
+            entity.HasQueryFilter(QueryFilters.Site, e => e.SiteId == CurrentSiteId);
         });
 
         ConfigureRedirects(modelBuilder);
@@ -506,7 +556,7 @@ internal sealed class PagesDbContext(DbContextOptions<PagesDbContext> options, I
                 .IsDescending(false, false, false, true)
                 .HasDatabaseName("ix_publish_log_subject");
 
-            entity.HasQueryFilter(e => e.SiteId == CurrentSiteId);
+            entity.HasQueryFilter(QueryFilters.Site, e => e.SiteId == CurrentSiteId);
         });
     }
 
@@ -564,7 +614,7 @@ internal sealed class PagesDbContext(DbContextOptions<PagesDbContext> options, I
                 .HasFilter("target_path IS NOT NULL")
                 .HasDatabaseName("ix_redirects_target_path");
 
-            entity.HasQueryFilter(e => e.SiteId == CurrentSiteId);
+            entity.HasQueryFilter(QueryFilters.Site, e => e.SiteId == CurrentSiteId);
         });
 
         modelBuilder.Entity<RedirectUsage>(entity =>
@@ -577,7 +627,7 @@ internal sealed class PagesDbContext(DbContextOptions<PagesDbContext> options, I
                 .WithOne()
                 .HasForeignKey<RedirectUsage>(e => e.RedirectId)
                 .OnDelete(DeleteBehavior.Cascade);
-            entity.HasQueryFilter(e => e.SiteId == CurrentSiteId);
+            entity.HasQueryFilter(QueryFilters.Site, e => e.SiteId == CurrentSiteId);
         });
 
         modelBuilder.Entity<RedirectChange>(entity =>
@@ -604,7 +654,7 @@ internal sealed class PagesDbContext(DbContextOptions<PagesDbContext> options, I
                 .IsDescending(false, true)
                 .HasDatabaseName("ix_redirect_changes_site_time");
 
-            entity.HasQueryFilter(e => e.SiteId == CurrentSiteId);
+            entity.HasQueryFilter(QueryFilters.Site, e => e.SiteId == CurrentSiteId);
         });
 
         modelBuilder.Entity<SitemapState>(entity =>
@@ -612,7 +662,7 @@ internal sealed class PagesDbContext(DbContextOptions<PagesDbContext> options, I
             entity.ToTable("sitemap_state", Schema);
             entity.HasKey(e => e.SiteId);
             entity.Property(e => e.SiteId).ValueGeneratedNever();
-            entity.HasQueryFilter(e => e.SiteId == CurrentSiteId);
+            entity.HasQueryFilter(QueryFilters.Site, e => e.SiteId == CurrentSiteId);
         });
     }
 
@@ -638,7 +688,7 @@ internal sealed class PagesDbContext(DbContextOptions<PagesDbContext> options, I
                 .IsUnique()
                 .HasDatabaseName("ux_menus_site_name");
 
-            entity.HasQueryFilter(e => e.SiteId == CurrentSiteId);
+            entity.HasQueryFilter(QueryFilters.Site, e => e.SiteId == CurrentSiteId);
         });
 
         modelBuilder.Entity<MenuDraft>(entity =>
@@ -658,7 +708,7 @@ internal sealed class PagesDbContext(DbContextOptions<PagesDbContext> options, I
                 .HasForeignKey<MenuDraft>(e => e.MenuId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            entity.HasQueryFilter(e => e.SiteId == CurrentSiteId);
+            entity.HasQueryFilter(QueryFilters.Site, e => e.SiteId == CurrentSiteId);
         });
 
         modelBuilder.Entity<MenuTarget>(entity =>
@@ -682,7 +732,7 @@ internal sealed class PagesDbContext(DbContextOptions<PagesDbContext> options, I
                 .HasIndex(e => new { e.SiteId, e.TargetKind, e.TargetId })
                 .HasDatabaseName("ix_menu_targets_target");
 
-            entity.HasQueryFilter(e => e.SiteId == CurrentSiteId);
+            entity.HasQueryFilter(QueryFilters.Site, e => e.SiteId == CurrentSiteId);
         });
 
         modelBuilder.Entity<MenuUsage>(entity =>
@@ -704,7 +754,7 @@ internal sealed class PagesDbContext(DbContextOptions<PagesDbContext> options, I
 
             entity.HasIndex(e => new { e.SiteId, e.MenuId }).HasDatabaseName("ix_menu_usages_menu");
 
-            entity.HasQueryFilter(e => e.SiteId == CurrentSiteId);
+            entity.HasQueryFilter(QueryFilters.Site, e => e.SiteId == CurrentSiteId);
         });
 
         modelBuilder.Entity<MenuChange>(entity =>
@@ -722,7 +772,7 @@ internal sealed class PagesDbContext(DbContextOptions<PagesDbContext> options, I
                 .IsDescending(false, false, true)
                 .HasDatabaseName("ix_menu_changes_menu");
 
-            entity.HasQueryFilter(e => e.SiteId == CurrentSiteId);
+            entity.HasQueryFilter(QueryFilters.Site, e => e.SiteId == CurrentSiteId);
         });
     }
 

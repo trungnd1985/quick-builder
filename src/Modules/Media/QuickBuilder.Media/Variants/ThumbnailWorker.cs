@@ -7,6 +7,7 @@ using QuickBuilder.Media.Domain;
 using QuickBuilder.Media.Imaging;
 using QuickBuilder.Media.Infrastructure;
 using QuickBuilder.Shared.Infrastructure.MultiSite;
+using QuickBuilder.Shared.Infrastructure.Trash;
 
 namespace QuickBuilder.Media.Variants;
 
@@ -61,6 +62,7 @@ internal sealed class ThumbnailWorker(
             var database = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
             file = await database.MediaFiles
                 .AcrossAllSites("A background thumbnail for a file named by its site and id (013 MV-13).")
+                .IncludingTrash("A file trashed while its thumbnail was queued still gets it, for its restore (021 TR-18).")
                 .AsNoTracking()
                 .FirstOrDefaultAsync(f => f.Id == request.FileId && f.SiteId == request.SiteId, cancellationToken)
                 .ConfigureAwait(false);

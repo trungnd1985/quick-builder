@@ -10,6 +10,7 @@ using QuickBuilder.Media.Variants;
 using QuickBuilder.Shared.Infrastructure.MultiSite;
 using QuickBuilder.Shared.Infrastructure.Outbox;
 using QuickBuilder.Shared.Infrastructure.Storage;
+using QuickBuilder.Shared.Infrastructure.Trash;
 
 namespace QuickBuilder.Media.Infrastructure;
 
@@ -91,6 +92,7 @@ internal sealed class ImageMetadataBackfillService(
             var database = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
             sites = await database.MediaFiles
                 .AcrossAllSites("Finds which sites still have images without dimensions; each is then processed on its own (013 MV-10).")
+                .IncludingTrash("Trashed images are backfilled too, so they come back complete (021 TR-18).")
                 .AsNoTracking()
                 .Where(f => f.MetadataState == MediaMetadataState.Pending)
                 .Select(f => f.SiteId)
@@ -126,6 +128,7 @@ internal sealed class ImageMetadataBackfillService(
 
             var batch = await database.MediaFiles
                 .AcrossAllSites("Background backfill of one site, named explicitly below (013 MV-10).")
+                .IncludingTrash("Trashed images are backfilled too, so they come back complete (021 TR-18).")
                 .Where(f => f.SiteId == siteId && f.MetadataState == MediaMetadataState.Pending && !seen.Contains(f.Id))
                 .OrderBy(f => f.Id)
                 .Take(BatchSize)

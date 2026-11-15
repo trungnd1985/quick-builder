@@ -53,7 +53,8 @@ internal sealed class CmsPublishedReadDbContext(DbContextOptions<CmsPublishedRea
             entity.Property(e => e.LastPublishedAtUtc).HasColumnName("published_at_utc");
 
             // Only items with published data exist for the public path (Principle VII).
-            entity.HasQueryFilter(e => e.SiteId == CurrentSiteId && e.PublishedSlug != null);
+            entity.HasQueryFilter(QueryFilters.Site, e => e.SiteId == CurrentSiteId && e.PublishedSlug != null);
+            entity.HasQueryFilter(QueryFilters.Trash, e => e.TrashedAtUtc == null);
         });
 
         modelBuilder.Entity<PublishedReferenceRow>(entity =>
@@ -62,7 +63,7 @@ internal sealed class CmsPublishedReadDbContext(DbContextOptions<CmsPublishedRea
             entity.HasKey(e => new { e.SourceItemId, e.FieldId, e.TargetItemId });
 
             // Only references held by published values.
-            entity.HasQueryFilter(e => e.SiteId == CurrentSiteId && e.InPublished);
+            entity.HasQueryFilter(QueryFilters.Site, e => e.SiteId == CurrentSiteId && e.InPublished);
         });
 
         modelBuilder.Entity<CollectionSchemaRow>(entity =>
@@ -70,7 +71,7 @@ internal sealed class CmsPublishedReadDbContext(DbContextOptions<CmsPublishedRea
             entity.ToTable("collections");
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Schema).HasColumnType("jsonb");
-            entity.HasQueryFilter(e => e.SiteId == CurrentSiteId);
+            entity.HasQueryFilter(QueryFilters.Site, e => e.SiteId == CurrentSiteId);
         });
 
         modelBuilder.UseSnakeCaseColumns();
@@ -83,8 +84,11 @@ internal sealed class CmsPublishedReadDbContext(DbContextOptions<CmsPublishedRea
 }
 
 /// <summary>The published columns of <c>cms.items</c>; nothing of the draft.</summary>
-internal sealed class PublishedItemRow : ISiteOwned, IDisposable
+internal sealed class PublishedItemRow : ISiteOwned, ITrashable, IDisposable
 {
+    /// <summary>Set while the item is in the trash; a trashed item is never published (021 TR-07).</summary>
+    public DateTimeOffset? TrashedAtUtc { get; set; }
+
     public Guid Id { get; set; }
 
     public Guid SiteId { get; set; }

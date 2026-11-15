@@ -31,7 +31,11 @@ public interface IMediaUsageReader
 /// <param name="DraftPlaces">Places whose current draft shows it.</param>
 /// <param name="LivePlaces">Places whose live published version shows it.</param>
 /// <param name="HistoryOnlyPlaces">Places whose only use is in earlier published versions kept for rollback.</param>
-public sealed record MediaUsageSummary(int Places, int DraftPlaces, int LivePlaces, int HistoryOnlyPlaces)
+/// <param name="TrashedPlaces">
+/// Pages and components in the trash that use the file (021 FR-027). They are not counted in the
+/// others, so they never make the file in use or live.
+/// </param>
+public sealed record MediaUsageSummary(int Places, int DraftPlaces, int LivePlaces, int HistoryOnlyPlaces, int TrashedPlaces = 0)
 {
     /// <summary>No page or component uses the file.</summary>
     public static MediaUsageSummary None { get; } = new(0, 0, 0, 0);
@@ -51,6 +55,7 @@ public sealed record MediaUsageSummary(int Places, int DraftPlaces, int LivePlac
 /// <param name="Live">Its live version shows the file.</param>
 /// <param name="InHistory">An earlier version it keeps for rollback shows the file.</param>
 /// <param name="LivePagesThroughComponent">For a live component, how many live pages show it; otherwise null.</param>
+/// <param name="InTrash">The page or component is in the trash (021 FR-027): shown apart, never blocking.</param>
 public sealed record MediaUsagePlace(
     string Kind,
     Guid Id,
@@ -58,4 +63,5 @@ public sealed record MediaUsagePlace(
     bool InDraft,
     bool Live,
     bool InHistory,
-    int? LivePagesThroughComponent);
+    int? LivePagesThroughComponent,
+    bool InTrash = false);

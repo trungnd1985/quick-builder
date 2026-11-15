@@ -56,7 +56,7 @@ internal sealed class WidgetsDbContext(DbContextOptions<WidgetsDbContext> option
             entity.ToTable("widgets", Schema);
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Name).HasMaxLength(100).IsRequired();
-            entity.HasQueryFilter(w => w.SiteId == CurrentSiteId);
+            entity.HasQueryFilter(QueryFilters.Site, w => w.SiteId == CurrentSiteId);
         });
 
         modelBuilder.UseSnakeCaseColumns();

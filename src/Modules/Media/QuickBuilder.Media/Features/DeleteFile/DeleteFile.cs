@@ -8,7 +8,7 @@ using QuickBuilder.Pages.Contracts.Publishing;
 using QuickBuilder.Shared.Infrastructure.Dispatch;
 using QuickBuilder.Shared.Infrastructure.MultiSite;
 using QuickBuilder.Shared.Infrastructure.Outbox;
-using QuickBuilder.Shared.Infrastructure.Storage;
+using QuickBuilder.Shared.Infrastructure.Trash;
 using QuickBuilder.Shared.Kernel.Authorization;
 using QuickBuilder.Shared.Kernel.Dispatch;
 using QuickBuilder.Shared.Kernel.Results;
@@ -19,15 +19,16 @@ namespace QuickBuilder.Media.Features.DeleteFile;
 internal sealed record DeleteFileCommand(Guid SiteId, Guid FileId, Guid UserId, bool ConfirmInUse = false) : ICommand<DeleteFileOutcome>;
 
 /// <summary>How a delete ended. A <c>media.in_use</c> refusal carries the usage to show (013 FR-015).</summary>
-internal sealed record DeleteFileOutcome(Error? Error, MediaUsageSummary? Usage = null)
+internal sealed record DeleteFileOutcome(Error? Error, MediaUsageSummary? Usage = null, Trash.TrashReceiptResponse? Receipt = null)
 {
-    public static DeleteFileOutcome Deleted { get; } = new(Error: null);
+    public static DeleteFileOutcome Trashed(Trash.TrashReceiptResponse receipt) => new(Error: null, Receipt: receipt);
 
     public static DeleteFileOutcome Refused(Error error, MediaUsageSummary? usage = null) => new(error, usage);
 }
 
 /// <summary>
-/// Permanently deletes a file (003 US3, FR-004, clarifications Q2 and Q4, research M-13).
+/// Moves a file to the site's trash (003 US3, FR-004, clarifications Q2 and Q4, research M-13;
+/// 021 FR-001).
 /// </summary>
 /// <remarks>
 /// <para>
@@ -37,10 +38,11 @@ internal sealed record DeleteFileOutcome(Error? Error, MediaUsageSummary? Usage 
 /// that part of the rule depends on the row (M-18).
 /// </para>
 /// <para>
-/// <b>Order.</b> The row goes first, and with it the file leaves the library and its address
-/// on every instance, before this reports success. The bytes are removed straight after. If
-/// that fails, the delete still succeeded: the orphan sweep removes the bytes later (FR-012),
-/// so nothing needs a tombstone or a queue.
+/// <b>Trash (021).</b> The row stays, marked as trashed, and with that the file leaves the
+/// library and its address answers not found on every instance before this reports success.
+/// Its bytes and variants stay until it is purged (FR-003), so a restore brings it back at the
+/// same address. It leaves its folder, so a folder holding only trashed files can be deleted
+/// (TR-05). Its uses are no longer counted, so they never block or warn (FR-027).
 /// </para>
 /// <para>
 /// <b>In use (013 MV-06).</b> A file a published page shows needs the publishing capability as well
@@ -55,8 +57,9 @@ internal sealed class DeleteFileHandler(
     MediaDbContext database,
     ISiteDirectory sites,
     IAccessEvaluator access,
-    IFileStorage storage,
     MediaUsage usage,
+    TrashRetention retention,
+    TimeProvider clock,
     ILogger<DeleteFileHandler> logger) : ICommandHandler<DeleteFileCommand, DeleteFileOutcome>
 {
     public async Task<DeleteFileOutcome> HandleAsync(DeleteFileCommand command, CancellationToken cancellationToken)
@@ -98,11 +101,12 @@ internal sealed class DeleteFileHandler(
             return DeleteFileOutcome.Refused(MediaErrors.InUse, used);
         }
 
-        database.MediaFiles.Remove(file);
+        var now = clock.GetUtcNow();
+        file.MoveToTrash(command.UserId, now);
 
-        // 012: pages that showed it refresh; saved with the delete, so both happen or neither.
+        // 012: pages that showed it refresh; saved with the trash, so both happen or neither (021 TR-08).
         database.OutboxMessages.Add(OutboxMessage.From(
-            new FileDeleted(Guid.CreateVersion7(), DateTimeOffset.UtcNow, file.SiteId, file.Id, command.UserId)));
+            new FileDeleted(Guid.CreateVersion7(), now, file.SiteId, file.Id, command.UserId)));
         try
         {
             await database.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
@@ -113,32 +117,20 @@ internal sealed class DeleteFileHandler(
             return DeleteFileOutcome.Refused(MediaErrors.Conflict);
         }
 
-        logger.LogInformation("Media file {MediaFileId} deleted from site {SiteId}.", file.Id, file.SiteId);
-
-        try
-        {
-            await storage.DeleteAsync(new StorageKey(file.StorageKey), CancellationToken.None).ConfigureAwait(false);
-        }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-        {
-            logger.LogWarning(ex,
-                "The bytes of deleted media file {MediaFileId} on site {SiteId} could not be removed; the orphan sweep will remove them.",
-                file.Id, file.SiteId);
-        }
-
-        return DeleteFileOutcome.Deleted;
+        logger.LogInformation("Media file {MediaFileId} moved to the trash of site {SiteId} by {ActorUserId}.", file.Id, file.SiteId, command.UserId);
+        return DeleteFileOutcome.Trashed(new Trash.TrashReceiptResponse(now, retention.PurgeOn(now)));
     }
 }
 
-/// <summary>Administrative surface: permanently delete a file from a site's library.</summary>
+/// <summary>Administrative surface: delete a file from a site's library, to its trash.</summary>
 [ApiController]
 [Route("api/v1/media/sites/{siteId:guid}/files/{fileId:guid}")]
 public sealed class DeleteFileController(IDispatcher dispatcher, IAccessEvaluator access) : ControllerBase
 {
-    /// <summary>Deletes the file. Permanent: there is no restore (clarification Q2).</summary>
+    /// <summary>Moves the file to the trash, where it can be restored until the receipt's date (021 FR-002).</summary>
     [HttpDelete]
     [RequireCapability(MediaCapabilities.DeleteOwn)]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType<Trash.TrashReceiptResponse>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
@@ -153,7 +145,7 @@ public sealed class DeleteFileController(IDispatcher dispatcher, IAccessEvaluato
         var outcome = await dispatcher.SendAsync(command, cancellationToken).ConfigureAwait(false);
         if (outcome.Error is null)
         {
-            return NoContent();
+            return Ok(outcome.Receipt);
         }
 
         return outcome.Usage is { } used

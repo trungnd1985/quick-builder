@@ -11,7 +11,8 @@ public sealed record CollectionSummaryResponse(
     int FieldCount,
     int ItemCount,
     int Revision,
-    DateTimeOffset UpdatedAtUtc);
+    DateTimeOffset UpdatedAtUtc,
+    int TrashedItemCount = 0);
 
 /// <summary>The site's collections, and whether the caller may change them.</summary>
 public sealed record CollectionListResponse(IReadOnlyList<CollectionSummaryResponse> Collections, bool CanManage);
@@ -36,7 +37,8 @@ public sealed record CollectionResponse(
     DateTimeOffset CreatedAtUtc,
     DateTimeOffset UpdatedAtUtc,
     PersonResponse UpdatedBy,
-    IReadOnlyDictionary<string, string> IdMap);
+    IReadOnlyDictionary<string, string> IdMap,
+    int TrashedItemCount = 0);
 
 /// <summary>A collection's details, as created (contracts/cms-api.yaml, <c>CollectionDetailsInput</c>).</summary>
 public sealed record CollectionDetailsRequest(string? Name, string? Slug, string? Description);

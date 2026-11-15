@@ -149,7 +149,7 @@ internal sealed class SitesDbContext(DbContextOptions<SitesDbContext> options, I
             // FR-013. Expressed here rather than through a generic helper because the
             // filter has to reference CurrentSiteId on this context — see its remarks for
             // why a captured ISiteContext silently filters against the wrong site.
-            entity.HasQueryFilter(h => h.SiteId == CurrentSiteId);
+            entity.HasQueryFilter(QueryFilters.Site, h => h.SiteId == CurrentSiteId);
         });
 
         // 020 data-model §1. Installation data ([InstallationScoped]): a new-site import has no

@@ -59,7 +59,13 @@ internal sealed partial class PageTree : AggregateRoot, ISiteOwned
     /// <summary>The concurrency token, mapped to <c>xmin</c>. Never sent to clients.</summary>
     public uint Version { get; private set; }
 
-    public IReadOnlyList<Page> Pages => _pages;
+    /// <summary>
+    /// The live pages. A trashed page EF fixes up into the navigation (a restore loads it while
+    /// the tree is tracked) is not one of them until it is restored (021 TR-10).
+    /// </summary>
+    public IReadOnlyList<Page> Pages => Live;
+
+    private List<Page> Live => _pages.FindAll(p => !p.IsTrashed);
 
     /// <summary>A site's tree before its first page.</summary>
     public static PageTree Start(Guid siteId, TimeProvider clock)
@@ -90,7 +96,7 @@ internal sealed partial class PageTree : AggregateRoot, ISiteOwned
             return Result.Failure<Page>(PagesErrors.InvalidSlug);
         }
 
-        if (_pages.Count >= PageAddresses.MaxPagesPerSite)
+        if (Live.Count >= PageAddresses.MaxPagesPerSite)
         {
             return Result.Failure<Page>(PagesErrors.TooManyPages);
         }
@@ -136,7 +142,7 @@ internal sealed partial class PageTree : AggregateRoot, ISiteOwned
         siblings.Insert(index.Value, page);
         Renumber(siblings);
         Apply(plan.Value);
-        PageCount = _pages.Count;
+        PageCount = Live.Count;
         UpdatedAtUtc = now;
 
         Raise(new PageCreatedEvent(SiteId, page.Id, parentId, page.Path, now));
@@ -254,7 +260,7 @@ internal sealed partial class PageTree : AggregateRoot, ISiteOwned
                 return Result.Failure(PagesErrors.TemplateNeedsParent);
             }
 
-            if (_pages.Any(p => p.IsTemplate && p.ParentId == parentId && p.Id != pageId))
+            if (Live.Any(p => p.IsTemplate && p.ParentId == parentId && p.Id != pageId))
             {
                 return Result.Failure(PagesErrors.TemplateParentTaken);
             }
@@ -412,17 +418,17 @@ internal sealed partial class PageTree : AggregateRoot, ISiteOwned
                 return Result.Failure(PagesErrors.TemplateNeedsParent);
             }
 
-            if (_pages.Any(p => p.ParentId == pageId))
+            if (Live.Any(p => p.ParentId == pageId))
             {
                 return Result.Failure(PagesErrors.TemplateHasChildren);
             }
 
-            if (_pages.Find(p => p.TemplateCollectionId == collection && p.Id != pageId) is { } other)
+            if (Live.Find(p => p.TemplateCollectionId == collection && p.Id != pageId) is { } other)
             {
                 return Result.Failure(PagesErrors.CollectionHasTemplate(other.Id));
             }
 
-            if (_pages.Any(p => p.IsTemplate && p.ParentId == parentId && p.Id != pageId))
+            if (Live.Any(p => p.IsTemplate && p.ParentId == parentId && p.Id != pageId))
             {
                 return Result.Failure(PagesErrors.TemplateParentTaken);
             }
@@ -464,13 +470,13 @@ internal sealed partial class PageTree : AggregateRoot, ISiteOwned
             return Result.Failure<Page>(PagesErrors.OutOfDate);
         }
 
-        var childCount = _pages.Count(p => p.ParentId == pageId);
+        var childCount = Live.Count(p => p.ParentId == pageId);
         if (childCount > 0)
         {
             return Result.Failure<Page>(PagesErrors.HasChildren(childCount));
         }
 
-        if (page.IsHome && _pages.Count > 1)
+        if (page.IsHome && Live.Count > 1)
         {
             return Result.Failure<Page>(PagesErrors.HomePage);
         }
@@ -480,20 +486,20 @@ internal sealed partial class PageTree : AggregateRoot, ISiteOwned
         siblings.Remove(page);
         _pages.Remove(page);
         Renumber(siblings);
-        PageCount = _pages.Count;
+        PageCount = Live.Count;
         UpdatedAtUtc = now;
 
         Raise(new PageDeletedEvent(SiteId, page.Id, page.Path, now));
         return Result.Success(page);
     }
 
-    private Page? Home => _pages.Find(p => p.IsHome);
+    private Page? Home => Live.Find(p => p.IsHome);
 
-    private Page? Find(Guid pageId) => _pages.Find(p => p.Id == pageId);
+    private Page? Find(Guid pageId) => Live.Find(p => p.Id == pageId);
 
     /// <summary>The pages under <paramref name="parentId"/>, in order, as a new list.</summary>
     private List<Page> Children(Guid? parentId) =>
-        [.. _pages.Where(p => p.ParentId == parentId).OrderBy(p => p.Position)];
+        [.. Live.Where(p => p.ParentId == parentId).OrderBy(p => p.Position)];
 
     private bool IsDescendant(Guid pageId, Guid of)
     {
@@ -557,7 +563,7 @@ internal sealed partial class PageTree : AggregateRoot, ISiteOwned
     /// </remarks>
     private Result<IReadOnlyList<Planned>> Plan(Func<Page, Shape> shapeOf, Shape? added = null)
     {
-        var shapes = _pages.Select(shapeOf).ToList();
+        var shapes = Live.Select(shapeOf).ToList();
         if (added is not null)
         {
             shapes.Add(added);
@@ -582,7 +588,7 @@ internal sealed partial class PageTree : AggregateRoot, ISiteOwned
 
         Walk(parentId: null, parentPath: null, parentIsHome: false, depth: 1);
 
-        var current = _pages.ToDictionary(p => p.Id);
+        var current = Live.ToDictionary(p => p.Id);
         var changed = ordered
             .Where(p => !current.TryGetValue(p.Id, out var page) || page.Path != p.Path || page.Depth != p.Depth)
             .ToList();

@@ -30,7 +30,7 @@ public interface IItemMediaUsageReader
 /// <param name="DraftItems">Items whose draft shows it.</param>
 /// <param name="LiveItems">Items whose published values show it: visitors can see it once items are rendered (#16).</param>
 /// <param name="HistoryOnlyItems">Items whose only use is in versions kept for rollback.</param>
-public sealed record ItemMediaUsageSummary(int Items, int DraftItems, int LiveItems, int HistoryOnlyItems)
+public sealed record ItemMediaUsageSummary(int Items, int DraftItems, int LiveItems, int HistoryOnlyItems, int TrashedItems = 0)
 {
     public static ItemMediaUsageSummary None { get; } = new(0, 0, 0, 0);
 }
@@ -45,4 +45,5 @@ public sealed record ItemMediaUsagePlace(
     bool InDraft,
     bool Live,
     bool InScheduled,
-    bool InHistory);
+    bool InHistory,
+    bool InTrash = false);

@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using QuickBuilder.Cms.Domain;
+using QuickBuilder.Shared.Infrastructure.Trash;
 
 namespace QuickBuilder.Cms.Infrastructure;
 
@@ -100,6 +101,7 @@ internal sealed class ItemIndexBackfillService(
             }
 
             var batch = await database.ForSite<Item>(target.SiteId)
+                .IncludingTrash("Trashed items are re-indexed too; the indexer keeps their slugs and references out (021 TR-04, TR-18).")
                 .Where(i => i.CollectionId == target.CollectionId && i.IndexVersion < ItemIndexer.CurrentVersion)
                 .OrderBy(i => i.Id)
                 .Take(BatchSize)

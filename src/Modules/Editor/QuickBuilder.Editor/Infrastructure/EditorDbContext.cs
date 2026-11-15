@@ -74,7 +74,7 @@ internal sealed class EditorDbContext(DbContextOptions<EditorDbContext> options,
             entity.Property(e => e.Document).HasColumnType("jsonb").IsRequired();
             entity.Property(e => e.Version).IsRowVersion().HasColumnName("xmin").HasColumnType("xid");
 
-            entity.HasQueryFilter(e => e.SiteId == CurrentSiteId);
+            entity.HasQueryFilter(QueryFilters.Site, e => e.SiteId == CurrentSiteId);
         });
 
         // 012 research PR-17: the published design, beside the draft token set.
@@ -87,7 +87,7 @@ internal sealed class EditorDbContext(DbContextOptions<EditorDbContext> options,
             entity.Property(e => e.SiteId).ValueGeneratedNever();
             entity.Property(e => e.Version).IsRowVersion().HasColumnName("xmin").HasColumnType("xid");
 
-            entity.HasQueryFilter(e => e.SiteId == CurrentSiteId);
+            entity.HasQueryFilter(QueryFilters.Site, e => e.SiteId == CurrentSiteId);
         });
 
         modelBuilder.Entity<DesignVersion>(entity =>
@@ -103,7 +103,7 @@ internal sealed class EditorDbContext(DbContextOptions<EditorDbContext> options,
             entity.Property(e => e.Document).HasColumnType("jsonb").IsRequired();
             entity.Property(e => e.Kind).HasMaxLength(16);
 
-            entity.HasQueryFilter(e => e.SiteId == CurrentSiteId);
+            entity.HasQueryFilter(QueryFilters.Site, e => e.SiteId == CurrentSiteId);
         });
 
         // 023 data-model §1.1: one row per open editor tab. The partial unique index is what
@@ -135,7 +135,7 @@ internal sealed class EditorDbContext(DbContextOptions<EditorDbContext> options,
             entity.HasIndex(e => new { e.SiteId, e.DocumentKind, e.DocumentId }, "ix_editing_sessions_document");
             entity.HasIndex(e => e.LastSeenAt);
 
-            entity.HasQueryFilter(e => e.SiteId == CurrentSiteId);
+            entity.HasQueryFilter(QueryFilters.Site, e => e.SiteId == CurrentSiteId);
         });
 
         modelBuilder.Entity<EditingTakeover>(entity =>
@@ -148,7 +148,7 @@ internal sealed class EditorDbContext(DbContextOptions<EditorDbContext> options,
             entity.Property(e => e.DocumentKind).HasMaxLength(16);
             entity.HasIndex(e => new { e.SiteId, e.TakenAt });
 
-            entity.HasQueryFilter(e => e.SiteId == CurrentSiteId);
+            entity.HasQueryFilter(QueryFilters.Site, e => e.SiteId == CurrentSiteId);
         });
 
         // Every module context carries the outbox (003 analysis U1). Since 012 it carries

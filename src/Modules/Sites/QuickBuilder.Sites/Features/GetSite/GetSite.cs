@@ -11,7 +11,7 @@ namespace QuickBuilder.Sites.Features.GetSite;
 
 internal sealed record GetSiteQuery(Guid SiteId) : IQuery<Result<SiteResponse>>;
 
-internal sealed class GetSiteHandler(ISiteDirectory directory, IAccessEvaluator access, TransferJobStore transfers)
+internal sealed class GetSiteHandler(ISiteDirectory directory, IAccessEvaluator access, TransferJobStore transfers, QuickBuilder.Shared.Infrastructure.Trash.TrashRetention retention)
     : IQueryHandler<GetSiteQuery, Result<SiteResponse>>
 {
     public async Task<Result<SiteResponse>> HandleAsync(GetSiteQuery query, CancellationToken cancellationToken)
@@ -32,7 +32,9 @@ internal sealed class GetSiteHandler(ISiteDirectory directory, IAccessEvaluator 
 
         // Every status: a disabled site stays fully visible on the administrative surface
         // (009 FR-019).
-        return Result.Success(await SiteResponses.BuildAsync(site, access, cancellationToken, transfer).ConfigureAwait(false));
+        // 021 FR-002: delete dialogs say until when content can be restored.
+        var response = await SiteResponses.BuildAsync(site, access, cancellationToken, transfer).ConfigureAwait(false);
+        return Result.Success(response with { TrashRetentionDays = retention.Days });
     }
 }
 

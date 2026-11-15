@@ -2,6 +2,7 @@ using System.Text.Json.Nodes;
 using Microsoft.EntityFrameworkCore;
 using QuickBuilder.Cms.Domain;
 using QuickBuilder.Cms.Features;
+using QuickBuilder.Shared.Infrastructure.Trash;
 using QuickBuilder.Shared.Kernel.Results;
 
 namespace QuickBuilder.Cms.Infrastructure;
@@ -12,6 +13,8 @@ namespace QuickBuilder.Cms.Infrastructure;
 /// </summary>
 internal sealed class CollectionReads(CmsDbContext database, CmsAccess access, Schema.CollectionSchemaUpgrades upgrades)
 {
+    private const string TrashCountReason = "A collection's delete confirmation counts its trashed items (021 FR-023).";
+
     private static readonly IReadOnlyDictionary<string, string> NoIds = new Dictionary<string, string>();
 
     /// <summary>
@@ -39,7 +42,14 @@ internal sealed class CollectionReads(CmsDbContext database, CmsAccess access, S
             .CountAsync(i => i.CollectionId == collectionId, cancellationToken)
             .ConfigureAwait(false);
 
-        return Result.Success(await ToResponseAsync(collection, itemCount, NoIds, cancellationToken, schema.Value is { } upgraded ? JsonNode.Parse(upgraded.GetRawText()) : null).ConfigureAwait(false));
+        // 021 FR-023: deleting the collection takes its trashed items too, so its confirmation counts them.
+        var trashed = await database.ForSite<Item>(siteId)
+            .OnlyTrash(TrashCountReason)
+            .CountAsync(i => i.CollectionId == collectionId, cancellationToken)
+            .ConfigureAwait(false);
+
+        var response = await ToResponseAsync(collection, itemCount, NoIds, cancellationToken, schema.Value is { } upgraded ? JsonNode.Parse(upgraded.GetRawText()) : null).ConfigureAwait(false);
+        return Result.Success(response with { TrashedItemCount = trashed });
     }
 
     public async Task<CollectionResponse?> OneAsync(
@@ -108,6 +118,13 @@ internal sealed class CollectionReads(CmsDbContext database, CmsAccess access, S
             .ToDictionaryAsync(g => g.CollectionId, g => g.Count, cancellationToken)
             .ConfigureAwait(false);
 
+        var trashed = await database.ForSite<Item>(siteId)
+            .OnlyTrash(TrashCountReason)
+            .GroupBy(i => i.CollectionId)
+            .Select(g => new { CollectionId = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(g => g.CollectionId, g => g.Count, cancellationToken)
+            .ConfigureAwait(false);
+
         var summaries = collections
             .Select(c => new CollectionSummaryResponse(
                 c.Id,
@@ -116,7 +133,8 @@ internal sealed class CollectionReads(CmsDbContext database, CmsAccess access, S
                 c.SchemaDocument.Fields.Count,
                 counts.GetValueOrDefault(c.Id),
                 c.Revision,
-                c.UpdatedAtUtc))
+                c.UpdatedAtUtc,
+                trashed.GetValueOrDefault(c.Id)))
             .ToList();
 
         return new CollectionListResponse(summaries, await access.CanManageAsync(siteId, cancellationToken).ConfigureAwait(false));

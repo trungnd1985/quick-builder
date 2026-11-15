@@ -116,13 +116,20 @@ internal sealed class ItemIndexer(CmsDbContext database, ItemValidation validati
             var searchText = name is null ? SearchText.Normalise(item.Slug) : SearchText.Combine(name, item.Slug);
             item.ApplyIndex(name, searchText, PublishedText(schema, copy.Published), report, CurrentVersion);
 
-            database.ItemSlugs.Add(new ItemSlug(siteId, item.CollectionId, item.Slug, item.Id));
-            if (item.PublishedSlug is { } publishedSlug && !string.Equals(publishedSlug, item.Slug, StringComparison.OrdinalIgnoreCase))
+            // 021 TR-04, TR-06: a trashed item frees its slug and stops blocking what it refers
+            // to; its media uses stay, so media usage can say "used by content in the trash".
+            // Restoring it runs through here again and puts them back.
+            if (!item.IsTrashed)
             {
-                database.ItemSlugs.Add(new ItemSlug(siteId, item.CollectionId, publishedSlug, item.Id));
+                database.ItemSlugs.Add(new ItemSlug(siteId, item.CollectionId, item.Slug, item.Id));
+                if (item.PublishedSlug is { } publishedSlug && !string.Equals(publishedSlug, item.Slug, StringComparison.OrdinalIgnoreCase))
+                {
+                    database.ItemSlugs.Add(new ItemSlug(siteId, item.CollectionId, publishedSlug, item.Id));
+                }
+
+                database.ItemReferences.AddRange(References(item, schema, copy, collectionOf));
             }
 
-            database.ItemReferences.AddRange(References(item, schema, copy, collectionOf));
             database.ItemMedia.AddRange(Media(item, schema, copy, history.GetValueOrDefault(item.Id) ?? []));
         }
     }

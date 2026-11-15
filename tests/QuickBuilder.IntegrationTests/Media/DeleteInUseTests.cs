@@ -41,14 +41,14 @@ public sealed class DeleteInUseTests(DatabaseFixture database) : IAsyncLifetime
         Assert.Equal(1, problem.GetProperty("usage").GetProperty("draftPlaces").GetInt32());
         Assert.Contains((await _scenario.RowsAsync()), r => r.Id == file);
 
-        Assert.Equal(HttpStatusCode.NoContent, (await UsageScenario.DeleteAsync(_scenario.Admin, Site, file, confirmInUse: true)).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await UsageScenario.DeleteAsync(_scenario.Admin, Site, file, confirmInUse: true)).StatusCode);
         Assert.DoesNotContain((await _scenario.RowsAsync()), r => r.Id == file);
     }
 
     [Fact]
     public async Task An_unused_file_is_deleted_without_confirmation() =>
         Assert.Equal(
-            HttpStatusCode.NoContent,
+            HttpStatusCode.OK,
             (await UsageScenario.DeleteAsync(_scenario.Admin, Site, (await MediaApi.UploadOkAsync(_scenario.Admin, Site)).Id, confirmInUse: false)).StatusCode);
 
     [Fact]
@@ -87,7 +87,7 @@ public sealed class DeleteInUseTests(DatabaseFixture database) : IAsyncLifetime
         {
             Assert.True((await UsageScenario.FileAsync(editor, Site, file)).CanDelete);
             await LibraryApi.RefusedAsync(await UsageScenario.DeleteAsync(editor, Site, file, confirmInUse: false), HttpStatusCode.Conflict, "media.in_use");
-            Assert.Equal(HttpStatusCode.NoContent, (await UsageScenario.DeleteAsync(editor, Site, file, confirmInUse: true)).StatusCode);
+            Assert.Equal(HttpStatusCode.OK, (await UsageScenario.DeleteAsync(editor, Site, file, confirmInUse: true)).StatusCode);
         }
     }
 
@@ -102,7 +102,7 @@ public sealed class DeleteInUseTests(DatabaseFixture database) : IAsyncLifetime
         Assert.Contains(file.Id.ToString("N"), before, StringComparison.Ordinal);
 
         Assert.True((await UsageScenario.FileAsync(designer, Site, file.Id)).CanDelete);
-        Assert.Equal(HttpStatusCode.NoContent, (await UsageScenario.DeleteAsync(designer, Site, file.Id, confirmInUse: true)).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await UsageScenario.DeleteAsync(designer, Site, file.Id, confirmInUse: true)).StatusCode);
 
         // The deletion event refreshes the page; delivered here as the dispatcher would.
         var dispatcher = ActivatorUtilities.CreateInstance<OutboxDispatcher>(_scenario.App.Services);

@@ -107,6 +107,22 @@ namespace QuickBuilder.Pages.Infrastructure.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("site_id");
 
+                    b.Property<DateTimeOffset?>("TrashedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("trashed_at_utc");
+
+                    b.Property<Guid?>("TrashedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("trashed_by");
+
+                    b.Property<bool?>("TrashedHadSchedule")
+                        .HasColumnType("boolean")
+                        .HasColumnName("trashed_had_schedule");
+
+                    b.Property<bool?>("TrashedWasLive")
+                        .HasColumnType("boolean")
+                        .HasColumnName("trashed_was_live");
+
                     b.Property<DateTimeOffset>("UpdatedAtUtc")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at_utc");
@@ -129,11 +145,19 @@ namespace QuickBuilder.Pages.Infrastructure.Migrations
 
                     b.HasIndex("SiteId", "Name")
                         .IsUnique()
-                        .HasDatabaseName("ux_components_site_name");
+                        .HasDatabaseName("ux_components_site_name")
+                        .HasFilter("trashed_at_utc IS NULL");
+
+                    b.HasIndex("SiteId", "TrashedAtUtc", "Id")
+                        .IsDescending(false, true, false)
+                        .HasDatabaseName("ix_components_trash")
+                        .HasFilter("trashed_at_utc IS NOT NULL");
 
                     b.ToTable("components", "pages", t =>
                         {
                             t.HasCheckConstraint("ck_components_copy_origin", "(copied_from_id IS NULL) = (copied_from_saved_at_utc IS NULL) AND (copied_from_id IS NULL) = (copied_by IS NULL) AND (copied_from_id IS NULL) = (copied_at_utc IS NULL)");
+
+                            t.HasCheckConstraint("ck_components_trash", "(trashed_at_utc IS NULL) = (trashed_by IS NULL) AND (trashed_at_utc IS NULL) = (trashed_was_live IS NULL) AND (trashed_at_utc IS NULL) = (trashed_had_schedule IS NULL)");
                         });
                 });
 
@@ -544,6 +568,39 @@ namespace QuickBuilder.Pages.Infrastructure.Migrations
                         .HasColumnType("character varying(200)")
                         .HasColumnName("title");
 
+                    b.Property<DateTimeOffset?>("TrashedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("trashed_at_utc");
+
+                    b.Property<Guid?>("TrashedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("trashed_by");
+
+                    b.Property<bool?>("TrashedHadSchedule")
+                        .HasColumnType("boolean")
+                        .HasColumnName("trashed_had_schedule");
+
+                    b.Property<Guid?>("TrashedParentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("trashed_parent_id");
+
+                    b.Property<string>("TrashedPath")
+                        .HasMaxLength(1024)
+                        .HasColumnType("character varying(1024)")
+                        .HasColumnName("trashed_path");
+
+                    b.Property<int?>("TrashedPosition")
+                        .HasColumnType("integer")
+                        .HasColumnName("trashed_position");
+
+                    b.Property<Guid?>("TrashedTemplateCollectionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("trashed_template_collection_id");
+
+                    b.Property<bool?>("TrashedWasHome")
+                        .HasColumnType("boolean")
+                        .HasColumnName("trashed_was_home");
+
                     b.Property<DateTimeOffset>("UpdatedAtUtc")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at_utc");
@@ -572,7 +629,8 @@ namespace QuickBuilder.Pages.Infrastructure.Migrations
 
                     b.HasIndex("SiteId", "Path")
                         .IsUnique()
-                        .HasDatabaseName("ux_pages_site_path");
+                        .HasDatabaseName("ux_pages_site_path")
+                        .HasFilter("trashed_at_utc IS NULL");
 
                     b.HasIndex("SiteId", "TemplateCollectionId")
                         .IsUnique()
@@ -581,6 +639,11 @@ namespace QuickBuilder.Pages.Infrastructure.Migrations
 
                     b.HasIndex("SiteId", "ParentId", "Position")
                         .HasDatabaseName("ix_pages_site_parent_position");
+
+                    b.HasIndex("SiteId", "TrashedAtUtc", "Id")
+                        .IsDescending(false, true, false)
+                        .HasDatabaseName("ix_pages_trash")
+                        .HasFilter("trashed_at_utc IS NOT NULL");
 
                     b.ToTable("pages", "pages", t =>
                         {
@@ -593,6 +656,8 @@ namespace QuickBuilder.Pages.Infrastructure.Migrations
                             t.HasCheckConstraint("ck_pages_position", "position >= 0");
 
                             t.HasCheckConstraint("ck_pages_slug", "slug ~ '^[a-z0-9]+(-[a-z0-9]+)*$'");
+
+                            t.HasCheckConstraint("ck_pages_trash", "(trashed_at_utc IS NULL) = (trashed_by IS NULL) AND (trashed_at_utc IS NULL) = (trashed_path IS NULL) AND (trashed_at_utc IS NULL) = (trashed_position IS NULL) AND (trashed_at_utc IS NULL) = (trashed_was_home IS NULL) AND (trashed_at_utc IS NULL) = (trashed_had_schedule IS NULL) AND (trashed_at_utc IS NOT NULL OR (trashed_parent_id IS NULL AND trashed_template_collection_id IS NULL)) AND (trashed_at_utc IS NULL OR (parent_id IS NULL AND NOT is_home AND template_collection_id IS NULL))");
                         });
                 });
 

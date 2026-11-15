@@ -6,6 +6,7 @@ using Microsoft.Extensions.Options;
 using QuickBuilder.Media.Domain;
 using QuickBuilder.Shared.Infrastructure.MultiSite;
 using QuickBuilder.Shared.Infrastructure.Storage;
+using QuickBuilder.Shared.Infrastructure.Trash;
 
 namespace QuickBuilder.Media.Infrastructure;
 
@@ -152,6 +153,7 @@ internal sealed class MediaOrphanSweepService(
             var database = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
             current = await database.MediaFiles
                 .AcrossAllSites("Background sweep compares stored variants with every site's rows (013 MV-14).")
+                .IncludingTrash("A trashed file's variants are kept until it is purged (021 TR-18).")
                 .AsNoTracking()
                 .Where(f => ids.Contains(f.Id))
                 .Select(f => new { f.Id, f.SiteId, f.ContentVersion, f.VariantsState })
@@ -196,6 +198,7 @@ internal sealed class MediaOrphanSweepService(
             var database = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
             recorded = (await database.MediaFiles
                     .AcrossAllSites("Background sweep compares stored objects with every site's rows (003 research M-15).")
+                    .IncludingTrash("A trashed file's bytes are kept until it is purged (021 TR-18).")
                     .AsNoTracking()
                     .Where(f => keys.Contains(f.StorageKey))
                     .Select(f => f.StorageKey)

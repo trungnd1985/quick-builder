@@ -162,7 +162,9 @@ internal sealed partial class DraftWrites(
             return Result.Failure<DraftResponse>(PagesErrors.InvalidDocument(checkedDocument));
         }
 
+        // 021 FR-007: a draft row has no trash filter of its own; a trashed page's draft cannot be written.
         var draft = await database.ForSite<PageDraft>(siteId)
+            .Where(d => database.ForSite<Page>(siteId).Any(p => p.Id == d.PageId))
             .FirstOrDefaultAsync(d => d.PageId == pageId, cancellationToken)
             .ConfigureAwait(false);
 
@@ -241,7 +243,7 @@ internal sealed partial class DraftWrites(
             .ConfigureAwait(false);
         await uses.StageAsync(siteId, SubjectKinds.Page, pageId, CollectionUsageStates.Draft, text, template, cancellationToken).ConfigureAwait(false);
 
-        return await SaveAsync(draft, cancellationToken).ConfigureAwait(false);
+        return await SaveAsync(draft, siteId, referenced, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<Result<DraftResponse>> SaveComponentDraftAsync(
@@ -260,7 +262,9 @@ internal sealed partial class DraftWrites(
             return Result.Failure<DraftResponse>(PagesErrors.InvalidDocument(checkedDocument));
         }
 
+        // 021 FR-007: as for pages.
         var draft = await database.ForSite<ComponentDraft>(siteId)
+            .Where(d => database.ForSite<Component>(siteId).Any(c => c.Id == d.ComponentId))
             .FirstOrDefaultAsync(d => d.ComponentId == componentId, cancellationToken)
             .ConfigureAwait(false);
 
@@ -411,11 +415,41 @@ internal sealed partial class DraftWrites(
         Message = "Draft save refused as out of date: site {SiteId}, {Kind} {DocumentId}, by {ActorId}; the stored draft was saved by {ChangedById}")]
     private static partial void LogDraftConflict(ILogger logger, Guid siteId, string kind, Guid documentId, Guid actorId, Guid changedById);
 
-    private async Task<Result<DraftResponse>> SaveAsync(Draft draft, CancellationToken cancellationToken)
+    private Task<Result<DraftResponse>> SaveAsync(Draft draft, CancellationToken cancellationToken) =>
+        SaveAsync(draft, Guid.Empty, [], cancellationToken);
+
+    /// <summary>
+    /// Saves; when the draft uses components, first takes a share lock on each of them that is
+    /// still live, in the same transaction (021 TR-06). A component being moved to the trash at
+    /// the same moment then either waits for this save and sees its use, or wins and this save
+    /// finds it gone: never both (research P-11, which the foreign key alone decided before 021,
+    /// when a deleted component left no row).
+    /// </summary>
+    private async Task<Result<DraftResponse>> SaveAsync(Draft draft, Guid siteId, IReadOnlyCollection<Guid> components, CancellationToken cancellationToken)
     {
+        await using var transaction = components.Count > 0 && database.Database.CurrentTransaction is null
+            ? await database.Database.BeginTransactionAsync(cancellationToken).ConfigureAwait(false)
+            : null;
         try
         {
+            if (components.Count > 0)
+            {
+                var ids = components.ToArray();
+                var live = await database.Database
+                    .SqlQuery<Guid>($"SELECT id AS \"Value\" FROM pages.components WHERE site_id = {siteId} AND id = ANY({ids}) AND trashed_at_utc IS NULL FOR SHARE")
+                    .ToListAsync(cancellationToken)
+                    .ConfigureAwait(false);
+                if (live.Count != ids.Length)
+                {
+                    return Result.Failure<DraftResponse>(PagesErrors.UnknownComponent);
+                }
+            }
+
             await database.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+            if (transaction is not null)
+            {
+                await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
+            }
         }
         catch (DbUpdateConcurrencyException)
         {

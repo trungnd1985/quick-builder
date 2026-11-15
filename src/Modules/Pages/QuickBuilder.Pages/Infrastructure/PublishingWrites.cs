@@ -8,6 +8,7 @@ using QuickBuilder.Pages.Contracts;
 using QuickBuilder.Pages.Domain;
 using QuickBuilder.Pages.Domain.Forms;
 using QuickBuilder.Pages.Features;
+using QuickBuilder.Shared.Infrastructure.Trash;
 using QuickBuilder.Shared.Kernel.Results;
 
 namespace QuickBuilder.Pages.Infrastructure;
@@ -140,75 +141,89 @@ internal sealed class PublishingWrites(
     /// <summary>Publishes a retained version again as a new one; the draft is untouched (FR-014).</summary>
     public Task<Result<PublicationResponse>> RollbackAsync(
         Guid siteId, string kind, Guid subjectId, int versionNumber, CancellationToken cancellationToken) =>
-        RunAsync(siteId, kind, subjectId, async (subject, now) =>
+        RunAsync(siteId, kind, subjectId, (subject, now) => RollbackContentAsync(subject, versionNumber, now, cancellationToken), cancellationToken);
+
+    /// <summary>
+    /// Makes a retained version live again as a new one. Runs inside the caller's transaction;
+    /// saves, but does not commit. Also used by "Restore and publish" (021 TR-11).
+    /// </summary>
+    internal async Task<Result> RollbackContentAsync(Subject subject, int versionNumber, DateTimeOffset now, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(subject);
+        var siteId = subject.SiteId;
+        var source = await database.ForSite<PublishedVersion>(siteId)
+            .AsNoTracking()
+            .FirstOrDefaultAsync(
+                v => v.SubjectKind == subject.Kind && v.SubjectId == subject.Id && v.Number == versionNumber,
+                cancellationToken)
+            .ConfigureAwait(false);
+
+        if (source is null)
         {
-            var source = await database.ForSite<PublishedVersion>(siteId)
-                .AsNoTracking()
-                .FirstOrDefaultAsync(
-                    v => v.SubjectKind == subject.Kind && v.SubjectId == subject.Id && v.Number == versionNumber,
-                    cancellationToken)
+            return Result.Failure(PagesErrors.VersionNotFound);
+        }
+
+        // 019 FR-022: the version goes live again at the current schema version; its row keeps
+        // the one it was published with (FR-023a). One that cannot be used is refused.
+        var upgraded = stored.ForEditing(subject.Kind, subject.Id, source.Document, source.SchemaVersion);
+        if (upgraded.IsFailure)
+        {
+            return Result.Failure(upgraded.Error);
+        }
+
+        var document = upgraded.Value.GetRawText();
+        var referenced = DependencyExtractor.Components(document);
+        if (referenced.Count > 0)
+        {
+            var existing = await database.ForSite<Component>(siteId)
+                .Where(c => referenced.Contains(c.Id))
+                .Select(c => c.Id)
+                .ToListAsync(cancellationToken)
                 .ConfigureAwait(false);
 
-            if (source is null)
+            var missing = referenced.Except(existing).ToList();
+            if (missing.Count > 0)
             {
-                return Result.Failure(PagesErrors.VersionNotFound);
-            }
-
-            // 019 FR-022: the version goes live again at the current schema version; its row keeps
-            // the one it was published with (FR-023a). One that cannot be used is refused.
-            var upgraded = stored.ForEditing(subject.Kind, subject.Id, source.Document, source.SchemaVersion);
-            if (upgraded.IsFailure)
-            {
-                return Result.Failure(upgraded.Error);
-            }
-
-            var document = upgraded.Value.GetRawText();
-            var referenced = DependencyExtractor.Components(document);
-            if (referenced.Count > 0)
-            {
-                var existing = await database.ForSite<Component>(siteId)
-                    .Where(c => referenced.Contains(c.Id))
-                    .Select(c => c.Id)
+                var trashed = await database.ForSite<Component>(siteId)
+                    .OnlyTrash("A rollback refusal names the components a restore would bring back (021 spec edge case).")
+                    .Where(c => missing.Contains(c.Id))
+                    .Select(c => new { c.Id, c.Name })
                     .ToListAsync(cancellationToken)
                     .ConfigureAwait(false);
-
-                var missing = referenced.Except(existing).ToList();
-                if (missing.Count > 0)
-                {
-                    return Result.Failure(PagesErrors.VersionMissingComponents(missing));
-                }
+                return Result.Failure(PagesErrors.VersionMissingComponents(missing, [.. trashed.Select(t => (t.Id, t.Name))]));
             }
+        }
 
-            // 024 FR-003a: a version showing a menu that was deleted since cannot come back.
-            var shownMenus = subject.IsMenu ? [] : DependencyExtractor.Menus(document);
-            if (shownMenus.Count > 0)
-            {
-                var existingMenus = await database.ForSite<Domain.Menus.Menu>(siteId)
-                    .Where(m => shownMenus.Contains(m.Id))
-                    .Select(m => m.Id)
-                    .ToListAsync(cancellationToken)
-                    .ConfigureAwait(false);
-
-                var missingMenus = shownMenus.Except(existingMenus).ToList();
-                if (missingMenus.Count > 0)
-                {
-                    return Result.Failure(PagesErrors.VersionMissingMenus(missingMenus));
-                }
-            }
-
-            return await PublishContentAsync(
-                    subject,
-                    new DraftContent(document, Schema.StoredDocuments.CurrentVersion(subject.Kind), Version: 0),
-                    source.Title,
-                    fromDraftVersion: null,
-                    VersionKinds.Rollback,
-                    source.Number,
-                    access.Actor,
-                    scheduleOwner: null,
-                    now,
-                    cancellationToken)
+        // 024 FR-003a: a version showing a menu that was deleted since cannot come back.
+        var shownMenus = subject.IsMenu ? [] : DependencyExtractor.Menus(document);
+        if (shownMenus.Count > 0)
+        {
+            var existingMenus = await database.ForSite<Domain.Menus.Menu>(siteId)
+                .Where(m => shownMenus.Contains(m.Id))
+                .Select(m => m.Id)
+                .ToListAsync(cancellationToken)
                 .ConfigureAwait(false);
-        }, cancellationToken);
+
+            var missingMenus = shownMenus.Except(existingMenus).ToList();
+            if (missingMenus.Count > 0)
+            {
+                return Result.Failure(PagesErrors.VersionMissingMenus(missingMenus));
+            }
+        }
+
+        return await PublishContentAsync(
+                subject,
+                new DraftContent(document, Schema.StoredDocuments.CurrentVersion(subject.Kind), Version: 0),
+                source.Title,
+                fromDraftVersion: null,
+                VersionKinds.Rollback,
+                source.Number,
+                access.Actor,
+                scheduleOwner: null,
+                now,
+                cancellationToken)
+            .ConfigureAwait(false);
+    }
 
     // --- Shared steps, also used by scheduled runs -------------------------------------------
 
@@ -525,13 +540,130 @@ internal sealed class PublishingWrites(
         return Result.Success();
     }
 
+    /// <summary>What a subject's publishing was when it was moved to the trash (021 TR-07).</summary>
+    internal sealed record Shelved(bool WasLive, bool HadSchedule);
+
+    /// <summary>
+    /// Takes a subject's publishing out of play as it goes to the trash (021 TR-07): cancels
+    /// its pending schedules, stops a live component being live, removes the rows that make it
+    /// claim or block something (collection, menu and live dependency rows, TR-06), and logs
+    /// <c>trashed</c>. Its publication and versions are kept, so it can come back and be
+    /// published again. Runs in the caller's transaction; saves, but does not commit.
+    /// </summary>
+    /// <remarks>A live page never reaches here: deleting one is refused first (012 FR-006).</remarks>
+    internal async Task<Result<Shelved>> ShelveAsync(Subject subject, Guid actor, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(subject);
+        var siteId = subject.SiteId;
+        var now = clock.GetUtcNow();
+
+        var hadSchedule = await database.ForSite<PublishSchedule>(siteId)
+            .AnyAsync(
+                s => s.SubjectKind == subject.Kind && s.SubjectId == subject.Id
+                     && s.State == ScheduleStates.Pending && s.Action == ScheduleActions.Publish,
+                cancellationToken)
+            .ConfigureAwait(false);
+
+        var publication = await PublicationAsync(siteId, subject, create: false, cancellationToken).ConfigureAwait(false);
+        var wasLive = publication is { IsLive: true };
+        if (wasLive)
+        {
+            // Cancels the schedules as a manual unpublish does, and logs the unpublish.
+            var unpublished = await UnpublishLiveAsync(subject, actor, scheduleOwner: null, now, cancellationToken).ConfigureAwait(false);
+            if (unpublished.IsFailure)
+            {
+                return Result.Failure<Shelved>(unpublished.Error);
+            }
+        }
+        else
+        {
+            var pending = await database.ForSite<PublishSchedule>(siteId)
+                .Where(s => s.SubjectKind == subject.Kind && s.SubjectId == subject.Id && s.State == ScheduleStates.Pending)
+                .ToListAsync(cancellationToken)
+                .ConfigureAwait(false);
+            foreach (var schedule in pending)
+            {
+                schedule.Cancel(now);
+                Log(siteId, subject, LogActions.ScheduleCancelled, now, actor, reasonCode: LogReasons.Trashed);
+            }
+
+            await database.ForSite<PublishSchedule>(siteId)
+                .Where(s => s.SubjectKind == subject.Kind && s.SubjectId == subject.Id && s.State == ScheduleStates.Failed)
+                .ExecuteDeleteAsync(cancellationToken)
+                .ConfigureAwait(false);
+        }
+
+        // TR-06: guard rows go, and are rebuilt from the stored draft on restore.
+        await uses.ForgetAsync(siteId, subject.Kind, subject.Id, cancellationToken).ConfigureAwait(false);
+        await database.ForSite<LiveDependency>(siteId)
+            .Where(d => d.SubjectKind == subject.Kind && d.SubjectId == subject.Id)
+            .ExecuteDeleteAsync(cancellationToken)
+            .ConfigureAwait(false);
+        await database.ForSite<Domain.Menus.MenuUsage>(siteId)
+            .Where(u => u.SubjectKind == subject.Kind && u.SubjectId == subject.Id)
+            .ExecuteDeleteAsync(cancellationToken)
+            .ConfigureAwait(false);
+        if (subject.IsPage)
+        {
+            await database.ForSite<ComponentUsage>(siteId)
+                .Where(u => u.PageId == subject.Id)
+                .ExecuteDeleteAsync(cancellationToken)
+                .ConfigureAwait(false);
+        }
+
+        Log(siteId, subject, LogActions.Trashed, now, actor);
+        await database.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        return Result.Success(new Shelved(wasLive, hadSchedule));
+    }
+
+    /// <summary>
+    /// Rebuilds the rows <see cref="ShelveAsync"/> removed, from the subject's stored draft, as a
+    /// draft save makes them (021 TR-06), and logs <c>restored</c>. Runs in the caller's
+    /// transaction; the caller saves.
+    /// </summary>
+    internal async Task UnshelveAsync(Subject subject, Guid actor, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(subject);
+        var siteId = subject.SiteId;
+        var draft = await DraftAsync(siteId, subject, cancellationToken).ConfigureAwait(false);
+        var text = draft.Document;
+
+        if (subject.IsPage)
+        {
+            database.ComponentUsages.AddRange(
+                DependencyExtractor.Components(text).Distinct().Select(c => new ComponentUsage(siteId, subject.Id, c)));
+        }
+
+        var menus = DependencyExtractor.Menus(text).Distinct().ToList();
+        if (menus.Count > 0)
+        {
+            var existing = await database.ForSite<Domain.Menus.Menu>(siteId)
+                .Where(m => menus.Contains(m.Id))
+                .Select(m => m.Id)
+                .ToListAsync(cancellationToken)
+                .ConfigureAwait(false);
+            database.MenuUsages.AddRange(existing.Select(m => new Domain.Menus.MenuUsage(siteId, subject.Kind, subject.Id, m)));
+        }
+
+        await uses.StageAsync(siteId, subject.Kind, subject.Id, CollectionUsageStates.Draft, text, subject.TemplateCollectionId, cancellationToken)
+            .ConfigureAwait(false);
+        Log(siteId, subject, LogActions.Restored, clock.GetUtcNow(), actor);
+    }
+
     /// <summary>
     /// Removes a subject's publishing records before the subject itself is deleted: its
     /// publication (and with it every version), dependencies and schedules. The log keeps its
     /// entries, and gains a <c>deleted</c> one when there were any (FR-006, FR-017, PR-15). Runs
     /// in the caller's transaction; the caller saves.
     /// </summary>
-    internal async Task ForgetAsync(Subject subject, Guid actor, CancellationToken cancellationToken)
+    internal Task ForgetAsync(Subject subject, Guid actor, CancellationToken cancellationToken) =>
+        ForgetAsync(subject, actor, purge: false, cancellationToken);
+
+    /// <summary>
+    /// As the other overload; a <paramref name="purge"/> of a trashed subject logs <c>purged</c>,
+    /// with no actor when the retention job does it (021 TR-13, TR-14).
+    /// </summary>
+    internal async Task ForgetAsync(Subject subject, Guid? actor, bool purge, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(subject);
         var siteId = subject.SiteId;
@@ -571,9 +703,13 @@ internal sealed class PublishingWrites(
             .AnyAsync(e => e.SubjectKind == subject.Kind && e.SubjectId == subject.Id, cancellationToken)
             .ConfigureAwait(false);
 
-        if (hasHistory)
+        if (hasHistory || purge)
         {
-            Log(siteId, subject, LogActions.Deleted, clock.GetUtcNow(), actor);
+            database.PublishLog.Add(new PublishLogEntry(
+                Guid.CreateVersion7(), siteId, subject.Kind, subject.Id, subject.Label, subject.Path, purge ? LogActions.Purged : LogActions.Deleted, clock.GetUtcNow())
+            {
+                ActorUserId = actor,
+            });
         }
     }
 

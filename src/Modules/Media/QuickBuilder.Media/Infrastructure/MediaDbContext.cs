@@ -56,6 +56,13 @@ internal sealed class MediaDbContext(DbContextOptions<MediaDbContext> options, I
                     "ck_media_files_dimensions",
                     "(width IS NULL) = (height IS NULL) AND (width IS NULL OR (width > 0 AND height > 0))");
                 table.HasCheckConstraint("ck_media_files_content_version", "content_version >= 1");
+
+                // 021 data-model §2: all set or all null; a trashed file is in no folder (TR-05).
+                table.HasCheckConstraint(
+                    "ck_media_files_trash",
+                    "(trashed_at_utc IS NULL) = (trashed_by IS NULL) " +
+                    "AND (trashed_at_utc IS NOT NULL OR trashed_folder_id IS NULL) " +
+                    "AND (trashed_at_utc IS NULL OR folder_id IS NULL)");
             });
 
             entity.HasKey(e => e.Id).HasName("pk_media_files");
@@ -115,9 +122,20 @@ internal sealed class MediaDbContext(DbContextOptions<MediaDbContext> options, I
                 .HasFilter("search_text_state = 0")
                 .HasDatabaseName("ix_media_files_search_text_provisional");
 
+            // 021 TR-19: the trash list, newest first.
+            entity
+                .HasIndex(e => new { e.SiteId, e.TrashedAtUtc, e.Id })
+                .IsDescending(false, true, false)
+                .HasFilter("trashed_at_utc IS NOT NULL")
+                .HasDatabaseName("ix_media_files_trash");
+            entity.Ignore(e => e.IsTrashed);
+
             // FR-013. Declared here, against CurrentSiteId, never through a captured
             // ISiteContext — see SiteQueryFilterGuidance.
-            entity.HasQueryFilter(f => f.SiteId == CurrentSiteId);
+            entity.HasQueryFilter(QueryFilters.Site, f => f.SiteId == CurrentSiteId);
+
+            // 021 TR-03: a trashed file is deleted for every read but the trash's own.
+            entity.HasQueryFilter(QueryFilters.Trash, f => f.TrashedAtUtc == null);
         });
 
         ConfigureLibrary(modelBuilder);
@@ -163,7 +181,7 @@ internal sealed class MediaDbContext(DbContextOptions<MediaDbContext> options, I
                 .AreNullsDistinct(false)
                 .HasDatabaseName("ux_folders_sibling_name");
 
-            entity.HasQueryFilter(f => f.SiteId == CurrentSiteId);
+            entity.HasQueryFilter(QueryFilters.Site, f => f.SiteId == CurrentSiteId);
         });
 
         modelBuilder.Entity<FolderTree>(entity =>
@@ -171,14 +189,14 @@ internal sealed class MediaDbContext(DbContextOptions<MediaDbContext> options, I
             entity.ToTable("folder_trees", Schema);
             entity.HasKey(e => e.SiteId).HasName("pk_folder_trees");
             entity.Property(e => e.Version).IsRowVersion().HasColumnName("xmin").HasColumnType("xid");
-            entity.HasQueryFilter(t => t.SiteId == CurrentSiteId);
+            entity.HasQueryFilter(QueryFilters.Site, t => t.SiteId == CurrentSiteId);
         });
 
         modelBuilder.Entity<VariantClaim>(entity =>
         {
             entity.ToTable("variant_claims", Schema);
             entity.HasKey(e => new { e.FileId, e.ContentVersion, e.Width }).HasName("pk_variant_claims");
-            entity.HasQueryFilter(c => c.SiteId == CurrentSiteId);
+            entity.HasQueryFilter(QueryFilters.Site, c => c.SiteId == CurrentSiteId);
         });
 
         modelBuilder.Entity<StorageCheck>(entity =>
@@ -214,7 +232,7 @@ internal sealed class MediaDbContext(DbContextOptions<MediaDbContext> options, I
                 .OnDelete(DeleteBehavior.Cascade)
                 .HasConstraintName("fk_storage_check_missing_check");
 
-            entity.HasQueryFilter(m => m.SiteId == CurrentSiteId);
+            entity.HasQueryFilter(QueryFilters.Site, m => m.SiteId == CurrentSiteId);
         });
     }
 }

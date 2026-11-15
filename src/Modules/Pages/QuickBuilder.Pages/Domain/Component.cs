@@ -14,7 +14,7 @@ namespace QuickBuilder.Pages.Domain;
 /// key refuses the delete of a used component in the database, where no race can get past
 /// it.
 /// </remarks>
-internal sealed partial class Component : AggregateRoot, ISiteOwned
+internal sealed partial class Component : AggregateRoot, ISiteOwned, ITrashable
 {
     public const int MaxNameLength = 100;
 
@@ -77,6 +77,51 @@ internal sealed partial class Component : AggregateRoot, ISiteOwned
         CopiedFromSavedAtUtc = origin.SourceSavedAtUtc;
         CopiedBy = origin.CopiedBy;
         CopiedAtUtc = origin.CopiedAtUtc;
+    }
+
+    /// <summary>When the component was moved to the trash; null while it is live (021 TR-02).</summary>
+    public DateTimeOffset? TrashedAtUtc { get; private set; }
+
+    public Guid? TrashedBy { get; private set; }
+
+    /// <summary>Whether it had a live version when trashed (TR-07).</summary>
+    public bool? TrashedWasLive { get; private set; }
+
+    /// <summary>Whether a publish was scheduled when it was trashed (TR-07).</summary>
+    public bool? TrashedHadSchedule { get; private set; }
+
+    public bool IsTrashed => TrashedAtUtc is not null;
+
+    /// <summary>
+    /// Moves the component to the trash (021 FR-001). Raises the existing deleted event, whose
+    /// consumers must react to trashing (TR-08).
+    /// </summary>
+    public void MoveToTrash(Guid actor, bool wasLive, bool hadSchedule, TimeProvider clock)
+    {
+        ArgumentNullException.ThrowIfNull(clock);
+        var now = clock.GetUtcNow();
+        TrashedAtUtc = now;
+        TrashedBy = actor;
+        TrashedWasLive = wasLive;
+        TrashedHadSchedule = hadSchedule;
+        UpdatedAtUtc = now;
+        UpdatedBy = actor;
+        Raise(new ComponentDeletedEvent(SiteId, Id, now));
+    }
+
+    /// <summary>Takes the component out of the trash, under <paramref name="name"/> when its own is taken (FR-017).</summary>
+    public void Restore(string name, Guid actor, TimeProvider clock)
+    {
+        ArgumentNullException.ThrowIfNull(clock);
+        var now = clock.GetUtcNow();
+        Name = name;
+        TrashedAtUtc = null;
+        TrashedBy = null;
+        TrashedWasLive = null;
+        TrashedHadSchedule = null;
+        UpdatedAtUtc = now;
+        UpdatedBy = actor;
+        Raise(new ComponentRestoredEvent(SiteId, Id, now));
     }
 
     public static Result<Component> Create(Guid siteId, string? name, Guid actor, TimeProvider clock)

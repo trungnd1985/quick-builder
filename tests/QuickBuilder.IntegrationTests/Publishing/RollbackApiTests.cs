@@ -123,7 +123,7 @@ public sealed class RollbackApiTests(DatabaseFixture database) : IAsyncLifetime
         // Gone altogether: that version cannot come back.
         var version = (await PagesApi.OkAsync(await PagesApi.GetComponentAsync(_scenario.Admin, _scenario.SiteA, header).ConfigureAwait(true)).ConfigureAwait(true))
             .GetProperty("version").GetUInt32();
-        Assert.Equal(HttpStatusCode.NoContent, (await PagesApi.DeleteComponentAsync(_scenario.Admin, _scenario.SiteA, header, version).ConfigureAwait(true)).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await PagesApi.DeleteComponentAsync(_scenario.Admin, _scenario.SiteA, header, version).ConfigureAwait(true)).StatusCode);
         var missing = await PagesApi.RefusedAsync(
             await PublishingApi.RollbackAsync(_scenario.Admin, _aboutPath, 1).ConfigureAwait(true),
             HttpStatusCode.Conflict,

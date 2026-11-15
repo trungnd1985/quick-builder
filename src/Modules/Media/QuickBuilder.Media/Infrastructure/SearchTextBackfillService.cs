@@ -4,6 +4,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using QuickBuilder.Media.Domain;
 using QuickBuilder.Shared.Infrastructure.MultiSite;
+using QuickBuilder.Shared.Infrastructure.Trash;
 using QuickBuilder.Shared.Kernel.Text;
 
 namespace QuickBuilder.Media.Infrastructure;
@@ -59,6 +60,7 @@ internal sealed class SearchTextBackfillService(
             var database = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
             sites = await database.MediaFiles
                 .AcrossAllSites("Finds which sites still have provisional search text; each site is then processed on its own (013 MV-26).")
+                .IncludingTrash("Trashed files get their search text too; the trash searches it (021 TR-18, TR-19).")
                 .AsNoTracking()
                 .Where(f => f.SearchTextState == SearchTextState.Provisional)
                 .Select(f => f.SiteId)
@@ -93,6 +95,7 @@ internal sealed class SearchTextBackfillService(
 
             var batch = await database.MediaFiles
                 .AcrossAllSites("Background backfill of one site, named explicitly below (013 MV-26).")
+                .IncludingTrash("Trashed files get their search text too; the trash searches it (021 TR-18, TR-19).")
                 .Where(f => f.SiteId == siteId && f.SearchTextState == SearchTextState.Provisional)
                 .OrderBy(f => f.Id)
                 .Take(BatchSize)

@@ -29,7 +29,7 @@ namespace QuickBuilder.Media.Domain;
 /// address. A time-ordered v7 id would be guessable and would leak upload times.
 /// </para>
 /// </remarks>
-internal sealed partial class MediaFile : ISiteOwned
+internal sealed partial class MediaFile : ISiteOwned, ITrashable
 {
     public const int MaxContentTypeLength = 64;
     public const int MaxExtensionLength = 8;
@@ -172,6 +172,37 @@ internal sealed partial class MediaFile : ISiteOwned
 
     /// <summary>Files it into <paramref name="folderId"/>, or the top level. The address does not change (FR-003).</summary>
     public void MoveTo(Guid? folderId) => FolderId = folderId;
+
+    /// <summary>When the file was moved to the trash; null while it is live (021 TR-02).</summary>
+    public DateTimeOffset? TrashedAtUtc { get; private set; }
+
+    public Guid? TrashedBy { get; private set; }
+
+    /// <summary>The folder it was in when trashed; null for the top level. No foreign key (TR-05).</summary>
+    public Guid? TrashedFolderId { get; private set; }
+
+    public bool IsTrashed => TrashedAtUtc is not null;
+
+    /// <summary>
+    /// Moves the file to the trash, keeping its bytes and variants (021 FR-003), and detaches
+    /// it from its folder so an otherwise empty folder can be deleted (TR-05).
+    /// </summary>
+    public void MoveToTrash(Guid actor, DateTimeOffset now)
+    {
+        TrashedAtUtc = now;
+        TrashedBy = actor;
+        TrashedFolderId = FolderId;
+        FolderId = null;
+    }
+
+    /// <summary>Takes the file out of the trash into <paramref name="folderId"/>, or the top level (021 FR-016).</summary>
+    public void Restore(Guid? folderId)
+    {
+        TrashedAtUtc = null;
+        TrashedBy = null;
+        TrashedFolderId = null;
+        FolderId = folderId;
+    }
 
     /// <summary>Sets or clears the alternative text (013 FR-008).</summary>
     /// <remarks>

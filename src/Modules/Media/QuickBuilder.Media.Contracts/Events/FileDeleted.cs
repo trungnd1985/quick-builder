@@ -3,8 +3,9 @@ using QuickBuilder.Shared.Kernel.Events;
 namespace QuickBuilder.Media.Contracts.Events;
 
 /// <summary>
-/// A media file was permanently deleted from a site's library (012 data-model §3.2). Published
-/// in the same transaction as the delete (001 FR-015).
+/// A media file was deleted from a site's library: moved to the trash (021 TR-08), or, before
+/// 021, deleted permanently (012 data-model §3.2). Published in the same transaction as the
+/// delete (001 FR-015). A later purge publishes nothing.
 /// </summary>
 /// <remarks>
 /// The Pages module refreshes the live pages that showed the file, so they stop showing it at

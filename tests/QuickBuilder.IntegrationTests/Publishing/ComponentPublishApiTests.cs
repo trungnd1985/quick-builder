@@ -94,13 +94,13 @@ public sealed class ComponentPublishApiTests(DatabaseFixture database) : IAsyncL
         // Once the page is published without it, it can go.
         await PublishingApi.PublishCurrentAsync(_scenario.Admin, _aboutPath).ConfigureAwait(true);
         Assert.Equal(HttpStatusCode.OK, (await PublishingApi.UnpublishAsync(_scenario.Admin, _headerPath).ConfigureAwait(true)).StatusCode);
-        Assert.Equal(HttpStatusCode.NoContent, (await PagesApi.DeleteComponentAsync(_scenario.Admin, _scenario.SiteA, _header, version).ConfigureAwait(true)).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await PagesApi.DeleteComponentAsync(_scenario.Admin, _scenario.SiteA, _header, version).ConfigureAwait(true)).StatusCode);
 
-        // Its publishing records went with it; its history stayed, marked deleted (FR-017).
-        Assert.Equal(0, await _scenario.ReadAsync(db => PagesScenario.Everything<Publication>(db).CountAsync(p => p.SubjectId == _header)).ConfigureAwait(true));
-        Assert.Equal(0, await _scenario.ReadAsync(db => PagesScenario.Everything<PublishedVersion>(db).CountAsync(p => p.SubjectId == _header)).ConfigureAwait(true));
+        // 021 TR-07: in the trash it keeps its publishing records, so it can come back; the log says so.
+        Assert.Equal(1, await _scenario.ReadAsync(db => PagesScenario.Everything<Publication>(db).CountAsync(p => p.SubjectId == _header)).ConfigureAwait(true));
+        Assert.True(await _scenario.ReadAsync(db => PagesScenario.Everything<PublishedVersion>(db).AnyAsync(p => p.SubjectId == _header)).ConfigureAwait(true));
         Assert.Contains(
-            LogActions.Deleted,
+            LogActions.Trashed,
             await _scenario.ReadAsync(db => PagesScenario.Everything<PublishLogEntry>(db).Where(e => e.SubjectId == _header).Select(e => e.Action).ToListAsync()).ConfigureAwait(true));
     }
 

@@ -17,6 +17,12 @@ internal static class ItemHistoryKinds
 
     /// <summary>023 FR-020: created by "save my version as a copy"; the item's copy origin says from what.</summary>
     public const string CreatedAsCopy = "createdAsCopy";
+
+    /// <summary>021 TR-07: moved to the trash.</summary>
+    public const string Trashed = "trashed";
+
+    /// <summary>021 TR-07: taken out of the trash.</summary>
+    public const string Restored = "restored";
 }
 
 /// <summary>

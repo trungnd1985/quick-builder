@@ -28,7 +28,8 @@ internal sealed record MediaUsagePlaceDto(
     int? LivePagesThroughComponent,
     Guid? CollectionId = null,
     string? CollectionName = null,
-    bool InScheduled = false);
+    bool InScheduled = false,
+    bool InTrash = false);
 
 /// <summary>Where a file is used (contracts/media-api.yaml <c>Usage</c>).</summary>
 internal sealed record MediaUsageDto(MediaUsageSummaryDto Summary, IReadOnlyList<MediaUsagePlaceDto> Places);
@@ -75,7 +76,7 @@ internal sealed class GetFileUsageHandler(
         if (await access.HasCapabilityAsync(PageContentCapabilities.View, query.SiteId, cancellationToken).ConfigureAwait(false))
         {
             places.AddRange((await usage.PagePlacesAsync(query.SiteId, query.FileId, cancellationToken).ConfigureAwait(false))
-                .Select(p => new MediaUsagePlaceDto(p.Kind, p.Id, p.Title, p.InDraft, p.Live, p.InHistory, p.LivePagesThroughComponent)));
+                .Select(p => new MediaUsagePlaceDto(p.Kind, p.Id, p.Title, p.InDraft, p.Live, p.InHistory, p.LivePagesThroughComponent, InTrash: p.InTrash)));
         }
 
         // The Cms capability is named, not referenced: Media reads Cms only through its contracts.
@@ -83,7 +84,7 @@ internal sealed class GetFileUsageHandler(
         {
             places.AddRange((await usage.ItemPlacesAsync(query.SiteId, query.FileId, cancellationToken).ConfigureAwait(false))
                 .Select(p => new MediaUsagePlaceDto(
-                    "item", p.ItemId, p.Name ?? p.Slug, p.InDraft, p.Live, p.InHistory, null, p.CollectionId, p.CollectionName, p.InScheduled)));
+                    "item", p.ItemId, p.Name ?? p.Slug, p.InDraft, p.Live, p.InHistory, null, p.CollectionId, p.CollectionName, p.InScheduled, p.InTrash)));
         }
 
         return Result.Success(new MediaUsageDto(MediaFileMapper.ToDto(summary), places));

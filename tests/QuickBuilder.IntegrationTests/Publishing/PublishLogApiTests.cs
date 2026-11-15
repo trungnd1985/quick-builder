@@ -88,11 +88,12 @@ public sealed class PublishLogApiTests(DatabaseFixture database) : IAsyncLifetim
         var page = await PagesApi.NodeAsync(_scenario.Admin, _scenario.SiteA, "/pricing").ConfigureAwait(true);
         var version = page.GetProperty("version").GetInt32();
         var deleted = await _scenario.Admin.DeleteAsync(new Uri($"{pricing}?version={version}", UriKind.Relative)).ConfigureAwait(true);
-        Assert.Equal(HttpStatusCode.NoContent, deleted.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, deleted.StatusCode);
 
         var entries = await AllAsync($"subjectId={_pages["/pricing"]}", limit: 50).ConfigureAwait(true);
 
-        Assert.Equal(["deleted", "unpublish", "publish"], entries.Select(e => e.GetProperty("action").GetString()));
+        // 021 FR-028: moved to the trash, not gone; the entries keep its last label and address.
+        Assert.Equal(["trashed", "unpublish", "publish"], entries.Select(e => e.GetProperty("action").GetString()));
         Assert.All(entries, e =>
         {
             Assert.False(e.GetProperty("subjectExists").GetBoolean());
@@ -102,14 +103,15 @@ public sealed class PublishLogApiTests(DatabaseFixture database) : IAsyncLifetim
     }
 
     [Fact]
-    public async Task A_page_that_was_never_published_leaves_no_entry_when_deleted()
+    public async Task A_page_that_was_never_published_is_recorded_only_as_moved_to_the_trash()
     {
         var about = await PagesApi.NodeAsync(_scenario.Admin, _scenario.SiteA, "/about").ConfigureAwait(true);
         var deleted = await _scenario.Admin.DeleteAsync(
             new Uri($"{Path("/about")}?version={about.GetProperty("version").GetInt32()}", UriKind.Relative)).ConfigureAwait(true);
-        Assert.Equal(HttpStatusCode.NoContent, deleted.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, deleted.StatusCode);
 
-        Assert.Empty(await AllAsync($"subjectId={_pages["/about"]}", limit: 50).ConfigureAwait(true));
+        // 021 FR-028: every move to the trash is recorded.
+        Assert.Equal(["trashed"], (await AllAsync($"subjectId={_pages["/about"]}", limit: 50).ConfigureAwait(true)).Select(e => e.GetProperty("action").GetString()));
     }
 
     [Fact]

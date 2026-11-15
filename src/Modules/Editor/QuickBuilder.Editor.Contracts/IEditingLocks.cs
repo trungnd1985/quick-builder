@@ -46,7 +46,23 @@ public interface IEditingLocks
         Guid documentId,
         Guid? sessionId,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// The member who holds an active (live, not stale) lock on the document, when that member
+    /// is not <paramref name="userId"/>; null otherwise. A delete is refused while there is one
+    /// (021 FR-008, research TR-09); a member's own lock in another tab does not count. One
+    /// indexed read, made before the caller's transaction.
+    /// </summary>
+    Task<EditingHolder?> FindActiveHolderAsync(
+        Guid siteId,
+        string documentKind,
+        Guid documentId,
+        Guid userId,
+        CancellationToken cancellationToken = default);
 }
+
+/// <summary>Who holds a document's lock, and since when (021 TR-09).</summary>
+public sealed record EditingHolder(Guid UserId, DateTimeOffset Since);
 
 /// <summary>The answer of <see cref="IEditingLocks.CheckWriteAsync"/>.</summary>
 /// <param name="Allowed">Whether the write may go on to the version check.</param>

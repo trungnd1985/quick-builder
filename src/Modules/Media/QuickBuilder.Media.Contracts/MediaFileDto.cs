@@ -62,7 +62,7 @@ public sealed record MediaFileDto(
 public sealed record MediaVariantDto(int Width, string Path);
 
 /// <summary>How many places use a file (013 contracts/media-api.yaml <c>UsageSummary</c>).</summary>
-public sealed record MediaUsageSummaryDto(int Places, int DraftPlaces, int LivePlaces, int HistoryOnlyPlaces, bool InLiveUse)
+public sealed record MediaUsageSummaryDto(int Places, int DraftPlaces, int LivePlaces, int HistoryOnlyPlaces, bool InLiveUse, int TrashedPlaces = 0)
 {
     public static MediaUsageSummaryDto None { get; } = new(0, 0, 0, 0, false);
 }

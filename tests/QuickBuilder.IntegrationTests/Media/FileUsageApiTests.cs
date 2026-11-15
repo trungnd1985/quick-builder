@@ -88,8 +88,8 @@ public sealed class FileUsageApiTests(DatabaseFixture database) : IAsyncLifetime
         var draftOnly = await UsageScenario.PageShowingAsync(admin, site, "draft-only", other, publish: false);
         // The rollback made version 1 live again, so the other file is in drafts only.
         await AssertCountsAsync(other, places: 2, draft: 2, live: 0, historyOnly: 0);
-        Assert.Equal(HttpStatusCode.NoContent, (await PagesApi.DeleteAsync(admin, site, draftOnly, 1)).StatusCode);
-        await AssertCountsAsync(other, places: 1, draft: 1, live: 0, historyOnly: 0);
+        Assert.Equal(HttpStatusCode.OK, (await PagesApi.DeleteAsync(admin, site, draftOnly, 1)).StatusCode);
+        await AssertCountsAsync(other, places: 1, draft: 1, live: 0, historyOnly: 0, trashed: 1);
     }
 
     [Fact]
@@ -122,16 +122,17 @@ public sealed class FileUsageApiTests(DatabaseFixture database) : IAsyncLifetime
         await LibraryApi.RefusedAsync(response, HttpStatusCode.NotFound, "media.not_found");
     }
 
-    private async Task AssertCountsAsync(Guid file, int places, int draft, int live, int historyOnly)
+    private async Task AssertCountsAsync(Guid file, int places, int draft, int live, int historyOnly, int trashed = 0)
     {
         var summary = (await UsageScenario.UsageAsync(_scenario.Admin, _scenario.SiteA, file)).GetProperty("summary");
         var shown = new MediaUsageSummary(
             summary.GetProperty("places").GetInt32(),
             summary.GetProperty("draftPlaces").GetInt32(),
             summary.GetProperty("livePlaces").GetInt32(),
-            summary.GetProperty("historyOnlyPlaces").GetInt32());
+            summary.GetProperty("historyOnlyPlaces").GetInt32(),
+            summary.GetProperty("trashedPlaces").GetInt32());
 
-        Assert.Equal(new MediaUsageSummary(places, draft, live, historyOnly), shown);
+        Assert.Equal(new MediaUsageSummary(places, draft, live, historyOnly, trashed), shown);
 
         await using var scope = _scenario.App.Services.CreateAsyncScope();
         var read = await scope.ServiceProvider.GetRequiredService<IMediaUsageReader>().SummariseAsync(_scenario.SiteA, [file]);

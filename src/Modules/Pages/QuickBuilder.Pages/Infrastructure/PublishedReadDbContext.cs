@@ -54,14 +54,15 @@ internal sealed class PublishedReadDbContext(DbContextOptions<PublishedReadDbCon
         {
             entity.ToTable("pages");
             entity.HasKey(e => e.Id);
-            entity.HasQueryFilter(e => e.SiteId == CurrentSiteId);
+            entity.HasQueryFilter(QueryFilters.Site, e => e.SiteId == CurrentSiteId);
+            entity.HasQueryFilter(QueryFilters.Trash, e => e.TrashedAtUtc == null);
         });
 
         modelBuilder.Entity<PublicationRow>(entity =>
         {
             entity.ToTable("publications");
             entity.HasKey(e => new { e.SubjectKind, e.SubjectId });
-            entity.HasQueryFilter(e => e.SiteId == CurrentSiteId);
+            entity.HasQueryFilter(QueryFilters.Site, e => e.SiteId == CurrentSiteId);
         });
 
         modelBuilder.Entity<VersionRow>(entity =>
@@ -70,14 +71,14 @@ internal sealed class PublishedReadDbContext(DbContextOptions<PublishedReadDbCon
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Document).HasColumnType("jsonb");
             entity.Property(e => e.SchemaVersion).HasColumnType("smallint");
-            entity.HasQueryFilter(e => e.SiteId == CurrentSiteId);
+            entity.HasQueryFilter(QueryFilters.Site, e => e.SiteId == CurrentSiteId);
         });
 
         modelBuilder.Entity<DependencyRow>(entity =>
         {
             entity.ToTable("live_dependencies");
             entity.HasKey(e => new { e.SiteId, e.SubjectKind, e.SubjectId, e.TargetKind, e.TargetId });
-            entity.HasQueryFilter(e => e.SiteId == CurrentSiteId);
+            entity.HasQueryFilter(QueryFilters.Site, e => e.SiteId == CurrentSiteId);
         });
 
         modelBuilder.Entity<RedirectRow>(entity =>
@@ -85,14 +86,14 @@ internal sealed class PublishedReadDbContext(DbContextOptions<PublishedReadDbCon
             entity.ToTable("redirects");
             entity.HasKey(e => e.Id);
             entity.Property(e => e.StatusCode).HasColumnType("smallint");
-            entity.HasQueryFilter(e => e.SiteId == CurrentSiteId);
+            entity.HasQueryFilter(QueryFilters.Site, e => e.SiteId == CurrentSiteId);
         });
 
         modelBuilder.Entity<SitemapStateRow>(entity =>
         {
             entity.ToTable("sitemap_state");
             entity.HasKey(e => e.SiteId);
-            entity.HasQueryFilter(e => e.SiteId == CurrentSiteId);
+            entity.HasQueryFilter(QueryFilters.Site, e => e.SiteId == CurrentSiteId);
         });
 
         modelBuilder.UseSnakeCaseColumns();
@@ -105,8 +106,11 @@ internal sealed class PublishedReadDbContext(DbContextOptions<PublishedReadDbCon
 }
 
 /// <summary>The columns of <c>pages.pages</c> the public path reads.</summary>
-internal sealed class PageRow : ISiteOwned
+internal sealed class PageRow : ISiteOwned, ITrashable
 {
+    /// <summary>Set while the page is in the trash, where it answers not found (021 TR-03).</summary>
+    public DateTimeOffset? TrashedAtUtc { get; set; }
+
     public Guid Id { get; set; }
 
     public Guid SiteId { get; set; }

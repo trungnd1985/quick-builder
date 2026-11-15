@@ -64,7 +64,11 @@ public sealed record ItemUnpublished(
     public static string EventType => "Cms.ItemUnpublished";
 }
 
-/// <summary>An item was deleted with its versions, schedules and history.</summary>
+/// <summary>
+/// An item was deleted: moved to the trash (021 TR-08), or deleted permanently with its versions,
+/// schedules and history. <c>WasPublished</c> says it was live; a trashed item was unpublished as
+/// part of the delete. A later purge publishes nothing.
+/// </summary>
 public sealed record ItemDeleted(
     Guid Id,
     DateTimeOffset OccurredAtUtc,
@@ -75,4 +79,19 @@ public sealed record ItemDeleted(
     Guid? ActorUserId) : IIntegrationEvent
 {
     public static string EventType => "Cms.ItemDeleted";
+}
+
+/// <summary>
+/// An item was taken out of the trash (021 TR-08). It comes back unpublished, so nothing public
+/// changes until it is published. Carries ids only; no module consumes it in 021.
+/// </summary>
+public sealed record ItemRestored(
+    Guid Id,
+    DateTimeOffset OccurredAtUtc,
+    Guid SiteId,
+    Guid CollectionId,
+    Guid ItemId,
+    Guid? ActorUserId) : IIntegrationEvent
+{
+    public static string EventType => "Cms.ItemRestored";
 }

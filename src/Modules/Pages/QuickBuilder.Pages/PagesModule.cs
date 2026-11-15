@@ -42,6 +42,7 @@ using QuickBuilder.Pages.Features.SaveComponentDraft;
 using QuickBuilder.Pages.Features.SavePageDraft;
 using QuickBuilder.Pages.Features.Schedules;
 using QuickBuilder.Pages.Features.SetPageTemplate;
+using QuickBuilder.Pages.Features.Trash;
 using QuickBuilder.Pages.Features.Unpublish;
 using QuickBuilder.Pages.Features.UpdatePage;
 using QuickBuilder.Pages.Infrastructure;
@@ -108,6 +109,10 @@ public static class PagesModule
         services.AddSingleton<RedirectUsageFlusher>();
         services.AddHostedService(sp => sp.GetRequiredService<RedirectUsageFlusher>());
 
+        // 021 TR-13: the hourly purge of trashed pages and components past the retention period.
+        services.AddSingleton<PagesTrashPurgeService>();
+        services.AddHostedService(sp => sp.GetRequiredService<PagesTrashPurgeService>());
+
         // 013 research MV-05: where media files are used, for the Media module.
         services.AddScoped<QuickBuilder.Pages.Contracts.Media.IMediaUsageReader, MediaUsageReader>();
 
@@ -124,10 +129,12 @@ public static class PagesModule
         // needs each type to read a stored payload back.
         services.AddSingleton<IEventTypeRegistration>(new EventTypeRegistration<PageCreated>());
         services.AddSingleton<IEventTypeRegistration>(new EventTypeRegistration<PageDeleted>());
+        services.AddSingleton<IEventTypeRegistration>(new EventTypeRegistration<PageRestored>());
         services.AddSingleton<IEventTypeRegistration>(new EventTypeRegistration<PageAddressesChanged>());
         services.AddSingleton<IEventTypeRegistration>(new EventTypeRegistration<HomePageChanged>());
         services.AddSingleton<IEventTypeRegistration>(new EventTypeRegistration<ComponentCreated>());
         services.AddSingleton<IEventTypeRegistration>(new EventTypeRegistration<ComponentDeleted>());
+        services.AddSingleton<IEventTypeRegistration>(new EventTypeRegistration<ComponentRestored>());
 
         // 012 research PR-19: publishing, for later features (#17) to react to.
         services.AddSingleton<IEventTypeRegistration>(new EventTypeRegistration<PagePublished>());
@@ -183,7 +190,7 @@ public static class PagesModule
         services.AddScoped<TemplateImpact>();
         services.AddScoped<ICommandHandler<SetPageTemplateCommand, Result<PageWithWarningsResponse>>, SetPageTemplateHandler>();
         services.AddScoped<IQueryHandler<GetTemplateImpactQuery, Result<TemplateImpactResponse>>, GetTemplateImpactHandler>();
-        services.AddScoped<ICommandHandler<DeletePageCommand, Result>, DeletePageHandler>();
+        services.AddScoped<ICommandHandler<DeletePageCommand, Result<QuickBuilder.Pages.Features.Trash.TrashReceiptResponse>>, DeletePageHandler>();
 
         services.AddScoped<IQueryHandler<GetPageDraftQuery, Result<DraftResponse>>, GetPageDraftHandler>();
         services.AddScoped<ICommandHandler<SavePageDraftCommand, Result<DraftResponse>>, SavePageDraftHandler>();
@@ -198,7 +205,25 @@ public static class PagesModule
         services.AddScoped<IQueryHandler<GetComponentQuery, Result<ComponentResponse>>, GetComponentHandler>();
         services.AddScoped<ICommandHandler<RenameComponentCommand, Result<ComponentResponse>>, RenameComponentHandler>();
         services.AddScoped<IValidator<RenameComponentCommand>, RenameComponentValidator>();
-        services.AddScoped<ICommandHandler<DeleteComponentCommand, Result>, DeleteComponentHandler>();
+        services.AddScoped<ICommandHandler<DeleteComponentCommand, Result<QuickBuilder.Pages.Features.Trash.TrashReceiptResponse>>, DeleteComponentHandler>();
+
+        // 021: the trash of pages and components.
+        services.AddScoped<PagesTrash>();
+        services.AddScoped<ListTrashHandler>();
+        services.AddScoped<IQueryHandler<ListTrashQuery, Result<TrashListResponse>>>(sp => sp.GetRequiredService<ListTrashHandler>());
+        services.AddScoped<IQueryHandler<GetTrashEntryQuery, Result<TrashEntryDetailResponse>>>(sp => sp.GetRequiredService<ListTrashHandler>());
+        services.AddScoped<RestorePageHandler>();
+        services.AddScoped<IQueryHandler<PageRestorePlanQuery, Result<RestorePlanResponse>>>(sp => sp.GetRequiredService<RestorePageHandler>());
+        services.AddScoped<ICommandHandler<RestorePageCommand, Result<RestoreResultResponse>>>(sp => sp.GetRequiredService<RestorePageHandler>());
+        services.AddScoped<RestoreComponentHandler>();
+        services.AddScoped<IQueryHandler<ComponentRestorePlanQuery, Result<RestorePlanResponse>>>(sp => sp.GetRequiredService<RestoreComponentHandler>());
+        services.AddScoped<ICommandHandler<RestoreComponentCommand, Result<RestoreResultResponse>>>(sp => sp.GetRequiredService<RestoreComponentHandler>());
+        services.AddScoped<ICommandHandler<BulkRestoreCommand, Result<BulkOutcomeResponse>>, BulkRestoreHandler>();
+        services.AddScoped<PagesTrashPurge>();
+        services.AddScoped<PurgeHandler>();
+        services.AddScoped<ICommandHandler<PurgeEntryCommand, Result>>(sp => sp.GetRequiredService<PurgeHandler>());
+        services.AddScoped<ICommandHandler<PurgeManyCommand, Result<BulkOutcomeResponse>>>(sp => sp.GetRequiredService<PurgeHandler>());
+        services.AddScoped<ICommandHandler<EmptyTrashCommand, Result<EmptyTrashResponse>>>(sp => sp.GetRequiredService<PurgeHandler>());
         services.AddScoped<IQueryHandler<ListComponentUsagesQuery, Result<IReadOnlyList<PageReferenceResponse>>>, ListComponentUsagesHandler>();
         services.AddScoped<IQueryHandler<GetComponentDraftQuery, Result<DraftResponse>>, GetComponentDraftHandler>();
         services.AddScoped<ICommandHandler<SaveComponentDraftCommand, Result<DraftResponse>>, SaveComponentDraftHandler>();
@@ -228,6 +253,7 @@ public static class PagesModule
         services.AddScoped<IIntegrationEventHandler<FileDeleted>, RefreshPagesShowingMediaHandler>();
         // 013 MV-17: a replaced file, recorded dimensions or withdrawn variants refresh them too.
         services.AddScoped<IIntegrationEventHandler<FileChanged>, RefreshPagesShowingMediaHandler>();
+        services.AddScoped<IIntegrationEventHandler<FileRestored>, RefreshPagesShowingMediaHandler>();
 
         // 016 research TB-10: pages listing or showing a collection refresh with its items and fields.
         services.AddScoped<IIntegrationEventHandler<ItemPublished>, RefreshPagesListingItemsHandler>();

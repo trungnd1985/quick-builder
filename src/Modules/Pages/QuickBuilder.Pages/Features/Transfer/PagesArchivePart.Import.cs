@@ -7,6 +7,7 @@ using QuickBuilder.Pages.Domain.Menus;
 using QuickBuilder.Pages.Domain.Redirects;
 using QuickBuilder.Pages.Infrastructure;
 using QuickBuilder.Shared.Infrastructure.Data;
+using QuickBuilder.Shared.Infrastructure.Trash;
 using QuickBuilder.Sites.Contracts.Transfer;
 
 namespace QuickBuilder.Pages.Features.Transfer;
@@ -24,6 +25,8 @@ namespace QuickBuilder.Pages.Features.Transfer;
 /// </remarks>
 internal sealed partial class PagesArchivePart
 {
+    private const string ClearReason = "A restore import replaces the whole site, its trash included (021 TR-17).";
+
     private const int Batch = 500;
 
     public async Task CheckAsync(PartCheckContext context, CancellationToken cancellationToken)
@@ -366,12 +369,13 @@ internal sealed partial class PagesArchivePart
         await database.Publications.ExecuteDeleteAsync(cancellationToken).ConfigureAwait(false);
         await database.PageDrafts.ExecuteDeleteAsync(cancellationToken).ConfigureAwait(false);
         await database.ComponentDrafts.ExecuteDeleteAsync(cancellationToken).ConfigureAwait(false);
-        await database.Components.ExecuteDeleteAsync(cancellationToken).ConfigureAwait(false);
+        // 021 TR-17: a restore import empties the trash with the rest of the site.
+        await database.Components.IncludingTrash(ClearReason).ExecuteDeleteAsync(cancellationToken).ConfigureAwait(false);
         await database.MenuDrafts.ExecuteDeleteAsync(cancellationToken).ConfigureAwait(false);
         await database.Menus.ExecuteDeleteAsync(cancellationToken).ConfigureAwait(false);
         await database.RedirectUsages.ExecuteDeleteAsync(cancellationToken).ConfigureAwait(false);
         await database.Redirects.ExecuteDeleteAsync(cancellationToken).ConfigureAwait(false);
-        await database.Pages.ExecuteDeleteAsync(cancellationToken).ConfigureAwait(false);
+        await database.Pages.IncludingTrash(ClearReason).ExecuteDeleteAsync(cancellationToken).ConfigureAwait(false);
         await database.PageTrees.ExecuteDeleteAsync(cancellationToken).ConfigureAwait(false);
 
         // Who holds forms, editing sessions and caches of removed documents learns as after a delete.

@@ -283,6 +283,22 @@ namespace QuickBuilder.Cms.Infrastructure.Migrations
                         .HasColumnType("character varying(10)")
                         .HasColumnName("status");
 
+                    b.Property<DateTimeOffset?>("TrashedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("trashed_at_utc");
+
+                    b.Property<Guid?>("TrashedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("trashed_by");
+
+                    b.Property<bool?>("TrashedHadSchedule")
+                        .HasColumnType("boolean")
+                        .HasColumnName("trashed_had_schedule");
+
+                    b.Property<bool?>("TrashedWasLive")
+                        .HasColumnType("boolean")
+                        .HasColumnName("trashed_was_live");
+
                     b.Property<DateTimeOffset>("UpdatedAtUtc")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at_utc");
@@ -315,6 +331,11 @@ namespace QuickBuilder.Cms.Infrastructure.Migrations
                         .IsDescending(false, true, false)
                         .HasDatabaseName("ix_items_collection_id_updated_at_utc_id");
 
+                    b.HasIndex("SiteId", "TrashedAtUtc", "Id")
+                        .IsDescending(false, true, false)
+                        .HasDatabaseName("ix_items_trash")
+                        .HasFilter("trashed_at_utc IS NOT NULL");
+
                     b.ToTable("items", "cms", t =>
                         {
                             t.HasCheckConstraint("ck_items_copy_origin", "(copied_from_id IS NULL) = (copied_from_saved_at_utc IS NULL) AND (copied_from_id IS NULL) = (copied_by IS NULL) AND (copied_from_id IS NULL) = (copied_at_utc IS NULL)");
@@ -328,6 +349,8 @@ namespace QuickBuilder.Cms.Infrastructure.Migrations
                             t.HasCheckConstraint("ck_items_revision", "revision >= 1");
 
                             t.HasCheckConstraint("ck_items_status", "status IN ('draft', 'published', 'changed')");
+
+                            t.HasCheckConstraint("ck_items_trash", "(trashed_at_utc IS NULL) = (trashed_by IS NULL) AND (trashed_at_utc IS NULL) = (trashed_was_live IS NULL) AND (trashed_at_utc IS NULL) = (trashed_had_schedule IS NULL) AND (trashed_at_utc IS NULL OR published IS NULL)");
                         });
                 });
 

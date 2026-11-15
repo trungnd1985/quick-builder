@@ -81,7 +81,7 @@ internal sealed class PublishedDesignReadDbContext(DbContextOptions<PublishedDes
         {
             entity.ToTable("design_publications");
             entity.HasKey(e => e.SiteId);
-            entity.HasQueryFilter(e => e.SiteId == CurrentSiteId);
+            entity.HasQueryFilter(QueryFilters.Site, e => e.SiteId == CurrentSiteId);
         });
 
         modelBuilder.Entity<DesignVersionRow>(entity =>
@@ -90,7 +90,7 @@ internal sealed class PublishedDesignReadDbContext(DbContextOptions<PublishedDes
             entity.HasKey(e => new { e.SiteId, e.Number });
             entity.Property(e => e.SchemaVersion).HasColumnType("smallint");
             entity.Property(e => e.Document).HasColumnType("jsonb");
-            entity.HasQueryFilter(e => e.SiteId == CurrentSiteId);
+            entity.HasQueryFilter(QueryFilters.Site, e => e.SiteId == CurrentSiteId);
         });
 
         modelBuilder.UseSnakeCaseColumns();

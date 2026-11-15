@@ -5,12 +5,12 @@ using QuickBuilder.Pages.Domain;
 
 namespace QuickBuilder.IntegrationTests.Pages;
 
-/// <summary>Deleting pages over HTTP (010 US5, FR-012 to FR-014, clarification Q2).</summary>
+/// <summary>Deleting pages over HTTP (010 US5, FR-012 to FR-014, clarification Q2); since 021, to the trash.</summary>
 [Collection(DatabaseCollection.Name)]
 public sealed class DeletePageTests(DatabaseFixture database)
 {
     [Fact]
-    public async Task A_leaf_is_deleted_with_its_draft_and_usages_and_its_address_is_free()
+    public async Task A_leaf_goes_to_the_trash_with_its_draft_frees_its_usages_and_its_address()
     {
         using var scenario = await PagesScenario.CreateAsync(database, "pg-delete").ConfigureAwait(true);
         var admin = scenario.Admin;
@@ -26,17 +26,18 @@ public sealed class DeletePageTests(DatabaseFixture database)
 
         var deleted = await PagesApi.DeleteAsync(admin, site, ids["/services"], 1).ConfigureAwait(true);
 
-        Assert.Equal(HttpStatusCode.NoContent, deleted.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, deleted.StatusCode);
         Assert.Equal(["/about", "/contact"], await PagesApi.PathsAsync(admin, site).ConfigureAwait(true));
         Assert.Equal(1, (await PagesApi.NodeAsync(admin, site, "/contact").ConfigureAwait(true)).GetProperty("position").GetInt32());
-        Assert.Equal(0, await scenario.ReadAsync(db => PagesScenario.Everything<PageDraft>(db).CountAsync(d => d.PageId == ids["/services"])).ConfigureAwait(true));
+        // 021 FR-003: the draft stays with the trashed page; its component use goes (TR-06).
+        Assert.Equal(1, await scenario.ReadAsync(db => PagesScenario.Everything<PageDraft>(db).CountAsync(d => d.PageId == ids["/services"])).ConfigureAwait(true));
         Assert.Equal(0, await scenario.ReadAsync(db => PagesScenario.Everything<ComponentUsage>(db).CountAsync()).ConfigureAwait(true));
         Assert.Contains(await scenario.OutboxAsync().ConfigureAwait(true), e => e.Type == "Pages.PageDeleted");
 
         // The component it used is free to go, and the address to reuse.
         var version = (await PagesApi.OkAsync(await PagesApi.GetComponentAsync(admin, site, header).ConfigureAwait(true)).ConfigureAwait(true))
             .GetProperty("version").GetUInt32();
-        Assert.Equal(HttpStatusCode.NoContent, (await PagesApi.DeleteComponentAsync(admin, site, header, version).ConfigureAwait(true)).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await PagesApi.DeleteComponentAsync(admin, site, header, version).ConfigureAwait(true)).StatusCode);
         await PagesApi.CreateOkAsync(admin, site, "services").ConfigureAwait(true);
     }
 
@@ -73,7 +74,7 @@ public sealed class DeletePageTests(DatabaseFixture database)
 
         await PagesApi.DeleteAsync(scenario.Admin, scenario.SiteA, ids["/about"], 1).ConfigureAwait(true);
         Assert.Equal(
-            HttpStatusCode.NoContent,
+            HttpStatusCode.OK,
             (await PagesApi.DeleteAsync(scenario.Admin, scenario.SiteA, ids["/"], 1).ConfigureAwait(true)).StatusCode);
     }
 
