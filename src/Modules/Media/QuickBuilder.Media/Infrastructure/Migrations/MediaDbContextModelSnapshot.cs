@@ -134,6 +134,18 @@ namespace QuickBuilder.Media.Infrastructure.Migrations
                         .HasColumnType("character varying(200)")
                         .HasColumnName("storage_key");
 
+                    b.Property<DateTimeOffset?>("TrashedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("trashed_at_utc");
+
+                    b.Property<Guid?>("TrashedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("trashed_by");
+
+                    b.Property<Guid?>("TrashedFolderId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("trashed_folder_id");
+
                     b.Property<DateTimeOffset>("UploadedAtUtc")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("uploaded_at_utc");
@@ -177,6 +189,11 @@ namespace QuickBuilder.Media.Infrastructure.Migrations
                     b.HasIndex("SiteId", "SortName", "Id")
                         .HasDatabaseName("ix_media_files_site_name");
 
+                    b.HasIndex("SiteId", "TrashedAtUtc", "Id")
+                        .IsDescending(false, true, false)
+                        .HasDatabaseName("ix_media_files_trash")
+                        .HasFilter("trashed_at_utc IS NOT NULL");
+
                     b.HasIndex("SiteId", "UploadedAtUtc", "Id")
                         .IsDescending(false, true, true)
                         .HasDatabaseName("ix_media_files_site_listing");
@@ -202,6 +219,8 @@ namespace QuickBuilder.Media.Infrastructure.Migrations
                             t.HasCheckConstraint("ck_media_files_extension", "extension ~ '^[a-z0-9]{1,8}$'");
 
                             t.HasCheckConstraint("ck_media_files_size_positive", "size_bytes > 0");
+
+                            t.HasCheckConstraint("ck_media_files_trash", "(trashed_at_utc IS NULL) = (trashed_by IS NULL) AND (trashed_at_utc IS NOT NULL OR trashed_folder_id IS NULL) AND (trashed_at_utc IS NULL OR folder_id IS NULL)");
                         });
                 });
 

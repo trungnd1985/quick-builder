@@ -14,9 +14,11 @@ const { t } = useI18n()
 const usage = ref<MediaUsage | null>(null)
 const failed = ref(false)
 
-const pages = computed(() => usage.value?.places.filter((p) => p.kind === 'page') ?? [])
-const components = computed(() => usage.value?.places.filter((p) => p.kind === 'component') ?? [])
-const items = computed(() => usage.value?.places.filter((p) => p.kind === 'item') ?? [])
+const pages = computed(() => usage.value?.places.filter((p) => p.kind === 'page' && !p.inTrash) ?? [])
+const components = computed(() => usage.value?.places.filter((p) => p.kind === 'component' && !p.inTrash) ?? [])
+const items = computed(() => usage.value?.places.filter((p) => p.kind === 'item' && !p.inTrash) ?? [])
+// 021 FR-027: uses by content in the trash, apart; they never block or warn.
+const trashed = computed(() => usage.value?.places.filter((p) => p.inTrash) ?? [])
 const summary = computed(() => usage.value?.summary)
 const liveRule = computed(() => (summary.value?.inLiveUse ?? false) && !props.file.canDelete)
 
@@ -35,6 +37,10 @@ watch(() => [props.file.id, props.file.contentVersion], () => void load(), { imm
 defineExpose({ reload: load })
 
 function editor(place: MediaUsagePlace) {
+  // A trashed place has no editor; the trash shows it (021 FR-027).
+  if (place.inTrash) {
+    return { name: 'site-trash', params: { siteId: props.siteId }, query: { tab: place.kind } }
+  }
   if (place.kind === 'item') {
     return { name: 'site-collection-item', params: { siteId: props.siteId, collectionId: place.collectionId ?? '', itemId: place.id } }
   }
@@ -81,7 +87,7 @@ function editor(place: MediaUsagePlace) {
       </p>
 
       <template
-        v-for="group in [{ key: 'pages', places: pages }, { key: 'components', places: components }, { key: 'items', places: items }]"
+        v-for="group in [{ key: 'pages', places: pages }, { key: 'components', places: components }, { key: 'items', places: items }, { key: 'trashed', places: trashed }]"
         :key="group.key"
       >
         <template v-if="group.places.length > 0">

@@ -83,7 +83,7 @@ public sealed class MenuEndpointsTests(DatabaseFixture database)
         var saved = await SaveCurrentDraftOkAsync(world.Admin, world.Site, menu, document).ConfigureAwait(true);
         var read = await GetOkAsync(world.Admin, world.Site, menu).ConfigureAwait(true);
 
-        Assert.True(JsonEquals(JsonDocument.Parse(document).RootElement, read.GetProperty("draft")), read.GetProperty("draft").GetRawText());
+        Assert.True(JsonEquals(JsonElement.Parse(document), read.GetProperty("draft")), read.GetProperty("draft").GetRawText());
         Assert.Equal(saved.GetProperty("draftVersion").GetUInt32(), read.GetProperty("draftVersion").GetUInt32());
         Assert.Equal(6, read.GetProperty("entryCount").GetInt32());
 
@@ -166,7 +166,7 @@ public sealed class MenuEndpointsTests(DatabaseFixture database)
         await SaveCurrentDraftOkAsync(world.Admin, world.Site, menu, Document(Entry("about", PageTarget(about)))).ConfigureAwait(true);
         var aboutVersion = (await PagesApi.OkAsync(await PagesApi.GetAsync(world.Admin, world.Site, about).ConfigureAwait(true)).ConfigureAwait(true))
             .GetProperty("version").GetInt32();
-        Assert.Equal(HttpStatusCode.NoContent, (await PagesApi.DeleteAsync(world.Admin, world.Site, about, aboutVersion).ConfigureAwait(true)).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await PagesApi.DeleteAsync(world.Admin, world.Site, about, aboutVersion).ConfigureAwait(true)).StatusCode);
 
         var resaved = await SaveCurrentDraftOkAsync(
             world.Admin, world.Site, menu, Document(Entry("about", PageTarget(about)), Entry("more", NoTarget(), label: "More"))).ConfigureAwait(true);
@@ -200,7 +200,7 @@ public sealed class MenuEndpointsTests(DatabaseFixture database)
             Entry("person", ItemTarget(world.People, person)))).ConfigureAwait(true);
         var doomedVersion = (await PagesApi.OkAsync(await PagesApi.GetAsync(world.Admin, world.Site, doomed).ConfigureAwait(true)).ConfigureAwait(true))
             .GetProperty("version").GetInt32();
-        Assert.Equal(HttpStatusCode.NoContent, (await PagesApi.DeleteAsync(world.Admin, world.Site, doomed, doomedVersion).ConfigureAwait(true)).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await PagesApi.DeleteAsync(world.Admin, world.Site, doomed, doomedVersion).ConfigureAwait(true)).StatusCode);
 
         var read = await GetOkAsync(world.Admin, world.Site, menu).ConfigureAwait(true);
         var states = read.GetProperty("targets").EnumerateArray()
@@ -229,7 +229,7 @@ public sealed class MenuEndpointsTests(DatabaseFixture database)
 
         var copy = await CreateOkAsync(world.Admin, world.Site, "Main (copy)", duplicateOf: menu).ConfigureAwait(true);
 
-        Assert.True(JsonEquals(JsonDocument.Parse(document).RootElement, copy.GetProperty("draft")));
+        Assert.True(JsonEquals(JsonElement.Parse(document), copy.GetProperty("draft")));
         Assert.Equal("draft", copy.GetProperty("publication").GetProperty("state").GetString());
 
         await PagesApi.RefusedAsync(

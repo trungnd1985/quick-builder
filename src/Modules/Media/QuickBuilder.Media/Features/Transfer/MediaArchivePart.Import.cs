@@ -4,6 +4,7 @@ using QuickBuilder.Media.Domain;
 using QuickBuilder.Media.Infrastructure;
 using QuickBuilder.Shared.Infrastructure.Data;
 using QuickBuilder.Shared.Infrastructure.Storage;
+using QuickBuilder.Shared.Infrastructure.Trash;
 using QuickBuilder.Sites.Contracts.Transfer;
 
 namespace QuickBuilder.Media.Features.Transfer;
@@ -96,7 +97,8 @@ internal sealed partial class MediaArchivePart
             // Bytes no row names any more are removed by the orphan sweep.
             context.Report.Removed(ArchiveKinds.MediaFile, await database.MediaFiles.CountAsync(cancellationToken).ConfigureAwait(false));
             await database.VariantClaims.ExecuteDeleteAsync(cancellationToken).ConfigureAwait(false);
-            await database.MediaFiles.ExecuteDeleteAsync(cancellationToken).ConfigureAwait(false);
+            // 021 TR-17: a restore import empties the trash with the rest of the site.
+            await database.MediaFiles.IncludingTrash("A restore import replaces the whole site, its trash included (021 TR-17).").ExecuteDeleteAsync(cancellationToken).ConfigureAwait(false);
             await database.Folders.ExecuteDeleteAsync(cancellationToken).ConfigureAwait(false);
             await database.FolderTrees.ExecuteDeleteAsync(cancellationToken).ConfigureAwait(false);
         }

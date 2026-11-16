@@ -248,7 +248,7 @@ public sealed class ArchiveManifestTests
 
         if (extraLine is not null)
         {
-            yield return JsonDocument.Parse(extraLine).RootElement;
+            yield return JsonElement.Parse(extraLine);
         }
     }
 

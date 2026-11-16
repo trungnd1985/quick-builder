@@ -48,6 +48,12 @@ internal static class PagesOutbox
                 case ComponentDeletedEvent e:
                     Add(database, new ComponentDeleted(Guid.CreateVersion7(), e.OccurredAtUtc, e.SiteId, e.ComponentId, actorUserId));
                     break;
+                case PageRestoredEvent e:
+                    Add(database, new PageRestored(Guid.CreateVersion7(), e.OccurredAtUtc, e.SiteId, e.PageId, actorUserId));
+                    break;
+                case ComponentRestoredEvent e:
+                    Add(database, new ComponentRestored(Guid.CreateVersion7(), e.OccurredAtUtc, e.SiteId, e.ComponentId, actorUserId));
+                    break;
                 // 024 data-model §6: a menu publish refreshes everything it affects in its own
                 // transaction, and no module consumes menu changes, so it announces nothing. Matched
                 // before the component fallbacks below, which would otherwise mislabel it.

@@ -35,6 +35,12 @@ internal sealed record ComponentCreatedEvent(Guid SiteId, Guid ComponentId, Date
 
 internal sealed record ComponentDeletedEvent(Guid SiteId, Guid ComponentId, DateTimeOffset OccurredAtUtc) : IDomainEvent;
 
+/// <summary>021 TR-08: a page came out of the trash.</summary>
+internal sealed record PageRestoredEvent(Guid SiteId, Guid PageId, DateTimeOffset OccurredAtUtc) : IDomainEvent;
+
+/// <summary>021 TR-08: a component came out of the trash.</summary>
+internal sealed record ComponentRestoredEvent(Guid SiteId, Guid ComponentId, DateTimeOffset OccurredAtUtc) : IDomainEvent;
+
 /// <summary>A page or component version became live (012 research PR-19).</summary>
 internal sealed record SubjectPublishedEvent(
     Guid SiteId,

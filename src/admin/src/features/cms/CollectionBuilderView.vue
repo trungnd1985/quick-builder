@@ -539,6 +539,7 @@ const savingLabel = computed(() => {
         :name="collection.name"
         :revision="collection.revision"
         :item-count="collection.itemCount"
+        :trashed-item-count="collection.trashedItemCount"
         @deleted="deleted"
         @cancel="deleting = false"
       />

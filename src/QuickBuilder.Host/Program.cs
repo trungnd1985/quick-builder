@@ -62,6 +62,14 @@ builder.Services
     .ValidateDataAnnotations()
     .ValidateOnStart();
 
+// 021 FR-025: how long deleted content stays in the trash, for the whole installation.
+builder.Services
+    .AddOptions<QuickBuilder.Shared.Infrastructure.Trash.TrashOptions>()
+    .Bind(builder.Configuration.GetSection(QuickBuilder.Shared.Infrastructure.Trash.TrashOptions.SectionName))
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
+builder.Services.AddSingleton<QuickBuilder.Shared.Infrastructure.Trash.TrashRetention>();
+
 builder.Services
     .AddOptions<AdminOptions>()
     .Bind(builder.Configuration.GetSection(AdminOptions.SectionName))

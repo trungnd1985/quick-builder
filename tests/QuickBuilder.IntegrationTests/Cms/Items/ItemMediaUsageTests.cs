@@ -50,7 +50,7 @@ public sealed class ItemMediaUsageTests(DatabaseFixture database)
 
         var inUse = await PagesApi.ProblemAsync(await scenario.Admin.DeleteAsync(new Uri($"/api/v1/media/sites/{scenario.Site}/files/{scenario.Image}", UriKind.Relative)));
         Assert.Equal("media.in_use", inUse.Code);
-        Assert.Equal(HttpStatusCode.NoContent, (await scenario.Admin.DeleteAsync(new Uri($"/api/v1/media/sites/{scenario.Site}/files/{scenario.Image}?confirmInUse=true", UriKind.Relative))).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await scenario.Admin.DeleteAsync(new Uri($"/api/v1/media/sites/{scenario.Site}/files/{scenario.Image}?confirmInUse=true", UriKind.Relative))).StatusCode);
 
         // The outbox is not running in tests: deliver Media.FileDeleted to the Cms handler by hand.
         await scenario.Cms.App.DeliverAsync<QuickBuilder.Media.Contracts.Events.FileDeleted>(

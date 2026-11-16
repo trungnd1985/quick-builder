@@ -48,7 +48,7 @@ internal sealed class StoredDocuments(PageSchemaUpgrades pages, MenuSchemaUpgrad
             _ => (Unrenderable, Empty),
         };
 
-    private static readonly JsonElement Empty = JsonDocument.Parse("{}").RootElement.Clone();
+    private static readonly JsonElement Empty = JsonElement.Parse("{}");
 
     /// <summary>For the admin and for publishing: the current document, or the refusal to give.</summary>
     public Result<JsonElement> ForEditing(string subjectKind, Guid subjectId, string storedDocument, int storedVersion)

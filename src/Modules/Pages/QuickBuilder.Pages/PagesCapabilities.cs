@@ -39,6 +39,12 @@ internal static class PagesCapabilities
     /// </summary>
     public const string MenusManage = "pages.menus.manage";
 
+    /// <summary>
+    /// Delete trashed pages and components permanently, one, several or the whole trash.
+    /// Administrators only (021 FR-021, research TR-14).
+    /// </summary>
+    public const string TrashPurge = "pages.trash.purge";
+
     public static IEnumerable<CapabilityDefinition> All =>
     [
         new(ContentView, CapabilityScope.Site, [SystemRole.Designer, SystemRole.Editor]),
@@ -56,5 +62,8 @@ internal static class PagesCapabilities
 
         // 024: menus shape the site's structure, so Designers build them ("Designer builds").
         new(MenusManage, CapabilityScope.Site, [SystemRole.Designer]),
+
+        // 021 FR-021: only Administrators delete permanently.
+        new(TrashPurge, CapabilityScope.Site, []),
     ];
 }

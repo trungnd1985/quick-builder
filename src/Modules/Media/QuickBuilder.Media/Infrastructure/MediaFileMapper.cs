@@ -121,7 +121,7 @@ internal sealed class MediaFileMapper(
     public static MediaUsageSummaryDto ToDto(MediaUsageSummary summary)
     {
         ArgumentNullException.ThrowIfNull(summary);
-        return new MediaUsageSummaryDto(summary.Places, summary.DraftPlaces, summary.LivePlaces, summary.HistoryOnlyPlaces, summary.InLiveUse);
+        return new MediaUsageSummaryDto(summary.Places, summary.DraftPlaces, summary.LivePlaces, summary.HistoryOnlyPlaces, summary.InLiveUse, summary.TrashedPlaces);
     }
 
     /// <summary>The admin variant address; its query names the version, so it can be cached for good (MV-16).</summary>

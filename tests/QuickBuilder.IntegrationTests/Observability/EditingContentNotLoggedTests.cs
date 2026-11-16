@@ -50,7 +50,7 @@ public sealed class EditingContentNotLoggedTests(DatabaseFixture database)
         // A copy.
         await ben.PostAsJsonAsync(new Uri($"{path}/copies", UriKind.Relative), new
         {
-            document = JsonDocument.Parse(PagesApi.DocumentWithText($"{marker}copy")).RootElement,
+            document = JsonElement.Parse(PagesApi.DocumentWithText($"{marker}copy")),
             baseSavedAtUtc = DateTimeOffset.UtcNow,
             title = $"{marker}Pricing (copy)",
         });

@@ -22,12 +22,12 @@ public sealed class NavigationGoldenTests
         {
             var design = System.Text.Json.Nodes.JsonNode.Parse(harness.Design.GetRawText())!.AsObject();
             design["menuStyle"] = System.Text.Json.Nodes.JsonNode.Parse(menuStyle);
-            harness.Design = JsonDocument.Parse(design.ToJsonString()).RootElement.Clone();
+            harness.Design = JsonElement.Parse(design.ToJsonString());
         }
 
         harness.Links[Page] = new PageLinkTarget("/services", IsLive: true, LiveTitle: "Services");
-        harness.Menus[Menu] = new LiveMenu(1, JsonDocument.Parse($$"""{ "schemaVersion": 1, "entries": [ {{menuEntries}} ] }""").RootElement.Clone(), name);
-        harness.Menus[Other] = new LiveMenu(1, JsonDocument.Parse($$"""{ "schemaVersion": 1, "entries": [ {{Sub}} ] }""").RootElement.Clone(), "Footer");
+        harness.Menus[Menu] = new LiveMenu(1, JsonElement.Parse($$"""{ "schemaVersion": 1, "entries": [ {{menuEntries}} ] }"""), name);
+        harness.Menus[Other] = new LiveMenu(1, JsonElement.Parse($$"""{ "schemaVersion": 1, "entries": [ {{Sub}} ] }"""), "Footer");
         var blocks = $$"""{ "id": "nav", "type": "navigation", "props": { "menuId": "{{Menu}}"{{(props.Length == 0 ? "" : ", " + props)}} }, "children": [] }""";
         if (secondBlock.Length > 0)
         {
@@ -138,7 +138,7 @@ public sealed class NavigationGoldenTests
     public void Disallowed_addresses_never_become_links()
     {
         var harness = new RenderHarness();
-        harness.Menus[Menu] = new LiveMenu(1, JsonDocument.Parse("""{ "schemaVersion": 1, "entries": [ { "id": "a", "label": "Bad", "target": { "type": "url", "href": "javascript:alert(1)" }, "children": [] } ] }""").RootElement.Clone(), "Main");
+        harness.Menus[Menu] = new LiveMenu(1, JsonElement.Parse("""{ "schemaVersion": 1, "entries": [ { "id": "a", "label": "Bad", "target": { "type": "url", "href": "javascript:alert(1)" }, "children": [] } ] }"""), "Main");
 
         var html = harness.Page(RenderHarness.Document($$"""[{ "id": "s", "type": "section", "props": {}, "children": [ { "id": "nav", "type": "navigation", "props": { "menuId": "{{Menu}}" }, "children": [] } ] }]"""));
 

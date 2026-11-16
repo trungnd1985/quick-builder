@@ -32,11 +32,15 @@ internal static class CmsCapabilities
     /// </summary>
     public const string ItemsPublish = "cms.items.publish";
 
+    /// <summary>Delete trashed items permanently. Administrators only (021 FR-021, research TR-14).</summary>
+    public const string TrashPurge = "cms.trash.purge";
+
     public static IEnumerable<CapabilityDefinition> All =>
     [
         new(CollectionsView, CapabilityScope.Site, [SystemRole.Designer, SystemRole.Editor]),
         new(CollectionsManage, CapabilityScope.Site, [SystemRole.Designer]),
         new(ItemsEdit, CapabilityScope.Site, [SystemRole.Designer, SystemRole.Editor]),
         new(ItemsPublish, CapabilityScope.Site, [SystemRole.Designer, SystemRole.Editor]),
+        new(TrashPurge, CapabilityScope.Site, []),
     ];
 }

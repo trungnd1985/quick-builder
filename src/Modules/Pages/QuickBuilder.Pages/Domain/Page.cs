@@ -16,7 +16,7 @@ namespace QuickBuilder.Pages.Domain;
 /// 2,000-page tree never loads 2,000 documents (research P-08).
 /// </para>
 /// </remarks>
-internal sealed partial class Page : ISiteOwned
+internal sealed partial class Page : ISiteOwned, ITrashable
 {
     public const int MaxTitleLength = 200;
 
@@ -127,6 +127,29 @@ internal sealed partial class Page : ISiteOwned
 
     public Guid UpdatedBy { get; private set; }
 
+    /// <summary>When the page was moved to the trash; null while it is live (021 TR-02).</summary>
+    public DateTimeOffset? TrashedAtUtc { get; private set; }
+
+    public Guid? TrashedBy { get; private set; }
+
+    /// <summary>The parent it had when trashed; null when it was top level. No foreign key (TR-05).</summary>
+    public Guid? TrashedParentId { get; private set; }
+
+    public int? TrashedPosition { get; private set; }
+
+    /// <summary>Its address when trashed, shown and searched in the trash (TR-19).</summary>
+    public string? TrashedPath { get; private set; }
+
+    public bool? TrashedWasHome { get; private set; }
+
+    /// <summary>The collection it was the template of (TR-12).</summary>
+    public Guid? TrashedTemplateCollectionId { get; private set; }
+
+    /// <summary>Whether a publish was scheduled when it was trashed (TR-07).</summary>
+    public bool? TrashedHadSchedule { get; private set; }
+
+    public bool IsTrashed => TrashedAtUtc is not null;
+
     /// <summary>The trimmed title, or null when it is empty or too long.</summary>
     public static string? NormaliseTitle(string? title)
     {
@@ -156,6 +179,44 @@ internal sealed partial class Page : ISiteOwned
     internal void SetHome(bool isHome) => IsHome = isHome;
 
     internal void SetTemplate(Guid? collectionId) => TemplateCollectionId = collectionId;
+
+    /// <summary>
+    /// Marks the page as in the trash and detaches it from the tree's foreign keys and
+    /// checks, keeping where it was in plain columns (021 TR-05). Only the tree calls this.
+    /// </summary>
+    internal void MoveToTrash(Guid actor, bool hadSchedule, DateTimeOffset now)
+    {
+        TrashedAtUtc = now;
+        TrashedBy = actor;
+        TrashedParentId = ParentId;
+        TrashedPosition = Position;
+        TrashedPath = Path;
+        TrashedWasHome = IsHome;
+        TrashedTemplateCollectionId = TemplateCollectionId;
+        TrashedHadSchedule = hadSchedule;
+
+        ParentId = null;
+        IsHome = false;
+        TemplateCollectionId = null;
+        Touch(actor, now);
+    }
+
+    /// <summary>Records whether a publish was scheduled, once publishing has been shelved (021 TR-07).</summary>
+    internal void RecordTrashedSchedule(bool hadSchedule) => TrashedHadSchedule = hadSchedule;
+
+    /// <summary>Clears every trash column; the tree places the page and computes its address.</summary>
+    internal void TakeOutOfTrash(Guid actor, DateTimeOffset now)
+    {
+        TrashedAtUtc = null;
+        TrashedBy = null;
+        TrashedParentId = null;
+        TrashedPosition = null;
+        TrashedPath = null;
+        TrashedWasHome = null;
+        TrashedTemplateCollectionId = null;
+        TrashedHadSchedule = null;
+        Touch(actor, now);
+    }
 
     /// <summary>Records that this page was the subject of a change.</summary>
     internal void Touch(Guid actor, DateTimeOffset now)

@@ -56,9 +56,12 @@ public sealed class MediaOrphanSweepTests(DatabaseFixture database) : IAsyncLife
         _storage.FailDelete = new IOException("Simulated storage failure.");
         await CreateFailedInsertLeftoverAsync().ConfigureAwait(true);
 
-        // A failed purge after a delete.
+        // A failed removal of the bytes after a permanent delete (021 TR-14).
         var purgeFailed = await MediaApi.UploadOkAsync(_scenario.Admin, _scenario.SiteB).ConfigureAwait(true);
-        Assert.Equal(HttpStatusCode.NoContent, (await MediaApi.DeleteAsync(_scenario.Admin, _scenario.SiteB, purgeFailed.Id).ConfigureAwait(true)).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await MediaApi.DeleteAsync(_scenario.Admin, _scenario.SiteB, purgeFailed.Id).ConfigureAwait(true)).StatusCode);
+        Assert.Equal(
+            HttpStatusCode.NoContent,
+            (await _scenario.Admin.DeleteAsync(new Uri($"/api/v1/media/sites/{_scenario.SiteB}/trash/files/{purgeFailed.Id}", UriKind.Relative)).ConfigureAwait(true)).StatusCode);
         _storage.FailDelete = null;
         var leftovers = LeftoverFromFailedInsert();
 

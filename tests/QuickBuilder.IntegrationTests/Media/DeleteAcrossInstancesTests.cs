@@ -48,7 +48,7 @@ public sealed class DeleteAcrossInstancesTests(DatabaseFixture database) : IAsyn
         Assert.Equal(HttpStatusCode.OK, (await MediaApi.PublicAsync(_second, "shared.test", file.PublicPath).ConfigureAwait(true)).StatusCode);
         Assert.Equal(HttpStatusCode.OK, (await MediaApi.PublicAsync(_second, "shared.test", file.PublicPath).ConfigureAwait(true)).StatusCode);
 
-        Assert.Equal(HttpStatusCode.NoContent, (await MediaApi.DeleteAsync(admin, siteId, file.Id).ConfigureAwait(true)).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await MediaApi.DeleteAsync(admin, siteId, file.Id).ConfigureAwait(true)).StatusCode);
 
         Assert.Equal(HttpStatusCode.NotFound, (await MediaApi.PublicAsync(_second, "shared.test", file.PublicPath).ConfigureAwait(true)).StatusCode);
     }

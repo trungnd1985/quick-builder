@@ -120,7 +120,7 @@ internal sealed class CmsDbContext(DbContextOptions<CmsDbContext> options, ISite
             entity.HasIndex(e => new { e.SiteId, e.Slug }).IsUnique();
             entity.HasIndex(e => new { e.SiteId, e.Name });
 
-            entity.HasQueryFilter(e => e.SiteId == CurrentSiteId);
+            entity.HasQueryFilter(QueryFilters.Site, e => e.SiteId == CurrentSiteId);
         });
 
         modelBuilder.Entity<Item>(entity =>
@@ -139,6 +139,12 @@ internal sealed class CmsDbContext(DbContextOptions<CmsDbContext> options, ISite
                 t.HasCheckConstraint(
                     "ck_items_draft_change_kind",
                     "(draft_change_kind = 'member') OR (draft_change_kind = 'schema_change' AND draft_changed_by IS NULL)");
+
+                // 021 data-model §2: all set or all null; a trashed item is never published (TR-07).
+                t.HasCheckConstraint(
+                    "ck_items_trash",
+                    "(trashed_at_utc IS NULL) = (trashed_by IS NULL) AND (trashed_at_utc IS NULL) = (trashed_was_live IS NULL) " +
+                    "AND (trashed_at_utc IS NULL) = (trashed_had_schedule IS NULL) AND (trashed_at_utc IS NULL OR published IS NULL)");
             });
 
             entity.HasKey(e => e.Id);
@@ -179,7 +185,16 @@ internal sealed class CmsDbContext(DbContextOptions<CmsDbContext> options, ISite
                 .HasDatabaseName("ix_items_collection_id_attention")
                 .HasFilter("attention IS NOT NULL");
 
-            entity.HasQueryFilter(e => e.SiteId == CurrentSiteId);
+            // 021 TR-19: the trash list, newest first.
+            entity
+                .HasIndex(e => new { e.SiteId, e.TrashedAtUtc, e.Id })
+                .IsDescending(false, true, false)
+                .HasFilter("trashed_at_utc IS NOT NULL")
+                .HasDatabaseName("ix_items_trash");
+            entity.Ignore(e => e.IsTrashed);
+
+            entity.HasQueryFilter(QueryFilters.Site, e => e.SiteId == CurrentSiteId);
+            entity.HasQueryFilter(QueryFilters.Trash, e => e.TrashedAtUtc == null);
         });
 
         // Research IT-03: one key over every draft and published slug of a collection, so the
@@ -195,7 +210,7 @@ internal sealed class CmsDbContext(DbContextOptions<CmsDbContext> options, ISite
             entity.HasOne<Item>().WithMany().HasForeignKey(e => e.ItemId).OnDelete(DeleteBehavior.Cascade);
             entity.HasIndex(e => e.ItemId);
 
-            entity.HasQueryFilter(e => e.SiteId == CurrentSiteId);
+            entity.HasQueryFilter(QueryFilters.Site, e => e.SiteId == CurrentSiteId);
         });
 
         // Research IT-10: NO ACTION on the target refuses deleting an item something refers to,
@@ -217,7 +232,7 @@ internal sealed class CmsDbContext(DbContextOptions<CmsDbContext> options, ISite
             entity.HasOne<Item>().WithMany().HasForeignKey(e => e.TargetItemId).OnDelete(DeleteBehavior.NoAction);
             entity.HasIndex(e => e.TargetItemId);
 
-            entity.HasQueryFilter(e => e.SiteId == CurrentSiteId);
+            entity.HasQueryFilter(QueryFilters.Site, e => e.SiteId == CurrentSiteId);
         });
 
         // Research IT-15: the media library reads items' usage from here. No foreign key to the
@@ -231,7 +246,7 @@ internal sealed class CmsDbContext(DbContextOptions<CmsDbContext> options, ISite
             entity.HasOne<Item>().WithMany().HasForeignKey(e => e.ItemId).OnDelete(DeleteBehavior.Cascade);
             entity.HasIndex(e => new { e.SiteId, e.MediaId });
 
-            entity.HasQueryFilter(e => e.SiteId == CurrentSiteId);
+            entity.HasQueryFilter(QueryFilters.Site, e => e.SiteId == CurrentSiteId);
         });
 
         modelBuilder.Entity<ItemVersion>(entity =>
@@ -246,7 +261,7 @@ internal sealed class CmsDbContext(DbContextOptions<CmsDbContext> options, ISite
 
             entity.HasOne<Item>().WithMany().HasForeignKey(e => e.ItemId).OnDelete(DeleteBehavior.Cascade);
 
-            entity.HasQueryFilter(e => e.SiteId == CurrentSiteId);
+            entity.HasQueryFilter(QueryFilters.Site, e => e.SiteId == CurrentSiteId);
         });
 
         // Research IT-09: at most one pending schedule per item and action.
@@ -277,7 +292,7 @@ internal sealed class CmsDbContext(DbContextOptions<CmsDbContext> options, ISite
                 .IsUnique()
                 .HasFilter("state = 'pending'");
 
-            entity.HasQueryFilter(e => e.SiteId == CurrentSiteId);
+            entity.HasQueryFilter(QueryFilters.Site, e => e.SiteId == CurrentSiteId);
         });
 
         modelBuilder.Entity<ItemHistoryEntry>(entity =>
@@ -293,7 +308,7 @@ internal sealed class CmsDbContext(DbContextOptions<CmsDbContext> options, ISite
             entity.HasOne<Item>().WithMany().HasForeignKey(e => e.ItemId).OnDelete(DeleteBehavior.Cascade);
             entity.HasIndex(e => new { e.ItemId, e.Id });
 
-            entity.HasQueryFilter(e => e.SiteId == CurrentSiteId);
+            entity.HasQueryFilter(QueryFilters.Site, e => e.SiteId == CurrentSiteId);
         });
 
         // Research CS-11: the database, not a check in code, refuses to delete a collection
@@ -310,7 +325,7 @@ internal sealed class CmsDbContext(DbContextOptions<CmsDbContext> options, ISite
             entity.HasOne<Collection>().WithMany().HasForeignKey(e => e.TargetCollectionId).OnDelete(DeleteBehavior.Restrict);
             entity.HasIndex(e => e.TargetCollectionId);
 
-            entity.HasQueryFilter(e => e.SiteId == CurrentSiteId);
+            entity.HasQueryFilter(QueryFilters.Site, e => e.SiteId == CurrentSiteId);
         });
 
         modelBuilder.Entity<SchemaChangeEntry>(entity =>
@@ -322,7 +337,7 @@ internal sealed class CmsDbContext(DbContextOptions<CmsDbContext> options, ISite
 
             entity.HasOne<Collection>().WithMany().HasForeignKey(e => e.CollectionId).OnDelete(DeleteBehavior.Cascade);
 
-            entity.HasQueryFilter(e => e.SiteId == CurrentSiteId);
+            entity.HasQueryFilter(QueryFilters.Site, e => e.SiteId == CurrentSiteId);
         });
 
         // Every module context carries the outbox (003 analysis U1): Cms.CollectionCreated,

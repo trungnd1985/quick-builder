@@ -39,12 +39,12 @@ public sealed class ItemReferenceIntegrityTests(DatabaseFixture database)
         var current = await ItemsApi.GetOkAsync(scenario.Admin, scenario.Site, scenario.Posts, ItemsApi.Id(publishedOnly));
         await PagesApi.OkAsync(await ItemsApi.UnpublishAsync(scenario.Admin, scenario.Site, scenario.Posts, ItemsApi.Id(publishedOnly), ItemsApi.Revision(current)));
 
-        Assert.Equal(HttpStatusCode.NoContent, (await ItemsApi.DeleteAsync(scenario.Admin, scenario.Site, scenario.People, annId, ItemsApi.Revision(ann))).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await ItemsApi.DeleteAsync(scenario.Admin, scenario.Site, scenario.People, annId, ItemsApi.Revision(ann))).StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, (await ItemsApi.GetAsync(scenario.Admin, scenario.Site, scenario.People, annId)).StatusCode);
         await scenario.PersonAsync("Ann");
 
         var deleted = (await scenario.Cms.OutboxAsync()).Single(e => e.Type == "Cms.ItemDeleted");
-        Assert.False(JsonDocument.Parse(deleted.Payload).RootElement.GetProperty("WasPublished").GetBoolean());
+        Assert.False(JsonElement.Parse(deleted.Payload).GetProperty("WasPublished").GetBoolean());
     }
 
     [Fact]
@@ -138,7 +138,7 @@ public sealed class ItemReferenceIntegrityTests(DatabaseFixture database)
                 var victim = people[random.Next(people.Count)];
                 var current = await ItemsApi.GetAsync(scenario.Admin, scenario.Site, scenario.People, ItemsApi.Id(victim));
                 if (current.StatusCode == HttpStatusCode.OK
-                    && (await ItemsApi.DeleteAsync(scenario.Admin, scenario.Site, scenario.People, ItemsApi.Id(victim), ItemsApi.Revision(await PagesApi.OkAsync(current)))).StatusCode == HttpStatusCode.NoContent)
+                    && (await ItemsApi.DeleteAsync(scenario.Admin, scenario.Site, scenario.People, ItemsApi.Id(victim), ItemsApi.Revision(await PagesApi.OkAsync(current)))).StatusCode == HttpStatusCode.OK)
                 {
                     people.Remove(victim);
                 }

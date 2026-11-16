@@ -16,6 +16,7 @@ using QuickBuilder.Media.Features.MoveFiles;
 using QuickBuilder.Media.Features.ReplaceFile;
 using QuickBuilder.Media.Features.ServePublicFile;
 using QuickBuilder.Media.Features.StorageCheck;
+using QuickBuilder.Media.Features.Trash;
 using QuickBuilder.Media.Features.UpdateFile;
 using QuickBuilder.Media.Features.UploadFile;
 using QuickBuilder.Media.Imaging;
@@ -129,6 +130,25 @@ public static class MediaModule
         services.AddScoped<IQueryHandler<ServePublicFileQuery, Result<PublicMediaContent>>, ServePublicFileHandler>();
         services.AddScoped<ICommandHandler<DeleteFileCommand, DeleteFileOutcome>, DeleteFileHandler>();
 
+        // 021: the media trash.
+        services.AddScoped<MediaTrash>();
+        services.AddScoped<ListTrashHandler>();
+        services.AddScoped<IQueryHandler<ListTrashQuery, Result<TrashListResponse>>>(sp => sp.GetRequiredService<ListTrashHandler>());
+        services.AddScoped<IQueryHandler<GetTrashEntryQuery, Result<TrashEntryResponse>>>(sp => sp.GetRequiredService<ListTrashHandler>());
+        services.AddScoped<RestoreFileHandler>();
+        services.AddScoped<IQueryHandler<FileRestorePlanQuery, Result<RestorePlanResponse>>>(sp => sp.GetRequiredService<RestoreFileHandler>());
+        services.AddScoped<ICommandHandler<RestoreFileCommand, Result<RestoreResultResponse>>>(sp => sp.GetRequiredService<RestoreFileHandler>());
+        services.AddScoped<ICommandHandler<BulkRestoreCommand, Result<BulkOutcomeResponse>>, BulkRestoreHandler>();
+        services.AddScoped<MediaTrashPurge>();
+        services.AddScoped<PurgeHandler>();
+        services.AddScoped<ICommandHandler<PurgeFileCommand, Result>>(sp => sp.GetRequiredService<PurgeHandler>());
+        services.AddScoped<ICommandHandler<PurgeFilesCommand, Result<BulkOutcomeResponse>>>(sp => sp.GetRequiredService<PurgeHandler>());
+        services.AddScoped<ICommandHandler<EmptyFileTrashCommand, Result<EmptyTrashResponse>>>(sp => sp.GetRequiredService<PurgeHandler>());
+
+        // 021 TR-13: the hourly purge of trashed files past the retention period.
+        services.AddSingleton<MediaTrashPurgeService>();
+        services.AddHostedService(sp => sp.GetRequiredService<MediaTrashPurgeService>());
+
         // 013 (contracts/media-api.yaml).
         services.AddScoped<IQueryHandler<GetFileQuery, Result<MediaFileDto>>, GetFileHandler>();
         services.AddScoped<ICommandHandler<UpdateFileCommand, Result<MediaFileDto>>, UpdateFileHandler>();
@@ -144,6 +164,7 @@ public static class MediaModule
         services.AddScoped<ICommandHandler<StartStorageCheckCommand, Result<StorageCheckDto>>, StartStorageCheckHandler>();
         // 012: pages that show a deleted file refresh (data-model §3.2).
         services.AddSingleton<IEventTypeRegistration>(new EventTypeRegistration<FileDeleted>());
+        services.AddSingleton<IEventTypeRegistration>(new EventTypeRegistration<FileRestored>());
         // 013 MV-17: replaced files, recorded dimensions and failed variants refresh them too.
         services.AddSingleton<IEventTypeRegistration>(new EventTypeRegistration<FileChanged>());
 

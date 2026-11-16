@@ -99,7 +99,10 @@ internal sealed class PublicMediaReadDbContext(DbContextOptions<PublicMediaReadD
             entity.HasKey(e => e.Id);
             entity.Property(e => e.MetadataState).HasConversion<short>();
             entity.Property(e => e.VariantsState).HasConversion<short>();
-            entity.HasQueryFilter(e => e.SiteId == CurrentSiteId);
+            entity.HasQueryFilter(QueryFilters.Site, e => e.SiteId == CurrentSiteId);
+
+            // 021 TR-03: a trashed file answers not found at its address.
+            entity.HasQueryFilter(QueryFilters.Trash, e => e.TrashedAtUtc == null);
         });
 
         modelBuilder.UseSnakeCaseColumns();
@@ -112,7 +115,7 @@ internal sealed class PublicMediaReadDbContext(DbContextOptions<PublicMediaReadD
 }
 
 /// <summary>The columns of <c>media.media_files</c> the public path reads.</summary>
-internal sealed class PublicMediaRow : ISiteOwned
+internal sealed class PublicMediaRow : ISiteOwned, ITrashable
 {
     public Guid Id { get; set; }
 
@@ -136,4 +139,7 @@ internal sealed class PublicMediaRow : ISiteOwned
 
     /// <summary>The file's alternative text, for <c>og:image:alt</c> (017 research SE-05).</summary>
     public string? AltText { get; set; }
+
+    /// <summary>Set while the file is in the trash, where it answers not found (021 FR-004).</summary>
+    public DateTimeOffset? TrashedAtUtc { get; set; }
 }

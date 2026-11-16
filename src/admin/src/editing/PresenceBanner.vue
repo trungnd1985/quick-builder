@@ -7,7 +7,7 @@
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { Presence } from '../api/editing'
-import type { EditingStatus } from './useEditingSession'
+import type { EditingStatus, TrashedBy } from './useEditingSession'
 import './editing.css'
 
 const props = defineProps<{
@@ -15,6 +15,9 @@ const props = defineProps<{
   status: EditingStatus
   presence: Presence | null
   busy?: boolean
+  /** 021 TR-16: who moved the document to the trash, when it was. */
+  trashedBy?: TrashedBy | null
+  siteId?: string
 }>()
 const emit = defineEmits<{ takeOver: []; moveHere: []; edit: []; reload: [] }>()
 const { t, locale } = useI18n()
@@ -50,6 +53,8 @@ const message = computed(() => {
         : t('editing.presence.viewOnly', { what: what.value })
     case 'free':
       return t('editing.presence.free', { what: what.value })
+    case 'trashed':
+      return t('editing.presence.trashed', { what: what.value, name: props.trashedBy?.name ?? '', time: time(props.trashedBy?.at) })
     default:
       return viewers.value ? t('editing.presence.alsoViewing', { names: viewers.value }) : ''
   }
@@ -74,7 +79,7 @@ function takeOver(): void {
     <div
       v-if="message"
       class="editing-presence__banner"
-      :class="{ 'editing-presence__banner--blocked': blocked || status === 'taken-over' || status === 'moved' }"
+      :class="{ 'editing-presence__banner--blocked': blocked || status === 'taken-over' || status === 'moved' || status === 'trashed' }"
     >
       <p>{{ message }}</p>
       <p
@@ -117,6 +122,12 @@ function takeOver(): void {
         >
           {{ t('editing.presence.reload') }}
         </button>
+        <RouterLink
+          v-if="status === 'trashed' && trashedBy?.canRestore && siteId"
+          :to="{ name: 'site-trash', params: { siteId }, query: { tab: kind } }"
+        >
+          {{ t('trash.openTrash') }}
+        </RouterLink>
         <slot name="actions" />
       </div>
     </div>

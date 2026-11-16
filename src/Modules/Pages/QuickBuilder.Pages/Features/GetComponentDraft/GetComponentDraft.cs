@@ -26,6 +26,7 @@ internal sealed class GetComponentDraftHandler(PagesDbContext database, PageRead
 
         var draft = await database.ForSite<ComponentDraft>(query.SiteId)
             .AsNoTracking()
+            .Where(d => database.ForSite<Component>(query.SiteId).Any(c => c.Id == d.ComponentId))
             .FirstOrDefaultAsync(d => d.ComponentId == query.ComponentId, cancellationToken)
             .ConfigureAwait(false);
 

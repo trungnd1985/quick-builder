@@ -2,6 +2,7 @@ using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using QuickBuilder.Cms.Contracts;
 using QuickBuilder.Cms.Domain;
+using QuickBuilder.Shared.Infrastructure.Trash;
 
 namespace QuickBuilder.Cms.Infrastructure;
 
@@ -109,5 +110,18 @@ internal sealed class CollectionSchemaReader(CmsDbContext database, Schema.Colle
             .ConfigureAwait(false);
 
         return rows.ToDictionary(r => r.Id, r => new ItemAddressParts(r.CollectionId, r.PublishedSlug, r.Name));
+    }
+
+    public async Task<IReadOnlySet<Guid>> TrashedItemsAsync(Guid siteId, IReadOnlyCollection<Guid> itemIds, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(itemIds);
+        return itemIds.Count == 0
+            ? new HashSet<Guid>()
+            : (await database.ForSite<Item>(siteId)
+                .OnlyTrash("Menu entries say which targets are in the trash (021 FR-027).")
+                .Where(i => itemIds.Contains(i.Id))
+                .Select(i => i.Id)
+                .ToListAsync(cancellationToken)
+                .ConfigureAwait(false)).ToHashSet();
     }
 }

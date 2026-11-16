@@ -45,7 +45,7 @@ internal static class PagesErrorResults
         };
     }
 
-    internal static int StatusFor(string code) => code switch
+    internal static int StatusFor(string code) => QuickBuilder.Shared.Infrastructure.Trash.TrashErrorCodes.StatusFor(code) ?? code switch
     {
         "pages.duplicate_address"
             or "pages.reserved_address"
@@ -87,7 +87,7 @@ internal static class PagesErrorResults
             or "pages.form_redirect_not_live"
             // 019 contracts/schema-upgrades.md §3.
             or "pages.document_too_new" => StatusCodes.Status409Conflict,
-        "pages.seo_restricted" => StatusCodes.Status403Forbidden,
+        "pages.seo_restricted" or "identity.forbidden" => StatusCodes.Status403Forbidden,
         "redirects.import_too_large" => StatusCodes.Status413PayloadTooLarge,
         "pages.document_too_large" => StatusCodes.Status413PayloadTooLarge,
         "pages.image_alt_missing"

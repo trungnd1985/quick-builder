@@ -24,6 +24,7 @@ using QuickBuilder.Cms.Features.Items.RollbackItem;
 using QuickBuilder.Cms.Features.Items.RunItemSchedule;
 using QuickBuilder.Cms.Features.Items.SaveItemDraft;
 using QuickBuilder.Cms.Features.Items.ScheduleItem;
+using QuickBuilder.Cms.Features.Items.Trash;
 using QuickBuilder.Cms.Features.Items.UnpublishItem;
 using QuickBuilder.Cms.Features.ListCollections;
 using QuickBuilder.Cms.Features.ListPreview;
@@ -88,6 +89,7 @@ public static class CmsModule
         services.AddSingleton<IEventTypeRegistration>(new EventTypeRegistration<ItemPublished>());
         services.AddSingleton<IEventTypeRegistration>(new EventTypeRegistration<ItemUnpublished>());
         services.AddSingleton<IEventTypeRegistration>(new EventTypeRegistration<ItemDeleted>());
+        services.AddSingleton<IEventTypeRegistration>(new EventTypeRegistration<ItemRestored>());
         services.AddSingleton<IEventTypeRegistration>(new EventTypeRegistration<ItemRedirectRequested>());
 
         // Shared by the slices: the validators (stateless, load the contract files once), the
@@ -154,7 +156,26 @@ public static class CmsModule
         services.AddScoped<ICommandHandler<PublishItemCommand, Result<ItemResponse>>, PublishItemHandler>();
         services.AddScoped<ICommandHandler<UnpublishItemCommand, Result<ItemResponse>>, UnpublishItemHandler>();
         services.AddScoped<IQueryHandler<ListItemReferrersQuery, Result<ReferrerListResponse>>, ListItemReferrersHandler>();
-        services.AddScoped<ICommandHandler<DeleteItemCommand, Result>, DeleteItemHandler>();
+        services.AddScoped<ICommandHandler<DeleteItemCommand, Result<QuickBuilder.Cms.Features.Items.Trash.TrashReceiptResponse>>, DeleteItemHandler>();
+
+        // 021: the item trash.
+        services.AddScoped<CmsTrash>();
+        services.AddScoped<ListTrashHandler>();
+        services.AddScoped<IQueryHandler<ListTrashQuery, Result<TrashListResponse>>>(sp => sp.GetRequiredService<ListTrashHandler>());
+        services.AddScoped<IQueryHandler<GetTrashEntryQuery, Result<TrashEntryDetailResponse>>>(sp => sp.GetRequiredService<ListTrashHandler>());
+        services.AddScoped<RestoreItemHandler>();
+        services.AddScoped<IQueryHandler<ItemRestorePlanQuery, Result<RestorePlanResponse>>>(sp => sp.GetRequiredService<RestoreItemHandler>());
+        services.AddScoped<ICommandHandler<RestoreItemCommand, Result<RestoreResultResponse>>>(sp => sp.GetRequiredService<RestoreItemHandler>());
+        services.AddScoped<ICommandHandler<BulkRestoreCommand, Result<BulkOutcomeResponse>>, BulkRestoreHandler>();
+        services.AddScoped<CmsTrashPurge>();
+        services.AddScoped<PurgeHandler>();
+        services.AddScoped<ICommandHandler<PurgeItemCommand, Result>>(sp => sp.GetRequiredService<PurgeHandler>());
+        services.AddScoped<ICommandHandler<PurgeItemsCommand, Result<BulkOutcomeResponse>>>(sp => sp.GetRequiredService<PurgeHandler>());
+        services.AddScoped<ICommandHandler<EmptyItemTrashCommand, Result<EmptyTrashResponse>>>(sp => sp.GetRequiredService<PurgeHandler>());
+
+        // 021 TR-13: the hourly purge of trashed items past the retention period.
+        services.AddSingleton<CmsTrashPurgeService>();
+        services.AddHostedService(sp => sp.GetRequiredService<CmsTrashPurgeService>());
         services.AddScoped<ICommandHandler<DuplicateItemCommand, Result<ItemResponse>>, DuplicateItemHandler>();
         // 023 research CE-11: "save my version as a copy".
         services.AddScoped<ICommandHandler<CopyItemCommand, Result<ItemResponse>>, CopyItemHandler>();
@@ -176,6 +197,7 @@ public static class CmsModule
         // Research IT-11: items using a deleted or replaced media file are checked again.
         services.AddScoped<IIntegrationEventHandler<FileDeleted>, ReindexItemsForMediaHandler>();
         services.AddScoped<IIntegrationEventHandler<FileChanged>, ReindexItemsForMediaHandler>();
+        services.AddScoped<IIntegrationEventHandler<FileRestored>, ReindexItemsForMediaHandler>();
 
         // 020: this module's share of a site archive (contracts/archive-parts.md).
         services.AddScoped<QuickBuilder.Sites.Contracts.Transfer.ISiteArchivePart, QuickBuilder.Cms.Features.Transfer.CmsArchivePart>();

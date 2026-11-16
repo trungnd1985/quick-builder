@@ -103,5 +103,5 @@ internal static class TransferResponses
         job.FinishedAtUtc);
 
     private static JsonElement? Parse(string? json) =>
-        json is null ? null : JsonDocument.Parse(json).RootElement.Clone();
+        json is null ? null : JsonElement.Parse(json);
 }

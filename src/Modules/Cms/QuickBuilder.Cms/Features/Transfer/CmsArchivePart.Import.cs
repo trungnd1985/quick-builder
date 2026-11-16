@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using QuickBuilder.Cms.Domain;
 using QuickBuilder.Cms.Infrastructure;
 using QuickBuilder.Shared.Infrastructure.Data;
+using QuickBuilder.Shared.Infrastructure.Trash;
 using QuickBuilder.Sites.Contracts.Transfer;
 
 namespace QuickBuilder.Cms.Features.Transfer;
@@ -116,7 +117,8 @@ internal sealed partial class CmsArchivePart
             await database.ItemHistory.ExecuteDeleteAsync(cancellationToken).ConfigureAwait(false);
             await database.ItemSchedules.ExecuteDeleteAsync(cancellationToken).ConfigureAwait(false);
             await database.ItemVersions.ExecuteDeleteAsync(cancellationToken).ConfigureAwait(false);
-            await database.Items.ExecuteDeleteAsync(cancellationToken).ConfigureAwait(false);
+            // 021 TR-17: a restore import empties the trash with the rest of the site.
+            await database.Items.IncludingTrash("A restore import replaces the whole site, its trash included (021 TR-17).").ExecuteDeleteAsync(cancellationToken).ConfigureAwait(false);
             await database.CollectionReferences.ExecuteDeleteAsync(cancellationToken).ConfigureAwait(false);
             await database.SchemaChanges.ExecuteDeleteAsync(cancellationToken).ConfigureAwait(false);
             await database.Collections.ExecuteDeleteAsync(cancellationToken).ConfigureAwait(false);
@@ -449,7 +451,7 @@ internal sealed partial class CmsArchivePart
     /// </summary>
     private async Task<Evaluation?> EvaluateReplaceAsync(Func<JsonElement, string> remap, Collection target, CollectionRow row, CancellationToken cancellationToken)
     {
-        var schema = JsonDocument.Parse(remap(row.Schema)).RootElement.Clone();
+        var schema = JsonElement.Parse(remap(row.Schema));
         var request = new SaveCollectionRequest(target.Revision, target.Name, target.Slug, row.Description, schema, FillIns: null, Confirmation: null);
         var evaluated = await services.GetRequiredService<ProposalEvaluator>().EvaluateAsync(target, request, cancellationToken).ConfigureAwait(false);
         return evaluated.IsFailure ? null : evaluated.Value;

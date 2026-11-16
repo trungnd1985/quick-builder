@@ -25,5 +25,5 @@ internal static class ArchiveGolden
         Assert.Equal(line, JsonSerializer.Serialize(back, ArchiveJson.Options));
     }
 
-    public static JsonElement Json(string json) => JsonDocument.Parse(json).RootElement.Clone();
+    public static JsonElement Json(string json) => JsonElement.Parse(json);
 }

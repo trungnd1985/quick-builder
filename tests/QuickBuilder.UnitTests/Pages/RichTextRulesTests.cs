@@ -12,7 +12,7 @@ public sealed class RichTextRulesTests
     private const string At = "/root/children/0/children/0/props/content";
 
     private static JsonElement Doc(params string[] blocks) =>
-        JsonDocument.Parse($$"""{"type":"doc","content":[{{string.Join(",", blocks)}}]}""").RootElement;
+        JsonElement.Parse($$"""{"type":"doc","content":[{{string.Join(",", blocks)}}]}""");
 
     private static string Paragraph(string text = "x") => $$"""{"type":"paragraph","content":[{"type":"text","text":"{{text}}"}]}""";
 
@@ -147,7 +147,7 @@ public sealed class RichTextRulesTests
     [InlineData("""{"type":"table","content":[{"type":"tableRow","content":[{"type":"tableCell","content":[{"type":"paragraph"}]}]}]}""")]
     [InlineData("""{"type":"paragraph","content":[{"type":"hardBreak"}]}""")]
     public void A_rich_text_without_text_or_images_is_empty(string blocks) =>
-        Assert.True(RichTextRules.IsEmpty(JsonDocument.Parse($"{{\"type\":\"doc\",\"content\":[{blocks}]}}").RootElement));
+        Assert.True(RichTextRules.IsEmpty(JsonElement.Parse($"{{\"type\":\"doc\",\"content\":[{blocks}]}}")));
 
     [Fact]
     public void One_image_or_one_character_is_not_empty()
@@ -159,7 +159,7 @@ public sealed class RichTextRulesTests
     [Fact]
     public void Anything_that_is_not_a_document_is_not_extended_and_breaks_no_rule()
     {
-        var notADocument = JsonDocument.Parse("\"text\"").RootElement;
+        var notADocument = JsonElement.Parse("\"text\"");
 
         Assert.False(RichTextRules.UsesExtendedFormats(notADocument));
         Assert.Null(RichTextRules.Check(notADocument, At));

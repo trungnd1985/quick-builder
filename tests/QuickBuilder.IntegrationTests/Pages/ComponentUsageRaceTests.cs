@@ -44,7 +44,7 @@ public sealed class ComponentUsageRaceTests(DatabaseFixture database)
 
             var (deleted, saved) = (await delete.ConfigureAwait(true), await save.ConfigureAwait(true));
 
-            if (deleted.StatusCode == HttpStatusCode.NoContent)
+            if (deleted.StatusCode == HttpStatusCode.OK)
             {
                 Assert.Equal("pages.unknown_component", (await PagesApi.ProblemAsync(saved).ConfigureAwait(true)).Code);
             }

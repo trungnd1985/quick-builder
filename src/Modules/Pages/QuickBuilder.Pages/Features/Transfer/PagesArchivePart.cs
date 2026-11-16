@@ -152,7 +152,7 @@ internal sealed partial class PagesArchivePart(PagesDbContext database, IService
         }
     }
 
-    private static JsonElement Parse(string json) => JsonDocument.Parse(json).RootElement.Clone();
+    private static JsonElement Parse(string json) => JsonElement.Parse(json);
 }
 
 /// <summary><c>parts/pages/tree.jsonl</c>: one page and its place in the tree. Addresses and depth are derived.</summary>

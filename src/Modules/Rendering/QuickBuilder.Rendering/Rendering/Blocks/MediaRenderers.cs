@@ -149,8 +149,8 @@ internal sealed class ButtonRenderer : IBlockRenderer
     private static readonly string[] Styles = ["primary", "secondary", "outline"];
 
     // ButtonBlock.vue: a button always takes the brand and background colours.
-    private static readonly JsonElement Brand = JsonDocument.Parse("""{"token":"color-brand"}""").RootElement.Clone();
-    private static readonly JsonElement Background = JsonDocument.Parse("""{"token":"color-background"}""").RootElement.Clone();
+    private static readonly JsonElement Brand = JsonElement.Parse("""{"token":"color-brand"}""");
+    private static readonly JsonElement Background = JsonElement.Parse("""{"token":"color-background"}""");
 
     public string Type => "button";
 

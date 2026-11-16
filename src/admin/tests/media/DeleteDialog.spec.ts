@@ -85,7 +85,8 @@ describe('DeleteDialog', () => {
 
     await fireEvent.click(confirmButton())
     expect(emitted().confirm?.[0]).toEqual([{ confirmInUse: false }])
-    expect(vi.mocked(fetch)).not.toHaveBeenCalled()
+    // No usage lookup for an unused file; the site read for the trash date (021 FR-002) is fine.
+    expect(vi.mocked(fetch).mock.calls.filter(([url]) => String(url).includes('/usage'))).toHaveLength(0)
   })
 
   it('names the places using it and needs a second confirmation, accessibly', async () => {

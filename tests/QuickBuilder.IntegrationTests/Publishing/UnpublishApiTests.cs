@@ -80,7 +80,7 @@ public sealed class UnpublishApiTests(DatabaseFixture database) : IAsyncLifetime
         Assert.Equal(HttpStatusCode.OK, (await VisitAsync("/services/hosting").ConfigureAwait(true)).StatusCode);
 
         await PagesApi.OkAsync(await PublishingApi.UnpublishAsync(_scenario.Admin, Path("/services/hosting")).ConfigureAwait(true)).ConfigureAwait(true);
-        Assert.Equal(HttpStatusCode.NoContent, (await PagesApi.DeleteAsync(_scenario.Admin, _scenario.SiteA, hosting, version).ConfigureAwait(true)).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await PagesApi.DeleteAsync(_scenario.Admin, _scenario.SiteA, hosting, version).ConfigureAwait(true)).StatusCode);
     }
 
     [Fact]

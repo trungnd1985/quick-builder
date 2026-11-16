@@ -20,7 +20,7 @@ namespace QuickBuilder.Cms.Features.Items.ReindexItemsForMedia;
 /// is a pure recomputation.
 /// </remarks>
 internal sealed class ReindexItemsForMediaHandler(IServiceScopeFactory scopes)
-    : IIntegrationEventHandler<FileDeleted>, IIntegrationEventHandler<FileChanged>
+    : IIntegrationEventHandler<FileDeleted>, IIntegrationEventHandler<FileChanged>, IIntegrationEventHandler<FileRestored>
 {
     public Task HandleAsync(FileDeleted integrationEvent, CancellationToken cancellationToken)
     {
@@ -29,6 +29,13 @@ internal sealed class ReindexItemsForMediaHandler(IServiceScopeFactory scopes)
     }
 
     public Task HandleAsync(FileChanged integrationEvent, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(integrationEvent);
+        return ReindexAsync(integrationEvent.SiteId, integrationEvent.FileId, cancellationToken);
+    }
+
+    /// <summary>021 TR-08: items that missed the file stop needing attention when it is restored.</summary>
+    public Task HandleAsync(FileRestored integrationEvent, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(integrationEvent);
         return ReindexAsync(integrationEvent.SiteId, integrationEvent.FileId, cancellationToken);

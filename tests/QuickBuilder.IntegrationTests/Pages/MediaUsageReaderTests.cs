@@ -30,6 +30,7 @@ public sealed class MediaUsageReaderTests(DatabaseFixture database) : IAsyncLife
 
     [Fact]
     public async Task A_file_nothing_uses_has_no_places() =>
+        // 021 FR-027: the use is still known, but it never blocks or warns.
         Assert.Equal(MediaUsageSummary.None, (await SummaryAsync(File).ConfigureAwait(true))[File]);
 
     [Fact]
@@ -91,15 +92,16 @@ public sealed class MediaUsageReaderTests(DatabaseFixture database) : IAsyncLife
     }
 
     [Fact]
-    public async Task Deleting_a_page_removes_its_usage()
+    public async Task A_page_in_the_trash_is_counted_apart_and_never_as_in_use()
     {
         var page = (await PagesApi.SeedTreeAsync(_scenario.Admin, _scenario.SiteA, "gone").ConfigureAwait(true))["/gone"];
         await SaveAsync(Page(page), Image(File)).ConfigureAwait(true);
 
         var deleted = await PagesApi.DeleteAsync(_scenario.Admin, _scenario.SiteA, page, 1).ConfigureAwait(true);
-        Assert.Equal(HttpStatusCode.NoContent, deleted.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, deleted.StatusCode);
 
-        Assert.Equal(MediaUsageSummary.None, (await SummaryAsync(File).ConfigureAwait(true))[File]);
+        // 021 FR-027: the use is still known, but it never blocks or warns.
+        Assert.Equal(MediaUsageSummary.None with { TrashedPlaces = 1 }, (await SummaryAsync(File).ConfigureAwait(true))[File]);
     }
 
     [Fact]
@@ -108,6 +110,7 @@ public sealed class MediaUsageReaderTests(DatabaseFixture database) : IAsyncLife
         var page = (await PagesApi.SeedTreeAsync(_scenario.Admin, _scenario.SiteB, "elsewhere").ConfigureAwait(true))["/elsewhere"];
         await SaveAsync(PagesApi.PagePath(_scenario.SiteB, page), Image(File)).ConfigureAwait(true);
 
+        // 021 FR-027: the use is still known, but it never blocks or warns.
         Assert.Equal(MediaUsageSummary.None, (await SummaryAsync(File).ConfigureAwait(true))[File]);
         Assert.Empty(await PlacesAsync(File).ConfigureAwait(true));
     }

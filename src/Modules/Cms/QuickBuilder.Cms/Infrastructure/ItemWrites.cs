@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using Npgsql;
 using QuickBuilder.Cms.Domain;
 using QuickBuilder.Identity.Contracts;
+using QuickBuilder.Shared.Infrastructure.Trash;
 using QuickBuilder.Shared.Kernel.Results;
 
 namespace QuickBuilder.Cms.Infrastructure;
@@ -24,7 +25,8 @@ internal sealed record ItemWriteRequest(
     int? ExpectedRevision,
     int? ExpectedSchemaRevision,
     Guid Actor,
-    int? ExpectedDraftRevision = null);
+    int? ExpectedDraftRevision = null,
+    bool FromTrash = false);
 
 /// <summary>What an item operation works with inside <see cref="ItemWrites"/>, and how it says what it changed.</summary>
 internal sealed class ItemWriteContext(
@@ -186,7 +188,12 @@ internal sealed partial class ItemWrites(
             Item? item = null;
             if (request.ItemId is { } itemId)
             {
-                item = await database.ForSite<Item>(request.SiteId)
+                // 021 TR-10: a restore writes a trashed item through this same path, and only then
+                // sees it; every other write treats it as deleted.
+                var items = request.FromTrash
+                    ? database.ForSite<Item>(request.SiteId).OnlyTrash("Restoring an item from the site's trash (021 TR-10).")
+                    : database.ForSite<Item>(request.SiteId);
+                item = await items
                     .SingleOrDefaultAsync(i => i.Id == itemId && i.CollectionId == request.CollectionId, cancellationToken)
                     .ConfigureAwait(false);
                 if (item is null)

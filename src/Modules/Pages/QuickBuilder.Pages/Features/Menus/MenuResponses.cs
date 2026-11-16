@@ -9,7 +9,7 @@ public sealed record MenuPermissionsResponse(bool CanManage, bool CanPublish);
 /// <param name="Kind"><c>page</c> or <c>item</c>.</param>
 /// <param name="State"><c>live</c>, <c>not_published</c>, <c>deleted</c> or <c>no_page</c> (an item without a live template).</param>
 /// <param name="Title">The page's current title or the item's current name; null when deleted.</param>
-public sealed record MenuTargetStateResponse(string Kind, Guid Id, string State, string? Title);
+public sealed record MenuTargetStateResponse(string Kind, Guid Id, string State, string? Title, bool InTrash = false);
 
 /// <summary>One menu, as the menu list shows it (024 contracts/menus-api.yaml, <c>MenuSummary</c>).</summary>
 /// <param name="EntryCount">Entries of the draft, at every level.</param>

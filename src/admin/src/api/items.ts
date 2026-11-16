@@ -1,6 +1,7 @@
 // Typed client for collection items (015 contracts/items-api.yaml).
 
 import { ApiError, request } from './request'
+import type { TrashReceipt } from './trash'
 
 export { ApiError } from './request'
 
@@ -230,9 +231,9 @@ export const itemsApi = {
   save: (siteId: string, collectionId: string, itemId: string, body: DraftInput & { revision: number; draftRevision?: number }, headers: Record<string, string> = {}): Promise<Item> =>
     request<Item>(one(siteId, collectionId, itemId), { method: 'PUT', body: JSON.stringify(body), headers }),
 
-  /** 017 FR-032: with `redirectToPageId`, a live item's address redirects there. */
-  remove: (siteId: string, collectionId: string, itemId: string, revision: number, redirectToPageId: string | null = null): Promise<void> =>
-    request<void>(`${one(siteId, collectionId, itemId)}?revision=${revision}${redirectToPageId ? `&redirectToPageId=${encodeURIComponent(redirectToPageId)}` : ''}`, { method: 'DELETE' }),
+  /** Moves an item to the trash (021 FR-001); 017 FR-032: with `redirectToPageId`, a live item's address redirects there. */
+  remove: (siteId: string, collectionId: string, itemId: string, revision: number, redirectToPageId: string | null = null): Promise<TrashReceipt> =>
+    request<TrashReceipt>(`${one(siteId, collectionId, itemId)}?revision=${revision}${redirectToPageId ? `&redirectToPageId=${encodeURIComponent(redirectToPageId)}` : ''}`, { method: 'DELETE' }),
 
   /** 023 FR-020, FR-022: a new unpublished item holding the form's values; values the fields cannot hold are left out. */
   copy: (siteId: string, collectionId: string, itemId: string, body: { slug: string; values: ValuesDocument; baseSavedAtUtc: string }): Promise<Item> =>

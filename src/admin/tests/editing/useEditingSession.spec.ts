@@ -183,6 +183,27 @@ describe('useEditingSession', () => {
     expect(api.heartbeat).toHaveBeenCalledTimes(1)
   })
 
+  it('stops and says who moved it when the document went to the trash (021 TR-16)', async () => {
+    api.open.mockResolvedValue(presence())
+    api.heartbeat.mockRejectedValueOnce(refusal(404, 'editing.session_gone'))
+    vi.stubGlobal('fetch', vi.fn(async () => ({
+      ok: true,
+      status: 200,
+      headers: new Headers(),
+      json: async () => ({ entry: { trashedBy: { userId: 'u', displayName: 'Dana' }, trashedAtUtc: '2026-11-01T10:00:00Z', canRestore: true }, draft: null }),
+    })))
+    const session = useEditingSession(target)
+    await session.start()
+
+    await vi.advanceTimersByTimeAsync(HEARTBEAT_MS)
+
+    expect(session.status.value).toBe('trashed')
+    expect(session.mayEdit.value).toBe(false)
+    expect(session.trashedBy.value).toEqual({ name: 'Dana', at: '2026-11-01T10:00:00Z', canRestore: true })
+    expect(api.open).toHaveBeenCalledTimes(1)
+    vi.unstubAllGlobals()
+  })
+
   it('is view-only without the edit capability', async () => {
     api.open.mockResolvedValue(presence({ access: 'view-only' }))
     const session = useEditingSession(target)

@@ -58,7 +58,24 @@ internal sealed class PageTreeWrites(
         Func<PageTree, Guid, TimeProvider, Result<T>> change,
         Func<PageTree, T, CancellationToken, Task>? beforeSave,
         CancellationToken cancellationToken) =>
-        RunAsync(siteId, startIfMissing, change, beforeSave, outcome: null, cancellationToken);
+        RunAsync(siteId, startIfMissing, Sync(change), beforeSave, outcome: null, cancellationToken);
+
+    /// <summary>
+    /// As the other overloads, on an existing tree, with a change that reads before it decides: a
+    /// restore loads the trashed page in the same transaction as the tree (021 TR-10).
+    /// </summary>
+    public Task<Result<T>> ChangeReadingAsync<T>(
+        Guid siteId,
+        Func<PageTree, Guid, TimeProvider, CancellationToken, Task<Result<T>>> change,
+        Func<PageTree, T, CancellationToken, Task>? beforeSave,
+        CancellationToken cancellationToken) =>
+        RunAsync(siteId, startIfMissing: false, change, beforeSave, outcome: null, cancellationToken);
+
+    private static Func<PageTree, Guid, TimeProvider, CancellationToken, Task<Result<T>>> Sync<T>(Func<PageTree, Guid, TimeProvider, Result<T>> change)
+    {
+        ArgumentNullException.ThrowIfNull(change);
+        return (tree, actor, clock, _) => Task.FromResult(change(tree, actor, clock));
+    }
 
     /// <summary>
     /// As <see cref="ChangeAsync{T}(Guid, bool, Func{PageTree, Guid, TimeProvider, Result{T}}, Func{PageTree, T, CancellationToken, Task}?, CancellationToken)"/>
@@ -74,7 +91,7 @@ internal sealed class PageTreeWrites(
         CancellationToken cancellationToken)
     {
         var outcome = redirectOldAddresses ? new System.Runtime.CompilerServices.StrongBox<RedirectOutcomeResponse?>() : null;
-        var result = await RunAsync(siteId, startIfMissing: false, change, beforeSave, outcome, cancellationToken).ConfigureAwait(false);
+        var result = await RunAsync(siteId, startIfMissing: false, Sync(change), beforeSave, outcome, cancellationToken).ConfigureAwait(false);
         return result.IsFailure
             ? Result.Failure<(T, RedirectOutcomeResponse?)>(result.Error)
             : Result.Success((result.Value, outcome?.Value));
@@ -83,7 +100,7 @@ internal sealed class PageTreeWrites(
     private Task<Result<T>> RunAsync<T>(
         Guid siteId,
         bool startIfMissing,
-        Func<PageTree, Guid, TimeProvider, Result<T>> change,
+        Func<PageTree, Guid, TimeProvider, CancellationToken, Task<Result<T>>> change,
         Func<PageTree, T, CancellationToken, Task>? beforeSave,
         System.Runtime.CompilerServices.StrongBox<RedirectOutcomeResponse?>? outcome,
         CancellationToken cancellationToken)
@@ -113,7 +130,7 @@ internal sealed class PageTreeWrites(
             }
 
             var before = outcome is null ? null : Snapshot(tree);
-            var result = change(tree, actor, clock);
+            var result = await change(tree, actor, clock, ct).ConfigureAwait(false);
             if (result.IsFailure)
             {
                 database.ChangeTracker.Clear();

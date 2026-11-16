@@ -21,6 +21,7 @@ public static class IsolationProbes
         new MenuIsolationProbe(),
         new FormsIsolationProbe(),
         new EditingIsolationProbe(),
+        new TrashIsolationProbe(),
     ];
 
     public static TheoryData<string> Names

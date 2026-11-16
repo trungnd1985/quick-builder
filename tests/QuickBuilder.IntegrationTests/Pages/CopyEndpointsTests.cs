@@ -42,7 +42,7 @@ public sealed class CopyEndpointsTests(DatabaseFixture database)
 
         var copyPath = PagesApi.PagePath(scenario.SiteA, first.GetProperty("id").GetGuid());
         var draft = await PagesApi.DraftOkAsync(scenario.Admin, copyPath);
-        Assert.True(JsonElement.DeepEquals(JsonDocument.Parse(mine).RootElement, draft.GetProperty("document")));
+        Assert.True(JsonElement.DeepEquals(JsonElement.Parse(mine), draft.GetProperty("document")));
         Assert.Equal("draft", first.GetProperty("publication").GetProperty("state").GetString());
 
         var origin = first.GetProperty("copyOrigin");
@@ -117,7 +117,7 @@ public sealed class CopyEndpointsTests(DatabaseFixture database)
     private static Task<HttpResponseMessage> CopyAsync(HttpClient client, string ownerPath, string document, string? title = null, string? name = null) =>
         client.PostAsJsonAsync(
             new Uri($"{ownerPath}/copies", UriKind.Relative),
-            new { document = JsonDocument.Parse(document).RootElement, baseSavedAtUtc = LoadedAt, title, name });
+            new { document = JsonElement.Parse(document), baseSavedAtUtc = LoadedAt, title, name });
 
     private static async Task<JsonElement> CopyOkAsync(HttpClient client, string ownerPath, string document, string? title = null, string? name = null) =>
         await PagesApi.OkAsync(await CopyAsync(client, ownerPath, document, title, name), HttpStatusCode.Created);

@@ -41,6 +41,8 @@ internal static class CmsOutbox
                     Guid.CreateVersion7(), e.OccurredAtUtc, e.SiteId, e.CollectionId, e.ItemId, e.Scheduled, actorUserId)),
                 ItemDeletedEvent e => OutboxMessage.From(new ItemDeleted(
                     Guid.CreateVersion7(), e.OccurredAtUtc, e.SiteId, e.CollectionId, e.ItemId, e.WasPublished, actorUserId)),
+                ItemRestoredEvent e => OutboxMessage.From(new ItemRestored(
+                    Guid.CreateVersion7(), e.OccurredAtUtc, e.SiteId, e.CollectionId, e.ItemId, actorUserId)),
                 ItemRedirectRequestedEvent e => OutboxMessage.From(new ItemRedirectRequested(
                     Guid.CreateVersion7(), e.OccurredAtUtc, e.SiteId, e.CollectionId, e.ItemId, e.OldSlug, e.Reason, e.TargetPageId, 301, actorUserId)),
                 _ => throw new InvalidOperationException(

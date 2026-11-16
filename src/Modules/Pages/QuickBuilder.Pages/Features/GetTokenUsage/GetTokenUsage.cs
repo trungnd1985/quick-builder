@@ -59,11 +59,13 @@ internal sealed partial class GetTokenUsageHandler(PagesDbContext database, Page
                     SELECT d.page_id AS document_id,
                            jsonb_path_query(d.document, 'strict $.** ? (exists(@.props.** ? (@.token == $id)))', jsonb_build_object('id', {tokenId}::text)) AS node
                     FROM pages.page_drafts d
+                    JOIN pages.pages p ON p.id = d.page_id AND p.trashed_at_utc IS NULL
                     WHERE d.site_id = {siteId}
                     UNION ALL
                     SELECT c.component_id,
                            jsonb_path_query(c.document, 'strict $.** ? (exists(@.props.** ? (@.token == $id)))', jsonb_build_object('id', {tokenId}::text))
                     FROM pages.component_drafts c
+                    JOIN pages.components o ON o.id = c.component_id AND o.trashed_at_utc IS NULL
                     WHERE c.site_id = {siteId}
                 ) m
                 """)

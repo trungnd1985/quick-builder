@@ -56,7 +56,7 @@ public sealed class PagesSiteScopingTests(DatabaseFixture database)
     }
 
     [Fact]
-    public void For_site_is_the_modules_only_cross_site_read_and_states_a_reason()
+    public void Cross_site_reads_stay_in_the_context_and_each_states_its_reason()
     {
         var moduleRoot = Path.Combine(DraftApiTests.FindRepositoryRoot(), "src", "Modules", "Pages");
 
@@ -66,8 +66,9 @@ public sealed class PagesSiteScopingTests(DatabaseFixture database)
             .Where(c => c.Line.Contains("AcrossAllSites(", StringComparison.Ordinal))
             .ToList();
 
-        var (file, line) = Assert.Single(callSites);
-        Assert.Equal("PagesDbContext.cs", file);
-        Assert.Contains("\"Admin operation on a site named explicitly in the route", line, StringComparison.Ordinal);
+        Assert.Equal(2, callSites.Count);
+        Assert.All(callSites, c => Assert.Equal("PagesDbContext.cs", c.File));
+        Assert.Contains(callSites, c => c.Line.Contains("\"Admin operation on a site named explicitly in the route", StringComparison.Ordinal));
+        Assert.Contains(callSites, c => c.Line.Contains("\"A background job reads every site", StringComparison.Ordinal));
     }
 }

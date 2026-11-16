@@ -111,7 +111,7 @@ public sealed class ItemRedirectOfferTests(DatabaseFixture database, ITestOutput
         await PagesApi.OkAsync(await ActAsync(_world.Admin, gone, "unpublish", new { revision = ItemsApi.Revision(gone), cancelSchedule = false, redirectToPageId = _blog }));
         var delete = await _world.Admin.DeleteAsync(new Uri(
             $"{ItemsApi.ItemPath(_world.Site, _world.Posts, ItemsApi.Id(deleted))}?revision={ItemsApi.Revision(deleted)}&redirectToPageId={_blog}", UriKind.Relative));
-        Assert.Equal(HttpStatusCode.NoContent, delete.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, delete.StatusCode);
         await DispatchAsync();
 
         Assert.Equal("/blog", (await VisitAsync("/blog/gone")).Headers.Location?.OriginalString);
@@ -153,7 +153,7 @@ public sealed class ItemRedirectOfferTests(DatabaseFixture database, ITestOutput
         var renamed = await RenameAsync(post, "once-more");
         await PagesApi.OkAsync(await ActAsync(_world.Admin, renamed, "publish", new { revision = ItemsApi.Revision(renamed), cancelSchedule = false, redirectOldAddress = true }));
 
-        var payload = JsonDocument.Parse(Assert.Single(await RedirectEventsAsync())).RootElement;
+        var payload = JsonElement.Parse(Assert.Single(await RedirectEventsAsync()));
         Assert.Equal(
             ["ActorUserId", "CollectionId", "Id", "ItemId", "OccurredAtUtc", "OldSlug", "Reason", "SiteId", "StatusCode", "TargetPageId"],
             payload.EnumerateObject().Select(p => p.Name).Order(StringComparer.Ordinal));

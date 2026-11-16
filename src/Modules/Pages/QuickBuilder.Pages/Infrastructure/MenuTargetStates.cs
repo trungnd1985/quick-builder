@@ -3,6 +3,7 @@ using QuickBuilder.Cms.Contracts;
 using QuickBuilder.Pages.Domain;
 using QuickBuilder.Pages.Domain.Menus;
 using QuickBuilder.Pages.Features.Menus;
+using QuickBuilder.Shared.Infrastructure.Trash;
 
 namespace QuickBuilder.Pages.Infrastructure;
 
@@ -31,6 +32,8 @@ internal static class MenuTargetStateNames
 /// </remarks>
 internal sealed class MenuTargetStates(PagesDbContext database, ICollectionSchemaReader collections)
 {
+    private const string TrashReason = "Menu entries say which targets are in the trash (021 FR-027).";
+
     public async Task<IReadOnlyDictionary<(string Kind, Guid Id), MenuTargetStateResponse>> StatesAsync(
         Guid siteId, IEnumerable<(string Kind, Guid Id)> targets, CancellationToken cancellationToken)
     {
@@ -54,11 +57,21 @@ internal sealed class MenuTargetStates(PagesDbContext database, ICollectionSchem
                 .ToDictionaryAsync(p => p.Id, cancellationToken)
                 .ConfigureAwait(false);
 
+            // 021 FR-027: a deleted target that is only in the trash says so.
+            var missing = pageIds.Where(id => !pages.ContainsKey(id)).ToList();
+            var trashedPages = missing.Count == 0
+                ? []
+                : await database.ForSite<Page>(siteId).OnlyTrash(TrashReason)
+                    .Where(p => missing.Contains(p.Id))
+                    .Select(p => p.Id)
+                    .ToHashSetAsync(cancellationToken)
+                    .ConfigureAwait(false);
+
             foreach (var id in pageIds)
             {
                 states[(MenuTargetKinds.Page, id)] = pages.TryGetValue(id, out var page)
                     ? new(MenuTargetKinds.Page, id, page.IsLive ? MenuTargetStateNames.Live : MenuTargetStateNames.NotPublished, page.Title)
-                    : new(MenuTargetKinds.Page, id, MenuTargetStateNames.Deleted, null);
+                    : new(MenuTargetKinds.Page, id, MenuTargetStateNames.Deleted, null, trashedPages.Contains(id));
             }
         }
 
@@ -76,11 +89,12 @@ internal sealed class MenuTargetStates(PagesDbContext database, ICollectionSchem
                     .ConfigureAwait(false))
                 .ToHashSet();
 
+            var trashedItems = await collections.TrashedItemsAsync(siteId, [.. itemIds.Where(id => !items.ContainsKey(id))], cancellationToken).ConfigureAwait(false);
             foreach (var id in itemIds)
             {
                 states[(MenuTargetKinds.Item, id)] = items.TryGetValue(id, out var item)
                     ? new(MenuTargetKinds.Item, id, ItemState(item, withLiveTemplate), item.Name)
-                    : new(MenuTargetKinds.Item, id, MenuTargetStateNames.Deleted, null);
+                    : new(MenuTargetKinds.Item, id, MenuTargetStateNames.Deleted, null, trashedItems.Contains(id));
             }
         }
 

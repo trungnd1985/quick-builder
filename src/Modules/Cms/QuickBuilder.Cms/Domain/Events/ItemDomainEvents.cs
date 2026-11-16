@@ -20,6 +20,9 @@ internal sealed record ItemUnpublishedEvent(Guid SiteId, Guid CollectionId, Guid
 
 internal sealed record ItemDeletedEvent(Guid SiteId, Guid CollectionId, Guid ItemId, bool WasPublished, DateTimeOffset OccurredAtUtc) : IDomainEvent;
 
+/// <summary>021 TR-08: the item came out of the trash.</summary>
+internal sealed record ItemRestoredEvent(Guid SiteId, Guid CollectionId, Guid ItemId, DateTimeOffset OccurredAtUtc) : IDomainEvent;
+
 /// <summary>017 FR-029, FR-032: a member accepted the redirect offer for the item's old address.</summary>
 internal sealed record ItemRedirectRequestedEvent(
     Guid SiteId, Guid CollectionId, Guid ItemId, string OldSlug, string Reason, Guid? TargetPageId, DateTimeOffset OccurredAtUtc) : IDomainEvent;

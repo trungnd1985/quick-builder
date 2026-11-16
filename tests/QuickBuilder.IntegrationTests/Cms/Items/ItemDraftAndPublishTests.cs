@@ -39,7 +39,7 @@ public sealed class ItemDraftAndPublishTests(DatabaseFixture database)
         Assert.Equal(live, after.GetProperty("published").GetRawText());
 
         var events = (await scenario.Cms.OutboxAsync()).Where(e => e.Type == "Cms.ItemPublished").ToList();
-        var payload = JsonDocument.Parse(Assert.Single(events).Payload).RootElement;
+        var payload = JsonElement.Parse(Assert.Single(events).Payload);
         Assert.Equal(1, payload.GetProperty("VersionNumber").GetInt32());
         Assert.Equal("publish", payload.GetProperty("Kind").GetString());
         Assert.False(payload.GetProperty("SlugChanged").GetBoolean());

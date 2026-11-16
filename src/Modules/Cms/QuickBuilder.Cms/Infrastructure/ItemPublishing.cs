@@ -141,6 +141,37 @@ internal static class ItemPublishing
         }
     }
 
+    /// <summary>
+    /// Moves the item to the trash (021 FR-001, FR-003, research TR-07): a published item is
+    /// unpublished as part of it, and its pending schedules are cancelled. Its versions and
+    /// history stay. The caller has checked that nothing refers to it.
+    /// </summary>
+    public static async Task<Result> TrashAsync(ItemWriteContext context, Guid? redirectToPageId, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+        var item = context.Item!;
+
+        var hadSchedule = await PendingAsync(context, ItemScheduleActions.Publish, cancellationToken).ConfigureAwait(false) is not null;
+        var wasLive = item.IsPublished;
+        if (wasLive)
+        {
+            var unpublished = await UnpublishAsync(context, cancelSchedule: true, schedule: null, redirectToPageId, cancellationToken).ConfigureAwait(false);
+            if (unpublished.IsFailure)
+            {
+                return unpublished;
+            }
+        }
+        else
+        {
+            await CancelPendingAsync(context, ItemScheduleActions.Publish, confirmed: true, cancellationToken).ConfigureAwait(false);
+            await CancelPendingAsync(context, ItemScheduleActions.Unpublish, confirmed: true, cancellationToken).ConfigureAwait(false);
+        }
+
+        item.MoveToTrash(wasLive, hadSchedule, context.Actor, context.Now);
+        context.Changed(item);
+        return Result.Success();
+    }
+
     /// <summary>The item's pending schedule for <paramref name="action"/>, tracked, or null.</summary>
     public static Task<ItemSchedule?> PendingAsync(ItemWriteContext context, string action, CancellationToken cancellationToken)
     {

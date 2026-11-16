@@ -44,7 +44,7 @@ public sealed class PageParamClashTests(DatabaseFixture database)
 
     private static async Task<JsonElement> RefusedAsync(HttpResponseMessage response)
     {
-        var body = JsonDocument.Parse(await response.Content.ReadAsStringAsync()).RootElement;
+        var body = JsonElement.Parse(await response.Content.ReadAsStringAsync());
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         Assert.Equal("pages.invalid_document", body.GetProperty("errorCode").GetString());
         Assert.Equal("page_param_taken", body.GetProperty("rule").GetString());

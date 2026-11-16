@@ -34,6 +34,9 @@ internal static class MediaCapabilities
     /// </summary>
     public const string StorageCheck = "media.storage.check";
 
+    /// <summary>Delete trashed files permanently, freeing their storage. Administrators only (021 FR-021, research TR-14).</summary>
+    public const string TrashPurge = "media.trash.purge";
+
     public static IEnumerable<CapabilityDefinition> All =>
     [
         new(View, CapabilityScope.Site, [SystemRole.Designer, SystemRole.Editor]),
@@ -41,5 +44,6 @@ internal static class MediaCapabilities
         new(Delete, CapabilityScope.Site, [SystemRole.Designer]),
         new(DeleteOwn, CapabilityScope.Site, [SystemRole.Designer, SystemRole.Editor]),
         new(StorageCheck, CapabilityScope.Installation, []),
+        new(TrashPurge, CapabilityScope.Site, []),
     ];
 }

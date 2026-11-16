@@ -185,7 +185,7 @@ public sealed class RedirectOfferTests(DatabaseFixture database) : IAsyncLifetim
 
         var response = await _world.Admin.DeleteAsync(new Uri($"{PagePath(old)}?version={await VersionAsync(old)}&redirectToPageId={contact}", UriKind.Relative));
 
-        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         await AssertOneHopAsync("/old", "/contact");
     }
 

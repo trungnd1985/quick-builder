@@ -28,7 +28,8 @@ internal sealed class MediaUsage(IMediaUsageReader pages, IItemMediaUsageReader 
                 page.Places + item.Items,
                 page.DraftPlaces + item.DraftItems,
                 page.LivePlaces + item.LiveItems,
-                page.HistoryOnlyPlaces + item.HistoryOnlyItems);
+                page.HistoryOnlyPlaces + item.HistoryOnlyItems,
+                page.TrashedPlaces + item.TrashedItems);
         });
     }
 

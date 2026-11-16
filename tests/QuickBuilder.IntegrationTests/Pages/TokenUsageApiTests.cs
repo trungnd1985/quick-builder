@@ -47,6 +47,29 @@ public sealed class TokenUsageApiTests(DatabaseFixture database)
         Assert.Equal((1, 1), (spacing.GetProperty("blockCount").GetInt32(), spacing.GetProperty("documentCount").GetInt32()));
     }
 
+    /// <summary>021 T056: what is in the trash is deleted for every count.</summary>
+    [Fact]
+    public async Task Blocks_in_the_trash_stop_counting()
+    {
+        using var scenario = await PagesScenario.CreateAsync(database, "pg-tokens-trash").ConfigureAwait(true);
+        var (admin, site) = (scenario.Admin, scenario.SiteA);
+        var page = (await PagesApi.CreateOkAsync(admin, site, "home", isHome: true).ConfigureAwait(true)).GetProperty("id").GetGuid();
+        var other = (await PagesApi.CreateOkAsync(admin, site, "other").ConfigureAwait(true)).GetProperty("id").GetGuid();
+        var component = (await PagesApi.CreateComponentOkAsync(admin, site, "Header").ConfigureAwait(true)).GetProperty("id").GetGuid();
+        await PagesApi.OkAsync(await PagesApi.SaveCurrentDraftAsync(admin, PagesApi.PagePath(site, other), PageDocument).ConfigureAwait(true)).ConfigureAwait(true);
+        await PagesApi.OkAsync(await PagesApi.SaveCurrentDraftAsync(admin, PagesApi.ComponentPath(site, component), ComponentDocument).ConfigureAwait(true)).ConfigureAwait(true);
+        Assert.NotEqual(page, other);
+
+        await PagesApi.OkAsync(await PagesApi.DeleteAsync(admin, site, other, 1).ConfigureAwait(true)).ConfigureAwait(true);
+        var usage = await EditorApi.TokenUsageOkAsync(admin, site, "color-accent").ConfigureAwait(true);
+        Assert.Equal((1, 1), (usage.GetProperty("blockCount").GetInt32(), usage.GetProperty("documentCount").GetInt32()));
+
+        var version = (await PagesApi.OkAsync(await PagesApi.GetComponentAsync(admin, site, component).ConfigureAwait(true)).ConfigureAwait(true)).GetProperty("version").GetUInt32();
+        await PagesApi.OkAsync(await PagesApi.DeleteComponentAsync(admin, site, component, version).ConfigureAwait(true)).ConfigureAwait(true);
+        usage = await EditorApi.TokenUsageOkAsync(admin, site, "color-accent").ConfigureAwait(true);
+        Assert.Equal((0, 0), (usage.GetProperty("blockCount").GetInt32(), usage.GetProperty("documentCount").GetInt32()));
+    }
+
     [Fact]
     public async Task A_token_nothing_uses_counts_zero()
     {

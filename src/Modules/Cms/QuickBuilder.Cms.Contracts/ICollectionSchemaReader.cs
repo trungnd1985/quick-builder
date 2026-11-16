@@ -45,6 +45,12 @@ public interface ICollectionSchemaReader
     /// </summary>
     Task<IReadOnlyDictionary<Guid, ItemAddressParts>> GetItemAddressPartsAsync(
         Guid siteId, IReadOnlyCollection<Guid> itemIds, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// The ones among <paramref name="itemIds"/> that are items of the site in the trash (021
+    /// FR-027): a menu entry pointing at one says so rather than only "deleted".
+    /// </summary>
+    Task<IReadOnlySet<Guid>> TrashedItemsAsync(Guid siteId, IReadOnlyCollection<Guid> itemIds, CancellationToken cancellationToken = default);
 }
 
 /// <summary>What an item's address is made of: its collection's template pattern and its published slug.</summary>

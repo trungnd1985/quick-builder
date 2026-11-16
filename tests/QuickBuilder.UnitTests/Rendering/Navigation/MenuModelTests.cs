@@ -34,7 +34,7 @@ public sealed class MenuModelTests
     }
 
     private static PublishedItem Item(Guid id, Guid collection, string slug, string name) =>
-        new(id, collection, slug, name, DateTimeOffset.UnixEpoch, DateTimeOffset.UnixEpoch, JsonDocument.Parse("{}").RootElement.Clone());
+        new(id, collection, slug, name, DateTimeOffset.UnixEpoch, DateTimeOffset.UnixEpoch, JsonElement.Parse("{}"));
 
     private static List<ResolvedEntry> Resolve(string entries, RenderHarness? harness = null, int levels = 3)
     {

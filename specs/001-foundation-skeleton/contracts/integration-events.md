@@ -282,3 +282,24 @@ All documented in `docs/configuration.md`, all overridable by environment variab
 | `Outbox:MaxAttempts` | `5` | Attempts before terminal failure |
 | `Outbox:RetentionPeriod` | `7.00:00:00` | How long completed rows are kept |
 | `Outbox:Enabled` | `true` | Turns the dispatcher off (useful in tests) |
+
+## Trash and restore (021)
+
+**Changed meaning.** These four are now published when content is moved to the trash, because their
+consumers must react then. Their shape is unchanged. A later purge publishes nothing.
+
+| Event | Now means |
+|---|---|
+| `Pages.PageDeleted` | Moved to the trash |
+| `Pages.ComponentDeleted` | Moved to the trash |
+| `Cms.ItemDeleted` | Moved to the trash; `WasPublished` says it was live |
+| `Media.FileDeleted` | Moved to the trash |
+
+**New**, each carrying ids only:
+
+| Event | Owner | Payload | Meaning and consumers |
+|---|---|---|---|
+| `Pages.PageRestored` | Pages | `siteId`, `pageId`, `actorUserId` | Taken out of the trash, unpublished. No consumers yet. |
+| `Pages.ComponentRestored` | Pages | `siteId`, `componentId`, `actorUserId` | As above. |
+| `Cms.ItemRestored` | Cms | `siteId`, `collectionId`, `itemId`, `actorUserId` | As above. |
+| `Media.FileRestored` | Media | `siteId`, `fileId`, `actorUserId` | Served again at once. Pages refreshes the live pages showing it; Cms re-checks the items using it. |

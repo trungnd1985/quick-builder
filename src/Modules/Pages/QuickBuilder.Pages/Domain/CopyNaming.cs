@@ -31,6 +31,34 @@ internal static class CopyNaming
         }
     }
 
+    /// <summary>
+    /// <paramref name="original"/>, or with <c>-2</c>, <c>-3</c>… for the first one
+    /// <paramref name="isFree"/> accepts, within the slug limit (021 FR-017: a restored page
+    /// whose address is now taken).
+    /// </summary>
+    public static string NumberedSlug(string original, Func<string, bool> isFree)
+    {
+        ArgumentNullException.ThrowIfNull(isFree);
+
+        if (isFree(original))
+        {
+            return original;
+        }
+
+        for (var n = 2; ; n++)
+        {
+            var suffix = $"-{n}";
+            var stem = original.Length + suffix.Length > PageAddresses.MaxSlugLength
+                ? original[..(PageAddresses.MaxSlugLength - suffix.Length)].TrimEnd('-')
+                : original;
+            var candidate = stem + suffix;
+            if (isFree(candidate))
+            {
+                return candidate;
+            }
+        }
+    }
+
     /// <summary>A trimmed title or name, cut to <paramref name="maxLength"/>; the fallback when nothing is left.</summary>
     public static string Text(string? text, int maxLength, string fallback = "Copy")
     {

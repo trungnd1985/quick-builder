@@ -120,6 +120,24 @@ internal static class MediaErrors
     public static readonly Error StorageCheckRunning = Error.Conflict(
         "media.storage_check_running",
         "A storage check is already running.");
+
+    // --- 021 (data-model.md §5); fields go through ToActionResult's extensions -------
+
+    public static readonly Error NotInTrash = Error.NotFound(
+        QuickBuilder.Shared.Infrastructure.Trash.TrashErrorCodes.NotInTrash,
+        "This file is not in the trash. It may have been restored or deleted permanently.");
+
+    public static readonly Error PlanChanged = Error.Conflict(
+        QuickBuilder.Shared.Infrastructure.Trash.TrashErrorCodes.PlanChanged,
+        "Something changed while you were deciding. Check the new plan and confirm again.");
+
+    public static readonly Error InvalidPlacement = Error.Validation(
+        QuickBuilder.Shared.Infrastructure.Trash.TrashErrorCodes.InvalidPlacement,
+        "The file cannot be restored into that folder.");
+
+    public static readonly Error CountChanged = Error.Conflict(
+        QuickBuilder.Shared.Infrastructure.Trash.TrashErrorCodes.CountChanged,
+        "The trash changed since you looked. Confirm again.");
 }
 
 /// <summary>
@@ -127,7 +145,7 @@ internal static class MediaErrors
 /// </summary>
 internal static class MediaErrorResults
 {
-    public static int StatusFor(string errorCode) => errorCode switch
+    public static int StatusFor(string errorCode) => QuickBuilder.Shared.Infrastructure.Trash.TrashErrorCodes.StatusFor(errorCode) ?? errorCode switch
     {
         "media.not_found" or "sites.not_found" or "media.folder_not_found" => StatusCodes.Status404NotFound,
         "identity.forbidden" or "media.in_live_use" => StatusCodes.Status403Forbidden,

@@ -11,6 +11,8 @@ namespace QuickBuilder.Sites.Infrastructure;
 /// that only make sense over HTTP live here rather than on <see cref="SiteDto"/>:
 /// display forms of host names for the admin shell, and what the caller may do, which
 /// depends on who is asking.
+/// <c>TrashRetentionDays</c> (021 FR-002) is set by the single-site read, where delete dialogs
+/// get the date content can be restored until.
 /// </remarks>
 public sealed record SiteResponse(
     Guid Id,
@@ -28,7 +30,8 @@ public sealed record SiteResponse(
     SitePermissionsResponse Permissions,
     SiteSearchResponse Search,
     SiteSearchVisibilityResponse SearchVisibility,
-    SiteTransferResponse? Transfer = null);
+    SiteTransferResponse? Transfer = null,
+    int? TrashRetentionDays = null);
 
 /// <summary>
 /// The export or import that holds the site's transfer slot, if any (020 FR-010, FR-028). While

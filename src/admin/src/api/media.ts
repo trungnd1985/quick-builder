@@ -2,6 +2,7 @@
 // 013 contracts/media-api.yaml).
 
 import { API_ROOT, ApiError, REQUEST_HEADER, refusal, request } from './request'
+import type { TrashReceipt } from './trash'
 
 export { ApiError } from './request'
 
@@ -118,6 +119,8 @@ export interface MediaUsagePlace {
   collectionName?: string | null
   /** For an item: a pending scheduled publish shows it. */
   inScheduled?: boolean
+  /** 021 FR-027: the page, component or item is in the trash; shown apart, never blocking. */
+  inTrash?: boolean
 }
 
 export interface MediaUsage {
@@ -237,8 +240,8 @@ export const mediaApi = {
    * Deletes a file. A file in use is refused with `media.in_use` (carrying `usage`) unless
    * `confirmInUse` is set (013 FR-015).
    */
-  remove: (siteId: string, fileId: string, options: { confirmInUse?: boolean } = {}): Promise<void> =>
-    request<void>(file(siteId, fileId) + (options.confirmInUse ? '?confirmInUse=true' : ''), { method: 'DELETE' }),
+  remove: (siteId: string, fileId: string, options: { confirmInUse?: boolean } = {}): Promise<TrashReceipt> =>
+    request<TrashReceipt>(file(siteId, fileId) + (options.confirmInUse ? '?confirmInUse=true' : ''), { method: 'DELETE' }),
 
   /** Where the admin shell previews a file: authenticated, and independent of host names (FR-018). */
   previewUrl: (siteId: string, fileId: string): string => `${API_ROOT}${file(siteId, fileId)}/content`,

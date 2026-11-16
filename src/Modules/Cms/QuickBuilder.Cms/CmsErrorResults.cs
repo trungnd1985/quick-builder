@@ -43,7 +43,7 @@ internal static class CmsErrorResults
         };
     }
 
-    internal static int StatusFor(string code) => code switch
+    internal static int StatusFor(string code) => QuickBuilder.Shared.Infrastructure.Trash.TrashErrorCodes.StatusFor(code) ?? code switch
     {
         "cms.slug_taken"
             or "cms.too_many_collections"
@@ -67,6 +67,7 @@ internal static class CmsErrorResults
             // 019 contracts/schema-upgrades.md §3.
             or "cms.document_too_new" => StatusCodes.Status409Conflict,
         "cms.document_upgrade_failed" => StatusCodes.Status422UnprocessableEntity,
+        "identity.forbidden" => StatusCodes.Status403Forbidden,
         "cms.proposal_too_large" or "cms.item_too_large" => StatusCodes.Status413PayloadTooLarge,
         _ when code.EndsWith("not_found", StringComparison.Ordinal) => StatusCodes.Status404NotFound,
         _ => StatusCodes.Status400BadRequest,
@@ -74,6 +75,7 @@ internal static class CmsErrorResults
 
     private static string TitleFor(int status) => status switch
     {
+        StatusCodes.Status403Forbidden => "Forbidden",
         StatusCodes.Status404NotFound => "Not found",
         StatusCodes.Status409Conflict => "Conflict",
         StatusCodes.Status413PayloadTooLarge => "Too large",

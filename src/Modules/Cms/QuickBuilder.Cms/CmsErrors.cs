@@ -177,6 +177,29 @@ internal static class CmsErrors
         Error.Validation("cms.invalid_query", "The list query is not valid for this collection."),
         ("parameter", parameter));
 
+    /// <summary>Byte-identical to Identity's forbidden response (002 authorization.md §3).</summary>
+    internal static Error Forbidden { get; } = new("identity.forbidden", "You do not have permission to do this.");
+
+    // 021 data-model §5.
+    internal static Error NotInTrash { get; } = Error.NotFound(
+        QuickBuilder.Shared.Infrastructure.Trash.TrashErrorCodes.NotInTrash,
+        "This item is not in the trash. It may have been restored or deleted permanently.");
+
+    internal static Error PlanChanged(object plan) => With(
+        Error.Conflict(QuickBuilder.Shared.Infrastructure.Trash.TrashErrorCodes.PlanChanged, "Something changed while you were deciding. Check the new plan and confirm again."),
+        ("plan", plan));
+
+    internal static Error CountChanged(int currentCount) => With(
+        Error.Conflict(QuickBuilder.Shared.Infrastructure.Trash.TrashErrorCodes.CountChanged, $"The trash now holds {currentCount} items. Confirm again."),
+        ("currentCount", currentCount));
+
+    /// <summary>021 TR-09: a delete while another member edits the item.</summary>
+    internal static Error DeleteLockHeld(Guid holderId, string holderName, DateTimeOffset since) => With(
+        Error.Conflict("editing.lock_held", "Someone else is editing this item now. Nothing was deleted."),
+        ("holder", new { id = holderId, displayName = holderName }),
+        ("since", since),
+        ("stale", false));
+
     internal static IReadOnlyDictionary<string, object?>? ExtensionsOf(Error error) =>
         ExtensionsByError.TryGetValue(error, out var extensions) ? extensions : null;
 

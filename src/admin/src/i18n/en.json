@@ -77,6 +77,7 @@
       "design": "Design",
       "collections": "Collections",
       "redirects": "Redirects",
+      "trash": "Trash",
       "menus": "Menus",
       "submissions": "Submissions",
       "unread": "{count} unread",
@@ -263,11 +264,11 @@
       "button": "Delete",
       "label": "Delete {name}",
       "title": "Delete {name}?",
-      "body": "This is permanent. The file stops being served straight away and cannot be restored.",
-      "confirm": "Delete permanently",
+      "body": "The file moves to the trash and stops being served straight away. It can be restored from the trash at the same address.",
+      "confirm": "Move to trash",
       "cancel": "Cancel",
       "deleting": "Deleting…",
-      "done": "{name} was deleted",
+      "done": "{name} was moved to the trash",
       "failed": "Could not delete {name}",
       "inUseBody": "Pages or components use this file. Deleting it is permanent: where they show it, they will show nothing instead.",
       "understood": "I understand that the place using it will show nothing in its place. | I understand that the {places} places using it will show nothing in its place."
@@ -288,7 +289,8 @@
         "scheduled": "Scheduled",
         "history": "Earlier version"
       },
-      "livePages": "on {n} live page | on {n} live pages"
+      "livePages": "on {n} live page | on {n} live pages",
+      "trashed": "Used by content in the trash"
     },
     "replace": {
       "button": "Replace…",
@@ -464,7 +466,7 @@
     },
     "confirm": {
       "deleteTitle": "Delete {title}?",
-      "deleteBody": "The page {address} and its draft are deleted permanently. There is no undo.",
+      "deleteBody": "The page {address} moves to the trash with its draft and versions, and its address is free for another page.",
       "delete": "Delete page",
       "deleting": "Deleting…",
       "makeHomeTitle": "Make {title} the home page?",
@@ -575,7 +577,7 @@
     },
     "confirm": {
       "deleteTitle": "Delete {name}?",
-      "deleteBody": "The component and its draft are deleted permanently. There is no undo.",
+      "deleteBody": "The component moves to the trash with its draft and versions, and its name is free for another component.",
       "delete": "Delete component",
       "deleting": "Deleting…",
       "cancel": "Cancel"
@@ -2054,7 +2056,8 @@
         "scheduled": "scheduled"
       },
       "untitled": "Untitled",
-      "moreUses": "and one more | and {count} more"
+      "moreUses": "and one more | and {count} more",
+      "trashed": "It also deletes its {count} item in the trash permanently. | It also deletes its {count} items in the trash permanently."
     },
     "errors": {
       "invalid_schema": "The definition is not valid: {reason}",
@@ -2302,7 +2305,7 @@
       },
       "delete": {
         "title": "Delete item",
-        "confirm": "Delete this item permanently? Its versions and schedules are deleted too. This cannot be undone.",
+        "confirm": "Move this item to the trash? Its draft, versions and history stay with it, and its slug is free for another item.",
         "live": "It is published: it disappears from the site.",
         "deleted": "Item deleted.",
         "refused": "Other items refer to this one. Change their references first:",
@@ -2801,7 +2804,8 @@
       "confirmTakeOver": "Take over editing from {name}? Their editor will become read-only, and anything they have not saved will not be saved.",
       "editHere": "Edit here instead",
       "edit": "Edit",
-      "reload": "Reload latest"
+      "reload": "Reload latest",
+      "trashed": "{name} moved this {what} to the trash at {time}. Nothing more is saved; copy anything you still need."
     },
     "marker": {
       "editing": "{name} is editing — since {since}",
@@ -3009,6 +3013,142 @@
       "cancel": "Cancel",
       "confirm": "Restore the site",
       "restoring": "Restoring…"
+    }
+  },
+  "trash": {
+    "back": "Site settings",
+    "title": "Trash",
+    "intro": "Deleted pages, components, items and files of {site}. Restore one, or let it be deleted permanently on the date shown.",
+    "kinds": "Kinds of content",
+    "tab": {
+      "page": "Pages",
+      "component": "Components",
+      "item": "Items",
+      "file": "Media"
+    },
+    "search": "Search the trash",
+    "mediaTotal": "{n} files, {size} in the trash",
+    "loading": "Loading…",
+    "loadFailed": "The trash could not be loaded.",
+    "retry": "Try again",
+    "empty": "Nothing in the trash. Deleted pages, components, items and files stay here for {days} days.",
+    "more": "Load more",
+    "columns": {
+      "label": "Name",
+      "where": "Where it was",
+      "deleted": "Deleted",
+      "purge": "Deleted permanently",
+      "actions": "Actions",
+      "select": "Select"
+    },
+    "where": {
+      "topLevel": "Top level",
+      "library": "Library top level",
+      "parent": {
+        "live": "Under {parent}",
+        "trashed": "Under {parent} (in trash)",
+        "gone": "Under a page that is gone"
+      },
+      "folder": {
+        "live": "In {folder}",
+        "gone": "In a folder that is gone"
+      }
+    },
+    "deletedBy": "By {name}, {when}",
+    "purgeOn": "On {date}",
+    "badge": {
+      "wasLive": "Was live",
+      "wasScheduled": "Was scheduled"
+    },
+    "restoreAction": "Restore",
+    "restoreLabel": "Restore {label}",
+    "restored": "Restored {label}.",
+    "restoredAndPublished": "Restored and published {label}.",
+    "size": {
+      "bytes": "{n} B",
+      "kb": "{n} KB",
+      "mb": "{n} MB"
+    },
+    "restore": {
+      "title": "Restore {label}",
+      "where": "Where it goes",
+      "placement": {
+        "original": "Back where it was",
+        "top": "At the top level",
+        "chosen": "Choose another place",
+        "with_parents": "Restore its parent pages as well"
+      },
+      "under": "Back under {parent}.",
+      "topLevel": "At the top level.",
+      "addressChanged": "The address {old} is taken; it will be restored as {new}.",
+      "becomesHome": "It will become the home page.",
+      "templateDropped": "It will no longer be the template of its collection.",
+      "folderGone": "Its folder is gone; it will go to the top level of the library.",
+      "wasLive": "This was live when it was deleted. It comes back unpublished.",
+      "wasScheduled": "This was scheduled to publish when it was deleted. It comes back unpublished, without its schedule.",
+      "changed": "Something changed while you were deciding. Check where it goes now.",
+      "confirm": "Restore",
+      "andPublish": "Restore and publish",
+      "cancel": "Cancel",
+      "notInTrash": "This is no longer in the trash. It may have been restored or deleted permanently.",
+      "placementRequired": "Where this was is in the trash or gone. Choose where to restore it.",
+      "forbidden": "You may not restore this.",
+      "failed": "It could not be restored.",
+      "alsoRestores": "Also restores {label} at {address}.",
+      "needsAttention": "It will be marked as needing attention for these fields:",
+      "choosePlace": "Where to put it",
+      "choosePlaceFirst": "Choose a place"
+    },
+    "restorableUntil": "It can be restored until {date}.",
+    "movedToTrash": "Moved to the trash. It can be restored until {date}.",
+    "openTrash": "Open the trash",
+    "lockHeld": {
+      "message": "{name} is editing this, since {since}. You can delete it when they have finished, or once their editing has been idle for 30 minutes.",
+      "someone": "Someone else"
+    },
+    "emptyTrash": {
+      "title": "Empty the trash?",
+      "body": "{total} entries will be deleted permanently. This cannot be undone.",
+      "typeCount": "Type {total} to confirm",
+      "confirm": "Delete permanently",
+      "changed": "The trash changed while you were deciding. Check the new count.",
+      "failed": "The trash could not be emptied. Entries not yet deleted can still be restored.",
+      "action": "Empty trash",
+      "done": "{n} entries deleted permanently."
+    },
+    "purge": {
+      "action": "Delete permanently",
+      "label": "Delete {label} permanently",
+      "confirm": "Delete {label} permanently? This cannot be undone.",
+      "confirmFile": "Delete {label} permanently? The file stops existing in storage. This cannot be undone.",
+      "done": "{label} was deleted permanently.",
+      "failed": "{label} could not be deleted permanently."
+    },
+    "inTrashMarker": "(in trash)",
+    "selectLabel": "Select {label}",
+    "previewLabel": "Preview {label}",
+    "filter": {
+      "by": "Deleted by",
+      "anyone": "Anyone",
+      "from": "From",
+      "to": "To",
+      "collection": "Collection",
+      "folder": "Folder",
+      "anywhere": "Any"
+    },
+    "bulk": {
+      "restore": "Restore selected ({n})",
+      "result": "{done} done, {failed} not done.",
+      "failed": "The selected entries could not be restored.",
+      "purge": "Delete selected permanently ({n})",
+      "purgeConfirm": "Delete {n} entries permanently? This cannot be undone."
+    },
+    "preview": {
+      "action": "Preview",
+      "banner": "In the trash, deleted by {name} on {date}.",
+      "failed": "This could not be shown.",
+      "empty": "This draft has no text.",
+      "close": "Close"
     }
   }
 }

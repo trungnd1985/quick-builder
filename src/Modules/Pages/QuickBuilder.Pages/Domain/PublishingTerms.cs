@@ -91,10 +91,22 @@ internal static class LogActions
     public const string CopiedToDraft = "copied_to_draft";
 
     public const string Deleted = "deleted";
+
+    /// <summary>Moved to the trash (021 TR-07).</summary>
+    public const string Trashed = "trashed";
+
+    /// <summary>Taken out of the trash (021 TR-07).</summary>
+    public const string Restored = "restored";
+
+    /// <summary>Deleted permanently from the trash, by an Administrator or the purge (021 TR-14).</summary>
+    public const string Purged = "purged";
 }
 
 /// <summary>Why a schedule was cancelled without anyone cancelling it (012 FR-019).</summary>
 internal static class LogReasons
 {
     public const string SupersededByManualAction = "superseded_by_manual_action";
+
+    /// <summary>021 TR-07: the subject was moved to the trash.</summary>
+    public const string Trashed = "trashed";
 }

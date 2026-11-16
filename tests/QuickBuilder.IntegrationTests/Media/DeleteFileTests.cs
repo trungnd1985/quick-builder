@@ -43,9 +43,9 @@ public sealed class DeleteFileTests(DatabaseFixture database) : IAsyncLifetime
         var forDesigner = await MediaApi.UploadOkAsync(editor, _scenario.SiteA).ConfigureAwait(true);
         var forAdmin = await MediaApi.UploadOkAsync(designer, _scenario.SiteA).ConfigureAwait(true);
 
-        Assert.Equal(HttpStatusCode.NoContent, (await MediaApi.DeleteAsync(editor, _scenario.SiteA, editorsOwn.Id).ConfigureAwait(true)).StatusCode);
-        Assert.Equal(HttpStatusCode.NoContent, (await MediaApi.DeleteAsync(designer, _scenario.SiteA, forDesigner.Id).ConfigureAwait(true)).StatusCode);
-        Assert.Equal(HttpStatusCode.NoContent, (await MediaApi.DeleteAsync(_scenario.Admin, _scenario.SiteA, forAdmin.Id).ConfigureAwait(true)).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await MediaApi.DeleteAsync(editor, _scenario.SiteA, editorsOwn.Id).ConfigureAwait(true)).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await MediaApi.DeleteAsync(designer, _scenario.SiteA, forDesigner.Id).ConfigureAwait(true)).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await MediaApi.DeleteAsync(_scenario.Admin, _scenario.SiteA, forAdmin.Id).ConfigureAwait(true)).StatusCode);
 
         Assert.Empty(await _scenario.RowsAsync().ConfigureAwait(true));
     }
@@ -119,31 +119,39 @@ public sealed class DeleteFileTests(DatabaseFixture database) : IAsyncLifetime
     {
         var file = await MediaApi.UploadOkAsync(_scenario.Admin, _scenario.SiteA).ConfigureAwait(true);
 
-        Assert.Equal(HttpStatusCode.NoContent, (await MediaApi.DeleteAsync(_scenario.Admin, _scenario.SiteA, file.Id).ConfigureAwait(true)).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await MediaApi.DeleteAsync(_scenario.Admin, _scenario.SiteA, file.Id).ConfigureAwait(true)).StatusCode);
 
         Assert.Empty(await _scenario.RowsAsync().ConfigureAwait(true));
-        Assert.False(File.Exists(_scenario.ObjectPath(_scenario.SiteA, file.Id)));
+        Assert.True(File.Exists(_scenario.ObjectPath(_scenario.SiteA, file.Id)), "021 FR-003: the bytes stay while the file is in the trash.");
         Assert.Equal(HttpStatusCode.NotFound, (await MediaApi.PublicAsync(_scenario.App, MediaScenario.HostA, file.PublicPath).ConfigureAwait(true)).StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, (await MediaApi.PreviewAsync(_scenario.Admin, _scenario.SiteA, file.Id).ConfigureAwait(true)).StatusCode);
         Assert.Empty((await MediaApi.ListOkAsync(_scenario.Admin, _scenario.SiteA).ConfigureAwait(true)).Items);
 
         Assert.Equal(HttpStatusCode.NotFound, (await MediaApi.DeleteAsync(_scenario.Admin, _scenario.SiteA, file.Id).ConfigureAwait(true)).StatusCode);
+
+        // A permanent delete takes the bytes with it (021 FR-022).
+        Assert.Equal(HttpStatusCode.NoContent, (await PurgeAsync(file.Id).ConfigureAwait(true)).StatusCode);
+        Assert.False(File.Exists(_scenario.ObjectPath(_scenario.SiteA, file.Id)));
     }
 
-    /// <summary>M-13: a failing purge never fails the delete; the sweep removes the bytes later.</summary>
+    /// <summary>M-13, 021 TR-14: a failing purge never fails the delete; the sweep removes the bytes later.</summary>
     [Fact]
     public async Task A_failing_purge_still_deletes_and_leaves_the_bytes_for_the_sweep()
     {
         var file = await MediaApi.UploadOkAsync(_scenario.Admin, _scenario.SiteA).ConfigureAwait(true);
+        Assert.Equal(HttpStatusCode.OK, (await MediaApi.DeleteAsync(_scenario.Admin, _scenario.SiteA, file.Id).ConfigureAwait(true)).StatusCode);
         _storage.FailDelete = new IOException("Simulated storage failure.");
 
-        var response = await MediaApi.DeleteAsync(_scenario.Admin, _scenario.SiteA, file.Id).ConfigureAwait(true);
+        var response = await PurgeAsync(file.Id).ConfigureAwait(true);
 
         Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
         Assert.Empty(await _scenario.RowsAsync().ConfigureAwait(true));
         Assert.True(File.Exists(_scenario.ObjectPath(_scenario.SiteA, file.Id)), "The bytes stay until the sweep.");
         Assert.Equal(HttpStatusCode.NotFound, (await MediaApi.PublicAsync(_scenario.App, MediaScenario.HostA, file.PublicPath).ConfigureAwait(true)).StatusCode);
     }
+
+    private Task<HttpResponseMessage> PurgeAsync(Guid fileId) =>
+        _scenario.Admin.DeleteAsync(new Uri($"/api/v1/media/sites/{_scenario.SiteA}/trash/files/{fileId}", UriKind.Relative));
 
     [Fact]
     public async Task Deleting_without_signing_in_is_refused()

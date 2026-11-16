@@ -1,5 +1,6 @@
 using System.Runtime.CompilerServices;
 using QuickBuilder.Pages.Contracts;
+using QuickBuilder.Shared.Infrastructure.Trash;
 using QuickBuilder.Shared.Kernel.Results;
 
 namespace QuickBuilder.Pages;
@@ -265,11 +266,15 @@ internal static class PagesErrors
             $"This component is used by {pageCount} published page(s). Unpublish them or remove it from them first."),
         ("pageCount", pageCount));
 
-    internal static Error VersionMissingComponents(IReadOnlyCollection<Guid> componentIds) => With(
+    internal static Error VersionMissingComponents(IReadOnlyCollection<Guid> componentIds, IReadOnlyList<(Guid Id, string Name)>? trashed = null) => With(
         Error.Conflict(
             "pages.version_missing_components",
-            $"This version uses {componentIds.Count} component(s) that no longer exist."),
-        ("componentIds", componentIds.ToArray()));
+            trashed is { Count: > 0 }
+                ? $"This version uses {componentIds.Count} component(s) that no longer exist; {trashed.Count} of them can be restored from the trash first."
+                : $"This version uses {componentIds.Count} component(s) that no longer exist."),
+        ("componentIds", componentIds.ToArray()),
+        // 021 spec edge case: name the ones in the trash, which a restore brings back.
+        ("trashedComponents", (trashed ?? []).Select(t => new { id = t.Id, name = t.Name, inTrash = true }).ToArray()));
 
     /// <summary>
     /// 016 FR-027, contract rule 21: a paginated list reads the same page parameter as a list of
@@ -358,6 +363,35 @@ internal static class PagesErrors
 
         return With(error, ("rule", result.Rule), ("pointer", result.Location));
     }
+
+    /// <summary>Byte-identical to Identity's forbidden response (002 authorization.md §3).</summary>
+    internal static Error Forbidden { get; } = new("identity.forbidden", "You do not have permission to do this.");
+
+    // 021 data-model §5.
+    internal static Error NotInTrash { get; } = Error.NotFound(
+        TrashErrorCodes.NotInTrash, "This is not in the trash. It may have been restored or deleted permanently.");
+
+    internal static Error PlacementRequired { get; } = Error.Validation(
+        TrashErrorCodes.PlacementRequired, "Where this page was is in the trash or gone. Choose where to restore it.");
+
+    internal static Error InvalidPlacement { get; } = Error.Validation(
+        TrashErrorCodes.InvalidPlacement, "Pages cannot be restored there.");
+
+    /// <summary>The restore plan changed between viewing and confirming; the new one is attached.</summary>
+    internal static Error PlanChanged(object plan) => With(
+        Error.Conflict(TrashErrorCodes.PlanChanged, "Something changed while you were deciding. Check the new plan and confirm again."),
+        ("plan", plan));
+
+    internal static Error CountChanged(int currentCount) => With(
+        Error.Conflict(TrashErrorCodes.CountChanged, $"The trash now holds {currentCount} entries. Confirm again."),
+        ("currentCount", currentCount));
+
+    /// <summary>023's refusal, raised by a delete while another member edits (021 TR-09).</summary>
+    internal static Error DeleteLockHeld(Guid holderId, string holderName, DateTimeOffset since) => With(
+        Error.Conflict("editing.lock_held", "Someone else is editing this now. Nothing was deleted."),
+        ("holder", new { id = holderId, displayName = holderName }),
+        ("since", since),
+        ("stale", false));
 
     /// <summary>The extra problem fields attached to <paramref name="error"/>, if any.</summary>
     internal static IReadOnlyDictionary<string, object?>? ExtensionsOf(Error error) =>

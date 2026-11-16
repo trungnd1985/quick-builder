@@ -72,7 +72,7 @@ public sealed class PagesAuthorizationTests(DatabaseFixture database)
         await ExpectAsync(structure, HttpStatusCode.OK, PagesApi.UpdateAsync(client, site, ids["/about"], "About us", "about", 1)).ConfigureAwait(true);
         await ExpectAsync(structure, HttpStatusCode.OK, PagesApi.MoveAsync(client, site, ids["/contact"], null, null, 1)).ConfigureAwait(true);
         await ExpectAsync(structure, HttpStatusCode.OK, PagesApi.MakeHomeAsync(client, site, ids["/contact"], structure ? 2 : 1)).ConfigureAwait(true);
-        await ExpectAsync(structure, HttpStatusCode.NoContent, PagesApi.DeleteAsync(client, site, ids["/"], 2)).ConfigureAwait(true);
+        await ExpectAsync(structure, HttpStatusCode.OK, PagesApi.DeleteAsync(client, site, ids["/"], 2)).ConfigureAwait(true);
 
         // Components: Designer only.
         await ExpectAsync(components, HttpStatusCode.Created, PagesApi.CreateComponentAsync(client, site, "Footer")).ConfigureAwait(true);
@@ -87,7 +87,7 @@ public sealed class PagesAuthorizationTests(DatabaseFixture database)
             version = (await PagesApi.OkAsync(renamed).ConfigureAwait(true)).GetProperty("version").GetUInt32();
         }
 
-        await ExpectAsync(components, HttpStatusCode.NoContent, PagesApi.DeleteComponentAsync(client, site, headerId, version)).ConfigureAwait(true);
+        await ExpectAsync(components, HttpStatusCode.OK, PagesApi.DeleteComponentAsync(client, site, headerId, version)).ConfigureAwait(true);
     }
 
     [Fact]

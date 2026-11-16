@@ -242,7 +242,7 @@ internal sealed class FormsDbContext(DbContextOptions<FormsDbContext> options, I
             entity.Property(e => e.ReplyFieldId).HasMaxLength(FormLimits.FieldIdLength);
             entity.Property(e => e.Fields).HasColumnType("jsonb").IsRequired();
 
-            entity.HasQueryFilter(e => e.SiteId == CurrentSiteId);
+            entity.HasQueryFilter(QueryFilters.Site, e => e.SiteId == CurrentSiteId);
         });
 
         modelBuilder.Entity<FormPlacement>(entity =>
@@ -255,7 +255,7 @@ internal sealed class FormsDbContext(DbContextOptions<FormsDbContext> options, I
             entity.Property(e => e.FormId).HasMaxLength(FormLimits.MaxFormIdLength);
             entity.HasIndex(e => new { e.SiteId, e.FormId });
 
-            entity.HasQueryFilter(e => e.SiteId == CurrentSiteId);
+            entity.HasQueryFilter(QueryFilters.Site, e => e.SiteId == CurrentSiteId);
         });
 
         modelBuilder.Entity<Submission>(entity =>
@@ -281,7 +281,7 @@ internal sealed class FormsDbContext(DbContextOptions<FormsDbContext> options, I
             entity.HasIndex(e => new { e.SiteId, e.FormId, e.ReceivedAtUtc }).IsDescending(false, false, true);
             entity.HasIndex(e => new { e.SiteId, e.FormId, e.Fingerprint, e.ReceivedAtUtc });
 
-            entity.HasQueryFilter(e => e.SiteId == CurrentSiteId);
+            entity.HasQueryFilter(QueryFilters.Site, e => e.SiteId == CurrentSiteId);
         });
 
         modelBuilder.Entity<NotificationDelivery>(entity =>
@@ -301,7 +301,7 @@ internal sealed class FormsDbContext(DbContextOptions<FormsDbContext> options, I
             // The worker's claim: due pending deliveries and expired leases, across sites.
             entity.HasIndex(e => new { e.State, e.NextAttemptAtUtc });
 
-            entity.HasQueryFilter(e => e.SiteId == CurrentSiteId);
+            entity.HasQueryFilter(QueryFilters.Site, e => e.SiteId == CurrentSiteId);
         });
 
         modelBuilder.Entity<SpamCounter>(entity =>
@@ -311,7 +311,7 @@ internal sealed class FormsDbContext(DbContextOptions<FormsDbContext> options, I
             entity.HasKey(e => new { e.SiteId, e.FormId, e.Day });
             entity.Property(e => e.FormId).HasMaxLength(FormLimits.MaxFormIdLength);
 
-            entity.HasQueryFilter(e => e.SiteId == CurrentSiteId);
+            entity.HasQueryFilter(QueryFilters.Site, e => e.SiteId == CurrentSiteId);
         });
 
         modelBuilder.Entity<RateWindow>(entity =>
@@ -324,7 +324,7 @@ internal sealed class FormsDbContext(DbContextOptions<FormsDbContext> options, I
             entity.Property(e => e.WindowKind).HasMaxLength(6);
             entity.HasIndex(e => e.WindowStartUtc);
 
-            entity.HasQueryFilter(e => e.SiteId == CurrentSiteId);
+            entity.HasQueryFilter(QueryFilters.Site, e => e.SiteId == CurrentSiteId);
         });
 
         modelBuilder.Entity<SubmissionLogEntry>(entity =>
@@ -341,7 +341,7 @@ internal sealed class FormsDbContext(DbContextOptions<FormsDbContext> options, I
             entity.Property(e => e.Filters).HasColumnType("jsonb");
             entity.HasIndex(e => new { e.SiteId, e.AtUtc });
 
-            entity.HasQueryFilter(e => e.SiteId == CurrentSiteId);
+            entity.HasQueryFilter(QueryFilters.Site, e => e.SiteId == CurrentSiteId);
         });
 
         // Every module context carries the outbox (003 analysis U1). Forms publishes no events;

@@ -19,7 +19,7 @@ public sealed class FormScriptTests
         var harness = new RenderHarness { CurrentPageId = Guid.NewGuid(), Path = "/contact" };
         harness.Menus[Guid.Parse("0192f5a0-1b2c-7d3e-8f40-5a6b7c8d9e40")] = new LiveMenu(
             1,
-            System.Text.Json.JsonDocument.Parse("""{ "schemaVersion": 1, "entries": [ { "id": "a", "label": "Home", "target": { "type": "url", "href": "https://example.com" }, "children": [] } ] }""").RootElement.Clone(),
+            System.Text.Json.JsonElement.Parse("""{ "schemaVersion": 1, "entries": [ { "id": "a", "label": "Home", "target": { "type": "url", "href": "https://example.com" }, "children": [] } ] }"""),
             "Main");
         return harness.Page(RenderHarness.Document($$"""[{ "id": "s", "type": "section", "props": {}, "children": [ {{blocks}} ] }]"""));
     }
@@ -92,7 +92,7 @@ public sealed class FormScriptTests
         var harness = new RenderHarness { CurrentPageId = Guid.NewGuid(), Path = "/contact" };
         harness.Menus[Guid.Parse("0192f5a0-1b2c-7d3e-8f40-5a6b7c8d9e40")] = new LiveMenu(
             1,
-            System.Text.Json.JsonDocument.Parse("""{ "schemaVersion": 1, "entries": [ { "id": "a", "label": "Home", "target": { "type": "url", "href": "https://example.com" }, "children": [] } ] }""").RootElement.Clone(),
+            System.Text.Json.JsonElement.Parse("""{ "schemaVersion": 1, "entries": [ { "id": "a", "label": "Home", "target": { "type": "url", "href": "https://example.com" }, "children": [] } ] }"""),
             "Main");
         return harness.Inputs(RenderHarness.Document($$"""[{ "id": "s", "type": "section", "props": {}, "children": [ {{blocks}} ] }]"""));
     }

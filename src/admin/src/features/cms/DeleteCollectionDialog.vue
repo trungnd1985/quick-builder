@@ -14,6 +14,7 @@ const props = defineProps<{
   name: string
   revision: number
   itemCount: number
+  trashedItemCount?: number
 }>()
 const emit = defineEmits<{ deleted: []; cancel: [] }>()
 const { t, te } = useI18n()
@@ -81,6 +82,9 @@ async function confirm(): Promise<void> {
       </h2>
       <p id="collection-delete-body">
         {{ t('cms.delete.body', { count: itemCount }, itemCount) }}
+      </p>
+      <p v-if="trashedItemCount">
+        {{ t('cms.delete.trashed', { count: trashedItemCount }, trashedItemCount) }}
       </p>
       <div class="field">
         <label for="collection-delete-name">{{ t('cms.delete.typeName', { name }) }}</label>

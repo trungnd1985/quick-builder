@@ -118,9 +118,9 @@ public sealed partial class IdMapTests
             .Replace("OTHER", other.ToString(), StringComparison.Ordinal)
             .Replace("PAGE", Page.ToString(), StringComparison.Ordinal)
             .Replace("ITEM", Item.ToString("N"), StringComparison.Ordinal);
-        var document = JsonDocument.Parse(json).RootElement;
+        var document = JsonElement.Parse(json);
 
-        var remapped = JsonDocument.Parse(map.RemapDocument(document)).RootElement.GetRawText();
+        var remapped = JsonElement.Parse(map.RemapDocument(document)).GetRawText();
 
         Assert.Contains(map.Resolve(ArchiveKinds.Page, Page)!.Value.ToString(), remapped, StringComparison.Ordinal);
         Assert.Contains(map.Resolve(ArchiveKinds.Item, Item)!.Value.ToString("N"), remapped, StringComparison.Ordinal);
@@ -147,7 +147,7 @@ public sealed partial class IdMapTests
             map.Declare(ArchiveKinds.Page, id, "declared");
         }
 
-        var remapped = JsonDocument.Parse(map.RemapDocument(source.RootElement)).RootElement.GetRawText();
+        var remapped = JsonElement.Parse(map.RemapDocument(source.RootElement)).GetRawText();
 
         foreach (var id in ids)
         {

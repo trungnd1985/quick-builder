@@ -92,6 +92,7 @@ async function renderView() {
       { path: '/sites/:siteId/media', name: 'site-media', component: { template: '<div />' } },
       { path: '/sites/:siteId/design', name: 'site-design', component: { template: '<div />' } },
       { path: '/sites/:siteId/redirects', name: 'site-redirects', component: { template: '<div />' } },
+      { path: '/sites/:siteId/trash', name: 'site-trash', component: { template: '<div />' } },
       { path: '/sites/:siteId/menus', name: 'site-menus', component: { template: '<div />' } },
       { path: '/sites/:siteId/submissions', name: 'site-submissions', component: { template: '<div />' } },
     ],

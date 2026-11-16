@@ -69,7 +69,7 @@ public sealed class OverlappingDraftWritesTests(DatabaseFixture database)
         return await JudgeAsync(members, responses, async () =>
         {
             var stored = (await PagesApi.DraftOkAsync(members[0].Client, owner)).GetProperty("document");
-            return documents.Select(d => JsonDocument.Parse(d).RootElement).ToList().FindIndex(d => JsonElement.DeepEquals(d, stored));
+            return documents.Select(d => JsonElement.Parse(d)).ToList().FindIndex(d => JsonElement.DeepEquals(d, stored));
         }, "pages.out_of_date");
     }
 

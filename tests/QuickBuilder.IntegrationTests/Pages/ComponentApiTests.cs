@@ -70,7 +70,7 @@ public sealed class ComponentApiTests(DatabaseFixture database)
                 admin, PagesApi.PagePath(site, ids[path]), PagesApi.DocumentReferencing()).ConfigureAwait(true)).ConfigureAwait(true);
         }
 
-        Assert.Equal(HttpStatusCode.NoContent, (await PagesApi.DeleteComponentAsync(admin, site, header, version).ConfigureAwait(true)).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await PagesApi.DeleteComponentAsync(admin, site, header, version).ConfigureAwait(true)).StatusCode);
         Assert.Contains(await scenario.OutboxAsync().ConfigureAwait(true), e => e.Type == "Pages.ComponentDeleted");
     }
 

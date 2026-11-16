@@ -108,7 +108,7 @@ public sealed class BindingFailureTests(DatabaseFixture database)
         await AllAnswerAsync("unpublishing a referenced item");
 
         // A bound image deleted.
-        Assert.Equal(HttpStatusCode.NoContent, (await QuickBuilder.IntegrationTests.Media.UsageScenario.DeleteAsync(world.Admin, world.Site, world.Items.Image, confirmInUse: true)).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await QuickBuilder.IntegrationTests.Media.UsageScenario.DeleteAsync(world.Admin, world.Site, world.Items.Image, confirmInUse: true)).StatusCode);
         await world.App.DeliverAsync(new FileDeleted(Guid.CreateVersion7(), DateTimeOffset.UtcNow, world.Site, world.Items.Image, null));
         await AllAnswerAsync("deleting a bound image");
 

@@ -22,7 +22,7 @@ namespace QuickBuilder.Cms.Domain;
 /// published values (SC-004).
 /// </para>
 /// </remarks>
-internal sealed partial class Item : AggregateRoot, ISiteOwned, IDisposable
+internal sealed partial class Item : AggregateRoot, ISiteOwned, ITrashable, IDisposable
 {
     /// <summary>Published versions kept per item, never deleting the live one (FR-023).</summary>
     public const int KeptVersions = 50;
@@ -155,6 +155,19 @@ internal sealed partial class Item : AggregateRoot, ISiteOwned, IDisposable
     public int? LiveVersion { get; private set; }
 
     public int NextVersionNumber { get; private set; }
+
+    /// <summary>When the item was moved to the trash; null while it is live (021 TR-02).</summary>
+    public DateTimeOffset? TrashedAtUtc { get; private set; }
+
+    public Guid? TrashedBy { get; private set; }
+
+    /// <summary>Whether it was published when trashed (TR-07).</summary>
+    public bool? TrashedWasLive { get; private set; }
+
+    /// <summary>Whether a publish was scheduled when it was trashed (TR-07).</summary>
+    public bool? TrashedHadSchedule { get; private set; }
+
+    public bool IsTrashed => TrashedAtUtc is not null;
 
     /// <summary>History entries recorded by this write, for <c>ItemWrites</c> to add.</summary>
     public IReadOnlyList<ItemHistoryEntry> NewHistory => _newHistory;
@@ -337,6 +350,46 @@ internal sealed partial class Item : AggregateRoot, ISiteOwned, IDisposable
     {
         ArgumentException.ThrowIfNullOrEmpty(oldSlug);
         Raise(new ItemRedirectRequestedEvent(SiteId, CollectionId, Id, oldSlug, reason, targetPageId, now));
+    }
+
+    /// <summary>
+    /// Moves the item to the trash (021 FR-001, FR-003). The caller has already unpublished it
+    /// when it was live and cancelled its schedules; the existing deleted event announces it,
+    /// because its consumers must react to trashing (TR-08).
+    /// </summary>
+    public void MoveToTrash(bool wasLive, bool hadSchedule, Guid actor, DateTimeOffset now)
+    {
+        if (IsPublished)
+        {
+            throw new InvalidOperationException("Unpublish the item before moving it to the trash.");
+        }
+
+        TrashedAtUtc = now;
+        TrashedBy = actor;
+        TrashedWasLive = wasLive;
+        TrashedHadSchedule = hadSchedule;
+        Touch(actor, now);
+        _newHistory.Add(ItemHistoryEntry.For(this, ItemHistoryKinds.Trashed, actor, now));
+        Raise(new ItemDeletedEvent(SiteId, CollectionId, Id, wasLive, now));
+    }
+
+    /// <summary>Takes the item out of the trash, unpublished, under <paramref name="slug"/> (021 FR-014, FR-015, FR-017).</summary>
+    public void Restore(string slug, Guid actor, DateTimeOffset now)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(slug);
+        if (slug != Slug)
+        {
+            Slug = slug;
+            Status = ItemStatuses.Compute(DraftValues(), slug, PublishedValues(), PublishedSlug);
+        }
+
+        TrashedAtUtc = null;
+        TrashedBy = null;
+        TrashedWasLive = null;
+        TrashedHadSchedule = null;
+        Touch(actor, now);
+        _newHistory.Add(ItemHistoryEntry.For(this, ItemHistoryKinds.Restored, actor, now));
+        Raise(new ItemRestoredEvent(SiteId, CollectionId, Id, now));
     }
 
     /// <summary>Records that the item is being deleted, with its versions, schedules and history (FR-008).</summary>
