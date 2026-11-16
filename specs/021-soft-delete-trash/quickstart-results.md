@@ -1,7 +1,7 @@
 # Quickstart results: Soft delete, trash and restore (021)
 
-**Status**: automated part and API walk-through done 2026-11-15 (task T098). The admin-screen
-pass, the keyboard-only pass of §8 and the screen-reader check are still to do by hand.
+**Status**: done (task T098). Automated part and API walk-through 2026-11-15; checks by hand
+2026-11-17, all passed.
 
 This records which parts of [quickstart.md](./quickstart.md) the automated suites prove, what
 an API walk-through against a real deployment showed, and what a person still has to check.
@@ -47,12 +47,13 @@ host name. The stack was removed afterwards.
    (`TrashRestoreRulesTests`, `TrashBulkEndpointTests`), the retention job's timing in §6.4
    (`TrashPurgeTests`), and §7 (`TransferTrashTests`, `UpgradeFrom020Tests`).
 
-## Still to do by hand
+## Done by hand
 
-1. **The admin screens** for §1, §2, §4 and §6.2 in a browser: the "can be restored until"
-   notice after each delete, the Trash tabs, preview, restore dialog, and Empty trash.
-2. **§2.4**: E's open item switches to "Moved to the trash by D", read-only.
-3. **§8 keyboard only**: §1, §4 and §6.2 without a mouse.
-4. **§8 screen readers** (exception E-5).
+| Check | Date | Result |
+|---|---|---|
+| **Admin screens** for §1, §2, §4 and §6.2: the "can be restored until" notice after each delete, the Trash tabs and filters, preview, restore dialog (including with parents), bulk restore and permanent delete, Empty trash, and E without Restore, Empty or permanent delete | 2026-11-17 | **Pass**, by the tester's report |
+| **§2.4**: E's open item switches to "Moved to the trash by D", read-only | 2026-11-17 | **Pass**, by the tester's report |
+| **§8 keyboard only**: §1, §4 and §6.2 without a mouse | 2026-11-17 | **Pass**, by the tester's report |
+| **§8 screen readers** (exception E-5) | 2026-11-17 | **Pass**, by the tester's report. Browser and reader versions were not recorded. |
 
-Record each result here with the date and the browser.
+Nothing is left to check by hand.

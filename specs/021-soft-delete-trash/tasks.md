@@ -372,8 +372,8 @@ only (FR-020–FR-022, SC-007).
   *Done as*: the architecture tests pass. Line coverage from the CI test selection: restore handlers 80–88%, bulk restore 88–91%, purge handlers 87–88%, `PageTree.Trash` 84%.
 - [X] T097 Run `dotnet format --verify-no-changes`, `dotnet test`, and `cd src/admin && npm run lint && npm run type-check && npm test`.
   *Done as*: `dotnet format`, lint, type-check and the admin tests pass, as does the CI selection of `dotnet test` (Architecture, Unit, Integration). In the Smoke project, 4 of 17 fail, none from this feature: `ReleaseUpgradeTests` needs `QB_SMOKE_IMAGE`; `SiteResolutionPerformanceTests` expects 404 where non-primary host names now answer 301; `RenderPerformanceTests` expects no `<script>` where #17 added structured data; `MediaPerformanceTests` missed a timing ratio on this machine. `TrashListPerformanceTests` passes with `QB_TRASH_PERF=1`.
-- [ ] T098 Walk quickstart.md §1–§8 against `./qb.ps1 dev`, including the keyboard-only pass of §8 (E-5 manual), and record results in `specs/021-soft-delete-trash/quickstart-results.md`.
-  *Partly done*: the automated evidence and an API walk-through of §1, §2, §4, §5 and §6 against a deployment are in `quickstart-results.md` (all pass). **Open**: the admin screens in a browser, the keyboard-only pass and the screen-reader check.
+- [X] T098 Walk quickstart.md §1–§8 against `./qb.ps1 dev`, including the keyboard-only pass of §8 (E-5 manual), and record results in `specs/021-soft-delete-trash/quickstart-results.md`.
+  *Done as*: the automated evidence, an API walk-through against a deployment (2026-11-15) and the checks by hand (2026-11-17, all passed) are in `quickstart-results.md`.
 
 ---
 
