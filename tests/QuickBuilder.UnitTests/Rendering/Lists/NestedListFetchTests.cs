@@ -23,7 +23,7 @@ public sealed class NestedListFetchTests
 
     private static readonly ResolveCase World = ResolveCase.Load("rich-image-link");
 
-    private static readonly JsonElement Document = JsonDocument.Parse($$$"""
+    private static readonly JsonElement Document = JsonElement.Parse($$$"""
         {"schemaVersion":1,"bindingVersion":1,"root":{"id":"root","type":"root","props":{},"children":[
           {"id":"outer","type":"collection-list","props":{"source":{"collectionId":"{{{Posts}}}"}},"children":[
             {"id":"outer-card","type":"list-card","props":{},"children":[
@@ -32,7 +32,7 @@ public sealed class NestedListFetchTests
                 {"id":"inner-card","type":"list-card","props":{},"children":[]},
                 {"id":"inner-empty","type":"list-empty","props":{},"children":[]}]}]},
             {"id":"outer-empty","type":"list-empty","props":{},"children":[]}]}]}}
-        """).RootElement.Clone();
+        """);
 
     private static PublishedItem Item(string collection, string title, int n) => new(
         Guid.Parse($"0192f5a0-0000-7000-8000-{n:x12}"),

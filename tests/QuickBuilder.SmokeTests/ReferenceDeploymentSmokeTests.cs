@@ -327,7 +327,7 @@ public sealed class ReferenceDeploymentSmokeTests(ITestOutputHelper output) : IA
         using var menuDraft = await client.PutAsJsonAsync(new Uri($"{menuPath}/draft", UriKind.Relative), new
         {
             version = menuRead.GetProperty("draftVersion").GetUInt32(),
-            document = JsonDocument.Parse("""{"schemaVersion":1,"entries":[{"id":"docs","label":"Smoke docs","target":{"type":"url","href":"https://docs.example/"},"children":[]}]}""").RootElement,
+            document = JsonElement.Parse("""{"schemaVersion":1,"entries":[{"id":"docs","label":"Smoke docs","target":{"type":"url","href":"https://docs.example/"},"children":[]}]}"""),
         }).ConfigureAwait(true);
         Assert.True(menuDraft.StatusCode == HttpStatusCode.OK, $"Saving the menu failed: {await menuDraft.Content.ReadAsStringAsync().ConfigureAwait(true)}");
         await PublishAsync(client, menuPath, (await menuDraft.Content.ReadFromJsonAsync<JsonElement>().ConfigureAwait(true)).GetProperty("draftVersion").GetUInt32()).ConfigureAwait(true);

@@ -36,7 +36,7 @@ public sealed class DeleteInUseTests(DatabaseFixture database) : IAsyncLifetime
 
         var refused = await UsageScenario.DeleteAsync(_scenario.Admin, Site, file, confirmInUse: false);
         Assert.Equal(HttpStatusCode.Conflict, refused.StatusCode);
-        var problem = JsonDocument.Parse(await refused.Content.ReadAsStringAsync()).RootElement;
+        var problem = JsonElement.Parse(await refused.Content.ReadAsStringAsync());
         Assert.Equal("media.in_use", problem.GetProperty("errorCode").GetString());
         Assert.Equal(1, problem.GetProperty("usage").GetProperty("draftPlaces").GetInt32());
         Assert.Contains((await _scenario.RowsAsync()), r => r.Id == file);

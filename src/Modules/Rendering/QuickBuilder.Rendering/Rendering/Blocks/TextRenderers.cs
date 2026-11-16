@@ -14,7 +14,7 @@ internal sealed class HeadingRenderer : IBlockRenderer
     // SIZE_BY_LEVEL in HeadingBlock.vue.
     private static readonly string[] SizeByLevel = ["text-3xl", "text-2xl", "text-xl", "text-lg", "text-md", "text-md"];
 
-    private static readonly JsonElement MediumSize = JsonDocument.Parse("""{"token":"text-md"}""").RootElement.Clone();
+    private static readonly JsonElement MediumSize = JsonElement.Parse("""{"token":"text-md"}""");
 
     public string Type => "heading";
 

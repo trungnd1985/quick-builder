@@ -44,7 +44,7 @@ public sealed class ItemReferenceIntegrityTests(DatabaseFixture database)
         await scenario.PersonAsync("Ann");
 
         var deleted = (await scenario.Cms.OutboxAsync()).Single(e => e.Type == "Cms.ItemDeleted");
-        Assert.False(JsonDocument.Parse(deleted.Payload).RootElement.GetProperty("WasPublished").GetBoolean());
+        Assert.False(JsonElement.Parse(deleted.Payload).GetProperty("WasPublished").GetBoolean());
     }
 
     [Fact]

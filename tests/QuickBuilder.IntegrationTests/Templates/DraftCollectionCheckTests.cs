@@ -41,7 +41,7 @@ public sealed class DraftCollectionCheckTests(DatabaseFixture database)
         foreach (var collection in new[] { Guid.NewGuid(), otherSite })
         {
             var response = await PagesApi.SaveCurrentDraftAsync(world.Admin, PagesApi.PagePath(world.Site, page), TemplatesWorld.Document(ListOf(collection)));
-            var body = JsonDocument.Parse(await response.Content.ReadAsStringAsync()).RootElement;
+            var body = JsonElement.Parse(await response.Content.ReadAsStringAsync());
 
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
             Assert.Equal("pages.invalid_document", body.GetProperty("errorCode").GetString());

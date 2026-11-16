@@ -451,7 +451,7 @@ internal sealed partial class CmsArchivePart
     /// </summary>
     private async Task<Evaluation?> EvaluateReplaceAsync(Func<JsonElement, string> remap, Collection target, CollectionRow row, CancellationToken cancellationToken)
     {
-        var schema = JsonDocument.Parse(remap(row.Schema)).RootElement.Clone();
+        var schema = JsonElement.Parse(remap(row.Schema));
         var request = new SaveCollectionRequest(target.Revision, target.Name, target.Slug, row.Description, schema, FillIns: null, Confirmation: null);
         var evaluated = await services.GetRequiredService<ProposalEvaluator>().EvaluateAsync(target, request, cancellationToken).ConfigureAwait(false);
         return evaluated.IsFailure ? null : evaluated.Value;

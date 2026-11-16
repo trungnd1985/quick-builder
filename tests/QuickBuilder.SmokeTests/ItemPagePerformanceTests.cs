@@ -192,7 +192,7 @@ public sealed class ItemPagePerformanceTests(ITestOutputHelper output) : IAsyncL
         using var saved = await client.PutAsync(new Uri($"{subject}/draft", UriKind.Relative), body).ConfigureAwait(false);
         var reply = await saved.Content.ReadAsStringAsync().ConfigureAwait(false);
         Assert.True(saved.StatusCode == HttpStatusCode.OK, $"Saving a draft failed: {reply}");
-        var version = JsonDocument.Parse(reply).RootElement.GetProperty("version").GetUInt32();
+        var version = JsonElement.Parse(reply).GetProperty("version").GetUInt32();
         await PublishVersionAsync(client, subject, version).ConfigureAwait(false);
         return version;
     }

@@ -45,7 +45,7 @@ internal sealed partial class DesignArchivePart(EditorDbContext database, IServi
             context.Authors.Add(publication?.LiveBy);
             await context.Archive.WriteLinesAsync(PartName, "design", One(new DesignRow(
                 draft?.SchemaVersion,
-                draft is null ? null : JsonDocument.Parse(draft.Document).RootElement.Clone(),
+                draft is null ? null : JsonElement.Parse(draft.Document),
                 draft?.UpdatedAtUtc,
                 draft?.UpdatedBy,
                 publication?.LiveNumber,
@@ -67,7 +67,7 @@ internal sealed partial class DesignArchivePart(EditorDbContext database, IServi
             yield return new DesignVersionRow(
                 v.Number,
                 v.SchemaVersion,
-                JsonDocument.Parse(v.Document).RootElement.Clone(),
+                JsonElement.Parse(v.Document),
                 v.Kind,
                 v.RestoredFromNumber,
                 v.PublishedBy,

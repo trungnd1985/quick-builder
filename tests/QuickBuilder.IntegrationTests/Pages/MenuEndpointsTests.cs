@@ -83,7 +83,7 @@ public sealed class MenuEndpointsTests(DatabaseFixture database)
         var saved = await SaveCurrentDraftOkAsync(world.Admin, world.Site, menu, document).ConfigureAwait(true);
         var read = await GetOkAsync(world.Admin, world.Site, menu).ConfigureAwait(true);
 
-        Assert.True(JsonEquals(JsonDocument.Parse(document).RootElement, read.GetProperty("draft")), read.GetProperty("draft").GetRawText());
+        Assert.True(JsonEquals(JsonElement.Parse(document), read.GetProperty("draft")), read.GetProperty("draft").GetRawText());
         Assert.Equal(saved.GetProperty("draftVersion").GetUInt32(), read.GetProperty("draftVersion").GetUInt32());
         Assert.Equal(6, read.GetProperty("entryCount").GetInt32());
 
@@ -229,7 +229,7 @@ public sealed class MenuEndpointsTests(DatabaseFixture database)
 
         var copy = await CreateOkAsync(world.Admin, world.Site, "Main (copy)", duplicateOf: menu).ConfigureAwait(true);
 
-        Assert.True(JsonEquals(JsonDocument.Parse(document).RootElement, copy.GetProperty("draft")));
+        Assert.True(JsonEquals(JsonElement.Parse(document), copy.GetProperty("draft")));
         Assert.Equal("draft", copy.GetProperty("publication").GetProperty("state").GetString());
 
         await PagesApi.RefusedAsync(

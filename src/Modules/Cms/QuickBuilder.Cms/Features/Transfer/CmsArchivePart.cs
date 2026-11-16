@@ -117,7 +117,7 @@ internal sealed partial class CmsArchivePart(CmsDbContext database, IServiceProv
         }
     }
 
-    private static JsonElement Parse(string json) => JsonDocument.Parse(json).RootElement.Clone();
+    private static JsonElement Parse(string json) => JsonElement.Parse(json);
 }
 
 /// <summary><c>parts/cms/collections.jsonl</c>: one collection with its schema document.</summary>

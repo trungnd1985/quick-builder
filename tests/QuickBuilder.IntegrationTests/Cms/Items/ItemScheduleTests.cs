@@ -144,7 +144,7 @@ public sealed class ItemScheduleTests(DatabaseFixture database)
         var after = await ItemsApi.GetOkAsync(scenario.Admin, scenario.Site, scenario.Posts, id);
         Assert.Equal("draft", after.GetProperty("status").GetString());
         var unpublished = (await scenario.Cms.OutboxAsync()).Single(e => e.Type == "Cms.ItemUnpublished");
-        Assert.True(JsonDocument.Parse(unpublished.Payload).RootElement.GetProperty("Scheduled").GetBoolean());
+        Assert.True(JsonElement.Parse(unpublished.Payload).GetProperty("Scheduled").GetBoolean());
 
         // Publish again, schedule another unpublish, then unpublish by hand: the schedule goes.
         after = await ItemsApi.PublishOkAsync(scenario.Admin, scenario.Site, scenario.Posts, id, ItemsApi.Revision(after));

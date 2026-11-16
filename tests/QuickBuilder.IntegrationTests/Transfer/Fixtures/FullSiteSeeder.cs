@@ -139,7 +139,7 @@ internal sealed class FullSite : IDisposable
         ["media_file"] = 3,
     };
 
-    public static JsonElement Parse(string json) => JsonDocument.Parse(json).RootElement.Clone();
+    public static JsonElement Parse(string json) => JsonElement.Parse(json);
 
     public void Dispose() => World.Dispose();
 }

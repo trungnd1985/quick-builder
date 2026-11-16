@@ -57,7 +57,7 @@ public sealed class SchemaUpgradeChainTests
 
     private static readonly SchemaUpgradeChain Chain = new("test-contract", 3, [new WrapContent(), new RenameTitle()]);
 
-    private static JsonElement Parse(string json) => JsonDocument.Parse(json).RootElement.Clone();
+    private static JsonElement Parse(string json) => JsonElement.Parse(json);
 
     [Fact]
     public void A_current_document_comes_back_as_it_is()

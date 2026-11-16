@@ -25,7 +25,7 @@ public sealed class ListQueriesTests
     private static IReadOnlyDictionary<Guid, CollectionSchemaInfo> Schemas => World.Inputs().Data!.Schemas;
 
     private static JsonElement List(string props) =>
-        JsonDocument.Parse("""{"id":"l1","type":"collection-list","props":""" + props + ""","children":[]}""").RootElement.Clone();
+        JsonElement.Parse("""{"id":"l1","type":"collection-list","props":""" + props + ""","children":[]}""");
 
     private static PlannedList Plan(string props, PublishedItem? pageItem = null, int pageNumber = 1) =>
         ListQueries.Plan(List(props), pageItem, Schemas, new Dictionary<string, int> { ["page"] = pageNumber });

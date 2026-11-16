@@ -153,7 +153,7 @@ public sealed class ItemRedirectOfferTests(DatabaseFixture database, ITestOutput
         var renamed = await RenameAsync(post, "once-more");
         await PagesApi.OkAsync(await ActAsync(_world.Admin, renamed, "publish", new { revision = ItemsApi.Revision(renamed), cancelSchedule = false, redirectOldAddress = true }));
 
-        var payload = JsonDocument.Parse(Assert.Single(await RedirectEventsAsync())).RootElement;
+        var payload = JsonElement.Parse(Assert.Single(await RedirectEventsAsync()));
         Assert.Equal(
             ["ActorUserId", "CollectionId", "Id", "ItemId", "OccurredAtUtc", "OldSlug", "Reason", "SiteId", "StatusCode", "TargetPageId"],
             payload.EnumerateObject().Select(p => p.Name).Order(StringComparer.Ordinal));
