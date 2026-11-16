@@ -245,7 +245,7 @@ function onKeydown(event: KeyboardEvent): void {
           {{ error }}
         </p>
 
-        <div class="dialog-actions">
+        <div class="actions">
           <button
             ref="cancelButton"
             type="button"

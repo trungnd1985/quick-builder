@@ -86,7 +86,7 @@ function onKeydown(event: KeyboardEvent): void {
         <p v-else>
           {{ t('trash.preview.empty') }}
         </p>
-        <div class="dialog-actions">
+        <div class="actions">
           <button
             ref="closeButton"
             type="button"

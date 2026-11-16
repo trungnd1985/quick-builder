@@ -105,14 +105,17 @@ function onKeydown(event: KeyboardEvent): void {
           </p>
         </div>
 
-        <label for="empty-trash-count">{{ t('trash.emptyTrash.typeCount', { total }) }}</label>
-        <input
-          id="empty-trash-count"
-          ref="input"
-          v-model="typed"
-          inputmode="numeric"
-          autocomplete="off"
-        >
+        <div class="field">
+          <label for="empty-trash-count">{{ t('trash.emptyTrash.typeCount', { total }) }}</label>
+          <input
+            id="empty-trash-count"
+            ref="input"
+            v-model="typed"
+            type="text"
+            inputmode="numeric"
+            autocomplete="off"
+          >
+        </div>
 
         <p
           v-if="error"
@@ -122,7 +125,7 @@ function onKeydown(event: KeyboardEvent): void {
           {{ error }}
         </p>
 
-        <div class="dialog-actions">
+        <div class="actions">
           <button
             type="button"
             @click="emit('cancel')"
