@@ -107,6 +107,22 @@ public static class EditorModule
         services.AddScoped<ICommandHandler<MoveHereCommand, Result<PresenceResponse>>, MoveHereHandler>();
         services.AddScoped<ICommandHandler<ReleaseCommand, Result>, ReleaseHandler>();
         services.AddScoped<IQueryHandler<ListHoldersQuery, Result<HoldersResponse>>, ListHoldersHandler>();
+
+        // 022: preview links. Resolved on every request, never cached (PV-08).
+        services.AddScoped<PreviewLinkFailures>();
+        services.AddScoped<IPreviewLinks, PreviewLinkResolver>();
+        services.AddScoped<Features.PreviewLinks.PreviewLinkAccess>();
+        services.AddScoped<ICommandHandler<Features.PreviewLinks.CreatePreviewLinkCommand, Result<Features.PreviewLinks.CreatedPreviewLinkResponse>>,
+            Features.PreviewLinks.CreatePreviewLinkHandler>();
+        services.AddScoped<IQueryHandler<Features.PreviewLinks.ListPreviewLinksQuery, Result<IReadOnlyList<Features.PreviewLinks.PreviewLinkResponse>>>,
+            Features.PreviewLinks.ListPreviewLinksHandler>();
+        services.AddScoped<IQueryHandler<Features.PreviewLinks.ListSitePreviewLinksQuery, Result<Features.PreviewLinks.SitePreviewLinksResponse>>,
+            Features.PreviewLinks.ListSitePreviewLinksHandler>();
+        services.AddScoped<ICommandHandler<Features.PreviewLinks.RevokePreviewLinkCommand, Result>, Features.PreviewLinks.RevokePreviewLinkHandler>();
+        services.AddScoped<ICommandHandler<Features.PreviewLinks.RevokeAllPreviewLinksCommand, Result<Features.PreviewLinks.RevokedPreviewLinksResponse>>,
+            Features.PreviewLinks.RevokeAllPreviewLinksHandler>();
+        services.AddSingleton<IEventTypeRegistration>(new EventTypeRegistration<PreviewLinkCreated>());
+        services.AddSingleton<IEventTypeRegistration>(new EventTypeRegistration<PreviewLinkRevoked>());
         services.AddScoped<IValidator<ListHoldersQuery>, ListHoldersValidator>();
         services.AddScoped<ICommandHandler<TakeOverCommand, Result<PresenceResponse>>, TakeOverHandler>();
         services.AddScoped<IEditingLocks, EditingLocks>();

@@ -60,6 +60,9 @@ public sealed class AuthorizationDeclarationTests
         "MemberPreviewController.OtherMethod",
         "PreviewAssetsController.Get",
         "PreviewFallbackController.Get",
+        "LinkPreviewController.GetAsync",
+        "LinkPreviewController.MediaAsync",
+        "LinkPreviewController.OtherMethod",
         "PreviewFormController.Post",
     };
 

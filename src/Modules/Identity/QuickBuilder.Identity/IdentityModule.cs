@@ -197,6 +197,8 @@ public static class IdentityModule
 
         services.AddSingleton<CapabilityCatalog>();
         services.AddScoped<IAccessEvaluator, AccessEvaluator>();
+        // 022 research PV-08: whether a preview link's creator may still edit what it shows.
+        services.AddScoped<QuickBuilder.Identity.Contracts.IMemberAccess, MemberAccess>();
         services.AddSingleton<IAuthorizationPolicyProvider, CapabilityPolicyProvider>();
         services.AddScoped<IAuthorizationHandler, CapabilityRequirementHandler>();
         services.AddSingleton<IAuthorizationMiddlewareResultHandler, AuthorizationResultHandler>();

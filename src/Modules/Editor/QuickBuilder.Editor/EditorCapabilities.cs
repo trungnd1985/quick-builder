@@ -24,5 +24,8 @@ internal static class EditorCapabilities
     [
         new(DesignTokensView, CapabilityScope.Site, [SystemRole.Designer, SystemRole.Editor]),
         new(DesignTokensManage, CapabilityScope.Site, [SystemRole.Designer]),
+
+        // 022 FR-015: every preview link of a site, listed and revoked. Administrator only.
+        new(QuickBuilder.Editor.Contracts.PreviewCapabilities.Manage, CapabilityScope.Site, []),
     ];
 }

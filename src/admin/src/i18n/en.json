@@ -3198,13 +3198,13 @@
       "limit": "This {kind} has 20 active links. Revoke one to create another.",
       "close": "Close",
       "errors": {
-        "preview.link_limit": "This page or item already has 20 active links. Revoke one first.",
-        "preview.invalid_expiry": "Choose an expiry after now and at most 30 days ahead.",
-        "preview.invalid_label": "The label can be at most 80 characters.",
-        "preview.no_template": "This collection has no template page, so its items cannot be previewed.",
-        "preview.version_not_retained": "This version is no longer kept.",
-        "preview.not_found": "This page or item no longer exists.",
-        "preview.link_not_found": "This link no longer exists.",
+        "link_limit": "This page or item already has 20 active links. Revoke one first.",
+        "invalid_expiry": "Choose an expiry after now and at most 30 days ahead.",
+        "invalid_label": "The label can be at most 80 characters.",
+        "no_template": "This collection has no template page, so its items cannot be previewed.",
+        "version_not_retained": "This version is no longer kept.",
+        "not_found": "This page or item no longer exists.",
+        "link_not_found": "This link no longer exists.",
         "generic": "The link could not be created. Try again."
       }
     },

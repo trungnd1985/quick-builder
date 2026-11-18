@@ -377,14 +377,14 @@ expires (FR-005–FR-013, FR-018, FR-027).
 
 ### Tests for User Story 2 ⚠️
 
-- [ ] T039 [P] [US2] Write `UTESTS/Editor/PreviewLinkTests.cs` for the `PreviewLink` aggregate (data-model §1):
+- [X] T039 [P] [US2] Write `UTESTS/Editor/PreviewLinkTests.cs` for the `PreviewLink` aggregate (data-model §1):
   - expiry after now and at most 30 days ahead, else `preview.invalid_expiry`;
   - the label is trimmed, empty becomes null, and over 80 characters or control characters
     give `preview.invalid_label`;
   - the secret is 43 base64url characters and the stored hash is its SHA-256;
   - `IsActive` honours revoked, expiry and `LinksValidFrom`;
   - `Revoke` is idempotent.
-- [ ] T040 [P] [US2] Write `ITESTS/Preview/PreviewLinkTests.cs`:
+- [X] T040 [P] [US2] Write `ITESTS/Preview/PreviewLinkTests.cs`:
   - **Create**: an Editor creates a page link and an item link (201, `url` holds the secret,
     the list shows it without the secret).
   - **Opening**: the link opens without a session and shows the draft with an expiry bar.
@@ -401,18 +401,19 @@ expires (FR-005–FR-013, FR-018, FR-027).
   - **Media**: link media serves a file the target uses, and 404 for a file of the same site
     that it does not use.
   - **Emergency switch**: links created before `Preview:LinksValidFrom` are dead.
-- [ ] T041 [P] [US2] Write `ITESTS/Preview/PreviewLinkTamperingTests.cs` (SC-005). Generate at least 1,000 variants and send them from at least 60 client addresses (`X-Forwarded-For` through the test host's forwarded-headers setup), at most 15 per address per minute, so the throttle (PV-18) never fires; T043 tests the throttle. Assert every response body is byte-identical to the "no longer available" page:
+- [X] T041 [P] [US2] Write `ITESTS/Preview/PreviewLinkTamperingTests.cs` (SC-005). Generate at least 1,000 variants and send them from at least 60 client addresses (`X-Forwarded-For` through the test host's forwarded-headers setup), at most 15 per address per minute, so the throttle (PV-18) never fires; T043 tests the throttle. Assert every response body is byte-identical to the "no longer available" page:
   - flipped characters, truncated and extended secrets;
   - empty and whitespace secrets;
   - secrets of other sites' links;
   - secrets of revoked links;
   - path traversal after the secret;
   - other-target media paths.
-- [ ] T042 [P] [US2] Write `ITESTS/Preview/PreviewLinkAddressTests.cs`:
+- [X] T042 [P] [US2] Write `ITESTS/Preview/PreviewLinkAddressTests.cs`:
   - a site with host names gets `url` on `site.BaseUrl`;
   - a site without one gets it on the request's admin origin, after forwarded headers;
   - both open.
-- [ ] T043 [P] [US2] Write `ITESTS/Preview/PreviewLinkThrottleTests.cs`:
+  *Done as*: every site keeps at least one host name (009: "A site must have at least one host name"), so the admin-origin fallback is never reached. The test instead proves what it relies on: a link opens on any host name, the admin's included, and shows its own site's content.
+- [X] T043 [P] [US2] Write `ITESTS/Preview/PreviewLinkThrottleTests.cs`:
   - 20 unknown secrets in a minute from one address are answered normally, and the 21st
     gets 429 with `Retry-After`;
   - a valid link from that address also gets 429 until the window ends;
@@ -422,25 +423,28 @@ expires (FR-005–FR-013, FR-018, FR-027).
 
 ### Implementation for User Story 2
 
-- [ ] T044 [US2] Create `EDITORM/Domain/PreviewSecrets.cs` (32 random bytes, base64url, SHA-256, as `IDENT/Infrastructure/Security/Tokens.cs` does) and `EDITORM/Domain/PreviewLink.cs` (aggregate root, `ISiteOwned`, invariants of data-model §1) until T039 passes.
-- [ ] T045 [US2] Map `PreviewLink` and the failure-window entity in `EDITORM/Infrastructure/EditorDbContext.cs` exactly as data-model §1–§2:
+- [X] T044 [US2] Create `EDITORM/Domain/PreviewSecrets.cs` (32 random bytes, base64url, SHA-256, as `IDENT/Infrastructure/Security/Tokens.cs` does) and `EDITORM/Domain/PreviewLink.cs` (aggregate root, `ISiteOwned`, invariants of data-model §1) until T039 passes.
+- [X] T045 [US2] Map `PreviewLink` and the failure-window entity in `EDITORM/Infrastructure/EditorDbContext.cs` exactly as data-model §1–§2:
   - the checks and the four indexes;
   - the site filter on links;
   - the installation marker reason on failure windows.
+  *Done as*: the failure windows carry no `SiteId` at all, so they need no installation marker. Migration `20261118181539_AddPreviewLinks`.
 
   Generate `EDITORM/Infrastructure/Migrations/<ts>_AddPreviewLinks.cs` and update the
   snapshot.
-- [ ] T046 [US2] Add `EDITORC/IPreviewLinks.cs` (with `PreviewLinkResolution`) and `EDITORC/PreviewCapabilities.cs`, as module-surface.md §2.3. Register `editor.preview_links.manage` (site scope, no site roles) in `EDITORM/EditorCapabilities.cs`.
-- [ ] T047 [US2] Implement `EDITORM/Infrastructure/PreviewLinkFailures.cs`: minute and hour windows keyed by SHA-256 of `ClientAddress.Group`, with `INSERT … ON CONFLICT DO UPDATE` through parameterised `Database.SqlQuery`, as `FormsDbContext.CountRequestAsync` does, and limits of 20 a minute and 200 an hour (PV-18).
-- [ ] T048 [US2] Implement `EDITORM/Infrastructure/PreviewLinkResolver.cs` (`IPreviewLinks`), on every call and never cached:
+- [X] T046 [US2] Add `EDITORC/IPreviewLinks.cs` (with `PreviewLinkResolution`) and `EDITORC/PreviewCapabilities.cs`, as module-surface.md §2.3. Register `editor.preview_links.manage` (site scope, no site roles) in `EDITORM/EditorCapabilities.cs`.
+- [X] T047 [US2] Implement `EDITORM/Infrastructure/PreviewLinkFailures.cs`: minute and hour windows keyed by SHA-256 of `ClientAddress.Group`, with `INSERT … ON CONFLICT DO UPDATE` through parameterised `Database.SqlQuery`, as `FormsDbContext.CountRequestAsync` does, and limits of 20 a minute and 200 an hour (PV-18).
+  *Done as*: parameterised `Database.ExecuteSqlAsync` for the upsert; the limits are constants on `PreviewLinkFailures`.
+- [X] T048 [US2] Implement `EDITORM/Infrastructure/PreviewLinkResolver.cs` (`IPreviewLinks`), on every call and never cached:
   1. check the throttle;
   2. look up by hash across sites (`AcrossAllSites` with reason "a link names its own site");
   3. check `IsActive` against `PreviewOptions`;
   4. count a failure only when the hash is unknown;
   5. update `last_opened_at_utc` conditionally when it is more than 60 seconds old.
+  *Done as*: also checks the creator's access through `IMemberAccess` (T069, T070 delivered here), since the resolver is written once.
 
   Register it in `EDITORM/EditorModule.cs`.
-- [ ] T049 [US2] Create `EDITORM/Features/PreviewLinks/CreatePreviewLink.cs` (`POST …/preview-links`):
+- [X] T049 [US2] Create `EDITORM/Features/PreviewLinks/CreatePreviewLink.cs` (`POST …/preview-links`):
   - **Checks**: the row check through `EditingAccess.EditCapabilityOf`. Target existence and
     template presence through `IPreviewContentReader` and `IPreviewItemReader`
     (`preview.not_found`, `preview.no_template`, `preview.version_not_retained`).
@@ -448,22 +452,24 @@ expires (FR-005–FR-013, FR-018, FR-027).
     `Database.SqlQuery` keyed by site, kind and id; count active links; refuse at 20; insert
     (PV-17).
   - **Response**: 201 with `link` and `url`, built by PV-05's rule.
-- [ ] T050 [US2] Create `EDITORM/Features/PreviewLinks/ListPreviewLinks.cs` (`GET …/preview-links?documentKind&documentId`, row check) and `EDITORM/Features/PreviewLinks/PreviewLinkResponses.cs` (`PreviewLink` and `UserSummary`, names from `IUserDirectory`).
-- [ ] T051 [US2] Create `REND/Features/Preview/PreviewMediaSet.cs`.
+  *Done as*: all five slices (create, list, site list, revoke, revoke all) are in `EDITORM/Features/PreviewLinks/PreviewLinkSlices.cs`, with the shared checks in `PreviewLinkAccess`; links raise their events from the aggregate (T071 delivered here).
+- [X] T050 [US2] Create `EDITORM/Features/PreviewLinks/ListPreviewLinks.cs` (`GET …/preview-links?documentKind&documentId`, row check) and `EDITORM/Features/PreviewLinks/PreviewLinkResponses.cs` (`PreviewLink` and `UserSummary`, names from `IUserDirectory`).
+- [X] T051 [US2] Create `REND/Features/Preview/PreviewMediaSet.cs`.
   - **Contents**: the target's referenced media ids, computed through `PageComposer`'s
     reference gathering without writing HTML.
   - **Caching**: cached for 5 minutes in `ICacheProvider` under
     `preview-media:{siteId}:{linkId}:{stamp}`, where the stamp is the draft's save time or
     the version number (PV-11).
-- [ ] T052 [US2] Create `REND/Features/Preview/LinkPreviewController.cs` with `GET /_preview/l/{secret}` and `GET /_preview/l/{secret}/media/{**file}`.
+- [X] T052 [US2] Create `REND/Features/Preview/LinkPreviewController.cs` with `GET /_preview/l/{secret}` and `GET /_preview/l/{secret}/media/{**file}`.
   - **Resolving**: `IPreviewLinks.ResolveAsync`, then set the site context, then
     `PreviewResponder` in link mode (expiry in the bar, no admin links).
   - **Media**: allowed only when in `PreviewMediaSet`.
   - **Failures**: every `NotAvailable`, unreadable target and media miss answers
     `NotAvailablePage` 404; an invalid page draft gives 503; `Throttled` gives 429.
+  *Done as*: blank or malformed secrets get the same "no longer available" page (the action takes `string?`, so the API layer never answers 400).
 
   Continue until T040–T043 pass.
-- [ ] T053 [US2] Create `ADMIN/api/previewLinks.ts` (create and list, typed from preview-api.yaml) and `ADMIN/features/preview/SharePreviewDialog.vue`, with tests in `ADMINTESTS/features/preview/SharePreviewDialog.spec.ts` written first:
+- [X] T053 [US2] Create `ADMIN/api/previewLinks.ts` (create and list, typed from preview-api.yaml) and `ADMIN/features/preview/SharePreviewDialog.vue`, with tests in `ADMINTESTS/features/preview/SharePreviewDialog.spec.ts` written first:
   - label;
   - expiry radio buttons, with 7 days as the default, and a custom picker limited to 30
     days;
@@ -475,9 +481,11 @@ expires (FR-005–FR-013, FR-018, FR-027).
   - opening the editor or item form route with `?share=1` (and `&version=n`) opens the
     dialog at once, which is how members reach it from the preview bar;
   - axe passes.
+  *Done as*: the dialog also lists, revokes and revokes all (part of T077). Error keys drop the `preview.` prefix, because vue-i18n reads dots as nesting.
 
   Add the `en.json` keys.
-- [ ] T054 [US2] Add "Share preview" beside Preview in `ADMIN/editor/EditorTopBar.vue` and `ADMIN/features/cms/items/ItemPublishBar.vue`, shown only to members holding the kind's edit capability (the server checks anyway).
+- [X] T054 [US2] Add "Share preview" beside Preview in `ADMIN/editor/EditorTopBar.vue` and `ADMIN/features/cms/items/ItemPublishBar.vue`, shown only to members holding the kind's edit capability (the server checks anyway).
+  *Done as*: Share preview sits beside Preview in the editor (drafts only; versions are shared from history, T080) and in the item publish bar; both open the dialog from `?share=1` (and `&version=n`).
 
 **Checkpoint**: quickstart §2 passes.
 

@@ -56,6 +56,7 @@ public static class RenderingModule
         services.AddScoped<PageResponder>();
         // 022: previews of drafts and versions, never cached.
         services.AddScoped<Features.Preview.PreviewResponder>();
+        services.AddScoped<Features.Preview.PreviewMediaSet>();
         services.AddScoped<RedirectResponder>();
 
         // 018 research FS-09: the page a refused form submission is shown on, never cached.
