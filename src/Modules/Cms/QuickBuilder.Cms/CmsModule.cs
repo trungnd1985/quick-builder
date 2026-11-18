@@ -130,6 +130,13 @@ public static class CmsModule
             Infrastructure.Schema.CollectionSchemaUpgrades.CreateChain(),
             sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Infrastructure.Schema.CollectionSchemaUpgrades>>()));
         services.AddScoped<QuickBuilder.Cms.Contracts.Publishing.IPublishedItemReader, PublishedItemReader>();
+
+        // 022 research PV-02: item drafts and versions for previews, through their own read-only
+        // context, so the published one stays "published data only". Never migrated.
+        services.AddDbContext<PreviewReadDbContext>(options => options
+            .UseNpgsql(ReadOnlyConnection.From(connectionString))
+            .UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking));
+        services.AddScoped<QuickBuilder.Cms.Contracts.Publishing.IPreviewItemReader, PreviewItemReader>();
         services.AddScoped<QuickBuilder.Cms.Contracts.ICollectionSchemaReader, CollectionSchemaReader>();
 
         // Research IT-11, IT-22: indexes items stored before 015, and any after a future indexer change.

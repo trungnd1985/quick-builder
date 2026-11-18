@@ -17,7 +17,9 @@ public sealed class ReservedAddressCoverageTests
     [Fact]
     public void Every_platform_prefix_is_reserved_or_unproducible()
     {
-        var uncovered = Uncovered(RoutePrefixes.ReservedPrefixes.Concat(RoutePrefixes.PublicReservedPrefixes));
+        var uncovered = Uncovered(RoutePrefixes.ReservedPrefixes
+            .Concat(RoutePrefixes.PublicReservedPrefixes)
+            .Concat(RoutePrefixes.UnresolvedPublicPrefixes));
 
         Assert.True(
             uncovered.Count == 0,

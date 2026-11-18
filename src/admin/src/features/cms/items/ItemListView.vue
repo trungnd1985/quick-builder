@@ -6,6 +6,7 @@
 import { computed, onBeforeUnmount, onMounted, provide, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
+import { itemPreviewUrl } from '../../preview/previewUrls'
 import MovedToTrashNotice from '../../trash/MovedToTrashNotice.vue'
 import { cmsApi, type Collection } from '../../../api/cms'
 import { itemsApi, type ItemList, type ListQuery } from '../../../api/items'
@@ -238,6 +239,14 @@ const itemLink = (itemId: string) => ({
                 v-if="editing.holderOf(item.id)"
                 :holder="editing.holderOf(item.id)!"
               />
+              <!-- 022 FR-001: the saved draft, rendered through the collection's template. -->
+              <a
+                class="item-preview-link"
+                :href="itemPreviewUrl(siteId, item.id)"
+                target="_blank"
+                rel="noopener"
+                :aria-label="t('preview.openNamed', { name: item.name ?? item.slug })"
+              >{{ t('preview.open') }}</a>
             </th>
             <td><code>{{ item.slug }}</code></td>
             <td>

@@ -24,6 +24,8 @@ import { LOCK_STATUSES, useEditingSession, type EditingStatus } from '../editing
 import RecoveryDialog from './RecoveryDialog.vue'
 import EditorTopBar from './EditorTopBar.vue'
 import SampleItemPicker from './SampleItemPicker.vue'
+import PreviewButton from '../features/preview/PreviewButton.vue'
+import { pagePreviewUrl } from '../features/preview/previewUrls'
 import SeoPanel from './seo/SeoPanel.vue'
 import { useSitesStore } from '../app/sitesStore'
 import { refusalKey } from './editorErrors'
@@ -241,6 +243,24 @@ async function loadHeader(): Promise<void> {
   } catch {
     title.value = ''
   }
+}
+
+/**
+ * 022 FR-003: the preview of a page, its version, or a template with its sample item, opened
+ * once what is on screen is saved. A read-only draft (another member holds the lock) is
+ * previewed as last saved.
+ */
+const previewUrl = computed(() =>
+  pagePreviewUrl(props.siteId, props.documentId, {
+    version: props.versionNumber,
+    item: store.bindings.sampleItem?.id ?? null,
+  }),
+)
+
+async function saveBeforePreview(): Promise<boolean> {
+  if (props.versionNumber !== undefined || store.readOnly) return true
+  await autosave?.saveNow()
+  return saveState.value === 'saved' && !store.dirty
 }
 
 /** Publishing from the editor saves first, then publishes exactly what was saved. */
@@ -481,6 +501,11 @@ defineExpose({ autosave: () => autosave, history })
         @refused="selectRefused"
       />
       <SampleItemPicker v-if="store.loadState === 'ready' && kind === 'page'" />
+      <PreviewButton
+        v-if="store.loadState === 'ready' && kind === 'page'"
+        :url="previewUrl"
+        :before-open="saveBeforePreview"
+      />
       <button
         v-if="store.loadState === 'ready' && kind === 'page' && versionNumber === undefined"
         type="button"

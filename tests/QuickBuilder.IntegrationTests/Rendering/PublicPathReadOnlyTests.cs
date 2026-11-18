@@ -38,6 +38,8 @@ public sealed class PublicPathReadOnlyTests(DatabaseFixture database) : IAsyncLi
     [InlineData("pages", "UPDATE pages.publications SET generation = generation + 1")]
     [InlineData("editor", "UPDATE editor.design_publications SET live_number = live_number")]
     [InlineData("media", "UPDATE media.media_files SET file_name = file_name")]
+    [InlineData("pages-preview", "UPDATE pages.page_drafts SET document = document")]
+    [InlineData("cms-preview", "UPDATE cms.items SET slug = slug")]
     public async Task The_database_refuses_a_write_through_a_reader_context(string module, string sql)
     {
         await using var scope = _scenario.App.Services.CreateAsyncScope();
@@ -47,6 +49,9 @@ public sealed class PublicPathReadOnlyTests(DatabaseFixture database) : IAsyncLi
         {
             "pages" => scope.ServiceProvider.GetRequiredService<PublishedReadDbContext>(),
             "editor" => scope.ServiceProvider.GetRequiredService<PublishedDesignReadDbContext>(),
+            // 022 research PV-02: previews read drafts through their own read-only contexts.
+            "pages-preview" => scope.ServiceProvider.GetRequiredService<PreviewReadDbContext>(),
+            "cms-preview" => scope.ServiceProvider.GetRequiredService<QuickBuilder.Cms.Infrastructure.PreviewReadDbContext>(),
             _ => scope.ServiceProvider.GetRequiredService<PublicMediaReadDbContext>(),
         };
 

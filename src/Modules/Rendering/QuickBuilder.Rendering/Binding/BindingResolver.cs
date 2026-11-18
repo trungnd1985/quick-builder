@@ -246,10 +246,9 @@ internal static partial class BindingResolver
             return Empty;
         }
 
-        var href = PageShell.TrimBase(context.Inputs.BasePath)
-            + pattern.Replace(Pages.Contracts.TemplateInfo.SlugPlaceholder, item.Slug, StringComparison.Ordinal);
-        return HtmlWriter.IsSitePath(href)
-            ? new BoundValue(BoundState.Value, Link: new ResolvedLink(href, External: false))
+        // 022 research PV-06: a preview links to the item's public address instead.
+        return PageLinks.To(context.Inputs, pattern.Replace(Pages.Contracts.TemplateInfo.SlugPlaceholder, item.Slug, StringComparison.Ordinal)) is { } link
+            ? new BoundValue(BoundState.Value, Link: link)
             : Empty;
     }
 

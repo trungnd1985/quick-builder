@@ -23,6 +23,13 @@ internal static class HeadWriter
         Meta(writer, "name", "description", head.Description);
         writer.Open("link").Attribute("rel", "canonical").Attribute("href", head.Canonical).EndTag().Markup("\n");
         Meta(writer, "name", "robots", head.Robots);
+
+        // 022 research PV-10: a preview passes its address to no one.
+        if (head.NoReferrer)
+        {
+            Meta(writer, "name", "referrer", "no-referrer");
+        }
+
         Meta(writer, "property", "og:type", head.OgType);
         Meta(writer, "property", "og:title", head.OgTitle);
         Meta(writer, "property", "og:description", head.OgDescription);

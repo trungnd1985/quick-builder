@@ -100,14 +100,14 @@ Shorthand used below:
 
 **Purpose**: the feature's documents and its one setting.
 
-- [ ] T001 Commit `specs/022-draft-preview-links/` (spec, plan, research, data model, contracts, quickstart, checklist, tasks) as the first commit on branch `022-draft-preview-links`, referencing #22.
-- [ ] T002 [P] Write `UTESTS/Editor/PreviewOptionsTests.cs`:
+- [X] T001 Commit `specs/022-draft-preview-links/` (spec, plan, research, data model, contracts, quickstart, checklist, tasks) as the first commit on branch `022-draft-preview-links`, referencing #22.
+- [X] T002 [P] Write `UTESTS/Editor/PreviewOptionsTests.cs`:
   - `LinksValidFrom` may be absent;
   - it parses ISO 8601 UTC;
   - a value more than one day in the future fails validation (PV-07).
 
   Must fail first.
-- [ ] T003 Create `EDITORM/Infrastructure/PreviewOptions.cs` (section `Preview`, `DateTimeOffset? LinksValidFrom`, with an `IValidateOptions` for the one-day rule) until T002 passes. Register it in `EDITORM/EditorModule.cs` with `BindConfiguration("Preview").ValidateOnStart()`. Add a commented `"Preview": { "LinksValidFrom": null }` entry to `HOST/appsettings.json`.
+- [X] T003 Create `EDITORM/Infrastructure/PreviewOptions.cs` (section `Preview`, `DateTimeOffset? LinksValidFrom`, with an `IValidateOptions` for the one-day rule) until T002 passes. Register it in `EDITORM/EditorModule.cs` with `BindConfiguration("Preview").ValidateOnStart()`. Add a commented `"Preview": { "LinksValidFrom": null }` entry to `HOST/appsettings.json`.
 
 ---
 
@@ -125,7 +125,7 @@ Shorthand used below:
 
 ### One render path (PV-04)
 
-- [ ] T004 Create `REND/Rendering/PageComposer.cs`.
+- [X] T004 Create `REND/Rendering/PageComposer.cs`.
   - **Contents**: move the body of `PageResponder.RenderVersionAsync` into it, from reading
     the design to building `RenderInputs`.
   - **Source interface**: add `IContentSource`, with the reads the composer makes:
@@ -140,17 +140,17 @@ Shorthand used below:
   - **Live source**: implement it in `REND/Rendering/LiveContentSource.cs` over today's
     readers (`IPublishedContentReader`, `IPublishedDesignReader`, `IPublicMediaReader`,
     `IPublishedItemReader`, `BindingFetcher`).
-- [ ] T005 Change `REND/Features/RenderPage/PageResponder.cs` to call `PageComposer` with `LiveContentSource`.
+- [X] T005 Change `REND/Features/RenderPage/PageResponder.cs` to call `PageComposer` with `LiveContentSource`.
   - Keep `Render`, `ToResponse` and `ContentSecurityPolicy` where they are.
   - Register both new types in `REND/RenderingModule.cs`.
   - No other change.
-- [ ] T006 Run the golden-output tests, `ITESTS/Rendering/PublicRenderingTests`, the binding and navigation render tests, and the render budget tests. All must pass unchanged (plan.md Risks). Record the run in the commit message.
+- [X] T006 Run the golden-output tests, `ITESTS/Rendering/PublicRenderingTests`, the binding and navigation render tests, and the render budget tests. All must pass unchanged (plan.md Risks). Record the run in the commit message.
 
 **Checkpoint A**: `dotnet test` is fully green. Nothing visible has changed.
 
 ### The `/_preview` surface (PV-05, PV-10)
 
-- [ ] T007 [P] Write `ITESTS/Preview/PreviewSurfaceTests.cs`:
+- [X] T007 [P] Write `ITESTS/Preview/PreviewSurfaceTests.cs`:
   - `/_preview/...` is answered on an admin host name, on a site host name and on an
     unknown host name, never with the "site not resolved" response;
   - the path is not in `RoutePrefixes.IsReserved`;
@@ -158,15 +158,16 @@ Shorthand used below:
     property and no occurrence of the secret (capture Serilog with the existing test sink).
 
   Must fail first.
-- [ ] T008 In `HOST/Routing/RoutePrefixes.cs`:
+- [X] T008 In `HOST/Routing/RoutePrefixes.cs`:
   - add `public const string Preview = "/_preview"`;
   - add an `UnresolvedPublicPrefixes` list holding it, documented as "answers on every host
     name; site from the link or route; never logged (022 PV-05)".
 
   In `HOST/Middleware/SiteResolutionMiddleware.cs`, skip site resolution for those prefixes,
   as for reserved ones. Do **not** add it to `IsReserved`.
-- [ ] T009 [P] Add `_preview` to `PublicPathConstraint.AdministrativeSegments` in `REND/Features/RenderPage/PublicPathConstraint.cs`, and extend `ATESTS/PublicRouteBoundaryTests.cs` (or the integration test that compares it with `RoutePrefixes`) to expect it.
-- [ ] T010 [P] Create `REND/Features/Preview/PreviewResponse.cs`.
+- [X] T009 [P] Add `_preview` to `PublicPathConstraint.AdministrativeSegments` in `REND/Features/RenderPage/PublicPathConstraint.cs`, and extend `ATESTS/PublicRouteBoundaryTests.cs` (or the integration test that compares it with `RoutePrefixes`) to expect it.
+  *Done as*: the comparison lives in `ITESTS/Rendering/PublicRenderingTests.cs` (`The_page_route_leaves_exactly_the_hosts_administrative_and_unresolved_prefixes_alone`); `ITESTS/Pages/ReservedAddressCoverageTests.cs` covers the new prefix too.
+- [X] T010 [P] Create `REND/Features/Preview/PreviewResponse.cs`.
   - **Headers**: builds a `PublicResponse` with exactly the headers of public-preview.md §5:
     - `Cache-Control: no-store, private`;
     - `X-Robots-Tag: noindex, nofollow`;
@@ -178,8 +179,9 @@ Shorthand used below:
     - never an `ETag`.
   - **Status**: takes the status as an argument.
   - **Result**: reuses `PublicResponseResult` from `REND/Features/RenderPage/RenderPageController.cs`.
-- [ ] T011 [P] Create `REND/Resources/PreviewTexts.resx` (English) with every bar and page text of contracts/admin-preview.md §6 and public-preview.md §3–§4, and a `PreviewTexts` accessor beside `REND/Features/NotFound/PublicTexts.cs`.
-- [ ] T012 Create `REND/Features/Preview/NotAvailablePage.cs`: three fixed documents built once and byte-identical for every caller.
+- [X] T011 [P] Create `REND/Resources/PreviewTexts.resx` (English) with every bar and page text of contracts/admin-preview.md §6 and public-preview.md §3–§4, and a `PreviewTexts` accessor beside `REND/Features/NotFound/PublicTexts.cs`.
+  *Done as*: `REND/Features/Preview/PreviewTexts.cs`, a C# catalogue of English constants (spec assumption: English at first), instead of a `.resx`.
+- [X] T012 Create `REND/Features/Preview/NotAvailablePage.cs`: three fixed documents built once and byte-identical for every caller.
   - **No longer available** (404).
   - **Not available right now** (503, `Retry-After: 60`).
   - **Too many attempts** (429, with `Retry-After` from the caller).
@@ -187,12 +189,13 @@ Shorthand used below:
   Each has a title, one sentence, no site data and inline styles allowed by its hash. The
   language comes from `Accept-Language` among `PublicTexts` languages, with English as the
   fallback (PV-10).
+  *Done as*: English only, like the bar (no `Accept-Language` choice), so every failure is byte-identical by construction. Unknown `/_preview` paths get the same page (`PreviewFallbackController`).
 
 ### Draft readers (PV-02)
 
-- [ ] T013 [P] Add `PAGESC/Publishing/IPreviewContentReader.cs` with `PreviewPage` and `PreviewPageVersion`, exactly as module-surface.md §2.1.
-- [ ] T014 [P] Add `CMSC/Publishing/IPreviewItemReader.cs` with `PreviewItem` and `PreviewItemVersion`, exactly as module-surface.md §2.2.
-- [ ] T015 [P] Write `ITESTS/Pages/PreviewContentReaderTests.cs`:
+- [X] T013 [P] Add `PAGESC/Publishing/IPreviewContentReader.cs` with `PreviewPage` and `PreviewPageVersion`, exactly as module-surface.md §2.1.
+- [X] T014 [P] Add `CMSC/Publishing/IPreviewItemReader.cs` with `PreviewItem` and `PreviewItemVersion`, exactly as module-surface.md §2.2.
+- [X] T015 [P] Write `ITESTS/Pages/PreviewContentReaderTests.cs`:
   - a draft is returned with title, path, saved time, author and schedule;
   - a template page has a null path and `IsTemplate`;
   - a version past retention (content removed) is null;
@@ -204,8 +207,9 @@ Shorthand used below:
     does today.
 
   Must fail first.
-- [ ] T016 Create `PAGES/Infrastructure/PreviewReadDbContext.cs`: built on `ReadOnlyConnection.From`, never migrated, `SaveChanges` throws, with the site and `Trash` named filters as in `PAGES/Infrastructure/PagesDbContext.cs`. Map the page draft, component draft, menu draft, version, publication and schedule tables in it. Leave `PublishedReadDbContext.cs` unchanged (PV-02). Implement `PAGES/Infrastructure/PreviewContentReader.cs` with `AsNoTracking` projections, one query per method, until T015 passes. Register it in `PAGES/PagesModule.cs`.
-- [ ] T017 [P] Write `ITESTS/Cms/PreviewItemReaderTests.cs`:
+- [X] T016 Create `PAGES/Infrastructure/PreviewReadDbContext.cs`: built on `ReadOnlyConnection.From`, never migrated, `SaveChanges` throws, with the site and `Trash` named filters as in `PAGES/Infrastructure/PagesDbContext.cs`. Map the page draft, component draft, menu draft, version, publication and schedule tables in it. Leave `PublishedReadDbContext.cs` unchanged (PV-02). Implement `PAGES/Infrastructure/PreviewContentReader.cs` with `AsNoTracking` projections, one query per method, until T015 passes. Register it in `PAGES/PagesModule.cs`.
+  *Done as*: the contract returns `PreviewDraftDocument` (document and name) for never-published components and menus, and gains `GetLiveTemplateVersionAsync` for item previews.
+- [X] T017 [P] Write `ITESTS/Cms/PreviewItemReaderTests.cs`:
   - a draft is returned as a `PublishedItem` with draft values and draft slug, with saved
     time, author, `NeedsAttention` and schedule;
   - a version is returned with its own values and slug;
@@ -213,17 +217,19 @@ Shorthand used below:
   - the reader cannot save.
 
   Must fail first.
-- [ ] T018 Create `CMS/Infrastructure/PreviewReadDbContext.cs` in the same way as T016 (read-only connection, never migrated, site and `Trash` filters), mapping the item draft and version data. Leave `CmsPublishedReadDbContext.cs` unchanged. Implement `CMS/Infrastructure/PreviewItemReader.cs` until T017 passes, reusing the value-reading helpers of `CMS/Infrastructure/PublishedItemReader.cs`. Register it in `CMS/CmsModule.cs`.
+- [X] T018 Create `CMS/Infrastructure/PreviewReadDbContext.cs` in the same way as T016 (read-only connection, never migrated, site and `Trash` filters), mapping the item draft and version data. Leave `CmsPublishedReadDbContext.cs` unchanged. Implement `CMS/Infrastructure/PreviewItemReader.cs` until T017 passes, reusing the value-reading helpers of `CMS/Infrastructure/PublishedItemReader.cs`. Register it in `CMS/CmsModule.cs`.
 
 ### Media for previews (PV-11)
 
-- [ ] T019 [P] Add `MEDIAC/IMediaContent.cs` with `MediaContent`, as module-surface.md §2.5.
-- [ ] T020 Move the lookup and storage-open logic of `MEDIA/Features/ServePublicFile/ServePublicFile.cs` into an internal `MEDIA/Infrastructure/PublicFileReader.cs`. Make both `ServePublicFileHandler` and a new `MEDIA/Infrastructure/MediaContent.cs` (`IMediaContent`) use it. The `/_media` behaviour is unchanged, and its existing tests must stay green. Register it in `MEDIA/MediaModule.cs`.
+- [X] T019 [P] Add `MEDIAC/IMediaContent.cs` with `MediaContent`, as module-surface.md §2.5.
+- [X] T020 Move the lookup and storage-open logic of `MEDIA/Features/ServePublicFile/ServePublicFile.cs` into an internal `MEDIA/Infrastructure/PublicFileReader.cs`. Make both `ServePublicFileHandler` and a new `MEDIA/Infrastructure/MediaContent.cs` (`IMediaContent`) use it. The `/_media` behaviour is unchanged, and its existing tests must stay green. Register it in `MEDIA/MediaModule.cs`.
+  *Done as*: `MEDIA/Infrastructure/MediaContentReader.cs` dispatches the existing `ServePublicFileQuery`, so `/_media` itself is untouched. The contract record is `MediaFileContent` (a Media type was already called `MediaContent`) and carries the file id, name and image flag.
 
 ### Preview model (PV-03, PV-06, PV-13)
 
-- [ ] T021 [P] Create `REND/Domain/PreviewContext.cs`, `REND/Domain/PreviewBarModel.cs` and `REND/Domain/PreviewAddresses.cs` as data-model.md §4.6. Add the optional `PreviewContext? Preview = null` as the last parameter of `REND/Domain/RenderInputs.cs`.
-- [ ] T022 [P] Create `REND/Domain/PreviewErrors.cs` with the codes of data-model.md §5 and their statuses. Map them in the Rendering module's problem-response helper. The Editor codes go in `EDITORM/EditorErrors.cs` and `EDITORM/EditorErrorResults.cs`.
+- [X] T021 [P] Create `REND/Domain/PreviewContext.cs`, `REND/Domain/PreviewBarModel.cs` and `REND/Domain/PreviewAddresses.cs` as data-model.md §4.6. Add the optional `PreviewContext? Preview = null` as the last parameter of `REND/Domain/RenderInputs.cs`.
+- [X] T022 [P] Create `REND/Domain/PreviewErrors.cs` with the codes of data-model.md §5 and their statuses. Map them in the Rendering module's problem-response helper. The Editor codes go in `EDITORM/EditorErrors.cs` and `EDITORM/EditorErrorResults.cs`.
+  *Done as*: member refusals are fixed HTML pages built by `PreviewResponse.Fixed` (a preview opens in a browser tab), so Rendering needed no error codes. The Editor codes come with US2 (T049).
 
 **Checkpoint B**: `/_preview` answers (404 for everything) on every host. The readers pass
 their tests. The suite is green.
@@ -242,7 +248,7 @@ access and never-published pages.
 
 ### Tests for User Story 1 ⚠️
 
-- [ ] T023 [P] [US1] Write `UTESTS/Rendering/PreviewCompositionTests.cs`, one test per row of research PV-03:
+- [X] T023 [P] [US1] Write `UTESTS/Rendering/PreviewCompositionTests.cs`, one test per row of research PV-03:
   - a live component wins over its draft;
   - a never-published component, menu and design come from their drafts and are listed as
     "from draft";
@@ -252,14 +258,14 @@ access and never-published pages.
     has none.
 
   Must fail first.
-- [ ] T024 [P] [US1] Write `UTESTS/Rendering/PreviewAddressesTests.cs`:
+- [X] T024 [P] [US1] Write `UTESTS/Rendering/PreviewAddressesTests.cs`:
   - a live page link becomes `site.BaseUrl + path`;
   - a non-live target and a site without a host name give no `href`;
   - external links are unchanged;
   - media and every `srcset` entry use the member or link media prefix;
   - the stylesheet uses `/_preview/assets/`;
   - pager links keep the preview address (PV-06).
-- [ ] T025 [P] [US1] Write `UTESTS/Rendering/PreviewBarTests.cs`, with golden markup for:
+- [X] T025 [P] [US1] Write `UTESTS/Rendering/PreviewBarTests.cs`, with golden markup for:
   - a member draft bar;
   - a link draft bar with expiry;
   - a bar with "from draft" parts and a schedule;
@@ -270,7 +276,7 @@ access and never-published pages.
   - its rules are in the page's single `<style>` element;
   - the hide control is a checkbox and label with no script;
   - names and labels are encoded (PV-13).
-- [ ] T026 [P] [US1] Write `ITESTS/Preview/PreviewParityTests.cs` (SC-001). For every golden page (all block types, components, lists, menus, forms) and for an item page:
+- [X] T026 [P] [US1] Write `ITESTS/Preview/PreviewParityTests.cs` (SC-001). For every golden page (all block types, components, lists, menus, forms) and for an item page:
   1. publish it;
   2. save an identical draft;
   3. render both;
@@ -284,7 +290,7 @@ access and never-published pages.
   Also assert that the page's own style rules (the `<style>` element without the
   `qb-preview-` rules) and the page root element are byte-identical with and without the bar
   (FR-021).
-- [ ] T027 [P] [US1] Write `ITESTS/Preview/MemberPreviewTests.cs`:
+- [X] T027 [P] [US1] Write `ITESTS/Preview/MemberPreviewTests.cs`:
   - a page draft renders with the bar, and the public address and its cache entry are
     unchanged;
   - a never-published page renders while its public address answers not found;
@@ -301,24 +307,25 @@ access and never-published pages.
 
 ### Implementation for User Story 1
 
-- [ ] T028 [US1] Implement `REND/Features/Preview/PreviewComposition.cs` (pure) until T023 passes.
-- [ ] T029 [US1] Implement `REND/Features/Preview/PreviewContentSource.cs` (`IContentSource`):
+- [X] T028 [US1] Implement `REND/Features/Preview/PreviewComposition.cs` (pure) until T023 passes.
+- [X] T029 [US1] Implement `REND/Features/Preview/PreviewContentSource.cs` (`IContentSource`):
   - **Live first**: it delegates to the live readers.
   - **Fallbacks**: `IPreviewContentReader.GetUnpublishedComponentDraftsAsync` and
     `GetUnpublishedMenuDraftsAsync` fill the gaps, and `IDesignTokenReader` supplies the
     design when the live number is 0 and a token set was saved.
   - **Bar**: it records each part shown from a draft for the bar.
-- [ ] T030 [US1] Make the renderers honour `RenderInputs.Preview.Addresses` until T024 passes:
+- [X] T030 [US1] Make the renderers honour `RenderInputs.Preview.Addresses` until T024 passes:
   - `REND/Rendering/LinkResolver.cs`;
   - `REND/Rendering/Blocks/MediaRenderers.cs`, including `srcset`;
   - `REND/Rendering/Blocks/Pager.cs`;
   - `REND/Rendering/PageShell.cs`, for the stylesheet link;
   - `REND/Rendering/Navigation/` link writing.
+  *Done as*: one helper, `REND/Rendering/PageLinks.cs`, used by `LinkResolver`, `BindingResolver`, `MenuModel` and the form help link. Media addresses are rewritten once in `PreviewContentSource` (`PreviewAddresses.Media`), so the image, rich-text and binding renderers needed no change.
 
   With `Preview` null, every output is unchanged (T006's suites stay green).
-- [ ] T031 [US1] Create `REND/Features/Preview/PreviewBar.cs`, which writes the bar from `PreviewBarModel`. The member bar's "Share preview" link is the editor or item form address with `?share=1`, plus `&version=n` for versions (T053). In `REND/Rendering/PageShell.cs`, write it as the first child of `<body>` and append its rules to the page's style element when `Preview` is set. Continue until T025 passes.
-- [ ] T032 [US1] In `REND/Seo/HeadBuilder.cs` (or `HeadWriter.cs`), when `Preview` is set, write `<meta name="robots" content="noindex, nofollow">` in place of the page's robots setting and add `<meta name="referrer" content="no-referrer">` (PV-10).
-- [ ] T033 [US1] Create `REND/Features/Preview/PreviewResponder.cs`. It:
+- [X] T031 [US1] Create `REND/Features/Preview/PreviewBar.cs`, which writes the bar from `PreviewBarModel`. The member bar's "Share preview" link is the editor or item form address with `?share=1`, plus `&version=n` for versions (T053). In `REND/Rendering/PageShell.cs`, write it as the first child of `<body>` and append its rules to the page's style element when `Preview` is set. Continue until T025 passes.
+- [X] T032 [US1] In `REND/Seo/HeadBuilder.cs` (or `HeadWriter.cs`), when `Preview` is set, write `<meta name="robots" content="noindex, nofollow">` in place of the page's robots setting and add `<meta name="referrer" content="no-referrer">` (PV-10).
+- [X] T033 [US1] Create `REND/Features/Preview/PreviewResponder.cs`. It:
   1. resolves the target (page draft, item draft, or template with sample item) through
      the PV-02 readers;
   2. runs `IPageDocumentValidator` on page drafts and maps a failure to 422 with reasons
@@ -329,27 +336,29 @@ access and never-published pages.
   6. returns through `PreviewResponse`.
 
   It never touches `ICacheProvider` and never builds a `RenderKey` or `ItemRenderKey`.
-- [ ] T034 [US1] Create `REND/Features/Preview/MemberPreviewController.cs` with `GET /_preview/sites/{siteId}/pages/{pageId}` (with `item` query) and `GET /_preview/sites/{siteId}/items/{itemId}`.
+- [X] T034 [US1] Create `REND/Features/Preview/MemberPreviewController.cs` with `GET /_preview/sites/{siteId}/pages/{pageId}` (with `item` query) and `GET /_preview/sites/{siteId}/items/{itemId}`.
   - Both are `[AllowAnonymous]` and check the signed-in member's capability in the handler
     through `IAccessEvaluator` (`pages.content.view`; `cms.collections.view` for items),
     answering the generic 404 body otherwise.
   - Both set the site context and answer 405 for other methods.
   - Unknown, trashed or other-site ids answer the generic 404 body.
-- [ ] T035 [US1] Create `REND/Features/Preview/PreviewMediaController.cs` with `GET /_preview/sites/{siteId}/media/{**file}` (member: `[AllowAnonymous]` with T034's handler check for `pages.content.view`), and `REND/Features/Preview/PreviewAssetsController.cs` with `GET /_preview/assets/{**file}`. The latter serves the same bytes as `ServeBlockStylesheetController` without needing a site. Media goes through `IMediaContent` with PV-10 headers. Continue until T027 passes.
-- [ ] T036 [P] [US1] Create `ADMIN/features/preview/previewUrls.ts`, which builds member preview addresses on the admin origin with the installation base path, for page, item, template with sample item and version.
-- [ ] T037 [US1] Create `ADMIN/features/preview/PreviewButton.vue`, with tests in `ADMINTESTS/features/preview/PreviewButton.spec.ts`:
+- [X] T035 [US1] Create `REND/Features/Preview/PreviewMediaController.cs` with `GET /_preview/sites/{siteId}/media/{**file}` (member: `[AllowAnonymous]` with T034's handler check for `pages.content.view`), and `REND/Features/Preview/PreviewAssetsController.cs` with `GET /_preview/assets/{**file}`. The latter serves the same bytes as `ServeBlockStylesheetController` without needing a site. Media goes through `IMediaContent` with PV-10 headers. Continue until T027 passes.
+  *Done as*: the member media route is on `MemberPreviewController`; `PreviewAssetsController`, `PreviewFormController` (T061) and `PreviewFallbackController` sit in the same file.
+- [X] T036 [P] [US1] Create `ADMIN/features/preview/previewUrls.ts`, which builds member preview addresses on the admin origin with the installation base path, for page, item, template with sample item and version.
+- [X] T037 [US1] Create `ADMIN/features/preview/PreviewButton.vue`, with tests in `ADMINTESTS/features/preview/PreviewButton.spec.ts`:
   1. flush the editing session's pending save;
   2. on success, call `window.open(url, '_blank', 'noopener')`;
   3. on a refused save, show the existing save error and open nothing (FR-003, PV-14).
 
   Write the tests first.
-- [ ] T038 [US1] Place Preview on the existing screens:
+- [X] T038 [US1] Place Preview on the existing screens:
   - **Editor**: add `PreviewButton` to `ADMIN/editor/EditorTopBar.vue`, passing the
     editor's sample item for templates.
   - **Item form**: add it to `ADMIN/features/cms/items/ItemPublishBar.vue`, disabled with
     "This collection has no template page" when there is none.
   - **Row menus**: add a "Preview" link (`<a target="_blank" rel="noopener">`) to
     `ADMIN/features/pages/PageTreeView.vue` and `ADMIN/features/cms/items/ItemListView.vue`.
+  *Done as*: the page tree shows Preview for the selected page beside "Edit content"; the item list has a Preview link in each row's name cell. An item preview with unsaved changes shows the last saved draft and says so (`preview.lastSaved`).
 
   Add the `en.json` keys.
 

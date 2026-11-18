@@ -124,6 +124,12 @@ internal sealed class RenderContext(RenderInputs inputs, BlockDefaults defaults)
     public bool FormScriptWritten { get; set; }
 
     /// <summary>
+    /// Whether a preview wrote a form, which posts to <c>/_preview/form</c> without a script
+    /// (022 research PV-12): its policy must let it post to the site.
+    /// </summary>
+    public bool PreviewFormWritten { get; set; }
+
+    /// <summary>
     /// The origins of external addresses forms on this page redirect to after a submission: the
     /// page's <c>form-action</c> must name them, as browsers apply it to that redirect (FS-11).
     /// </summary>

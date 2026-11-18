@@ -100,6 +100,13 @@ public static class PagesModule
         services.AddSingleton<Infrastructure.Schema.StoredDocuments>();
         services.AddScoped<IPublishedContentReader, PublishedContentReader>();
 
+        // 022 research PV-02: drafts and versions for previews, through their own read-only
+        // context, so the published one stays "published data only". Never migrated.
+        services.AddDbContext<PreviewReadDbContext>(options => options
+            .UseNpgsql(ReadOnlyConnection.From(connectionString))
+            .UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking));
+        services.AddScoped<IPreviewContentReader, PreviewContentReader>();
+
         // 017 research SE-10, SE-12: redirects on the public path, and their use, counted in
         // memory and saved in the background.
         services.AddScoped<IRedirectReader, RedirectReader>();

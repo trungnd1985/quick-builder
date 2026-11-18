@@ -50,7 +50,12 @@ public static class RenderingModule
         services.AddSingleton<PageRenderer>();
 
         services.AddSingleton<RenderMetrics>();
+        // 022 research PV-04: one place gathers a render's inputs, for pages and previews alike.
+        services.AddScoped<LiveContentSource>();
+        services.AddScoped<PageComposer>();
         services.AddScoped<PageResponder>();
+        // 022: previews of drafts and versions, never cached.
+        services.AddScoped<Features.Preview.PreviewResponder>();
         services.AddScoped<RedirectResponder>();
 
         // 018 research FS-09: the page a refused form submission is shown on, never cached.

@@ -298,10 +298,13 @@ public sealed class PublicRouteBoundaryTests(DatabaseFixture database) : IAsyncL
     }
 
     [Fact]
-    public void The_page_route_leaves_exactly_the_hosts_administrative_prefixes_alone()
+    public void The_page_route_leaves_exactly_the_hosts_administrative_and_unresolved_prefixes_alone()
     {
+        // 022 research PV-05: /_preview names its own site, and no page answers under it.
         Assert.Equal(
-            QuickBuilder.Host.Routing.RoutePrefixes.ReservedPrefixes.Select(p => p.TrimStart('/')).Order(StringComparer.Ordinal),
+            QuickBuilder.Host.Routing.RoutePrefixes.ReservedPrefixes
+                .Concat(QuickBuilder.Host.Routing.RoutePrefixes.UnresolvedPublicPrefixes)
+                .Select(p => p.TrimStart('/')).Order(StringComparer.Ordinal),
             QuickBuilder.Rendering.Features.RenderPage.PublicPathConstraint.AdministrativeSegments.Order(StringComparer.Ordinal));
     }
 }

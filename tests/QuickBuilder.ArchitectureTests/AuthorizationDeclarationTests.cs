@@ -52,6 +52,15 @@ public sealed class AuthorizationDeclarationTests
         // 018 FR-015: form submissions from site visitors, and the 405 for other methods.
         "SubmitController.SubmitAsync",
         "SubmitController.OtherMethod",
+        // 022 PV-05, PV-09: previews. Members are checked in the action, so every refusal is the
+        // same not-found page; link previews are opened by their secret, without an account.
+        "MemberPreviewController.PageAsync",
+        "MemberPreviewController.ItemAsync",
+        "MemberPreviewController.MediaAsync",
+        "MemberPreviewController.OtherMethod",
+        "PreviewAssetsController.Get",
+        "PreviewFallbackController.Get",
+        "PreviewFormController.Post",
     };
 
     private static readonly Assembly[] ControllerAssemblies =

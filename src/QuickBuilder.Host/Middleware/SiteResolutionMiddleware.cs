@@ -33,7 +33,9 @@ internal sealed class SiteResolutionMiddleware(RequestDelegate next, ILogger<Sit
         ArgumentNullException.ThrowIfNull(siteContextSetter);
         ArgumentNullException.ThrowIfNull(siteDirectory);
 
-        if (RoutePrefixes.IsReserved(context.Request.Path))
+        // 022 research PV-05: previews name their site in the link or route, and answer on
+        // every host name, the admin host names included.
+        if (RoutePrefixes.IsReserved(context.Request.Path) || RoutePrefixes.IsUnresolvedPublic(context.Request.Path))
         {
             await next(context).ConfigureAwait(false);
             return;

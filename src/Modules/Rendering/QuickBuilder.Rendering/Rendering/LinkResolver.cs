@@ -46,8 +46,8 @@ internal static class LinkResolver
                     && context.Inputs.LinkTargets.TryGetValue(pageId, out var target)
                     && target.IsLive)
                 {
-                    var href = PageShell.TrimBase(context.Inputs.BasePath) + target.Path;
-                    return HtmlWriter.IsSitePath(href) ? new ResolvedLink(href, External: false) : null;
+                    // 022 research PV-06: a preview links to the public address instead.
+                    return PageLinks.To(context.Inputs, target.Path);
                 }
 
                 return null;

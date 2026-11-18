@@ -16,7 +16,12 @@ internal sealed class PublicPathConstraint : IRouteConstraint
 {
     public const string Name = "publicPath";
 
-    internal static readonly string[] AdministrativeSegments = ["api", "admin", "health"];
+    /// <remarks>
+    /// <c>_preview</c> is not administrative, but no page may answer under it either (022
+    /// research PV-05). The slug grammar already refuses a leading <c>_</c>; this is defence in
+    /// depth.
+    /// </remarks>
+    internal static readonly string[] AdministrativeSegments = ["api", "admin", "health", "_preview"];
 
     public bool Match(HttpContext? httpContext, IRouter? route, string routeKey, RouteValueDictionary values, RouteDirection routeDirection)
     {

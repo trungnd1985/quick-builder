@@ -16,12 +16,17 @@ namespace QuickBuilder.Rendering.Domain;
 /// The external origins forms on the page redirect to after a submission, for
 /// <c>form-action</c> (018 research FS-11); empty for most pages.
 /// </param>
+/// <param name="PostsToPreview">
+/// A preview with a form, which posts to <c>/_preview/form</c> with no script (022 research
+/// PV-12); its policy allows <c>form-action 'self'</c>.
+/// </param>
 internal sealed record RenderedPage(
     byte[] Html,
     string StyleHash,
     string? ScriptHash = null,
     string? FormScriptHash = null,
-    IReadOnlyList<string>? FormActionOrigins = null)
+    IReadOnlyList<string>? FormActionOrigins = null,
+    bool PostsToPreview = false)
 {
     /// <summary>Whether the page holds a form, whose policy lets it post and fetch to the site.</summary>
     public bool HasForm => FormScriptHash is not null;

@@ -41,6 +41,13 @@ public static class EditorModule
 
         var connectionString = configuration.GetConnectionString("Default");
 
+        // 022 research PV-07: the operator's switch that ends every existing preview link.
+        services
+            .AddOptions<PreviewOptions>()
+            .Bind(configuration.GetSection(PreviewOptions.SectionName))
+            .ValidateOnStart();
+        services.AddSingleton<Microsoft.Extensions.Options.IValidateOptions<PreviewOptions>, PreviewOptionsValidator>();
+
         services.AddDbContext<EditorDbContext>((provider, options) =>
         {
             options.UseNpgsql(connectionString, npgsql =>

@@ -73,7 +73,8 @@ internal static class Pager
         }
 
         var query = string.Join('&', pairs.Select(p => Uri.EscapeDataString(p.Key) + "=" + p.Value.ToString(CultureInfo.InvariantCulture)));
-        var path = context.Inputs.BasePath.TrimEnd('/') + context.Data.ListPath;
+        // 022 research PV-06: a preview's pager stays in the preview.
+        var path = context.Inputs.BasePath.TrimEnd('/') + (context.Inputs.Preview?.Addresses.PagerPath ?? context.Data.ListPath);
         return query.Length == 0 ? path : $"{path}?{query}";
     }
 

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { pagePreviewUrl } from '../preview/previewUrls'
 import { useRoute } from 'vue-router'
 import { pagesApi, type PageDetail, type PageNode, type PageTree, type TemplateWarning } from '../../api/pages'
 import { cmsApi, type CollectionSummary } from '../../api/cms'
@@ -506,6 +507,19 @@ function whoSaved(value: PageDetail): string {
             >
               {{ t('pages.actions.editContent') }}
             </RouterLink>
+          </p>
+
+          <!-- 022 FR-001: every member of the site may preview the saved draft. -->
+          <p
+            v-if="selected"
+            class="page-preview-link"
+          >
+            <a
+              class="button-link"
+              :href="pagePreviewUrl(siteId, selected.id)"
+              target="_blank"
+              rel="noopener"
+            >{{ t('preview.open') }}</a>
           </p>
 
           <!-- 012 FR-039: publishing, for the selected page. -->
