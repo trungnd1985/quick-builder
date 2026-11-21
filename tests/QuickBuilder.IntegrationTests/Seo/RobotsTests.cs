@@ -42,7 +42,7 @@ public sealed class RobotsTests(DatabaseFixture database) : IAsyncLifetime
 
         Assert.Equal("text/plain", response.Content.Headers.ContentType?.MediaType);
         Assert.Equal(
-            $"User-agent: *\nDisallow: /api/\nDisallow: /admin/\nAllow: /\n\nSitemap: https://{PagesScenario.HostA}/sitemap.xml\n",
+            $"User-agent: *\nDisallow: /api/\nDisallow: /admin/\nDisallow: /_preview/\nAllow: /\n\nSitemap: https://{PagesScenario.HostA}/sitemap.xml\n",
             await response.Content.ReadAsStringAsync().ConfigureAwait(true));
         Assert.NotNull(response.Headers.ETag);
     }

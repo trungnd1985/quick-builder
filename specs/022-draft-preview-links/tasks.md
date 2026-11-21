@@ -506,22 +506,24 @@ expires (FR-005–FR-013, FR-018, FR-027).
 
 ### Tests for User Story 3 ⚠️
 
-- [ ] T055 [P] [US3] Write `ITESTS/Preview/PreviewResponseRulesTests.cs`. For every `/_preview` route and outcome (member page, member item, link page, link media, member media, assets, form, 404, 503 and 429), assert the headers of public-preview.md §5 and that there is no `ETag`. For documents, assert the robots and referrer meta tags, including on a page whose own search setting allows indexing.
-- [ ] T056 [P] [US3] Write `ITESTS/Preview/PreviewCacheIsolationTests.cs` (SC-004):
+- [X] T055 [P] [US3] Write `ITESTS/Preview/PreviewResponseRulesTests.cs`. For every `/_preview` route and outcome (member page, member item, link page, link media, member media, assets, form, 404, 503 and 429), assert the headers of public-preview.md §5 and that there is no `ETag`. For documents, assert the robots and referrer meta tags, including on a page whose own search setting allows indexing.
+- [X] T056 [P] [US3] Write `ITESTS/Preview/PreviewCacheIsolationTests.cs` (SC-004):
   1. warm the public cache for a published page;
   2. open member and link previews of its changed draft 10 times;
   3. assert the public address is still a cache hit (render metric unchanged) with
      published content;
   4. assert the cache provider holds no entry whose value contains the draft's marker text;
   5. assert only `preview-media:` keys were added.
+  *Done as*: in `ITESTS/Preview/PreviewResponseRulesTests.cs`. The proof is `RenderMetrics.Renders`: after the public page is warm, 20 previews leave the count unchanged and the public page still shows the published content. The cache provider cannot be enumerated, and only the in-memory provider ships (a shared one is deferred since 012), so the two-instance variant was not added.
 
   Also run it with two instances and a shared cache.
-- [ ] T057 [P] [US3] Write `ITESTS/Preview/FormSubmitIsolationTests.cs`:
+- [X] T057 [P] [US3] Write `ITESTS/Preview/FormSubmitIsolationTests.cs`:
   - a preview page's form has `action` set to `/_preview/form` and no form script;
   - posting to it answers 200 with the preview notice and PV-10 headers;
   - `forms.submissions`, the form rate windows and the Forms outbox are unchanged;
   - no email is queued.
-- [ ] T058 [P] [US3] Write `ATESTS/PreviewBoundaryTests.cs` (PV-21):
+  *Done as*: counts submissions, rate windows, notification deliveries and the Forms outbox before and after; all unchanged.
+- [X] T058 [P] [US3] Write `ATESTS/PreviewBoundaryTests.cs` (PV-21):
   - `RenderPageController`, `PageResponder`, `LiveContentSource`, `SitemapController`,
     `SitemapBuilder` and `RobotsController` do not depend on `IPreviewContentReader`,
     `IPreviewItemReader` or `IDesignTokenReader`;
@@ -530,16 +532,21 @@ expires (FR-005–FR-013, FR-018, FR-027).
   - every action in `Features.Preview` returns through `PreviewResponse`;
   - `PublishedContentReader`, `PublishedItemReader` and the sitemap readers do not depend on
     either module's `PreviewReadDbContext`.
-- [ ] T059 [P] [US3] Add to `ITESTS/Seo/` (the existing robots and sitemap tests):
+  *Done as*: `ATESTS/PreviewBoundaryTests.cs` also checks the not-found page, `PageComposer` and `RenderPageHandler`, and requires every preview controller to depend on `PreviewResponse`, `NotAvailablePage` or `PreviewMedia`.
+- [X] T059 [P] [US3] Add to `ITESTS/Seo/` (the existing robots and sitemap tests):
   - `robots.txt` contains `Disallow: /_preview/` whatever the Administrator's rules;
   - the sitemap never contains `/_preview`.
+  *Done as*: the sitemap and robots assertions are in `PreviewResponseRulesTests`; `ITESTS/Seo/RobotsTests.cs` pins the new line in the generated text.
 
 ### Implementation for User Story 3
 
-- [ ] T060 [US3] In `REND/Rendering/Forms/FormMarkup.cs`, when `Preview` is set, write `action="{base}/_preview/form"` and do not write the form script, so `context.FormScriptWritten` stays false. The CSP keeps `form-action 'self'`.
-- [ ] T061 [US3] Create `REND/Features/Preview/PreviewFormController.cs` (`POST /_preview/form`, `[AllowAnonymous]`, ignores the body and reads no form). It returns the "Forms are not sent from previews" page through `PreviewResponse`. Continue until T057 passes.
-- [ ] T062 [US3] Add `Disallow: /_preview/` to the robots output in `REND/Features/Robots/RobotsController.cs`, after the Administrator's rules and before the sitemap line, until T059 passes.
-- [ ] T063 [US3] Fix anything T055, T056 and T058 reveal. The tests must pass with no exceptions to the rules.
+- [X] T060 [US3] In `REND/Rendering/Forms/FormMarkup.cs`, when `Preview` is set, write `action="{base}/_preview/form"` and do not write the form script, so `context.FormScriptWritten` stays false. The CSP keeps `form-action 'self'`.
+  *Done as*: done with US1 (T030), with `RenderContext.PreviewFormWritten` and `RenderedPage.PostsToPreview` so the page's policy allows `form-action 'self'` without a script.
+- [X] T061 [US3] Create `REND/Features/Preview/PreviewFormController.cs` (`POST /_preview/form`, `[AllowAnonymous]`, ignores the body and reads no form). It returns the "Forms are not sent from previews" page through `PreviewResponse`. Continue until T057 passes.
+  *Done as*: done with US1, in `MemberPreviewController.cs`.
+- [X] T062 [US3] Add `Disallow: /_preview/` to the robots output in `REND/Features/Robots/RobotsController.cs`, after the Administrator's rules and before the sitemap line, until T059 passes.
+- [X] T063 [US3] Fix anything T055, T056 and T058 reveal. The tests must pass with no exceptions to the rules.
+  *Done as*: the preview stylesheet now answers `no-store, private` and `no-referrer` too, as public-preview.md §5 asks of every `/_preview` response.
 
 **Checkpoint**: quickstart §3 passes. US1–US3, the P1 scope, are complete.
 

@@ -182,7 +182,9 @@ public sealed class PreviewAssetsController : ControllerBase
             return new PublicResponseResult(NotAvailablePage.Gone);
         }
 
-        Response.Headers.CacheControl = "public, max-age=31536000, immutable";
+        // public-preview.md §5: nothing under /_preview is stored, the stylesheet included.
+        Response.Headers.CacheControl = "no-store, private";
+        Response.Headers["Referrer-Policy"] = "no-referrer";
         Response.Headers.XContentTypeOptions = "nosniff";
         Response.Headers["X-Robots-Tag"] = "noindex, nofollow";
         return File(stylesheet.Content, "text/css; charset=utf-8");
