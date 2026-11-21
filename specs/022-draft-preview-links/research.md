@@ -452,7 +452,7 @@ the link change:
   log show it.
 - **Cms** appends an `ItemHistoryEntry` of kind `previewLinkCreated` or
   `previewLinkRevoked`.
-- Both are idempotent: the entry id is derived from the event id (UUID v5), so a redelivery
+- Both are idempotent: the entry id is the event id, as `RecordDesignPublishHandler` does, so a redelivery
   inserts nothing.
 
 **What is recorded**:
@@ -462,8 +462,8 @@ the link change:
 - Entries carry ids, the version number and the expiry, never the secret or the label. The
   label is free text a member typed and could name the reviewer.
 
-**Migrations**: Pages adds the two actions to the publish log's action check constraint,
-and Cms adds the two kinds to the item history kind check.
+**Migrations**: neither log checks its action or kind, so the new values need none. Pages adds a
+nullable `expires_at_utc` to the publish log for a created link's expiry (analysis C1).
 
 ---
 

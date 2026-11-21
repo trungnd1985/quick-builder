@@ -143,3 +143,10 @@ Golden files: `docs/contracts/<contract>/remap/<case>/{input.json,map.json,expec
   the rest of the site and the archive's ids cannot collide with trashed rows.
 - **Merge import**: matches live rows only. A document whose identity is in the trash is added under a
   new id and the trashed copy stays in the trash (021 FR-030).
+
+## 6. Preview links (022)
+
+- **Export**: preview links are not part of the archive; the format is unchanged.
+- **Every import**: the design part deletes the target site's preview links in the import
+  transaction, so a link to an id that comes back through the import never works again (022
+  research PV-20).

@@ -24,9 +24,11 @@ public interface IPreviewContentReader
 {
     Task<PreviewPage?> GetPageDraftAsync(Guid siteId, Guid pageId, CancellationToken ct = default);
     Task<PreviewPageVersion?> GetPageVersionAsync(Guid siteId, Guid pageId, int number, CancellationToken ct = default);
-    Task<IReadOnlyDictionary<Guid, LiveDocument>> GetUnpublishedComponentDraftsAsync(Guid siteId, IReadOnlyCollection<Guid> componentIds, CancellationToken ct = default);
-    Task<IReadOnlyDictionary<Guid, LiveMenu>> GetUnpublishedMenuDraftsAsync(Guid siteId, IReadOnlyCollection<Guid> menuIds, CancellationToken ct = default);
+    Task<IReadOnlyDictionary<Guid, PreviewDraftDocument>> GetUnpublishedComponentDraftsAsync(Guid siteId, IReadOnlyCollection<Guid> componentIds, CancellationToken ct = default);
+    Task<IReadOnlyDictionary<Guid, PreviewDraftDocument>> GetUnpublishedMenuDraftsAsync(Guid siteId, IReadOnlyCollection<Guid> menuIds, CancellationToken ct = default);
     Task<PreviewPage?> GetTemplateDraftAsync(Guid siteId, Guid collectionId, CancellationToken ct = default);
+    /// The live version of a template page, for an item preview; null when it is not live.
+    Task<PreviewPageVersion?> GetLiveTemplateVersionAsync(Guid siteId, Guid pageId, CancellationToken ct = default);
     /// Current titles of pages, for the site-wide link list (FR-015). Absent ids are not pages of the site.
     Task<IReadOnlyDictionary<Guid, string>> GetTitlesAsync(Guid siteId, IReadOnlyCollection<Guid> pageIds, CancellationToken ct = default);
 }
@@ -50,7 +52,7 @@ public interface IPreviewItemReader
     Task<PreviewItem?> GetDraftAsync(Guid siteId, Guid itemId, CancellationToken ct = default);
     Task<PreviewItemVersion?> GetVersionAsync(Guid siteId, Guid itemId, int number, CancellationToken ct = default);
     /// Current names of items, for the site-wide link list (FR-015).
-    Task<IReadOnlyDictionary<Guid, (Guid CollectionId, string? Name)>> GetNamesAsync(Guid siteId, IReadOnlyCollection<Guid> itemIds, CancellationToken ct = default);
+    Task<IReadOnlyDictionary<Guid, PreviewItemName>> GetNamesAsync(Guid siteId, IReadOnlyCollection<Guid> itemIds, CancellationToken ct = default);
 }
 
 /// Item is built from draft values and the draft slug, in the shape bindings read (016 TB-09).
@@ -108,10 +110,13 @@ public interface IMemberAccess
 /// parsing, version and trash rules as /_media (022 PV-11). Null when not found.
 public interface IMediaContent
 {
-    Task<MediaContent?> OpenAsync(string address, CancellationToken ct = default);
+    Task<MediaFileContent?> OpenAsync(string address, CancellationToken ct = default);
 }
 
-public sealed record MediaContent(Stream Content, string ContentType, long Length, string ETag, DateTimeOffset LastModifiedUtc);
+// Named MediaFileContent because Media already has an internal MediaContent. Carries the file id
+// (for the caller's own access rule), its name and whether it is an image, for the response headers.
+public sealed record MediaFileContent(
+    Guid FileId, Stream Content, string ContentType, string FileName, string ETag, DateTimeOffset LastModifiedUtc, bool IsImage);
 ```
 
 ## 3. Integration events (Editor outbox; specs/001 contracts/integration-events.md)
@@ -119,7 +124,7 @@ public sealed record MediaContent(Stream Content, string ContentType, long Lengt
 | Event | Payload | Consumers |
 |---|---|---|
 | `Editor.PreviewLinkCreated` | `SiteId, DocumentKind, DocumentId, LinkId, VersionNumber?, ExpiresAtUtc, By` | Pages (page history), Cms (item history) |
-| `Editor.PreviewLinkRevoked` | `SiteId, DocumentKind, DocumentId, LinkId, By` | Pages, Cms |
+| `Editor.PreviewLinkRevoked` | `SiteId, DocumentKind, DocumentId, LinkId, VersionNumber?, By` | Pages, Cms |
 
 Ids, a number and a time only: no secret and no label. Handlers ignore events for other kinds
 and are idempotent (PV-16).

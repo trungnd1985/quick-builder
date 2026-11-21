@@ -195,6 +195,15 @@ how late one can be.
 Files in the trash keep using storage until they are purged. To free space sooner, an Administrator can
 delete them permanently or empty the trash.
 
+## Preview links
+
+| Key | Default | Allowed | Meaning |
+|---|---|---|---|
+| `Preview:LinksValidFrom` | none | A UTC time, at most one day ahead | Preview links created before this time stop working, as if revoked. Set it to the current time and restart to end every existing link at once (see docs/operations.md, "Ending every preview link"). Links created afterwards work. A time more than a day ahead stops startup. |
+
+Preview links last 7 days by default and 30 days at most; members choose when they create one.
+An hourly job deletes links that ended more than 30 days ago.
+
 ## Menus
 
 Feature 024 adds no configuration keys. Menu limits (50 menus per site, 300 entries, three

@@ -75,8 +75,8 @@ The approach, detailed in [research.md](./research.md):
 | Module | Migration | Change |
 |---|---|---|
 | Editor | `AddPreviewLinks` | **+** `preview_links` (4 indexes), **+** `preview_link_failures` |
-| Pages | `AddPreviewLinkLogActions` | **~** `publish_log` action check (+2 values), **+** nullable `expires_at_utc` |
-| Cms | `AddPreviewLinkHistoryKinds` | **~** `item_history` kind check (+2 values) |
+| Pages | `AddPreviewLinkLogExpiry` | **+** nullable `publish_log.expires_at_utc` |
+| Cms | none | `item_history` checks no kind, so the two new kinds need no migration |
 
 **Testing**: xUnit, `WebApplicationFactory`, Testcontainers PostgreSQL, and vitest with
 Testing Library and axe.
@@ -133,7 +133,7 @@ one new server-rendered surface, `/_preview`.
 
 **Scale/Scope**:
 - **Code**: 0 new projects and 0 new modules.
-- **Migrations**: 3. Tables added: 2. Tables changed: 2 (check constraints only).
+- **Migrations**: 2. Tables added: 2. Tables changed: 1 (one nullable column).
 - **Endpoints**:
   - admin: 5 (create, list for a target, site list, revoke, revoke all);
   - `/_preview`: 7 routes (contracts/public-preview.md).
@@ -207,8 +207,8 @@ this section).*
 - **New configuration keys**: `Preview:LinksValidFrom` (env `Preview__LinksValidFrom`), an
   optional ISO 8601 UTC timestamp with no default. Links created before it stop working.
   A value more than a day in the future stops startup.
-- **Migrations**: 3, additive and automatic: Editor `AddPreviewLinks`, Pages
-  `AddPreviewLinkLogActions` and Cms `AddPreviewLinkHistoryKinds`.
+- **Migrations**: 2, additive and automatic: Editor `AddPreviewLinks` and Pages
+  `AddPreviewLinkLogExpiry`. Cms needs none (its history checks no kind).
 - **New dependencies**: none.
 - **Reverse proxy**: `/_preview/` must be passed to the app like every other path. Proxies
   that only forward `/` on site hosts and `/admin` and `/api` on admin hosts must add it on
@@ -284,14 +284,13 @@ src/Modules/
 │   + Infrastructure/PreviewReadDbContext.cs               # drafts and versions, read-only, never migrated
 │   + Features/PublishingHistory/RecordPreviewLinkEvents.cs
 │   ~ Domain/PublishLogEntry.cs (LogActions)
-│   + Infrastructure/Migrations/<ts>_AddPreviewLinkLogActions.cs
+│   + Infrastructure/Migrations/<ts>_AddPreviewLinkLogExpiry.cs
 ├── Cms/QuickBuilder.Cms.Contracts/Publishing/ + IPreviewItemReader.cs
 ├── Cms/QuickBuilder.Cms/
 │   + Infrastructure/PreviewItemReader.cs
 │   + Infrastructure/PreviewReadDbContext.cs               # item drafts and versions, read-only, never migrated
 │   + Features/Items/History/RecordPreviewLinkEvents.cs
 │   ~ Domain/ItemHistoryEntry.cs (kinds)
-│   + Infrastructure/Migrations/<ts>_AddPreviewLinkHistoryKinds.cs
 ├── Identity/QuickBuilder.Identity.Contracts/ + IMemberAccess.cs
 ├── Identity/QuickBuilder.Identity/Infrastructure/Authorization/ + MemberAccess.cs
 ├── Media/QuickBuilder.Media.Contracts/ + IMediaContent.cs

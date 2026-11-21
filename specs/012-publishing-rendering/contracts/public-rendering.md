@@ -187,3 +187,10 @@ through its upgrade chain before handing them over
 A document stored by a newer release, or one that cannot be upgraded, arrives empty: its page
 renders no content, every other page renders. A published design that cannot be used falls
 back to the default tokens.
+
+## Previews (022)
+
+Drafts and past versions are rendered under `/_preview`, never at a page's address: see
+[022 contracts/public-preview.md](../../022-draft-preview-links/contracts/public-preview.md). Both
+paths gather a render's inputs through one `PageComposer` (022 research PV-04); the public path
+keeps reading published data only, and nothing a preview renders is stored in the render cache.

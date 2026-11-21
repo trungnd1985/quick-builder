@@ -118,11 +118,14 @@ Types and properties: [structured-data.md](./structured-data.md).
 User-agent: *
 Disallow: /api/
 Disallow: /admin/
+Disallow: /_preview/
 Allow: /
 
 Sitemap: {BaseUrl}/sitemap.xml
 ```
 
+- **Previews** (022 research PV-10): `/_preview/` is disallowed too. Preview responses also say
+  `noindex`; that header, not this line, is what keeps them out of search results.
 - **Discouraged site**: the first block becomes `User-agent: *` / `Disallow: /`.
 - **Custom rules**: the Administrator's rules follow after a blank line and a `# Custom rules`
   comment.

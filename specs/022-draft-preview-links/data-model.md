@@ -2,13 +2,13 @@
 
 **Feature**: [spec.md](./spec.md) | **Research**: [research.md](./research.md)
 
-Three migrations, all additive and automatic:
+Two migrations, both additive and automatic:
 
 | Module | Migration | Change |
 |---|---|---|
 | Editor | `AddPreviewLinks` | **+** `editor.preview_links`, **+** `editor.preview_link_failures` |
-| Pages | `AddPreviewLinkLogActions` | **~** the `publish_log` action check gains `preview_link_created` and `preview_link_revoked`; **+** nullable `expires_at_utc` |
-| Cms | `AddPreviewLinkHistoryKinds` | **~** the `item_history` kind check gains `previewLinkCreated` and `previewLinkRevoked` |
+| Pages | `AddPreviewLinkLogExpiry` | **+** nullable `publish_log.expires_at_utc` (the log has no check on `action`, so the two new actions need no migration) |
+| Cms | none | `item_history` has no check on `kind`, so `previewLinkCreated` and `previewLinkRevoked` need no migration |
 
 No document schema changes (`docs/contracts/` untouched) and no data rewrite.
 
@@ -93,7 +93,7 @@ windows of anonymous clients, not site content". Swept hourly.
 | Pages | `pages.publish_log` | action `preview_link_created`, `preview_link_revoked` | `subject_kind = page`, `subject_id`, `subject_label` and `subject_path` (as now, taken at the moment), `actor_user_id`, `version_number` (null for a draft link), `expires_at_utc` (new nullable column, set only on `preview_link_created`), `occurred_at_utc` |
 | Cms | `cms.item_history` | kind `previewLinkCreated`, `previewLinkRevoked` | `item_id`, `by`, `version_number`, `due_at_utc` (reused for the link's expiry on `previewLinkCreated`), `at_utc` |
 
-Entry ids are UUID v5 of the event id, which makes them idempotent. No secret, label or
+Entry ids are the event ids, as `RecordDesignPublishHandler` already does, which makes them idempotent. No secret, label or
 link id is shown.
 
 ## 4. Read models (contracts, no tables)
@@ -104,7 +104,8 @@ link id is shown.
 |---|---|
 | `GetPageDraftAsync(siteId, pageId)` | `PreviewPage?`: id, title, path (null for a template), `IsTemplate`, `CollectionId?`, `SchemaVersion`, `Document`, `SavedAtUtc`, `SavedBy`, `PendingScheduleAtUtc?`, `IsLive` |
 | `GetPageVersionAsync(siteId, pageId, number)` | `PreviewPageVersion?`: number, title, document, `PublishedAtUtc`, `PublishedBy`; null when the page is absent or the version content is no longer retained |
-| `GetUnpublishedComponentDraftsAsync(siteId, ids)` | drafts of the given components **that have no live version** |
+| `GetUnpublishedComponentDraftsAsync(siteId, ids)` | drafts (`PreviewDraftDocument`: document and name) of the given components **that have no live version** |
+| `GetLiveTemplateVersionAsync(siteId, pageId)` | the live version of a template page, for item previews |
 | `GetUnpublishedMenuDraftsAsync(siteId, ids)` | the same for menus, with the menu name |
 | `GetTemplateDraftAsync(siteId, collectionId)` | the collection's template page (`PreviewPage`), live or not; null when there is none |
 
@@ -129,7 +130,7 @@ cached.
 
 ### 4.5 `IMediaContent` (Media.Contracts)
 
-`OpenAsync(address)`: `MediaContent?` with the stream, content type, length, ETag and
+`OpenAsync(address)`: `MediaFileContent?` with the file id, stream, content type, file name, ETag, image flag and
 last-modified, for the site in `ISiteContext`. It uses the same rules as `/_media`
 (canonical address, current version, trash filter).
 
