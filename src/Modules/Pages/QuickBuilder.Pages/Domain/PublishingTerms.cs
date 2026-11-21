@@ -100,6 +100,12 @@ internal static class LogActions
 
     /// <summary>Deleted permanently from the trash, by an Administrator or the purge (021 TR-14).</summary>
     public const string Purged = "purged";
+
+    /// <summary>A member created a preview link to the page (022 FR-016, research PV-16).</summary>
+    public const string PreviewLinkCreated = "preview_link_created";
+
+    /// <summary>A member revoked a preview link to the page (022 FR-016).</summary>
+    public const string PreviewLinkRevoked = "preview_link_revoked";
 }
 
 /// <summary>Why a schedule was cancelled without anyone cancelling it (012 FR-019).</summary>

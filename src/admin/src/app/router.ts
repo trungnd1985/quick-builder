@@ -130,6 +130,13 @@ export function createAppRouter(history: RouterHistory = createWebHistory('/admi
         component: () => import('../features/publishing/PublishLogView.vue'),
         meta: { administrators: true },
       },
+      // 022 FR-015: every active preview link of the site. Administrators only; the server checks regardless.
+      {
+        path: '/sites/:siteId/preview-links',
+        name: 'site-preview-links',
+        component: () => import('../features/preview/PreviewLinksView.vue'),
+        meta: { administrators: true },
+      },
       { path: '/settings', name: 'settings', component: SettingsView },
       // 013 MV-21: the storage provider and its consistency check. Administrators only.
       { path: '/settings/storage', name: 'settings-storage', component: StorageSettingsView, meta: { administrators: true } },

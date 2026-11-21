@@ -46,7 +46,8 @@ public sealed record LogEntryResponse(
     UserReferenceResponse? Actor,
     UserReferenceResponse? ScheduleOwner,
     string? ReasonCode,
-    DateTimeOffset OccurredAtUtc);
+    DateTimeOffset OccurredAtUtc,
+    DateTimeOffset? ExpiresAtUtc = null);
 
 /// <summary>A page's or component's history (FR-016).</summary>
 public sealed record SubjectHistoryResponse(

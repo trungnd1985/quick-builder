@@ -44,7 +44,11 @@ function versionOf(entry: LogEntry): number | null {
 }
 
 function actionLabel(entry: LogEntry): string {
-  return t(`publishing.actions.${entry.action}`, { number: entry.restoredFromNumber ?? entry.versionNumber ?? 0 })
+  return t(`publishing.actions.${entry.action}`, {
+    number: entry.restoredFromNumber ?? entry.versionNumber ?? 0,
+    // 022 FR-016: when a preview link created here stops working.
+    expiry: entry.expiresAtUtc ? d(new Date(entry.expiresAtUtc), 'short') : '',
+  })
 }
 
 function who(entry: LogEntry): string {

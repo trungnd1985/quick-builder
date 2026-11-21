@@ -567,7 +567,7 @@ expires (FR-005–FR-013, FR-018, FR-027).
 
 ### Tests for User Story 4 ⚠️
 
-- [ ] T064 [P] [US4] Write `ITESTS/Preview/PreviewLinkRevocationTests.cs`:
+- [X] T064 [P] [US4] Write `ITESTS/Preview/PreviewLinkRevocationTests.cs`:
   - revoke one: only it stops, at the next request;
   - revoking again is 204 with no second history entry;
   - revoke all for a target returns the count;
@@ -575,13 +575,15 @@ expires (FR-005–FR-013, FR-018, FR-027).
     site's;
   - with two instances, a link opened through instance B, revoked through A and reopened
     through B within 5 seconds is gone (SC-006).
-- [ ] T065 [P] [US4] Write `ITESTS/Preview/PreviewLinkCreatorAccessTests.cs`:
+  *Done as*: in `ITESTS/Preview/PreviewLinkRevocationTests.cs`, with T065 and T067. The two-instance case starts a second `QuickBuilderApp` on the same database; nothing is cached, so the revoke is seen at the next request.
+- [X] T065 [P] [US4] Write `ITESTS/Preview/PreviewLinkCreatorAccessTests.cs`:
   - removing the creator's role on the site stops their links at once, and giving it back
     revives unexpired ones;
   - deactivating the creator stops them;
   - an Administrator creator keeps working on every site;
   - another member's links are unaffected.
-- [ ] T066 [P] [US4] Write `ITESTS/Preview/PreviewLinkHistoryTests.cs`:
+  *Done as*: in `PreviewLinkRevocationTests` (`A_link_ends_when_its_creator_loses_access_and_works_again_when_it_is_given_back`), including deactivation.
+- [X] T066 [P] [US4] Write `ITESTS/Preview/PreviewLinkHistoryTests.cs`:
   - creating and revoking a page link adds `preview_link_created` and
     `preview_link_revoked` publish log entries for that page, with actor, version number
     and time, and `expires_at_utc` on the created entry;
@@ -590,36 +592,45 @@ expires (FR-005–FR-013, FR-018, FR-027).
   - redelivering the event adds nothing;
   - no entry contains the label or the secret;
   - expiry and creator access loss add nothing.
-- [ ] T067 [P] [US4] Write `ITESTS/Preview/PreviewAuthorizationTests.cs`:
+  *Done as*: `ITESTS/Preview/PreviewLinkHistoryTests.cs` delivers the Editor outbox events by hand, twice each, as the outbox does not run in tests.
+- [X] T067 [P] [US4] Write `ITESTS/Preview/PreviewAuthorizationTests.cs`:
   - every endpoint of preview-api.yaml for each role;
   - Editor and Designer may create, list and revoke for a target, and may not use
     `/preview-links/all` or a site-wide revoke all;
   - Administrator may do all;
   - other sites' ids give 404.
+  *Done as*: in `PreviewLinkRevocationTests`. The endpoint catalogue is read from the running app, so no list needed editing; `Isolation/Probes/PreviewLinksIsolationProbe.cs` covers the one addressed endpoint, and `EndpointAuthorizationCoverageTests` reviews the new public routes.
 
   Add the endpoints to `ITESTS/Infrastructure/EndpointCatalog.cs` and the isolation probes.
-- [ ] T068 [P] [US4] Write `ITESTS/Preview/PreviewLinkSweepTests.cs`:
+- [X] T068 [P] [US4] Write `ITESTS/Preview/PreviewLinkSweepTests.cs`:
   - links expired or revoked more than 30 days ago are deleted, newer ones are kept;
   - failure windows older than one hour are deleted;
   - two sweeps running at once delete each row once.
 
 ### Implementation for User Story 4
 
-- [ ] T069 [P] [US4] Add `IDENTC/IMemberAccess.cs`, as module-surface.md §2.4. Implement it in `IDENT/Infrastructure/Authorization/MemberAccess.cs`: it reads the user's status and role grants on every call, applies the catalog's scope and roles as `AccessEvaluator` does, and returns false for a deactivated user. Register it in `IDENT/IdentityModule.cs`.
-- [ ] T070 [US4] In `EDITORM/Infrastructure/PreviewLinkResolver.cs`, after `IsActive`, call `IMemberAccess.HoldsCapabilityAsync(created_by, EditingAccess.EditCapabilityOf(kind), site)`, and return `NotAvailable` when it is false (PV-08). Continue until T065 passes.
-- [ ] T071 [US4] Add `EDITORC/Events/PreviewLinkEvents.cs` (`PreviewLinkCreated`, `PreviewLinkRevoked`, as module-surface.md §3). Raise them from `PreviewLink.Create` and from the first `Revoke`, and write them to Editor's outbox in the same transaction. Change `CreatePreviewLink.cs` accordingly.
-- [ ] T072 [US4] Create `EDITORM/Features/PreviewLinks/RevokePreviewLink.cs` (`POST …/{linkId}/revoke`), `RevokeAllPreviewLinks.cs` (`POST …/revoke-all`, with a target or site-wide) and `ListSitePreviewLinks.cs` (`GET …/preview-links/all`):
+- [X] T069 [P] [US4] Add `IDENTC/IMemberAccess.cs`, as module-surface.md §2.4. Implement it in `IDENT/Infrastructure/Authorization/MemberAccess.cs`: it reads the user's status and role grants on every call, applies the catalog's scope and roles as `AccessEvaluator` does, and returns false for a deactivated user. Register it in `IDENT/IdentityModule.cs`.
+  *Done as*: done with US2 (the resolver needed it).
+- [X] T070 [US4] In `EDITORM/Infrastructure/PreviewLinkResolver.cs`, after `IsActive`, call `IMemberAccess.HoldsCapabilityAsync(created_by, EditingAccess.EditCapabilityOf(kind), site)`, and return `NotAvailable` when it is false (PV-08). Continue until T065 passes.
+  *Done as*: done with US2.
+- [X] T071 [US4] Add `EDITORC/Events/PreviewLinkEvents.cs` (`PreviewLinkCreated`, `PreviewLinkRevoked`, as module-surface.md §3). Raise them from `PreviewLink.Create` and from the first `Revoke`, and write them to Editor's outbox in the same transaction. Change `CreatePreviewLink.cs` accordingly.
+  *Done as*: done with US2: the aggregate raises both events and `PreviewLinkAccess.Publish` writes them to the outbox.
+- [X] T072 [US4] Create `EDITORM/Features/PreviewLinks/RevokePreviewLink.cs` (`POST …/{linkId}/revoke`), `RevokeAllPreviewLinks.cs` (`POST …/revoke-all`, with a target or site-wide) and `ListSitePreviewLinks.cs` (`GET …/preview-links/all`):
   - keyset by `expires_at_utc, id`;
   - target labels from `IPreviewContentReader.GetTitlesAsync` and
     `IPreviewItemReader.GetNamesAsync`;
   - `editor.preview_links.manage` for site-wide operations.
+  *Done as*: done with US2, in `PreviewLinkSlices.cs`.
 
   Continue until T064 and T067 pass.
-- [ ] T073 [P] [US4] Add `preview_link_created` and `preview_link_revoked` to the log actions in `PAGES/Domain/PublishLogEntry.cs` and to the check constraint in `PAGES/Infrastructure/PagesDbContext.cs`, and a nullable `ExpiresAtUtc` (`expires_at_utc`) set only on `preview_link_created` entries. Generate `PAGES/Infrastructure/Migrations/<ts>_AddPreviewLinkLogActions.cs`. Create `PAGES/Features/PublishingHistory/RecordPreviewLinkEvents.cs`, which handles both events for `page`, with the entry id as UUID v5 of the event id, and the label and path taken from the page now. Make the admin history response name the new actions and carry `ExpiresAtUtc`.
-- [ ] T074 [P] [US4] Add `previewLinkCreated` and `previewLinkRevoked` to `CMS/Domain/ItemHistoryEntry.cs` (a factory that sets `DueAtUtc` to the link's expiry for created entries) and to the kind check in `CMS/Infrastructure/CmsDbContext.cs`. Generate `CMS/Infrastructure/Migrations/<ts>_AddPreviewLinkHistoryKinds.cs`. Create `CMS/Features/Items/History/RecordPreviewLinkEvents.cs`, idempotent in the same way. Continue until T066 passes.
-- [ ] T075 [US4] Create `EDITORM/Infrastructure/PreviewLinkSweepService.cs`, an hourly hosted service with batched conditional deletes, as research PV-19 describes. Register it in `EDITORM/EditorModule.cs`. Continue until T068 passes.
-- [ ] T076 [US4] In `EDITORM/Features/Transfer/DesignArchivePart.Import.cs`, delete the target site's `preview_links` in the import transaction (PV-20). Add a case to the existing transfer integration tests in `ITESTS/Transfer/`.
-- [ ] T077 [US4] Add the admin parts:
+- [X] T073 [P] [US4] Add `preview_link_created` and `preview_link_revoked` to the log actions in `PAGES/Domain/PublishLogEntry.cs` and to the check constraint in `PAGES/Infrastructure/PagesDbContext.cs`, and a nullable `ExpiresAtUtc` (`expires_at_utc`) set only on `preview_link_created` entries. Generate `PAGES/Infrastructure/Migrations/<ts>_AddPreviewLinkLogActions.cs`. Create `PAGES/Features/PublishingHistory/RecordPreviewLinkEvents.cs`, which handles both events for `page`, with the entry id as UUID v5 of the event id, and the label and path taken from the page now. Make the admin history response name the new actions and carry `ExpiresAtUtc`.
+  *Done as*: the publish log has no check on `action`, so the migration (`AddPreviewLinkLogExpiry`) only adds `expires_at_utc`. As `RecordDesignPublishHandler` does, the entry id is the event id (not a UUID v5) for idempotency. The handler is `PAGES/Features/PublishingHistory/RecordPreviewLinkEvents.cs`.
+- [X] T074 [P] [US4] Add `previewLinkCreated` and `previewLinkRevoked` to `CMS/Domain/ItemHistoryEntry.cs` (a factory that sets `DueAtUtc` to the link's expiry for created entries) and to the kind check in `CMS/Infrastructure/CmsDbContext.cs`. Generate `CMS/Infrastructure/Migrations/<ts>_AddPreviewLinkHistoryKinds.cs`. Create `CMS/Features/Items/History/RecordPreviewLinkEvents.cs`, idempotent in the same way. Continue until T066 passes.
+  *Done as*: `item_history` has no kind check either, so Cms needed no migration. The handler is `CMS/Features/Items/GetItemHistory/RecordPreviewLinkEvents.cs`; it uses the event id and tolerates an item already deleted.
+- [X] T075 [US4] Create `EDITORM/Infrastructure/PreviewLinkSweepService.cs`, an hourly hosted service with batched conditional deletes, as research PV-19 describes. Register it in `EDITORM/EditorModule.cs`. Continue until T068 passes.
+- [X] T076 [US4] In `EDITORM/Features/Transfer/DesignArchivePart.Import.cs`, delete the target site's `preview_links` in the import transaction (PV-20). Add a case to the existing transfer integration tests in `ITESTS/Transfer/`.
+  *Done as*: deletes the site's links on every import mode. The test is `ITESTS/Transfer/PreviewLinksImportTests.cs`, which also checks that the archive holds no link.
+- [X] T077 [US4] Add the admin parts:
   - **Share dialog**: Revoke (with confirmation) and Revoke all (with confirmation stating
     the count) in `ADMIN/features/preview/SharePreviewDialog.vue`.
   - **Site-wide list**: create `ADMIN/features/preview/PreviewLinksView.vue` (site-wide
@@ -631,6 +642,7 @@ expires (FR-005–FR-013, FR-018, FR-027).
   - **API**: extend `ADMIN/api/previewLinks.ts`.
   - **History texts**: the history entry texts in `ADMIN/features/publishing/HistoryView.vue`
     and `ADMIN/features/cms/items/ItemHistoryPanel.vue`.
+  *Done as*: the site list is linked from the site page beside the publish log (Administrators only) rather than a settings tab, matching how other site-wide Administrator views are reached. Revoke and revoke all in the dialog came with T053.
 
   Add the `en.json` keys.
 

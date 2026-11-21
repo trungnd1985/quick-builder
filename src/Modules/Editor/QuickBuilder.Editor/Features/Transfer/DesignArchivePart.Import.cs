@@ -85,6 +85,10 @@ internal sealed partial class DesignArchivePart
             await database.DesignTokenSets.ExecuteDeleteAsync(cancellationToken).ConfigureAwait(false);
         }
 
+        // 022 research PV-20: preview links never travel in an archive, and an import leaves the
+        // site with none, so a link to an id that comes back through the import never works again.
+        await database.PreviewLinks.ExecuteDeleteAsync(cancellationToken).ConfigureAwait(false);
+
         DesignRow? design = null;
         await foreach (var row in context.Archive.ReadLinesAsync<DesignRow>(PartName, "design", cancellationToken).ConfigureAwait(false))
         {

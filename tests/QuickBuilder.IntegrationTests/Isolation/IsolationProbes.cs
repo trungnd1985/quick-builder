@@ -22,6 +22,7 @@ public static class IsolationProbes
         new FormsIsolationProbe(),
         new EditingIsolationProbe(),
         new TrashIsolationProbe(),
+        new PreviewLinksIsolationProbe(),
     ];
 
     public static TheoryData<string> Names

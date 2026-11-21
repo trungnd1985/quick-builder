@@ -46,6 +46,8 @@ export type LogAction =
   | 'schedule_failed'
   | 'copied_to_draft'
   | 'deleted'
+  | 'preview_link_created'
+  | 'preview_link_revoked'
 
 export interface LogEntry {
   id: string
@@ -62,6 +64,8 @@ export interface LogEntry {
   scheduleOwner: UserReference | null
   reasonCode: string | null
   occurredAtUtc: string
+  /** 022 FR-016: for a preview link created, when it stops working. */
+  expiresAtUtc?: string | null
 }
 
 export interface SubjectHistory {

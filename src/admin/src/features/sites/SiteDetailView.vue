@@ -205,6 +205,13 @@ watch(siteId, load)
         >
           {{ t('publishing.log.title') }}
         </RouterLink>
+        <!-- 022 FR-015: every preview link of the site, for Administrators; the server checks regardless. -->
+        <RouterLink
+          v-if="auth.isAdministrator"
+          :to="{ name: 'site-preview-links', params: { siteId: site.id } }"
+        >
+          {{ t('preview.links.nav') }}
+        </RouterLink>
       </nav>
 
       <!-- The spec's edge case: a disabled site stays open here, clearly marked. -->

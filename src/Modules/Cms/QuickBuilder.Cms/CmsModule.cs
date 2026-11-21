@@ -204,6 +204,9 @@ public static class CmsModule
         // Research IT-11: items using a deleted or replaced media file are checked again.
         services.AddScoped<IIntegrationEventHandler<FileDeleted>, ReindexItemsForMediaHandler>();
         services.AddScoped<IIntegrationEventHandler<FileChanged>, ReindexItemsForMediaHandler>();
+        // 022 research PV-16: preview links created and revoked, in the item's history.
+        services.AddScoped<IIntegrationEventHandler<QuickBuilder.Editor.Contracts.Events.PreviewLinkCreated>, Features.Items.GetItemHistory.RecordPreviewLinkEvents>();
+        services.AddScoped<IIntegrationEventHandler<QuickBuilder.Editor.Contracts.Events.PreviewLinkRevoked>, Features.Items.GetItemHistory.RecordPreviewLinkEvents>();
         services.AddScoped<IIntegrationEventHandler<FileRestored>, ReindexItemsForMediaHandler>();
 
         // 020: this module's share of a site archive (contracts/archive-parts.md).

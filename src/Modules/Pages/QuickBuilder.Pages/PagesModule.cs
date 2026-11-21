@@ -255,6 +255,9 @@ public static class PagesModule
 
         // 012 research PR-16: design publishes, recorded in the site's publish log.
         services.AddScoped<IIntegrationEventHandler<DesignPublished>, RecordDesignPublishHandler>();
+        // 022 research PV-16: preview links created and revoked, in the page's history.
+        services.AddScoped<IIntegrationEventHandler<PreviewLinkCreated>, Features.PublishingHistory.RecordPreviewLinkEvents>();
+        services.AddScoped<IIntegrationEventHandler<PreviewLinkRevoked>, Features.PublishingHistory.RecordPreviewLinkEvents>();
 
         // 012 data-model §3.2: pages that showed a deleted media file refresh.
         services.AddScoped<IIntegrationEventHandler<FileDeleted>, RefreshPagesShowingMediaHandler>();

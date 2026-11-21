@@ -1762,7 +1762,9 @@
       "schedule_cancelled": "Schedule cancelled",
       "schedule_failed": "Schedule failed",
       "copied_to_draft": "Copied to draft",
-      "deleted": "Deleted"
+      "deleted": "Deleted",
+      "preview_link_created": "Preview link created (expires {expiry})",
+      "preview_link_revoked": "Preview link revoked"
     },
     "log": {
       "title": "Publish log",
@@ -2287,7 +2289,9 @@
           "scheduleCancelled": "Cancelled the {action} schedule",
           "scheduleFailed": "The scheduled {action} failed: {reason}",
           "copiedToDraft": "Copied version {number} into the draft",
-          "createdAsCopy": "Created as a copy of another item"
+          "createdAsCopy": "Created as a copy of another item",
+          "previewLinkCreated": "Created a preview link (expires {when})",
+          "previewLinkRevoked": "Revoked a preview link"
         },
         "actions": {
           "publish": "publish",

@@ -133,6 +133,9 @@ public static class EditorModule
         services.AddScoped<IIntegrationEventHandler<CollectionDeleted>>(sp => sp.GetRequiredService<ReleaseDeletedDocumentsHandler>());
         services.AddSingleton<EditingSessionCleanupService>();
         services.AddHostedService(sp => sp.GetRequiredService<EditingSessionCleanupService>());
+        // 022 research PV-19: links that ended long ago and old failure windows, hourly.
+        services.AddSingleton<PreviewLinkSweepService>();
+        services.AddHostedService(sp => sp.GetRequiredService<PreviewLinkSweepService>());
 
         // 020: this module's share of a site archive (contracts/archive-parts.md).
         services.AddScoped<QuickBuilder.Sites.Contracts.Transfer.ISiteArchivePart, QuickBuilder.Editor.Features.Transfer.DesignArchivePart>();

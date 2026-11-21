@@ -87,7 +87,8 @@ public sealed class EndpointAuthorizationCoverageTests(DatabaseFixture database)
             .ToList();
 
         Assert.Equal(
-            [
+            new[]
+            {
                 "DELETE /_forms/{**rest}",
                 "DELETE /{**path:publicPath}",
                 "GET /_assets/{**file}",
@@ -110,7 +111,31 @@ public sealed class EndpointAuthorizationCoverageTests(DatabaseFixture database)
                 "POST /{**path:publicPath}",
                 "PUT /_forms/{**rest}",
                 "PUT /{**path:publicPath}",
-            ],
+                // 022: previews (public-preview.md).
+                "GET /_preview/l/{secret}",
+                "HEAD /_preview/l/{secret}",
+                "GET /_preview/l/{secret}/media/{**file}",
+                "HEAD /_preview/l/{secret}/media/{**file}",
+                "GET /_preview/sites/{siteId:guid}/pages/{pageId:guid}",
+                "HEAD /_preview/sites/{siteId:guid}/pages/{pageId:guid}",
+                "GET /_preview/sites/{siteId:guid}/items/{itemId:guid}",
+                "HEAD /_preview/sites/{siteId:guid}/items/{itemId:guid}",
+                "GET /_preview/sites/{siteId:guid}/media/{**file}",
+                "HEAD /_preview/sites/{siteId:guid}/media/{**file}",
+                "GET /_preview/assets/{**file}",
+                "HEAD /_preview/assets/{**file}",
+                "GET /_preview/{**rest}",
+                "HEAD /_preview/{**rest}",
+                "DELETE /_preview/l/{secret}/{**rest}",
+                "DELETE /_preview/sites/{siteId:guid}/{**rest}",
+                "PATCH /_preview/l/{secret}/{**rest}",
+                "PATCH /_preview/sites/{siteId:guid}/{**rest}",
+                "POST /_preview/l/{secret}/{**rest}",
+                "POST /_preview/sites/{siteId:guid}/{**rest}",
+                "PUT /_preview/l/{secret}/{**rest}",
+                "PUT /_preview/sites/{siteId:guid}/{**rest}",
+                "POST /_preview/form",
+            }.Order(StringComparer.Ordinal),
             publicEndpoints);
     }
 }
