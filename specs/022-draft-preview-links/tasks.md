@@ -659,7 +659,7 @@ rollback would publish it now (FR-028, US5 scenarios).
 
 ### Tests for User Story 5 ⚠️
 
-- [ ] T078 [P] [US5] Write `ITESTS/Preview/VersionPreviewTests.cs`:
+- [X] T078 [P] [US5] Write `ITESTS/Preview/VersionPreviewTests.cs`:
   - for a page with three versions, `?version=1`, `2` and `3` show each version's content
     with today's live header and the bar "Version n, published … by …";
   - the same for an item;
@@ -669,17 +669,20 @@ rollback would publish it now (FR-028, US5 scenarios).
   - a version past the 50-version retention gives `preview.version_not_retained` for
     members and "no longer available" for its link;
   - a link created for version N cannot be used to reach the draft or version M.
+  *Done as*: the retention case uses a version number that was never kept rather than publishing 51 versions: both reach the same read (a version row that is absent, as retention deletes it, 012 PR-15). The rollback comparison is of the page root, which carries no addresses that differ between surfaces.
 
 ### Implementation for User Story 5
 
-- [ ] T079 [US5] Handle the `version` query and `PreviewLinkResolution.Found.VersionNumber`:
+- [X] T079 [US5] Handle the `version` query and `PreviewLinkResolution.Found.VersionNumber`:
   - in `REND/Features/Preview/PreviewResponder.cs`, resolve the target through
     `IPreviewContentReader.GetPageVersionAsync` and `IPreviewItemReader.GetVersionAsync`;
   - fill `PreviewBarModel` with the version number, publish time and publisher;
   - use the version's stamp in `PreviewMediaSet`.
+  *Done as*: nothing to change: `PreviewResponder` and the link path handled versions from US1 and US2; T078 confirmed it.
 
   Continue until T078 passes.
-- [ ] T080 [US5] Add Preview (a link to `?version=n`) and Share (which opens `SharePreviewDialog` with `versionNumber`) to each version with retained content in `ADMIN/features/publishing/HistoryView.vue` and `ADMIN/features/cms/items/ItemHistoryPanel.vue`. Make `SharePreviewDialog.vue` say "this version N" in its notes. Add the `en.json` keys.
+- [X] T080 [US5] Add Preview (a link to `?version=n`) and Share (which opens `SharePreviewDialog` with `versionNumber`) to each version with retained content in `ADMIN/features/publishing/HistoryView.vue` and `ADMIN/features/cms/items/ItemHistoryPanel.vue`. Make `SharePreviewDialog.vue` say "this version N" in its notes. Add the `en.json` keys.
+  *Done as*: Share sits beside Preview on each kept version; a page's Share is offered to members who may edit its draft.
 
 **Checkpoint**: quickstart §5 passes. All stories are complete.
 

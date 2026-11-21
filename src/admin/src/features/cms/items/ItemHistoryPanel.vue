@@ -9,9 +9,13 @@ import ConfirmDialog from '../../sites/ConfirmDialog.vue'
 import HolderWarning from '../../../editing/HolderWarning.vue'
 import RedirectOfferCheckbox from '../../../components/RedirectOfferCheckbox.vue'
 import { errorCodeOf, itemErrorMessage, problemMessage } from './itemErrors'
+import SharePreviewDialog from '../../preview/SharePreviewDialog.vue'
+import { itemPreviewUrl } from '../../preview/previewUrls'
 
 /** `editingBy`: someone else holds the editing lock (023 research CE-17). */
 const props = defineProps<{ siteId: string; collectionId: string; item: Item; editingBy?: string | null }>()
+// 022 FR-028: a kept version can be previewed and shared.
+const sharingVersion = ref<number | null>(null)
 const emit = defineEmits<{ changed: [item: Item]; close: [] }>()
 const { t, te, d } = useI18n()
 
@@ -150,6 +154,20 @@ async function confirm(): Promise<void> {
           · {{ kindLabel(version) }}
           · {{ t('cms.items.history.byWhen', { name: version.publishedBy.name, when: d(new Date(version.publishedAtUtc), 'short') }) }}
           <span class="item-history__actions">
+            <a
+              class="button-link"
+              :href="itemPreviewUrl(siteId, item.id, version.number)"
+              target="_blank"
+              rel="noopener"
+              :aria-label="`${t('preview.open')}: ${t('cms.items.history.version', { number: version.number })}`"
+            >{{ t('preview.open') }}</a>
+            <button
+              type="button"
+              :aria-label="`${t('preview.share.shareVersion')}: ${t('cms.items.history.version', { number: version.number })}`"
+              @click="sharingVersion = version.number"
+            >
+              {{ t('preview.share.shareVersion') }}
+            </button>
             <button
               v-if="!version.live"
               type="button"
@@ -170,6 +188,14 @@ async function confirm(): Promise<void> {
           </span>
         </li>
       </ol>
+      <SharePreviewDialog
+        v-if="sharingVersion !== null"
+        :site-id="siteId"
+        kind="item"
+        :document-id="item.id"
+        :version-number="sharingVersion"
+        @close="sharingVersion = null"
+      />
 
       <h3>{{ t('cms.items.history.events') }}</h3>
       <ol class="item-history__events">
