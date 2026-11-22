@@ -36,9 +36,9 @@ namespace QuickBuilder.Rendering.Features.RenderPage;
 internal sealed class PageResponder(
     IPublishedContentReader pages,
     IPublishedDesignReader designs,
-    IPublicMediaReader media,
     IPublishedItemReader items,
-    BindingFetcher bindings,
+    LiveContentSource live,
+    PageComposer composer,
     PageRenderer renderer,
     IPublicNotFoundPage notFound,
     IRedirectReader redirectReader,
@@ -279,83 +279,14 @@ internal sealed class PageResponder(
     private async Task<RenderedPage> RenderVersionAsync(
         SiteDto site, Guid pageId, LivePageVersion version, string basePath, PublishedItem? pageItem, ListRequest request, CancellationToken cancellationToken, FormState? formState = null)
     {
-        var design = await designs.GetLiveAsync(site.Id, cancellationToken).ConfigureAwait(false);
-
-        var references = new RenderReferences();
-        references.Collect(version.Document);
-
-        var components = await pages.GetLiveComponentsAsync(site.Id, references.Components, cancellationToken).ConfigureAwait(false);
-        foreach (var component in components.Values)
-        {
-            references.Collect(component.Document);
-        }
-
-        // 016 TB-09: what the bindings read, and what their values show and link to.
-        var fetched = await bindings.FetchAsync(
-                site.Id, [version.Document, .. components.Values.Select(c => c.Document)], pageItem, request.Params.Pages, request.Path, cancellationToken)
-            .ConfigureAwait(false);
-        if (fetched.SkippedLists is { Count: > 0 } skipped)
-        {
-            // TB-09: ids only, never values (FR-038).
-            logger.LogWarning(
-                "Page {PageId} of site {SiteId} needed more than {Budget} list queries; lists {ListIds} show their empty state.",
-                pageId,
-                site.Id,
-                ListQueries.MaxQueriesPerRender,
-                string.Join(", ", skipped.Distinct(StringComparer.Ordinal)));
-        }
-
-        references.Pages.UnionWith(fetched.Pages);
-        references.Media.UnionWith(fetched.Media);
-
-        // 017 research SE-05: the sharing image, the site's default one, fetched with the rest.
-        var seo = SeoDocument.From(version.Document);
-        references.Media.UnionWith(HeadBuilder.MediaIds(seo, site));
-
-        // 017 FR-012: a canonical override's target, to name its current address.
-        if (seo?.Canonical?.PageId is { } canonicalPage)
-        {
-            references.Pages.Add(canonicalPage);
-        }
-
-        // 024 NV-09: the menus Navigation blocks show, and what their entries point at, batched
-        // with the page's other links. Nothing is read for a page without a menu.
-        var menus = await pages.GetLiveMenusAsync(site.Id, references.Menus, cancellationToken).ConfigureAwait(false);
-        var menuItemIds = new HashSet<Guid>();
-        foreach (var menu in menus.Values)
-        {
-            NavigationReferences.Collect(menu.Document, references.Pages, menuItemIds);
-        }
-
-        var menuItems = menuItemIds.Count == 0
-            ? new Dictionary<Guid, PublishedItem>()
-            : await items.GetAsync(site.Id, menuItemIds, cancellationToken).ConfigureAwait(false);
-        var itemPatterns = menuItems.Count == 0
-            ? new Dictionary<Guid, string>()
-            : await pages.GetLiveTemplatePatternsAsync(site.Id, [.. menuItems.Values.Select(i => i.CollectionId).Distinct()], cancellationToken).ConfigureAwait(false);
-
-        var targets = await pages.GetLinkTargetsAsync(site.Id, references.Pages, cancellationToken).ConfigureAwait(false);
-        var files = await media.GetAsync(site.Id, references.Media, cancellationToken).ConfigureAwait(false);
-
-        // 017 research SE-18: the breadcrumb trail, read on a miss only; the generation moves
-        // when an ancestor's live title does (T100).
-        var ancestors = request.Path == "/" && pageItem is null
-            ? []
-            : await pages.GetLiveAncestorsAsync(site.Id, pageId, cancellationToken).ConfigureAwait(false);
-
-        // 016 FR-030: an item page is titled by the item's name, else by the template's title.
-        var title = string.IsNullOrWhiteSpace(pageItem?.Name) ? version.Title : pageItem.Name;
-
-        var inputs = new RenderInputs(
-            title, version.Document, design.Document, components, targets, files, site.DefaultLanguage, basePath, fetched.Data,
-            seo, site, request.Path, pageItem is not null, request.Params.Pages, ancestors,
-            menus, menuItems, itemPatterns, pageId, pageItem?.Id, formState);
+        // 022 research PV-04: the inputs are gathered in one place, shared with previews.
+        var inputs = await composer.ComposeAsync(live, site, pageId, version, basePath, pageItem, request, cancellationToken, formState).ConfigureAwait(false);
         metrics.Rendered();
         return Render(inputs, renderer, context => LogBroken(context, site.Id, pageId));
     }
 
     /// <summary>One warning per render that met broken bindings: node ids and reasons, never values (016 FR-038).</summary>
-    private void LogBroken(RenderContext context, Guid siteId, Guid pageId)
+    public void LogBroken(RenderContext context, Guid siteId, Guid pageId)
     {
         if (context.BrokenBindings.Count > 0)
         {
@@ -382,15 +313,23 @@ internal sealed class PageResponder(
             ? HeadBuilder.Build(new HeadInputs(
                 inputs.Title, inputs.Path, inputs.IsItemPage, inputs.Seo, site, inputs.Media, MetadataBindings(inputs, context), inputs.PageParams, inputs.LinkTargets))
             : null;
+
+        // 022 research PV-10: a preview is never indexed or followed, whatever the page says.
+        if (head is not null && inputs.Preview is not null)
+        {
+            head = head with { Robots = "noindex, nofollow", NoReferrer = true };
+        }
+
         var structuredData = head is null ? null : JsonLdWriter.Write(Graph(inputs, context, head));
         afterRender?.Invoke(context);
-        var document = PageShell.Write(inputs.Title, inputs.Language, inputs.BasePath, context.Tokens, context.NodeRules, body.ToString(), head, structuredData);
+        var document = PageShell.Write(inputs.Title, inputs.Language, inputs.BasePath, context.Tokens, context.NodeRules, body.ToString(), head, structuredData, inputs.Preview);
         return new RenderedPage(
             Encoding.UTF8.GetBytes(document.Html),
             document.StyleHash,
             context.NavigationScriptWritten ? NavScript.Hash : null,
             context.FormScriptWritten ? FormScript.Hash : null,
-            [.. context.FormActionOrigins]);
+            [.. context.FormActionOrigins],
+            context.PreviewFormWritten);
     }
 
     /// <summary>

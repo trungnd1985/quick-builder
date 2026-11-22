@@ -310,6 +310,9 @@ can see it is told honestly that they may not do this particular thing.
 | `GET\|HEAD /_assets/blocks.{hash}.css` (public surface, 012 `ServeBlockStylesheet`) | The published pages' stylesheet; justified by 012 research PR-10 |
 | `GET\|HEAD /sitemap.xml`, `/sitemap-{n}.xml`, `/robots.txt` (public surface, 017 `Sitemap`, `Robots`) | Crawlers never authenticate; justified by 017 FR-023, FR-025 |
 | `POST /_forms/{formId}`, and any other method on `/_forms/**` (public surface, 018 `Submit`) | Form submissions from site visitors, who never authenticate, and the `405` for other methods; justified by 018 FR-015 |
+| `GET\|HEAD /_preview/l/{secret}` and `/_preview/l/{secret}/media/{file}`, and any other method on them (022 `LinkPreview`) | Preview links open without an account; the secret is checked on every request (022 research PV-07, PV-08) |
+| `GET\|HEAD /_preview/sites/{siteId}/pages/{pageId}`, `/items/{itemId}` and `/media/{file}`, and any other method on them (022 `MemberPreview`) | Member previews; access is checked in the action, so every refusal is the same not-found page (022 FR-004, research PV-09) |
+| `GET\|HEAD /_preview/assets/{file}`, `POST /_preview/form`, `GET\|HEAD /_preview/{**rest}` (022 `PreviewAssets`, `PreviewForm`, `PreviewFallback`) | The previews' stylesheet, the page a previewed form posts to, and the one answer to any other preview address; none reads content (022 research PV-10, PV-12) |
 | `/admin/**` static assets and the SPA fallback | The shell has to load in order to show the sign-in screen |
 
 Adding to this list means changing this document, the list in the architecture test,
@@ -353,3 +356,14 @@ Permanent delete and emptying the trash need these. Viewing and restoring reuse 
 viewing and deleting each kind; the endpoints are in `specs/021-soft-delete-trash/contracts/trash-api.yaml`.
 Restoring a file checks in the handler what deleting one checks: one's own upload or
 `media.files.delete`, and the publishing capability when a live page shows it.
+
+## Preview links (022)
+
+| Capability | Scope | Administrator | Designer | Editor |
+|---|---|---|---|---|
+| `editor.preview_links.manage` | Site | ✓ | — | — |
+
+Listing and revoking every preview link of a site need it (022 FR-015). Creating, listing and
+revoking one page's or item's links reuse that kind's edit capability, checked in the handler
+(`pages.page_drafts.edit` or `cms.items.edit`); those endpoints declare `pages.content.view` and
+are listed in `specs/022-draft-preview-links/contracts/preview-api.yaml`.

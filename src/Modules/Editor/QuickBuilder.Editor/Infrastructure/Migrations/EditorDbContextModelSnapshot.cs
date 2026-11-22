@@ -285,6 +285,136 @@ namespace QuickBuilder.Editor.Infrastructure.Migrations
                         });
                 });
 
+            modelBuilder.Entity("QuickBuilder.Editor.Domain.PreviewLink", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at_utc");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<Guid>("DocumentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("document_id");
+
+                    b.Property<string>("DocumentKind")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("document_kind");
+
+                    b.Property<DateTimeOffset>("ExpiresAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("expires_at_utc");
+
+                    b.Property<string>("Label")
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)")
+                        .HasColumnName("label");
+
+                    b.Property<DateTimeOffset?>("LastOpenedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_opened_at_utc");
+
+                    b.Property<DateTimeOffset?>("RevokedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("revoked_at_utc");
+
+                    b.Property<Guid?>("RevokedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("revoked_by");
+
+                    b.Property<Guid?>("SampleItemId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("sample_item_id");
+
+                    b.Property<byte[]>("SecretHash")
+                        .IsRequired()
+                        .HasColumnType("bytea")
+                        .HasColumnName("secret_hash");
+
+                    b.Property<Guid>("SiteId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("site_id");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.Property<int?>("VersionNumber")
+                        .HasColumnType("integer")
+                        .HasColumnName("version_number");
+
+                    b.HasKey("Id")
+                        .HasName("pk_preview_links");
+
+                    b.HasIndex(new[] { "SiteId", "DocumentKind", "DocumentId" }, "ix_preview_links_document")
+                        .HasDatabaseName("ix_preview_links_document")
+                        .HasFilter("revoked_at_utc IS NULL");
+
+                    b.HasIndex(new[] { "SiteId", "ExpiresAtUtc" }, "ix_preview_links_site_active")
+                        .HasDatabaseName("ix_preview_links_site_active")
+                        .HasFilter("revoked_at_utc IS NULL");
+
+                    b.HasIndex(new[] { "ExpiresAtUtc" }, "ix_preview_links_sweep")
+                        .HasDatabaseName("ix_preview_links_sweep");
+
+                    b.HasIndex(new[] { "SecretHash" }, "ux_preview_links_secret_hash")
+                        .IsUnique()
+                        .HasDatabaseName("ux_preview_links_secret_hash");
+
+                    b.ToTable("preview_links", "editor", t =>
+                        {
+                            t.HasCheckConstraint("ck_preview_links_expiry", "expires_at_utc > created_at_utc AND expires_at_utc <= created_at_utc + interval '30 days'");
+
+                            t.HasCheckConstraint("ck_preview_links_kind", "document_kind IN ('page', 'item')");
+
+                            t.HasCheckConstraint("ck_preview_links_revoked", "(revoked_at_utc IS NULL) = (revoked_by IS NULL)");
+
+                            t.HasCheckConstraint("ck_preview_links_sample", "sample_item_id IS NULL OR document_kind = 'page'");
+
+                            t.HasCheckConstraint("ck_preview_links_secret_hash", "octet_length(secret_hash) = 32");
+                        });
+                });
+
+            modelBuilder.Entity("QuickBuilder.Editor.Infrastructure.PreviewLinkFailureWindow", b =>
+                {
+                    b.Property<byte[]>("ClientKey")
+                        .HasColumnType("bytea")
+                        .HasColumnName("client_key");
+
+                    b.Property<short>("WindowKind")
+                        .HasColumnType("smallint")
+                        .HasColumnName("window_kind");
+
+                    b.Property<DateTimeOffset>("WindowStartUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("window_start_utc");
+
+                    b.Property<int>("Count")
+                        .HasColumnType("integer")
+                        .HasColumnName("count");
+
+                    b.HasKey("ClientKey", "WindowKind", "WindowStartUtc")
+                        .HasName("pk_preview_link_failures");
+
+                    b.HasIndex(new[] { "WindowStartUtc" }, "ix_preview_link_failures_sweep")
+                        .HasDatabaseName("ix_preview_link_failures_sweep");
+
+                    b.ToTable("preview_link_failures", "editor", t =>
+                        {
+                            t.HasCheckConstraint("ck_preview_link_failures_kind", "window_kind IN (1, 2)");
+                        });
+                });
+
             modelBuilder.Entity("QuickBuilder.Shared.Infrastructure.Outbox.OutboxMessage", b =>
                 {
                     b.Property<Guid>("Id")

@@ -144,9 +144,10 @@ internal sealed class ItemsScenario : IDisposable
 
     public Guid Pdf { get; }
 
-    public static async Task<ItemsScenario> CreateAsync(DatabaseFixture database, string label)
+    public static async Task<ItemsScenario> CreateAsync(
+        DatabaseFixture database, string label, Action<IServiceCollection>? configureTestServices = null, IReadOnlyDictionary<string, string>? settings = null)
     {
-        var cms = await CmsScenario.CreateAsync(database, label).ConfigureAwait(false);
+        var cms = await CmsScenario.CreateAsync(database, label, configureTestServices, settings).ConfigureAwait(false);
         var people = await cms.CollectionAsync("people", new JsonObject
         {
             ["schemaVersion"] = 1,

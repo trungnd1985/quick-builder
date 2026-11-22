@@ -44,8 +44,9 @@ internal sealed class TemplatesWorld : IDisposable
 
     public Guid People => Items.People;
 
-    public static async Task<TemplatesWorld> CreateAsync(DatabaseFixture database, string label) =>
-        new(await ItemsScenario.CreateAsync(database, label).ConfigureAwait(false));
+    public static async Task<TemplatesWorld> CreateAsync(
+        DatabaseFixture database, string label, Action<IServiceCollection>? configureTestServices = null, IReadOnlyDictionary<string, string>? settings = null) =>
+        new(await ItemsScenario.CreateAsync(database, label, configureTestServices, settings).ConfigureAwait(false));
 
     /// <summary>A client for the public site of site A, as a visitor.</summary>
     public HttpClient Visitor(string host = CmsScenario.HostA) => App.CreateClientForHost(host);

@@ -12,6 +12,8 @@ import ConfirmDialog from '../sites/ConfirmDialog.vue'
 import PublicationBadge from './PublicationBadge.vue'
 import { publishingErrorMessage } from './errorMessages'
 import { currentDraftVersion, listRoute, versionRoute as routeToVersion } from './subjects'
+import SharePreviewDialog from '../preview/SharePreviewDialog.vue'
+import { pagePreviewUrl } from '../preview/previewUrls'
 
 const props = defineProps<{ siteId: string; kind: SubjectKind; subjectId: string }>()
 
@@ -32,6 +34,8 @@ const pending = ref<Pending | null>(null)
 
 const liveNumber = computed(() => history.value?.publication.liveNumber ?? null)
 const retained = computed(() => new Set(history.value?.retainedVersions ?? []))
+// 022 FR-028: a kept version of a page can be previewed and shared.
+const sharingVersion = ref<number | null>(null)
 const backTo = computed(() => listRoute(props.kind, props.siteId))
 
 /** Entries that made a version live; those versions can be viewed and restored while kept. */
@@ -44,7 +48,11 @@ function versionOf(entry: LogEntry): number | null {
 }
 
 function actionLabel(entry: LogEntry): string {
-  return t(`publishing.actions.${entry.action}`, { number: entry.restoredFromNumber ?? entry.versionNumber ?? 0 })
+  return t(`publishing.actions.${entry.action}`, {
+    number: entry.restoredFromNumber ?? entry.versionNumber ?? 0,
+    // 022 FR-016: when a preview link created here stops working.
+    expiry: entry.expiresAtUtc ? d(new Date(entry.expiresAtUtc), 'short') : '',
+  })
 }
 
 function who(entry: LogEntry): string {
@@ -235,6 +243,22 @@ async function confirm(): Promise<void> {
                 >
                   {{ t('publishing.history.view') }}
                 </RouterLink>
+                <a
+                  v-if="kind === 'page'"
+                  class="button-link"
+                  :href="pagePreviewUrl(siteId, subjectId, { version: entry.versionNumber! })"
+                  target="_blank"
+                  rel="noopener"
+                  :aria-label="`${t('preview.open')}: ${t('publishing.history.version', { number: entry.versionNumber })}`"
+                >{{ t('preview.open') }}</a>
+                <button
+                  v-if="kind === 'page' && canEditDraft"
+                  type="button"
+                  :aria-label="`${t('preview.share.shareVersion')}: ${t('publishing.history.version', { number: entry.versionNumber })}`"
+                  @click="sharingVersion = entry.versionNumber"
+                >
+                  {{ t('preview.share.shareVersion') }}
+                </button>
                 <button
                   v-if="canPublish && entry.versionNumber !== liveNumber"
                   type="button"
@@ -263,6 +287,15 @@ async function confirm(): Promise<void> {
         </tbody>
       </table>
     </template>
+
+    <SharePreviewDialog
+      v-if="sharingVersion !== null && kind === 'page'"
+      :site-id="siteId"
+      kind="page"
+      :document-id="subjectId"
+      :version-number="sharingVersion"
+      @close="sharingVersion = null"
+    />
 
     <ConfirmDialog
       v-if="pending"

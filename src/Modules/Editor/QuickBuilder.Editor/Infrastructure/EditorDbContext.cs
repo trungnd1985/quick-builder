@@ -32,6 +32,10 @@ internal sealed class EditorDbContext(DbContextOptions<EditorDbContext> options,
 
     internal DbSet<EditingTakeover> EditingTakeovers => Set<EditingTakeover>();
 
+    internal DbSet<PreviewLink> PreviewLinks => Set<PreviewLink>();
+
+    internal DbSet<PreviewLinkFailureWindow> PreviewLinkFailures => Set<PreviewLinkFailureWindow>();
+
     internal DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
 
     /// <summary>
@@ -149,6 +153,50 @@ internal sealed class EditorDbContext(DbContextOptions<EditorDbContext> options,
             entity.HasIndex(e => new { e.SiteId, e.TakenAt });
 
             entity.HasQueryFilter(QueryFilters.Site, e => e.SiteId == CurrentSiteId);
+        });
+
+        // 022 data-model §1: preview links. Only the secret's hash is stored (PV-07), and the
+        // partial indexes serve the per-request lookup, a target's active links and the site list.
+        modelBuilder.Entity<PreviewLink>(entity =>
+        {
+            entity.ToTable("preview_links", Schema, t =>
+            {
+                t.HasCheckConstraint("ck_preview_links_kind", "document_kind IN ('page', 'item')");
+                t.HasCheckConstraint(
+                    "ck_preview_links_expiry",
+                    "expires_at_utc > created_at_utc AND expires_at_utc <= created_at_utc + interval '30 days'");
+                t.HasCheckConstraint("ck_preview_links_revoked", "(revoked_at_utc IS NULL) = (revoked_by IS NULL)");
+                t.HasCheckConstraint("ck_preview_links_sample", "sample_item_id IS NULL OR document_kind = 'page'");
+                t.HasCheckConstraint("ck_preview_links_secret_hash", "octet_length(secret_hash) = 32");
+            });
+
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).ValueGeneratedNever();
+            entity.Property(e => e.DocumentKind).HasMaxLength(16);
+            entity.Property(e => e.Label).HasMaxLength(PreviewLink.MaxLabelLength);
+            entity.Property(e => e.Version).IsRowVersion().HasColumnName("xmin").HasColumnType("xid");
+            entity.Ignore(e => e.Events);
+
+            entity.HasIndex(e => e.SecretHash, "ux_preview_links_secret_hash").IsUnique();
+            entity.HasIndex(e => new { e.SiteId, e.DocumentKind, e.DocumentId }, "ix_preview_links_document")
+                .HasFilter("revoked_at_utc IS NULL");
+            entity.HasIndex(e => new { e.SiteId, e.ExpiresAtUtc }, "ix_preview_links_site_active")
+                .HasFilter("revoked_at_utc IS NULL");
+            entity.HasIndex(e => e.ExpiresAtUtc, "ix_preview_links_sweep");
+
+            entity.HasQueryFilter(QueryFilters.Site, e => e.SiteId == CurrentSiteId);
+        });
+
+        // 022 data-model §2: failed link lookups per address group, in minute and hour windows
+        // (PV-18). Installation data: a prober is not tied to a site, so it carries no SiteId.
+        modelBuilder.Entity<PreviewLinkFailureWindow>(entity =>
+        {
+            entity.ToTable("preview_link_failures", Schema, t =>
+                t.HasCheckConstraint("ck_preview_link_failures_kind", "window_kind IN (1, 2)"));
+
+            entity.HasKey(e => new { e.ClientKey, e.WindowKind, e.WindowStartUtc });
+            entity.Property(e => e.WindowKind).HasColumnType("smallint");
+            entity.HasIndex(e => e.WindowStartUtc, "ix_preview_link_failures_sweep");
         });
 
         // Every module context carries the outbox (003 analysis U1). Since 012 it carries

@@ -63,6 +63,10 @@ internal static class RobotsText
         {
             text.Append("Disallow: /api/\n");
             text.Append("Disallow: /admin/\n");
+
+            // 022 research PV-10: previews are not for crawlers. Their noindex header is the
+            // guarantee; this line only saves the crawl.
+            text.Append("Disallow: /_preview/\n");
             text.Append("Allow: /\n");
         }
 

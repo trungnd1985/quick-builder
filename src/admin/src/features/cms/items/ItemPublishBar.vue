@@ -17,6 +17,10 @@ import type { TrashReceipt } from '../../../api/trash'
 import ItemScheduleDialog from './ItemScheduleDialog.vue'
 import HolderWarning from '../../../editing/HolderWarning.vue'
 import { errorCodeOf, itemErrorMessage } from './itemErrors'
+import PreviewButton from '../../preview/PreviewButton.vue'
+import { itemPreviewUrl } from '../../preview/previewUrls'
+import SharePreviewDialog from '../../preview/SharePreviewDialog.vue'
+import { useRoute } from 'vue-router'
 
 /** `editingBy`: someone else holds the editing lock (023 research CE-17). */
 const props = defineProps<{ siteId: string; collectionId: string; item: Item; dirty: boolean; editingBy?: string | null }>()
@@ -31,6 +35,18 @@ const busy = ref(false)
 const scheduling = ref(false)
 const deleting = ref(false)
 const notice = ref<{ kind: 'info' | 'error'; text: string } | null>(null)
+
+// 022 FR-003: an item's preview shows its saved draft; with unsaved changes, the member is told.
+const noTemplate = computed(() => props.item.address?.reason === 'no_template')
+const previewUrl = computed(() => itemPreviewUrl(props.siteId, props.item.id))
+// The preview bar's "Share preview" opens this with ?share=1 (contracts/admin-preview.md §2).
+const route = useRoute()
+const shareOpen = ref(route?.query.share === '1')
+const shareVersion = computed(() => (typeof route?.query.version === 'string' && /^\d+$/.test(route.query.version) ? Number(route.query.version) : null))
+async function beforePreview(): Promise<boolean> {
+  notice.value = props.dirty ? { kind: 'info', text: t('preview.lastSaved') } : null
+  return true
+}
 
 // 017 FR-029 to FR-032: the item's live address may follow a new slug, or go to a page when it
 // stops being live. Offered only when the item has an address visitors use.
@@ -178,6 +194,28 @@ function scheduled(next: Item): void {
     >
       {{ busy && confirming === 'publish' ? t('cms.items.publish.publishing') : t('cms.items.publish.publish') }}
     </button>
+    <PreviewButton
+      :url="previewUrl"
+      :before-open="beforePreview"
+      :disabled="noTemplate"
+      :disabled-reason="noTemplate ? t('preview.noTemplate') : null"
+    />
+    <button
+      type="button"
+      :disabled="noTemplate"
+      :title="noTemplate ? t('preview.noTemplate') : undefined"
+      @click="shareOpen = true"
+    >
+      {{ t('preview.share.open') }}
+    </button>
+    <SharePreviewDialog
+      v-if="shareOpen && !noTemplate"
+      :site-id="siteId"
+      kind="item"
+      :document-id="item.id"
+      :version-number="shareVersion"
+      @close="shareOpen = false"
+    />
     <button
       v-if="item.status !== 'draft'"
       type="button"

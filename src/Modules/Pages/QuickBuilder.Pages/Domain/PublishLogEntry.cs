@@ -69,5 +69,8 @@ internal sealed class PublishLogEntry : ISiteOwned
     /// <summary>A failure code, or <see cref="LogReasons.SupersededByManualAction"/>.</summary>
     public string? ReasonCode { get; init; }
 
+    /// <summary>For <see cref="LogActions.PreviewLinkCreated"/>, when the link stops working (022 FR-016).</summary>
+    public DateTimeOffset? ExpiresAtUtc { get; init; }
+
     public DateTimeOffset OccurredAtUtc { get; private set; }
 }

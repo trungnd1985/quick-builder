@@ -51,6 +51,10 @@ internal static class EditorErrorResults
         "editing.forbidden" => StatusCodes.Status403Forbidden,
         "editor.document_upgrade_failed" => StatusCodes.Status422UnprocessableEntity,
         "editor.tokens_too_large" => StatusCodes.Status413PayloadTooLarge,
+
+        // 022 data-model §5.
+        "preview.link_limit" or "preview.no_template" => StatusCodes.Status409Conflict,
+        "preview.version_not_retained" => StatusCodes.Status404NotFound,
         _ when code.EndsWith("not_found", StringComparison.Ordinal) => StatusCodes.Status404NotFound,
         _ => StatusCodes.Status400BadRequest,
     };

@@ -46,6 +46,26 @@ public static class RoutePrefixes
 
     private static readonly string[] PublicReserved = [PublicMedia, PublicAssets, PublicForms];
 
+    /// <summary>
+    /// Where previews of drafts and versions are served (022 research PV-05). Answers on every
+    /// host name; the site comes from the preview link or the route, never from <c>Host</c>.
+    /// Never logged: its paths may carry a link secret, and they are not in
+    /// <see cref="IsReserved"/>, so the log redactor removes them.
+    /// </summary>
+    public const string Preview = "/_preview";
+
+    private static readonly string[] UnresolvedPublic = [Preview];
+
+    /// <summary>
+    /// Public prefixes that site resolution skips: they answer on every host name and name their
+    /// site themselves (022 research PV-05).
+    /// </summary>
+    public static IReadOnlyList<string> UnresolvedPublicPrefixes => UnresolvedPublic;
+
+    /// <summary>True when the path belongs to <see cref="UnresolvedPublicPrefixes"/>.</summary>
+    public static bool IsUnresolvedPublic(PathString path) =>
+        Array.Exists(UnresolvedPublic, prefix => path.StartsWithSegments(prefix, StringComparison.OrdinalIgnoreCase));
+
     /// <summary>True when the path belongs to the administrative surface.</summary>
     public static bool IsReserved(PathString path) =>
         Array.Exists(Reserved, prefix => path.StartsWithSegments(prefix, StringComparison.OrdinalIgnoreCase));

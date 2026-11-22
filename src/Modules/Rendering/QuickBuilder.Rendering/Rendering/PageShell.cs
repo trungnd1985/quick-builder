@@ -21,7 +21,7 @@ internal static class PageShell
     internal sealed record Document(string Html, string StyleHash);
 
     public static Document Write(
-        string title, string language, string basePath, TokenCss tokens, string nodeRules, string body, HeadMetadata? head = null, string? structuredData = null)
+        string title, string language, string basePath, TokenCss tokens, string nodeRules, string body, HeadMetadata? head = null, string? structuredData = null, Domain.PreviewContext? preview = null)
     {
         ArgumentNullException.ThrowIfNull(tokens);
 
@@ -32,6 +32,12 @@ internal static class PageShell
         }
 
         style.Append('}').Append(nodeRules);
+
+        // 022 research PV-13: a preview's bar keeps its rules in the one style element.
+        if (preview is not null)
+        {
+            style.Append(Features.Preview.PreviewBar.Css);
+        }
 
         var css = style.ToString();
 
@@ -68,11 +74,14 @@ internal static class PageShell
         }
 
         writer.Open("link").Attribute("rel", "stylesheet");
-        writer.SitePath("href", $"{TrimBase(basePath)}/_assets/{BlockStylesheet.Instance.FileName}");
+        // 022 research PV-06: a preview, served on any host name, loads it through its own route.
+        var assets = preview?.Addresses.AssetsPrefix ?? "/_assets";
+        writer.SitePath("href", $"{TrimBase(basePath)}{assets}/{BlockStylesheet.Instance.FileName}");
         writer.EndTag().Markup("\n")
             .Markup("<style>").Markup(css).Markup("</style>\n")
             .Markup("</head>\n")
             .Markup("<body class=\"qb-published\">\n")
+            .Markup(preview is null ? string.Empty : Features.Preview.PreviewBar.Html(preview.Bar) + "\n")
             .Markup("<div class=\"qb-canvas qb-page\">").Markup(body).Markup("</div>\n")
             .Markup("</body>\n")
             .Markup("</html>\n");

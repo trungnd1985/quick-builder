@@ -100,6 +100,13 @@ public static class PagesModule
         services.AddSingleton<Infrastructure.Schema.StoredDocuments>();
         services.AddScoped<IPublishedContentReader, PublishedContentReader>();
 
+        // 022 research PV-02: drafts and versions for previews, through their own read-only
+        // context, so the published one stays "published data only". Never migrated.
+        services.AddDbContext<PreviewReadDbContext>(options => options
+            .UseNpgsql(ReadOnlyConnection.From(connectionString))
+            .UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking));
+        services.AddScoped<IPreviewContentReader, PreviewContentReader>();
+
         // 017 research SE-10, SE-12: redirects on the public path, and their use, counted in
         // memory and saved in the background.
         services.AddScoped<IRedirectReader, RedirectReader>();
@@ -248,6 +255,9 @@ public static class PagesModule
 
         // 012 research PR-16: design publishes, recorded in the site's publish log.
         services.AddScoped<IIntegrationEventHandler<DesignPublished>, RecordDesignPublishHandler>();
+        // 022 research PV-16: preview links created and revoked, in the page's history.
+        services.AddScoped<IIntegrationEventHandler<PreviewLinkCreated>, Features.PublishingHistory.RecordPreviewLinkEvents>();
+        services.AddScoped<IIntegrationEventHandler<PreviewLinkRevoked>, Features.PublishingHistory.RecordPreviewLinkEvents>();
 
         // 012 data-model §3.2: pages that showed a deleted media file refresh.
         services.AddScoped<IIntegrationEventHandler<FileDeleted>, RefreshPagesShowingMediaHandler>();

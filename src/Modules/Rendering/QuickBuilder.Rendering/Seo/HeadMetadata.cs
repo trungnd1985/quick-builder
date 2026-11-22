@@ -25,7 +25,8 @@ internal sealed record HeadMetadata(
     string? OgDescription,
     string SiteName,
     string OgLocale,
-    SharingImage? Image);
+    SharingImage? Image,
+    bool NoReferrer = false);
 
 /// <summary>A sharing image, at an absolute address.</summary>
 internal sealed record SharingImage(string Url, int? Width, int? Height, string? Alt);

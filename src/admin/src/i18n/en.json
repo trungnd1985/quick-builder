@@ -1762,7 +1762,9 @@
       "schedule_cancelled": "Schedule cancelled",
       "schedule_failed": "Schedule failed",
       "copied_to_draft": "Copied to draft",
-      "deleted": "Deleted"
+      "deleted": "Deleted",
+      "preview_link_created": "Preview link created (expires {expiry})",
+      "preview_link_revoked": "Preview link revoked"
     },
     "log": {
       "title": "Publish log",
@@ -2287,7 +2289,9 @@
           "scheduleCancelled": "Cancelled the {action} schedule",
           "scheduleFailed": "The scheduled {action} failed: {reason}",
           "copiedToDraft": "Copied version {number} into the draft",
-          "createdAsCopy": "Created as a copy of another item"
+          "createdAsCopy": "Created as a copy of another item",
+          "previewLinkCreated": "Created a preview link (expires {when})",
+          "previewLinkRevoked": "Revoked a preview link"
         },
         "actions": {
           "publish": "publish",
@@ -3150,5 +3154,79 @@
       "empty": "This draft has no text.",
       "close": "Close"
     }
+  },
+  "preview": {
+    "open": "Preview",
+    "noTemplate": "This collection has no template page, so its items cannot be previewed.",
+    "share": {
+      "open": "Share preview",
+      "shareVersion": "Share",
+      "title": "Share a preview",
+      "intro": "Anyone with the link can view this {target} without signing in, until it expires. Links always show the latest saved draft.",
+      "introVersion": "Anyone with the link can view version {number} without signing in, until it expires.",
+      "targetPage": "page draft",
+      "targetItem": "item draft",
+      "label": "Label (optional)",
+      "labelHelp": "For example, Client review. Only members see it.",
+      "expires": "Expires",
+      "expiry": {
+        "hour": "In 1 hour",
+        "day": "In 1 day",
+        "week": "In 7 days",
+        "month": "In 30 days",
+        "custom": "Custom"
+      },
+      "customLabel": "Expiry date and time",
+      "create": "Create link",
+      "created": "This link is shown only once. Anyone with it can view this {target} until {expiry}.",
+      "linkLabel": "Preview link",
+      "copy": "Copy",
+      "copied": "Link copied",
+      "active": "Active links",
+      "none": "No active links.",
+      "columns": {
+        "label": "Label",
+        "createdBy": "Created by",
+        "created": "Created",
+        "expires": "Expires",
+        "lastOpened": "Last opened",
+        "target": "Shows"
+      },
+      "never": "never",
+      "draft": "Draft",
+      "version": "Version {number}",
+      "revoke": "Revoke",
+      "revokeConfirm": "Revoke this link? Anyone using it will see that it is no longer available.",
+      "revokeAll": "Revoke all",
+      "revokeAllConfirm": "Revoke all {count} active links?",
+      "limit": "This {kind} has 20 active links. Revoke one to create another.",
+      "close": "Close",
+      "errors": {
+        "link_limit": "This page or item already has 20 active links. Revoke one first.",
+        "invalid_expiry": "Choose an expiry after now and at most 30 days ahead.",
+        "invalid_label": "The label can be at most 80 characters.",
+        "no_template": "This collection has no template page, so its items cannot be previewed.",
+        "version_not_retained": "This version is no longer kept.",
+        "not_found": "This page or item no longer exists.",
+        "link_not_found": "This link no longer exists.",
+        "generic": "The link could not be created. Try again."
+      }
+    },
+    "links": {
+      "title": "Preview links",
+      "intro": "Every active preview link of this site. Anyone with a link can view its page or item without signing in until it expires.",
+      "nav": "Preview links",
+      "empty": "No active preview links.",
+      "revokeAllConfirm": "Revoke all {count} active preview links of this site?",
+      "loadMore": "Show more",
+      "kindPage": "Page",
+      "kindItem": "Item"
+    },
+    "history": {
+      "created": "Preview link created (expires {expiry})",
+      "revoked": "Preview link revoked"
+    },
+    "lastSaved": "The preview shows the last saved draft. Save to preview your latest changes.",
+    "openNamed": "Preview {name}"
   }
 }

@@ -33,6 +33,13 @@ internal sealed class ResolvedEntry
     /// <summary>Whether <see cref="Href"/> is an absolute external address rather than a site path or <c>#anchor</c>.</summary>
     public bool External { get; init; }
 
+    /// <summary>
+    /// Whether <see cref="Href"/> is a page or item of the site written as its absolute public
+    /// address, as previews write them (022 research PV-06). Not <see cref="External"/>: active
+    /// state still applies.
+    /// </summary>
+    public bool IsPublicAddress { get; init; }
+
     public bool NewTab { get; init; }
 
     /// <summary>The page this entry points at, for active state; null for other kinds.</summary>
@@ -148,11 +155,12 @@ internal static partial class MenuModel
 
         // FR-022, FR-023: the page's current address while it is live; its label as visitors last saw it.
         string? href = null;
-        if (page.IsLive)
+        var absolute = false;
+        if (page.IsLive && PageLinks.To(inputs, page.Path) is { } link)
         {
-            var path = PageShell.TrimBase(inputs.BasePath) + page.Path;
-            var anchor = Anchor(target);
-            href = HtmlWriter.IsSitePath(path) ? path + (anchor ?? string.Empty) : null;
+            // 022 research PV-06: in a preview, the public address on the site's host name.
+            href = link.Href + (Anchor(target) ?? string.Empty);
+            absolute = link.External;
         }
 
         return new ResolvedEntry
@@ -160,6 +168,7 @@ internal static partial class MenuModel
             Id = id,
             Label = own.Length > 0 ? own : page.LiveTitle?.Trim() ?? string.Empty,
             Href = href,
+            IsPublicAddress = absolute,
             NewTab = newTab && href is not null,
             PageId = pageId,
             Path = page.IsLive ? page.Path : null,
@@ -177,12 +186,13 @@ internal static partial class MenuModel
 
         // 016 FR-004: an item's page is its collection's live template pattern with its slug.
         string? href = null;
-        string? path = null;
-        if (inputs.ItemPatterns is { } patterns && patterns.TryGetValue(item.CollectionId, out var pattern))
+        var absolute = false;
+        if (inputs.ItemPatterns is { } patterns && patterns.TryGetValue(item.CollectionId, out var pattern)
+            && PageLinks.To(inputs, pattern.Replace(QuickBuilder.Pages.Contracts.TemplateInfo.SlugPlaceholder, item.Slug, StringComparison.Ordinal)) is { } link)
         {
-            path = pattern.Replace(QuickBuilder.Pages.Contracts.TemplateInfo.SlugPlaceholder, item.Slug, StringComparison.Ordinal);
-            var full = PageShell.TrimBase(inputs.BasePath) + path;
-            href = HtmlWriter.IsSitePath(full) ? full : null;
+            // 022 research PV-06: in a preview, the public address on the site's host name.
+            href = link.Href;
+            absolute = link.External;
         }
 
         return new ResolvedEntry
@@ -190,6 +200,7 @@ internal static partial class MenuModel
             Id = id,
             Label = own.Length > 0 ? own : item.Name?.Trim() ?? string.Empty,
             Href = href,
+            IsPublicAddress = absolute,
             NewTab = newTab && href is not null,
             ItemId = itemId,
             Children = children,

@@ -197,7 +197,9 @@ internal sealed class NavigationRenderer : IBlockRenderer
     private static bool Link(ResolvedEntry entry, NavigationTexts texts, HtmlWriter writer)
     {
         var href = entry.Href!;
-        var allowed = entry.External ? new HtmlWriter().Url("href", href) : href.StartsWith('#') || HtmlWriter.IsSitePath(href);
+        var allowed = entry.External || entry.IsPublicAddress
+            ? new HtmlWriter().Url("href", href)
+            : href.StartsWith('#') || HtmlWriter.IsSitePath(href);
         if (!allowed)
         {
             return false;

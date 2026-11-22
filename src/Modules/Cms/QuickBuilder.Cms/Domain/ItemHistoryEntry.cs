@@ -23,6 +23,12 @@ internal static class ItemHistoryKinds
 
     /// <summary>021 TR-07: taken out of the trash.</summary>
     public const string Restored = "restored";
+
+    /// <summary>022 FR-016: a member created a preview link to the item.</summary>
+    public const string PreviewLinkCreated = "previewLinkCreated";
+
+    /// <summary>022 FR-016: a member revoked a preview link to the item.</summary>
+    public const string PreviewLinkRevoked = "previewLinkRevoked";
 }
 
 /// <summary>
@@ -73,6 +79,19 @@ internal sealed partial class ItemHistoryEntry : ISiteOwned
 
     /// <summary>Who did it; for a scheduled run, who set the schedule.</summary>
     public Guid By { get; private set; }
+
+    /// <summary>
+    /// A preview link created or revoked (022 FR-016, research PV-16), with the event's id, so a
+    /// redelivery adds nothing. A created link's expiry rides in <see cref="DueAtUtc"/>.
+    /// </summary>
+    public static ItemHistoryEntry ForPreviewLink(
+        Guid eventId, Guid siteId, Guid itemId, string kind, Guid by, DateTimeOffset at, int? versionNumber, DateTimeOffset? expiresAtUtc) =>
+        new(siteId, itemId, kind, by, at)
+        {
+            Id = eventId,
+            VersionNumber = versionNumber,
+            DueAtUtc = expiresAtUtc,
+        };
 
     public static ItemHistoryEntry For(
         Item item,

@@ -71,6 +71,9 @@ internal sealed class RenderHarness
 
     public QuickBuilder.Rendering.Contracts.FormState? FormState { get; set; }
 
+    /// <summary>Set to render as a preview (022 research PV-04).</summary>
+    public PreviewContext? Preview { get; set; }
+
     public JsonElement Design { get; set; } = DefaultDesignTokens.Document;
 
     public static PageRenderer Renderer { get; } = new(BlockRendererCoverageTests.AllRenderers());
@@ -94,7 +97,7 @@ internal sealed class RenderHarness
 
     public RenderInputs Inputs(JsonElement document, string title = "Test page") =>
         new(title, document, Design, Components, Links, Media, Language, BasePath, Path: Path,
-            Menus: Menus, MenuItems: Items, ItemPatterns: Patterns, CurrentPageId: CurrentPageId, CurrentItemId: CurrentItemId, FormState: FormState);
+            Menus: Menus, MenuItems: Items, ItemPatterns: Patterns, CurrentPageId: CurrentPageId, CurrentItemId: CurrentItemId, FormState: FormState, Preview: Preview);
 
     private RenderContext Context(JsonElement document)
     {

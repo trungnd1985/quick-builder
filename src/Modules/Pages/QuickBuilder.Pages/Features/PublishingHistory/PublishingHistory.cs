@@ -48,7 +48,8 @@ internal sealed class LogEntryReads(PagesAccess access)
             e.ActorUserId is { } actor ? PagesAccess.Reference(actor, names) : null,
             e.ScheduleOwnerId is { } owner ? PagesAccess.Reference(owner, names) : null,
             e.ReasonCode,
-            e.OccurredAtUtc))];
+            e.OccurredAtUtc,
+            e.ExpiresAtUtc))];
     }
 }
 

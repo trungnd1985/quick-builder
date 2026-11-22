@@ -53,7 +53,8 @@ internal static class FormMarkup
         writer.Close("div");
 
         writer.Open("form").Attribute("class", "qb-form__form").Attribute("method", "post");
-        writer.SitePath("action", PageShell.TrimBase(inputs.BasePath) + "/_forms/" + formId);
+        // 022 research PV-12: a preview's forms post to a page that stores and sends nothing.
+        writer.SitePath("action", PageShell.TrimBase(inputs.BasePath) + (inputs.Preview is { } preview ? preview.Addresses.FormAction : "/_forms/" + formId));
         writer.Attribute("data-qb-form", formId)
             .Attribute("data-msg-error", errorMessage)
             .Attribute("data-msg-limited", texts.Limited)
@@ -93,6 +94,14 @@ internal static class FormMarkup
 
         writer.Close("form");
         writer.Close("div");
+
+        // 022 research PV-12: a preview never sends a form, so it carries no script and no
+        // redirect origins; its policy lets forms post to the preview only.
+        if (inputs.Preview is not null)
+        {
+            context.PreviewFormWritten = true;
+            return;
+        }
 
         // FS-11: browsers apply form-action to the redirect after a submission, so the page's
         // policy names the origin of an external redirect target.
@@ -461,14 +470,14 @@ internal static class FormMarkup
             return;
         }
 
-        var href = PageShell.TrimBase(context.Inputs.BasePath) + target.Path;
-        if (!HtmlWriter.IsSitePath(href))
+        // 022 research PV-06: in a preview, the public address on the site's host name.
+        if (PageLinks.To(context.Inputs, target.Path) is not { } pageLink)
         {
             return;
         }
 
         writer.Open("p").Attribute("class", "qb-form__help").EndTag();
-        writer.Open("a").Attribute("class", "qb-form__link").Attribute("href", href).EndTag()
+        writer.Open("a").Attribute("class", "qb-form__link").Attribute("href", pageLink.Href).EndTag()
             .Text(target.LiveTitle is { Length: > 0 } title ? title : target.Path)
             .Close("a");
         writer.Close("p");

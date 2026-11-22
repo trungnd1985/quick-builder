@@ -40,6 +40,10 @@ namespace QuickBuilder.Rendering.Domain;
 /// A refused submission's values and errors for one form (018 research FS-09); such a render is
 /// never cached.
 /// </param>
+/// <param name="Preview">
+/// Set only for a preview (022 research PV-04): the bar and the address rules. Null for every
+/// published page, whose output it never changes.
+/// </param>
 internal sealed record RenderInputs(
     string Title,
     JsonElement Document,
@@ -61,4 +65,5 @@ internal sealed record RenderInputs(
     IReadOnlyDictionary<Guid, string>? ItemPatterns = null,
     Guid? CurrentPageId = null,
     Guid? CurrentItemId = null,
-    QuickBuilder.Rendering.Contracts.FormState? FormState = null);
+    QuickBuilder.Rendering.Contracts.FormState? FormState = null,
+    PreviewContext? Preview = null);

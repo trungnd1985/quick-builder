@@ -1,0 +1,156 @@
+openapi: 3.1.0
+info:
+  title: QuickBuilder preview links (feature 022)
+  version: 0.22.0
+  description: |
+    Administrative endpoints of the Editor module for preview links. Every operation names its
+    site in the route and declares a capability (x-capability), checked server-side
+    (Principle IX). The kind-specific edit check (x-row-check) happens in the handler, as
+    023's editing endpoints do. Another site's ids answer 404 like unknown ids.
+    The public /_preview surface is described in public-preview.md, not here.
+    Research: PV-07, PV-08, PV-09, PV-14, PV-16, PV-17.
+
+paths:
+  /api/v1/editor/sites/{siteId}/preview-links:
+    post:
+      summary: Create a preview link for a page or item, draft or retained version (FR-005).
+      x-capability: pages.content.view
+      x-row-check: pages.page_drafts.edit for documentKind=page; cms.items.edit for documentKind=item
+      parameters: [ { $ref: '#/components/parameters/siteId' } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreatePreviewLink' }
+      responses:
+        '201':
+          description: |
+            Created. `url` holds the secret and is returned only here, never again (FR-014).
+            Built on the site's base URL when the site has a host name, else on the admin origin (PV-05).
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [link, url]
+                properties:
+                  link: { $ref: '#/components/schemas/PreviewLink' }
+                  url: { type: string, format: uri, example: 'https://example.com/_preview/l/q3J…43 chars' }
+        '400': { description: 'preview.invalid_expiry | preview.invalid_label', content: { application/problem+json: {} } }
+        '404': { description: 'preview.not_found | preview.version_not_retained' }
+        '409': { description: 'preview.link_limit (20 active links) | preview.no_template (item without a template)' }
+    get:
+      summary: The active links of one page or item, newest first (FR-014).
+      x-capability: pages.content.view
+      x-row-check: the kind's edit capability, as for create
+      parameters:
+        - $ref: '#/components/parameters/siteId'
+        - { name: documentKind, in: query, required: true, schema: { type: string, enum: [page, item] } }
+        - { name: documentId, in: query, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: At most 20 entries; no secrets.
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: '#/components/schemas/PreviewLink' } }
+        '404': { description: preview.not_found }
+
+  /api/v1/editor/sites/{siteId}/preview-links/all:
+    get:
+      summary: Every active link of the site with its target, for Administrators (FR-015). Keyset-paged by expiry.
+      x-capability: editor.preview_links.manage
+      parameters:
+        - $ref: '#/components/parameters/siteId'
+        - { name: cursor, in: query, schema: { type: string } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 50 } }
+      responses:
+        '200':
+          description: Active links; targets labelled with their current title or name.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items: { type: array, items: { $ref: '#/components/schemas/SitePreviewLink' } }
+                  nextCursor: { type: [string, 'null'] }
+
+  /api/v1/editor/sites/{siteId}/preview-links/{linkId}/revoke:
+    post:
+      summary: Revoke one link (FR-014). Idempotent; history records the first revoke only (PV-16).
+      x-capability: pages.content.view
+      x-row-check: the target kind's edit capability, or editor.preview_links.manage
+      parameters:
+        - $ref: '#/components/parameters/siteId'
+        - { name: linkId, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '204': { description: Revoked (or already revoked) }
+        '404': { description: preview.link_not_found }
+
+  /api/v1/editor/sites/{siteId}/preview-links/revoke-all:
+    post:
+      summary: |
+        Revoke all active links of one target (the kind's edit capability), or of the whole
+        site when no target is given (editor.preview_links.manage). One history event per link.
+      x-capability: pages.content.view
+      x-row-check: the target kind's edit capability; editor.preview_links.manage without a target
+      parameters: [ { $ref: '#/components/parameters/siteId' } ]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                documentKind: { type: string, enum: [page, item] }
+                documentId: { type: string, format: uuid }
+      responses:
+        '200':
+          description: How many links were revoked.
+          content: { application/json: { schema: { type: object, properties: { revoked: { type: integer } } } } }
+        '404': { description: preview.not_found }
+
+components:
+  parameters:
+    siteId: { name: siteId, in: path, required: true, schema: { type: string, format: uuid } }
+
+  schemas:
+    CreatePreviewLink:
+      type: object
+      required: [documentKind, documentId, expiresAtUtc]
+      properties:
+        documentKind: { type: string, enum: [page, item] }
+        documentId: { type: string, format: uuid }
+        versionNumber: { type: [integer, 'null'], description: 'null: the draft (follows the latest save, clarification 1)' }
+        sampleItemId: { type: [string, 'null'], format: uuid, description: Template pages only (PV-03) }
+        label: { type: [string, 'null'], maxLength: 80 }
+        expiresAtUtc:
+          type: string
+          format: date-time
+          description: After now and at most 30 days ahead. The admin offers 1 hour, 1 day, 7 days (default) and 30 days, or a custom time (FR-005).
+
+    PreviewLink:
+      type: object
+      required: [id, documentKind, documentId, createdBy, createdAtUtc, expiresAtUtc]
+      properties:
+        id: { type: string, format: uuid }
+        documentKind: { type: string, enum: [page, item] }
+        documentId: { type: string, format: uuid }
+        versionNumber: { type: [integer, 'null'] }
+        sampleItemId: { type: [string, 'null'], format: uuid }
+        label: { type: [string, 'null'] }
+        createdBy: { $ref: '#/components/schemas/UserSummary' }
+        createdAtUtc: { type: string, format: date-time }
+        expiresAtUtc: { type: string, format: date-time }
+        lastOpenedAtUtc: { type: [string, 'null'], format: date-time }
+
+    SitePreviewLink:
+      allOf:
+        - $ref: '#/components/schemas/PreviewLink'
+        - type: object
+          properties:
+            targetLabel: { type: string, description: 'Current page title or item name; content, render encoded' }
+            collectionId: { type: [string, 'null'], format: uuid }
+
+    UserSummary:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        displayName: { type: string }

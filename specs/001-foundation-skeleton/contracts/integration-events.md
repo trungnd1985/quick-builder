@@ -206,6 +206,19 @@ ids, the mode, the outcome and a failure code only, never a name, title or conte
   and the usual consumers rebuild their state (cache, sitemap, form registry, list refresh,
   media variants). See [020 contracts/archive-parts.md](../../020-site-export-import/contracts/archive-parts.md) §2.
 
+### 022 Draft preview links (#22)
+
+Two new events, published by Editor in the same transaction as the link. They carry ids, a
+version number and a time only, never the link's secret or its label (Principle IX). See
+[022 research PV-16](../../022-draft-preview-links/research.md).
+
+| Event | Publisher | Payload beyond the envelope | Meaning |
+|---|---|---|---|
+| `Editor.PreviewLinkCreated` | Editor | `siteId`, `documentKind` (`page`, `item`), `documentId`, `linkId`, `versionNumber` (null for the draft), `expiresAtUtc`, `by` | A member created a preview link. Pages (for pages) and Cms (for items) record it in the history. |
+| `Editor.PreviewLinkRevoked` | Editor | `siteId`, `documentKind`, `documentId`, `linkId`, `versionNumber`, `by` | A member revoked a preview link. Only an explicit revoke: expiry and lost access raise nothing. |
+
+Both handlers use the event's id as the history entry's id, so a redelivery records nothing.
+
 ---
 
 ## Delivery guarantees

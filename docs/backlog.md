@@ -21,7 +21,6 @@ Deferred by 012 (publishing and rendering; see specs/012-publishing-rendering/pl
 - SEO metadata, sitemaps, canonical addresses and redirects (#17); it can subscribe to
   the `Pages.PagePublished` and `Pages.PageUnpublished` events
 - CDN integrations and external cache purge
-- Draft previews through the renderer (#22)
 - A custom not-found page and other error pages
 - Bulk publish, approval workflows, side-by-side version comparison, scheduling the design
 - Cache warming, pre-compressed responses, a shared cache provider, click-to-load embeds
@@ -76,7 +75,6 @@ Deferred by 035 (richer rich text; see specs/035-rich-text-formats/plan.md):
   the page's item
 - One `LATERAL` query per nested list, per-field expression indexes for sort keys, and
   narrowing list refreshes by filter
-- Draft preview links for item pages (#22)
 
 ## Deferred by 020 (site export and import)
 
@@ -120,7 +118,6 @@ Deferred by 035 (richer rich text; see specs/035-rich-text-formats/plan.md):
     log are **not** exported (018 FR-040)
   - **Site deletion**: sites cannot be deleted yet. The feature that adds it must delete the
     site's rows in every `forms` table
-  - **#22 draft previews**: a preview must render forms disabled, as the editor canvas does
 
 ## Deferred by 017 (SEO, sitemap and redirects)
 
@@ -135,8 +132,6 @@ Deferred by 035 (richer rich text; see specs/035-rich-text-formats/plan.md):
 - Obligations on later features:
   - **#20 site export and import** (done in 020): carry `pages.redirects` (remapping `page` and `item`
     target ids) and the site search settings; page metadata already travels in documents
-  - **#22 draft previews**: preview responses must write `noindex` and never appear in the
-    sitemap
 
 ## Deferred by 023 (concurrent editing safety)
 
@@ -173,3 +168,12 @@ Deferred by 035 (richer rich text; see specs/035-rich-text-formats/plan.md):
 - Trash preview in the editor's read-only canvas, and a thumbnail for trashed images (021 FR-011; today it shows the draft's text and the file name)
 - "Undo" link in the toast after a delete
 - Per-site or per-kind retention periods
+
+## Deferred by 022 (draft preview links)
+
+- Translations of the preview bar and the "no longer available" page beyond English (PV-13)
+- Showing times in the viewer's own time zone in the preview bar (needs a script)
+- A per-site switch to turn preview link sharing off
+- Comments, approvals and sign-off on previews
+- Previewing a shared component, a menu or the design on its own, or a whole draft site
+- Password-protected or person-bound preview links

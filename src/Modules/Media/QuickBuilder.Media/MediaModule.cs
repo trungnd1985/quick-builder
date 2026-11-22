@@ -69,6 +69,8 @@ public static class MediaModule
             .UseNpgsql(ReadOnlyConnection.From(connectionString))
             .UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking));
         services.AddScoped<IPublicMediaReader, PublicMediaReader>();
+        // 022 research PV-11: media for previews, served by /_media's own handler.
+        services.AddScoped<IMediaContent, MediaContentReader>();
 
         // 014 research CS-12: content types for other modules' admin work (Cms schema changes).
         services.AddScoped<IMediaContentTypes, MediaContentTypes>();

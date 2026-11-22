@@ -130,6 +130,13 @@ public static class CmsModule
             Infrastructure.Schema.CollectionSchemaUpgrades.CreateChain(),
             sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Infrastructure.Schema.CollectionSchemaUpgrades>>()));
         services.AddScoped<QuickBuilder.Cms.Contracts.Publishing.IPublishedItemReader, PublishedItemReader>();
+
+        // 022 research PV-02: item drafts and versions for previews, through their own read-only
+        // context, so the published one stays "published data only". Never migrated.
+        services.AddDbContext<PreviewReadDbContext>(options => options
+            .UseNpgsql(ReadOnlyConnection.From(connectionString))
+            .UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking));
+        services.AddScoped<QuickBuilder.Cms.Contracts.Publishing.IPreviewItemReader, PreviewItemReader>();
         services.AddScoped<QuickBuilder.Cms.Contracts.ICollectionSchemaReader, CollectionSchemaReader>();
 
         // Research IT-11, IT-22: indexes items stored before 015, and any after a future indexer change.
@@ -197,6 +204,9 @@ public static class CmsModule
         // Research IT-11: items using a deleted or replaced media file are checked again.
         services.AddScoped<IIntegrationEventHandler<FileDeleted>, ReindexItemsForMediaHandler>();
         services.AddScoped<IIntegrationEventHandler<FileChanged>, ReindexItemsForMediaHandler>();
+        // 022 research PV-16: preview links created and revoked, in the item's history.
+        services.AddScoped<IIntegrationEventHandler<QuickBuilder.Editor.Contracts.Events.PreviewLinkCreated>, Features.Items.GetItemHistory.RecordPreviewLinkEvents>();
+        services.AddScoped<IIntegrationEventHandler<QuickBuilder.Editor.Contracts.Events.PreviewLinkRevoked>, Features.Items.GetItemHistory.RecordPreviewLinkEvents>();
         services.AddScoped<IIntegrationEventHandler<FileRestored>, ReindexItemsForMediaHandler>();
 
         // 020: this module's share of a site archive (contracts/archive-parts.md).

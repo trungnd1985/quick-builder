@@ -41,6 +41,13 @@ public static class EditorModule
 
         var connectionString = configuration.GetConnectionString("Default");
 
+        // 022 research PV-07: the operator's switch that ends every existing preview link.
+        services
+            .AddOptions<PreviewOptions>()
+            .Bind(configuration.GetSection(PreviewOptions.SectionName))
+            .ValidateOnStart();
+        services.AddSingleton<Microsoft.Extensions.Options.IValidateOptions<PreviewOptions>, PreviewOptionsValidator>();
+
         services.AddDbContext<EditorDbContext>((provider, options) =>
         {
             options.UseNpgsql(connectionString, npgsql =>
@@ -100,6 +107,22 @@ public static class EditorModule
         services.AddScoped<ICommandHandler<MoveHereCommand, Result<PresenceResponse>>, MoveHereHandler>();
         services.AddScoped<ICommandHandler<ReleaseCommand, Result>, ReleaseHandler>();
         services.AddScoped<IQueryHandler<ListHoldersQuery, Result<HoldersResponse>>, ListHoldersHandler>();
+
+        // 022: preview links. Resolved on every request, never cached (PV-08).
+        services.AddScoped<PreviewLinkFailures>();
+        services.AddScoped<IPreviewLinks, PreviewLinkResolver>();
+        services.AddScoped<Features.PreviewLinks.PreviewLinkAccess>();
+        services.AddScoped<ICommandHandler<Features.PreviewLinks.CreatePreviewLinkCommand, Result<Features.PreviewLinks.CreatedPreviewLinkResponse>>,
+            Features.PreviewLinks.CreatePreviewLinkHandler>();
+        services.AddScoped<IQueryHandler<Features.PreviewLinks.ListPreviewLinksQuery, Result<IReadOnlyList<Features.PreviewLinks.PreviewLinkResponse>>>,
+            Features.PreviewLinks.ListPreviewLinksHandler>();
+        services.AddScoped<IQueryHandler<Features.PreviewLinks.ListSitePreviewLinksQuery, Result<Features.PreviewLinks.SitePreviewLinksResponse>>,
+            Features.PreviewLinks.ListSitePreviewLinksHandler>();
+        services.AddScoped<ICommandHandler<Features.PreviewLinks.RevokePreviewLinkCommand, Result>, Features.PreviewLinks.RevokePreviewLinkHandler>();
+        services.AddScoped<ICommandHandler<Features.PreviewLinks.RevokeAllPreviewLinksCommand, Result<Features.PreviewLinks.RevokedPreviewLinksResponse>>,
+            Features.PreviewLinks.RevokeAllPreviewLinksHandler>();
+        services.AddSingleton<IEventTypeRegistration>(new EventTypeRegistration<PreviewLinkCreated>());
+        services.AddSingleton<IEventTypeRegistration>(new EventTypeRegistration<PreviewLinkRevoked>());
         services.AddScoped<IValidator<ListHoldersQuery>, ListHoldersValidator>();
         services.AddScoped<ICommandHandler<TakeOverCommand, Result<PresenceResponse>>, TakeOverHandler>();
         services.AddScoped<IEditingLocks, EditingLocks>();
@@ -110,6 +133,9 @@ public static class EditorModule
         services.AddScoped<IIntegrationEventHandler<CollectionDeleted>>(sp => sp.GetRequiredService<ReleaseDeletedDocumentsHandler>());
         services.AddSingleton<EditingSessionCleanupService>();
         services.AddHostedService(sp => sp.GetRequiredService<EditingSessionCleanupService>());
+        // 022 research PV-19: links that ended long ago and old failure windows, hourly.
+        services.AddSingleton<PreviewLinkSweepService>();
+        services.AddHostedService(sp => sp.GetRequiredService<PreviewLinkSweepService>());
 
         // 020: this module's share of a site archive (contracts/archive-parts.md).
         services.AddScoped<QuickBuilder.Sites.Contracts.Transfer.ISiteArchivePart, QuickBuilder.Editor.Features.Transfer.DesignArchivePart>();

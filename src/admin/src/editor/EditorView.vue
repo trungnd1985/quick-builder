@@ -24,6 +24,10 @@ import { LOCK_STATUSES, useEditingSession, type EditingStatus } from '../editing
 import RecoveryDialog from './RecoveryDialog.vue'
 import EditorTopBar from './EditorTopBar.vue'
 import SampleItemPicker from './SampleItemPicker.vue'
+import PreviewButton from '../features/preview/PreviewButton.vue'
+import { pagePreviewUrl } from '../features/preview/previewUrls'
+import SharePreviewDialog from '../features/preview/SharePreviewDialog.vue'
+import { useRoute } from 'vue-router'
 import SeoPanel from './seo/SeoPanel.vue'
 import { useSitesStore } from '../app/sitesStore'
 import { refusalKey } from './editorErrors'
@@ -57,6 +61,10 @@ const canPublish = ref(false)
 const pagePath = ref('/')
 const canManageStructure = ref(false)
 const seoOpen = ref(false)
+// 022 contracts/admin-preview.md §2: the preview bar's "Share preview" opens this with ?share=1.
+const route = useRoute()
+const shareOpen = ref(route.query.share === '1')
+const shareVersion = computed(() => props.versionNumber ?? (typeof route.query.version === 'string' && /^\d+$/.test(route.query.version) ? Number(route.query.version) : null))
 const sites = useSitesStore()
 const sitePresentation = computed(() => {
   const site = sites.sites.find((s) => s.id === props.siteId)
@@ -241,6 +249,24 @@ async function loadHeader(): Promise<void> {
   } catch {
     title.value = ''
   }
+}
+
+/**
+ * 022 FR-003: the preview of a page, its version, or a template with its sample item, opened
+ * once what is on screen is saved. A read-only draft (another member holds the lock) is
+ * previewed as last saved.
+ */
+const previewUrl = computed(() =>
+  pagePreviewUrl(props.siteId, props.documentId, {
+    version: props.versionNumber,
+    item: store.bindings.sampleItem?.id ?? null,
+  }),
+)
+
+async function saveBeforePreview(): Promise<boolean> {
+  if (props.versionNumber !== undefined || store.readOnly) return true
+  await autosave?.saveNow()
+  return saveState.value === 'saved' && !store.dirty
 }
 
 /** Publishing from the editor saves first, then publishes exactly what was saved. */
@@ -481,6 +507,18 @@ defineExpose({ autosave: () => autosave, history })
         @refused="selectRefused"
       />
       <SampleItemPicker v-if="store.loadState === 'ready' && kind === 'page'" />
+      <PreviewButton
+        v-if="store.loadState === 'ready' && kind === 'page'"
+        :url="previewUrl"
+        :before-open="saveBeforePreview"
+      />
+      <button
+        v-if="store.loadState === 'ready' && kind === 'page' && versionNumber === undefined"
+        type="button"
+        @click="shareOpen = true"
+      >
+        {{ t('preview.share.open') }}
+      </button>
       <button
         v-if="store.loadState === 'ready' && kind === 'page' && versionNumber === undefined"
         type="button"
@@ -681,6 +719,15 @@ defineExpose({ autosave: () => autosave, history })
     >
       {{ t(refusalKey(store.lastRefusal.code)) }}
     </p>
+    <SharePreviewDialog
+      v-if="shareOpen && kind === 'page'"
+      :site-id="siteId"
+      kind="page"
+      :document-id="documentId"
+      :version-number="shareVersion"
+      :sample-item-id="store.bindings.sampleItem?.id ?? null"
+      @close="shareOpen = false"
+    />
     <SeoPanel
       v-if="seoOpen && store.root"
       :site-id="siteId"
