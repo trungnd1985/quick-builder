@@ -32,10 +32,13 @@ PROJECT=$(docker compose config | sed -n 's/^name: //p' | head -n 1)
 
 `PROJECT` is the Compose project name, which prefixes the volume names (`<project>_media-data`).
 
+In the next block, `< /dev/null` keeps `docker compose exec` from reading the lines pasted
+after it as its own input, which would silently skip them.
+
 <!-- qb:run procedure=backup step=2 -->
 ```bash
 docker compose stop app
-docker compose exec -T db pg_dump -U quickbuilder -d quickbuilder --format=custom > "$BACKUP/quickbuilder.dump"
+docker compose exec -T db pg_dump -U quickbuilder -d quickbuilder --format=custom < /dev/null > "$BACKUP/quickbuilder.dump"
 docker run --rm -v "${PROJECT}_media-data:/data:ro" -v "$BACKUP:/out" postgres:16-alpine \
   tar -czf /out/media.tar.gz -C /data .
 cp docker-compose.yml .env "$BACKUP/"
