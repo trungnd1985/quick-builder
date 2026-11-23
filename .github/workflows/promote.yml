@@ -111,3 +111,67 @@ jobs:
           [ "${{ steps.version.outputs.highest }}" = "true" ] && flags+=(--latest)
           gh release edit "$TAG" "${flags[@]}"
           echo "Published ${TAG}: ${IMAGE}:${{ steps.version.outputs.version }} (${{ steps.candidate.outputs.digest }})" >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/setup-node@v4
+        if: steps.version.outputs.prerelease != 'true'
+        with:
+          node-version: '24'
+
+      # 026 T085 (research OD-08, OD-09, OD-14; contracts/docs-publishing.md §3): the release
+      # is published, so its documentation is too, as the version of its minor line. Only that
+      # line's folder and its versions.json entry change; the root moves only for the highest
+      # stable release. Pre-releases publish no documentation. The target is this repository's
+      # gh-pages branch unless DOCS_PAGES_REPOSITORY names another (with DOCS_DEPLOY_KEY).
+      - name: Publish the documentation
+        if: steps.version.outputs.prerelease != 'true'
+        env:
+          DOCS_PAGES_REPOSITORY: ${{ vars.DOCS_PAGES_REPOSITORY || github.repository }}
+          DOCS_DEPLOY_KEY: ${{ secrets.DOCS_DEPLOY_KEY }}
+        run: |
+          set -euo pipefail
+          version="${{ steps.version.outputs.version }}"
+          refuse() {
+            echo "::error::Documentation for ${version} was not published: set DOCS_PAGES_REPOSITORY (and DOCS_DEPLOY_KEY) to a repository with GitHub Pages enabled. The release itself is published. ($1)"
+            exit 1
+          }
+
+          # The site the Release run built and checked; rebuilt from the tag only if it expired.
+          run_id=$(gh run list --workflow release.yml --branch "$TAG" --event push --status success --limit 1 --json databaseId --jq '.[0].databaseId // ""')
+          mkdir -p site-build
+          if [ -z "$run_id" ] || ! gh run download "$run_id" --name docs-site --dir site-build; then
+            echo "The docs-site artifact is gone; rebuilding it from ${TAG}."
+            dotnet build tools/QuickBuilder.Docs --configuration Release --nologo -v q
+            IFS=. read -r major minor _ <<< "${version%%-*}"
+            (cd docs/operators && npm ci && QB_DOCS_BASE="/${DOCS_PAGES_REPOSITORY#*/}/${major}.${minor}/" QB_DOCS_RELEASE="${version}" npm run build)
+            rm -rf site-build && cp -r docs/operators/.vitepress/dist site-build
+          fi
+
+          if [ -n "${DOCS_DEPLOY_KEY}" ]; then
+            mkdir -p ~/.ssh && printf '%s\n' "${DOCS_DEPLOY_KEY}" > ~/.ssh/docs_deploy && chmod 600 ~/.ssh/docs_deploy
+            export GIT_SSH_COMMAND="ssh -i ~/.ssh/docs_deploy -o StrictHostKeyChecking=accept-new"
+            remote="git@github.com:${DOCS_PAGES_REPOSITORY}.git"
+          else
+            remote="https://x-access-token:${GH_TOKEN}@github.com/${DOCS_PAGES_REPOSITORY}.git"
+          fi
+
+          if git ls-remote --exit-code --heads "$remote" gh-pages > /dev/null 2>&1; then
+            git clone --quiet --depth 1 --branch gh-pages "$remote" pages || refuse "cannot read gh-pages"
+          else
+            git init --quiet pages && git -C pages checkout --quiet --orphan gh-pages && git -C pages remote add origin "$remote"
+          fi
+
+          dotnet build tools/QuickBuilder.Docs --configuration Release --nologo -v q
+          dotnet tools/QuickBuilder.Docs/bin/Release/net10.0/qb-docs.dll publish prepare \
+            --site pages --build site-build --version "$version" --highest "${{ steps.version.outputs.highest }}"
+
+          cd pages
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit --quiet -m "docs: publish ${version}" || { echo "Nothing changed."; exit 0; }
+          git push --quiet origin gh-pages || { git pull --quiet --rebase origin gh-pages && git push --quiet origin gh-pages; } || refuse "push refused"
+
+          if ! gh api "repos/${DOCS_PAGES_REPOSITORY}/pages" > /dev/null 2>&1; then
+            refuse "GitHub Pages is not enabled on ${DOCS_PAGES_REPOSITORY}"
+          fi
+          echo "Documentation published for ${version}." >> "$GITHUB_STEP_SUMMARY"

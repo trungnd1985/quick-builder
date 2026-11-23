@@ -18,7 +18,8 @@
 #    3. set Identity__AllowInsecureHttp to "false";
 #    4. set Hosting__PublicUrl so recovery links printed by
 #       `identity recovery-link` are complete.
-#  See docs/operations.md.
+#  See docs/operators/install.md and docs/operators/security-checklist.md,
+#  published at https://trungnd1985.github.io/quick-builder/.
 # ─────────────────────────────────────────────────────────────────────────────────────
 
 services:
@@ -28,8 +29,10 @@ services:
     environment:
       POSTGRES_DB: quickbuilder
       POSTGRES_USER: quickbuilder
-      # CHANGE THIS before any real use (FR-038). It is a placeholder, not a default.
-      POSTGRES_PASSWORD: change-me-before-real-use
+      # CHANGE THIS before any real use (FR-038). It is a placeholder, not a default: put
+      # POSTGRES_PASSWORD=<a generated password> in a .env file next to this one, never in a
+      # file you commit (docs/operators/install.md).
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me-before-real-use}
     volumes:
       - db-data:/var/lib/postgresql/data
     # Not published at all: only the app needs to reach the database, and it does so over
@@ -44,7 +47,7 @@ services:
   app:
     # The published release image (019). Install from the docker-compose.yml attached to a
     # release: it names an exact version here, and upgrading means changing that version
-    # (docs/operations.md, "Upgrading and rolling back"). To build from this checkout
+    # (docs/operators/upgrade.md). To build from this checkout
     # instead, add the build override:
     #   docker compose -f docker-compose.yml -f docker-compose.build.yml up -d --build
     image: ${QUICKBUILDER_IMAGE:-ghcr.io/trungnd1985/quickbuilder:0}
@@ -54,7 +57,7 @@ services:
         condition: service_healthy
     environment:
       # The one required setting. Must match the credentials above.
-      ConnectionStrings__Default: "Host=db;Port=5432;Database=quickbuilder;Username=quickbuilder;Password=change-me-before-real-use"
+      ConnectionStrings__Default: "Host=db;Port=5432;Database=quickbuilder;Username=quickbuilder;Password=${POSTGRES_PASSWORD:-change-me-before-real-use}"
 
       # Migrations run automatically on startup. Set false to apply them yourself with
       # `docker compose run --rm app dotnet QuickBuilder.Host.dll migrate` (FR-023).
@@ -84,7 +87,7 @@ services:
       Identity__AllowInsecureHttp: "true"
     volumes:
       # Uploaded media (003). Back this up together with db-data: the database records which
-      # files exist, this volume holds their bytes. See docs/operations.md, "Media storage".
+      # files exist, this volume holds their bytes. See docs/operators/backup-restore.md.
       # If you deploy without this file, mount persistent storage at the same path.
       - media-data:/var/lib/quickbuilder/media
     ports:

@@ -1,8 +1,10 @@
 using Microsoft.Extensions.Options;
+using QuickBuilder.Shared.Kernel.Settings;
 
 namespace QuickBuilder.Editor.Infrastructure;
 
-/// <summary>The <c>Preview</c> settings (022 research PV-07; docs/configuration.md).</summary>
+/// <summary>The <c>Preview</c> settings (022 research PV-07; docs/operators/reference/configuration.md).</summary>
+[SettingsSection(SectionName, Area = "preview", Title = "Preview links")]
 internal sealed class PreviewOptions
 {
     public const string SectionName = "Preview";
@@ -12,6 +14,7 @@ internal sealed class PreviewOptions
     /// time no longer works, as if revoked. Absent by default. Setting it to "now" and
     /// restarting ends every existing link; links created afterwards work.
     /// </summary>
+    [Setting("Preview links created before this time stop working, as if revoked. Set it to the current time and restart to end every existing link at once; links created afterwards work.", Allowed = "a UTC time at most one day ahead")]
     public DateTimeOffset? LinksValidFrom { get; set; }
 }
 

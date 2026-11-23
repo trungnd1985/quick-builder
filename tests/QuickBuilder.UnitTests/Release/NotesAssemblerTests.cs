@@ -168,7 +168,7 @@ public sealed class NotesAssemblerTests : IDisposable
 
         Fragment("6-config.md", "issue: 6\nkind: changed\nbreaking: false\nconfig:\n  removed: [Database:AutoMigrate]");
         var notes = Assemble();
-        Assert.Contains("`Releases:Channel` (added)", notes, StringComparison.Ordinal);
+        Assert.Contains("[`Releases:Channel`](https://trungnd1985.github.io/quick-builder/0.2/reference/configuration#releases-channel) (added)", notes, StringComparison.Ordinal);
         Assert.Contains("`Database:AutoMigrate` (removed)", notes, StringComparison.Ordinal);
     }
 

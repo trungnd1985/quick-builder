@@ -1,6 +1,6 @@
 # QuickBuilder {{version}}
 
-Released {{date}} · [Upgrading and rolling back](https://github.com/trungnd1985/quick-builder/blob/main/docs/operations.md#upgrading-and-rolling-back)
+Released {{date}} · [Upgrade guide]({{docs}}/upgrade) · [Upgrade notes]({{docs}}/upgrade-notes) · [Operator documentation]({{docs}}/)
 
 ## Highlights
 

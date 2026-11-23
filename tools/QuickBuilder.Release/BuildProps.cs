@@ -12,12 +12,21 @@ internal sealed record BuildProps(SemanticVersion VersionPrefix, SemanticVersion
 {
     internal const string FileName = "Directory.Build.props";
 
+    /// <summary>Where the operator documentation is published when the props do not say (026 OD-11).</summary>
+    internal const string DefaultDocsBaseUrl = "https://trungnd1985.github.io/quick-builder/";
+
+    /// <summary><c>QbDocsBaseUrl</c>: each minor line's documentation lives under it.</summary>
+    public string DocsBaseUrl { get; init; } = DefaultDocsBaseUrl;
+
     internal static BuildProps Read(string repositoryRoot)
     {
         var document = Load(repositoryRoot);
         return new BuildProps(
             SemanticVersion.Parse(Value(document, "VersionPrefix")),
-            SemanticVersion.Parse(Value(document, "QbUpgradeFloor")));
+            SemanticVersion.Parse(Value(document, "QbUpgradeFloor")))
+        {
+            DocsBaseUrl = document.Descendants("QbDocsBaseUrl").SingleOrDefault()?.Value.Trim() is { Length: > 0 } url ? url : DefaultDocsBaseUrl,
+        };
     }
 
     /// <summary>Rewrites <c>VersionPrefix</c> in place, keeping every other byte of the file.</summary>

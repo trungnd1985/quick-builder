@@ -329,7 +329,8 @@ migration of stored drafts and the other steps in §6, in the same pull request.
 Every pull request that changes something operators must hear about adds a fragment,
 `docs/releases/unreleased/<issue>-<slug>.md`; the release tool assembles them into the
 release's notes ([019 release-notes.md](../specs/019-release-upgrade-safety/contracts/release-notes.md)).
-CI requires one when a pull request adds a migration or changes `docs/configuration.md`, a
+CI requires one when a pull request adds a migration or changes the configuration reference
+(`docs/operators/reference/configuration.md`), a
 contract under `docs/contracts/` (examples aside) or `docker-compose.yml`.
 
 ```markdown
@@ -338,8 +339,9 @@ issue: 42
 kind: changed            # added | changed | fixed | security
 breaking: false          # true only in a new major version; the release is refused otherwise
 config:
-  added: [Forms:Something]   # exactly the keys docs/configuration.md gained…
+  added: [Forms:Something]   # exactly the keys the configuration reference gained…
   changed: []
+  deprecated: []             # …newly marked deprecated…
   removed: []                # …and lost; the tool checks
 background: ["Items are indexed again after the upgrade."]
 caches: []
@@ -359,6 +361,40 @@ pages and the reason; without it the release's upgrade test fails on those pages
 { "issue": 42, "reason": "Form buttons read 'Send' instead of 'Submit'.",
   "pages": [ { "host": "*", "path": "/contact" } ] }
 ```
+
+## Operator docs
+
+Operator documentation lives in `docs/operators/` (feature 026): plain Markdown, built into a
+site with VitePress and published for each release line. It is written for people who run
+QuickBuilder, not for contributors: by task (install, configure, back up, upgrade,
+troubleshoot), with every command in full.
+
+- **Adding or changing a setting.** Describe it next to its definition with
+  `[Setting("…")]` (and `[SettingsSection]` on a new options class; see
+  [setting-attributes.md](../specs/026-operator-documentation/contracts/setting-attributes.md)),
+  then regenerate the reference and commit it:
+
+  ```bash
+  dotnet run --project tools/QuickBuilder.Docs -- settings generate
+  ```
+
+  CI fails when a setting the product reads is not described, when the committed reference
+  differs from the generated one, or when the product reads a key nobody declared.
+  Explanations that do not fit one setting go in `docs/operators/reference/notes/<area>.md`,
+  which is inlined into the reference; never repeat a default or range there.
+- **Release-note fragments** feed the operator site's upgrade notes too. After adding or
+  changing one, run `dotnet run --project tools/QuickBuilder.Docs -- upgrade-notes generate`.
+- **Commands operators run** are marked so the pipeline runs them as written: an HTML
+  comment right before the fenced block, `<!-- qb:run procedure=<name> step=<n> -->`, or
+  `<!-- qb:file procedure=<name> step=<n> path=<file> -->` for a file to write. A closed list
+  of substitutions (`substitute=…`) is the only difference CI makes; see
+  [runnable-snippets.md](../specs/026-operator-documentation/contracts/runnable-snippets.md).
+  The `Procedures` smoke tests run them on pull requests that touch `docs/operators/`, the
+  compose file or the Dockerfile, and on every release.
+- **Checks.** `dotnet run --project tools/QuickBuilder.Docs -- lint` runs every rule
+  (sidebar, start page, settings named in prose exist, troubleshooting and security
+  coverage, markers, example secrets, proxy versions, old paths, upgrade notes current).
+- **Preview the site**: `cd docs/operators && npm ci && npm run dev`.
 
 ## Adding stored data
 

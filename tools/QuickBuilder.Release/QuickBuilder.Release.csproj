@@ -23,6 +23,8 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="QuickBuilder.UnitTests" />
+    <!-- 026 OD-16: qb-docs renders each release's upgrade notes from the same fragments. -->
+    <InternalsVisibleTo Include="qb-docs" />
   </ItemGroup>
 
 </Project>

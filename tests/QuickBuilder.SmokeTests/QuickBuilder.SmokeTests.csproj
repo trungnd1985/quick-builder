@@ -23,6 +23,11 @@
     <Using Include="Xunit" />
   </ItemGroup>
 
+  <!-- 026 T023: the documented procedures are written by the docs tool. -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\tools\QuickBuilder.Docs\QuickBuilder.Docs.csproj" />
+  </ItemGroup>
+
   <!-- 013 T070: the variant performance images, generated at test time (tests/fixtures/media/ImageFixtures.cs). -->
   <ItemGroup>
     <Compile Include="../fixtures/media/ImageFixtures.cs" Link="Fixtures/ImageFixtures.cs" />

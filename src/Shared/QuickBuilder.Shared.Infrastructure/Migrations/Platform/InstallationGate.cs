@@ -19,8 +19,12 @@ internal sealed record DatabaseVersionState(SemanticVersion Recorded, SemanticVe
 /// </remarks>
 internal static class InstallationGate
 {
-    /// <summary>Where the operations guide explains what to do; linked from the log, never the probe.</summary>
-    internal const string Guide = "https://github.com/trungnd1985/quick-builder/blob/main/docs/operations.md";
+    /// <summary>
+    /// The published upgrade guide of the running release line, which explains what to do;
+    /// linked from the log, never the probe (026 research OD-11).
+    /// </summary>
+    internal static string Guide(SemanticVersion running) =>
+        $"{ApplicationVersion.DocsBaseUrl}{running.Major}.{running.Minor}/upgrade";
 
     /// <param name="running">The version of this build.</param>
     /// <param name="floor">The oldest release this build upgrades from.</param>
@@ -96,7 +100,7 @@ internal static class InstallationGate
             GateOutcome.RefuseNewer,
             new GateRefusal(
                 $"Database was migrated by QuickBuilder {database}; this is {running}, which cannot run on it. " +
-                $"Start {database} or newer, or restore the backup taken before upgrading: {Guide}#rolling-back",
+                $"Start {database} or newer, or restore the backup taken before upgrading: {Guide(running)}#database-newer",
                 "This database was upgraded by a newer QuickBuilder release. Start that release, or restore the backup taken before the upgrade. See the logs."));
 
     private static GateDecision TooOld(SemanticVersion running, SemanticVersion floor, string database) =>
@@ -104,6 +108,6 @@ internal static class InstallationGate
             GateOutcome.RefuseTooOld,
             new GateRefusal(
                 $"Database was last migrated by QuickBuilder {database}; {running} upgrades from {floor} or newer. " +
-                $"Upgrade to {floor} first, then to {running}: {Guide}#upgrade-path",
+                $"Upgrade to {floor} first, then to {running}: {Guide(running)}#database-too-old",
                 "This database is too old for this release to upgrade directly. See the logs."));
 }

@@ -46,7 +46,7 @@ internal sealed class S3AbandonedUploadCleanupService(
     /// <summary>Aborts every pending upload under the key prefix older than an hour. Exposed for tests.</summary>
     /// <remarks>
     /// MinIO lists multipart uploads only by exact object name, so there this finds nothing;
-    /// MinIO expires stale uploads itself after 24 hours (docs/operations.md).
+    /// MinIO expires stale uploads itself after 24 hours (docs/operators/operations/media.md).
     /// </remarks>
     internal async Task<int> RunOnceAsync(CancellationToken cancellationToken)
     {

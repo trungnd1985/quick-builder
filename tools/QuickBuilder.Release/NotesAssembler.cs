@@ -27,7 +27,7 @@ internal static partial class NotesAssembler
     private static readonly string[] Markers =
     [
         "version", "date", "highlights", "added", "changed", "fixed", "security", "breaking", "manual",
-        "configuration", "migrations", "schemas", "background", "caches", "visible", "upgradePath", "images", "knownIssues",
+        "configuration", "migrations", "schemas", "background", "caches", "visible", "upgradePath", "images", "knownIssues", "docs",
     ];
 
     /// <param name="repositoryRoot">The repository, at the commit being released.</param>
@@ -83,7 +83,9 @@ internal static partial class NotesAssembler
             }
         }
 
-        var configuration = hasPrevious ? Configuration(repositoryRoot, previous, fragments) : [];
+        // 026 OD-11: links point at the published documentation of this release's minor line.
+        var docs = $"{BuildProps.Read(repositoryRoot).DocsBaseUrl}{core.Major}.{core.Minor}";
+        var configuration = hasPrevious ? Configuration(repositoryRoot, previous, fragments, docs) : [];
 
         var filled = new Dictionary<string, string>(StringComparer.Ordinal)
         {
@@ -105,6 +107,7 @@ internal static partial class NotesAssembler
             ["upgradePath"] = UpgradePath(core, sources, previous),
             ["images"] = $"- `ghcr.io/trungnd1985/quickbuilder:{version}` for linux/amd64 and linux/arm64: {Candidate}",
             ["knownIssues"] = None,
+            ["docs"] = docs,
         };
 
         return Marker().Replace(template, m => filled[m.Groups["name"].Value]);
@@ -146,7 +149,7 @@ internal static partial class NotesAssembler
     /// Keys the configuration guide gained and lost since <paramref name="previous"/>, which the
     /// fragments must say too (rule 3), plus the keys fragments say changed.
     /// </summary>
-    private static List<string> Configuration(string repositoryRoot, string previous, List<Fragment> fragments)
+    private static List<string> Configuration(string repositoryRoot, string previous, List<Fragment> fragments, string docs)
     {
         var before = ConfigurationKeys.At(repositoryRoot, previous);
         var now = ConfigurationKeys.At(repositoryRoot, null);
@@ -155,10 +158,19 @@ internal static partial class NotesAssembler
         var saidAdded = fragments.SelectMany(f => f.ConfigAdded).ToHashSet(StringComparer.Ordinal);
         var saidRemoved = fragments.SelectMany(f => f.ConfigRemoved).ToHashSet(StringComparer.Ordinal);
 
+        // 026 T096: a key newly marked deprecated in the reference must be announced too.
+        var deprecated = ConfigurationKeys.DeprecatedAt(repositoryRoot, null)
+            .Except(ConfigurationKeys.DeprecatedAt(repositoryRoot, previous))
+            .Order(StringComparer.Ordinal)
+            .ToList();
+        var saidDeprecated = fragments.SelectMany(f => f.ConfigDeprecated).ToHashSet(StringComparer.Ordinal);
+
         var mismatch = added.Where(k => !saidAdded.Contains(k)).Select(k => $"{k} was added to {ConfigurationKeys.Guide} but no fragment says so")
             .Concat(removed.Where(k => !saidRemoved.Contains(k)).Select(k => $"{k} was removed from {ConfigurationKeys.Guide} but no fragment says so"))
             .Concat(saidAdded.Where(k => !added.Contains(k)).Select(k => $"a fragment adds {k}, which {ConfigurationKeys.Guide} did not gain"))
             .Concat(saidRemoved.Where(k => !removed.Contains(k)).Select(k => $"a fragment removes {k}, which {ConfigurationKeys.Guide} still has"))
+            .Concat(deprecated.Where(k => !saidDeprecated.Contains(k)).Select(k => $"{k} was deprecated in {ConfigurationKeys.Guide} but no fragment says so"))
+            .Concat(saidDeprecated.Where(k => !deprecated.Contains(k)).Select(k => $"a fragment deprecates {k}, which {ConfigurationKeys.Guide} does not newly mark deprecated"))
             .ToList();
         if (mismatch.Count > 0)
         {
@@ -167,10 +179,21 @@ internal static partial class NotesAssembler
 
         return
         [
-            .. added.Select(k => $"`{k}` (added)"),
-            .. fragments.SelectMany(f => f.ConfigChanged).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).Select(k => $"`{k}` (changed)"),
+            .. added.Select(k => $"{Linked(k, docs)} (added)"),
+            .. fragments.SelectMany(f => f.ConfigChanged).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).Select(k => $"{Linked(k, docs)} (changed)"),
+            .. deprecated.Select(k => $"{Linked(k, docs)} (deprecated)"),
             .. removed.Select(k => $"`{k}` (removed)"),
         ];
+    }
+
+    /// <summary>
+    /// A key linked to its row in the published reference: the anchor is the key in lower case,
+    /// <c>:</c> to <c>-</c>, placeholders such as <c>&lt;n&gt;</c> dropped (026 data-model §3).
+    /// </summary>
+    internal static string Linked(string key, string docs)
+    {
+        var anchor = string.Join('-', key.Split(':').Where(s => !s.StartsWith('<')).Select(s => s.ToLowerInvariant()));
+        return $"[`{key}`]({docs}/reference/configuration#{anchor})";
     }
 
     private static string UpgradePath(SemanticVersion core, IReadOnlyList<string> sources, string previous)

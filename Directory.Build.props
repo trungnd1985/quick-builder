@@ -29,6 +29,15 @@
   </PropertyGroup>
 
   <!--
+    026 research OD-11: where the operator documentation is published. Each minor line lives
+    under {QbDocsBaseUrl}{major}.{minor}/; the Host writes this into its assembly metadata for
+    the links it logs, and qb-release reads it for links in release notes.
+  -->
+  <PropertyGroup>
+    <QbDocsBaseUrl>https://trungnd1985.github.io/quick-builder/</QbDocsBaseUrl>
+  </PropertyGroup>
+
+  <!--
     FR-013a / D-07: reading across sites must go through the one annotated helper in
     Shared.Infrastructure. Banning the API here makes any other attempt a build error
     rather than something a reviewer has to spot.

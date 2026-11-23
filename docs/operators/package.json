@@ -1,0 +1,14 @@
+{
+  "name": "quickbuilder-operator-docs",
+  "private": true,
+  "description": "QuickBuilder operator documentation (026). Built in CI only; never shipped in the image.",
+  "type": "module",
+  "scripts": {
+    "dev": "vitepress dev",
+    "build": "vitepress build",
+    "preview": "vitepress preview"
+  },
+  "devDependencies": {
+    "vitepress": "1.6.4"
+  }
+}

@@ -1,12 +1,15 @@
 using Microsoft.Extensions.Options;
+using QuickBuilder.Shared.Kernel.Settings;
 
 namespace QuickBuilder.Forms;
 
 /// <summary>The <c>Forms</c> settings (018 module-surface.md §5).</summary>
+[SettingsSection(SectionName, Area = "forms", Title = "Forms")]
 internal sealed class FormsOptions
 {
     public const string SectionName = "Forms";
 
+    [SettingsGroup("Rate limits")]
     public RateLimitSettings RateLimit { get; set; } = new();
 
     /// <summary>
@@ -15,8 +18,10 @@ internal sealed class FormsOptions
     /// </summary>
     public sealed class RateLimitSettings
     {
+        [Setting("Form submissions one visitor address may send to one site in a minute. Every request counts, valid or not.", Allowed = "1 â 1000")]
         public int PerMinute { get; set; } = 5;
 
+        [Setting("Form submissions one visitor address may send to one site in an hour.", Allowed = "1 â 10000, and at least `Forms:RateLimit:PerMinute`")]
         public int PerHour { get; set; } = 30;
     }
 }

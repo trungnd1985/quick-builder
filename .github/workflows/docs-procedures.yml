@@ -1,0 +1,85 @@
+name: Documented procedures
+
+# 026 T028, research OD-10, OD-12 (FR-008, FR-020, FR-026, FR-043): the install, backup and
+# restore, and reverse proxy pages are run as written, against an image, from the commands in
+# the Markdown itself (contracts/runnable-snippets.md).
+#
+# - On a pull request, only when it touches the operator docs, the reference compose file, the
+#   Dockerfile or the shipped settings; the image is built from the branch.
+# - On every release, called by release.yml with the candidate's digest; a failure there puts
+#   the "Not available" banner on the draft, and the Promote workflow refuses it.
+#
+# Do not make this workflow a required status check: path-filtered workflows do not run on
+# pull requests that touch none of their paths, and a required check would then wait forever.
+
+on:
+  pull_request:
+    paths:
+      - 'docs/operators/**'
+      - 'docker-compose.yml'
+      - 'Dockerfile'
+      - 'src/QuickBuilder.Host/appsettings.json'
+      - '.github/workflows/docs-procedures.yml'
+  workflow_call:
+    inputs:
+      image:
+        description: The image to run the procedures against, by digest.
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  packages: read
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+
+jobs:
+  procedures:
+    name: ${{ matrix.procedure }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        procedure: [install, backup-restore, nginx, caddy, traefik, proxy-basepath]
+    env:
+      QB_SMOKE_REQUIRE_DOCKER: '1'
+      QB_SMOKE_LOG_DIR: ${{ github.workspace }}/procedure-logs
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - uses: docker/login-action@v3
+        if: inputs.image != ''
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: The image under test
+        run: |
+          if [ -n "${{ inputs.image }}" ]; then
+            echo "QB_SMOKE_IMAGE=${{ inputs.image }}" >> "$GITHUB_ENV"
+          else
+            docker build -t quickbuilder:procedures .
+            echo "QB_SMOKE_IMAGE=quickbuilder:procedures" >> "$GITHUB_ENV"
+          fi
+
+      - name: Run the documented ${{ matrix.procedure }} procedure
+        run: >
+          dotnet test tests/QuickBuilder.SmokeTests
+          --configuration Release
+          --filter "Category=Procedures&Procedure=${{ matrix.procedure }}"
+          --logger "console;verbosity=normal"
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: procedure-logs-${{ matrix.procedure }}
+          path: procedure-logs
+          retention-days: 7

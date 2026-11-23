@@ -6,20 +6,9 @@ a media library, and publishing.
 ## Install a release
 
 Each [release](https://github.com/trungnd1985/quick-builder/releases) has a
-`docker-compose.yml` that names its exact version. Download it into an empty folder, change the
-database password in it, and run:
-
-```bash
-docker compose up -d
-docker compose logs app    # the one-time setup code
-```
-
-Then open http://127.0.0.1:8080/admin and create the first administrator. To upgrade, read the
-release notes, back up, and change the version in that file:
-[Upgrading and rolling back](docs/operations.md#upgrading-and-rolling-back).
-
-Until the first release (0.1.0) is published, there is no image to download yet: run it from
-this checkout instead, as below.
+`docker-compose.yml` that names its exact version. [Install](docs/operators/install.md) takes a
+clean server to a signed-in administrator in a few commands; [Upgrade](docs/operators/upgrade.md)
+explains moving to a newer release.
 
 ## Run it from this checkout
 
@@ -58,6 +47,8 @@ the published image.)
 
 ## More
 
-- [Operations](docs/operations.md): running, upgrading, backups, storage providers
-- [Configuration](docs/configuration.md): every setting
+- [Operator documentation](docs/operators/index.md), published at
+  https://trungnd1985.github.io/quick-builder/: install, configure, reverse proxy and TLS,
+  back up and restore, upgrade, troubleshooting, security checklist
+- [Configuration reference](docs/operators/reference/configuration.md): every setting
 - [Contributing](docs/contributing.md): the code, tests and conventions

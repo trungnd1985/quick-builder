@@ -180,6 +180,52 @@ jobs:
       - run: npm run lint
       - run: npm run test
 
+  # 026 T021, T047 (research OD-10): the operator documentation on every change. The
+  # configuration reference must match the product, every lint rule must pass, and the site
+  # must build without a dead link or anything loaded from a third party. The settings tests
+  # themselves (reference current, every read key declared) run with the backend tests.
+  docs:
+    name: Operator docs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: docs/operators/package-lock.json
+
+      - name: Build the docs tool
+        run: dotnet build tools/QuickBuilder.Docs --configuration Release --nologo -v q
+
+      - name: The configuration reference matches the product
+        run: dotnet tools/QuickBuilder.Docs/bin/Release/net10.0/qb-docs.dll settings check
+
+      - name: Lint
+        run: dotnet tools/QuickBuilder.Docs/bin/Release/net10.0/qb-docs.dll lint
+
+      - name: Build the site
+        working-directory: docs/operators
+        env:
+          QB_DOCS_BASE: /quick-builder/dev/
+          QB_DOCS_RELEASE: development build
+        run: |
+          npm ci
+          npm run build
+
+      - name: Nothing is loaded from third parties
+        working-directory: docs/operators
+        run: |
+          if grep -rlE '<script[^>]+src="https?:|<link[^>]+href="https?:' .vitepress/dist; then
+            echo "::error::The built site loads a script or stylesheet from another host."
+            exit 1
+          fi
+
   image:
     name: Build container image
     runs-on: ubuntu-latest
@@ -224,6 +270,10 @@ jobs:
       - name: Operator-visible changes carry a release-note fragment
         if: github.event_name == 'pull_request'
         run: dotnet run --project tools/QuickBuilder.Release -- fragment check --base "origin/${{ github.base_ref }}"
+
+      # 026 T031 (research OD-05): needs the release tags, which only this job fetches.
+      - name: Documented keys keep their spelling since the last release
+        run: dotnet test tests/QuickBuilder.UnitTests --configuration Release --filter "FullyQualifiedName~Every_key_documented_in_v0_1_0_keeps_its_spelling"
 
   # 012 FR-041: the reference deployment journey, on the built image with the reference
   # compose file. A required check: if the image, the compose file or the journey

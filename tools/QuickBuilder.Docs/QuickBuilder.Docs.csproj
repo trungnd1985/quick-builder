@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    026 research OD-04: the operator documentation tool. Never shipped in the image; run by CI,
+    by the release workflow and by contributors (dotnet run, project tools/QuickBuilder.Docs,
+    then the command). It references the Host so that every module's options classes are
+    loaded for the configuration reference.
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>qb-docs</AssemblyName>
+    <RootNamespace>QuickBuilder.Docs</RootNamespace>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\QuickBuilder.Host\QuickBuilder.Host.csproj" />
+    <!--
+      Aliased for the same reason as in the unit tests: the release tool compiles in
+      Shared.Infrastructure's SemanticVersion, which the Host also brings.
+    -->
+    <ProjectReference Include="..\QuickBuilder.Release\QuickBuilder.Release.csproj" Aliases="releasetool" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="QuickBuilder.UnitTests" />
+    <InternalsVisibleTo Include="QuickBuilder.IntegrationTests" />
+    <InternalsVisibleTo Include="QuickBuilder.SmokeTests" />
+  </ItemGroup>
+
+</Project>

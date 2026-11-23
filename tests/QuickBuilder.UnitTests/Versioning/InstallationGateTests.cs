@@ -94,7 +94,10 @@ public sealed class InstallationGateTests
         Assert.Equal(GateOutcome.RefuseNewer, decision.Outcome);
         Assert.Contains(recorded, decision.Refusal!.LogMessage, StringComparison.Ordinal);
         Assert.Contains(running, decision.Refusal.LogMessage, StringComparison.Ordinal);
-        Assert.Contains("#rolling-back", decision.Refusal.LogMessage, StringComparison.Ordinal);
+        // 026 OD-11: the published upgrade guide of the running release line.
+        var line = $"{V(running).Major}.{V(running).Minor}";
+        Assert.Contains($"{ApplicationVersion.DocsBaseUrl}{line}/upgrade#database-newer", decision.Refusal.LogMessage, StringComparison.Ordinal);
+        Assert.DoesNotContain("github.com", decision.Refusal.LogMessage, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -105,7 +108,7 @@ public sealed class InstallationGateTests
         Assert.Equal(GateOutcome.RefuseTooOld, decision.Outcome);
         Assert.Contains("1.2.0", decision.Refusal!.LogMessage, StringComparison.Ordinal);
         Assert.Contains("1.5.0", decision.Refusal.LogMessage, StringComparison.Ordinal);
-        Assert.Contains("#upgrade-path", decision.Refusal.LogMessage, StringComparison.Ordinal);
+        Assert.Contains($"{ApplicationVersion.DocsBaseUrl}2.1/upgrade#database-too-old", decision.Refusal.LogMessage, StringComparison.Ordinal);
     }
 
     [Fact]

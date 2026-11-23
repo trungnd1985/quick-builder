@@ -78,3 +78,11 @@ These are loaded only when an operator selects `Storage:Provider = S3` or `Azure
 These send form notifications through the operator's SMTP server (018). They make no
 connection unless `Email:Smtp:Host` is set. BouncyCastle comes with MimeKit for S/MIME,
 which QuickBuilder does not use.
+
+## Published operator documentation
+
+The operator documentation site published for each release (built from `docs/operators/`,
+never part of the Docker image) is generated with [VitePress](https://github.com/vuejs/vitepress)
+1.6.4, and its pages include the VitePress default theme's scripts and styles, together with
+[Vue](https://github.com/vuejs/core) and the [MiniSearch](https://github.com/lucaong/minisearch)
+local search index. All are used under the MIT License.
