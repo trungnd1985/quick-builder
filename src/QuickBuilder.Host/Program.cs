@@ -188,8 +188,8 @@ await StartupTasks.CheckAdminHostNamesAsync(app).ConfigureAwait(false);
 // anonymous browser, or it could never show the sign-in screen.
 var hosting = app.Services.GetRequiredService<IOptions<HostingOptions>>().Value;
 
-// #50: Admin:PathPrefix never moved the admin and is no longer read; tell whoever still sets
-// it, naming the address from the validated base path.
+// #50: Admin:PathPrefix never moved the admin and nothing uses it any more; it is read here
+// only to warn whoever still sets it, naming the address from the validated base path.
 if (!string.IsNullOrEmpty(app.Configuration["Admin:PathPrefix"]))
 {
     app.Logger.LogWarning(
