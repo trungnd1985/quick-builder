@@ -1,6 +1,6 @@
 // Typed client for a site's redirects (017 contracts/seo-api.yaml).
 
-import { request } from './request'
+import { API_ROOT, request } from './request'
 
 export { ApiError } from './request'
 
@@ -103,5 +103,5 @@ export const redirectsApi = {
     request<ImportResult>(`${root(siteId)}/import`, { method: 'POST', body: file, headers: { 'content-type': 'text/csv' } }),
 
   /** Where the browser downloads the export from. */
-  exportUrl: (siteId: string): string => `/api/v1${root(siteId)}/export`,
+  exportUrl: (siteId: string): string => `${API_ROOT}${root(siteId)}/export`,
 }

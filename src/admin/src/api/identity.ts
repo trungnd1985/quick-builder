@@ -1,5 +1,6 @@
 // Typed client for the Identity module (002 contracts/identity-api.yaml).
 
+import { ADMIN_BASE } from '../app/base'
 import { request } from './request'
 
 export type SiteRoleName = 'designer' | 'editor'
@@ -110,5 +111,5 @@ export const usersApi = {
  * (002 FR-011b). The token goes in the fragment, which browsers never send to a server.
  */
 export function setPasswordUrl(token: string): string {
-  return `${window.location.origin}${import.meta.env.BASE_URL}set-password#token=${encodeURIComponent(token)}`
+  return `${window.location.origin}${ADMIN_BASE}set-password#token=${encodeURIComponent(token)}`
 }

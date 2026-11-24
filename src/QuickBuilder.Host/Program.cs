@@ -231,8 +231,8 @@ app.MapControllers();
 
 // FR-043: any /admin/* deep link returns the SPA shell so client-side routing can take
 // over. Without this, refreshing on a nested admin route 404s. Anonymous: the shell has to
-// load before anyone can sign in.
-app.MapFallbackToFile($"{RoutePrefixes.Admin}/{{*path:nonfile}}", "admin/index.html")
+// load before anyone can sign in. #51: served with its addresses under the base path.
+app.MapFallback($"{RoutePrefixes.Admin}/{{*path:nonfile}}", AdminShell.ServeAsync)
     .AllowAnonymous();
 
 await app.RunAsync().ConfigureAwait(false);
