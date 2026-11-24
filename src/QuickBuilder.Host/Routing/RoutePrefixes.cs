@@ -27,7 +27,8 @@ namespace QuickBuilder.Host.Routing;
 public static class RoutePrefixes
 {
     public const string Api = "/api";
-    public const string Admin = "/admin";
+    /// <summary>The admin app (FR-043); the same value every module links to (#53).</summary>
+    public const string Admin = QuickBuilder.Shared.Kernel.Routing.AdminRoutes.Root;
     public const string Health = "/health";
 
     /// <summary>Where each site serves its media files (003 research M-11).</summary>

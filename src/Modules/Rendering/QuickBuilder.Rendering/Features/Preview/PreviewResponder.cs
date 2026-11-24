@@ -79,7 +79,7 @@ internal sealed class PreviewResponder(
     ILogger<PreviewResponder> logger)
 {
     /// <summary>The admin app's root, under the base path, for the member bar's links.</summary>
-    private const string AdminRoot = "/admin";
+    private const string AdminRoot = QuickBuilder.Shared.Kernel.Routing.AdminRoutes.Root;
 
     public async Task<PreviewOutcome> RespondAsync(PreviewRequest request, CancellationToken cancellationToken)
     {
