@@ -46,7 +46,15 @@ public sealed class DeprecatedAdminPathPrefixTests(DatabaseFixture database) : I
     private QuickBuilderApp Start(Dictionary<string, string> settings)
     {
         var app = new QuickBuilderApp(_connectionString, settings: settings);
-        _ = app.Services; // builds and starts the host
-        return app;
+        try
+        {
+            _ = app.Services; // builds and starts the host
+            return app;
+        }
+        catch
+        {
+            app.Dispose();
+            throw;
+        }
     }
 }

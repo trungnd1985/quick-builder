@@ -154,14 +154,6 @@ var app = builder.Build();
 // 019 FR-006: every start, command or server, says which release it is before anything else.
 app.Logger.LogInformation("QuickBuilder {Version}", applicationVersion.Describe());
 
-// #50: Admin:PathPrefix never moved the admin and is no longer read; tell whoever still sets it.
-if (!string.IsNullOrEmpty(app.Configuration["Admin:PathPrefix"]))
-{
-    app.Logger.LogWarning(
-        "Admin:PathPrefix is deprecated and ignored: the admin is served at {AdminPath}. Remove the setting.",
-        $"{app.Configuration["Hosting:BasePath"]?.TrimEnd('/')}/admin");
-}
-
 // --- Commands ----------------------------------------------------------------------
 // `dotnet QuickBuilder.Host.dll <command>` runs a registered IHostCommand and exits
 // instead of serving HTTP: `migrate` (FR-023) and the modules' operator commands
@@ -195,6 +187,15 @@ await StartupTasks.CheckAdminHostNamesAsync(app).ConfigureAwait(false);
 // Static files come before authentication: the admin shell's assets must load for an
 // anonymous browser, or it could never show the sign-in screen.
 var hosting = app.Services.GetRequiredService<IOptions<HostingOptions>>().Value;
+
+// #50: Admin:PathPrefix never moved the admin and is no longer read; tell whoever still sets
+// it, naming the address from the validated base path.
+if (!string.IsNullOrEmpty(app.Configuration["Admin:PathPrefix"]))
+{
+    app.Logger.LogWarning(
+        "Admin:PathPrefix is deprecated and ignored: the admin is served at {AdminPath}. Remove the setting.",
+        hosting.BasePath.TrimEnd('/') + RoutePrefixes.Admin);
+}
 
 app.UseForwardedHeaders(ProxySetup.BuildOptions(hosting));
 
