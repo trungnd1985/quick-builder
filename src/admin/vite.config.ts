@@ -6,11 +6,15 @@ const contractsDir = fileURLToPath(new URL('../../docs/contracts', import.meta.u
 
 // FR-035: the admin app is built into the host's wwwroot at image build time. No Node
 // process runs at runtime.
-// FR-043: the app is served under /admin, so every asset URL must be prefixed.
+// FR-043: the app is served under /admin, itself under Hosting:BasePath when one is set.
 // FR-046: Vite's content-hashed filenames are what make an upgrade unable to serve a
 // stale mix of old and new assets.
-export default defineConfig({
-  base: '/admin/',
+export default defineConfig(({ command }) => ({
+  // #51: the base path is an operator setting, so a build uses relative addresses and the
+  // same files work under any of them; the host makes the shell's own addresses absolute
+  // when it serves it (AdminShell), and src/app/base.ts finds the admin's address at run
+  // time. The dev server keeps the fixed base.
+  base: command === 'build' ? './' : '/admin/',
   plugins: [vue()],
   resolve: {
     alias: {
@@ -46,4 +50,4 @@ export default defineConfig({
     globals: true,
     include: ['tests/**/*.spec.ts'],
   },
-})
+}))

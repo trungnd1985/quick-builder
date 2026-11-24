@@ -5,7 +5,10 @@
 // the request header that proves a call came from this app (002 research R-11), sending
 // the session cookie, and what to do when the server says "sign in" or "set up first".
 
-export const API_ROOT = '/api/v1'
+import { APP_ROOT } from '../app/base'
+
+/** Under the installation's base path, like everything the host serves (#51). */
+export const API_ROOT = `${APP_ROOT}api/v1`
 
 export interface ProblemDetails {
   title: string
