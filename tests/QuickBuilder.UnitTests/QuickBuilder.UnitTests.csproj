@@ -43,6 +43,8 @@
       `extern alias releasetool`.
     -->
     <ProjectReference Include="..\..\tools\QuickBuilder.Release\QuickBuilder.Release.csproj" Aliases="releasetool" />
+    <!-- 026 OD-04: the docs tool's catalog, lint checks and snippet runner. -->
+    <ProjectReference Include="..\..\tools\QuickBuilder.Docs\QuickBuilder.Docs.csproj" />
   </ItemGroup>
 
   <!-- 013 T045: images generated at test time (tests/fixtures/media/ImageFixtures.cs). -->

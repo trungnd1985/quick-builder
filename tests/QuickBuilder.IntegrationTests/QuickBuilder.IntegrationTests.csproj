@@ -26,6 +26,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\QuickBuilder.Host\QuickBuilder.Host.csproj" />
+    <!-- 026 T042: the setting catalog the configuration-read check compares against. -->
+    <ProjectReference Include="..\..\tools\QuickBuilder.Docs\QuickBuilder.Docs.csproj" />
     <ProjectReference Include="..\..\src\Modules\Sites\QuickBuilder.Sites\QuickBuilder.Sites.csproj" />
     <ProjectReference Include="..\..\src\Modules\Identity\QuickBuilder.Identity\QuickBuilder.Identity.csproj" />
     <ProjectReference Include="..\..\src\Modules\Identity\QuickBuilder.Identity.Contracts\QuickBuilder.Identity.Contracts.csproj" />

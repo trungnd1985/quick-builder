@@ -107,6 +107,48 @@ jobs:
           path: notes.md
           retention-days: 7
 
+      # 026 T083 (research OD-09; FR-036, FR-038): the operator documentation of this release,
+      # checked and built before anything else is. A failure here stops the release; the built
+      # site waits for Promote, which publishes it only once the release itself is published.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: docs/operators/package-lock.json
+
+      - name: Build the docs tool
+        run: |
+          dotnet build tools/QuickBuilder.Docs --configuration Release --nologo -v q
+          echo "QB_DOCS=dotnet tools/QuickBuilder.Docs/bin/Release/net10.0/qb-docs.dll" >> "$GITHUB_ENV"
+
+      - name: Upgrade notes are current
+        run: |
+          $QB_DOCS upgrade-notes generate --through "${{ steps.version.outputs.version }}"
+          if [ -n "$(git status --porcelain docs/operators)" ]; then
+            git diff docs/operators
+            echo "::error::docs/operators/upgrade-notes.md is out of date. Run: dotnet run --project tools/QuickBuilder.Docs -- upgrade-notes generate --through ${{ steps.version.outputs.version }}"
+            exit 1
+          fi
+
+      - name: Configuration reference and docs lint
+        run: |
+          $QB_DOCS settings check
+          $QB_DOCS lint
+
+      - name: Build the documentation
+        working-directory: docs/operators
+        run: |
+          version="${{ steps.version.outputs.version }}"
+          IFS=. read -r major minor _ <<< "${version%%-*}"
+          npm ci
+          QB_DOCS_BASE="/${GITHUB_REPOSITORY#*/}/${major}.${minor}/" QB_DOCS_RELEASE="${version}" npm run build
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: docs-site
+          path: docs/operators/.vitepress/dist
+          retention-days: 90
+
   # RL-03: each architecture on its own runner, pushed by digest only; no tag yet. Without a
   # native arm64 runner, arm64 builds under QEMU: slower, same image.
   build:
@@ -273,6 +315,16 @@ jobs:
           path: compose-logs/
           retention-days: 90
 
+  # 026 T084 (FR-043): the install, backup and restore, and reverse proxy pages, run as written
+  # against the candidate digest. Listed in the candidate's gates, so a failure puts the banner
+  # on the draft and Promote refuses it.
+  procedures:
+    name: Documented procedures
+    needs: manifest
+    uses: ./.github/workflows/docs-procedures.yml
+    with:
+      image: ${{ format('{0}@{1}', 'ghcr.io/trungnd1985/quickbuilder', needs.manifest.outputs.digest) }}
+
   # FR-008, RL-09, RL-14, RL-18: one leg per upgrade source. The leg from the previous release
   # (or the baseline) also writes this release's snapshot and drills the rollback.
   upgrade:
@@ -342,7 +394,7 @@ jobs:
   # RL-05: a draft release, with what an operator needs, and a banner when a gate failed.
   candidate:
     name: Candidate
-    needs: [prepare, build, manifest, smoke, arm64-boot, upgrade]
+    needs: [prepare, build, manifest, smoke, arm64-boot, upgrade, procedures]
     if: always() && needs.prepare.result == 'success'
     runs-on: ubuntu-latest
     steps:
@@ -372,7 +424,7 @@ jobs:
       - name: Notes
         run: |
           failed=""
-          for gate in build:${{ needs.build.result }} manifest:${{ needs.manifest.result }} smoke:${{ needs.smoke.result }} arm64-boot:${{ needs.arm64-boot.result }} upgrade:${{ needs.upgrade.result }}; do
+          for gate in build:${{ needs.build.result }} manifest:${{ needs.manifest.result }} smoke:${{ needs.smoke.result }} arm64-boot:${{ needs.arm64-boot.result }} upgrade:${{ needs.upgrade.result }} procedures:${{ needs.procedures.result }}; do
             [ "${gate#*:}" = "success" ] || failed="${failed} ${gate%%:*}"
           done
           {

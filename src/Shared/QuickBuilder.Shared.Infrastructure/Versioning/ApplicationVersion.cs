@@ -17,6 +17,22 @@ public sealed class ApplicationVersion
     /// <summary>The metadata key the Host project writes the floor under.</summary>
     public const string UpgradeFloorKey = "QbUpgradeFloor";
 
+    /// <summary>The metadata key the Host project writes the documentation address under (026 OD-11).</summary>
+    public const string DocsBaseUrlKey = "QbDocsBaseUrl";
+
+    /// <summary>Where the operator documentation is published when a build does not say.</summary>
+    public const string DefaultDocsBaseUrl = "https://trungnd1985.github.io/quick-builder/";
+
+    /// <summary>
+    /// The published operator documentation, from <c>Directory.Build.props</c> through the entry
+    /// assembly; each minor line lives under <c>{DocsBaseUrl}{major}.{minor}/</c>.
+    /// </summary>
+    public static string DocsBaseUrl { get; } =
+        Assembly.GetEntryAssembly()?.GetCustomAttributes<AssemblyMetadataAttribute>()
+            .FirstOrDefault(a => a.Key == DocsBaseUrlKey)?.Value is { Length: > 0 } url
+            ? url
+            : DefaultDocsBaseUrl;
+
     private const int RevisionLength = 12;
 
     private ApplicationVersion(SemanticVersion version, string? revision, SemanticVersion upgradeFloor)

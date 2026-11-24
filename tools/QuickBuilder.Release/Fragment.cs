@@ -25,6 +25,9 @@ internal sealed partial record Fragment(
     IReadOnlyList<string> Manual,
     string Body)
 {
+    /// <summary>Keys this change deprecates (<c>config.deprecated</c>; 026 T096, FR-028).</summary>
+    public IReadOnlyList<string> ConfigDeprecated { get; init; } = [];
+
     internal static readonly string[] Kinds = ["added", "changed", "fixed", "security"];
 
     private const int MaxSentences = 5;
@@ -77,7 +80,7 @@ internal sealed partial record Fragment(
 
             if (indented)
             {
-                if (parent != "config" || key is not ("added" or "changed" or "removed"))
+                if (parent != "config" || key is not ("added" or "changed" or "deprecated" or "removed"))
                 {
                     throw Error(file, i + 1, $"unknown key '{key}'");
                 }
@@ -95,7 +98,7 @@ internal sealed partial record Fragment(
                 case "config":
                     if (value.Length > 0)
                     {
-                        throw Error(file, i + 1, "config holds added, changed and removed, one per line");
+                        throw Error(file, i + 1, "config holds added, changed, deprecated and removed, one per line");
                     }
 
                     break;
@@ -154,7 +157,10 @@ internal sealed partial record Fragment(
             lists.GetValueOrDefault("background", []),
             lists.GetValueOrDefault("caches", []),
             lists.GetValueOrDefault("manual", []),
-            body);
+            body)
+        {
+            ConfigDeprecated = lists.GetValueOrDefault("config.deprecated", []),
+        };
     }
 
     /// <summary><c>[a, "b, c"]</c> → a, b, c — quoted items may hold commas.</summary>

@@ -1,11 +1,13 @@
 using Microsoft.Extensions.Options;
 using QuickBuilder.Media.Domain;
+using QuickBuilder.Shared.Kernel.Settings;
 
 namespace QuickBuilder.Media;
 
 /// <summary>
 /// Operator settings for the media library (003 research, "Configuration keys introduced").
 /// </summary>
+[SettingsSection(SectionName, Area = "media", Title = "Media")]
 internal sealed class MediaOptions
 {
     public const string SectionName = "Media";
@@ -17,6 +19,7 @@ internal sealed class MediaOptions
     internal static readonly TimeSpan MaximumGracePeriod = TimeSpan.FromDays(30);
 
     /// <summary>Largest accepted upload, in bytes. 20 MiB by default (FR-008).</summary>
+    [Setting("The largest file an upload may be, in bytes. The server stops receiving an upload the moment it passes this.", Allowed = "1024 â 1073741824")]
     public long MaxFileSizeBytes { get; set; } = 20 * 1024 * 1024;
 
     /// <summary>
@@ -24,9 +27,11 @@ internal sealed class MediaOptions
     /// post-configuration), so that setting <c>Media__AllowedTypes__0</c> alone narrows the
     /// list instead of overriding one entry of a six-entry default.
     /// </summary>
+    [Setting("Which types uploads may have, decided from each file's contents. Set `Media__AllowedTypes__0`, `__1`, â¦ to narrow the list; any other type (SVG, for example) stops startup.", EntryName = "", DefaultText = "all six: `image/jpeg`, `image/png`, `image/gif`, `image/webp`, `image/avif`, `application/pdf`", Allowed = "a subset of the six default types")]
     public string[] AllowedTypes { get; set; } = [];
 
     /// <summary>How old stored bytes without a library entry must be before the sweep removes them (FR-012).</summary>
+    [Setting("Stored bytes with no library entry (left by a crash or a failed clean-up) are removed by an hourly sweep once they are this old.", Allowed = "`01:00:00` â `30.00:00:00`")]
     public TimeSpan OrphanGracePeriod { get; set; } = TimeSpan.FromDays(1);
 
     internal const long MinimumImagePixels = 1_000_000;
@@ -36,9 +41,11 @@ internal sealed class MediaOptions
     /// Images with more pixels are refused at upload, and never decoded for variants
     /// (013 FR-027, research MV-10). 100 megapixels by default.
     /// </summary>
+    [Setting("Images with more pixels (width Ã height) are refused at upload. Only the image header is read to decide, so an oversized image is never decoded.", Allowed = "1000000 â 1000000000")]
     public long MaxImagePixels { get; set; } = 100_000_000;
 
     /// <summary>Resized copies of images (013 research MV-11, MV-12).</summary>
+    [SettingsGroup("Resized images")]
     public VariantOptions Variants { get; set; } = new();
 
     /// <summary>The allowed types as <see cref="MediaFileType"/>s. Valid only after validation.</summary>
@@ -65,12 +72,15 @@ internal sealed class VariantOptions
     /// post-configuration), so that setting <c>Media__Variants__Widths__0</c> alone replaces the
     /// list rather than one entry of it.
     /// </summary>
+    [Setting("The widths published pages and the admin offer resized copies at. The smallest is the thumbnail width, made right after upload; the others are made the first time they are requested. Set `Media__Variants__Widths__0`, `__1`, â¦ to replace the list; addresses for removed widths stop working.", EntryName = "", DefaultText = "`320`, `640`, `960`, `1280`, `1920`, `2560`", Allowed = "1 â 10 widths, ascending, each 64 â 4096")]
     public int[] Widths { get; set; } = [];
 
     /// <summary>How many variants one instance produces at the same time (FR-029).</summary>
+    [Setting("How many resized copies one instance makes at the same time. Requests beyond it wait.", DefaultText = "half the processor count, at least 1", Allowed = "1 â 64")]
     public int MaxConcurrent { get; set; } = Math.Max(1, Environment.ProcessorCount / 2);
 
     /// <summary>How long producing one variant may take, waiting included, before the original is used (FR-029).</summary>
+    [Setting("How long making one resized copy may take, waiting included. Past it, the original is sent and the file stops offering resized copies until it is replaced.", Allowed = "`00:00:01` â `00:01:00`")]
     public TimeSpan Timeout { get; set; } = TimeSpan.FromSeconds(10);
 
     /// <summary>The thumbnail width: the smallest configured width (013 clarification).</summary>

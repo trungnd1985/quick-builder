@@ -47,7 +47,7 @@ internal static class FragmentCheck
 
     private static bool NeedsFragment(char status, string path) =>
         (status == 'A' && MigrationFreeze.IsMigration(path))
-        || path == ConfigurationKeys.Guide
+        || ConfigurationKeys.IsGuide(path)
         || path == "docker-compose.yml"
         || (path.StartsWith("docs/contracts/", StringComparison.Ordinal) && !path.Contains("/examples/", StringComparison.Ordinal));
 }
