@@ -3,6 +3,7 @@ using System.Text;
 using QuickBuilder.Forms.Domain;
 using QuickBuilder.Rendering.Contracts;
 using QuickBuilder.Shared.Infrastructure.Email;
+using QuickBuilder.Shared.Kernel.Routing;
 
 namespace QuickBuilder.Forms.Infrastructure;
 
@@ -13,14 +14,11 @@ namespace QuickBuilder.Forms.Infrastructure;
 /// </summary>
 internal sealed record AdminLinks(string PublicUrl)
 {
-    /// <summary>Where the host serves the admin app; fixed, like the host's own route.</summary>
-    private const string AdminRoot = "/admin";
-
     public bool CanLink => !string.IsNullOrWhiteSpace(PublicUrl);
 
     /// <summary>The submission's page in the admin, or null when there is no public URL.</summary>
     public string? Submission(Guid siteId, Guid submissionId) =>
-        CanLink ? $"{PublicUrl.TrimEnd('/')}{AdminRoot}/sites/{siteId}/submissions/{submissionId}" : null;
+        CanLink ? $"{PublicUrl.TrimEnd('/')}{AdminRoutes.Root}/sites/{siteId}/submissions/{submissionId}" : null;
 }
 
 /// <summary>

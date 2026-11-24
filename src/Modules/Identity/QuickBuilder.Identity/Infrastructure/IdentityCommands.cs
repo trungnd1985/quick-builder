@@ -8,6 +8,7 @@ using QuickBuilder.Identity.Domain.Details;
 using QuickBuilder.Identity.Infrastructure.Security;
 using QuickBuilder.Shared.Infrastructure.Commands;
 using QuickBuilder.Shared.Kernel.Authorization;
+using QuickBuilder.Shared.Kernel.Routing;
 
 namespace QuickBuilder.Identity.Infrastructure;
 
@@ -134,8 +135,8 @@ internal sealed class IdentityCommands(
     private async Task PrintLinkAsync(TextWriter output, IssuedLink link)
     {
         var basePath = (configuration["Hosting:BasePath"] ?? string.Empty).TrimEnd('/');
-        // The admin app is served at /admin under the base path; the host's route is fixed.
-        var adminPart = $"/admin/set-password#token={Uri.EscapeDataString(link.Token)}";
+        // The admin app is served at AdminRoutes.Root under the base path, as the host routes it.
+        var adminPart = $"{AdminRoutes.Root}/set-password#token={Uri.EscapeDataString(link.Token)}";
         var path = basePath + adminPart;
         var expires = link.ExpiresAtUtc.ToString("yyyy-MM-ddTHH:mm:ssZ", CultureInfo.InvariantCulture);
 
