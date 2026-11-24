@@ -22,12 +22,14 @@ None.
 - Forward /_preview/ through reverse proxies that only pass selected paths (#22)
 - Each open editor or item form sends a small request every 10 seconds; a reverse proxy that rate-limits the admin API must allow it. (#23)
 - Reload admin tabs left open from before the upgrade to get presence and locks; until then their saves are still protected against overwriting. (#23)
+- If you set Admin:PathPrefix (Admin__PathPrefix), remove it: the admin has always been served at /admin, the setting is now ignored, and startup logs a warning while it is set. (#50)
 
 ### Configuration
 
 - Added [`SiteTransfer:MaxUploadSizeBytes`](reference/configuration.md#sitetransfer-maxuploadsizebytes) (#20)
 - Added [`Trash:RetentionDays`](reference/configuration.md#trash-retentiondays) (#21)
 - Added [`Preview:LinksValidFrom`](reference/configuration.md#preview-linksvalidfrom) (#22)
+- Deprecated [`Admin:PathPrefix`](reference/configuration.md#admin-pathprefix) (#50)
 
 ### Background work after upgrading
 

@@ -134,8 +134,9 @@ internal sealed class IdentityCommands(
     private async Task PrintLinkAsync(TextWriter output, IssuedLink link)
     {
         var basePath = (configuration["Hosting:BasePath"] ?? string.Empty).TrimEnd('/');
-        var adminPrefix = (configuration["Admin:PathPrefix"] ?? "/admin").TrimEnd('/');
-        var path = $"{basePath}{adminPrefix}/set-password#token={Uri.EscapeDataString(link.Token)}";
+        // The admin app is served at /admin under the base path; the host's route is fixed.
+        var adminPart = $"/admin/set-password#token={Uri.EscapeDataString(link.Token)}";
+        var path = basePath + adminPart;
         var expires = link.ExpiresAtUtc.ToString("yyyy-MM-ddTHH:mm:ssZ", CultureInfo.InvariantCulture);
 
         await output.WriteLineAsync($"Set-password link (expires {expires}):").ConfigureAwait(false);
@@ -145,7 +146,7 @@ internal sealed class IdentityCommands(
         {
             // Hosting:PublicUrl is the address operators reach the installation at, base
             // path included, so only the admin part is appended.
-            await output.WriteLineAsync($"{publicAddress}{adminPrefix}/set-password#token={Uri.EscapeDataString(link.Token)}").ConfigureAwait(false);
+            await output.WriteLineAsync(publicAddress + adminPart).ConfigureAwait(false);
             return;
         }
 

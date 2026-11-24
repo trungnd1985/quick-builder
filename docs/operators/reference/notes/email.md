@@ -7,7 +7,7 @@ is `None` and a user name is set for a mail server on another machine: the passw
 cross the network unencrypted. On the same machine (`localhost`, `127.0.0.1`, `::1`) that is
 allowed.
 
-Links in notifications point at the submission in the admin and are built from
-`Hosting:PublicUrl` and `Admin:PathPrefix`, never from a request. With email on and
+Links in notifications point at the submission in the admin (under `/admin`) and are built
+from `Hosting:PublicUrl`, never from a request. With email on and
 `Hosting:PublicUrl` empty, emails say "Open Submissions in the admin" without a link, and
 startup logs a warning.

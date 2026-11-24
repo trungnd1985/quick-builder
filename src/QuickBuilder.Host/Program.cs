@@ -70,12 +70,6 @@ builder.Services
     .ValidateOnStart();
 builder.Services.AddSingleton<QuickBuilder.Shared.Infrastructure.Trash.TrashRetention>();
 
-builder.Services
-    .AddOptions<AdminOptions>()
-    .Bind(builder.Configuration.GetSection(AdminOptions.SectionName))
-    .ValidateDataAnnotations()
-    .ValidateOnStart();
-
 // 012 research PR-07: the in-memory cache's size bound.
 builder.Services
     .AddOptions<CacheOptions>()
@@ -159,6 +153,14 @@ var app = builder.Build();
 
 // 019 FR-006: every start, command or server, says which release it is before anything else.
 app.Logger.LogInformation("QuickBuilder {Version}", applicationVersion.Describe());
+
+// #50: Admin:PathPrefix never moved the admin and is no longer read; tell whoever still sets it.
+if (!string.IsNullOrEmpty(app.Configuration["Admin:PathPrefix"]))
+{
+    app.Logger.LogWarning(
+        "Admin:PathPrefix is deprecated and ignored: the admin is served at {AdminPath}. Remove the setting.",
+        $"{app.Configuration["Hosting:BasePath"]?.TrimEnd('/')}/admin");
+}
 
 // --- Commands ----------------------------------------------------------------------
 // `dotnet QuickBuilder.Host.dll <command>` runs a registered IHostCommand and exits
