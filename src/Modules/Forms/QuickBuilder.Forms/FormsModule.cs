@@ -101,7 +101,7 @@ public static class FormsModule
         services.AddSingleton(sp =>
         {
             var settings = sp.GetRequiredService<IConfiguration>();
-            return new AdminLinks(settings["Hosting:PublicUrl"] ?? string.Empty, settings["Admin:PathPrefix"] is { Length: > 0 } prefix ? prefix : "/admin");
+            return new AdminLinks(settings["Hosting:PublicUrl"] ?? string.Empty);
         });
         services.AddScoped<NotificationComposer>();
         services.AddSingleton<NotificationWorker>();

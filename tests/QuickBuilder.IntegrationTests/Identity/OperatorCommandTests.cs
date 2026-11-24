@@ -105,6 +105,21 @@ public sealed class OperatorCommandTests(DatabaseFixture database) : IAsyncLifet
         Assert.Contains("https://cms.example.com/admin/set-password#token=", output, StringComparison.Ordinal);
     }
 
+    /// <summary>#50: the deprecated Admin:PathPrefix never moved the admin, so links ignore it.</summary>
+    [Fact]
+    public async Task Recovery_link_points_at_the_admin_whatever_Admin_PathPrefix_says()
+    {
+        using var app = new PublicUrlApp(_connectionString, "https://cms.example.com", adminPathPrefix: "/manage");
+        await IdentitySeed.ClaimInstallationAsync(app.Services).ConfigureAwait(true);
+        await IdentitySeed.SeedUserAsync(app.Services, email: "chief@example.test", administrator: true).ConfigureAwait(true);
+
+        var (exit, output) = await RunAsync(app, "identity", "recovery-link", "--email", "chief@example.test").ConfigureAwait(true);
+
+        Assert.Equal(0, exit);
+        Assert.Contains("https://cms.example.com/admin/set-password#token=", output, StringComparison.Ordinal);
+        Assert.DoesNotContain("/manage", output, StringComparison.Ordinal);
+    }
+
     [Theory]
     [InlineData("nobody@example.test")]
     [InlineData("editor@example.test")]
@@ -191,7 +206,7 @@ public sealed class OperatorCommandTests(DatabaseFixture database) : IAsyncLifet
     }
 
     /// <summary>The application with <c>Hosting:PublicUrl</c> set.</summary>
-    private sealed class PublicUrlApp(string connectionString, string publicUrl) : WebApplicationFactory<Program>
+    private sealed class PublicUrlApp(string connectionString, string publicUrl, string? adminPathPrefix = null) : WebApplicationFactory<Program>
     {
         protected override void ConfigureWebHost(IWebHostBuilder builder)
         {
@@ -199,6 +214,10 @@ public sealed class OperatorCommandTests(DatabaseFixture database) : IAsyncLifet
             builder.UseSetting("ConnectionStrings:Default", connectionString);
             builder.UseSetting("Outbox:Enabled", "false");
             builder.UseSetting("Hosting:PublicUrl", publicUrl);
+            if (adminPathPrefix is not null)
+            {
+                builder.UseSetting("Admin:PathPrefix", adminPathPrefix);
+            }
         }
     }
 }

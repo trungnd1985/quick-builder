@@ -32,7 +32,6 @@ public sealed class ValidationMessagesNameTheirKeyTests(DatabaseFixture database
         { "Hosting:BasePath", "cms" },
         { "Hosting:PublicUrl", "cms.example.com" },
         { "Hosting:AdminHostNames:0", "https://admin.example.com/" },
-        { "Admin:PathPrefix", "admin" },
         { "Identity:Session:IdleTimeout", "00:01:00" },
         { "Identity:Session:AbsoluteLifetime", "31.00:00:00" },
         { "Identity:SignIn:ClientFailureThreshold", "1" },

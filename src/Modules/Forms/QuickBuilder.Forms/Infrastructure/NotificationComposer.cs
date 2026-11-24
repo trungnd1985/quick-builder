@@ -8,16 +8,19 @@ namespace QuickBuilder.Forms.Infrastructure;
 
 /// <summary>
 /// Where the admin is reached from outside, for the link in a notification (018 research FS-19).
-/// Built from <c>Hosting:PublicUrl</c> and <c>Admin:PathPrefix</c>, never from a request
-/// (002 FR-011b). An empty public URL means emails carry no link.
+/// Built from <c>Hosting:PublicUrl</c>, never from a request (002 FR-011b). An empty public
+/// URL means emails carry no link.
 /// </summary>
-internal sealed record AdminLinks(string PublicUrl, string AdminPathPrefix)
+internal sealed record AdminLinks(string PublicUrl)
 {
+    /// <summary>Where the host serves the admin app; fixed, like the host's own route.</summary>
+    private const string AdminRoot = "/admin";
+
     public bool CanLink => !string.IsNullOrWhiteSpace(PublicUrl);
 
     /// <summary>The submission's page in the admin, or null when there is no public URL.</summary>
     public string? Submission(Guid siteId, Guid submissionId) =>
-        CanLink ? $"{PublicUrl.TrimEnd('/')}{AdminPathPrefix.TrimEnd('/')}/sites/{siteId}/submissions/{submissionId}" : null;
+        CanLink ? $"{PublicUrl.TrimEnd('/')}{AdminRoot}/sites/{siteId}/submissions/{submissionId}" : null;
 }
 
 /// <summary>

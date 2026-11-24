@@ -70,12 +70,6 @@ builder.Services
     .ValidateOnStart();
 builder.Services.AddSingleton<QuickBuilder.Shared.Infrastructure.Trash.TrashRetention>();
 
-builder.Services
-    .AddOptions<AdminOptions>()
-    .Bind(builder.Configuration.GetSection(AdminOptions.SectionName))
-    .ValidateDataAnnotations()
-    .ValidateOnStart();
-
 // 012 research PR-07: the in-memory cache's size bound.
 builder.Services
     .AddOptions<CacheOptions>()
@@ -193,6 +187,15 @@ await StartupTasks.CheckAdminHostNamesAsync(app).ConfigureAwait(false);
 // Static files come before authentication: the admin shell's assets must load for an
 // anonymous browser, or it could never show the sign-in screen.
 var hosting = app.Services.GetRequiredService<IOptions<HostingOptions>>().Value;
+
+// #50: Admin:PathPrefix never moved the admin and is no longer read; tell whoever still sets
+// it, naming the address from the validated base path.
+if (!string.IsNullOrEmpty(app.Configuration["Admin:PathPrefix"]))
+{
+    app.Logger.LogWarning(
+        "Admin:PathPrefix is deprecated and ignored: the admin is served at {AdminPath}. Remove the setting.",
+        hosting.BasePath.TrimEnd('/') + RoutePrefixes.Admin);
+}
 
 app.UseForwardedHeaders(ProxySetup.BuildOptions(hosting));
 

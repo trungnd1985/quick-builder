@@ -21,7 +21,7 @@ public sealed class NotificationComposerTests
          {"fieldId":"p1","label":"Phone","type":"tel","value":""}]
         """;
 
-    private static readonly AdminLinks WithLink = new("https://cms.example.com/", "/admin");
+    private static readonly AdminLinks WithLink = new("https://cms.example.com/");
 
     private static Submission Submission(string values = Values) =>
         QuickBuilder.Forms.Domain.Submission.Receive(Site, new SubmissionReceipt(
@@ -85,7 +85,7 @@ public sealed class NotificationComposerTests
     [Fact]
     public void Without_a_public_url_the_email_says_where_to_look_instead_of_linking()
     {
-        var body = Composer(new AdminLinks("", "/admin")).Compose(Submission(), Form(), "Acme", "en").TextBody;
+        var body = Composer(new AdminLinks("")).Compose(Submission(), Form(), "Acme", "en").TextBody;
 
         Assert.Contains("Open Submissions in the admin to read it.", body, StringComparison.Ordinal);
         Assert.DoesNotContain("http", body, StringComparison.Ordinal);

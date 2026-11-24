@@ -512,7 +512,8 @@ BouncyCastle for S/MIME, which is not used). Listed in `THIRD-PARTY-NOTICES.md`.
 - **Link**: built from `Hosting:PublicUrl` + `Admin:PathPrefix` + the submission's route. It
   is never derived from the request (002 FR-011b). When `PublicUrl` is empty, the email says
   "Open Submissions in the admin" without a link, and startup logs a warning if SMTP is
-  configured.
+  configured. **Superseded** (#50): `Admin:PathPrefix` never moved the admin, so the link
+  uses the fixed `/admin`; the key is deprecated and ignored.
 - **Reply address**: FR-033. Never with values off.
 
 ---

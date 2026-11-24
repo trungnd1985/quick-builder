@@ -67,15 +67,16 @@ the setting (or fix it) and restart: it is the only thing that confines the admi
 
 ## Admin
 
-The admin requires sign-in. A fresh installation is claimed through the setup wizard with a
-one-time code printed in the logs, and until setup is finished whoever has that code can
-become the administrator. The reference `docker-compose.yml` therefore publishes the app on
+The admin is served at `/admin`, under `Hosting:BasePath` when one is set. It requires
+sign-in. A fresh installation is claimed through the setup wizard with a one-time code
+printed in the logs, and until setup is finished whoever has that code can become the
+administrator. The reference `docker-compose.yml` therefore publishes the app on
 `127.0.0.1`. Finish setup first; if you then widen the binding, follow the
 [security checklist](../security-checklist.md).
 
 | Key | Environment variable | Type | Default | Allowed values | Description |
 |---|---|---|---|---|---|
-| `Admin:PathPrefix` | `Admin__PathPrefix` | text | `/admin` | a path of one segment starting with `/` | <a id="admin-pathprefix"></a>Where the admin interface is served. Reserved ahead of every site's pages. |
+| `Admin:PathPrefix` | `Admin__PathPrefix` | text | *(empty)* | — | <a id="admin-pathprefix"></a>Ignored, with a warning at startup when set. The admin is always served at `/admin`, under `Hosting:BasePath` when one is set; remove this key from your configuration. **Deprecated**; removed in 1.0.0. |
 
 ## Identity
 
@@ -255,8 +256,8 @@ is `None` and a user name is set for a mail server on another machine: the passw
 cross the network unencrypted. On the same machine (`localhost`, `127.0.0.1`, `::1`) that is
 allowed.
 
-Links in notifications point at the submission in the admin and are built from
-`Hosting:PublicUrl` and `Admin:PathPrefix`, never from a request. With email on and
+Links in notifications point at the submission in the admin (under `/admin`) and are built
+from `Hosting:PublicUrl`, never from a request. With email on and
 `Hosting:PublicUrl` empty, emails say "Open Submissions in the admin" without a link, and
 startup logs a warning.
 

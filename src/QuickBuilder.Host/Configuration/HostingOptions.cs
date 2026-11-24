@@ -118,20 +118,20 @@ public sealed class OutboxOptions
 }
 
 /// <summary>Admin surface configuration.</summary>
+/// <remarks>
+/// Kept only so the reference keeps documenting a key 0.1.0 shipped until it is removed
+/// (#50). Nothing binds it; Program.cs reads it only to warn that it is ignored. The admin
+/// is served at <c>RoutePrefixes.Admin</c>.
+/// </remarks>
 [SettingsSection(SectionName, Area = "admin", Title = "Admin")]
 public sealed class AdminOptions
 {
     public const string SectionName = "Admin";
 
-    /// <summary>
-    /// Path prefix the admin single-page app is served from (FR-042). Reserved ahead of
-    /// the public catch-all.
-    /// </summary>
-    [Required]
-    [RegularExpression("^/[A-Za-z0-9._~-]+$", ErrorMessage = "Admin:PathPrefix must start with '/'.")]
-    [Setting("Where the admin interface is served. Reserved ahead of every site's pages.",
-        Format = "a path of one segment starting with `/`")]
-    public string PathPrefix { get; set; } = "/admin";
+    /// <summary>Never moved the admin; it only changed links, which then led nowhere (#50).</summary>
+    [DeprecatedSetting("1.0.0")]
+    [Setting("Ignored, with a warning at startup when set. The admin is always served at `/admin`, under `Hosting:BasePath` when one is set; remove this key from your configuration.")]
+    public string? PathPrefix { get; set; }
 }
 
 /// <summary>
