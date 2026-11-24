@@ -213,6 +213,6 @@ public sealed class CreateSiteController(IDispatcher dispatcher) : ControllerBas
             return ErrorResults.ToActionResult(result.Error);
         }
 
-        return Created($"/api/v1/sites/{result.Value.Id}", result.Value);
+        return Created($"{Request.PathBase}/api/v1/sites/{result.Value.Id}", result.Value);
     }
 }

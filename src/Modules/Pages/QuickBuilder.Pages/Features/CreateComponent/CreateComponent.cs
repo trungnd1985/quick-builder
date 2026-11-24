@@ -99,6 +99,6 @@ public sealed class CreateComponentController(IDispatcher dispatcher) : Controll
 
         return result.IsFailure
             ? PagesErrorResults.ToActionResult(result.Error)
-            : Created(new Uri($"/api/v1/pages/sites/{siteId}/components/{result.Value.Id}", UriKind.Relative), result.Value);
+            : Created(new Uri($"{Request.PathBase}/api/v1/pages/sites/{siteId}/components/{result.Value.Id}", UriKind.Relative), result.Value);
     }
 }

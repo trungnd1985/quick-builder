@@ -174,6 +174,6 @@ public sealed class CompleteSetupController(IDispatcher dispatcher) : Controller
 
         return result.IsFailure
             ? IdentityProblems.ToActionResult(result.Error)
-            : Created("/api/v1/identity/me", result.Value);
+            : Created($"{Request.PathBase}/api/v1/identity/me", result.Value);
     }
 }

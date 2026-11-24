@@ -107,6 +107,6 @@ public sealed class CopyPageController(IDispatcher dispatcher) : ControllerBase
             new CopyPageCommand(siteId, pageId, request.Document, request.BaseSavedAtUtc, request.Title), cancellationToken).ConfigureAwait(false);
         return result.IsFailure
             ? PagesErrorResults.ToActionResult(result.Error)
-            : Created(new Uri($"/api/v1/pages/sites/{siteId}/pages/{result.Value.Id}", UriKind.Relative), result.Value);
+            : Created(new Uri($"{Request.PathBase}/api/v1/pages/sites/{siteId}/pages/{result.Value.Id}", UriKind.Relative), result.Value);
     }
 }

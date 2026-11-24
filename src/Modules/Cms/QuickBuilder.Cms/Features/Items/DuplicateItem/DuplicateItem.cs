@@ -92,6 +92,6 @@ public sealed class DuplicateItemController(IDispatcher dispatcher) : Controller
         var result = await dispatcher.SendAsync(new DuplicateItemCommand(siteId, collectionId, itemId), cancellationToken).ConfigureAwait(false);
         return result.IsFailure
             ? CmsErrorResults.ToActionResult(result.Error)
-            : Created(new Uri($"/api/v1/cms/sites/{siteId}/collections/{collectionId}/items/{result.Value.Id}", UriKind.Relative), result.Value);
+            : Created(new Uri($"{Request.PathBase}/api/v1/cms/sites/{siteId}/collections/{collectionId}/items/{result.Value.Id}", UriKind.Relative), result.Value);
     }
 }
