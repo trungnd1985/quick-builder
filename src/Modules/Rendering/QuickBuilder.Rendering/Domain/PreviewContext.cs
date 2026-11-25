@@ -1,3 +1,5 @@
+using QuickBuilder.Shared.Kernel.Routing;
+
 namespace QuickBuilder.Rendering.Domain;
 
 /// <summary>Who is looking at a preview (022 research PV-05).</summary>
@@ -39,7 +41,7 @@ internal sealed record PreviewAddresses(
     string FormAction)
 {
     /// <summary>The prefix media addresses carry on the public site (003 research M-11).</summary>
-    public const string PublicMediaPrefix = "/_media";
+    public const string PublicMediaPrefix = PublicRoutes.Media;
 
     /// <summary>
     /// A public media address (<c>/_media/…</c>, without the base path) as the preview serves it;

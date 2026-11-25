@@ -8,6 +8,7 @@ using QuickBuilder.Pages.Contracts.Publishing;
 using QuickBuilder.Rendering.Domain;
 using QuickBuilder.Rendering.Features.RenderPage;
 using QuickBuilder.Rendering.Rendering;
+using QuickBuilder.Shared.Kernel.Routing;
 using QuickBuilder.Sites.Contracts;
 
 namespace QuickBuilder.Rendering.Features.Preview;
@@ -79,7 +80,7 @@ internal sealed class PreviewResponder(
     ILogger<PreviewResponder> logger)
 {
     /// <summary>The admin app's root, under the base path, for the member bar's links.</summary>
-    private const string AdminRoot = QuickBuilder.Shared.Kernel.Routing.AdminRoutes.Root;
+    private const string AdminRoot = AdminRoutes.Root;
 
     public async Task<PreviewOutcome> RespondAsync(PreviewRequest request, CancellationToken cancellationToken)
     {
@@ -98,9 +99,9 @@ internal sealed class PreviewResponder(
         var addresses = new PreviewAddresses(
             site.HostNames.Count > 0 ? site.BaseUrl : null,
             request.MediaPrefix,
-            "/_preview/assets",
+            PublicRoutes.Preview + "/assets",
             request.SelfPath,
-            "/_preview/form");
+            PublicRoutes.Preview + "/form");
         var source = new PreviewContentSource(live, pages, designTokens, addresses);
         source.Record(target.TemplateFromDraft);
         source.Record(target.SampleFromDraft);

@@ -1,4 +1,5 @@
 using QuickBuilder.Identity.Contracts;
+using QuickBuilder.Shared.Kernel.Routing;
 
 namespace QuickBuilder.Identity.Infrastructure.Setup;
 
@@ -13,7 +14,7 @@ namespace QuickBuilder.Identity.Infrastructure.Setup;
 /// </remarks>
 internal sealed class SetupGateMiddleware(RequestDelegate next)
 {
-    private static readonly PathString Api = new("/api");
+    private static readonly PathString Api = new(ApiRoutes.Root);
 
     public async Task InvokeAsync(HttpContext context, IIdentitySetupStatus setupStatus)
     {
@@ -32,8 +33,8 @@ internal sealed class SetupGateMiddleware(RequestDelegate next)
     }
 
     private static bool IsSetupOperation(HttpRequest request) =>
-        (HttpMethods.IsGet(request.Method) && Is(request, "/api/v1/identity/status"))
-        || (HttpMethods.IsPost(request.Method) && Is(request, "/api/v1/identity/setup"));
+        (HttpMethods.IsGet(request.Method) && Is(request, ApiRoutes.Root + "/v1/identity/status"))
+        || (HttpMethods.IsPost(request.Method) && Is(request, ApiRoutes.Root + "/v1/identity/setup"));
 
     private static bool Is(HttpRequest request, string path) =>
         string.Equals(request.Path.Value?.TrimEnd('/'), path, StringComparison.OrdinalIgnoreCase);

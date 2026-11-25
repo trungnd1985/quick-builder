@@ -1,6 +1,7 @@
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using QuickBuilder.Host.Routing;
 using QuickBuilder.Shared.Infrastructure.Modules;
 using QuickBuilder.Shared.Infrastructure.Startup;
 using QuickBuilder.Shared.Infrastructure.Storage;
@@ -47,7 +48,7 @@ public sealed record HealthReport(
 // Orchestrator probes never authenticate, whatever the setup state (002 FR-006,
 // contracts/authorization.md §4).
 [AllowAnonymous]
-[Route("health")]
+[Route(RoutePrefixes.Health)]
 public sealed class HealthController(
     StartupState startupState,
     IEnumerable<IModuleDatabaseProvider> moduleDatabases,

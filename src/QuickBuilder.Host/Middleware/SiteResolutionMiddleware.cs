@@ -99,8 +99,8 @@ internal sealed class SiteResolutionMiddleware(RequestDelegate next, ILogger<Sit
     }
 
     private static bool ServedOnEveryHost(PathString path) =>
-        path.StartsWithSegments("/_media", StringComparison.OrdinalIgnoreCase)
-        || path.StartsWithSegments("/_assets", StringComparison.OrdinalIgnoreCase);
+        path.StartsWithSegments(RoutePrefixes.PublicMedia, StringComparison.OrdinalIgnoreCase)
+        || path.StartsWithSegments(RoutePrefixes.PublicAssets, StringComparison.OrdinalIgnoreCase);
 
     private static bool IsPublicReserved(PathString path) =>
         RoutePrefixes.PublicReservedPrefixes.Any(prefix => path.StartsWithSegments(prefix, StringComparison.OrdinalIgnoreCase));

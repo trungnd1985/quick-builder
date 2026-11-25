@@ -3,6 +3,7 @@ using System.Text.Json;
 using QuickBuilder.Rendering.Contracts;
 using QuickBuilder.Rendering.Domain;
 using QuickBuilder.Rendering.Features.NotFound;
+using QuickBuilder.Shared.Kernel.Routing;
 
 namespace QuickBuilder.Rendering.Rendering.Forms;
 
@@ -54,7 +55,7 @@ internal static class FormMarkup
 
         writer.Open("form").Attribute("class", "qb-form__form").Attribute("method", "post");
         // 022 research PV-12: a preview's forms post to a page that stores and sends nothing.
-        writer.SitePath("action", PageShell.TrimBase(inputs.BasePath) + (inputs.Preview is { } preview ? preview.Addresses.FormAction : "/_forms/" + formId));
+        writer.SitePath("action", PageShell.TrimBase(inputs.BasePath) + (inputs.Preview is { } preview ? preview.Addresses.FormAction : PublicRoutes.Forms + "/" + formId));
         writer.Attribute("data-qb-form", formId)
             .Attribute("data-msg-error", errorMessage)
             .Attribute("data-msg-limited", texts.Limited)

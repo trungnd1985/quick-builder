@@ -7,6 +7,7 @@ using QuickBuilder.Rendering.Contracts;
 using QuickBuilder.Rendering.Domain;
 using QuickBuilder.Rendering.Features.RenderPage;
 using QuickBuilder.Shared.Infrastructure.MultiSite;
+using QuickBuilder.Shared.Kernel.Routing;
 using QuickBuilder.Sites.Contracts;
 
 namespace QuickBuilder.Rendering.Features.Preview;
@@ -33,7 +34,7 @@ namespace QuickBuilder.Rendering.Features.Preview;
 [AllowAnonymous]
 public sealed class LinkPreviewController(IPreviewLinks links, ISiteDirectory sites, ISiteContextSetter siteContext) : ControllerBase
 {
-    private const string Base = "/_preview/l/{secret}";
+    private const string Base = PublicRoutes.Preview + "/l/{secret}";
 
     [HttpGet(Base)]
     [HttpHead(Base)]
@@ -144,8 +145,8 @@ public sealed class LinkPreviewController(IPreviewLinks links, ISiteDirectory si
                 new PreviewTarget(found.DocumentKind, found.DocumentId, found.VersionNumber, found.SampleItemId),
                 PreviewMode.Link,
                 Request.PathBase.Value ?? string.Empty,
-                $"/_preview/l/{secret}",
-                $"/_preview/l/{secret}/media",
+                $"{PublicRoutes.Preview}/l/{secret}",
+                $"{PublicRoutes.Preview}/l/{secret}/media",
                 Request.Query.ToDictionary(q => q.Key, q => (string?)q.Value.FirstOrDefault(), StringComparer.Ordinal),
                 found.ExpiresAtUtc),
             cancellationToken);

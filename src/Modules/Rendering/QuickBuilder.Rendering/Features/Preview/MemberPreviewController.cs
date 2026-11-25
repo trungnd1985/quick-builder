@@ -9,6 +9,7 @@ using QuickBuilder.Rendering.Domain;
 using QuickBuilder.Rendering.Features.RenderPage;
 using QuickBuilder.Shared.Infrastructure.MultiSite;
 using QuickBuilder.Shared.Kernel.Authorization;
+using QuickBuilder.Shared.Kernel.Routing;
 using QuickBuilder.Sites.Contracts;
 
 namespace QuickBuilder.Rendering.Features.Preview;
@@ -36,7 +37,7 @@ public sealed class MemberPreviewController(
     ISiteDirectory sites,
     ISiteContextSetter siteContext) : ControllerBase
 {
-    private const string Base = "/_preview/sites/{siteId:guid}";
+    private const string Base = PublicRoutes.Preview + "/sites/{siteId:guid}";
 
     [HttpGet(Base + "/pages/{pageId:guid}")]
     [HttpHead(Base + "/pages/{pageId:guid}")]
@@ -101,7 +102,7 @@ public sealed class MemberPreviewController(
                     PreviewMode.Member,
                     Request.PathBase.Value ?? string.Empty,
                     Request.Path.Value ?? string.Empty,
-                    $"/_preview/sites/{siteId}/media",
+                    $"{PublicRoutes.Preview}/sites/{siteId}/media",
                     Request.Query.ToDictionary(q => q.Key, q => (string?)q.Value.FirstOrDefault(), StringComparer.Ordinal),
                     ExpiresAt: null),
                 cancellationToken)
@@ -170,8 +171,8 @@ internal static class PreviewMedia
 [AllowAnonymous]
 public sealed class PreviewAssetsController : ControllerBase
 {
-    [HttpGet("/_preview/assets/{**file}")]
-    [HttpHead("/_preview/assets/{**file}")]
+    [HttpGet(PublicRoutes.Preview + "/assets/{**file}")]
+    [HttpHead(PublicRoutes.Preview + "/assets/{**file}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public IActionResult Get(string? file)
@@ -200,8 +201,8 @@ public sealed class PreviewAssetsController : ControllerBase
 [AllowAnonymous]
 public sealed class PreviewFallbackController : ControllerBase
 {
-    [HttpGet("/_preview/{**rest}", Order = int.MaxValue)]
-    [HttpHead("/_preview/{**rest}", Order = int.MaxValue)]
+    [HttpGet(PublicRoutes.Preview + "/{**rest}", Order = int.MaxValue)]
+    [HttpHead(PublicRoutes.Preview + "/{**rest}", Order = int.MaxValue)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public IActionResult Get(string? rest)
     {
@@ -221,7 +222,7 @@ public sealed class PreviewFallbackController : ControllerBase
 [AllowAnonymous]
 public sealed class PreviewFormController : ControllerBase
 {
-    [HttpPost("/_preview/form")]
+    [HttpPost(PublicRoutes.Preview + "/form")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public IActionResult Post()
     {

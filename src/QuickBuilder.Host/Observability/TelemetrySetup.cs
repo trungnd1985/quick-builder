@@ -5,6 +5,7 @@ using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 using QuickBuilder.Host.Configuration;
+using QuickBuilder.Host.Routing;
 using QuickBuilder.Shared.Infrastructure;
 
 namespace QuickBuilder.Host.Observability;
@@ -44,7 +45,7 @@ internal static class TelemetrySetup
                     {
                         // Probes would otherwise dominate every trace view with noise.
                         instrumentation.Filter = context =>
-                            !context.Request.Path.StartsWithSegments("/health", StringComparison.OrdinalIgnoreCase);
+                            !context.Request.Path.StartsWithSegments(RoutePrefixes.Health, StringComparison.OrdinalIgnoreCase);
                     })
                     .AddNpgsql()
                     // Background outbox dispatch starts its own activities so that work is
