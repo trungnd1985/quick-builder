@@ -1,0 +1,22 @@
+{
+  "name": "quickbuilder-e2e",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "Browser end-to-end suite against the QuickBuilder image (specs/025-e2e-harness).",
+  "scripts": {
+    "test": "playwright test",
+    "report": "playwright show-report",
+    "check": "tsc --noEmit && eslint . --max-warnings 0"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.14.1",
+    "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.65.1",
+    "@types/node": "^26.6.10",
+    "eslint": "^10.15.0",
+    "eslint-plugin-playwright": "^2.12.2",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.74.0"
+  }
+}

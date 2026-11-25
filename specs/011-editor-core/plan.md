@@ -337,6 +337,17 @@ Status of exceptions carried over from earlier plans, as the Governance section 
 | **E-4** (the cache can't invalidate across instances) | Unchanged. No cache is added. |
 | **E-5** (new): FR-044 wants the smoke test to "open the editor, add a Section with a Heading, wait for autosave". There is no browser in the release pipeline, and the end-to-end browser harness is #25. | **Why needed**: driving a real browser in the release smoke test is exactly what #25 specifies. Building a one-off harness here would duplicate it. **Covered meanwhile by**: the smoke test (route served, real draft save and read-back); vitest (the editor's autosave path against a fake API); and quickstart §1 and §8, run by hand and recorded in `quickstart-results.md`, including SC-005's browser timings. **Removal**: #25 adds the browser journey to the smoke test; tracked on issue #4. |
 
+**2026-11-26 — E-5 closed by #25 (end-to-end harness, [specs/025-e2e-harness](../025-e2e-harness/plan.md))**:
+
+- The browser half of FR-044 is now met. `tests/e2e/specs/journey.spec.ts` opens a page in
+  the editor, drags a Section from the palette and a Heading into it, edits the Heading, waits
+  for "All changes saved", and confirms the saved draft by reloading the editor.
+- It runs against the built image on every pull request (`ci.yml`, job `e2e`) and against
+  the candidate's digest at every release (`release.yml`, job `e2e`, which promotion waits
+  for).
+- SC-005's browser timings are still measured by hand (quickstart §8); the suite asserts
+  behaviour, not timings, so that CI runner speed cannot fail it.
+
 **Changed during implementation**:
 - **The subset validator moved into `QuickBuilder.Pages.Contracts`** (namespace
   `…Contracts.Schema`), rather than Editor keeping a copy.
@@ -398,6 +409,7 @@ Status of exceptions carried over from earlier plans, as the Governance section 
 - **Per-width property overrides**, and hiding blocks at some widths (clarification Q2): a
   later additive schema change.
 - **Bundled web fonts and user-uploaded fonts.**
-- **An automated browser smoke journey and SC-005 timings**: #25 (E-5).
+- **SC-005's timings in an automated browser run**: the journey itself is automated by #25
+  (E-5 closed); its timings are not asserted, because CI runners vary too much.
 - **A content-only editing mode for Editors** (clarification Q1): a later feature with its
   own capability.

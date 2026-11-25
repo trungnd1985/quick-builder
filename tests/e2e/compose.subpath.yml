@@ -1,0 +1,32 @@
+# The sub-path installation (specs/025-e2e-harness, E2E-07): QuickBuilder under /cms behind
+# Nginx, as docs/operators/reverse-proxy/index.md#sub-path-installation describes.
+#
+# The proxy's address is fixed so the app can name it in Hosting:KnownProxies. Its subnet,
+# 10.231.0.0/24, is outside Docker's default address pools (172.17-172.31/16 and
+# 192.168/16), so it cannot overlap a network Docker gave another compose project.
+services:
+  nginx:
+    image: nginx:1.27.3
+    restart: "no"
+    depends_on: [app]
+    ports:
+      - "127.0.0.1:${QUICKBUILDER_PORT:-8080}:80"
+    volumes:
+      # Relative to the project directory, which is the repository root (the first -f file).
+      - ./tests/e2e/nginx/subpath.conf:/etc/nginx/conf.d/default.conf:ro
+    networks:
+      default:
+        ipv4_address: 10.231.0.10
+
+  app:
+    environment:
+      Hosting__BasePath: "/cms"
+      Hosting__KnownProxies__0: "10.231.0.10"
+    # Reached only through the proxy, as behind a real one.
+    ports: !reset []
+
+networks:
+  default:
+    ipam:
+      config:
+        - subnet: 10.231.0.0/24

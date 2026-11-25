@@ -23,7 +23,8 @@ namespace QuickBuilder.SmokeTests;
 /// child page and a saved draft. 012 added publish and view: a component and a page are
 /// published and read back from the site's host name, which closes plan exception E-3. 016
 /// added a template: a published item answers at its own address, its title bound in.
-/// Driving the editor in a browser still waits for #25 (exception E-5, unchanged).
+/// Driving the editor in a browser is the browser suite's (tests/e2e, #25), which closed exception
+/// E-5: it runs against the same image on every pull request and every release candidate.
 /// </para>
 /// <para>
 /// Excluded from the normal test run — CI filters on <c>FullyQualifiedName!~SmokeTests</c>
@@ -251,7 +252,7 @@ public sealed class ReferenceDeploymentSmokeTests(ITestOutputHelper output) : IA
         // 9d. 011 FR-044 (plan exception E-5): the editor's route is served by the image, a
         //     draft holding a Section with a Heading — what the editor saves when a member adds
         //     them — is accepted and read back, and the site starts with the default design
-        //     tokens. Driving the editor itself in a browser waits for the harness in #25.
+        //     tokens. Driving the editor itself in a browser is tests/e2e's journey (#25, E-5 closed).
         var editorPage = await client
             .GetAsync(new Uri($"/admin/sites/{siteId}/pages/{homeId}/edit", UriKind.Relative))
             .ConfigureAwait(true);

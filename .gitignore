@@ -444,3 +444,6 @@ src/QuickBuilder.Host/wwwroot/admin/
 !docs/releases/
 
 .fake
+# 025: the browser suite's run output (tests/e2e/README.md).
+tests/e2e/test-results/
+tests/e2e/playwright-report/

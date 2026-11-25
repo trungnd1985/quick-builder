@@ -226,6 +226,50 @@ jobs:
             exit 1
           fi
 
+  # 025 (research E2E-13): the browser suite against an image built from this pull request.
+  # No `needs`: it builds its own image from minute 0, so it runs beside the backend tests
+  # instead of after them and never lengthens the wait. No path filter and no secrets, so it
+  # can be a required check and runs for pull requests from forks too.
+  e2e:
+    name: Browser suite (e2e)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: tests/e2e
+    env:
+      QB_E2E_IMAGE: quickbuilder:e2e
+      QB_E2E_REQUIRE_DOCKER: '1'
+      QB_E2E_CHECK_EXCEPTIONS: '1'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: tests/e2e/package-lock.json
+
+      - run: npm ci
+      - run: npm run check
+      - run: npx playwright install --with-deps chromium
+
+      - name: Build the image under test
+        working-directory: .
+        run: docker build -t quickbuilder:e2e .
+
+      - name: Run the browser suite
+        run: npm test
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: e2e-report
+          path: |
+            tests/e2e/playwright-report
+            tests/e2e/test-results
+          retention-days: 7
+
   image:
     name: Build container image
     runs-on: ubuntu-latest
