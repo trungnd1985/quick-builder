@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Net;
+using System.Text.RegularExpressions;
 using Xunit.Abstractions;
 
 namespace QuickBuilder.SmokeTests.Procedures;
@@ -19,11 +20,12 @@ namespace QuickBuilder.SmokeTests.Procedures;
 /// forwarded <c>https</c> was trusted;</item>
 /// <item>the sign-in security event records a client address that is not the proxy's;</item>
 /// <item>the admin answers only on the admin host name;</item>
-/// <item>a 5 MB upload passes the proxy's body limit.</item>
+/// <item>a 5 MB upload passes the proxy's body limit;</item>
+/// <item>under a base path, the admin shell and the scripts it names load through the proxy.</item>
 /// </list>
 /// </remarks>
 [Trait("Category", "Procedures")]
-public sealed class ReverseProxyProcedureTests(ITestOutputHelper output)
+public sealed partial class ReverseProxyProcedureTests(ITestOutputHelper output)
 {
     private const string ProxyAddress = "172.30.0.10";
 
@@ -94,6 +96,39 @@ public sealed class ReverseProxyProcedureTests(ITestOutputHelper output)
         var (robots, text) = await OperatorApi.PublicAsync(client, "example.com", "/robots.txt");
         Assert.Equal(HttpStatusCode.OK, robots);
         Assert.Contains("User-agent", System.Text.Encoding.UTF8.GetString(text), StringComparison.OrdinalIgnoreCase);
+
+        await AssertAdminServedUnderAsync(client, "example.com", "/cms");
+    }
+
+    /// <summary>
+    /// The admin shell, its deep links and its scripts through the proxy, under the base path
+    /// (#51): the shell's asset addresses carry the base path, and each one it names loads.
+    /// </summary>
+    /// <remarks>
+    /// The script itself derives the API's address from its own URL, which only a browser runs;
+    /// that the URL it loads from is under the base path is what this can prove without one.
+    /// </remarks>
+    private async Task AssertAdminServedUnderAsync(HttpClient client, string hostName, string basePath)
+    {
+        var admin = $"{basePath}/admin/";
+        foreach (var path in new[] { admin, $"{admin}sites" })
+        {
+            var (status, body) = await OperatorApi.PublicAsync(client, hostName, path);
+            Assert.True(status == HttpStatusCode.OK, $"{path} answered {(int)status}.");
+            var shell = System.Text.Encoding.UTF8.GetString(body);
+            Assert.DoesNotContain("=\"./", shell, StringComparison.Ordinal);
+
+            var assets = AdminAsset().Matches(shell).Select(m => m.Groups["path"].Value).Distinct().ToList();
+            Assert.True(assets.Count > 0, $"{path} names no script or stylesheet:\n{shell}");
+            foreach (var asset in assets)
+            {
+                Assert.True(asset.StartsWith(admin, StringComparison.Ordinal), $"{path} names {asset}, which is not under {admin}.");
+                var (assetStatus, _) = await OperatorApi.PublicAsync(client, hostName, asset);
+                Assert.True(assetStatus == HttpStatusCode.OK, $"{asset}, named by {path}, answered {(int)assetStatus}.");
+            }
+
+            output.WriteLine($"{path}: shell and {assets.Count} asset(s) served under {basePath}");
+        }
     }
 
     private static string Ports(int http, int https) =>
@@ -148,4 +183,8 @@ public sealed class ReverseProxyProcedureTests(ITestOutputHelper output)
         // A body larger than any proxy's default limit reaches QuickBuilder.
         await api.UploadAsync(firstSite.SiteId, OperatorApi.Pdf(5), "application/pdf", "large.pdf");
     }
+
+    // A script or stylesheet address in the admin shell, wherever it points.
+    [GeneratedRegex(@"(?:src|href)=""(?<path>[^""]+\.(?:js|css))""", RegexOptions.CultureInvariant)]
+    private static partial Regex AdminAsset();
 }
