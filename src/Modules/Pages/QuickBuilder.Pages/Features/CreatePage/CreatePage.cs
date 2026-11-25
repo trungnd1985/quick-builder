@@ -115,6 +115,6 @@ public sealed class CreatePageController(IDispatcher dispatcher) : ControllerBas
 
         return result.IsFailure
             ? PagesErrorResults.ToActionResult(result.Error)
-            : Created(new Uri($"/api/v1/pages/sites/{siteId}/pages/{result.Value.Id}", UriKind.Relative), result.Value);
+            : Created(new Uri($"{Request.PathBase}/api/v1/pages/sites/{siteId}/pages/{result.Value.Id}", UriKind.Relative), result.Value);
     }
 }

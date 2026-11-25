@@ -107,6 +107,6 @@ public sealed class CopyItemController(IDispatcher dispatcher) : ControllerBase
         var result = await dispatcher.SendAsync(new CopyItemCommand(siteId, collectionId, itemId, request), cancellationToken).ConfigureAwait(false);
         return result.IsFailure
             ? CmsErrorResults.ToActionResult(result.Error)
-            : Created(new Uri($"/api/v1/cms/sites/{siteId}/collections/{collectionId}/items/{result.Value.Id}", UriKind.Relative), result.Value);
+            : Created(new Uri($"{Request.PathBase}/api/v1/cms/sites/{siteId}/collections/{collectionId}/items/{result.Value.Id}", UriKind.Relative), result.Value);
     }
 }

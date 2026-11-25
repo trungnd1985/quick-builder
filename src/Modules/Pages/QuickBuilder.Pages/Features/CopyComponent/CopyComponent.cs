@@ -106,6 +106,6 @@ public sealed class CopyComponentController(IDispatcher dispatcher) : Controller
             new CopyComponentCommand(siteId, componentId, request.Document, request.BaseSavedAtUtc, request.Name), cancellationToken).ConfigureAwait(false);
         return result.IsFailure
             ? PagesErrorResults.ToActionResult(result.Error)
-            : Created(new Uri($"/api/v1/pages/sites/{siteId}/components/{result.Value.Id}", UriKind.Relative), result.Value);
+            : Created(new Uri($"{Request.PathBase}/api/v1/pages/sites/{siteId}/components/{result.Value.Id}", UriKind.Relative), result.Value);
     }
 }

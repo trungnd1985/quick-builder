@@ -135,6 +135,6 @@ public sealed class AddHostNameController(IDispatcher dispatcher) : ControllerBa
 
         return result.IsFailure
             ? ErrorResults.ToActionResult(result.Error)
-            : Created($"/api/v1/sites/{siteId}/host-names/{Uri.EscapeDataString(result.Value.HostName)}", result.Value);
+            : Created($"{Request.PathBase}/api/v1/sites/{siteId}/host-names/{Uri.EscapeDataString(result.Value.HostName)}", result.Value);
     }
 }

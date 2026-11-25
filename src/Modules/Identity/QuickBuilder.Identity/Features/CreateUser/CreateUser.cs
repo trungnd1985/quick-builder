@@ -137,6 +137,6 @@ public sealed class CreateUserController(IDispatcher dispatcher) : ControllerBas
 
         return result.IsFailure
             ? IdentityProblems.ToActionResult(result.Error)
-            : Created($"/api/v1/identity/users/{result.Value.User.Id}", result.Value);
+            : Created($"{Request.PathBase}/api/v1/identity/users/{result.Value.User.Id}", result.Value);
     }
 }

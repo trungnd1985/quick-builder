@@ -1,4 +1,5 @@
 using System.Net;
+using System.Net.Http.Json;
 using System.Text.Json;
 using QuickBuilder.IntegrationTests.Infrastructure;
 using QuickBuilder.IntegrationTests.Media;
@@ -44,6 +45,20 @@ public sealed class BasePathTests(DatabaseFixture database) : IAsyncLifetime
 
         // 012: every address a published page writes carries the base path too.
         Assert.Contains("href=\"/cms/_assets/blocks.", await SitesApi.RawAsync(home).ConfigureAwait(true), StringComparison.Ordinal);
+    }
+
+    /// <summary>#57: a created resource's address is under the base path, like every other.</summary>
+    [Fact]
+    public async Task A_created_resource_is_located_under_the_base_path()
+    {
+        var created = await _admin.PostAsJsonAsync(
+            new Uri("/cms/api/v1/sites", UriKind.Relative),
+            new { name = "Located", hostNames = new[] { "located.test" } }).ConfigureAwait(true);
+
+        Assert.Equal(HttpStatusCode.Created, created.StatusCode);
+        var location = created.Headers.Location!.OriginalString;
+        Assert.StartsWith("/cms/api/v1/sites/", location, StringComparison.Ordinal);
+        Assert.Equal(HttpStatusCode.OK, (await _admin.GetAsync(new Uri(location, UriKind.Relative)).ConfigureAwait(true)).StatusCode);
     }
 
     [Fact]

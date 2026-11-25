@@ -153,6 +153,6 @@ public sealed class UploadFileController(IDispatcher dispatcher, IAccessEvaluato
 
         return result.IsFailure
             ? MediaErrorResults.ToActionResult(result.Error)
-            : Created($"/api/v1/media/sites/{siteId}/files/{result.Value.Id}/content", result.Value);
+            : Created($"{Request.PathBase}/api/v1/media/sites/{siteId}/files/{result.Value.Id}/content", result.Value);
     }
 }

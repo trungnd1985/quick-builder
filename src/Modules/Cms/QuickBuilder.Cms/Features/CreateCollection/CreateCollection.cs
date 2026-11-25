@@ -92,6 +92,6 @@ public sealed class CreateCollectionController(IDispatcher dispatcher) : Control
 
         return result.IsFailure
             ? CmsErrorResults.ToActionResult(result.Error)
-            : Created(new Uri($"/api/v1/cms/sites/{siteId}/collections/{result.Value.Id}", UriKind.Relative), result.Value);
+            : Created(new Uri($"{Request.PathBase}/api/v1/cms/sites/{siteId}/collections/{result.Value.Id}", UriKind.Relative), result.Value);
     }
 }
