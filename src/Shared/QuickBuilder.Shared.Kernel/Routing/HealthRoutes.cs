@@ -5,5 +5,8 @@ namespace QuickBuilder.Shared.Kernel.Routing;
 public static class HealthRoutes
 {
     /// <summary>The probes' root, relative to the base path, without a trailing slash.</summary>
-    public const string Root = "/health";
+    public const string Root = "/" + Segment;
+
+    /// <summary>The root's one path segment, for checks that look at segments (#61).</summary>
+    public const string Segment = "health";
 }

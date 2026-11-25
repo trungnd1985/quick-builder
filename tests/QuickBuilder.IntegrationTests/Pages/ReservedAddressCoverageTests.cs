@@ -1,5 +1,6 @@
 using QuickBuilder.Host.Routing;
 using QuickBuilder.Pages.Contracts;
+using QuickBuilder.Pages.Domain.Redirects;
 
 namespace QuickBuilder.IntegrationTests.Pages;
 
@@ -39,6 +40,26 @@ public sealed class ReservedAddressCoverageTests
     public void The_guard_fires_for_an_unreserved_prefix()
     {
         Assert.Equal(["/preview"], Uncovered(["/preview", "/_media", "/api"]));
+    }
+
+    /// <summary>
+    /// #61: a redirect from an address the platform answers first would be saved and never
+    /// fire (017 FR-017), so every platform prefix is refused as a redirect source.
+    /// </summary>
+    [Fact]
+    public void Every_platform_prefix_is_refused_as_a_redirect_source()
+    {
+        var accepted = RoutePrefixes.ReservedPrefixes
+            .Concat(RoutePrefixes.PublicReservedPrefixes)
+            .Concat(RoutePrefixes.UnresolvedPublicPrefixes)
+            .SelectMany(prefix => new[] { prefix, prefix + "/anything" })
+            .Where(path => !RedirectSource.IsPlatformPath(path))
+            .ToList();
+
+        Assert.True(
+            accepted.Count == 0,
+            "These platform addresses could be redirect sources that never fire. Refuse them in RedirectSource.IsPlatformPath: "
+            + string.Join(", ", accepted));
     }
 
     private static List<string> Uncovered(IEnumerable<string> prefixes) =>

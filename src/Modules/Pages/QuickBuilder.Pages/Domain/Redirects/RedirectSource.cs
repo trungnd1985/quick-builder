@@ -2,6 +2,7 @@ using System.Text.RegularExpressions;
 using QuickBuilder.Pages.Contracts;
 using QuickBuilder.Pages.Contracts.Redirects;
 using QuickBuilder.Shared.Kernel.Results;
+using QuickBuilder.Shared.Kernel.Routing;
 
 namespace QuickBuilder.Pages.Domain.Redirects;
 
@@ -13,7 +14,7 @@ namespace QuickBuilder.Pages.Domain.Redirects;
 /// The path is normalised as the public path normalises a request (lower-case, no trailing
 /// slash, percent-decoded once), so a stored source and a requested address compare exactly.
 /// Sources the platform answers before any redirect could are refused: the administrative
-/// prefixes, the media and asset paths, robots.txt and the sitemaps.
+/// prefixes, the media, asset, form and preview paths, robots.txt and the sitemaps.
 /// </remarks>
 internal static partial class RedirectSource
 {
@@ -99,7 +100,11 @@ internal static partial class RedirectSource
     {
         var first = path.TrimStart('/').Split('/', 2)[0];
         return PageAddresses.IsReservedFirstSegment(first)
-            || first is "_media" or "_assets" or "robots.txt" or "sitemap.xml"
+            // #61: every public platform prefix; /_forms and /_preview were missing, so a
+            // redirect from under them was saved and never fired.
+            || first is PublicRoutes.MediaSegment or PublicRoutes.AssetsSegment
+                or PublicRoutes.FormsSegment or PublicRoutes.PreviewSegment
+                or "robots.txt" or "sitemap.xml"
             || SitemapFile().IsMatch(first);
     }
 

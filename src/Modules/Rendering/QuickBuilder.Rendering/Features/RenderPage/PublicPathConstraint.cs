@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Routing;
+using QuickBuilder.Shared.Kernel.Routing;
 
 namespace QuickBuilder.Rendering.Features.RenderPage;
 
@@ -21,7 +22,8 @@ internal sealed class PublicPathConstraint : IRouteConstraint
     /// research PV-05). The slug grammar already refuses a leading <c>_</c>; this is defence in
     /// depth.
     /// </remarks>
-    internal static readonly string[] AdministrativeSegments = ["api", "admin", "health", "_preview"];
+    internal static readonly string[] AdministrativeSegments =
+        [ApiRoutes.Segment, AdminRoutes.Segment, HealthRoutes.Segment, PublicRoutes.PreviewSegment];
 
     public bool Match(HttpContext? httpContext, IRouter? route, string routeKey, RouteValueDictionary values, RouteDirection routeDirection)
     {
