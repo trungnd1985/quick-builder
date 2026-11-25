@@ -4,7 +4,7 @@ using Xunit;
 namespace QuickBuilder.ArchitectureTests;
 
 /// <summary>
-/// Each reserved route prefix is spelled once, in <c>Shared.Kernel/Routing</c> (#53, #58):
+/// Each reserved route prefix is spelled once, in <c>Shared.Kernel/Routing</c> (#53, #58, #61):
 /// <c>/admin</c>, <c>/api</c>, <c>/health</c>, <c>/_media</c>, <c>/_assets</c>, <c>/_forms</c>
 /// and <c>/_preview</c>.
 /// </summary>
@@ -14,6 +14,13 @@ namespace QuickBuilder.ArchitectureTests;
 /// the host's reserved prefixes decide which page slugs are refused and which paths skip site
 /// resolution. Route templates without a leading slash (<c>[Route("api/v1/…")]</c>) are not
 /// prefixes in this sense and are not checked.
+/// <para>
+/// A public prefix's bare segment (<c>"_forms"</c>) is checked too (#61): segment lists are
+/// where a prefix was last left behind, so a redirect from under <c>/_forms</c> was accepted
+/// and never fired. The administrative segments (<c>"api"</c>, <c>"admin"</c>,
+/// <c>"health"</c>) are ordinary words with other meanings, so they are left to the coverage
+/// tests that compare those lists with the host's prefixes.
+/// </para>
 /// </remarks>
 public sealed partial class RoutePrefixSpellingTests
 {
@@ -54,6 +61,11 @@ public sealed partial class RoutePrefixSpellingTests
     [InlineData("""[Route("api/v1/sites")]""", false)]
     [InlineData("""var other = "/administrators";""", false)]
     [InlineData("""var other = "/_mediakit";""", false)]
+    [InlineData("""|| first is "_media" or "_assets" or "robots.txt" or other""", true)]
+    [InlineData("""string[] segments = ["api", "admin", "health", "_preview"];""", true)]
+    [InlineData("""var name = "_forms";""", true)]
+    [InlineData("""var other = "_mediakit";""", false)]
+    [InlineData("""string[] words = ["api", "admin", "health"];""", false)]
     public void The_rule_sees_the_literal(string line, bool matches)
     {
         // Guards the rule itself: a pattern that matched nothing would pass for the wrong reason.
@@ -72,7 +84,8 @@ public sealed partial class RoutePrefixSpellingTests
     }
 
     // A string literal (plain, interpolated or verbatim) that starts with a reserved prefix as a
-    // whole segment: "/api", "/api/...", "/api?...", "/api#...".
-    [GeneratedRegex(@"[$@]*""/(?:admin|api|health|_media|_assets|_forms|_preview)(?=[""/?#{])", RegexOptions.CultureInvariant)]
+    // whole segment: "/api", "/api/...", "/api?...", "/api#..."; or a public prefix's bare
+    // segment: "_forms", "_forms/...".
+    [GeneratedRegex(@"[$@]*""(?:/(?:admin|api|health|_media|_assets|_forms|_preview)(?=[""/?#{])|_(?:media|assets|forms|preview)(?=[""/]))", RegexOptions.CultureInvariant)]
     private static partial Regex PrefixLiteral();
 }

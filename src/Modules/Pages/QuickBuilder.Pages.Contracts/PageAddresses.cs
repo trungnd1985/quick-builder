@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using QuickBuilder.Shared.Kernel.Routing;
 
 namespace QuickBuilder.Pages.Contracts;
 
@@ -35,7 +36,7 @@ public static partial class PageAddresses
     /// since a slug has no <c>.</c>. <c>ReservedAddressCoverageTests</c> fails the build when the platform gains a
     /// prefix that is neither listed here nor impossible to produce.
     /// </remarks>
-    public static IReadOnlyList<string> ReservedFirstSegments { get; } = ["api", "admin", "health"];
+    public static IReadOnlyList<string> ReservedFirstSegments { get; } = [ApiRoutes.Segment, AdminRoutes.Segment, HealthRoutes.Segment];
 
     /// <summary>
     /// Whether <paramref name="slug"/> is lowercase letters, digits and single hyphens,

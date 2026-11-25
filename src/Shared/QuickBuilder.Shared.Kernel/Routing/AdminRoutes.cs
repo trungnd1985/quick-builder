@@ -12,5 +12,8 @@ namespace QuickBuilder.Shared.Kernel.Routing;
 public static class AdminRoutes
 {
     /// <summary>The admin app's root, relative to the base path, without a trailing slash.</summary>
-    public const string Root = "/admin";
+    public const string Root = "/" + Segment;
+
+    /// <summary>The root's one path segment, for checks that look at segments (#61).</summary>
+    public const string Segment = "admin";
 }

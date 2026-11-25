@@ -5,5 +5,8 @@ namespace QuickBuilder.Shared.Kernel.Routing;
 public static class ApiRoutes
 {
     /// <summary>The API's root, relative to the base path, without a trailing slash.</summary>
-    public const string Root = "/api";
+    public const string Root = "/" + Segment;
+
+    /// <summary>The root's one path segment, for checks that look at segments (#61).</summary>
+    public const string Segment = "api";
 }
