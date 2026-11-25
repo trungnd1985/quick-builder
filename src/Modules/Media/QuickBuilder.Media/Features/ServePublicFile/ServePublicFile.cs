@@ -11,6 +11,7 @@ using QuickBuilder.Shared.Infrastructure.Dispatch;
 using QuickBuilder.Shared.Infrastructure.Storage;
 using QuickBuilder.Shared.Kernel.Dispatch;
 using QuickBuilder.Shared.Kernel.Results;
+using QuickBuilder.Shared.Kernel.Routing;
 
 namespace QuickBuilder.Media.Features.ServePublicFile;
 
@@ -97,8 +98,8 @@ public sealed class ServePublicFileController(IDispatcher dispatcher) : Controll
     /// <summary>The bytes, with the safety and caching headers of 013 contracts/public-media.md §1.3.</summary>
     // A catch-all, so that every path under /_media — including ones with extra or empty
     // segments — gets the same media.not_found rather than falling through (US2 scenario 6).
-    [HttpGet("/_media/{**file}")]
-    [HttpHead("/_media/{**file}")]
+    [HttpGet(PublicRoutes.Media + "/{**file}")]
+    [HttpHead(PublicRoutes.Media + "/{**file}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status206PartialContent)]
     [ProducesResponseType(StatusCodes.Status304NotModified)]

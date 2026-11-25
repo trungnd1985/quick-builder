@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text.RegularExpressions;
+using QuickBuilder.Shared.Kernel.Routing;
 
 namespace QuickBuilder.Media.Domain;
 
@@ -26,7 +27,7 @@ namespace QuickBuilder.Media.Domain;
 internal readonly partial record struct MediaAddress(Guid FileId, int Version, int? Width, string Extension)
 {
     /// <summary>The public prefix, before any base path (003 research M-11).</summary>
-    public const string Prefix = "/_media/";
+    public const string Prefix = PublicRoutes.Media + "/";
 
     /// <summary>Whether this addresses a variant rather than an original.</summary>
     public bool IsVariant => Width is not null;

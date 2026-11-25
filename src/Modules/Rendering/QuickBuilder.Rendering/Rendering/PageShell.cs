@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using System.Text;
 using QuickBuilder.Rendering.Domain;
 using QuickBuilder.Rendering.Seo;
+using QuickBuilder.Shared.Kernel.Routing;
 
 namespace QuickBuilder.Rendering.Rendering;
 
@@ -75,7 +76,7 @@ internal static class PageShell
 
         writer.Open("link").Attribute("rel", "stylesheet");
         // 022 research PV-06: a preview, served on any host name, loads it through its own route.
-        var assets = preview?.Addresses.AssetsPrefix ?? "/_assets";
+        var assets = preview?.Addresses.AssetsPrefix ?? PublicRoutes.Assets;
         writer.SitePath("href", $"{TrimBase(basePath)}{assets}/{BlockStylesheet.Instance.FileName}");
         writer.EndTag().Markup("\n")
             .Markup("<style>").Markup(css).Markup("</style>\n")

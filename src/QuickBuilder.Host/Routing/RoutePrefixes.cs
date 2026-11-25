@@ -1,3 +1,5 @@
+using QuickBuilder.Shared.Kernel.Routing;
+
 namespace QuickBuilder.Host.Routing;
 
 /// <summary>
@@ -26,24 +28,24 @@ namespace QuickBuilder.Host.Routing;
 /// </remarks>
 public static class RoutePrefixes
 {
-    public const string Api = "/api";
+    public const string Api = ApiRoutes.Root;
     /// <summary>The admin app (FR-043); the same value every module links to (#53).</summary>
-    public const string Admin = QuickBuilder.Shared.Kernel.Routing.AdminRoutes.Root;
-    public const string Health = "/health";
+    public const string Admin = AdminRoutes.Root;
+    public const string Health = HealthRoutes.Root;
 
     /// <summary>Where each site serves its media files (003 research M-11).</summary>
-    public const string PublicMedia = "/_media";
+    public const string PublicMedia = PublicRoutes.Media;
 
     private static readonly string[] Reserved = [Api, Admin, Health];
 
     /// <summary>Where the block stylesheet is served (012 research PR-08).</summary>
-    public const string PublicAssets = QuickBuilder.Rendering.Contracts.RenderingRoutes.AssetsPrefix;
+    public const string PublicAssets = PublicRoutes.Assets;
 
     /// <summary>
     /// Where forms post their submissions (018 research FS-06). Site-resolved like
     /// <c>/_media</c>: a form is accepted only on its own site's host names.
     /// </summary>
-    public const string PublicForms = QuickBuilder.Forms.Contracts.FormsRoutes.SubmitPrefix;
+    public const string PublicForms = PublicRoutes.Forms;
 
     private static readonly string[] PublicReserved = [PublicMedia, PublicAssets, PublicForms];
 
@@ -53,7 +55,7 @@ public static class RoutePrefixes
     /// Never logged: its paths may carry a link secret, and they are not in
     /// <see cref="IsReserved"/>, so the log redactor removes them.
     /// </summary>
-    public const string Preview = "/_preview";
+    public const string Preview = PublicRoutes.Preview;
 
     private static readonly string[] UnresolvedPublic = [Preview];
 

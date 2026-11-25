@@ -1,4 +1,5 @@
 using System.Text.Json;
+using QuickBuilder.Host.Routing;
 
 namespace QuickBuilder.Host;
 
@@ -53,14 +54,14 @@ internal static class RefusalHost
             var response = context.Response;
             response.Headers.CacheControl = "no-store";
 
-            if (HttpMethods.IsGet(context.Request.Method) && context.Request.Path == "/health/live")
+            if (HttpMethods.IsGet(context.Request.Method) && context.Request.Path == RoutePrefixes.Health + "/live")
             {
                 response.StatusCode = StatusCodes.Status200OK;
                 await response.WriteAsJsonAsync(new { status = "Healthy" }, Json).ConfigureAwait(false);
                 return;
             }
 
-            if (HttpMethods.IsGet(context.Request.Method) && context.Request.Path == "/health/ready")
+            if (HttpMethods.IsGet(context.Request.Method) && context.Request.Path == RoutePrefixes.Health + "/ready")
             {
                 response.StatusCode = StatusCodes.Status503ServiceUnavailable;
                 await response.WriteAsJsonAsync(

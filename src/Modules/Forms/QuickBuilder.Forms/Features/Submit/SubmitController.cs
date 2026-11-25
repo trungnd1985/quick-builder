@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc.ModelBinding;
 using QuickBuilder.Forms.Domain;
 using QuickBuilder.Rendering.Contracts;
 using QuickBuilder.Shared.Infrastructure.Dispatch;
+using QuickBuilder.Shared.Kernel.Routing;
 using QuickBuilder.Sites.Contracts;
 
 namespace QuickBuilder.Forms.Features.Submit;
@@ -38,7 +39,7 @@ public sealed class SubmitController(IDispatcher dispatcher, ICurrentSite curren
         DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull,
     };
 
-    [HttpPost("/_forms/{formId}")]
+    [HttpPost(PublicRoutes.Forms + "/{formId}")]
     [ReadsOwnForm]
     [RequestSizeLimit(MaxBodyBytes)]
     [RequestFormLimits(MultipartBodyLengthLimit = MaxBodyBytes, ValueLengthLimit = MaxBodyBytes)]
@@ -99,11 +100,11 @@ public sealed class SubmitController(IDispatcher dispatcher, ICurrentSite curren
     }
 
     /// <summary>Forms are only posted to: anything else is refused (public-forms.md §1).</summary>
-    [HttpGet("/_forms/{**rest}")]
-    [HttpHead("/_forms/{**rest}")]
-    [HttpPut("/_forms/{**rest}")]
-    [HttpPatch("/_forms/{**rest}")]
-    [HttpDelete("/_forms/{**rest}")]
+    [HttpGet(PublicRoutes.Forms + "/{**rest}")]
+    [HttpHead(PublicRoutes.Forms + "/{**rest}")]
+    [HttpPut(PublicRoutes.Forms + "/{**rest}")]
+    [HttpPatch(PublicRoutes.Forms + "/{**rest}")]
+    [HttpDelete(PublicRoutes.Forms + "/{**rest}")]
     [ProducesResponseType(StatusCodes.Status405MethodNotAllowed)]
     public IActionResult OtherMethod()
     {

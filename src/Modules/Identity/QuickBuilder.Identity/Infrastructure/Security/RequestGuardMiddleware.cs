@@ -1,3 +1,5 @@
+using QuickBuilder.Shared.Kernel.Routing;
+
 namespace QuickBuilder.Identity.Infrastructure.Security;
 
 /// <summary>
@@ -20,7 +22,7 @@ internal sealed class RequestGuardMiddleware(RequestDelegate next)
 {
     public const string HeaderName = "X-QuickBuilder-Request";
 
-    private static readonly PathString Api = new("/api");
+    private static readonly PathString Api = new(ApiRoutes.Root);
 
     public async Task InvokeAsync(HttpContext context)
     {
