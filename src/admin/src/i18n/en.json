@@ -3122,7 +3122,7 @@
     },
     "purge": {
       "action": "Delete permanently",
-      "label": "Delete {label} permanently",
+      "label": "Delete permanently: {label}",
       "confirm": "Delete {label} permanently? This cannot be undone.",
       "confirmFile": "Delete {label} permanently? The file stops existing in storage. This cannot be undone.",
       "done": "{label} was deleted permanently.",

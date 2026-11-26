@@ -1,0 +1,11 @@
+# The browser suite's overlay on the reference compose file (specs/025-e2e-harness, E2E-03).
+#
+# The image and the port are already parameterised by docker-compose.yml
+# (QUICKBUILDER_IMAGE, QUICKBUILDER_PORT), so this changes only what a throwaway installation
+# needs: a container that fails stays down, so its logs show the failure instead of a
+# restart loop hiding it.
+services:
+  db:
+    restart: "no"
+  app:
+    restart: "no"

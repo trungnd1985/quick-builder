@@ -416,7 +416,8 @@ Releases are cut by the maintainer
 2. Tag and push: `git tag v0.3.0 && git push origin v0.3.0`. A release candidate is
    `v0.3.0-rc.1`: it runs every gate and never moves `latest`.
 3. The Release workflow checks the tag, builds the image for amd64 and arm64, and tests the
-   published digest: the reference journey, an arm64 boot, and upgrades from earlier releases'
+   published digest: the reference journey, an arm64 boot, the browser suite (including an upgrade from the
+   previous release, checked in the browser), and upgrades from earlier releases'
    snapshots, with a rollback drill. A draft release appears with the notes, the pinned
    compose file and the new snapshot (≤ 60 minutes).
 4. Read the draft notes; add anything to "Known issues". Then run **Promote release** from the
@@ -458,11 +459,17 @@ stored document to anyone else must take its module's chain (`SchemaReadCoverage
 | `QuickBuilder.IntegrationTests` | Anything touching HTTP or the database, via `QuickBuilderApp` + `DatabaseFixture` |
 | `QuickBuilder.ArchitectureTests` | Boundary rules, plus a fixture proving each rule fires when broken |
 | `QuickBuilder.SmokeTests` | The built image with the reference compose file |
+| `tests/e2e` | Browser journeys in Chromium against the built image: the admin, the editor and the published site |
 
 In-memory database providers are not allowed (constitution Principle X). Integration tests
 run against real PostgreSQL through Testcontainers, because the behaviours worth testing
 here — `SKIP LOCKED`, advisory locks, `citext`, partial indexes — do not exist anywhere
 else.
+
+The browser suite in `tests/e2e` runs on every pull request and every release candidate. It
+covers what only a browser shows: the built admin finding its API, drag and drop and autosave
+in the editor, a published page as a visitor gets it, and the admin under a base path. See
+[its guide](../tests/e2e/README.md) to run it or add a test.
 
 ## Admin app
 
@@ -472,6 +479,8 @@ the single most expensive thing to undo once several modules have copied the pat
 
 New screens meet [the accessibility baseline](./admin-accessibility-baseline.md). It is
 eight items, all cheap while a screen is being written and awkward afterwards.
+A new screen also gets a page object and a test in the [browser suite](../tests/e2e/README.md),
+which scans every screen it reaches with axe and fails on critical or serious problems.
 
 ## Specs
 

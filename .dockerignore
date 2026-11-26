@@ -8,6 +8,8 @@
 **/.idea/
 **/TestResults/
 **/coverage/
+# 025: the browser suite and its run output are not build inputs.
+tests/e2e/
 
 .git/
 .github/

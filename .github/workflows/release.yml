@@ -325,6 +325,52 @@ jobs:
     with:
       image: ${{ format('{0}@{1}', 'ghcr.io/trungnd1985/quickbuilder', needs.manifest.outputs.digest) }}
 
+  # 025 (research E2E-14; FR-016, FR-016a): the browser suite against the candidate's digest,
+  # plus the upgrade journey from the previous release, checked in the browser. With no
+  # previous release ("none"), the upgrade projects are left out and the rest still runs.
+  e2e:
+    name: Browser suite (candidate)
+    needs: [prepare, manifest]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: tests/e2e
+    env:
+      QB_E2E_IMAGE: ${{ format('{0}@{1}', 'ghcr.io/trungnd1985/quickbuilder', needs.manifest.outputs.digest) }}
+      QB_E2E_PREVIOUS_IMAGE: ${{ needs.prepare.outputs.previous != 'none' && format('ghcr.io/trungnd1985/quickbuilder:{0}', needs.prepare.outputs.previous) || '' }}
+      QB_E2E_REQUIRE_DOCKER: '1'
+      QB_E2E_CHECK_EXCEPTIONS: '1'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: tests/e2e/package-lock.json
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+
+      - name: The browser suite
+        run: npm test
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: e2e-report-candidate
+          path: |
+            tests/e2e/playwright-report
+            tests/e2e/test-results
+          retention-days: 7
+
   # FR-008, RL-09, RL-14, RL-18: one leg per upgrade source. The leg from the previous release
   # (or the baseline) also writes this release's snapshot and drills the rollback.
   upgrade:
@@ -394,7 +440,7 @@ jobs:
   # RL-05: a draft release, with what an operator needs, and a banner when a gate failed.
   candidate:
     name: Candidate
-    needs: [prepare, build, manifest, smoke, arm64-boot, upgrade, procedures]
+    needs: [prepare, build, manifest, smoke, arm64-boot, upgrade, procedures, e2e]
     if: always() && needs.prepare.result == 'success'
     runs-on: ubuntu-latest
     steps:
@@ -424,7 +470,7 @@ jobs:
       - name: Notes
         run: |
           failed=""
-          for gate in build:${{ needs.build.result }} manifest:${{ needs.manifest.result }} smoke:${{ needs.smoke.result }} arm64-boot:${{ needs.arm64-boot.result }} upgrade:${{ needs.upgrade.result }} procedures:${{ needs.procedures.result }}; do
+          for gate in build:${{ needs.build.result }} manifest:${{ needs.manifest.result }} smoke:${{ needs.smoke.result }} arm64-boot:${{ needs.arm64-boot.result }} upgrade:${{ needs.upgrade.result }} procedures:${{ needs.procedures.result }} e2e:${{ needs.e2e.result }}; do
             [ "${gate#*:}" = "success" ] || failed="${failed} ${gate%%:*}"
           done
           {
