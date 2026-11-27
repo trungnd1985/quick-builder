@@ -447,3 +447,9 @@ src/QuickBuilder.Host/wwwroot/admin/
 # 025: the browser suite's run output (tests/e2e/README.md).
 tests/e2e/test-results/
 tests/e2e/playwright-report/
+
+graphify-out/cache/
+graphify-out/manifest.json
+graphify-out/cost.json
+.graphify/
+.graphify_*
