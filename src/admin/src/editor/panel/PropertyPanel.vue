@@ -9,7 +9,7 @@ import { computed, reactive, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { definitionOf, type ControlKind } from '../blocks/registry'
 import { setLabel, setProp, type OpRefusal } from '../ops'
-import { defaultOf, propNames, requiredProps, resolvedPropSchema } from '../schema/schema'
+import { defaultOf, propNames, propSchema, requiredProps, resolvedPropSchema } from '../schema/schema'
 import type { Json } from '../schema/subsetValidator'
 import { useEditorStore } from '../state/editorStore'
 import { refusalKey } from '../editorErrors'
@@ -33,6 +33,7 @@ import FormFieldsControl from './controls/FormFieldsControl.vue'
 import FormRedirectControl from './controls/FormRedirectControl.vue'
 import FormNotifyControl from './controls/FormNotifyControl.vue'
 import FormRetentionControl from './controls/FormRetentionControl.vue'
+import BorderControl from './controls/BorderControl.vue'
 import { formSetupProblems } from '../forms/formSetup'
 import { kindOf } from '../bindings/bindingRules'
 
@@ -81,6 +82,10 @@ const groups = computed(() => {
 
   return [
     ...def.groups.map((group) => ({ key: group.labelKey, label: t(`editor.panel.groups.${group.labelKey}`), fields: group.props.map((p) => field(p.prop, p.control)) })),
+    // 066 FR-008: every block with a border shows the same group, after its own (BB-08).
+    ...(propNames(current.type).includes('border')
+      ? [{ key: 'border', label: t('editor.panel.groups.border'), fields: [field('border', 'border' as ControlKind)] }]
+      : []),
     // Every block can be named for the layer view; the component reference (010) cannot.
     ...(propNames(current.type).includes('layerLabel')
       ? [{ key: 'layer', label: t('editor.panel.groups.layer'), fields: [field('layerLabel', 'text' as ControlKind)] }]
@@ -134,6 +139,12 @@ function chooseMedia(field: Field, value: Json, altText: string | null): void {
   const refused = store.apply(result)
   if (refused) errors[field.prop] = reason(field.prop, refused, field.schema)
   else delete errors[field.prop]
+}
+
+/** A Section's or Container's border has no inner spacing: their schema refers to `borderBox` (066). */
+const boxOnly = (type: string): boolean => {
+  const written = propSchema(type, 'border')
+  return typeof written === 'object' && written !== null && !Array.isArray(written) && written.$ref === '#/$defs/borderBox'
 }
 
 const tokenKind = (control: ControlKind) => (control === 'colorToken' ? 'color' : control === 'spaceToken' ? 'space' : 'text')
@@ -370,6 +381,14 @@ function goToField(fieldId: string): void {
             v-bind="field"
             :site-id="store.siteId"
             :form-id="node.id"
+            :error="errors[field.prop]"
+            @change="change(field, $event)"
+          />
+          <BorderControl
+            v-else-if="field.control === 'border'"
+            v-bind="field"
+            :site-id="store.siteId"
+            :box-only="boxOnly(node.type)"
             :error="errors[field.prop]"
             @change="change(field, $event)"
           />

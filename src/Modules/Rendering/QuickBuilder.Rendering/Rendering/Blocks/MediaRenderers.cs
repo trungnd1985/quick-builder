@@ -76,7 +76,14 @@ internal sealed class ImageRenderer : IBlockRenderer
 
         var source = file.Variants.LastOrDefault(v => v.Width <= DefaultSourceWidth)?.PublicPath ?? file.PublicPath;
 
+        // 066 BB-05: a border frames the picture itself, so its radius rounds the photo.
         writer.Open("img");
+        if (BorderStyle.Classes(node, context).TrimStart() is { Length: > 0 } bordered)
+        {
+            writer.Attribute("class", bordered);
+        }
+
+        context.Style(writer, scope, node, BorderStyle.Declarations(node, context));
         writer.SitePath("src", basePath + source);
 
         if (file.Variants.Count > 0)
@@ -163,10 +170,11 @@ internal sealed class ButtonRenderer : IBlockRenderer
         var tag = link is not null && LinkResolver.IsWritable(link) ? "a" : "span";
 
         writer.Open("div").Attribute("class", $"qb-button-row qb-align--{context.Choice(node, "align", Alignments)}").EndTag();
-        writer.Open(tag).Attribute("class", $"qb-button qb-button--{context.Choice(node, "style", Styles)}");
-        context.Style(writer, scope, node,
+        // 066 clarification Q2: a border frames the button itself and replaces its own frame.
+        writer.Open(tag).Attribute("class", $"qb-button qb-button--{context.Choice(node, "style", Styles)}{BorderStyle.Classes(node, context)}");
+        context.Style(writer, scope, node, BorderStyle.With(node, context,
             ("--qb-button-brand", context.Tokens.Value(Brand, TokenKind.Color, Brand)),
-            ("--qb-button-on-brand", context.Tokens.Value(Background, TokenKind.Color, Background)));
+            ("--qb-button-on-brand", context.Tokens.Value(Background, TokenKind.Color, Background))));
 
         if (tag == "a")
         {
@@ -197,9 +205,9 @@ internal sealed partial class EmbedRenderer : IBlockRenderer
             return;
         }
 
-        writer.Open("div").Attribute("class", "qb-embed");
+        writer.Open("div").Attribute("class", "qb-embed" + BorderStyle.Classes(node, context));
         // The ratio is one of three constants, turned into CSS the way the canvas does it.
-        context.Style(writer, scope, node, ("aspect-ratio", context.Choice(node, "aspectRatio", Ratios).Replace(":", " / ", StringComparison.Ordinal)));
+        context.Style(writer, scope, node, BorderStyle.With(node, context, ("aspect-ratio", context.Choice(node, "aspectRatio", Ratios).Replace(":", " / ", StringComparison.Ordinal))));
         writer.EndTag();
 
         writer.Open("iframe");
@@ -274,6 +282,18 @@ internal sealed class ComponentRefRenderer : IBlockRenderer
             || !PageRenderer.SupportedSchemaVersions.Contains(component.SchemaVersion)
             || !component.Document.TryGetProperty("root", out var root))
         {
+            return;
+        }
+
+        // 066 BB-05: a bordered reference frames this one use of the component in a wrapper,
+        // drawn only then; the component's nodes keep their own scope inside it.
+        if (BorderStyle.Has(node))
+        {
+            writer.Open("div").Attribute("class", "qb-component-ref" + BorderStyle.Classes(node, context));
+            context.Style(writer, scope, node, BorderStyle.Declarations(node, context));
+            writer.EndTag();
+            context.RenderChildren(root, $"c.{componentId:N}.", writer);
+            writer.Close("div");
             return;
         }
 

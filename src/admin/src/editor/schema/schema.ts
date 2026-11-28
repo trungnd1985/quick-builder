@@ -92,6 +92,22 @@ export const defaultOf = (type: string, prop: string): Json | undefined => {
   return 'default' in resolved ? resolved.default : undefined
 }
 
+/**
+ * The `default` of a property inside a shared definition (`$defs/border`, 066), from beside a
+ * `$ref` or from its target; undefined if none. Mirrors BlockDefaults.OfDefinition, so values
+ * nested in a prop are never hard-coded (Principle VI).
+ */
+export const definitionDefault = (definition: string, prop: string): Json | undefined => {
+  const defs = (rawSchema as unknown as JsonObject).$defs
+  const target = isObject(defs) ? defs[definition] : undefined
+  const properties = isObject(target) ? target.properties : undefined
+  const written = isObject(properties) ? properties[prop] : undefined
+  if (!isObject(written)) return undefined
+  if ('default' in written) return written.default
+  const resolved = pageSchema.resolve(written)
+  return isObject(resolved) && 'default' in resolved ? resolved.default : undefined
+}
+
 /** A type's required properties. */
 export const requiredProps = (type: string): string[] => {
   const required = propertiesOf(type).required

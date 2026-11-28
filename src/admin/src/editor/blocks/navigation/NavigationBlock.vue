@@ -10,6 +10,7 @@ import type { ContentNode } from '../../schema/schema'
 import { isObject } from '../../schema/subsetValidator'
 import { useSiteMenus } from '../../state/useSiteMenus'
 import { useBlock } from '../useBlock'
+import { useBorder } from '../useBorder'
 import NavigationList from './NavigationList.vue'
 
 const props = defineProps<{ node: ContentNode }>()
@@ -42,11 +43,15 @@ const look = computed(() => {
   return site && LOOKS.includes(site) ? site : 'link'
 })
 
+// 066: a border frames the bar only; drop-down panels keep the menu style.
+const { classes: borderClasses, style: borderStyle } = useBorder(() => props.node)
+
 const classes = computed(() => [
   `qb-nav--${prop('layout')}`,
   `qb-nav--align-${prop('align')}`,
   collapse.value ? `qb-nav--collapse-${collapse.value.below}` : '',
   `qb-nav--look-${look.value}`,
+  ...borderClasses.value,
 ])
 
 // contracts/menu-style.md §3: only the colours the block overrides; the rest come from the
@@ -62,12 +67,15 @@ const OVERRIDES: [string, string][] = [
   ['panelBackground', '--qb-nav-panel-background'],
 ]
 
-const style = computed(() => Object.fromEntries(
-  OVERRIDES.flatMap(([name, property]) => {
-    const value = tokenIfSet(name, 'color')
-    return value === null ? [] : [[property, value]]
-  }),
-))
+const style = computed(() => ({
+  ...Object.fromEntries(
+    OVERRIDES.flatMap(([name, property]) => {
+      const value = tokenIfSet(name, 'color')
+      return value === null ? [] : [[property, value]]
+    }),
+  ),
+  ...borderStyle.value,
+}))
 
 const label = computed(() => {
   const own = prop<string | undefined>('ariaLabel')

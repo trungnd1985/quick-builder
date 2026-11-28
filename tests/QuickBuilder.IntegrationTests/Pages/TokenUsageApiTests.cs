@@ -47,6 +47,28 @@ public sealed class TokenUsageApiTests(DatabaseFixture database)
         Assert.Equal((1, 1), (spacing.GetProperty("blockCount").GetInt32(), spacing.GetProperty("documentCount").GetInt32()));
     }
 
+    // 066 BB-01: a border's nested references count like any other, and a block counts once.
+    [Fact]
+    public async Task A_border_counts_its_colour_and_radius_once_per_block()
+    {
+        using var scenario = await PagesScenario.CreateAsync(database, "pg-tokens-border").ConfigureAwait(true);
+        var page = (await PagesApi.CreateOkAsync(scenario.Admin, scenario.SiteA, "framed").ConfigureAwait(true)).GetProperty("id").GetGuid();
+        const string document = """
+            {"schemaVersion":1,"root":{"id":"root","type":"root","props":{},"children":[
+              {"id":"s","type":"section","props":{"background":{"token":"color-accent"},"border":{"width":"thin","color":{"token":"color-accent"},"radius":{"token":"radius-card"}}},"children":[
+                {"id":"t","type":"text","props":{"text":"x","border":{"radius":{"token":"radius-card"},"padding":{"token":"space-xl"}}},"children":[]}]}]}}
+            """;
+        await PagesApi.OkAsync(await PagesApi.SaveCurrentDraftAsync(scenario.Admin, PagesApi.PagePath(scenario.SiteA, page), document).ConfigureAwait(true)).ConfigureAwait(true);
+
+        var colour = await EditorApi.TokenUsageOkAsync(scenario.Admin, scenario.SiteA, "color-accent").ConfigureAwait(true);
+        var radius = await EditorApi.TokenUsageOkAsync(scenario.Admin, scenario.SiteA, "radius-card").ConfigureAwait(true);
+        var spacing = await EditorApi.TokenUsageOkAsync(scenario.Admin, scenario.SiteA, "space-xl").ConfigureAwait(true);
+
+        Assert.Equal(1, colour.GetProperty("blockCount").GetInt32());
+        Assert.Equal(2, radius.GetProperty("blockCount").GetInt32());
+        Assert.Equal(1, spacing.GetProperty("blockCount").GetInt32());
+    }
+
     /// <summary>021 T056: what is in the trash is deleted for every count.</summary>
     [Fact]
     public async Task Blocks_in_the_trash_stop_counting()

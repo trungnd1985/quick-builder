@@ -159,6 +159,32 @@ public sealed class DesignPublishApiTests(DatabaseFixture database) : IAsyncLife
     private Task<HttpResponseMessage> PublishAsync(uint version) =>
         _scenario.Admin.PostAsJsonAsync(new Uri($"{Tokens}/publish", UriKind.Relative), new { version });
 
+    // 066 FR-017, SC-005: a corner radius is a draft setting like any token, reaching published
+    // pages only when the design is published.
+    [Fact]
+    public async Task A_changed_corner_radius_reaches_pages_only_when_the_design_is_published()
+    {
+        const string before = "--qb-radius-radius-md:calc(var(--qb-base-size) * 0.5)";
+        const string after = "--qb-radius-radius-md:calc(var(--qb-base-size) * 1.5)";
+        Assert.Contains(before, await PageAsync().ConfigureAwait(true), StringComparison.Ordinal);
+
+        var current = await PagesApi.OkAsync(await _scenario.Admin.GetAsync(new Uri(Tokens, UriKind.Relative)).ConfigureAwait(true)).ConfigureAwait(true);
+        var document = System.Text.Json.Nodes.JsonNode.Parse(current.GetProperty("document").GetRawText())!.AsObject();
+        var medium = document["radii"]!.AsArray().Single(r => (string?)r!["id"] == "radius-md")!;
+        medium["rem"] = 1.5;
+        var body = $$"""{"version":{{current.GetProperty("version").GetUInt32()}},"document":{{document.ToJsonString()}}}""";
+        var saved = await PagesApi.OkAsync(
+            await _scenario.Admin.PutAsync(new Uri(Tokens, UriKind.Relative), new StringContent(body, System.Text.Encoding.UTF8, "application/json")).ConfigureAwait(true)).ConfigureAwait(true);
+
+        Assert.Contains(before, await PageAsync().ConfigureAwait(true), StringComparison.Ordinal);
+
+        await PagesApi.OkAsync(await PublishAsync(saved.GetProperty("version").GetUInt32()).ConfigureAwait(true)).ConfigureAwait(true);
+
+        var page = await PageAsync().ConfigureAwait(true);
+        Assert.Contains(after, page, StringComparison.Ordinal);
+        Assert.DoesNotContain(before, page, StringComparison.Ordinal);
+    }
+
     private async Task<JsonElement> SaveBrandAsync(string colour)
     {
         var current = await PagesApi.OkAsync(await _scenario.Admin.GetAsync(new Uri(Tokens, UriKind.Relative)).ConfigureAwait(false)).ConfigureAwait(false);

@@ -8,6 +8,7 @@ import { isObject } from '../../schema/subsetValidator'
 import { tokenValue } from '../../tokens/tokenCss'
 import { useBrokenLinks } from '../brokenLinks'
 import { useBlock, useInlineText } from '../useBlock'
+import { useBorder } from '../useBorder'
 
 const props = defineProps<{ node: ContentNode }>()
 const { t } = useI18n()
@@ -24,9 +25,12 @@ const boundAddress = computed(() => {
 const element = ref<HTMLElement | null>(null)
 const { onInput, onKeydown, bound } = useInlineText(element, () => props.node, 'label', { singleLine: true, minLength: 1 })
 
+// 066 clarification Q2: a border frames the button itself and replaces its own frame.
+const { classes: borderClasses, style: borderStyle } = useBorder(() => props.node)
 const style = computed(() => ({
   '--qb-button-brand': tokenValue({ token: 'color-brand' }, 'color', store.tokens, { token: 'color-brand' }),
   '--qb-button-on-brand': tokenValue({ token: 'color-background' }, 'color', store.tokens, { token: 'color-background' }),
+  ...borderStyle.value,
 }))
 </script>
 
@@ -38,7 +42,7 @@ const style = computed(() => ({
     <span
       ref="element"
       class="qb-button"
-      :class="`qb-button--${prop('style')}`"
+      :class="[`qb-button--${prop('style')}`, borderClasses]"
       :title="boundAddress ? t('editor.list.itemPageTitle', { address: boundAddress }) : undefined"
       :style="style"
       :contenteditable="editable && !bound ? 'plaintext-only' : 'false'"

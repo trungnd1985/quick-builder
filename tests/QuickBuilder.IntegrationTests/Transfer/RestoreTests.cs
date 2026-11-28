@@ -1,7 +1,9 @@
 using System.Net;
+using QuickBuilder.IntegrationTests.Editor;
 using QuickBuilder.IntegrationTests.Infrastructure;
 using QuickBuilder.IntegrationTests.Media;
 using QuickBuilder.IntegrationTests.Pages;
+using QuickBuilder.IntegrationTests.Publishing;
 using QuickBuilder.IntegrationTests.Transfer.Fixtures;
 
 namespace QuickBuilder.IntegrationTests.Transfer;
@@ -70,6 +72,47 @@ public sealed class RestoreTests(DatabaseFixture database)
         Assert.Equal("succeeded", (await TransferApi.GetOkAsync(site.Admin, undo).ConfigureAwait(true)).GetProperty("state").GetString());
         Assert.Equal(news, (await PagesApi.NodeAsync(site.Admin, site.Site, "/news").ConfigureAwait(true)).GetProperty("id").GetGuid());
         Assert.Contains((await MediaApi.ListOkAsync(site.Admin, site.Site).ConfigureAwait(true)).Items, f => f.Id == upload.Id);
+    }
+
+    // 066 FR-022, US4: borders and corner radii travel in the archive unchanged. They are changed
+    // after the export, and the restore brings back exactly what was exported.
+    [Fact]
+    public async Task Borders_and_corner_radii_come_back_unchanged_from_an_archive()
+    {
+        using var site = await FullSite.CreateAsync(database, "restore-borders").ConfigureAwait(true);
+        var about = PagesApi.PagePath(site.Site, site.About);
+        const string bordered = """
+            {"schemaVersion":1,"root":{"id":"root","type":"root","props":{},"children":[
+              {"id":"s","type":"section","props":{"border":{"width":"thick","style":"dashed","color":{"token":"color-brand"},"radius":{"token":"radius-card"}}},"children":[
+                {"id":"t","type":"text","props":{"text":"Framed","border":{"width":"thin","padding":{"token":"space-sm"}}},"children":[]}]}]}}
+            """;
+        await PagesApi.OkAsync(await PagesApi.SaveCurrentDraftAsync(site.Admin, about, bordered).ConfigureAwait(true)).ConfigureAwait(true);
+        var radii = await File.ReadAllTextAsync(Path.Combine(
+            DraftApiTests.FindRepositoryRoot(), "docs", "contracts", "design-tokens", "examples", "valid", "with-radii.json")).ConfigureAwait(true);
+        var tokens = await EditorApi.GetOkAsync(site.Admin, site.Site).ConfigureAwait(true);
+        await PagesApi.OkAsync(await EditorApi.SaveAsync(site.Admin, site.Site, radii, tokens.GetProperty("version").GetUInt32()).ConfigureAwait(true)).ConfigureAwait(true);
+
+        var (_, archive) = await TransferApi.ExportAsync(site.App, site.Admin, site.Site).ConfigureAwait(true);
+
+        // After the export: the borders and the radii go.
+        await PagesApi.OkAsync(await PagesApi.SaveCurrentDraftAsync(site.Admin, about, PublishingApi.HeadingDocument("Plain")).ConfigureAwait(true)).ConfigureAwait(true);
+        var changed = System.Text.Json.Nodes.JsonNode.Parse(EditorApi.DefaultDocument)!.AsObject();
+        changed.Remove("radii");
+        tokens = await EditorApi.GetOkAsync(site.Admin, site.Site).ConfigureAwait(true);
+        await PagesApi.OkAsync(await EditorApi.SaveAsync(site.Admin, site.Site, changed.ToJsonString(), tokens.GetProperty("version").GetUInt32()).ConfigureAwait(true)).ConfigureAwait(true);
+
+        var id = await TransferApi.UploadAsync(site.Admin, archive).ConfigureAwait(true);
+        var check = await TransferApi.CheckAsync(site.App, site.Admin, id, "restore", site.Site).ConfigureAwait(true);
+        Assert.Equal(HttpStatusCode.Accepted, (await TransferApi.ConfirmAsync(site.Admin, id, new { confirmSiteName = "Site A", acceptWarnings = true, checkFingerprint = check.GetProperty("checkFingerprint").GetString() }).ConfigureAwait(true)).StatusCode);
+        await TransferApi.RunWorkerAsync(site.App).ConfigureAwait(true);
+        Assert.Equal("succeeded", (await TransferApi.GetOkAsync(site.Admin, id).ConfigureAwait(true)).GetProperty("state").GetString());
+
+        using var sentDocument = System.Text.Json.JsonDocument.Parse(bordered);
+        Assert.True(System.Text.Json.JsonElement.DeepEquals(sentDocument.RootElement, (await PagesApi.DraftOkAsync(site.Admin, about).ConfigureAwait(true)).GetProperty("document")));
+        using var sentTokens = System.Text.Json.JsonDocument.Parse(radii);
+        Assert.True(System.Text.Json.JsonElement.DeepEquals(
+            sentTokens.RootElement.GetProperty("radii"),
+            (await EditorApi.GetOkAsync(site.Admin, site.Site).ConfigureAwait(true)).GetProperty("document").GetProperty("radii")));
     }
 
     [Fact]

@@ -90,7 +90,7 @@ internal sealed class NavigationRenderer : IBlockRenderer
             : context.Tokens.MenuLook ?? Looks[0];
 
         writer.Open("nav")
-            .Attribute("class", $"qb-nav qb-nav--{layout} qb-nav--align-{context.Choice(node, "align", Alignments)}{(collapse is null ? string.Empty : $" qb-nav--collapse-{below}")} qb-nav--look-{look}");
+            .Attribute("class", $"qb-nav qb-nav--{layout} qb-nav--align-{context.Choice(node, "align", Alignments)}{(collapse is null ? string.Empty : $" qb-nav--collapse-{below}")} qb-nav--look-{look}{BorderStyle.Classes(node, context)}");
         if (label.Length > 0)
         {
             writer.Attribute("aria-label", label);
@@ -108,6 +108,7 @@ internal sealed class NavigationRenderer : IBlockRenderer
                 .Select(o => (o.Property, Value: context.TokenIfSet(node, o.Prop, TokenKind.Color)))
                 .Where(d => d.Value is not null)
                 .Select(d => (d.Property, d.Value!)),
+            .. BorderStyle.Declarations(node, context),
         ]);
         writer.EndTag();
 

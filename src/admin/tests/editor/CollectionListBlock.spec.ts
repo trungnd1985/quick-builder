@@ -111,6 +111,24 @@ describe('the Collection list on the canvas', () => {
     expect(asked.body).toEqual({ list: { source: { collectionId: COLLECTION } } })
   })
 
+  // 066: a bordered card frames every listed item on the canvas, as published (lists/bordered-card.html).
+  it('frames every card with the card\'s border', async () => {
+    const bordered = { ...list({ border: { width: 'medium' } }) }
+    bordered.children = [{ ...card(title), props: { border: { width: 'thin', radius: { token: 'radius-md' } } } }, empty]
+    const server = stubServer(page(bordered))
+    server.script(`POST /api/v1/cms/sites/${SITE}/list-preview`, { status: 200, body: { items: [1, 2, 3].map(previewItem), total: 3, referenced: {}, schemas: { [COLLECTION]: postsSchema } } })
+    const { container } = await mountEditor()
+
+    await waitFor(() => expect(container.textContent).toContain('Post 3'))
+    const cards = [...container.querySelectorAll<HTMLElement>('.qb-list__card')]
+    expect(cards).toHaveLength(3)
+    for (const element of cards) {
+      expect([...element.classList]).toEqual(['qb-list__card', 'qb-border', 'qb-border--thin', 'qb-border--solid', 'qb-border--radius'])
+      expect(element.style.getPropertyValue('--qb-border-radius')).toBe('var(--qb-radius-radius-md)')
+    }
+    expect(container.querySelector('.qb-list')!.classList.contains('qb-border--medium')).toBe(true)
+  })
+
   it('asks again only when what the list holds changes, not when its layout does', async () => {
     const server = stubServer(page(list()))
     const { container } = await mountEditor()

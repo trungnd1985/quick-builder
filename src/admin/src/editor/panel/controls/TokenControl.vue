@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// A colour, spacing or text-size property: one of the site's tokens, stored as a reference
+// A colour, spacing, text-size or corner radius property: one of the site's tokens, stored as a reference
 // ({ token: id }) so changing the token later changes this block (FR-020, FR-033). "Default"
 // removes the property. A reference to a token the site deleted is marked, and the block uses
 // its default meanwhile (clarification Q4).
@@ -9,7 +9,7 @@ import FieldShell from './FieldShell.vue'
 import { describedBy, type ControlProps } from './types'
 import type { Json } from '../../schema/subsetValidator'
 import { useEditorStore } from '../../state/editorStore'
-import { isDeletedToken, tokenValue, type TokenKind } from '../../tokens/tokenCss'
+import { isDeletedToken, tokensOf, tokenValue, type TokenKind } from '../../tokens/tokenCss'
 
 const props = defineProps<ControlProps & {
   kind: TokenKind
@@ -22,10 +22,8 @@ const store = useEditorStore()
 
 const DEFAULT = ''
 
-const tokens = computed(() => {
-  const set = store.tokens
-  return props.kind === 'color' ? set.colors : props.kind === 'text' ? set.typography.sizes : set.spacing
-})
+// 066: a radius lists the site's corner radii, or the default ones for a set without its own.
+const tokens = computed(() => tokensOf(store.tokens, props.kind))
 
 const selectedId = (value: Json | undefined): string =>
   value && typeof value === 'object' && !Array.isArray(value) && typeof value.token === 'string' ? value.token : DEFAULT

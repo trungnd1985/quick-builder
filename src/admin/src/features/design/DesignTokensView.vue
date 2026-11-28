@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// A site's design tokens: its colours, fonts, text sizes and spacing (011 US6, FR-031 to
+// A site's design tokens: its colours, fonts, text sizes, spacing and corner radii (011 US6, FR-031 to
 // FR-035). Blocks refer to these by id, so a change here changes every block that uses the
 // token, on every page, the next time the editor draws it.
 //
@@ -14,7 +14,7 @@ import { editorApi, type DesignTokens } from '../../api/editor'
 import type { DesignPublication } from '../../api/publishing'
 import { pagesApi } from '../../api/pages'
 import { serverKey } from '../../editor/editorErrors'
-import { defaultTokens, type MenuStyle, type TokenSet } from '../../editor/tokens/defaultTokens'
+import { defaultTokens, type MenuStyle, type ScaleToken, type TokenSet } from '../../editor/tokens/defaultTokens'
 import { validateTokenSet } from '../../editor/tokens/tokenValidator'
 import ColorList from './ColorList.vue'
 import FontSelect from './FontSelect.vue'
@@ -62,13 +62,15 @@ onMounted(load)
 function editable(document: TokenSet): TokenSet {
   const copy = JSON.parse(JSON.stringify(document)) as TokenSet
   copy.contentWidths ??= { ...defaultTokens.contentWidths! }
+  // 066: a set saved before corner radii existed shows, and on saving keeps, the default ones.
+  copy.radii ??= JSON.parse(JSON.stringify(defaultTokens.radii ?? [])) as ScaleToken[]
   return copy
 }
 
 const WIDTHS = ['narrow', 'normal', 'wide'] as const
 
 /** A new, never-reused id for a token of one kind (research ED-14). */
-function newId(prefix: 'color' | 'text' | 'space'): string {
+function newId(prefix: 'color' | 'text' | 'space' | 'radius'): string {
   const alphabet = 'abcdefghijklmnopqrstuvwxyz0123456789'
   const bytes = crypto.getRandomValues(new Uint8Array(8))
   return `${prefix}-${Array.from(bytes, (b) => alphabet[b % alphabet.length]).join('')}`
@@ -78,14 +80,21 @@ function addColor(): void {
   draft.value!.colors.push({ id: newId('color'), name: t('design.colors.newName', { n: draft.value!.colors.length + 1 }), value: '#000000' })
 }
 
-function addStep(kind: 'sizes' | 'spacing'): void {
-  const list = kind === 'sizes' ? draft.value!.typography.sizes : draft.value!.spacing
-  list.push({ id: newId(kind === 'sizes' ? 'text' : 'space'), name: t(`design.${kind}.newName`, { n: list.length + 1 }), rem: 1 })
+type Scale = 'sizes' | 'spacing' | 'radii'
+
+const scaleOf = (kind: Scale): ScaleToken[] =>
+  kind === 'sizes' ? draft.value!.typography.sizes : kind === 'radii' ? (draft.value!.radii ??= []) : draft.value!.spacing
+
+const PREFIX: Record<Scale, 'text' | 'space' | 'radius'> = { sizes: 'text', spacing: 'space', radii: 'radius' }
+
+function addStep(kind: Scale): void {
+  const list = scaleOf(kind)
+  list.push({ id: newId(PREFIX[kind]), name: t(`design.${kind}.newName`, { n: list.length + 1 }), rem: kind === 'radii' ? 0.5 : 1 })
 }
 
 /** Deleting a token says first how many blocks use it; they fall back to their default. */
-async function remove(kind: 'colors' | 'sizes' | 'spacing', id: string): Promise<void> {
-  const list = kind === 'colors' ? draft.value!.colors : kind === 'sizes' ? draft.value!.typography.sizes : draft.value!.spacing
+async function remove(kind: 'colors' | Scale, id: string): Promise<void> {
+  const list: { id: string; name: string }[] = kind === 'colors' ? draft.value!.colors : scaleOf(kind)
   if (list.length <= 1) return
   const token = list.find((entry) => entry.id === id)
   if (!token) return
@@ -293,6 +302,17 @@ function published(publication: DesignPublication): void {
         @add="addStep('spacing')"
         @remove="(id) => remove('spacing', id)"
       />
+      <ScaleList
+        v-if="draft.radii"
+        :steps="draft.radii"
+        kind="radii"
+        :read-only="readOnly"
+        :min="0"
+        :max="100"
+        :max-steps="12"
+        @add="addStep('radii')"
+        @remove="(id) => remove('radii', id)"
+      />
 
       <fieldset
         v-if="draft.contentWidths"
@@ -378,6 +398,13 @@ function published(publication: DesignPublication): void {
   display: inline-block;
   height: 0.75rem;
   background: var(--accent);
+}
+
+.design :deep(.design-preview--radius) {
+  display: inline-block;
+  width: 1.75rem;
+  height: 1.75rem;
+  border: 2px solid var(--accent);
 }
 
 .design :deep(.design-font__sample) {

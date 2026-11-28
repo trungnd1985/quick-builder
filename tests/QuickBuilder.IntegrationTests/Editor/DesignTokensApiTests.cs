@@ -108,6 +108,42 @@ public sealed class DesignTokensApiTests(DatabaseFixture database)
         Assert.True(System.Text.Json.Nodes.JsonNode.DeepEquals(node["menuStyle"], System.Text.Json.Nodes.JsonNode.Parse(style.GetRawText())));
     }
 
+    // 066 FR-013, FR-018: corner radii are stored with the set as written, and a set saved
+    // before them (the content widths test above, likewise) stays valid without them.
+    [Fact]
+    public async Task A_set_with_corner_radii_reads_back_unchanged()
+    {
+        using var scenario = await PagesScenario.CreateAsync(database, "ed-tokens-radii").ConfigureAwait(true);
+        var set = await File.ReadAllTextAsync(Path.Combine(
+            DraftApiTests.FindRepositoryRoot(), "docs", "contracts", "design-tokens", "examples", "valid", "with-radii.json")).ConfigureAwait(true);
+
+        await PagesApi.OkAsync(await EditorApi.SaveAsync(scenario.Admin, scenario.SiteA, set, 0).ConfigureAwait(true)).ConfigureAwait(true);
+        var read = await EditorApi.GetOkAsync(scenario.Admin, scenario.SiteA).ConfigureAwait(true);
+
+        using var sent = JsonDocument.Parse(set);
+        Assert.True(JsonElement.DeepEquals(sent.RootElement.GetProperty("radii"), read.GetProperty("document").GetProperty("radii")));
+
+        var legacy = System.Text.Json.Nodes.JsonNode.Parse(EditorApi.DefaultDocument)!.AsObject();
+        legacy.Remove("radii");
+        var again = await EditorApi.SaveAsync(scenario.Admin, scenario.SiteA, legacy.ToJsonString(), read.GetProperty("version").GetUInt32()).ConfigureAwait(true);
+        Assert.Equal(HttpStatusCode.OK, again.StatusCode);
+    }
+
+    // 066 US3 scenario 4: an Editor picks radii but may not change them; the server refuses.
+    [Fact]
+    public async Task An_editor_cannot_change_the_corner_radii()
+    {
+        using var scenario = await PagesScenario.CreateAsync(database, "ed-tokens-radii-editor").ConfigureAwait(true);
+        var editor = await scenario.UserAsync((scenario.SiteA, SystemRole.Editor)).ConfigureAwait(true);
+        var set = await File.ReadAllTextAsync(Path.Combine(
+            DraftApiTests.FindRepositoryRoot(), "docs", "contracts", "design-tokens", "examples", "valid", "with-radii.json")).ConfigureAwait(true);
+
+        var response = await EditorApi.SaveAsync(editor, scenario.SiteA, set, 0).ConfigureAwait(true);
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+        Assert.True((await EditorApi.GetOkAsync(scenario.Admin, scenario.SiteA).ConfigureAwait(true)).GetProperty("isDefault").GetBoolean());
+    }
+
     [Fact]
     public async Task A_save_based_on_an_old_version_is_out_of_date()
     {

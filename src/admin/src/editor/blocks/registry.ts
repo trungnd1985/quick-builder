@@ -55,6 +55,8 @@ export type ControlKind =
   | 'formRedirect'
   | 'formNotify'
   | 'formRetention'
+  // 066: a block's whole border. The panel adds it to every block whose schema has one (BB-08).
+  | 'border'
 
 export interface PropGroup {
   /** An i18n key under `editor.panel.groups`. */
@@ -80,7 +82,7 @@ export interface BlockDefinition {
   labelKey: string
   /** A short glyph for the palette and layer view; decorative. */
   icon: string
-  /** The property panel's groups. `layerLabel` is added to every block by the panel itself. */
+  /** The property panel's groups. `border` and `layerLabel` are added by the panel itself (066 BB-08). */
   groups: PropGroup[]
   /** What a new block holds: its required properties only (data-model §1.2). */
   initialProps: (t: (key: string) => string, context: InsertContext) => Record<string, Json> | null

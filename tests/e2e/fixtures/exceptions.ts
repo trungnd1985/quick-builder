@@ -3,7 +3,7 @@
 import { readFile } from 'node:fs/promises'
 import path from 'node:path'
 
-export const SCREENS = ['setup', 'sign-in', 'sites', 'site', 'page-tree', 'editor', 'media', 'trash'] as const
+export const SCREENS = ['setup', 'sign-in', 'sites', 'site', 'page-tree', 'editor', 'media', 'trash', 'design'] as const
 export type ScreenName = (typeof SCREENS)[number]
 
 export interface AccessibilityException {

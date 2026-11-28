@@ -17,6 +17,7 @@ import { isObject, type Json } from '../../schema/subsetValidator'
 import { pageHistoryKey } from '../../state/history'
 import { useBrokenLinks } from '../brokenLinks'
 import { useBlock } from '../useBlock'
+import { useBorder } from '../useBorder'
 
 const props = defineProps<{ node: ContentNode }>()
 const { t, te } = useI18n()
@@ -46,7 +47,8 @@ const empty = computed(() => {
   const doc = content.value
   return !isObject(doc) || !Array.isArray(doc.content) || doc.content.length === 0
 })
-const style = computed(() => ({ '--qb-text-color': token('color', 'color') }))
+const { classes: borderClasses, style: borderStyle } = useBorder(() => props.node)
+const style = computed(() => ({ '--qb-text-color': token('color', 'color'), ...borderStyle.value }))
 const isBroken = useBrokenLinks(() => store.siteId)
 const links = computed(() => ({ isBroken: isBroken.value, label: t('editor.canvas.brokenLink') }))
 
@@ -127,7 +129,7 @@ onBeforeUnmount(stopEditing)
   <div
     ref="root"
     class="qb-rich-text"
-    :class="`qb-align--${prop('align')}`"
+    :class="[`qb-align--${prop('align')}`, borderClasses]"
     :style="style"
     :data-placeholder="empty && !mounting ? t('editor.blocks.placeholder.richText') : undefined"
     @dblclick="startEditing"

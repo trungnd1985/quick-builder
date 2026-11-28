@@ -40,6 +40,29 @@ public sealed class DraftApiTests(DatabaseFixture database)
         Assert.Equal(1, read.GetProperty("schemaVersion").GetInt32());
     }
 
+    // 066 FR-018, FR-019: a border saves and reads back unchanged. The invalid border examples
+    // (props_invalid--border-*) are refused by the theory below with every other invalid example.
+    [Fact]
+    public async Task A_border_on_a_section_and_its_blocks_round_trips_unchanged()
+    {
+        using var scenario = await PagesScenario.CreateAsync(database, "pg-draft-border").ConfigureAwait(true);
+        var page = PagesApi.PagePath(scenario.SiteA, (await PagesApi.CreateOkAsync(scenario.Admin, scenario.SiteA, "framed").ConfigureAwait(true)).GetProperty("id").GetGuid());
+        var before = await PagesApi.DraftOkAsync(scenario.Admin, page).ConfigureAwait(true);
+        const string document = """
+            {"schemaVersion":1,"root":{"id":"root","type":"root","props":{},"children":[
+              {"id":"s","type":"section","props":{"border":{"width":"thick","style":"dashed","color":{"token":"color-brand"},"radius":{"token":"radius-lg"}}},"children":[
+                {"id":"t","type":"text","props":{"text":"Framed","border":{"width":"thin","padding":{"token":"space-sm"},"radius":{"token":"radius-gone"}}},"children":[]},
+                {"id":"b","type":"button","props":{"label":"Go","border":{"width":"none","style":"dotted"}},"children":[]}]}]}}
+            """;
+
+        await PagesApi.OkAsync(
+            await PagesApi.SaveDraftAsync(scenario.Admin, page, document, before.GetProperty("version").GetUInt32()).ConfigureAwait(true)).ConfigureAwait(true);
+        var read = await PagesApi.DraftOkAsync(scenario.Admin, page).ConfigureAwait(true);
+
+        using var sent = JsonDocument.Parse(document);
+        Assert.True(JsonElement.DeepEquals(sent.RootElement, read.GetProperty("document")));
+    }
+
     public static TheoryData<string> InvalidExamples()
     {
         var data = new TheoryData<string>();

@@ -49,4 +49,26 @@ public sealed class BlockDefaultsTests
             ["button", "collection-list", "component-ref", "container", "divider", "embed", "form", "heading", "image", "list-card", "list-empty", "navigation", "rich-text", "root", "section", "spacer", "text"],
             Defaults.Types.Order(StringComparer.Ordinal));
     }
+
+    // 066: the defaults inside a shared definition, read from the schema rather than hard-coded.
+    [Theory]
+    [InlineData("border", "width", "\"none\"")]
+    [InlineData("border", "style", "\"solid\"")]
+    [InlineData("border", "color", "{\"token\":\"color-border\"}")]
+    [InlineData("borderBox", "width", "\"none\"")]
+    [InlineData("borderBox", "color", "{\"token\":\"color-border\"}")]
+    public void A_default_inside_a_definition_is_read_from_the_schema(string definition, string property, string expected)
+    {
+        Assert.Equal(expected, System.Text.Json.JsonSerializer.Serialize(Defaults.OfDefinition(definition, property)!.Value));
+    }
+
+    [Theory]
+    [InlineData("border", "radius")]
+    [InlineData("border", "padding")]
+    [InlineData("borderBox", "padding")]
+    [InlineData("no-such-definition", "width")]
+    public void A_definition_property_without_a_default_has_none(string definition, string property)
+    {
+        Assert.Null(Defaults.OfDefinition(definition, property));
+    }
 }

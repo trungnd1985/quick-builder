@@ -99,6 +99,9 @@ internal sealed class RenderHarness
         new(title, document, Design, Components, Links, Media, Language, BasePath, Path: Path,
             Menus: Menus, MenuItems: Items, ItemPatterns: Patterns, CurrentPageId: CurrentPageId, CurrentItemId: CurrentItemId, FormState: FormState, Preview: Preview);
 
+    /// <summary>A render context over an empty page, for helpers that read one (066 BorderStyle).</summary>
+    public RenderContext NewContext() => Context(Document("[]"));
+
     private RenderContext Context(JsonElement document)
     {
         var context = new RenderContext(Inputs(document), BlockDefaults.Current);

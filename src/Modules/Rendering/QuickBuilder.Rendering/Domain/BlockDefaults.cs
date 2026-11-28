@@ -16,8 +16,15 @@ namespace QuickBuilder.Rendering.Domain;
 internal sealed class BlockDefaults
 {
     private readonly FrozenDictionary<string, FrozenDictionary<string, JsonElement>> _defaults;
+    private readonly FrozenDictionary<string, FrozenDictionary<string, JsonElement>> _definitions;
 
-    private BlockDefaults(FrozenDictionary<string, FrozenDictionary<string, JsonElement>> defaults) => _defaults = defaults;
+    private BlockDefaults(
+        FrozenDictionary<string, FrozenDictionary<string, JsonElement>> defaults,
+        FrozenDictionary<string, FrozenDictionary<string, JsonElement>> definitions)
+    {
+        _defaults = defaults;
+        _definitions = definitions;
+    }
 
     /// <summary>The defaults of the current schema version, loaded once.</summary>
     public static BlockDefaults Current { get; } = Load(PageSchema.CurrentVersion);
@@ -29,6 +36,14 @@ internal sealed class BlockDefaults
     public JsonElement? Of(string type, string property) =>
         _defaults.TryGetValue(type, out var properties) && properties.TryGetValue(property, out var value) ? value : null;
 
+    /// <summary>
+    /// The default of <paramref name="property"/> inside the shared definition
+    /// <paramref name="definition"/> (<c>$defs/border</c>, 066), if it has one. Values nested in a
+    /// prop take their defaults from here, so they are never hard-coded (Principle VI).
+    /// </summary>
+    public JsonElement? OfDefinition(string definition, string property) =>
+        _definitions.TryGetValue(definition, out var properties) && properties.TryGetValue(property, out var value) ? value : null;
+
     public static BlockDefaults Load(int schemaVersion)
     {
         using var stream = PageSchema.OpenSchema(schemaVersion);
@@ -36,9 +51,25 @@ internal sealed class BlockDefaults
         var definitions = schema.RootElement.GetProperty("$defs");
 
         var result = new Dictionary<string, FrozenDictionary<string, JsonElement>>(StringComparer.Ordinal);
+        var shared = new Dictionary<string, FrozenDictionary<string, JsonElement>>(StringComparer.Ordinal);
 
         foreach (var definition in definitions.EnumerateObject())
         {
+            // Every object definition's own property defaults, for values nested in a prop (066).
+            if (definition.Value.TryGetProperty("properties", out var own) && own.ValueKind == JsonValueKind.Object)
+            {
+                var nested = new Dictionary<string, JsonElement>(StringComparer.Ordinal);
+                foreach (var property in own.EnumerateObject())
+                {
+                    if (property.Value.ValueKind == JsonValueKind.Object && DefaultOf(property.Value, definitions) is { } value)
+                    {
+                        nested[property.Name] = value.Clone();
+                    }
+                }
+
+                shared[definition.Name] = nested.ToFrozenDictionary(StringComparer.Ordinal);
+            }
+
             // A node type is a definition whose "type" property is a constant naming it.
             if (!definition.Value.TryGetProperty("properties", out var fields)
                 || !fields.TryGetProperty("type", out var typeField)
@@ -65,7 +96,7 @@ internal sealed class BlockDefaults
             result[typeName.GetString()!] = defaults.ToFrozenDictionary(StringComparer.Ordinal);
         }
 
-        return new BlockDefaults(result.ToFrozenDictionary(StringComparer.Ordinal));
+        return new BlockDefaults(result.ToFrozenDictionary(StringComparer.Ordinal), shared.ToFrozenDictionary(StringComparer.Ordinal));
     }
 
     private static JsonElement? DefaultOf(JsonElement property, JsonElement definitions)

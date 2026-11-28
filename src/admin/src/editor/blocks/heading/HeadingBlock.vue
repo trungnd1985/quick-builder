@@ -8,6 +8,7 @@ import { isObject } from '../../schema/subsetValidator'
 import { tokenValue } from '../../tokens/tokenCss'
 import { useBrokenLinks } from '../brokenLinks'
 import { useBlock, useInlineText } from '../useBlock'
+import { useBorder } from '../useBorder'
 
 const props = defineProps<{ node: ContentNode }>()
 const { t } = useI18n()
@@ -18,9 +19,11 @@ const { onInput, onKeydown, bound } = useInlineText(element, () => props.node, '
 const SIZE_BY_LEVEL = ['text-3xl', 'text-2xl', 'text-xl', 'text-lg', 'text-md', 'text-md']
 
 const level = computed(() => Math.min(6, Math.max(1, Number(prop('level')) || 2)))
+const { classes: borderClasses, style: borderStyle } = useBorder(() => props.node)
 const style = computed(() => ({
   '--qb-heading-color': token('color', 'color'),
   '--qb-heading-size': tokenValue({ token: SIZE_BY_LEVEL[level.value - 1] }, 'text', store.tokens, { token: 'text-md' }),
+  ...borderStyle.value,
 }))
 const empty = computed(() => !props.node.props.text)
 
@@ -43,7 +46,7 @@ const title = computed(() => {
     :is="`h${level}`"
     ref="element"
     class="qb-heading"
-    :class="[`qb-align--${prop('align')}`, { 'qb-heading--linked': linked }]"
+    :class="[`qb-align--${prop('align')}`, { 'qb-heading--linked': linked }, borderClasses]"
     :title="title"
     :style="style"
     :contenteditable="editable && !bound ? 'plaintext-only' : 'false'"

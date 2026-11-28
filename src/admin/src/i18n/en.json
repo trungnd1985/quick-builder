@@ -1053,7 +1053,8 @@
         "messages": "Messages",
         "afterSubmit": "After sending",
         "notifications": "Notifications",
-        "submissions": "Submissions"
+        "submissions": "Submissions",
+        "border": "Border"
       },
       "props": {
         "text": "Text",
@@ -1109,7 +1110,8 @@
         "errorMessage": "Error message",
         "redirect": "Then go to",
         "notify": "Email notification",
-        "retentionDays": "Keep submissions"
+        "retentionDays": "Keep submissions",
+        "border": "Border"
       },
       "values": {
         "align": {
@@ -1199,6 +1201,29 @@
           "columns": "Columns",
           "gap": "Space between cards"
         }
+      },
+      "border": {
+        "width": "Width",
+        "style": "Line style",
+        "color": "Line colour",
+        "radius": "Corner radius",
+        "padding": "Inner spacing",
+        "widths": {
+          "none": "None",
+          "thin": "Thin",
+          "medium": "Medium",
+          "thick": "Thick"
+        },
+        "styles": {
+          "solid": "Solid",
+          "dashed": "Dashed",
+          "dotted": "Dotted"
+        },
+        "colorDefault": "Default ({name})",
+        "radiusDefault": "Block default",
+        "paddingNone": "None",
+        "noLine": "Choose a width to draw a line.",
+        "deleted": "This border used a token that has been deleted, so it shows the default. Choose another one."
       }
     },
     "history": {
@@ -1582,7 +1607,8 @@
     "confirmRemove": {
       "colors": "Remove the colour {name}? No block uses it. | Remove the colour {name}? One block uses it and will show its default colour instead. | Remove the colour {name}? {count} blocks use it and will show their default colour instead.",
       "sizes": "Remove the text size {name}? No block uses it. | Remove the text size {name}? One block uses it and will show its default size instead. | Remove the text size {name}? {count} blocks use it and will show their default size instead.",
-      "spacing": "Remove the spacing step {name}? No block uses it. | Remove the spacing step {name}? One block uses it and will show its default spacing instead. | Remove the spacing step {name}? {count} blocks use it and will show their default spacing instead."
+      "spacing": "Remove the spacing step {name}? No block uses it. | Remove the spacing step {name}? One block uses it and will show its default spacing instead. | Remove the spacing step {name}? {count} blocks use it and will show their default spacing instead.",
+      "radii": "Remove the corner radius {name}? No block uses it. | Remove the corner radius {name}? One block uses it and will show its own corners instead. | Remove the corner radius {name}? {count} blocks use it and will show their own corners instead."
     },
     "colors": {
       "title": "Colours",
@@ -1667,6 +1693,12 @@
           "focus": "Focus ring on the bar"
         }
       }
+    },
+    "radii": {
+      "title": "Corner radius",
+      "help": "How round block corners are, in multiples of the base text size, from 0 to 100. 100 is fully rounded.",
+      "add": "Add corner radius",
+      "newName": "Radius {n}"
     }
   },
   "publishing": {

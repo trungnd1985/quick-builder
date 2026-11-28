@@ -1,12 +1,12 @@
 <script setup lang="ts">
-// A scale of named steps — the site's text sizes or its spacing — each a name and a size in
+// A scale of named steps — the site's text sizes, its spacing or its corner radii (066) — each a name and a size in
 // multiples of the base text size (design-tokens.md §2).
 import { useI18n } from 'vue-i18n'
 import type { ScaleToken } from '../../editor/tokens/defaultTokens'
 
 const props = defineProps<{
   steps: ScaleToken[]
-  kind: 'sizes' | 'spacing'
+  kind: 'sizes' | 'spacing' | 'radii'
   readOnly: boolean
   min: number
   max: number
@@ -61,6 +61,12 @@ const id = (part: string, index: number) => `${props.kind}-${part}-${index}`
           :style="{ fontSize: `${step.rem}rem` }"
           aria-hidden="true"
         >{{ t('design.sample') }}</span>
+        <span
+          v-else-if="kind === 'radii'"
+          class="design-preview design-preview--radius"
+          :style="{ borderRadius: `${step.rem}rem` }"
+          aria-hidden="true"
+        />
         <span
           v-else
           class="design-preview design-preview--spacing"

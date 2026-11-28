@@ -101,6 +101,7 @@ internal sealed partial class TokenCss
     {
         TokenKind.Color => "color",
         TokenKind.Space => "space",
+        TokenKind.Radius => "radius",
         _ => "text",
     };
 
@@ -127,6 +128,12 @@ internal sealed partial class TokenCss
         foreach (var (id, rem) in set.Spacing)
         {
             yield return new($"--qb-space-{id}", Scale(rem));
+        }
+
+        // 066: corner radii scale like spacing. A set without its own adds none; the defaults' stand.
+        foreach (var (id, rem) in set.Radii ?? [])
+        {
+            yield return new($"--qb-radius-{id}", Scale(rem));
         }
 
         yield return new("--qb-font-heading", FontStacks.FamilyOf(set.HeadingFont) ?? FontStacks.FamilyOf("system-ui")!);
@@ -164,6 +171,7 @@ internal sealed partial class TokenCss
         IReadOnlyList<(string Id, string Value)> Colors,
         IReadOnlyList<(string Id, double Rem)> TextSizes,
         IReadOnlyList<(string Id, double Rem)> Spacing,
+        IReadOnlyList<(string Id, double Rem)>? Radii,
         string HeadingFont,
         string BodyFont,
         double BaseSizePx,
@@ -177,6 +185,9 @@ internal sealed partial class TokenCss
         {
             TokenKind.Color => Colors.Any(c => c.Id == id),
             TokenKind.Space => Spacing.Any(s => s.Id == id),
+
+            // A set saved before radii existed uses the default set's (design-tokens.md §2, 066).
+            TokenKind.Radius => (Radii ?? Defaults.Radii ?? []).Any(r => r.Id == id),
             _ => TextSizes.Any(s => s.Id == id),
         };
 
@@ -189,6 +200,7 @@ internal sealed partial class TokenCss
                     .Where(c => c.Item1 is not null && SafeColor().IsMatch(c.Item2)).Select(c => (c.Item1!, c.Item2))],
                 [.. Scale(Property(typography, "sizes"))],
                 [.. Scale(Property(document, "spacing"))],
+                Property(document, "radii") is { ValueKind: JsonValueKind.Array } radii ? [.. Scale(radii)] : null,
                 String(typography, "headingFont"),
                 String(typography, "bodyFont"),
                 Double(typography, "baseSizePx") ?? 16,
@@ -247,4 +259,7 @@ internal enum TokenKind
     Color,
     Space,
     Text,
+
+    /// <summary>A corner radius (066).</summary>
+    Radius,
 }
