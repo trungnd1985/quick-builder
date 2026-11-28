@@ -1,0 +1,272 @@
+{
+  "schemaVersion": 1,
+  "root": {
+    "id": "root",
+    "type": "root",
+    "props": {},
+    "children": [
+      {
+        "id": "framed-section",
+        "type": "section",
+        "props": {
+          "border": {
+            "width": "thick",
+            "style": "solid",
+            "color": {
+              "token": "color-brand"
+            }
+          },
+          "layerLabel": "Framed section"
+        },
+        "children": [
+          {
+            "id": "framed-container",
+            "type": "container",
+            "props": {
+              "padding": {
+                "token": "space-md"
+              },
+              "border": {
+                "width": "medium",
+                "style": "dashed",
+                "color": {
+                  "token": "color-muted"
+                }
+              }
+            },
+            "children": [
+              {
+                "id": "b-heading",
+                "type": "heading",
+                "props": {
+                  "text": "Thin solid heading",
+                  "level": 2,
+                  "border": {
+                    "width": "thin",
+                    "style": "solid",
+                    "color": {
+                      "token": "color-text"
+                    }
+                  }
+                },
+                "children": []
+              },
+              {
+                "id": "b-text",
+                "type": "text",
+                "props": {
+                  "text": "Thin dotted text with inner spacing.",
+                  "border": {
+                    "width": "thin",
+                    "style": "dotted",
+                    "color": {
+                      "token": "color-brand"
+                    },
+                    "padding": {
+                      "token": "space-sm"
+                    }
+                  }
+                },
+                "children": []
+              },
+              {
+                "id": "b-rich-text",
+                "type": "rich-text",
+                "props": {
+                  "content": {
+                    "type": "doc",
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "Framed rich text."
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  "border": {
+                    "width": "medium",
+                    "style": "solid"
+                  }
+                },
+                "children": []
+              },
+              {
+                "id": "b-image",
+                "type": "image",
+                "props": {
+                  "media": {
+                    "mediaId": "0192f5a0-1b2c-7d3e-8f40-5a6b7c8d9e30"
+                  },
+                  "alt": "A framed photo",
+                  "border": {
+                    "width": "thick",
+                    "style": "solid",
+                    "color": {
+                      "token": "color-border"
+                    }
+                  }
+                },
+                "children": []
+              },
+              {
+                "id": "b-button-primary",
+                "type": "button",
+                "props": {
+                  "label": "Primary",
+                  "style": "primary",
+                  "border": {
+                    "width": "thin",
+                    "style": "solid",
+                    "color": {
+                      "token": "color-text"
+                    }
+                  }
+                },
+                "children": []
+              },
+              {
+                "id": "b-button-secondary",
+                "type": "button",
+                "props": {
+                  "label": "Secondary",
+                  "style": "secondary",
+                  "border": {
+                    "width": "medium",
+                    "style": "dashed",
+                    "color": {
+                      "token": "color-text"
+                    }
+                  }
+                },
+                "children": []
+              },
+              {
+                "id": "b-button-outline",
+                "type": "button",
+                "props": {
+                  "label": "Outline",
+                  "style": "outline",
+                  "border": {
+                    "width": "thick",
+                    "style": "dotted",
+                    "color": {
+                      "token": "color-muted"
+                    },
+                    "padding": {
+                      "token": "space-md"
+                    }
+                  }
+                },
+                "children": []
+              },
+              {
+                "id": "b-button-none",
+                "type": "button",
+                "props": {
+                  "label": "Own frame kept",
+                  "style": "outline",
+                  "border": {
+                    "width": "none",
+                    "style": "dashed"
+                  }
+                },
+                "children": []
+              },
+              {
+                "id": "b-spacer",
+                "type": "spacer",
+                "props": {
+                  "height": {
+                    "token": "space-lg"
+                  },
+                  "border": {
+                    "width": "thin",
+                    "style": "dashed"
+                  }
+                },
+                "children": []
+              },
+              {
+                "id": "b-divider",
+                "type": "divider",
+                "props": {
+                  "border": {
+                    "width": "thin",
+                    "style": "solid",
+                    "padding": {
+                      "token": "space-xs"
+                    }
+                  }
+                },
+                "children": []
+              },
+              {
+                "id": "plain-divider",
+                "type": "divider",
+                "props": {},
+                "children": []
+              },
+              {
+                "id": "b-embed",
+                "type": "embed",
+                "props": {
+                  "url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+                  "title": "Framed video",
+                  "border": {
+                    "width": "medium",
+                    "style": "solid",
+                    "color": {
+                      "token": "color-brand"
+                    }
+                  }
+                },
+                "children": []
+              },
+              {
+                "id": "b-navigation",
+                "type": "navigation",
+                "props": {
+                  "menuId": "0192f5a0-1b2c-7d3e-8f40-5a6b7c8d9e40",
+                  "border": {
+                    "width": "thin",
+                    "style": "solid",
+                    "padding": {
+                      "token": "space-sm"
+                    }
+                  }
+                },
+                "children": []
+              },
+              {
+                "id": "b-form",
+                "type": "form",
+                "props": {
+                  "name": "Framed form",
+                  "fields": [
+                    {
+                      "id": "a1b2c3d4e5f6",
+                      "type": "text",
+                      "label": "Name"
+                    }
+                  ],
+                  "border": {
+                    "width": "thin",
+                    "style": "dashed",
+                    "padding": {
+                      "token": "space-md"
+                    }
+                  }
+                },
+                "children": []
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

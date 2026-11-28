@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "root": {
+    "id": "root",
+    "type": "root",
+    "props": {},
+    "children": [
+      {
+        "id": "gone",
+        "type": "section",
+        "props": {
+          "border": {
+            "width": "thin",
+            "color": {
+              "token": "color-gone"
+            },
+            "radius": {
+              "token": "radius-gone"
+            }
+          }
+        },
+        "children": [
+          {
+            "id": "gone-text",
+            "type": "text",
+            "props": {
+              "text": "Default colour, square corners, no inner spacing.",
+              "border": {
+                "width": "thin",
+                "color": {
+                  "token": "color-gone"
+                },
+                "radius": {
+                  "token": "radius-gone"
+                },
+                "padding": {
+                  "token": "space-gone"
+                }
+              }
+            },
+            "children": []
+          },
+          {
+            "id": "gone-button",
+            "type": "button",
+            "props": {
+              "label": "Keeps its 6 px corners",
+              "border": {
+                "radius": {
+                  "token": "radius-gone"
+                },
+                "padding": {
+                  "token": "space-gone"
+                }
+              }
+            },
+            "children": []
+          }
+        ]
+      }
+    ]
+  }
+}

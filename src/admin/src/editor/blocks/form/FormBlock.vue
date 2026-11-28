@@ -11,10 +11,13 @@ import { isObject, type JsonObject } from '../../schema/subsetValidator'
 import { formSetupProblems } from '../../forms/formSetup'
 import { useSitePages } from '../../state/useSitePages'
 import { useBlock } from '../useBlock'
+import { useBorder } from '../useBorder'
 
 const props = defineProps<{ node: ContentNode }>()
 const { t } = useI18n()
 const { store } = useBlock(() => props.node)
+// 066: a border frames the whole form, its messages included.
+const { classes: borderClasses, style: borderStyle } = useBorder(() => props.node)
 const pages = useSitePages(store.siteId)
 
 const text = (value: unknown, fallback: string): string => (typeof value === 'string' && value.length > 0 ? value : fallback)
@@ -42,7 +45,11 @@ function consentLink(field: JsonObject): { href: string; title: string } | null 
 </script>
 
 <template>
-  <div class="qb-form">
+  <div
+    class="qb-form"
+    :class="borderClasses"
+    :style="borderStyle"
+  >
     <div
       class="qb-form__sent"
       role="status"

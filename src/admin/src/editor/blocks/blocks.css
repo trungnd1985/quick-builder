@@ -796,4 +796,53 @@
     opacity: 0.6;
     cursor: progress;
   }
+
+  /*
+    066: the border every block shares (contracts/block-border.md §3). Last in this layer, so a
+    border replaces a block's own frame, corners or padding at equal specificity: a Button's
+    built-in frame (clarification Q2) included. Radius and padding have their own classes, so
+    an unset value never resets a block's own corners or spacing. Only token variables and
+    these fixed widths reach the page (FR-020).
+  */
+  .qb-border {
+    box-sizing: border-box;
+  }
+
+  .qb-border--thin {
+    border: 1px solid var(--qb-border-color);
+  }
+
+  .qb-border--medium {
+    border: 2px solid var(--qb-border-color);
+  }
+
+  .qb-border--thick {
+    border: 4px solid var(--qb-border-color);
+  }
+
+  .qb-border--dashed {
+    border-style: dashed;
+  }
+
+  .qb-border--dotted {
+    border-style: dotted;
+  }
+
+  .qb-border--radius {
+    border-radius: var(--qb-border-radius);
+  }
+
+  .qb-border--pad {
+    padding: var(--qb-border-pad);
+  }
+
+  /*
+    066 BB-06: rounded boxes clip what they hold, so a photo or a wide table never pokes past
+    the corners. clip, not hidden: it makes no scroll container. Never on a Navigation block,
+    whose drop-down panels must leave the bar, nor on a Form, whose fields' focus rings sit at
+    its edge; an Image rounds its own picture and needs no clipping.
+  */
+  :is(.qb-section, .qb-container, .qb-rich-text, .qb-embed, .qb-list__card, .qb-component-ref).qb-border--radius {
+    overflow: clip;
+  }
 }

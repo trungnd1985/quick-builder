@@ -49,6 +49,8 @@ export interface TokenSet {
     sizes: ScaleToken[]
   }
   spacing: ScaleToken[]
+  /** Optional (066): corner radii, in rem. A set saved before them has none, and takes the defaults. */
+  radii?: ScaleToken[]
   /** Optional: a set saved before content widths existed has none, and takes the defaults. */
   contentWidths?: ContentWidths
   /** Optional: absent, menus take the built-in style. */

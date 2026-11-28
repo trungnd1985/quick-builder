@@ -1,0 +1,181 @@
+{
+  "schemaVersion": 1,
+  "colors": [
+    {
+      "id": "color-brand",
+      "name": "Brand",
+      "value": "#2563eb"
+    },
+    {
+      "id": "color-brand-light",
+      "name": "Brand light",
+      "value": "#dbeafe"
+    },
+    {
+      "id": "color-text",
+      "name": "Text",
+      "value": "#111827"
+    },
+    {
+      "id": "color-muted",
+      "name": "Muted text",
+      "value": "#6b7280"
+    },
+    {
+      "id": "color-background",
+      "name": "Background",
+      "value": "#ffffff"
+    },
+    {
+      "id": "color-border",
+      "name": "Border",
+      "value": "#e5e7eb"
+    }
+  ],
+  "typography": {
+    "headingFont": "system-ui",
+    "bodyFont": "system-ui",
+    "baseSizePx": 16,
+    "sizes": [
+      {
+        "id": "text-sm",
+        "name": "Small",
+        "rem": 0.875
+      },
+      {
+        "id": "text-md",
+        "name": "Normal",
+        "rem": 1
+      },
+      {
+        "id": "text-lg",
+        "name": "Large",
+        "rem": 1.25
+      },
+      {
+        "id": "text-xl",
+        "name": "Extra large",
+        "rem": 1.5
+      },
+      {
+        "id": "text-2xl",
+        "name": "2x large",
+        "rem": 2
+      },
+      {
+        "id": "text-3xl",
+        "name": "3x large",
+        "rem": 2.5
+      }
+    ]
+  },
+  "spacing": [
+    {
+      "id": "space-none",
+      "name": "None",
+      "rem": 0
+    },
+    {
+      "id": "space-xs",
+      "name": "Extra small",
+      "rem": 0.25
+    },
+    {
+      "id": "space-sm",
+      "name": "Small",
+      "rem": 0.5
+    },
+    {
+      "id": "space-md",
+      "name": "Medium",
+      "rem": 1
+    },
+    {
+      "id": "space-lg",
+      "name": "Large",
+      "rem": 2
+    },
+    {
+      "id": "space-xl",
+      "name": "Extra large",
+      "rem": 4
+    },
+    {
+      "id": "space-2xl",
+      "name": "2x large",
+      "rem": 6
+    }
+  ],
+  "radii": [
+    {
+      "id": "radius-r0",
+      "name": "R 0",
+      "rem": 0
+    },
+    {
+      "id": "radius-r1",
+      "name": "R 1",
+      "rem": 0.25
+    },
+    {
+      "id": "radius-r2",
+      "name": "R 2",
+      "rem": 0.5
+    },
+    {
+      "id": "radius-r3",
+      "name": "R 3",
+      "rem": 0.75
+    },
+    {
+      "id": "radius-r4",
+      "name": "R 4",
+      "rem": 1
+    },
+    {
+      "id": "radius-r5",
+      "name": "R 5",
+      "rem": 1.25
+    },
+    {
+      "id": "radius-r6",
+      "name": "R 6",
+      "rem": 1.5
+    },
+    {
+      "id": "radius-r7",
+      "name": "R 7",
+      "rem": 1.75
+    },
+    {
+      "id": "radius-r8",
+      "name": "R 8",
+      "rem": 2
+    },
+    {
+      "id": "radius-r9",
+      "name": "R 9",
+      "rem": 2.25
+    },
+    {
+      "id": "radius-r10",
+      "name": "R 10",
+      "rem": 2.5
+    },
+    {
+      "id": "radius-r11",
+      "name": "R 11",
+      "rem": 2.75
+    },
+    {
+      "id": "radius-r12",
+      "name": "R 12",
+      "rem": 3
+    }
+  ],
+  "contentWidths": {
+    "narrow": 720,
+    "normal": 1200,
+    "wide": 1440
+  }
+}

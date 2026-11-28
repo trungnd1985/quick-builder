@@ -128,4 +128,24 @@ describe('the canvas and the published page draw the same markup', () => {
 
     expect(canvasTree(document.root)).toEqual(publishedTree(published))
   })
+
+  // 066 FR-010 (analysis C1): the canvas draws the same border markup whatever the preview
+  // width, since a preview width only resizes the frame; and no border rule sits inside a
+  // container query, so a border looks the same on desktop, tablet and phone. jsdom lays nothing
+  // out, so the column fit is checked in a browser (tests/e2e/specs/block-borders.spec.ts).
+  it('draws borders the same at every preview width', () => {
+    const document = readJson(join(pageExamples, 'valid', 'borders-every-block.json')) as { root: ContentNode }
+    const published = publishedTree(readFileSync(join(golden, 'borders-every-block.html'), 'utf8'))
+
+    for (const width of ['1280px', '767px', '480px']) {
+      const tree = canvasTree(document.root)
+      expect(tree, width).toEqual(published)
+    }
+
+    const css = readFileSync(resolve(process.cwd(), 'src/editor/blocks/blocks.css'), 'utf8')
+    const queries = [...css.matchAll(/@container[^{]*\{([\s\S]*?)\n {2}\}/g)].map((m) => m[1]!)
+    expect(queries.length).toBeGreaterThan(0)
+    for (const body of queries) expect(body).not.toMatch(/\.qb-border/)
+    expect(css).toMatch(/\.qb-border \{\s*box-sizing: border-box;/)
+  })
 })

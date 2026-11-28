@@ -23,10 +23,12 @@ public sealed class CollectionListRenderTests
 
     private static readonly ResolveCase World = ResolveCase.Load("rich-image-link");
 
-    private static string Document(string listProps, string? cardBlocks = null) =>
+    private static string Document(string listProps, string? cardBlocks = null, string cardProps = "{}") =>
         """{"schemaVersion":1,"bindingVersion":1,"root":{"id":"root","type":"root","props":{},"children":[{"id":"s1","type":"section","props":{},"children":[{"id":"posts","type":"collection-list","props":"""
         + listProps
-        + ""","children":[{"id":"posts-card","type":"list-card","props":{},"children":["""
+        + ""","children":[{"id":"posts-card","type":"list-card","props":"""
+        + cardProps
+        + ""","children":["""
         + (cardBlocks ?? """{"id":"title","type":"heading","props":{"text":"Fallback","level":3,"bind":{"text":{"value":{"field":"f1"}}}},"children":[]},{"id":"go","type":"button","props":{"label":"Read","bind":{"link":{"value":{"item":"url"}}}},"children":[]}""")
         + """]},{"id":"posts-empty","type":"list-empty","props":{},"children":[{"id":"none","type":"text","props":{"text":"Nothing to show yet."},"children":[]}]}]}]}]}}""";
 
@@ -100,6 +102,20 @@ public sealed class CollectionListRenderTests
         Assert.Contains("href=\"/site/blog/dyeing\"", html, StringComparison.Ordinal);
         Assert.Contains("--qb-cols:2;--qb-cols-tablet:2;", html, StringComparison.Ordinal);
         Assert.DoesNotContain("Nothing to show yet.", html, StringComparison.Ordinal);
+    }
+
+    // 066: one border on the card frames every card the list shows, from one style rule (BB-05).
+    [Fact]
+    public void A_bordered_card_frames_every_listed_item()
+    {
+        var html = Render(
+            Document($$$"""{"source":{"collectionId":"{{{Posts}}}"},"columns":3}""", cardProps: """{"border":{"width":"thin","radius":{"token":"radius-md"}}}"""),
+            ThreePosts);
+
+        Golden("bordered-card", html);
+        Assert.Equal(3, html.Split("""<li class="qb-list__card qb-border qb-border--thin qb-border--solid qb-border--radius" data-qb="p.posts-card">""").Length - 1);
+        Assert.Equal(1, html.Split("""[data-qb="p.posts-card"]{""").Length - 1);
+        Assert.Contains("""[data-qb="p.posts-card"]{--qb-border-color:var(--qb-color-color-border);--qb-border-radius:var(--qb-radius-radius-md);}""", html, StringComparison.Ordinal);
     }
 
     [Fact]

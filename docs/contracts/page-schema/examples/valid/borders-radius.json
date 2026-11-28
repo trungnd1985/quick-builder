@@ -1,0 +1,154 @@
+{
+  "schemaVersion": 1,
+  "root": {
+    "id": "root",
+    "type": "root",
+    "props": {},
+    "children": [
+      {
+        "id": "rounded",
+        "type": "section",
+        "props": {
+          "border": {
+            "radius": {
+              "token": "radius-lg"
+            }
+          }
+        },
+        "children": [
+          {
+            "id": "round-photo",
+            "type": "image",
+            "props": {
+              "media": {
+                "mediaId": "0192f5a0-1b2c-7d3e-8f40-5a6b7c8d9e30"
+              },
+              "alt": "A rounded photo",
+              "border": {
+                "radius": {
+                  "token": "radius-lg"
+                }
+              }
+            },
+            "children": []
+          },
+          {
+            "id": "card",
+            "type": "container",
+            "props": {
+              "background": {
+                "token": "color-brand-light"
+              },
+              "padding": {
+                "token": "space-md"
+              },
+              "border": {
+                "width": "thin",
+                "radius": {
+                  "token": "radius-md"
+                }
+              }
+            },
+            "children": [
+              {
+                "id": "card-photo",
+                "type": "image",
+                "props": {
+                  "media": {
+                    "mediaId": "0192f5a0-1b2c-7d3e-8f40-5a6b7c8d9e30"
+                  },
+                  "alt": "A photo in a rounded card",
+                  "width": "full"
+                },
+                "children": []
+              },
+              {
+                "id": "card-text",
+                "type": "text",
+                "props": {
+                  "text": "Clipped to the card corners."
+                },
+                "children": []
+              }
+            ]
+          },
+          {
+            "id": "circle",
+            "type": "spacer",
+            "props": {
+              "height": {
+                "token": "space-2xl"
+              },
+              "border": {
+                "width": "medium",
+                "radius": {
+                  "token": "radius-full"
+                }
+              }
+            },
+            "children": []
+          },
+          {
+            "id": "pill",
+            "type": "button",
+            "props": {
+              "label": "Pill",
+              "style": "primary",
+              "border": {
+                "radius": {
+                  "token": "radius-full"
+                }
+              }
+            },
+            "children": []
+          },
+          {
+            "id": "rounded-nav",
+            "type": "navigation",
+            "props": {
+              "menuId": "0192f5a0-1b2c-7d3e-8f40-5a6b7c8d9e40",
+              "border": {
+                "width": "thin",
+                "radius": {
+                  "token": "radius-lg"
+                }
+              }
+            },
+            "children": []
+          },
+          {
+            "id": "rounded-text",
+            "type": "rich-text",
+            "props": {
+              "content": {
+                "type": "doc",
+                "content": [
+                  {
+                    "type": "paragraph",
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": "Rounded rich text."
+                      }
+                    ]
+                  }
+                ]
+              },
+              "border": {
+                "width": "thin",
+                "style": "dashed",
+                "radius": {
+                  "token": "radius-sm"
+                },
+                "padding": {
+                  "token": "space-sm"
+                }
+              }
+            },
+            "children": []
+          }
+        ]
+      }
+    ]
+  }
+}

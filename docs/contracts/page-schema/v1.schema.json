@@ -157,6 +157,9 @@
             "componentId": {
               "type": "string",
               "format": "uuid"
+            },
+            "border": {
+              "$ref": "#/$defs/border"
             }
           }
         },
@@ -212,6 +215,83 @@
       "properties": {
         "token": {
           "$ref": "#/$defs/tokenId"
+        }
+      }
+    },
+    "radiusRef": {
+      "description": "A corner radius of the site's design tokens, by id. It may name a token that no longer exists.",
+      "type": "object",
+      "required": [
+        "token"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "token": {
+          "$ref": "#/$defs/tokenId"
+        }
+      }
+    },
+    "borderWidth": {
+      "enum": [
+        "none",
+        "thin",
+        "medium",
+        "thick"
+      ],
+      "default": "none"
+    },
+    "borderStyle": {
+      "enum": [
+        "solid",
+        "dashed",
+        "dotted"
+      ],
+      "default": "solid"
+    },
+    "border": {
+      "description": "A block's border, corners and inner spacing (066). Absent: the block looks as it does without one. radius and padding have no default: absent, the block keeps its own.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "width": {
+          "$ref": "#/$defs/borderWidth"
+        },
+        "style": {
+          "$ref": "#/$defs/borderStyle"
+        },
+        "color": {
+          "$ref": "#/$defs/colorRef",
+          "default": {
+            "token": "color-border"
+          }
+        },
+        "radius": {
+          "$ref": "#/$defs/radiusRef"
+        },
+        "padding": {
+          "$ref": "#/$defs/spaceRef"
+        }
+      }
+    },
+    "borderBox": {
+      "description": "The border of a Section or Container: as border, without padding, which they have of their own (066 clarification Q1).",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "width": {
+          "$ref": "#/$defs/borderWidth"
+        },
+        "style": {
+          "$ref": "#/$defs/borderStyle"
+        },
+        "color": {
+          "$ref": "#/$defs/colorRef",
+          "default": {
+            "token": "color-border"
+          }
+        },
+        "radius": {
+          "$ref": "#/$defs/radiusRef"
         }
       }
     },
@@ -300,6 +380,9 @@
               ],
               "default": "contained"
             },
+            "border": {
+              "$ref": "#/$defs/borderBox"
+            },
             "layerLabel": {
               "$ref": "#/$defs/layerLabel"
             }
@@ -379,6 +462,9 @@
               "type": "boolean",
               "default": true
             },
+            "border": {
+              "$ref": "#/$defs/borderBox"
+            },
             "layerLabel": {
               "$ref": "#/$defs/layerLabel"
             }
@@ -434,6 +520,9 @@
             },
             "link": {
               "$ref": "#/$defs/link"
+            },
+            "border": {
+              "$ref": "#/$defs/border"
             },
             "layerLabel": {
               "$ref": "#/$defs/layerLabel"
@@ -499,6 +588,9 @@
                 "token": "text-md"
               }
             },
+            "border": {
+              "$ref": "#/$defs/border"
+            },
             "layerLabel": {
               "$ref": "#/$defs/layerLabel"
             },
@@ -552,6 +644,9 @@
               "default": {
                 "token": "color-text"
               }
+            },
+            "border": {
+              "$ref": "#/$defs/border"
             },
             "layerLabel": {
               "$ref": "#/$defs/layerLabel"
@@ -622,6 +717,9 @@
             },
             "link": {
               "$ref": "#/$defs/link"
+            },
+            "border": {
+              "$ref": "#/$defs/border"
             },
             "layerLabel": {
               "$ref": "#/$defs/layerLabel"
@@ -694,6 +792,9 @@
               "type": "boolean",
               "default": false
             },
+            "border": {
+              "$ref": "#/$defs/border"
+            },
             "layerLabel": {
               "$ref": "#/$defs/layerLabel"
             },
@@ -741,6 +842,9 @@
               "default": {
                 "token": "space-lg"
               }
+            },
+            "border": {
+              "$ref": "#/$defs/border"
             },
             "layerLabel": {
               "$ref": "#/$defs/layerLabel"
@@ -791,6 +895,9 @@
                 "token": "space-md"
               }
             },
+            "border": {
+              "$ref": "#/$defs/border"
+            },
             "layerLabel": {
               "$ref": "#/$defs/layerLabel"
             }
@@ -838,6 +945,9 @@
                 "1:1"
               ],
               "default": "16:9"
+            },
+            "border": {
+              "$ref": "#/$defs/border"
             },
             "layerLabel": {
               "$ref": "#/$defs/layerLabel"
@@ -973,6 +1083,9 @@
             "panelBackground": {
               "$ref": "#/$defs/colorRef",
               "description": "Horizontal dropdowns and the opened small-screen panel; absent: the site's menu style."
+            },
+            "border": {
+              "$ref": "#/$defs/border"
             },
             "layerLabel": {
               "$ref": "#/$defs/layerLabel"
@@ -1785,6 +1898,9 @@
               ],
               "description": "Absent: submissions are kept until deleted (018 FR-023a)."
             },
+            "border": {
+              "$ref": "#/$defs/border"
+            },
             "layerLabel": {
               "$ref": "#/$defs/layerLabel"
             }
@@ -2110,6 +2226,9 @@
                 "token": "space-md"
               }
             },
+            "border": {
+              "$ref": "#/$defs/border"
+            },
             "layerLabel": {
               "$ref": "#/$defs/layerLabel"
             }
@@ -2144,6 +2263,9 @@
           "type": "object",
           "additionalProperties": false,
           "properties": {
+            "border": {
+              "$ref": "#/$defs/border"
+            },
             "layerLabel": {
               "$ref": "#/$defs/layerLabel"
             }

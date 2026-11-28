@@ -60,22 +60,22 @@ whitespace. "Read back unchanged" means **equal as a JSON value**.
 | Type | Props | Children | Allowed in |
 |---|---|---|---|
 | `root` | `seo` (017; page documents only, rule 22) | `rootChild` | the envelope's `root` only |
-| `component-ref` | `componentId`: UUID of a shared component of the **same site** | none | page documents, under `root` only |
-| `section` | `background`, `paddingY`, `width`, `layerLabel` | `contentChild` | under `root` |
-| `container` | `direction`, `columns`, `gap`, `padding`, `align`, `maxWidth`, `background`, `stackOnMobile`, `layerLabel` | `contentChild` | in `section` or `container` |
-| `heading` | `text`\*, `level`, `align`, `color`, `link`, `layerLabel`, `bind` | none | in `section` or `container` |
-| `text` | `text`\*, `align`, `color`, `size`, `layerLabel`, `bind` | none | in `section` or `container` |
-| `rich-text` | `content`\*, `align`, `color`, `layerLabel`, `bind` | none | in `section` or `container` |
-| `image` | `media`, `alt`, `decorative`, `width`, `link`, `layerLabel`, `bind` | none | in `section` or `container` |
-| `button` | `label`\*, `link`, `style`, `align`, `newTab`, `layerLabel`, `bind` | none | in `section` or `container` |
-| `spacer` | `height`, `layerLabel` | none | in `section` or `container` |
-| `divider` | `color`, `thickness`, `spacing`, `layerLabel` | none | in `section` or `container` |
-| `embed` | `url`, `title`, `aspectRatio`, `layerLabel` | none | in `section` or `container` |
-| `collection-list` | `source`\*, `filters`, `sort`, `limit`, `paging`, `columns`, `gap`, `layerLabel` | `listChild`: its `list-card`, then its `list-empty` (rule 20) | in `section` or `container` (016) |
-| `list-card` | `layerLabel` | `contentChild` | in `collection-list` only (016) |
+| `component-ref` | `componentId`: UUID of a shared component of the **same site**; `border` (066) | none | page documents, under `root` only |
+| `section` | `background`, `paddingY`, `width`, `border`, `layerLabel` | `contentChild` | under `root` |
+| `container` | `direction`, `columns`, `gap`, `padding`, `align`, `maxWidth`, `background`, `stackOnMobile`, `border`, `layerLabel` | `contentChild` | in `section` or `container` |
+| `heading` | `text`\*, `level`, `align`, `color`, `link`, `border`, `layerLabel`, `bind` | none | in `section` or `container` |
+| `text` | `text`\*, `align`, `color`, `size`, `border`, `layerLabel`, `bind` | none | in `section` or `container` |
+| `rich-text` | `content`\*, `align`, `color`, `border`, `layerLabel`, `bind` | none | in `section` or `container` |
+| `image` | `media`, `alt`, `decorative`, `width`, `link`, `border`, `layerLabel`, `bind` | none | in `section` or `container` |
+| `button` | `label`\*, `link`, `style`, `align`, `newTab`, `border`, `layerLabel`, `bind` | none | in `section` or `container` |
+| `spacer` | `height`, `border`, `layerLabel` | none | in `section` or `container` |
+| `divider` | `color`, `thickness`, `spacing`, `border`, `layerLabel` | none | in `section` or `container` |
+| `embed` | `url`, `title`, `aspectRatio`, `border`, `layerLabel` | none | in `section` or `container` |
+| `collection-list` | `source`\*, `filters`, `sort`, `limit`, `paging`, `columns`, `gap`, `border`, `layerLabel` | `listChild`: its `list-card`, then its `list-empty` (rule 20) | in `section` or `container` (016) |
+| `list-card` | `border`, `layerLabel` | `contentChild` | in `collection-list` only (016) |
 | `list-empty` | `layerLabel` | `contentChild` | in `collection-list` only (016) |
-| `navigation` | `menuId`\*, `layout`, `levels`, `collapse`, `align`, `ariaLabel`, `look`, `color`, `activeColor`, `background`, `hoverColor`, `hoverBackground`, `activeBackground`, `focusColor`, `panelBackground`, `layerLabel` | none | in `section` or `container`, in page and component documents (024) |
-| `form` | `name`\*, `fields`\*, `submitLabel`, `successMessage`, `errorMessage`, `redirect`, `notify`, `retentionDays`, `layerLabel` | none | in `section` or `container`, never inside a `collection-list` (rule 26) (018) |
+| `navigation` | `menuId`\*, `layout`, `levels`, `collapse`, `align`, `ariaLabel`, `look`, `color`, `activeColor`, `background`, `hoverColor`, `hoverBackground`, `activeBackground`, `focusColor`, `panelBackground`, `border`, `layerLabel` | none | in `section` or `container`, in page and component documents (024) |
+| `form` | `name`\*, `fields`\*, `submitLabel`, `successMessage`, `errorMessage`, `redirect`, `notify`, `retentionDays`, `border`, `layerLabel` | none | in `section` or `container`, never inside a `collection-list` (rule 26) (018) |
 
 \* required. Values, limits and defaults are in the schema file, which is the single
 definition; this table is its index. `layerLabel` is an editor aid and is never rendered.
@@ -140,6 +140,21 @@ No other type changes (constitution Principle VI).
   and lists (`rtListBlock`).
 
   There is never HTML.
+- **Border** (added by 066): `{ width?, style?, color?, radius?, padding? }` on every content
+  type but `list-empty` (`$defs/border`). Section and Container take `$defs/borderBox`, which
+  has no `padding`, because they have padding of their own.
+  - `width` is `none` (the default), `thin`, `medium` or `thick`, fixed at 1, 2 and 4 px;
+  - `style` is `solid` (the default), `dashed` or `dotted`;
+  - `color` is a `colorRef`, by default `color-border`;
+  - `radius` is a `radiusRef`, a token reference to the site's corner radii
+    ([design-tokens.md](design-tokens.md) §2, `radii`);
+  - `padding` is a `spaceRef`, the space between the line and the content.
+
+  `radius` and `padding` have **no default**. Absent, or naming a token the design lacks,
+  they leave the block's own corners and spacing as they are: square and none for every
+  block but the Button, which keeps its own. A `border` that is absent, or has width `none`
+  and no radius or padding, changes nothing about how the block looks. A border is never
+  bindable.
 - **Defaults**: a property's `default` in the schema is its value when it is missing. A
   newly inserted block holds only its required properties.
 
@@ -394,6 +409,12 @@ the same (024 `UpgradeFrom017Tests`). Menus themselves have their own contract,
 `default`**: absent means the site-wide menu style of the design tokens
 ([design-tokens.md](design-tokens.md) §2, `menuStyle`).
 
+**Additions in 066 (still version 1)**: `$defs` `radiusRef`, `borderWidth`, `borderStyle`,
+`border` and `borderBox`, and an optional `border` prop on every content type but
+`list-empty`: `section` and `container` take `borderBox`, the others `border` (§2a). Every
+document valid before stays valid and renders the same (066 SC-004). The radii it names are
+an optional addition to the design tokens, also still version 1.
+
 **Additions in 018 (still version 1)**: the node type `form` in `contentChild`, with
 `$defs/form`, `$defs/formField` (one branch per field type, `formField-<type>`),
 `$defs/formFieldId`, `$defs/formOption`, `$defs/formRedirect` and `$defs/formNotify`, and
@@ -528,6 +549,15 @@ Every validator of this schema runs the same files:
 | `invalid/props_invalid--form-too-many-recipients.json` | at `…/props/notify/recipients` (018) |
 | `invalid/props_invalid--form-option-on-text.json` | at `…/props/fields/0/options`: options belong to choice fields only (018) |
 | `invalid/children_not_allowed--form-child.json` | at the block's `/children` (018) |
+| `valid/borders-every-block.json` | passes: a border on every content type but the Collection list (whose card has its own case in `CollectionListRenderTests`), every width and style, inner spacing, each Button style, and a Button whose width `none` keeps its own frame (066) |
+| `valid/borders-component-ref.json` | passes: a bordered and an unbordered reference to the same component (066) |
+| `valid/borders-radius.json` | passes: corner radii with and without a line, a rounded card holding a full-width image, a Full radius on a square Spacer and on a Button, and a rounded Navigation (066) |
+| `valid/borders-tokens-missing.json` | passes: border colour, radius and spacing tokens the design lacks: the default colour, and the block's own corners and spacing (066 FR-016) |
+| `invalid/props_invalid--border-unknown-width.json` | at `…/props/border/width` (066) |
+| `invalid/props_invalid--border-unknown-style.json` | at `…/props/border/style` (066) |
+| `invalid/props_invalid--border-raw-colour.json` | at `…/props/border/color`: colours are token references only (066) |
+| `invalid/props_invalid--border-padding-on-section.json` | at `…/props/border/padding`: Sections and Containers have padding of their own (066) |
+| `invalid/props_invalid--border-extra-key.json` | at `…/props/border/shadow` (066) |
 
 Documents too deep or with too many nodes are generated by the tests rather than stored.
 Every block type has at least one valid and one invalid example (011 SC-009);
@@ -615,5 +645,30 @@ visitors at `/_assets/blocks.{hash}.css`.
   The markup, the submit endpoint and the content security policy of pages with a form are
   in specs/018-forms-submissions contracts/public-forms.md §2. The canvas draws the same
   markup, disabled.
+- **Borders** (066): one shared helper on each side (`BorderStyle.cs`, `useBorder.ts`)
+  writes them for every block.
+  - **Tokens**: the design's radii become `--qb-radius-<id>`, in `rem` scaled like spacing,
+    for every default radius id and every radius of the site's set.
+  - **Classes** go on the framed element, after the block's own classes, in this order:
+    | Class | When |
+    |---|---|
+    | `qb-border` | the block has a `border` |
+    | `qb-border--thin` / `--medium` / `--thick` | width is not `none` |
+    | `qb-border--solid` / `--dashed` / `--dotted` | width is not `none` |
+    | `qb-border--radius` | `radius` names a radius of the design |
+    | `qb-border--pad` | `padding` names a spacing step of the design |
+  - **Per-node values**, with the block's own: `--qb-border-color` when width is not
+    `none`, `--qb-border-radius` with `qb-border--radius`, and `--qb-border-pad` with
+    `qb-border--pad`.
+  - **Framed element**: the block's own element, except the Image, whose `img` is framed. A
+    bordered Divider wraps its `hr` in `div.qb-divider-frame`, and a bordered Component
+    reference wraps the component's content in `div.qb-component-ref`. Without a `border`,
+    neither wrapper is drawn. The canvas draws the same wrappers.
+  - **Clipping**: `qb-border--radius` clips content on Section, Container, Rich Text, Embed,
+    List card and Component reference, never on Navigation (its drop-down panels) or Form
+    (its focus rings).
+  - **Size**: `qb-border` is `box-sizing: border-box`, so a border never widens a block. A
+    Button's border replaces its built-in frame, its radius its corners, and its padding its
+    spacing.
 - **Adding a block type** also means adding one renderer class, which
   `BlockRendererCoverageTests` checks, and golden files (§8).

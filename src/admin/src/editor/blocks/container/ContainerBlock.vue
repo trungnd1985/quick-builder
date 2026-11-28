@@ -9,14 +9,18 @@ import { computed } from 'vue'
 import CanvasChildren from '../../canvas/CanvasChildren.vue'
 import type { ContentNode } from '../../schema/schema'
 import { useBlock } from '../useBlock'
+import { useBorder } from '../useBorder'
 
 const props = defineProps<{ node: ContentNode }>()
 const { prop, token } = useBlock(() => props.node)
+
+const { classes: borderClasses, style: borderStyle } = useBorder(() => props.node)
 
 const style = computed(() => ({
   '--qb-container-gap': token('gap', 'space'),
   '--qb-container-pad': token('padding', 'space'),
   '--qb-container-bg': token('background', 'color', 'transparent'),
+  ...borderStyle.value,
 }))
 
 const grid = computed(() => prop('direction') === 'horizontal' && prop('columns') !== 'equal')
@@ -34,6 +38,7 @@ const grid = computed(() => prop('direction') === 'horizontal' && prop('columns'
         'qb-container--grid': grid,
         [`qb-columns--${prop('columns')}`]: grid,
       },
+      borderClasses,
     ]"
     :style="style"
   >

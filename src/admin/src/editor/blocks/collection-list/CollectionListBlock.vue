@@ -10,6 +10,7 @@ import { useListPreview } from '../../bindings/listPreview'
 import type { ContentNode } from '../../schema/schema'
 import { isObject } from '../../schema/subsetValidator'
 import { useBlock } from '../useBlock'
+import { useBorder } from '../useBorder'
 import ListItemScope from './ListItemScope.vue'
 
 const props = defineProps<{ node: ContentNode }>()
@@ -17,10 +18,12 @@ const { t } = useI18n()
 const { prop, token } = useBlock(() => props.node)
 
 const columns = computed(() => Number(prop('columns')) || 3)
+const { classes: borderClasses, style: borderStyle } = useBorder(() => props.node)
 const style = computed(() => ({
   '--qb-cols': String(columns.value),
   '--qb-cols-tablet': String(Math.min(columns.value, 2)),
   '--qb-list-gap': token('gap', 'space'),
+  ...borderStyle.value,
 }))
 
 const card = computed(() => props.node.children.find((child) => child.type === 'list-card') ?? null)
@@ -65,6 +68,7 @@ const status = computed(() => {
     <div
       v-if="card"
       class="qb-list"
+      :class="borderClasses"
       :style="style"
     >
       <ListItemScope

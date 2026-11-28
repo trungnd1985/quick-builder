@@ -41,9 +41,10 @@ cannot be deleted — the admin shell says why.
 
 
 Pages and shared components are built in the visual editor: **Pages → a page → Edit
-content**, and **Shared components → Edit content**. Each site's colours, fonts and spacing
-are under **Sites → a site → Design**. Designers edit components and the design; editors
-build page content.
+content**, and **Shared components → Edit content**. Each site's colours, fonts, spacing and
+corner radii are under **Sites → a site → Design**. Designers edit components and the design;
+editors build page content, and can give any block a border and rounded corners from those
+tokens. Corner radii are part of the design, so they travel with site exports like the rest.
 
 ### Drafts and the design
 

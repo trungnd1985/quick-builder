@@ -5,20 +5,24 @@ import { computed } from 'vue'
 import CanvasChildren from '../../canvas/CanvasChildren.vue'
 import type { ContentNode } from '../../schema/schema'
 import { useBlock } from '../useBlock'
+import { useBorder } from '../useBorder'
 
 const props = defineProps<{ node: ContentNode }>()
 const { prop, token } = useBlock(() => props.node)
 
+const { classes: borderClasses, style: borderStyle } = useBorder(() => props.node)
+
 const style = computed(() => ({
   '--qb-section-bg': token('background', 'color', 'transparent'),
   '--qb-section-pad': token('paddingY', 'space'),
+  ...borderStyle.value,
 }))
 </script>
 
 <template>
   <section
     class="qb-section"
-    :class="`qb-section--${prop('width')}`"
+    :class="[`qb-section--${prop('width')}`, borderClasses]"
     :style="style"
   >
     <div class="qb-section__inner">

@@ -52,7 +52,8 @@ public sealed class RendererGoldenTests
         }
 
         // 018 research FS-10: a page with a form carries exactly one form script, admitted by hash.
-        if (html.Contains("class=\"qb-form\"", StringComparison.Ordinal))
+        // A bordered form carries more classes after its own (066).
+        if (html.Contains("class=\"qb-form\"", StringComparison.Ordinal) || html.Contains("class=\"qb-form qb-border", StringComparison.Ordinal))
         {
             Assert.Equal(1, html.Split(QuickBuilder.Rendering.Rendering.Forms.FormScript.Element).Length - 1);
             html = html.Replace(QuickBuilder.Rendering.Rendering.Forms.FormScript.Element, string.Empty, StringComparison.Ordinal);

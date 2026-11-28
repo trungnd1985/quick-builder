@@ -23,9 +23,23 @@ describe('block registry against the schema', () => {
     const definition = registry[type]
     const controlled = definition.groups.flatMap((g) => g.props.map((p) => p.prop)).sort()
     // `bind` is edited through the binding control beside each bindable property (016 TB-14).
-    const schemaProps = propNames(type).filter((p) => p !== 'layerLabel' && p !== 'bind').sort()
+    // `border` gets its group from the panel itself, like `layerLabel` (066 BB-08).
+    const schemaProps = propNames(type).filter((p) => p !== 'layerLabel' && p !== 'bind' && p !== 'border').sort()
 
     expect(controlled).toEqual(schemaProps)
+  })
+
+  // 066 FR-001, SC-002: every content block has the same optional border; the empty state none.
+  it.each(['section', 'container', 'heading', 'text', 'rich-text', 'image', 'button', 'spacer', 'divider', 'embed', 'navigation', 'form', 'collection-list', 'list-card', 'component-ref'])(
+    'gives a %s the shared border, which no definition lists itself',
+    (type) => {
+      expect(propNames(type)).toContain('border')
+      expect(registry[type].groups.flatMap((g) => g.props.map((p) => p.prop))).not.toContain('border')
+    },
+  )
+
+  it("gives the list's empty state no border", () => {
+    expect(propNames('list-empty')).not.toContain('border')
   })
 
   it.each(blockTypes)('starts a new %s with valid values for its required properties only', (type) => {

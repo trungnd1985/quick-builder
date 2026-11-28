@@ -5,6 +5,7 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { ContentNode } from '../../schema/schema'
 import { useBlock } from '../useBlock'
+import { useBorder } from '../useBorder'
 import { embedProvider } from './definition'
 
 const props = defineProps<{ node: ContentNode }>()
@@ -14,12 +15,15 @@ const { prop } = useBlock(() => props.node)
 const url = computed(() => (typeof props.node.props.url === 'string' ? props.node.props.url : null))
 const provider = computed(() => embedProvider(url.value))
 const ratio = computed(() => String(prop('aspectRatio')).replace(':', ' / '))
+const { classes: borderClasses, style: borderStyle } = useBorder(() => props.node)
+
 </script>
 
 <template>
   <div
     class="qb-embed qb-editor-placeholder"
-    :style="{ aspectRatio: ratio }"
+    :class="borderClasses"
+    :style="{ aspectRatio: ratio, ...borderStyle }"
   >
     <template v-if="url && provider">
       <strong>{{ t(`editor.blocks.embedProvider.${provider}`) }}</strong>

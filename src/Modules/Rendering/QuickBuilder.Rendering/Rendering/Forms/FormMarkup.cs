@@ -3,6 +3,7 @@ using System.Text.Json;
 using QuickBuilder.Rendering.Contracts;
 using QuickBuilder.Rendering.Domain;
 using QuickBuilder.Rendering.Features.NotFound;
+using QuickBuilder.Rendering.Rendering.Blocks;
 using QuickBuilder.Shared.Kernel.Routing;
 
 namespace QuickBuilder.Rendering.Rendering.Forms;
@@ -46,7 +47,10 @@ internal static class FormMarkup
         var fields = context.Prop(node, "fields") is { ValueKind: JsonValueKind.Array } list ? [.. list.EnumerateArray()] : Array.Empty<JsonElement>();
         var errorMessage = context.String(node, "errorMessage") is { Length: > 0 } error ? error : texts.Error;
 
-        writer.Open("div").Attribute("class", "qb-form").Attribute("id", view.IdBase).EndTag();
+        // 066: a border frames the whole form, its messages included.
+        writer.Open("div").Attribute("class", "qb-form" + BorderStyle.Classes(node, context)).Attribute("id", view.IdBase);
+        context.Style(writer, scope, node, BorderStyle.Declarations(node, context));
+        writer.EndTag();
 
         writer.Open("div").Attribute("class", "qb-form__sent").Attribute("id", SentId(formId))
             .Attribute("role", "status").Attribute("tabindex", "-1").EndTag();

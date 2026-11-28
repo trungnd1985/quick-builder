@@ -11,6 +11,7 @@ import type { ContentNode } from '../../schema/schema'
 import { isObject } from '../../schema/subsetValidator'
 import { useBrokenLinks } from '../brokenLinks'
 import { useBlock } from '../useBlock'
+import { useBorder } from '../useBorder'
 import { defaultSource, mediaDetails, sourceSet } from './mediaDetails'
 
 const props = defineProps<{ node: ContentNode }>()
@@ -43,6 +44,8 @@ const src = computed(() => (details.value ? defaultSource(details.value) : undef
 const srcset = computed(() => (details.value ? sourceSet(details.value) : undefined))
 const width = computed(() => (typeof details.value?.width === 'number' ? details.value.width : undefined))
 const height = computed(() => (typeof details.value?.height === 'number' ? details.value.height : undefined))
+// 066 BB-05: a border frames the picture itself, so its radius rounds the photo.
+const { classes: borderClasses, style: borderStyle } = useBorder(() => props.node)
 const alt = computed(() => (prop<boolean>('decorative') ? '' : prop<string | undefined>('alt') ?? ''))
 </script>
 
@@ -53,6 +56,8 @@ const alt = computed(() => (prop<boolean>('decorative') ? '' : prop<string | und
   >
     <img
       v-if="src && !failed"
+      :class="borderClasses"
+      :style="borderStyle"
       :src="src"
       :srcset="srcset"
       :sizes="srcset ? '100vw' : undefined"

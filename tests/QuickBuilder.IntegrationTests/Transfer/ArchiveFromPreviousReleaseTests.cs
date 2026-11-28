@@ -42,7 +42,14 @@ public sealed class ArchiveFromPreviousReleaseTests(DatabaseFixture database)
         var visitor = app.CreateClientForHost("cms-a.test");
         var about = await visitor.GetAsync(new Uri("/about", UriKind.Relative)).ConfigureAwait(true);
         Assert.Equal(HttpStatusCode.OK, about.StatusCode);
-        Assert.Contains("About Acme", await about.Content.ReadAsStringAsync().ConfigureAwait(true), StringComparison.Ordinal);
+        var html = await about.Content.ReadAsStringAsync().ConfigureAwait(true);
+        Assert.Contains("About Acme", html, StringComparison.Ordinal);
+
+        // 066 FR-022: an archive from before corner radii imports without any, and its pages get
+        // the default radii, as every set saved before them does.
+        var tokens = await QuickBuilder.IntegrationTests.Editor.EditorApi.GetOkAsync(admin, done.GetProperty("siteId").GetGuid()).ConfigureAwait(true);
+        Assert.False(tokens.GetProperty("document").TryGetProperty("radii", out _) && !tokens.GetProperty("isDefault").GetBoolean());
+        Assert.Contains("--qb-radius-radius-md:", html, StringComparison.Ordinal);
     }
 
     [Fact]

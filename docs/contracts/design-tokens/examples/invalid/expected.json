@@ -15,5 +15,10 @@
   "editor.invalid_tokens--menu-style-look.json": { "code": "editor.invalid_tokens", "pointer": "/menuStyle/look" },
   "editor.invalid_tokens--menu-style-color-key.json": { "code": "editor.invalid_tokens", "pointer": "/menuStyle/colors/foreground" },
   "editor.invalid_tokens--menu-style-bad-id.json": { "code": "editor.invalid_tokens", "pointer": "/menuStyle/colors/text" },
-  "editor.invalid_tokens--menu-style-extra-key.json": { "code": "editor.invalid_tokens", "pointer": "/menuStyle/fonts" }
+  "editor.invalid_tokens--menu-style-extra-key.json": { "code": "editor.invalid_tokens", "pointer": "/menuStyle/fonts" },
+  "editor.token_required--radii-empty.json": { "code": "editor.token_required", "pointer": "/radii" },
+  "editor.duplicate_token_id--radius-shares-spacing-id.json": { "code": "editor.duplicate_token_id", "pointer": "/radii/5/id" },
+  "editor.duplicate_token_name--radius-case.json": { "code": "editor.duplicate_token_name", "pointer": "/radii/5/name" },
+  "editor.invalid_tokens--radius-over-100.json": { "code": "editor.invalid_tokens", "pointer": "/radii/0/rem" },
+  "editor.invalid_tokens--13-radii.json": { "code": "editor.invalid_tokens", "pointer": "/radii" }
 }

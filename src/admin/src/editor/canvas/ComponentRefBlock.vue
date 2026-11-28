@@ -12,8 +12,11 @@ import { useEditorStore } from '../state/editorStore'
 import { useSharedComponent } from '../state/componentCache'
 import CanvasChildren from './CanvasChildren.vue'
 import { STATIC_CANVAS } from './staticCanvas'
+import { useBorder } from '../blocks/useBorder'
 
 const props = defineProps<{ node: ContentNode }>()
+// 066 BB-05: a border frames this one use of the component; the shared badge is an editing aid.
+const { classes: borderClasses, style: borderStyle } = useBorder(() => props.node)
 const { t } = useI18n()
 const store = useEditorStore()
 
@@ -30,7 +33,11 @@ const shared = computed(() => (nested ? { state: 'missing' as const, name: '', r
 </script>
 
 <template>
-  <div class="qb-component-ref">
+  <div
+    class="qb-component-ref"
+    :class="borderClasses"
+    :style="borderStyle"
+  >
     <span class="qb-component-ref__badge">{{ t('editor.components.shared') }}<template v-if="shared.name">: {{ shared.name }}</template></span>
     <div
       v-if="nested"

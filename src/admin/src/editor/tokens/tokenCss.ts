@@ -9,7 +9,7 @@
 import { defaultTokens, type MenuColorKey, type TokenSet } from './defaultTokens'
 import { fontFamily } from './fontStacks'
 
-export type TokenKind = 'color' | 'space' | 'text'
+export type TokenKind = 'color' | 'space' | 'text' | 'radius'
 
 const scale = (rem: number): string => `calc(var(--qb-base-size) * ${rem})`
 
@@ -18,6 +18,8 @@ function entries(set: Readonly<TokenSet>): [string, string][] {
     ...set.colors.map((c): [string, string] => [`--qb-color-${c.id}`, c.value]),
     ...set.typography.sizes.map((s): [string, string] => [`--qb-text-${s.id}`, scale(s.rem)]),
     ...set.spacing.map((s): [string, string] => [`--qb-space-${s.id}`, scale(s.rem)]),
+    // 066: corner radii scale like spacing. A set without its own adds none; the defaults' stand.
+    ...(set.radii ?? []).map((r): [string, string] => [`--qb-radius-${r.id}`, scale(r.rem)]),
     ['--qb-font-heading', fontFamily(set.typography.headingFont)],
     ['--qb-font-body', fontFamily(set.typography.bodyFont)],
     ['--qb-base-size', `${set.typography.baseSizePx}px`],
@@ -73,10 +75,20 @@ export function tokenCss(set: Readonly<TokenSet>): Record<string, string> {
 /** The custom property name for a token id. */
 export const tokenVar = (kind: TokenKind, id: string): string => `--qb-${kind}-${id}`
 
+/**
+ * The set's tokens of one kind, in list order: what a token picker offers. A set saved before
+ * radii existed uses the default set's (design-tokens.md §2, 066).
+ */
+export function tokensOf(set: Readonly<TokenSet>, kind: TokenKind): readonly { id: string; name: string }[] {
+  if (kind === 'color') return set.colors
+  if (kind === 'text') return set.typography.sizes
+  if (kind === 'radius') return set.radii ?? defaultTokens.radii ?? []
+  return set.spacing
+}
+
 /** Whether the set holds a token of this kind and id. */
 export function tokenExists(set: Readonly<TokenSet>, kind: TokenKind, id: string): boolean {
-  const list = kind === 'color' ? set.colors : kind === 'text' ? set.typography.sizes : set.spacing
-  return list.some((t) => t.id === id)
+  return tokensOf(set, kind).some((t) => t.id === id)
 }
 
 /**

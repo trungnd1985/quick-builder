@@ -206,6 +206,70 @@ describe('DesignTokensView (US6)', () => {
     expect((screen.getByLabelText(en.design.widths.wide) as HTMLInputElement).value).toBe('1440')
   })
 
+  // 066 US3, FR-013 to FR-016: the corner radii, a list beside spacing, edited the same way.
+  const radii = () => screen.getByRole('group', { name: en.design.radii.title })
+  const radiusNames = () => within(radii()).getAllByRole('textbox').map((input) => (input as HTMLInputElement).value)
+
+  it('shows the default corner radii, after spacing, for a set saved before them', async () => {
+    const legacy = JSON.parse(JSON.stringify(defaultTokens)) as TokenSet
+    delete legacy.radii
+    stub({ document: legacy })
+    await renderView()
+
+    expect(radiusNames()).toEqual(['None', 'Small', 'Medium', 'Large', 'Full'])
+    const legends = [...document.querySelectorAll('legend')].map((l) => l.textContent?.trim())
+    expect(legends.indexOf(en.design.radii.title)).toBe(legends.indexOf(en.design.spacing.title) + 1)
+  })
+
+  it('adds, renames and resizes a corner radius, and saves the list with the set', async () => {
+    const calls = stub()
+    await renderView()
+
+    await fireEvent.click(within(radii()).getByRole('button', { name: en.design.radii.add }))
+    const inputs = within(radii()).getAllByRole('textbox')
+    await fireEvent.update(inputs.at(-1)!, 'Card')
+    const sizes = within(radii()).getAllByRole('spinbutton')
+    await fireEvent.update(sizes.at(-1)!, '0.75')
+    await fireEvent.click(screen.getByRole('button', { name: en.design.save }))
+
+    await waitFor(() => expect(calls.some((c) => c.method === 'PUT')).toBe(true))
+    const sent = calls.find((c) => c.method === 'PUT')!.body!.document.radii!
+    expect(sent).toHaveLength(6)
+    expect(sent.at(-1)).toMatchObject({ name: 'Card', rem: 0.75 })
+    expect(sent.at(-1)!.id).toMatch(/^radius-[a-z0-9]{8}$/)
+  })
+
+  it('asks how many blocks use a corner radius before deleting it', async () => {
+    const calls = stub({ usage: 3 })
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true)
+    await renderView()
+
+    const row = within(radii()).getByDisplayValue('Medium').closest('li')!
+    await fireEvent.click(within(row).getByRole('button', { name: en.design.remove }))
+
+    await waitFor(() => expect(confirm).toHaveBeenCalled())
+    expect(calls.some((c) => c.url.endsWith('/token-usages/radius-md'))).toBe(true)
+    expect(confirm.mock.calls[0][0]).toContain('3')
+    expect(radiusNames()).not.toContain('Medium')
+  })
+
+  it('does not offer to delete the last corner radius', async () => {
+    const one = JSON.parse(JSON.stringify(defaultTokens)) as TokenSet
+    one.radii = [{ id: 'radius-only', name: 'Only', rem: 0.5 }]
+    stub({ document: one })
+    await renderView()
+
+    expect((within(radii()).getByRole('button', { name: en.design.remove }) as HTMLButtonElement).disabled).toBe(true)
+  })
+
+  it('shows the corner radii read-only to a member who may not change them', async () => {
+    stub({ canManage: false })
+    await renderView()
+
+    expect((within(radii()).getByDisplayValue('Medium') as HTMLInputElement).disabled).toBe(true)
+    expect(within(radii()).queryByRole('button', { name: en.design.radii.add })).toBeNull()
+  })
+
   it('shows the tokens read-only to a member who may not change them', async () => {
     stub({ canManage: false })
     await renderView()

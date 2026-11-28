@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { defaultTokens, type TokenSet } from '../../src/editor/tokens/defaultTokens'
-import { isDeletedToken, tokenCss, tokenValue } from '../../src/editor/tokens/tokenCss'
+import { isDeletedToken, tokenCss, tokenValue, tokenValueIfSet } from '../../src/editor/tokens/tokenCss'
 
 // 011 FR-033, clarification Q4, data-model §2 "Fallbacks always resolve".
 
@@ -74,5 +74,19 @@ describe('tokenValue', () => {
 
   it('uses the given fallback for a missing reference without a default', () => {
     expect(tokenValue(undefined, 'color', defaultTokens, undefined, 'transparent')).toBe('transparent')
+  })
+
+  // 066: corner radii scale like spacing; a set saved before them uses the default radii.
+  it('turns corner radii into custom properties, the defaults standing for a set without any', () => {
+    const old = clone()
+    delete old.radii
+    expect(tokenCss(old)['--qb-radius-radius-md']).toBe('calc(var(--qb-base-size) * 0.5)')
+    expect(tokenValueIfSet({ token: 'radius-md' }, 'radius', old)).toBe('var(--qb-radius-radius-md)')
+
+    const own = clone()
+    own.radii = [{ id: 'radius-card', name: 'Card', rem: 0.75 }]
+    expect(tokenCss(own)['--qb-radius-radius-card']).toBe('calc(var(--qb-base-size) * 0.75)')
+    expect(tokenValueIfSet({ token: 'radius-md' }, 'radius', own)).toBeNull()
+    expect(tokenValueIfSet({ token: 'radius-card' }, 'radius', own)).toBe('var(--qb-radius-radius-card)')
   })
 })

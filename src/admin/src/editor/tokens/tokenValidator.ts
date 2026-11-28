@@ -14,6 +14,8 @@ const LISTS: [string, string[]][] = [
   ['/colors', ['colors']],
   ['/typography/sizes', ['typography', 'sizes']],
   ['/spacing', ['spacing']],
+  // Optional (066): a set without radii uses the default set's, so an absent list is skipped.
+  ['/radii', ['radii']],
 ]
 
 const fail = (code: string, pointer: string, message = ''): TokenValidation => ({ valid: false, code, pointer, message })
@@ -37,7 +39,8 @@ export function validateTokenSet(set: unknown): TokenValidation {
 
   const ids = new Set<string>()
   for (const [pointer, path] of LISTS) {
-    const list = at(set, path) as { id: string }[]
+    const list = at(set, path) as { id: string }[] | undefined
+    if (!list) continue
     for (let i = 0; i < list.length; i++) {
       if (ids.has(list[i].id)) return fail('editor.duplicate_token_id', `${pointer}/${i}/id`)
       ids.add(list[i].id)
@@ -46,7 +49,8 @@ export function validateTokenSet(set: unknown): TokenValidation {
 
   for (const [pointer, path] of LISTS) {
     const names = new Set<string>()
-    const list = at(set, path) as { name: string }[]
+    const list = at(set, path) as { name: string }[] | undefined
+    if (!list) continue
     for (let i = 0; i < list.length; i++) {
       const name = list[i].name.toLocaleLowerCase('en')
       if (names.has(name)) return fail('editor.duplicate_token_name', `${pointer}/${i}/name`)

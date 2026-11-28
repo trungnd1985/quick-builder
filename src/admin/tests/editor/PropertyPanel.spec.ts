@@ -161,4 +161,60 @@ describe('PropertyPanel (US2)', () => {
     await fireEvent.update(label, '')
     expect(locate(store.root!, 's')!.node.props).not.toHaveProperty('layerLabel')
   })
+
+  // 066 FR-008, research BB-08: the panel adds one Border group itself, after the block's own
+  // groups and before Layer, to every block whose schema has a border.
+  const legends = () => [...panel().querySelectorAll('legend')].map((l) => l.textContent?.trim())
+
+  it('adds the Border group after the block\'s own groups and before Layer', async () => {
+    stubServer(one({ id: 'h', type: 'heading', props: { text: 'Hello' }, children: [] }))
+    await mountEditor()
+    useEditorStore().select('h')
+
+    await waitFor(() => expect(legends()).toContain(en.editor.panel.groups.border))
+    const shown = legends()
+    expect(shown.slice(-2)).toEqual([en.editor.panel.groups.border, en.editor.panel.groups.layer])
+    expect(within(panel()).getByLabelText(en.editor.panel.border.padding)).toBeTruthy()
+  })
+
+  it('gives a Section the Border group without inner spacing', async () => {
+    stubServer(documentWith({ id: 's', type: 'section', props: {}, children: [] }))
+    await mountEditor()
+    useEditorStore().select('s')
+
+    await waitFor(() => expect(legends()).toContain(en.editor.panel.groups.border))
+    expect(within(panel()).queryByLabelText(en.editor.panel.border.padding)).toBeNull()
+  })
+
+  it('shows no Border group for a list\'s empty state', async () => {
+    stubServer(one({
+      id: 'l',
+      type: 'collection-list',
+      props: { source: { collectionId: COLLECTION } },
+      children: [
+        { id: 'card', type: 'list-card', props: {}, children: [] },
+        { id: 'empty', type: 'list-empty', props: {}, children: [] },
+      ],
+    }))
+    await mountEditor()
+    useEditorStore().select('empty')
+
+    await waitFor(() => expect(legends()).toContain(en.editor.panel.groups.layer))
+    expect(legends()).not.toContain(en.editor.panel.groups.border)
+  })
+
+  it('applies a border change as one operation', async () => {
+    stubServer(one({ id: 'h', type: 'heading', props: { text: 'Hello' }, children: [] }))
+    await mountEditor()
+    const store = useEditorStore()
+    store.select('h')
+    const apply = vi.spyOn(store, 'apply')
+
+    const width = await within(panel()).findByLabelText(en.editor.panel.border.width)
+    await fireEvent.update(width, 'thin')
+
+    expect(apply).toHaveBeenCalledTimes(1)
+    expect(locate(store.root!, 'h')!.node.props.border).toEqual({ width: 'thin' })
+    expect(document.querySelector('[data-node-id="h"] .qb-border--thin')).not.toBeNull()
+  })
 })

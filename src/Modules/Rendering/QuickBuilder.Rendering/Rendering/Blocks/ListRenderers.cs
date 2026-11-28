@@ -54,11 +54,11 @@ internal sealed class CollectionListRenderer : IBlockRenderer
 
         // Columns step down to at most two at tablet width, and one on phones (blocks.css).
         var columns = Math.Clamp(context.Int(node, "columns", 3), 1, 4);
-        writer.Open("ul").Attribute("class", "qb-list");
-        context.Style(writer, scope, node,
+        writer.Open("ul").Attribute("class", "qb-list" + BorderStyle.Classes(node, context));
+        context.Style(writer, scope, node, BorderStyle.With(node, context,
             ("--qb-cols", columns.ToString(CultureInfo.InvariantCulture)),
             ("--qb-cols-tablet", Math.Min(columns, 2).ToString(CultureInfo.InvariantCulture)),
-            ("--qb-list-gap", context.Token(node, "gap", TokenKind.Space)));
+            ("--qb-list-gap", context.Token(node, "gap", TokenKind.Space))));
         writer.EndTag();
 
         var listId = RenderContext.IdOf(node);
@@ -169,7 +169,10 @@ internal sealed class ListCardRenderer : IBlockRenderer
         ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(writer);
 
-        writer.Markup("<li class=\"qb-list__card\">");
+        // 066: a bordered card frames every listed item, all from the card node's one rule.
+        writer.Open("li").Attribute("class", "qb-list__card" + BorderStyle.Classes(node, context));
+        context.Style(writer, scope, node, BorderStyle.Declarations(node, context));
+        writer.EndTag();
         context.RenderChildren(node, scope, writer);
         writer.Markup("</li>");
     }

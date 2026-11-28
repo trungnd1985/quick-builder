@@ -19,10 +19,10 @@ internal sealed class SectionRenderer : IBlockRenderer
         ArgumentNullException.ThrowIfNull(writer);
 
         var width = context.Choice(node, "width", Widths);
-        writer.Open("section").Attribute("class", $"qb-section qb-section--{width}");
-        context.Style(writer, scope, node,
+        writer.Open("section").Attribute("class", $"qb-section qb-section--{width}{BorderStyle.Classes(node, context)}");
+        context.Style(writer, scope, node, BorderStyle.With(node, context,
             ("--qb-section-bg", context.Token(node, "background", TokenKind.Color, "transparent")),
-            ("--qb-section-pad", context.Token(node, "paddingY", TokenKind.Space)));
+            ("--qb-section-pad", context.Token(node, "paddingY", TokenKind.Space))));
         writer.EndTag().Markup("<div class=\"qb-section__inner\">");
 
         // 013 MV-15: the width images inside may take, for their sizes hint (blocks.css).
@@ -80,11 +80,11 @@ internal sealed class ContainerRenderer : IBlockRenderer
             classes.Add($"qb-columns--{columns}");
         }
 
-        writer.Open("div").Attribute("class", string.Join(' ', classes));
-        context.Style(writer, scope, node,
+        writer.Open("div").Attribute("class", string.Join(' ', classes) + BorderStyle.Classes(node, context));
+        context.Style(writer, scope, node, BorderStyle.With(node, context,
             ("--qb-container-gap", context.Token(node, "gap", TokenKind.Space)),
             ("--qb-container-pad", context.Token(node, "padding", TokenKind.Space)),
-            ("--qb-container-bg", context.Token(node, "background", TokenKind.Color, "transparent")));
+            ("--qb-container-bg", context.Token(node, "background", TokenKind.Color, "transparent"))));
         writer.EndTag();
         context.RenderChildren(node, scope, writer);
         writer.Close("div");
@@ -101,8 +101,8 @@ internal sealed class SpacerRenderer : IBlockRenderer
         ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(writer);
 
-        writer.Open("div").Attribute("class", "qb-spacer");
-        context.Style(writer, scope, node, ("--qb-spacer-height", context.Token(node, "height", TokenKind.Space)));
+        writer.Open("div").Attribute("class", "qb-spacer" + BorderStyle.Classes(node, context));
+        context.Style(writer, scope, node, BorderStyle.With(node, context, ("--qb-spacer-height", context.Token(node, "height", TokenKind.Space))));
         writer.EndTag().Close("div");
     }
 }
@@ -119,10 +119,25 @@ internal sealed class DividerRenderer : IBlockRenderer
         ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(writer);
 
-        writer.Open("hr").Attribute("class", $"qb-divider qb-divider--{context.Choice(node, "thickness", Thicknesses)}");
-        context.Style(writer, scope, node,
+        var own = new[]
+        {
             ("--qb-divider-color", context.Token(node, "color", TokenKind.Color)),
-            ("--qb-divider-spacing", context.Token(node, "spacing", TokenKind.Space)));
+            ("--qb-divider-spacing", context.Token(node, "spacing", TokenKind.Space)),
+        };
+        var rule = $"qb-divider qb-divider--{context.Choice(node, "thickness", Thicknesses)}";
+
+        // 066 BB-05: the line is the hr's own top border, so a border frames a wrapper around it,
+        // drawn only when the block has one. The wrapper carries every value; the hr inherits them.
+        if (BorderStyle.Has(node))
+        {
+            writer.Open("div").Attribute("class", "qb-divider-frame" + BorderStyle.Classes(node, context));
+            context.Style(writer, scope, node, BorderStyle.With(node, context, own));
+            writer.EndTag().Open("hr").Attribute("class", rule).EndTag().Close("div");
+            return;
+        }
+
+        writer.Open("hr").Attribute("class", rule);
+        context.Style(writer, scope, node, own);
         writer.EndTag();
     }
 }

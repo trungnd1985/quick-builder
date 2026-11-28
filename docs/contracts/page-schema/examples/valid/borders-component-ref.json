@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "root": {
+    "id": "root",
+    "type": "root",
+    "props": {},
+    "children": [
+      {
+        "id": "framed-header",
+        "type": "component-ref",
+        "props": {
+          "componentId": "0192f5a0-1b2c-7d3e-8f40-5a6b7c8d9e0f",
+          "border": {
+            "width": "medium",
+            "style": "solid",
+            "color": {
+              "token": "color-brand"
+            }
+          }
+        },
+        "children": []
+      },
+      {
+        "id": "plain-header",
+        "type": "component-ref",
+        "props": {
+          "componentId": "0192f5a0-1b2c-7d3e-8f40-5a6b7c8d9e0f"
+        },
+        "children": []
+      },
+      {
+        "id": "after",
+        "type": "section",
+        "props": {},
+        "children": [
+          {
+            "id": "after-text",
+            "type": "text",
+            "props": {
+              "text": "After the components."
+            },
+            "children": []
+          }
+        ]
+      }
+    ]
+  }
+}

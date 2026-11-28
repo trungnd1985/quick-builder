@@ -15,7 +15,7 @@ namespace QuickBuilder.Editor.Infrastructure;
 /// <item><b>Well-formed JSON</b> without duplicate property names, which parsers disagree about.</item>
 /// <item><b>A supported <c>schemaVersion</c></b>. A missing or malformed one is left to the schema.</item>
 /// <item><b>No empty list</b>, before the schema, so deleting the last colour, text size or spacing
-/// step gets its own reason rather than a generic one.</item>
+/// step or radius gets its own reason rather than a generic one.</item>
 /// <item><b>The schema</b>, through the shared <see cref="SchemaSubsetValidator"/> over the embedded file.</item>
 /// <item><b>Ids unique across all lists</b>, then <b>names unique within a list</b> ignoring case —
 /// rules the schema cannot say.</item>
@@ -30,6 +30,9 @@ internal sealed class TokenSetValidator
         ("/colors", ["colors"]),
         ("/typography/sizes", ["typography", "sizes"]),
         ("/spacing", ["spacing"]),
+
+        // Optional (066): a set without radii uses the default set's, so an absent list is skipped.
+        ("/radii", ["radii"]),
     ];
 
     private readonly Dictionary<int, SchemaSubsetValidator> _schemas;
@@ -110,8 +113,13 @@ internal sealed class TokenSetValidator
         var ids = new HashSet<string>(StringComparer.Ordinal);
         foreach (var (pointer, path) in Lists)
         {
+            if (At(root, path) is not { ValueKind: JsonValueKind.Array } entries)
+            {
+                continue;
+            }
+
             var index = 0;
-            foreach (var entry in At(root, path)!.Value.EnumerateArray())
+            foreach (var entry in entries.EnumerateArray())
             {
                 if (!ids.Add(entry.GetProperty("id").GetString()!))
                 {
@@ -124,9 +132,14 @@ internal sealed class TokenSetValidator
 
         foreach (var (pointer, path) in Lists)
         {
+            if (At(root, path) is not { ValueKind: JsonValueKind.Array } entries)
+            {
+                continue;
+            }
+
             var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             var index = 0;
-            foreach (var entry in At(root, path)!.Value.EnumerateArray())
+            foreach (var entry in entries.EnumerateArray())
             {
                 if (!names.Add(entry.GetProperty("name").GetString()!))
                 {

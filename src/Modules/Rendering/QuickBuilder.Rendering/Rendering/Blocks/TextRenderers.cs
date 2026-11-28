@@ -27,10 +27,10 @@ internal sealed class HeadingRenderer : IBlockRenderer
         var tag = $"h{level}";
         using var size = JsonDocument.Parse($$"""{"token":"{{SizeByLevel[level - 1]}}"}""");
 
-        writer.Open(tag).Attribute("class", $"qb-heading qb-align--{context.Choice(node, "align", Alignments)}");
-        context.Style(writer, scope, node,
+        writer.Open(tag).Attribute("class", $"qb-heading qb-align--{context.Choice(node, "align", Alignments)}{BorderStyle.Classes(node, context)}");
+        context.Style(writer, scope, node, BorderStyle.With(node, context,
             ("--qb-heading-color", context.Token(node, "color", TokenKind.Color)),
-            ("--qb-heading-size", context.Tokens.Value(size.RootElement, TokenKind.Text, MediumSize)));
+            ("--qb-heading-size", context.Tokens.Value(size.RootElement, TokenKind.Text, MediumSize))));
         writer.EndTag();
 
         // 016 FR-014: a heading may link (often to its card's item page); with nowhere visitors
@@ -63,10 +63,10 @@ internal sealed class TextRenderer : IBlockRenderer
         ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(writer);
 
-        writer.Open("p").Attribute("class", $"qb-text qb-align--{context.Choice(node, "align", Alignments)}");
-        context.Style(writer, scope, node,
+        writer.Open("p").Attribute("class", $"qb-text qb-align--{context.Choice(node, "align", Alignments)}{BorderStyle.Classes(node, context)}");
+        context.Style(writer, scope, node, BorderStyle.With(node, context,
             ("--qb-text-color", context.Token(node, "color", TokenKind.Color)),
-            ("--qb-text-size", context.Token(node, "size", TokenKind.Text)));
+            ("--qb-text-size", context.Token(node, "size", TokenKind.Text))));
         writer.EndTag().Text(context.BoundText(node, "text")).Close("p");
     }
 }
@@ -83,8 +83,8 @@ internal sealed class RichTextBlockRenderer : IBlockRenderer
         ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(writer);
 
-        writer.Open("div").Attribute("class", $"qb-rich-text qb-align--{context.Choice(node, "align", Alignments)}");
-        context.Style(writer, scope, node, ("--qb-text-color", context.Token(node, "color", TokenKind.Color)));
+        writer.Open("div").Attribute("class", $"qb-rich-text qb-align--{context.Choice(node, "align", Alignments)}{BorderStyle.Classes(node, context)}");
+        context.Style(writer, scope, node, BorderStyle.With(node, context, ("--qb-text-color", context.Token(node, "color", TokenKind.Color))));
         writer.EndTag();
         var bound = context.Bound(node, "content");
         RichTextRenderer.Render(bound is { State: BoundState.Value, RichText: { } content } ? content : context.Prop(node, "content"), context, writer);

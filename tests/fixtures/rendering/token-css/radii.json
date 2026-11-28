@@ -1,0 +1,169 @@
+{
+  "description": "A set with its own corner radii, none of them a default id (066): the five default radii stand, then the site's own.",
+  "tokens": {
+    "schemaVersion": 1,
+    "colors": [
+      {
+        "id": "color-brand",
+        "name": "Brand",
+        "value": "#2563eb"
+      },
+      {
+        "id": "color-brand-light",
+        "name": "Brand light",
+        "value": "#dbeafe"
+      },
+      {
+        "id": "color-text",
+        "name": "Text",
+        "value": "#111827"
+      },
+      {
+        "id": "color-muted",
+        "name": "Muted text",
+        "value": "#6b7280"
+      },
+      {
+        "id": "color-background",
+        "name": "Background",
+        "value": "#ffffff"
+      },
+      {
+        "id": "color-border",
+        "name": "Border",
+        "value": "#e5e7eb"
+      }
+    ],
+    "typography": {
+      "headingFont": "system-ui",
+      "bodyFont": "system-ui",
+      "baseSizePx": 16,
+      "sizes": [
+        {
+          "id": "text-sm",
+          "name": "Small",
+          "rem": 0.875
+        },
+        {
+          "id": "text-md",
+          "name": "Normal",
+          "rem": 1
+        },
+        {
+          "id": "text-lg",
+          "name": "Large",
+          "rem": 1.25
+        },
+        {
+          "id": "text-xl",
+          "name": "Extra large",
+          "rem": 1.5
+        },
+        {
+          "id": "text-2xl",
+          "name": "2x large",
+          "rem": 2
+        },
+        {
+          "id": "text-3xl",
+          "name": "3x large",
+          "rem": 2.5
+        }
+      ]
+    },
+    "spacing": [
+      {
+        "id": "space-none",
+        "name": "None",
+        "rem": 0
+      },
+      {
+        "id": "space-xs",
+        "name": "Extra small",
+        "rem": 0.25
+      },
+      {
+        "id": "space-sm",
+        "name": "Small",
+        "rem": 0.5
+      },
+      {
+        "id": "space-md",
+        "name": "Medium",
+        "rem": 1
+      },
+      {
+        "id": "space-lg",
+        "name": "Large",
+        "rem": 2
+      },
+      {
+        "id": "space-xl",
+        "name": "Extra large",
+        "rem": 4
+      },
+      {
+        "id": "space-2xl",
+        "name": "2x large",
+        "rem": 6
+      }
+    ],
+    "radii": [
+      {
+        "id": "radius-card",
+        "name": "Card",
+        "rem": 0.75
+      },
+      {
+        "id": "radius-soft",
+        "name": "Soft",
+        "rem": 0.375
+      },
+      {
+        "id": "radius-pill",
+        "name": "Pill",
+        "rem": 100
+      }
+    ],
+    "contentWidths": {
+      "narrow": 720,
+      "normal": 1200,
+      "wide": 1440
+    }
+  },
+  "expected": {
+    "--qb-color-color-brand": "#2563eb",
+    "--qb-color-color-brand-light": "#dbeafe",
+    "--qb-color-color-text": "#111827",
+    "--qb-color-color-muted": "#6b7280",
+    "--qb-color-color-background": "#ffffff",
+    "--qb-color-color-border": "#e5e7eb",
+    "--qb-text-text-sm": "calc(var(--qb-base-size) * 0.875)",
+    "--qb-text-text-md": "calc(var(--qb-base-size) * 1)",
+    "--qb-text-text-lg": "calc(var(--qb-base-size) * 1.25)",
+    "--qb-text-text-xl": "calc(var(--qb-base-size) * 1.5)",
+    "--qb-text-text-2xl": "calc(var(--qb-base-size) * 2)",
+    "--qb-text-text-3xl": "calc(var(--qb-base-size) * 2.5)",
+    "--qb-space-space-none": "calc(var(--qb-base-size) * 0)",
+    "--qb-space-space-xs": "calc(var(--qb-base-size) * 0.25)",
+    "--qb-space-space-sm": "calc(var(--qb-base-size) * 0.5)",
+    "--qb-space-space-md": "calc(var(--qb-base-size) * 1)",
+    "--qb-space-space-lg": "calc(var(--qb-base-size) * 2)",
+    "--qb-space-space-xl": "calc(var(--qb-base-size) * 4)",
+    "--qb-space-space-2xl": "calc(var(--qb-base-size) * 6)",
+    "--qb-radius-radius-none": "calc(var(--qb-base-size) * 0)",
+    "--qb-radius-radius-sm": "calc(var(--qb-base-size) * 0.25)",
+    "--qb-radius-radius-md": "calc(var(--qb-base-size) * 0.5)",
+    "--qb-radius-radius-lg": "calc(var(--qb-base-size) * 1)",
+    "--qb-radius-radius-full": "calc(var(--qb-base-size) * 100)",
+    "--qb-font-heading": "system-ui, sans-serif",
+    "--qb-font-body": "system-ui, sans-serif",
+    "--qb-base-size": "16px",
+    "--qb-width-narrow": "720px",
+    "--qb-width-normal": "1200px",
+    "--qb-width-wide": "1440px",
+    "--qb-radius-radius-card": "calc(var(--qb-base-size) * 0.75)",
+    "--qb-radius-radius-soft": "calc(var(--qb-base-size) * 0.375)",
+    "--qb-radius-radius-pill": "calc(var(--qb-base-size) * 100)"
+  }
+}
