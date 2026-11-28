@@ -115,7 +115,20 @@ async function remove(kind: 'colors' | Scale, id: string): Promise<void> {
   if (index >= 0) list.splice(index, 1)
 }
 
-async function save(): Promise<void> {
+/**
+ * #68: the save in flight, if any. A second save sent before the first answers would carry the
+ * version the first replaces and be refused as someone else's change, so callers share it.
+ */
+let pendingSave: Promise<void> | null = null
+
+function save(): Promise<void> {
+  pendingSave ??= saveNow().finally(() => {
+    pendingSave = null
+  })
+  return pendingSave
+}
+
+async function saveNow(): Promise<void> {
   if (!draft.value || !loaded.value) return
   message.value = ''
   error.value = ''
@@ -145,6 +158,11 @@ async function save(): Promise<void> {
  * Returns the version to publish, or null when the save was refused.
  */
 async function saveBeforePublish(): Promise<number | null> {
+  if (pendingSave) {
+    // #68: publish what the save in flight stores, rather than racing it with a second save.
+    await pendingSave
+    if (error.value) return null
+  }
   if (!loaded.value || !draft.value) return null
   const unsaved = !readOnly.value && JSON.stringify(draft.value) !== JSON.stringify(editable(loaded.value.document))
   if (unsaved) {

@@ -34,7 +34,7 @@ export class DesignScreen extends Screen {
 
   /**
    * Publishes the set, which saves unsaved edits first (012 research PR-17), and waits until the
-   * new version is live. Clicking Save as well would race that save.
+   * new version is live.
    */
   async saveAndPublish(): Promise<void> {
     await this.page.getByRole('button', { name: 'Publish design' }).click()

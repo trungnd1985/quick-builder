@@ -280,4 +280,57 @@ describe('DesignTokensView (US6)', () => {
     expect(screen.queryByRole('button', { name: en.design.colors.add })).toBeNull()
     expect(screen.getByText(en.design.readOnly)).toBeTruthy()
   })
+
+  it('publishes what a save in flight stores, instead of racing it with a second save (#68)', async () => {
+    const calls: Call[] = []
+    let version = 0
+    let document: TokenSet = JSON.parse(JSON.stringify(defaultTokens))
+    let release: () => void = () => {}
+    const held = new Promise<void>((resolve) => { release = resolve })
+    const publication = (liveNumber: number) => ({ liveNumber, liveSinceUtc: null, liveBy: null, hasUnpublishedChanges: false })
+    const tokens = () => ({
+      siteId: SITE, version, isDefault: version === 0, document, updatedAtUtc: null, updatedBy: null,
+      permissions: { canManage: true, canPublish: true }, publication: publication(0),
+    })
+
+    // Like the server: a save against a version that is no longer current is refused.
+    vi.stubGlobal('fetch', vi.fn(async (url: string, init?: RequestInit) => {
+      const method = (init?.method ?? 'GET').toUpperCase()
+      const body = init?.body ? JSON.parse(String(init.body)) : undefined
+      calls.push({ method, url, body })
+
+      let status = 200
+      let reply: unknown
+      if (method === 'PUT') {
+        if (body.version !== version) {
+          status = 409
+          reply = { title: 'Conflict', status, errorCode: 'editor.out_of_date' }
+        } else {
+          version += 1
+          document = body.document
+          await held
+          reply = tokens()
+        }
+      } else if (url.endsWith('/publish')) {
+        reply = publication(1)
+      } else if (url.endsWith('/versions')) {
+        reply = { publication: publication(0), versions: [] }
+      } else {
+        reply = tokens()
+      }
+      return { ok: status < 300, status, statusText: 'x', headers: { get: () => null }, json: async () => reply, text: async () => JSON.stringify(reply) }
+    }))
+    await renderView()
+
+    await fireEvent.update(within(colours()).getByDisplayValue('Brand'), 'Primary')
+    await fireEvent.click(screen.getByRole('button', { name: en.design.save }))
+    await waitFor(() => expect(calls.filter((c) => c.method === 'PUT')).toHaveLength(1))
+    await fireEvent.click(screen.getByRole('button', { name: en.publishing.design.publish }))
+    release()
+
+    await waitFor(() => expect(screen.getByText(en.publishing.design.published.replace('{number}', '1'))).toBeTruthy())
+    expect(calls.filter((c) => c.method === 'PUT')).toHaveLength(1)
+    expect(calls.find((c) => c.url.endsWith('/publish'))!.body).toEqual({ version: 1 })
+    expect(screen.queryByText(en.editor.errors.server.editor_out_of_date)).toBeNull()
+  })
 })
